@@ -97,7 +97,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		return bson.Undefined, nil
 
 	default:
-		return nil, fmt.Errorf("conversion of JSON type '%v' unsupported", v)
+		return nil, fmt.Errorf("conversion of JSON type '%v' unsupported %v", reflect.TypeOf(v), v)
 	}
 }
 
