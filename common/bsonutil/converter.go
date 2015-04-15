@@ -40,7 +40,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		}
 		return v, nil
 
-	case string, float64:
+	case string, float64, int:
 		return v, nil // require no conversion
 
 	case json.ObjectId: // ObjectId

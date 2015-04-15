@@ -775,6 +775,10 @@ func (d *decodeState) convertNumber(s string) (interface{}, error) {
 		}
 		return n, nil
 	}
+	parsedInt, err := strconv.Atoi(s)
+	if err == nil {
+		return parsedInt, nil
+	}
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return nil, &UnmarshalTypeError{"number " + s, reflect.TypeOf(0.0)}
