@@ -279,7 +279,11 @@ func (restore *MongoRestore) Restore() error {
 		go restore.archive.Demux.Run()
 		// consume the new namespace announcement from the demux for all of the collections that get cached
 		for {
-			ns := <-namespaceChan
+			ns, ok := <-namespaceChan
+			// the archive can have only special collections
+			if !ok {
+				break
+			}
 			intent := restore.manager.IntentForNamespace(ns)
 			if intent == nil {
 				return fmt.Errorf("no intent for collection in archive: %v", ns)
