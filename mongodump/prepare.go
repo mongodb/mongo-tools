@@ -165,6 +165,10 @@ func (dump *MongoDump) NewIntent(dbName, colName string, stdout bool) (*intents.
 	if dump.OutputOptions.Archive != "" {
 		intent.BSONFile = &archive.MuxIn{Intent: intent, Mux: dump.archive.Mux}
 	} else {
+		if strings.ContainsRune(colName, '/') || strings.ContainsRune(dbName, '/') {
+			return nil, fmt.Errorf("\"%v.%v\" contains a '/' and can't be dumped to the filesystem",
+				dbName, colName)
+		}
 		intent.BSONFile = &realBSONFile{intent: intent}
 	}
 
