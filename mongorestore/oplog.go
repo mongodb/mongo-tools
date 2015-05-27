@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const oplogMaxCommandSize = 1024 * 1024 * 16.5
+const oplogMaxCommandSize = 1024 * 1024 * 15
 
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
