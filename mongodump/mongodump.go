@@ -48,6 +48,7 @@ type MongoDump struct {
 	authVersion     int
 	archive         *archive.Writer
 	progressManager *progress.Manager
+	count		int
 }
 
 // ValidateOptions checks for any incompatible sets of options.
@@ -417,6 +418,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 
 	}
 
+	dump.count = 0
 	if dump.useStdout {
 		log.Logf(log.Always, "writing %v to stdout", intent.Namespace())
 		return dump.dumpQueryToWriter(findQuery, intent)
@@ -444,7 +446,8 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 		return nil
 	}
 
-	log.Logf(log.Always, "done dumping %v", intent.Namespace())
+	log.Logf(log.Always, "done dumping %v (%v documents dumped)",
+		intent.Namespace(), dump.count)
 	return nil
 }
 
@@ -513,6 +516,7 @@ func (dump *MongoDump) dumpIterToWriter(
 			return fmt.Errorf("error writing to file: %v", err)
 		}
 		progressCount.Inc(1)
+		dump.count += 1
 	}
 
 	return nil
