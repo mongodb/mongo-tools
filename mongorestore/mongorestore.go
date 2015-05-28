@@ -368,9 +368,32 @@ func (restore *MongoRestore) Restore() error {
 	return nil
 }
 
+// readNopCloser implements io.ReadCloser. It wraps up a io.Reader, and adds a no-op Close
+type readNopCloser struct {
+	io.Reader
+}
+
+// Close does nothing on readNopCloser
+func (*readNopCloser) Close() error {
+	return nil
+}
+
+type wrappedReadCloser struct {
+	io.ReadCloser
+	inner io.ReadCloser
+}
+
+func (wrc *wrappedReadCloser) Close() error {
+	err := wrc.ReadCloser.Close()
+	if err != nil {
+		return err
+	}
+	return wrc.inner.Close()
+}
+
 func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 	if restore.InputOptions.Archive == "-" {
-		rc = os.Stdin
+		rc = &readNopCloser{os.Stdin}
 	} else {
 		targetStat, err := os.Stat(restore.InputOptions.Archive)
 		if err != nil {
@@ -393,7 +416,11 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 		}
 	}
 	if restore.InputOptions.Gzip {
-		return gzip.NewReader(rc)
+		gzrc, err := gzip.NewReader(rc)
+		if err != nil {
+			return nil, err
+		}
+		return &wrappedReadCloser{gzrc, rc}, nil
 	}
 	return rc, nil
 }
