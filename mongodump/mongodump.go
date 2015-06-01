@@ -48,7 +48,6 @@ type MongoDump struct {
 	authVersion     int
 	archive         *archive.Writer
 	progressManager *progress.Manager
-	count		int
 }
 
 // ValidateOptions checks for any incompatible sets of options.
@@ -418,7 +417,6 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 
 	}
 
-	dump.count = 0
 	if dump.useStdout {
 		log.Logf(log.Always, "writing %v to stdout", intent.Namespace())
 		return dump.dumpQueryToWriter(findQuery, intent)
@@ -446,8 +444,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 		return nil
 	}
 
-	log.Logf(log.Always, "done dumping %v (%v documents dumped)",
-		intent.Namespace(), dump.count)
+	log.Logf(log.Always, "done dumping %v", intent.Namespace())
 	return nil
 }
 
@@ -460,7 +457,7 @@ func (dump *MongoDump) dumpQueryToWriter(
 	if err != nil {
 		return fmt.Errorf("error reading from db: %v", err)
 	}
-	log.Logf(log.Info, "\t%v documents", total)
+	log.Logf(log.Info, "\t~%v documents to dump", total)
 
 	dumpProgressor := progress.NewCounter(int64(total))
 	bar := &progress.Bar{
@@ -478,7 +475,7 @@ func (dump *MongoDump) dumpQueryToWriter(
 // dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpIterToWriter(
-	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable) error {
+	iter *mgo.Iter, writer io.Writer, progressCount progress.Progressor) error {
 
 	// We run the result iteration in its own goroutine,
 	// this allows disk i/o to not block reads from the db,
@@ -516,9 +513,10 @@ func (dump *MongoDump) dumpIterToWriter(
 			return fmt.Errorf("error writing to file: %v", err)
 		}
 		progressCount.Inc(1)
-		dump.count += 1
 	}
 
+	_, total := progressCount.Progress()
+	log.Logf(log.Always, "\t%v documents dumped", total)
 	return nil
 }
 
