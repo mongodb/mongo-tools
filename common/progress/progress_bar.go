@@ -52,11 +52,7 @@ type Progressor interface {
 	// the amount completed. This method is called by progress.Bar to
 	// determine what percentage to display.
 	Progress() (int64, int64)
-}
 
-// Updateable is an interface which exposes the ability for a progressing value to be
-// incremented, or reset.
-type Updateable interface {
 	// Inc increments the current progress counter by the given amount.
 	Inc(amount int64)
 

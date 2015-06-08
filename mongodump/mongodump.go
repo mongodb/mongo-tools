@@ -458,7 +458,7 @@ func (dump *MongoDump) dumpQueryToWriter(
 	if err != nil {
 		return fmt.Errorf("error reading from db: %v", err)
 	}
-	log.Logf(log.Info, "\t%v documents", total)
+	log.Logf(log.Info, "\t~%v documents to dump", total)
 
 	dumpProgressor := progress.NewCounter(int64(total))
 	bar := &progress.Bar{
@@ -476,7 +476,7 @@ func (dump *MongoDump) dumpQueryToWriter(
 // dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpIterToWriter(
-	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable) error {
+	iter *mgo.Iter, writer io.Writer, progressCount progress.Progressor) error {
 
 	// We run the result iteration in its own goroutine,
 	// this allows disk i/o to not block reads from the db,
@@ -516,6 +516,8 @@ func (dump *MongoDump) dumpIterToWriter(
 		progressCount.Inc(1)
 	}
 
+	_, total := progressCount.Progress()
+	log.Logf(log.Always, "\t%v documents dumped", total)
 	return nil
 }
 
