@@ -10,9 +10,9 @@
 
     // run restore, targeting a collection with a malformed 
     // metadata.json file.
-    var ret = toolTest.runTool('restore', '--db', 'dbOne',
-            '--collection', 'malformed_metadata',
-            'jstests/restore/testdata/dump_with_malformed/dbOne/malformed_metadata.bson');
+    var ret = toolTest.runTool.apply(toolTest,['restore', '--db', 'dbOne',
+            '--collection', 'malformed_metadata'].
+            concat(getRestoreTarget('jstests/restore/testdata/dump_with_malformed/dbOne/malformed_metadata.bson')));
     assert.neq(0, ret);
 
     toolTest.stop();

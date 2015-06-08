@@ -62,8 +62,8 @@
     assert.eq(10, adminDB.data.count());
 
     // dump the data
-    var ret = toolTest.runTool('dump', '--out', dumpTarget, 
-            '--username', 'backup', '--password', 'password');
+    var ret = toolTest.runTool.apply(toolTest,['dump', '--username', 'backup', '--password', 'password'].
+            concat(getDumpTarget(dumpTarget)));
     assert.eq(0, ret);
 
     // drop all the data, but not the users or roles
@@ -91,8 +91,8 @@
     assert.eq(10, adminDB.data.count());
 
     // restore the data, specifying --drop
-    ret = toolTest.runTool('restore', '--drop', '--username', 
-            'restore', '--password', 'password', dumpTarget);   
+    ret = toolTest.runTool.apply(toolTest,['restore', '--drop', '--username', 
+            'restore', '--password', 'password'].concat(getRestoreTarget(dumpTarget)));   
     assert.eq(0, ret);
 
     // make sure the existing data was removed, and replaced with the dumped data
