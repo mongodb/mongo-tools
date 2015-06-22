@@ -432,7 +432,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 		log.Logf(log.Always, "writing repair of %v to %v", intent.Namespace(), intent.BSONPath)
 		repairIter := session.DB(intent.DB).C(intent.C).Repair()
 		repairCounter := progress.NewCounter(1) // this counter is ignored
-		if err := dump.dumpIterToWriter(repairIter, intent.BSONFile, repairCounter); err != nil {
+		if _, err := dump.dumpIterToWriter(repairIter, intent.BSONFile, repairCounter); err != nil {
 			return fmt.Errorf("repair error: %v", err)
 		}
 		log.Logf(log.Always,
@@ -444,7 +444,6 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 		return nil
 	}
 
-	log.Logf(log.Always, "done dumping %v", intent.Namespace())
 	return nil
 }
 
@@ -457,7 +456,7 @@ func (dump *MongoDump) dumpQueryToWriter(
 	if err != nil {
 		return fmt.Errorf("error reading from db: %v", err)
 	}
-	log.Logf(log.Info, "\t~%v documents to dump", total)
+	log.Logf(log.Info, "~%v documents to dump", total)
 
 	dumpProgressor := progress.NewCounter(int64(total))
 	bar := &progress.Bar{
@@ -469,13 +468,19 @@ func (dump *MongoDump) dumpQueryToWriter(
 	defer dump.progressManager.Detach(bar)
 
 	iter := query.Iter()
-	return dump.dumpIterToWriter(iter, intent.BSONFile, dumpProgressor)
+	written, err := dump.dumpIterToWriter(iter, intent.BSONFile, dumpProgressor)
+	if err != nil {
+		return err
+	}
+	log.Logf(log.Always, "done dumping %v (%v documents dumped)",
+		intent.Namespace(), written)
+	return nil
 }
 
 // dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and dumps the iterator's contents to the writer.
-func (dump *MongoDump) dumpIterToWriter(
-	iter *mgo.Iter, writer io.Writer, progressCount progress.Progressor) error {
+func (dump *MongoDump) dumpIterToWriter(iter *mgo.Iter, writer io.Writer,
+	progressCount progress.Progressor) (written int64, err error) {
 
 	// We run the result iteration in its own goroutine,
 	// this allows disk i/o to not block reads from the db,
@@ -504,20 +509,18 @@ func (dump *MongoDump) dumpIterToWriter(
 		buff, alive := <-buffChan
 		if !alive {
 			if iter.Err() != nil {
-				return fmt.Errorf("error reading collection: %v", iter.Err())
+				return progressCount.Get(), fmt.Errorf("error reading collection: %v", iter.Err())
 			}
 			break
 		}
 		_, err := writer.Write(buff)
 		if err != nil {
-			return fmt.Errorf("error writing to file: %v", err)
+			return progressCount.Get(), fmt.Errorf("error writing to file: %v", err)
 		}
 		progressCount.Inc(1)
 	}
 
-	_, total := progressCount.Progress()
-	log.Logf(log.Always, "\t%v documents dumped", total)
-	return nil
+	return progressCount.Get(), nil
 }
 
 // DumpUsersAndRolesForDB queries and dumps the users and roles tied to the given

@@ -42,6 +42,12 @@ func (c *countProgressor) Set(amount int64) {
 	c.current = amount
 }
 
+func (c *countProgressor) Get() (int64) {
+	c.Lock()
+	defer c.Unlock()
+	return c.current
+}
+
 func NewCounter(max int64) *countProgressor {
 	return &countProgressor{max, 0, &sync.Mutex{}}
 }
@@ -55,6 +61,9 @@ type Progressor interface {
 
 	// Inc increments the current progress counter by the given amount.
 	Inc(amount int64)
+
+	// Get the amount completed
+	Get() (int64)
 
 	// Set resets the progress counter to the given amount.
 	Set(amount int64)
