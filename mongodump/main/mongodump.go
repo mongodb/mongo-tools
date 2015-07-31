@@ -4,10 +4,14 @@ package main
 import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongodump"
 	"os"
+	"time"
 )
+
+const progressBarWaitTime = time.Second * 3
 
 func main() {
 	// initialize command-line opts
@@ -49,10 +53,13 @@ func main() {
 	opts.Direct = (setName == "")
 	opts.ReplicaSetName = setName
 
+	
 	dump := mongodump.MongoDump{
 		ToolOptions:   opts,
 		OutputOptions: outputOpts,
 		InputOptions:  inputOpts,
+		ProgressManager: progress.NewProgressBarManager(log.Writer(0), progressBarWaitTime),
+		HandleSignals: mongodump.HandleSignals,
 	}
 
 	if err = dump.Init(); err != nil {

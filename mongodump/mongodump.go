@@ -21,14 +21,29 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
-	"time"
 )
 
 const (
 	progressBarLength   = 24
-	progressBarWaitTime = time.Second * 3
 	defaultPermissions  = 0755
 )
+
+// HandleSignals listens for either SIGTERM, SIGINT or the
+// SIGHUP signal. It ends restore reads for all goroutines
+// as soon as any of those signals is received.
+func HandleSignals(dump *MongoDump) {
+	log.Log(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
+	sigChan := make(chan os.Signal, 2)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	// first signal cleanly terminates dump writes
+	<-sigChan
+	log.Log(log.Always, "ending dump writes")
+	close(dump.termChan)
+	// second signal exits immediately
+	<-sigChan
+	log.Log(log.Always, "forcefully terminating mongodump")
+	os.Exit(util.ExitKill)
+}
 
 // MongoDump is a container for the user-specified options and
 // internal state used for running mongodump.
@@ -37,6 +52,9 @@ type MongoDump struct {
 	ToolOptions   *options.ToolOptions
 	InputOptions  *InputOptions
 	OutputOptions *OutputOptions
+	
+	ProgressManager *progress.Manager
+	HandleSignals func(dump *MongoDump)
 
 	// useful internals that we don't directly expose as options
 	sessionProvider *db.SessionProvider
@@ -47,7 +65,6 @@ type MongoDump struct {
 	isMongos        bool
 	authVersion     int
 	archive         *archive.Writer
-	progressManager *progress.Manager
 	// channel on which to notify if/when a termination signal is received
 	termChan chan struct{}
 	// the value of stdout gets initizlied to os.Stdout if it's unset
@@ -129,7 +146,6 @@ func (dump *MongoDump) Init() error {
 	}
 
 	dump.manager = intents.NewIntentManager()
-	dump.progressManager = progress.NewProgressBarManager(log.Writer(0), progressBarWaitTime)
 	return nil
 }
 
@@ -314,11 +330,15 @@ func (dump *MongoDump) Dump() (err error) {
 	log.Logf(log.DebugHigh, "dump phase II: regular collections")
 
 	// kick off the progress bar manager and begin dumping intents
-	dump.progressManager.Start()
-	defer dump.progressManager.Stop()
+	if dump.ProgressManager != nil {
+		dump.ProgressManager.Start()
+		defer dump.ProgressManager.Stop()
+	}
 
 	dump.termChan = make(chan struct{})
-	go dump.handleSignals()
+	if dump.HandleSignals != nil {
+		go dump.HandleSignals(dump)
+	}
 
 	if err := dump.DumpIntents(); err != nil {
 		return err
@@ -513,8 +533,10 @@ func (dump *MongoDump) dumpQueryToWriter(
 		Watching:  dumpProgressor,
 		BarLength: progressBarLength,
 	}
-	dump.progressManager.Attach(bar)
-	defer dump.progressManager.Detach(bar)
+	if dump.ProgressManager != nil {
+		dump.ProgressManager.Attach(bar)
+		defer dump.ProgressManager.Detach(bar)
+	}
 
 	err = dump.dumpIterToWriter(query.Iter(), intent.BSONFile, dumpProgressor)
 	_, dumpCount := dumpProgressor.Progress()
@@ -731,23 +753,6 @@ func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 		}, nil
 	}
 	return out, nil
-}
-
-// handleSignals listens for either SIGTERM, SIGINT or the
-// SIGHUP signal. It ends restore reads for all goroutines
-// as soon as any of those signals is received.
-func (dump *MongoDump) handleSignals() {
-	log.Log(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
-	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-	// first signal cleanly terminates dump writes
-	<-sigChan
-	log.Log(log.Always, "ending dump writes")
-	close(dump.termChan)
-	// second signal exits immediately
-	<-sigChan
-	log.Log(log.Always, "forcefully terminating mongodump")
-	os.Exit(util.ExitKill)
 }
 
 // docPlural returns "document" or "documents" depending on the
