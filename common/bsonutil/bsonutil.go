@@ -10,6 +10,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/decimal"
 	"strconv"
 	"time"
 )
@@ -146,6 +147,10 @@ func ParseSpecialKeys(doc map[string]interface{}) (interface{}, error) {
 			default:
 				return nil, errors.New("expected $numberInt field to have string value")
 			}
+		}
+
+		if jsonValue, ok := doc["$numberDecimal"]; ok {
+			return parseNumberDecimalField(jsonValue)
 		}
 
 		if jsonValue, ok := doc["$timestamp"]; ok {
@@ -366,5 +371,17 @@ func parseNumberLongField(jsonValue interface{}) (int64, error) {
 
 	default:
 		return 0, errors.New("expected $numberLong field to have string value")
+	}
+}
+
+func parseNumberDecimalField(jsonValue interface{}) (decimal.Decimal, error) {
+	switch v:= jsonValue.(type) {
+	case string:
+		dcml, _ := decimal.Parse(v)
+		return dcml, nil
+		
+	default:
+		var dcml, _ = decimal.Parse("0")
+		return dcml, errors.New("expected $numberDecimal field to have string value")
 	}
 }

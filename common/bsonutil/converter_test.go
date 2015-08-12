@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/decimal"
 	"testing"
 	"time"
 )
@@ -157,22 +158,6 @@ func Test64BitIntBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON int64 to JSON", t, func() {
 		Convey("should produce a json.NumberLong", func() {
-			_jObj, err := ConvertBSONValueToJSON(int32(243))
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.NumberInt)
-			So(ok, ShouldBeTrue)
-
-			So(jObj, ShouldEqual, json.NumberInt(243))
-		})
-	})
-
-}
-
-func Test32BitIntBSONToJSON(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
-
-	Convey("Converting a BSON int32 integer to JSON", t, func() {
-		Convey("should produce a json.NumberInt", func() {
 			_jObj, err := ConvertBSONValueToJSON(int64(888234334343))
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.NumberLong)
@@ -181,8 +166,40 @@ func Test32BitIntBSONToJSON(t *testing.T) {
 			So(jObj, ShouldEqual, json.NumberLong(888234334343))
 		})
 	})
-
 }
+
+func Test32BitIntBSONToJSON(t *testing.T) {
+	testutil.VerifyTestType(t, testutil.UnitTestType)
+
+	Convey("Converting a BSON int32 to JSON", t, func() {
+		Convey("should produce a json.NumberInt", func() {
+			_jObj, err := ConvertBSONValueToJSON(int32(243))
+			So(err, ShouldBeNil)
+			jObj, ok := _jObj.(json.NumberInt)
+			So(ok, ShouldBeTrue)
+
+			So(jObj, ShouldEqual, json.NumberInt(243))
+		})
+	})
+}
+
+func TestDecimalBSONToJSON(t *testing.T) {
+	testutil.VerifyTestType(t, testutil.UnitTestType)
+
+	Convey("Converting a BSON decimal integer to JSON", t, func() {
+		Convey("should produce a json.NumberDecimal", func() {
+			dcmlIn, _ := decimal.Parse("0.1")
+			_jObj, err := ConvertBSONValueToJSON(dcmlIn)
+			So(err, ShouldBeNil)
+			jObj, ok := _jObj.(json.NumberDecimal)
+			So(ok, ShouldBeTrue)
+
+			dcmlOut, _ := decimal.Parse("0.1")
+			So(jObj, ShouldResemble, json.NumberDecimal(dcmlOut))
+		})
+	})
+}
+
 
 func TestRegExBSONToJSON(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)

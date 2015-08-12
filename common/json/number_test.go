@@ -4,6 +4,8 @@ import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	"gopkg.in/mgo.v2/decimal"
 )
 
 func TestNumberIntValue(t *testing.T) {
@@ -186,6 +188,90 @@ func TestNumberLongValue(t *testing.T) {
 			jsonValue, ok := jsonMap[key].(NumberLong)
 			So(ok, ShouldBeTrue)
 			So(jsonValue, ShouldEqual, NumberLong(0x5f))
+		})
+	})
+}
+
+func TestNumberDecimalValue(t *testing.T) {
+
+	Convey("When unmarshalling JSON with NumberDecimal values", t, func() {
+
+		Convey("works for a single key", func() {
+			var jsonMap map[string]interface{}
+
+			key := "key"
+			value := "NumberDecimal(123)"
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+
+			err := Unmarshal([]byte(data), &jsonMap)
+			So(err, ShouldBeNil)
+
+			jsonValue, ok := jsonMap[key].(NumberDecimal)
+			So(ok, ShouldBeTrue)
+			dcml, _ := decimal.Parse("123")
+			So(jsonValue, ShouldResemble, NumberDecimal(dcml))
+		})
+
+		Convey("works for multiple keys", func() {
+			var jsonMap map[string]interface{}
+
+			key1, key2, key3 := "key1", "key2", "key3"
+			value1, value2, value3 := "NumberDecimal(123)", "NumberDecimal(456)", "NumberDecimal(789)"
+			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+				key1, value1, key2, value2, key3, value3)
+
+			err := Unmarshal([]byte(data), &jsonMap)
+			So(err, ShouldBeNil)
+
+			jsonValue1, ok := jsonMap[key1].(NumberDecimal)
+			So(ok, ShouldBeTrue)
+			dcml, _ := decimal.Parse("123")
+			So(jsonValue1, ShouldResemble, NumberDecimal(dcml))
+
+			jsonValue2, ok := jsonMap[key2].(NumberDecimal)
+			So(ok, ShouldBeTrue)
+			dcml, _ = decimal.Parse("456")
+			So(jsonValue2, ShouldResemble, NumberDecimal(dcml))
+
+			jsonValue3, ok := jsonMap[key3].(NumberDecimal)
+			So(ok, ShouldBeTrue)
+			dcml, _ = decimal.Parse("789")
+			So(jsonValue3, ShouldResemble, NumberDecimal(dcml))
+		})
+
+		Convey("works in an array", func() {
+			var jsonMap map[string]interface{}
+
+			key := "key"
+			value := "NumberDecimal(42)"
+			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+				key, value, value, value)
+
+			err := Unmarshal([]byte(data), &jsonMap)
+			So(err, ShouldBeNil)
+
+			jsonArray, ok := jsonMap[key].([]interface{})
+			So(ok, ShouldBeTrue)
+
+			for _, _jsonValue := range jsonArray {
+				jsonValue, ok := _jsonValue.(NumberDecimal)
+				So(ok, ShouldBeTrue)
+				dcml, _ := decimal.Parse("42")
+
+				So(jsonValue, ShouldResemble, NumberDecimal(dcml))
+			}
+		})
+
+		Convey("can use string as argument", func() {
+			key := "key"
+			value := `NumberDecimal("123")`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+
+			jsonValue, err := UnmarshalBsonD([]byte(data))
+
+			dcml, _ := decimal.Parse("123")
+			So(jsonValue[0].Value, ShouldResemble, NumberDecimal(dcml))
+			So(err, ShouldBeNil)
 		})
 	})
 }

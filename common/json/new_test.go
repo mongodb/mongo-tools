@@ -4,6 +4,8 @@ import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	"gopkg.in/mgo.v2/decimal"
 )
 
 func TestNewKeyword(t *testing.T) {
@@ -83,6 +85,22 @@ func TestNewKeyword(t *testing.T) {
 			jsonValue, ok := jsonMap[key].(NumberLong)
 			So(ok, ShouldBeTrue)
 			So(jsonValue, ShouldEqual, NumberLong(123))
+		})
+
+		Convey("can be used with NumberDecimal constructor", func() {
+			var jsonMap map[string]interface{}
+
+			key := "key"
+			value := `new NumberDecimal(123)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+
+			err := Unmarshal([]byte(data), &jsonMap)
+			So(err, ShouldBeNil)
+
+			jsonValue, ok := jsonMap[key].(NumberDecimal)
+			So(ok, ShouldBeTrue)
+			dcml, _ := decimal.Parse("123")
+			So(jsonValue, ShouldResemble, NumberDecimal(dcml))
 		})
 
 		Convey("can be used with ObjectId constructor", func() {

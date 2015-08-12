@@ -37,7 +37,7 @@ func stateBeginObjectValue(s *scanner, c int) int {
 		s.step = stateB
 	case 'D': // beginning of Date
 		s.step = stateD
-	case 'N': // beginning of NumberInt or NumberLong
+	case 'N': // beginning of NumberInt, NumberLong, or NumberDecimal
 		s.step = stateNumberUpperN
 	case 'O': // beginning of ObjectId
 		s.step = stateO
@@ -58,7 +58,7 @@ func stateNumberUpperN(s *scanner, c int) int {
 		s.step = stateUpperNu
 		return scanContinue
 	}
-	return s.error(c, "in literal NumberInt or NumberLong (expecting 'u')")
+	return s.error(c, "in literal NumberInt, NumberLong, or NumberDecimal (expecting 'u')")
 }
 
 // Decodes a literal stored in the underlying byte data into v.

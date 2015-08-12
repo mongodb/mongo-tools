@@ -8,6 +8,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/decimal"
 	"reflect"
 	"time"
 )
@@ -66,6 +67,10 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 	case json.NumberFloat: // NumberFloat
 		return float64(v), nil
+
+	case json.NumberDecimal: // NumberDecimal
+		return decimal.Decimal(v), nil
+
 	case json.BinData: // BinData
 		data, err := base64.StdEncoding.DecodeString(v.Base64)
 		if err != nil {
@@ -178,6 +183,9 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 
 	case float32:
 		return json.NumberFloat(float64(v)), nil
+
+	case decimal.Decimal:
+		return json.NumberDecimal(v), nil
 
 	case []byte: // BinData (with generic type)
 		data := base64.StdEncoding.EncodeToString(v)

@@ -3,6 +3,7 @@ package json
 import (
 	"fmt"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/decimal"
 	"reflect"
 )
 
@@ -48,6 +49,9 @@ type NumberLong int64
 // Represents a signed 64-bit float.
 type NumberFloat float64
 
+// Represents a MongoDB decimal type.
+type NumberDecimal decimal.Decimal
+
 // Represents a regular expression.
 type RegExp struct {
 	Pattern string
@@ -70,6 +74,8 @@ type Float float64
 // Represents the literal undefined.
 type Undefined struct{}
 
+var dcml, _ = decimal.Parse("0")
+
 var (
 	// primitive types
 	byteType   = reflect.TypeOf(byte(0))
@@ -77,22 +83,23 @@ var (
 	uint32Type = reflect.TypeOf(uint32(0))
 
 	// object types
-	binDataType     = reflect.TypeOf(BinData{})
-	dateType        = reflect.TypeOf(Date(0))
-	isoDateType     = reflect.TypeOf(ISODate(""))
-	dbRefType       = reflect.TypeOf(DBRef{})
-	dbPointerType   = reflect.TypeOf(DBPointer{})
-	maxKeyType      = reflect.TypeOf(MaxKey{})
-	minKeyType      = reflect.TypeOf(MinKey{})
-	numberIntType   = reflect.TypeOf(NumberInt(0))
-	numberLongType  = reflect.TypeOf(NumberLong(0))
-	numberFloatType = reflect.TypeOf(NumberFloat(0))
-	objectIdType    = reflect.TypeOf(ObjectId(""))
-	regexpType      = reflect.TypeOf(RegExp{})
-	timestampType   = reflect.TypeOf(Timestamp{})
-	undefinedType   = reflect.TypeOf(Undefined{})
-	orderedBSONType = reflect.TypeOf(bson.D{})
-	interfaceType   = reflect.TypeOf((*interface{})(nil))
+	binDataType       = reflect.TypeOf(BinData{})
+	dateType          = reflect.TypeOf(Date(0))
+	isoDateType       = reflect.TypeOf(ISODate(""))
+	dbRefType         = reflect.TypeOf(DBRef{})
+	dbPointerType     = reflect.TypeOf(DBPointer{})
+	maxKeyType        = reflect.TypeOf(MaxKey{})
+	minKeyType        = reflect.TypeOf(MinKey{})
+	numberIntType     = reflect.TypeOf(NumberInt(0))
+	numberLongType    = reflect.TypeOf(NumberLong(0))
+	numberFloatType   = reflect.TypeOf(NumberFloat(0))
+	numberDecimalType = reflect.TypeOf(NumberDecimal(dcml))
+	objectIdType      = reflect.TypeOf(ObjectId(""))
+	regexpType        = reflect.TypeOf(RegExp{})
+	timestampType     = reflect.TypeOf(Timestamp{})
+	undefinedType     = reflect.TypeOf(Undefined{})
+	orderedBSONType   = reflect.TypeOf(bson.D{})
+	interfaceType     = reflect.TypeOf((*interface{})(nil))
 )
 
 func (d Date) isFormatable() bool {
@@ -259,6 +266,8 @@ func (d *decodeState) storeExtendedLiteral(item []byte, v reflect.Value, fromQuo
 			d.storeNumberInt(v)
 		case 'L': // NumberLong
 			d.storeNumberLong(v)
+		case 'D': // NumberDecimal
+			d.storeNumberDecimal(v)
 		}
 
 	case 'R': // RegExp constructor
@@ -335,6 +344,8 @@ func (d *decodeState) getExtendedLiteral(item []byte) (interface{}, bool) {
 			return d.getNumberInt(), true
 		case 'L': // NumberLong
 			return d.getNumberLong(), true
+		case 'D': // NumberDecimal
+			return d.getNumberDecimal(), true
 		}
 
 	case 'R': // RegExp constructor

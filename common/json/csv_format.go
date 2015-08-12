@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"time"
+
+	"gopkg.in/mgo.v2/decimal"
 )
 
 const CSV_DATE_FORMAT = "2006-01-02T15:04:05.000Z"
@@ -62,6 +64,10 @@ func (n NumberInt) String() string {
 
 func (n NumberLong) String() string {
 	return fmt.Sprintf("%v", int64(n))
+}
+
+func (n NumberDecimal) String() string {
+	return fmt.Sprintf(`NumberDecimal(%v)`, decimal.Decimal(n))
 }
 
 // Assumes that o represents a valid ObjectId
