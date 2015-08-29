@@ -308,9 +308,11 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	log.Logf(log.Always, "connected to: %v", connURL)
 
 	// Write headers
-	err = exportOutput.WriteHeader()
-	if err != nil {
-		return 0, err
+	if exp.OutputOpts.HeaderLine {
+		err = exportOutput.WriteHeader()
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	var result bson.M
