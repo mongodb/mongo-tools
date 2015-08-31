@@ -134,7 +134,11 @@ func buildTailingCursor(oplog *mgo.Collection,
 	// shift it appropriately, to prepare it to be converted to an
 	// oplog timestamp
 	thresholdShifted := uint64(thresholdAsUnix) << 32
-
+	
+	if sourceOptions.StartTs != 0
+	{
+		thresholdShifted = sourceOptions.StartTs
+	}
 	// build the oplog query
 	oplogQuery := bson.M{
 		"ts": bson.M{
@@ -143,6 +147,6 @@ func buildTailingCursor(oplog *mgo.Collection,
 	}
 
 	// TODO: wait time
-	return oplog.Find(oplogQuery).Iter()
+	return oplog.Find(oplogQuery).Tail(sourceOptions.Timeout * time.Second)
 
 }
