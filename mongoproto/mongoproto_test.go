@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/tmc/mongocaputils/mongoproto"
+	"github.com/gabrielrussell/mongocaputils/mongoproto"
 )
 
 var testCorpusPath = "workdir/corpus/mongodb*"

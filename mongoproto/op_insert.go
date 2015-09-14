@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -70,5 +71,9 @@ func (op *OpInsert) FromReader(r io.Reader) error {
 }
 
 func (op *OpInsert) toWire() []byte {
+	return nil
+}
+
+func (op *OpInsert) Execute(session *mgo.Session) error {
 	return nil
 }

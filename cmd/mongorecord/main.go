@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gopkg.in/mgo.v2/bson"
 	"os"
 
 	"github.com/gabrielrussell/mongocaputils"
-	"github.com/gabrielrussell/mongocaputils/mongoproto"
 	"github.com/google/gopacket/pcap"
 )
 
@@ -31,14 +31,21 @@ func main() {
 	go func() {
 		defer close(ch)
 		for op := range m.Ops {
-			if _, ok := op.Op.(*mongoproto.OpUnknown); !ok {
-				fmt.Printf("%f %v\n", float64(op.Seen.Sub(m.FirstSeen))/10e8, op)
+			bsonBytes, err := bson.Marshal(op)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "error marshaling message:", err)
+				os.Exit(1)
+			}
+			_, err = os.Stdout.Write(bsonBytes)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "error writing message:", err)
+				os.Exit(1)
 			}
 		}
 	}()
 
 	if err := h.Handle(m, -1); err != nil {
-		fmt.Fprintln(os.Stderr, "mongocapcat: error handling packet stream:", err)
+		fmt.Fprintln(os.Stderr, "mongorecord: error handling packet stream:", err)
 	}
 	<-ch
 }

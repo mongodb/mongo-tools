@@ -3,9 +3,11 @@ package mongoproto
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -89,4 +91,24 @@ func (op *OpQuery) FromReader(r io.Reader) error {
 
 func (op *OpQuery) toWire() []byte {
 	return nil
+}
+
+func (op *OpQuery) Execute(session *mgo.Session) error {
+	fmt.Printf("query \n")
+	nsParts := strings.Split(op.FullCollectionName, ".")
+	coll := session.DB(nsParts[0]).C(nsParts[1])
+	queryDoc := bson.M{}
+	err := bson.Unmarshal(op.Query, queryDoc)
+	if err != nil {
+		return err
+	}
+	query := coll.Find(queryDoc)
+	query.Limit(int(op.NumberToReturn))
+	query.Skip(int(op.NumberToSkip))
+	result := []bson.M{}
+	err = query.All(&result)
+	if err != nil {
+		fmt.Printf("query error: %v\n", err)
+	}
+	return err
 }

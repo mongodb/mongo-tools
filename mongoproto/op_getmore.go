@@ -1,6 +1,9 @@
 package mongoproto
 
-import "io"
+import (
+	"gopkg.in/mgo.v2"
+	"io"
+)
 
 // OpGetMore is used to query the database for documents in a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-get-more
@@ -42,5 +45,9 @@ func (op *OpGetMore) fromWire(b []byte) {
 }
 
 func (op *OpGetMore) toWire() []byte {
+	return nil
+}
+
+func (op *OpGetMore) Execute(session *mgo.Session) error {
 	return nil
 }

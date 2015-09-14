@@ -12,10 +12,9 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
-	"github.com/google/gopacket/tcpassembly/tcpreader"
 
-	"github.com/tmc/mongocaputils/mongoproto"
-	"github.com/tmc/mongocaputils/tcpreaderwrapper"
+	"github.com/gabrielrussell/mongocaputils/mongoproto"
+	"github.com/gabrielrussell/mongocaputils/tcpreader"
 )
 
 type MongoOpStream struct {
@@ -41,9 +40,9 @@ func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 }
 
 func (s *MongoOpStream) New(a, b gopacket.Flow) tcpassembly.Stream {
-	r := tcpreaderwrapper.NewReaderStreamWrapper()
+	r := tcpreader.NewReaderStream()
 	log.Println("starting stream", a, b)
-	go s.handleStream(&r)
+	go s.handleStream(&r, b.String())
 	return &r
 }
 
@@ -74,10 +73,13 @@ func (s *MongoOpStream) readOp(r io.Reader) (mongoproto.Op, error) {
 	return mongoproto.OpFromReader(r)
 }
 
-func (s *MongoOpStream) handleStream(r *tcpreaderwrapper.ReaderStreamWrapper) {
-	lastSeen := s.FirstSeen
+func (s *MongoOpStream) readOpRaw(r io.Reader) (*mongoproto.OpRaw, time.Time, error) {
+	return mongoproto.OpRawFromReader(r)
+}
+
+func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection string) {
 	for {
-		op, err := s.readOp(r)
+		op, seen, err := s.readOpRaw(r)
 		if err == io.EOF {
 			discarded, err := ioutil.ReadAll(r)
 			if len(discarded) != 0 || err != nil {
@@ -101,17 +103,6 @@ func (s *MongoOpStream) handleStream(r *tcpreaderwrapper.ReaderStreamWrapper) {
 			}
 			return
 		}
-		seen := lastSeen
-		if len(r.Reassemblies) > 0 {
-			seen = r.Reassemblies[0].Seen
-			lastSeen = seen
-		}
-		for _, r := range r.Reassemblies {
-			if r.NumBytes > 0 {
-				seen = r.Seen
-			}
-		}
-		s.unorderedOps <- OpWithTime{op, seen}
-		r.Reassemblies = r.Reassemblies[:0]
+		s.unorderedOps <- OpWithTime{OpRaw: *op, Seen: seen, Connection: connection}
 	}
 }

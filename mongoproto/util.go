@@ -10,7 +10,7 @@ var (
 )
 
 const (
-	maximumDocumentSize = 16 * 1024 * 1024 // 16MB max
+	maximumDocumentSize = 49 * 1024 * 1024 // there is a 48MB max message size
 )
 
 // CopyMessage copies reads & writes an entire message.
@@ -34,7 +34,7 @@ func ReadDocument(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	size := getInt32(sizeRaw[:], 0)
-	if size < 0 {
+	if size < 5 {
 		return nil, ErrInvalidSize
 	}
 	if size > maximumDocumentSize {

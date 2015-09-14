@@ -51,6 +51,7 @@ func (op *OpReply) OpCode() OpCode {
 	return OpCodeReply
 }
 
+// XXX make a version of this that doesn't read the bodies
 func (op *OpReply) FromReader(r io.Reader) error {
 	var b [20]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {

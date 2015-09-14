@@ -3,6 +3,8 @@ package mongoproto
 import (
 	"fmt"
 	"io"
+
+	"gopkg.in/mgo.v2"
 )
 
 // OpUnknown is not a real mongo Op but represents an unrecognized or corrupted op
@@ -31,5 +33,9 @@ func (op *OpUnknown) fromWire(b []byte) {
 }
 
 func (op *OpUnknown) toWire() []byte {
+	return nil
+}
+
+func (op *OpUnknown) Execute(session *mgo.Session) error {
 	return nil
 }
