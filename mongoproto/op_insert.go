@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/10gen/llmgo"
+	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 )
 
 const (

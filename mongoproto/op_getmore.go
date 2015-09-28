@@ -1,7 +1,9 @@
 package mongoproto
 
 import (
-	"github.com/10gen/llmgo"
+	"fmt"
+	mgo "github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 	"io"
 )
 
@@ -49,5 +51,17 @@ func (op *OpGetMore) toWire() []byte {
 }
 
 func (op *OpGetMore) Execute(session *mgo.Session) error {
+	opGetMore := &mgo.GetMoreOp{Collection: op.FullCollectionName, Limit: op.NumberToReturn, CursorId: op.CursorID}
+	data, reply, err := session.GetMoreOp(opGetMore)
+
+	dataDoc := bson.M{}
+	for _, d := range data {
+		err = bson.Unmarshal(d, dataDoc)
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Printf("data %#v\n", dataDoc)
+	fmt.Printf("reply %#v\n", reply)
 	return nil
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/10gen/llmgo"
+	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"io"
 	"os"

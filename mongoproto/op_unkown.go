@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/10gen/llmgo"
+	mgo "github.com/10gen/llmgo"
 )
 
 // OpUnknown is not a real mongo Op but represents an unrecognized or corrupted op

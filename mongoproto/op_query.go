@@ -3,12 +3,11 @@ package mongoproto
 import (
 	"fmt"
 	"io"
-	"strings"
 
+	mgo "github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/10gen/llmgo"
-	"github.com/10gen/llmgo/bson"
 )
 
 const (
@@ -95,20 +94,28 @@ func (op *OpQuery) toWire() []byte {
 
 func (op *OpQuery) Execute(session *mgo.Session) error {
 	fmt.Printf("query \n")
-	nsParts := strings.Split(op.FullCollectionName, ".")
-	coll := session.DB(nsParts[0]).C(nsParts[1])
+
 	queryDoc := bson.M{}
 	err := bson.Unmarshal(op.Query, queryDoc)
 	if err != nil {
 		return err
 	}
-	query := coll.Find(queryDoc)
-	query.Limit(int(op.NumberToReturn))
-	query.Skip(int(op.NumberToSkip))
-	result := []bson.M{}
-	err = query.All(&result)
+
+	queryOp := &mgo.QueryOp{Query: queryDoc, Collection: op.FullCollectionName, Limit: op.NumberToReturn, Skip: op.NumberToSkip}
+	// fill in the rest of the query here
+	data, reply, err := session.QueryOp(queryOp)
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
 	}
+	dataDoc := bson.M{}
+	for _, d := range data {
+		err = bson.Unmarshal(d, dataDoc)
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Printf("data %#v\n", dataDoc)
+	fmt.Printf("reply %#v\n", reply)
+
 	return err
 }

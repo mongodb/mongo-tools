@@ -54,11 +54,11 @@ func OpFromReader(r io.Reader) (Op, error) {
 }
 
 // OpRawFromReader reads an op without decoding it.
-func OpRawFromReader(r io.Reader) (*OpRaw, time.Time, error) {
+func OpRawFromReader(r io.Reader) (*OpRaw, *MsgHeader, time.Time, error) {
 	var seen time.Time
 	msg, err := ReadHeader(r)
 	if err != nil {
-		return nil, seen, err
+		return nil, nil, seen, err
 	}
 	if readerStream, ok := (r).(*tcpreader.ReaderStream); ok {
 		seen = readerStream.Seen()
@@ -70,7 +70,7 @@ func OpRawFromReader(r io.Reader) (*OpRaw, time.Time, error) {
 		err = result.FromReader(r)
 	}
 	if err != nil {
-		return nil, seen, err
+		return result, msg, seen, err
 	}
-	return result, seen, nil
+	return result, msg, seen, nil
 }

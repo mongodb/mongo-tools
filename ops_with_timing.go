@@ -3,7 +3,7 @@ package mongocaputils
 import (
 	"bytes"
 	"fmt"
-	"github.com/10gen/llmgo"
+	mgo "github.com/10gen/llmgo"
 	"time"
 
 	"github.com/10gen/mongoplay/mongoproto"

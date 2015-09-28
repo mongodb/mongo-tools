@@ -73,13 +73,13 @@ func (s *MongoOpStream) readOp(r io.Reader) (mongoproto.Op, error) {
 	return mongoproto.OpFromReader(r)
 }
 
-func (s *MongoOpStream) readOpRaw(r io.Reader) (*mongoproto.OpRaw, time.Time, error) {
+func (s *MongoOpStream) readOpRaw(r io.Reader) (*mongoproto.OpRaw, *mongoproto.MsgHeader, time.Time, error) {
 	return mongoproto.OpRawFromReader(r)
 }
 
 func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection string) {
 	for {
-		op, seen, err := s.readOpRaw(r)
+		op, hdr, seen, err := s.readOpRaw(r)
 		if err == io.EOF {
 			discarded, err := ioutil.ReadAll(r)
 			if len(discarded) != 0 || err != nil {
@@ -97,6 +97,8 @@ func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection strin
 		}
 		if err != nil {
 			log.Println("error parsing op:", err)
+			log.Println("result:", op)
+			log.Println("hdr:", hdr)
 			discarded, err := ioutil.ReadAll(r)
 			if len(discarded) != 0 || err != nil {
 				fmt.Println("discarded ", len(discarded), err)
