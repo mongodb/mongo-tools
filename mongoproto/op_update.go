@@ -1,6 +1,6 @@
 package mongoproto
 
-import "gopkg.in/mgo.v2/bson"
+import "github.com/10gen/llmgo/bson"
 
 const (
 	OpUpdateUpsert OpUpdateFlags = 1 << iota

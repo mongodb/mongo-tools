@@ -3,14 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 	"io"
 	"os"
 	"time"
 
-	"github.com/gabrielrussell/mongocaputils"
-	"github.com/gabrielrussell/mongocaputils/mongoproto"
+	"github.com/10gen/mongoplay"
+	"github.com/10gen/mongoplay/mongoproto"
 )
 
 var (

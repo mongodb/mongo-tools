@@ -13,8 +13,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
 
-	"github.com/gabrielrussell/mongocaputils/mongoproto"
-	"github.com/gabrielrussell/mongocaputils/tcpreader"
+	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongoplay/tcpreader"
 )
 
 type MongoOpStream struct {

@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/llmgo/bson"
 )
 
 const (

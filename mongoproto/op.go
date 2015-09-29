@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/gabrielrussell/mongocaputils/tcpreader"
+	"github.com/10gen/mongoplay/tcpreader"
 )
 
 const (

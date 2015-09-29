@@ -14,7 +14,7 @@ mongocapcat - turns mongo pcap files into bson/json
 installation:
 
 ```sh
-$ go get github.com/gabrielrussell/mongocaputils/cmd/mongocapcat
+$ go get github.com/10gen/mongoplay/cmd/mongocapcat
 ```
 
 usage:

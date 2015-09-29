@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gabrielrussell/mongocaputils"
-	"github.com/gabrielrussell/mongocaputils/mongoproto"
+	"github.com/10gen/mongoplay"
+	"github.com/10gen/mongoplay/mongoproto"
 	"github.com/google/gopacket/pcap"
 )
 

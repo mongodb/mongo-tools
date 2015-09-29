@@ -3,10 +3,10 @@ package mongocaputils
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/mgo.v2"
+	"github.com/10gen/llmgo"
 	"time"
 
-	"github.com/gabrielrussell/mongocaputils/mongoproto"
+	"github.com/10gen/mongoplay/mongoproto"
 )
 
 type OpWithTime struct {

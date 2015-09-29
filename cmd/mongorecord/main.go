@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/llmgo/bson"
 	"os"
 
-	"github.com/gabrielrussell/mongocaputils"
+	"github.com/10gen/mongoplay"
 	"github.com/google/gopacket/pcap"
 )
 
