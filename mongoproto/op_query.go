@@ -94,7 +94,7 @@ func (op *OpQuery) toWire() []byte {
 
 func (op *OpQuery) Execute(session *mgo.Session) error {
 
-	queryDoc := bson.M{}
+	queryDoc := &bson.D{}
 	err := bson.Unmarshal(op.Query, queryDoc)
 	if err != nil {
 		return err
