@@ -51,6 +51,7 @@ func (op *OpGetMore) toWire() []byte {
 }
 
 func (op *OpGetMore) Execute(session *mgo.Session) error {
+	// XXX don't actually us3e op.CursorID, but look up the translated cursor id from op.CursorID
 	opGetMore := &mgo.GetMoreOp{Collection: op.FullCollectionName, Limit: op.NumberToReturn, CursorId: op.CursorID}
 	data, reply, err := session.GetMoreOp(opGetMore)
 

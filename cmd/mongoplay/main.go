@@ -64,7 +64,7 @@ func newOpConnection(url string) (chan<- *mongocaputils.OpWithTime, error) {
 			}
 			err = op.Execute(session)
 			if err != nil {
-				fmt.Printf("op.Execute %v", err)
+				fmt.Printf("op.Execute error: %v\n", err)
 			}
 		}
 	}()
@@ -89,7 +89,7 @@ func main() {
 		}
 		// if we want to play faster or slower then delta will need to not be constant
 		op.PlayAt = op.Seen.Add(delta)
-		fmt.Printf("%#v\n\n", op)
+		//fmt.Printf("play op %#v\n\n", op)
 		session, ok := sessions[op.Connection]
 		if !ok {
 			session, err = newOpConnection(*host)

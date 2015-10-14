@@ -93,7 +93,6 @@ func (op *OpQuery) toWire() []byte {
 }
 
 func (op *OpQuery) Execute(session *mgo.Session) error {
-	fmt.Printf("query \n")
 
 	queryDoc := bson.M{}
 	err := bson.Unmarshal(op.Query, queryDoc)
@@ -114,8 +113,8 @@ func (op *OpQuery) Execute(session *mgo.Session) error {
 			return err
 		}
 	}
-	fmt.Printf("data %#v\n", dataDoc)
-	fmt.Printf("reply %#v\n", reply)
+	fmt.Printf("data: %#v\n", dataDoc)
+	fmt.Printf("reply: %#v\n", reply)
 
 	return err
 }
