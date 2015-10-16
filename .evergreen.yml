@@ -1,0 +1,47 @@
+functions:
+  "fetch source" :
+    - command: git.get_project
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        working_dir: src
+        script: |
+          echo "this is a 2nd command in the function!"
+          ls
+pre:
+  command: shell.exec
+  params:
+    script: |
+      rm -rf src || true
+      echo "pre-task run. JUST ONE COMMAND"
+
+post:
+  - command: shell.exec
+    params:
+      script: |
+        echo "post-task run."
+        true
+  - command: attach.results
+    params:
+      file_location: src/results.json
+
+tasks:
+- name: compile
+  depends_on: []
+  commands:
+  - func: "fetch source"
+  - command: shell.exec
+    params:
+      script: |
+        echo "compiling"
+        true
+buildvariants:
+- name: ubuntu
+  display_name: Ubuntu
+  run_on:
+  - ubuntu1404-test
+  expansions:
+    test_flags: "blah blah"
+  tasks:
+  - name: compile
