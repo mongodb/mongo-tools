@@ -26,9 +26,6 @@ tasks:
   - func: "build tool"
     vars:
       tool: mongoplay
-  - func: "build tool"
-    vars:
-      tool: mongorecord
 
 
 buildvariants:
