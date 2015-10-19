@@ -1,4 +1,4 @@
-package mongocaputils
+package mongoplay
 
 import (
 	"bytes"
