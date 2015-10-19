@@ -3,45 +3,35 @@ functions:
     - command: git.get_project
       params:
         directory: src
-    - command: shell.exec
-      params:
-        working_dir: src
-        script: |
-          echo "this is a 2nd command in the function!"
-          ls
+
+  "build tool" :
+    command: shell.exec
+    params:
+      directory: src
+      script: |
+        echo "Building ${tool}..."
+        . ./set_gopath.sh
+        go build ${args} -o bin/${tool} cmd/${tool}/main.go
 pre:
-  command: shell.exec
-  params:
-    script: |
-      rm -rf src || true
-      echo "pre-task run. JUST ONE COMMAND"
 
 post:
-  - command: shell.exec
-    params:
-      script: |
-        echo "post-task run."
-        true
-  - command: attach.results
-    params:
-      file_location: src/results.json
 
 tasks:
-- name: compile
-  depends_on: []
+- name: build
   commands:
   - func: "fetch source"
-  - command: shell.exec
-    params:
-      script: |
-        echo "compiling"
-        true
+  - func: "build tool"
+    vars:
+      tool: mongoplay
+  - func: "build tool"
+    vars:
+      tool: mongorecord
+
+
 buildvariants:
 - name: ubuntu
   display_name: Ubuntu
   run_on:
   - ubuntu1404-test
-  expansions:
-    test_flags: "blah blah"
   tasks:
-  - name: compile
+  - name: build
