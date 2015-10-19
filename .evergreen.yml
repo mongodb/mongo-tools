@@ -3,6 +3,9 @@ functions:
     - command: git.get_project
       params:
         directory: src
+    - command: git.apply_patch
+      params:
+        directory: src
 
   "build tool" :
     command: shell.exec
