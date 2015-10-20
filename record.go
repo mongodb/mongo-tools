@@ -22,10 +22,11 @@ type RecordOptions struct {
 
 type RecordConf struct {
 	RecordOptions
-	Logger *log.Logger
+	Logger  *log.Logger
+	Command []string
 }
 
-func (record *RecordConf) ParseRecordFlags(args []string) error {
+func (record *RecordConf) ParseFlags(args []string) error {
 	_, err := flags.ParseArgs(record, args)
 	return err
 	// TODO figure out what to do here when there are extra args

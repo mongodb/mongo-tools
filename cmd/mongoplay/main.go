@@ -22,9 +22,10 @@ func main() {
 	switch command {
 	case "record":
 		r := &mongoplay.RecordConf{
-			Logger: logger,
+			Logger:  logger,
+			Command: os.Args[0:2],
 		}
-		err = r.ParseRecordFlags(os.Args[2:])
+		err = r.ParseFlags(os.Args[2:])
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -34,9 +35,10 @@ func main() {
 		}
 	case "play":
 		p := &mongoplay.PlayConf{
-			Logger: logger,
+			Logger:  logger,
+			Command: os.Args[0:2],
 		}
-		err = p.ParsePlayFlags(os.Args[2:])
+		err = p.ParseFlags(os.Args[2:])
 		if err != nil {
 			logger.Fatal(err)
 		}

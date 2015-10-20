@@ -24,7 +24,8 @@ type PlayOptions struct {
 
 type PlayConf struct {
 	PlayOptions
-	Logger *log.Logger
+	Command []string
+	Logger  *log.Logger
 }
 
 func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
@@ -78,7 +79,7 @@ func newOpConnection(url string) (chan<- *OpWithTime, error) {
 	return ch, nil
 }
 
-func (play *PlayConf) ParsePlayFlags(args []string) error {
+func (play *PlayConf) ParseFlags(args []string) error {
 	_, err := flags.ParseArgs(&play.PlayOptions, args)
 	return err
 	// TODO figure out what to do here when there are extra args
