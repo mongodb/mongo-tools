@@ -10,7 +10,7 @@ functions:
   "build tool" :
     command: shell.exec
     params:
-      directory: src
+      working_dir: src
       script: |
         echo "Building ${tool}..."
         . ./set_gopath.sh
