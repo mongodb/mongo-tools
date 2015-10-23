@@ -41,13 +41,6 @@ tasks:
     vars:
       tool: mongoplay
   - func: "build tool"
-    vars:
-      tool: mongorecord
-  - func: "upload tool"
-    vars:
-      tool: mongorecord
-
-
 
 buildvariants:
 - name: ubuntu
