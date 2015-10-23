@@ -15,6 +15,17 @@ functions:
         echo "Building ${tool}..."
         . ./set_gopath.sh
         go build ${args} -o bin/${tool} cmd/${tool}/main.go
+  "upload tool":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/bin/${tool}
+      remote_file: mongoplay/binaries/${build_id}/${tool}
+      bucket: mciuploads
+      permissions: public-read
+      content_type: application/octet-stream
+      display_name: ${tool} binary
 pre:
 
 post:
@@ -26,6 +37,16 @@ tasks:
   - func: "build tool"
     vars:
       tool: mongoplay
+  - func: "upload tool"
+    vars:
+      tool: mongoplay
+  - func: "build tool"
+    vars:
+      tool: mongorecord
+  - func: "upload tool"
+    vars:
+      tool: mongorecord
+
 
 
 buildvariants:
