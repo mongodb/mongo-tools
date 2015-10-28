@@ -15,7 +15,8 @@ functions:
         echo "Building ${tool}..."
         . ./set_gopath.sh
         go build ${args} -o bin/${tool} cmd/${tool}/main.go
-  "upload tool":
+
+  "upload tool" :
     command: s3.put
     params:
       aws_key: ${aws_key}
@@ -26,9 +27,51 @@ functions:
       permissions: public-read
       content_type: application/octet-stream
       display_name: ${tool} binary
+
+  "fetch tool" :
+    command: s3.get
+    params:
+      bucket: mciuploads
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/${tool}
+      remote_file: mongoplay/binaries/${build_id}/${tool}
+
+  "start mongod" :
+    command: shell.exec
+    params:
+      background: true
+      script: |
+        set -e
+        set -o verbose
+        cd mongodb
+        echo "starting mongodb"
+        mkdir -p ./mongoplay_test
+        ./mongod --dbpath ./mongoplay_test --port=${mongod_port} &
+        sleep 5
+
+
+  "fetch mongodb" :
+    command: shell.exec
+    params:
+      script: |
+        rm -rf mongodb
+        mkdir mongodb
+        cd mongodb
+        curl ${mongo_url} -o mongodb.tgz
+        ${decompress} mongodb.tgz
+        chmod +x ./mongodb-*/bin/*
+        mv ./mongodb-*/bin/* .
+        rm -rf db_files
+        rm -rf db_logs
+        mkdir db_files
+        mkdir db_logs
+
 pre:
+  - command: shell.track
 
 post:
+  - command: shell.cleanup
 
 tasks:
 - name: build
@@ -41,11 +84,34 @@ tasks:
     vars:
       tool: mongoplay
   - func: "build tool"
-
+- name: sanity_check
+  depends_on:
+  -name: build
+  commands:
+  - func: "fetch source"
+  - func: "fetch tool"
+    vars:
+      tool: mongoplay
+  - func: "fetch mongodb"
+  - func: "start mongod"
+  - command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        ./mongo --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+        echo "mongod started"
+        echo "Running sanity check"
+        chmod +x mongoplay
+        PATH=$PATH:`pwd`/../mongodb
+        ./sanity_check.sh -p ${mongod_port}
 buildvariants:
 - name: ubuntu
   display_name: Ubuntu
+  expansions:
+    mongod_port: 27017
+    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.0.7.tgz
   run_on:
   - ubuntu1404-test
   tasks:
   - name: build
+  - name: sanity_check
