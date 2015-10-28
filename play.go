@@ -3,29 +3,20 @@ package mongoplay
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"time"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"github.com/10gen/mongoplay/mongoproto"
-	"github.com/jessevdk/go-flags"
 )
 
-type PlayOptions struct {
-	// If this is the wrong way to do this, then please tell me
+type PlayCommand struct {
+	GlobalOpts *Options `no-flag:"true"`
 	PlaybackFile struct {
 		PlaybackFile string
-	} `required:"yes" positional-args:"yes"`
-	Verbose bool   `sort:"v"`
-	Url     string `alias:"host"`
-}
-
-type PlayConf struct {
-	PlayOptions
-	Command []string
-	Logger  *log.Logger
+	} `required:"yes" positional-args:"yes" description:"The file to play back to the mongodb instance"`
+	Url     string `short:"m" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 }
 
 func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
@@ -52,7 +43,6 @@ func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
 				os.Exit(1)
 			}
 			ch <- &doc
-
 		}
 	}()
 	return ch, nil
@@ -79,14 +69,9 @@ func newOpConnection(url string) (chan<- *OpWithTime, error) {
 	return ch, nil
 }
 
-func (play *PlayConf) ParseFlags(args []string) error {
-	_, err := flags.ParseArgs(&play.PlayOptions, args)
-	return err
-	// TODO figure out what to do here when there are extra args
-}
-
-func (play *PlayConf) Play() error {
-	play.Logger.Printf("%#v", play)
+func (play *PlayCommand) Execute(args []string) error {
+	fmt.Printf("%s", play.GlobalOpts.Verbose)
+//	play.Logger.Printf("%#v", play)
 	opChan, err := newPlayOpChan(play.PlaybackFile.PlaybackFile)
 	if err != nil {
 		return fmt.Errorf("newPlayOpChan: %v", err)

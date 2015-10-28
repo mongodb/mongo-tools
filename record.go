@@ -2,37 +2,21 @@ package mongoplay
 
 import (
 	"fmt"
-	"log"
 	"os"
-
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
-	"github.com/jessevdk/go-flags"
 )
-
-type RecordOptions struct {
+type RecordCommand struct {
+	GlobalOpts *Options `no-flag:"true"`
 	PlaybackFile struct {
-		PlaybackFile string
-	} `required:"yes" positional-args:"yes"`
-	PcapFile         string `short:"f" required:"yes"`
-	NetworkInterface string
+					 PlaybackFile string
+				 } `required:"yes" positional-args:"yes" description:"path to the playback file to write to"`
+	PcapFile         string `short:"f" description:"path to the pcap file to be read"`
+	NetworkInterface string `short:"i" description:"network interface to listen on"`
 	PacketBufSize    int
-	Verbose          bool
 }
 
-type RecordConf struct {
-	RecordOptions
-	Logger  *log.Logger
-	Command []string
-}
-
-func (record *RecordConf) ParseFlags(args []string) error {
-	_, err := flags.ParseArgs(record, args)
-	return err
-	// TODO figure out what to do here when there are extra args
-}
-
-func (record *RecordConf) Record() error {
+func (record *RecordCommand) Execute(args []string) error {
 	pcap, err := pcap.OpenOffline(record.PcapFile)
 	if err != nil {
 		return fmt.Errorf("error opening pcap file: %v", err)
@@ -63,4 +47,14 @@ func (record *RecordConf) Record() error {
 		fmt.Errorf("record: error handling packet stream:", err)
 	}
 	return <-ch
+}
+
+func(record *RecordCommand) ValidateParams(args []string) error {
+	switch {
+	case len(args) > 0 :
+		return fmt.Errorf("unknown argument: %s", args[0])
+	case record.PcapFile != "" && record.NetworkInterface != "":
+		return fmt.Errorf("must only specify an interface or a pcap file")
+	}
+	return nil
 }
