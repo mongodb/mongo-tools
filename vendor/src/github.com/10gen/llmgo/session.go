@@ -4164,19 +4164,19 @@ func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
 	// TODO Enable this path for wire version 2 as well.
 	if socket.ServerInfo().MaxWireVersion >= 3 {
 		// Servers with a more recent write protocol benefit from write commands.
-		if op, ok := op.(*InsertOp); ok && len(op.documents) > 1000 {
+		if op, ok := op.(*InsertOp); ok && len(op.Documents) > 1000 {
 			var firstErr error
 			// Maximum batch size is 1000. Must split out in separate operations for compatibility.
-			all := op.documents
+			all := op.Documents
 			for i := 0; i < len(all); i += 1000 {
 				l := i + 1000
 				if l > len(all) {
 					l = len(all)
 				}
-				op.documents = all[i:l]
+				op.Documents = all[i:l]
 				_, err := c.writeCommand(socket, safeOp, op)
 				if err != nil {
-					if op.flags&1 != 0 {
+					if op.Flags &1 != 0 {
 						if firstErr == nil {
 							firstErr = err
 						}
@@ -4243,31 +4243,31 @@ func (c *Collection) writeCommand(socket *mongoSocket, safeOp *QueryOp, op inter
 		// http://docs.mongodb.org/manual/reference/command/insert
 		cmd = bson.D{
 			{"insert", c.Name},
-			{"documents", op.documents},
+			{"documents", op.Documents},
 			{"writeConcern", writeConcern},
-			{"ordered", op.flags&1 == 0},
+			{"ordered", op.Flags &1 == 0},
 		}
 	case *UpdateOp:
 		// http://docs.mongodb.org/manual/reference/command/update
-		selector := op.selector
+		selector := op.Selector
 		if selector == nil {
 			selector = bson.D{}
 		}
 		cmd = bson.D{
 			{"update", c.Name},
-			{"updates", []bson.D{{{"q", selector}, {"u", op.update}, {"upsert", op.flags&1 != 0}, {"multi", op.flags&2 != 0}}}},
+			{"updates", []bson.D{{{"q", selector}, {"u", op.Update}, {"upsert", op.Flags &1 != 0}, {"multi", op.Flags &2 != 0}}}},
 			{"writeConcern", writeConcern},
 			//{"ordered", <bool>},
 		}
 	case *DeleteOp:
 		// http://docs.mongodb.org/manual/reference/command/delete
-		selector := op.selector
+		selector := op.Selector
 		if selector == nil {
 			selector = bson.D{}
 		}
 		cmd = bson.D{
 			{"delete", c.Name},
-			{"deletes", []bson.D{{{"q", selector}, {"limit", op.flags & 1}}}},
+			{"deletes", []bson.D{{{"q", selector}, {"limit", op.Flags & 1}}}},
 			{"writeConcern", writeConcern},
 			//{"ordered", <bool>},
 		}

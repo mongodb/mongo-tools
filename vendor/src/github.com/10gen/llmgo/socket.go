@@ -124,22 +124,22 @@ type ReplyOp struct {
 }
 
 type InsertOp struct {
-	collection string        // "database.collection"
-	documents  []interface{} // One or more documents to insert
-	flags      uint32
+	Collection string        // "database.collection"
+	Documents  []interface{} // One or more documents to insert
+	Flags      uint32
 }
 
 type UpdateOp struct {
-	collection string // "database.collection"
-	selector   interface{}
-	update     interface{}
-	flags      uint32
+	Collection string // "database.collection"
+	Selector   interface{}
+	Update     interface{}
+	Flags      uint32
 }
 
 type DeleteOp struct {
-	collection string // "database.collection"
-	selector   interface{}
-	flags      uint32
+	Collection string // "database.collection"
+	Selector   interface{}
+	Flags      uint32
 }
 
 type KillCursorsOp struct {
@@ -371,24 +371,24 @@ func (socket *mongoSocket) Query(ops ...interface{}) (err error) {
 		case *UpdateOp:
 			buf = addHeader(buf, 2001)
 			buf = addInt32(buf, 0) // Reserved
-			buf = addCString(buf, op.collection)
-			buf = addInt32(buf, int32(op.flags))
-			debugf("Socket %p to %s: serializing selector document: %#v", socket, socket.addr, op.selector)
-			buf, err = addBSON(buf, op.selector)
+			buf = addCString(buf, op.Collection)
+			buf = addInt32(buf, int32(op.Flags))
+			debugf("Socket %p to %s: serializing selector document: %#v", socket, socket.addr, op.Selector)
+			buf, err = addBSON(buf, op.Selector)
 			if err != nil {
 				return err
 			}
-			debugf("Socket %p to %s: serializing update document: %#v", socket, socket.addr, op.update)
-			buf, err = addBSON(buf, op.update)
+			debugf("Socket %p to %s: serializing update document: %#v", socket, socket.addr, op.Update)
+			buf, err = addBSON(buf, op.Update)
 			if err != nil {
 				return err
 			}
 
 		case *InsertOp:
 			buf = addHeader(buf, 2002)
-			buf = addInt32(buf, int32(op.flags))
-			buf = addCString(buf, op.collection)
-			for _, doc := range op.documents {
+			buf = addInt32(buf, int32(op.Flags))
+			buf = addCString(buf, op.Collection)
+			for _, doc := range op.Documents {
 				debugf("Socket %p to %s: serializing document for insertion: %#v", socket, socket.addr, doc)
 				buf, err = addBSON(buf, doc)
 				if err != nil {
@@ -425,10 +425,10 @@ func (socket *mongoSocket) Query(ops ...interface{}) (err error) {
 		case *DeleteOp:
 			buf = addHeader(buf, 2006)
 			buf = addInt32(buf, 0) // Reserved
-			buf = addCString(buf, op.collection)
-			buf = addInt32(buf, int32(op.flags))
-			debugf("Socket %p to %s: serializing selector document: %#v", socket, socket.addr, op.selector)
-			buf, err = addBSON(buf, op.selector)
+			buf = addCString(buf, op.Collection)
+			buf = addInt32(buf, int32(op.Flags))
+			debugf("Socket %p to %s: serializing selector document: %#v", socket, socket.addr, op.Selector)
+			buf, err = addBSON(buf, op.Selector)
 			if err != nil {
 				return err
 			}

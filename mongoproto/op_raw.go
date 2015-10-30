@@ -49,7 +49,3 @@ func (op *OpRaw) ShortReplyFromReader(r io.Reader) error {
 
 func (op *OpRaw) fromWire(b []byte) {
 }
-
-func (op *OpRaw) toWire() []byte {
-	return nil
-}

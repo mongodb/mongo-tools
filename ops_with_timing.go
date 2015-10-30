@@ -48,7 +48,7 @@ func (o *OpWithTime) Execute(session *mgo.Session) error {
 	switch o.OpRaw.Header.OpCode {
 	case mongoproto.OpCodeQuery:
 		fmt.Printf("Execute OpQuery\n")
-		opQuery := &mongoproto.OpQuery{Header: o.OpRaw.Header}
+		opQuery := &mongoproto.QueryOp{Header: o.OpRaw.Header}
 		err := opQuery.FromReader(reader)
 		if err != nil {
 			return err
@@ -56,20 +56,20 @@ func (o *OpWithTime) Execute(session *mgo.Session) error {
 		return opQuery.Execute(session)
 	case mongoproto.OpCodeGetMore:
 		fmt.Printf("Execute OpGetMore\n")
-		opGetMore := &mongoproto.OpGetMore{Header: o.OpRaw.Header}
-		err := opGetMore.FromReader(reader)
+		getMoreOp := &mongoproto.GetMoreOp{Header: o.OpRaw.Header}
+		err := getMoreOp.FromReader(reader)
 		if err != nil {
 			return err
 		}
-		return opGetMore.Execute(session)
+		return getMoreOp.Execute(session)
 	case mongoproto.OpCodeInsert:
 		fmt.Printf("Execute OpInsert\n")
-		opInsert := &mongoproto.OpInsert{Header: o.OpRaw.Header}
-		err := opInsert.FromReader(reader)
+		insertOp := &mongoproto.InsertOp{Header: o.OpRaw.Header}
+		err := insertOp.FromReader(reader)
 		if err != nil {
 			return err
 		}
-		return opInsert.Execute(session)
+		return insertOp.Execute(session)
 	default:
 		fmt.Printf("Execute OpUnknown %v\n", o.OpRaw.Header.OpCode)
 		//fmt.Printf("OpWithTime Execute unknown\n")

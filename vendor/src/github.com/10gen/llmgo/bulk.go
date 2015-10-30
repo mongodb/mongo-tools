@@ -61,7 +61,7 @@ func (b *Bulk) Insert(docs ...interface{}) {
 func (b *Bulk) Run() (*BulkResult, error) {
 	op := &InsertOp{b.c.FullName, b.inserts, 0}
 	if !b.ordered {
-		op.flags = 1 // ContinueOnError
+		op.Flags = 1 // ContinueOnError
 	}
 	_, err := b.c.writeQuery(op)
 	if err != nil {

@@ -93,7 +93,3 @@ func (op *OpReply) fromWire(b []byte) {
 		offset += len(doc)
 	}
 }
-
-func (op *OpReply) toWire() []byte {
-	return nil
-}

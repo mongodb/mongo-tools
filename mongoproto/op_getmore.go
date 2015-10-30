@@ -9,18 +9,16 @@ import (
 
 // OpGetMore is used to query the database for documents in a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-get-more
-type OpGetMore struct {
-	Header             MsgHeader
-	FullCollectionName string // "dbname.collectionname"
-	NumberToReturn     int32  // number of documents to return
-	CursorID           int64  // cursorID from the OpReply
+type GetMoreOp struct {
+	Header	MsgHeader
+	mgo.GetMoreOp
 }
 
-func (op *OpGetMore) OpCode() OpCode {
+func (op *GetMoreOp) OpCode() OpCode {
 	return OpCodeGetMore
 }
 
-func (op *OpGetMore) FromReader(r io.Reader) error {
+func (op *GetMoreOp) FromReader(r io.Reader) error {
 	var b [12]byte
 	if _, err := io.ReadFull(r, b[:4]); err != nil {
 		return err
@@ -29,31 +27,30 @@ func (op *OpGetMore) FromReader(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	op.FullCollectionName = string(name)
+	op.Collection = string(name)
 	if _, err := io.ReadFull(r, b[:12]); err != nil {
 		return err
 	}
-	op.NumberToReturn = getInt32(b[:], 0)
-	op.CursorID = getInt64(b[:], 4)
+	op.Limit = getInt32(b[:], 0)
+	op.CursorId = getInt64(b[:], 4)
 	return nil
 }
 
-func (op *OpGetMore) fromWire(b []byte) {
+func (op *GetMoreOp) fromWire(b []byte) {
 	b = b[4:] // skip ZERO
-	op.FullCollectionName = readCString(b)
-	b = b[len(op.FullCollectionName)+1:]
-	op.NumberToReturn = getInt32(b, 0)
-	op.CursorID = getInt64(b, 4)
+	op.Collection = readCString(b)
+	b = b[len(op.Collection)+1:]
+	op.Limit = getInt32(b, 0)
+	op.CursorId = getInt64(b, 4)
 }
 
-func (op *OpGetMore) toWire() []byte {
+func (op *GetMoreOp) toWire() []byte {
 	return nil
 }
 
-func (op *OpGetMore) Execute(session *mgo.Session) error {
-	// XXX don't actually us3e op.CursorID, but look up the translated cursor id from op.CursorID
-	opGetMore := &mgo.GetMoreOp{Collection: op.FullCollectionName, Limit: op.NumberToReturn, CursorId: op.CursorID}
-	data, reply, err := session.GetMoreOp(opGetMore)
+func (op *GetMoreOp) Execute(session *mgo.Session) error {
+// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
+	data, reply, err := session.GetMoreOp(&op.GetMoreOp)
 
 	dataDoc := bson.M{}
 	for _, d := range data {

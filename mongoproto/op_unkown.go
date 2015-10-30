@@ -32,10 +32,6 @@ func (op *OpUnknown) FromReader(r io.Reader) error {
 func (op *OpUnknown) fromWire(b []byte) {
 }
 
-func (op *OpUnknown) toWire() []byte {
-	return nil
-}
-
 func (op *OpUnknown) Execute(session *mgo.Session) error {
 	return nil
 }

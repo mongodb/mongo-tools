@@ -39,13 +39,13 @@ func OpFromReader(r io.Reader) (Op, error) {
 	var result Op
 	switch m.OpCode {
 	case OpCodeQuery:
-		result = &OpQuery{Header: m}
+		result = &QueryOp{Header: m}
 	case OpCodeReply:
 		result = &OpReply{Header: m}
 	case OpCodeGetMore:
-		result = &OpGetMore{Header: m}
+		result = &GetMoreOp{Header: m}
 	case OpCodeInsert:
-		result = &OpInsert{Header: m}
+		result = &InsertOp{Header: m}
 	default:
 		result = &OpUnknown{Header: m}
 	}
