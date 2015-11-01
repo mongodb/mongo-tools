@@ -378,7 +378,13 @@ func (exp *MongoExport) getExportOutput(out io.Writer) (ExportOutput, error) {
 				exportFields = append(exportFields, field)
 			}
 		}
-		return NewCSVExportOutput(exportFields, out), nil
+
+		var noHeaderLine bool = false
+		if exp.OutputOpts.NoHeaderLine {
+			noHeaderLine = true
+		}
+
+		return NewCSVExportOutput(exportFields, noHeaderLine, out), nil
 	}
 	return NewJSONExportOutput(exp.OutputOpts.JSONArray, exp.OutputOpts.Pretty, out), nil
 }
