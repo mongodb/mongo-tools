@@ -46,6 +46,3 @@ func (op *OpRaw) ShortReplyFromReader(r io.Reader) error {
 	_, err = io.CopyN(ioutil.Discard, r, int64(op.Header.MessageLength-MsgHeaderLen-20))
 	return err
 }
-
-func (op *OpRaw) fromWire(b []byte) {
-}

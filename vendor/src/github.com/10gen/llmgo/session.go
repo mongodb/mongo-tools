@@ -705,6 +705,45 @@ func (s *Session) KillCursorsOp(op *KillCursorsOp) error {
 	}
 	return nil
 }
+func (s *Session) DeleteOp(op *DeleteOp) error {
+	socket, err := s.acquireSocket(true)
+	if err != nil {
+		return err
+	}
+	defer socket.Release()
+
+	err = socket.Query(op)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (s *Session) InsertOp(op *InsertOp) error {
+	socket, err := s.acquireSocket(true)
+	if err != nil {
+		return err
+	}
+	defer socket.Release()
+
+	err = socket.Query(op)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (s *Session) UpdateOp(op *UpdateOp) error {
+	socket, err := s.acquireSocket(true)
+	if err != nil {
+		return err
+	}
+	defer socket.Release()
+
+	err = socket.Query(op)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // Credential holds details to authenticate with a MongoDB server.
 type Credential struct {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongoplay/tcpreader"
+	"github.com/10gen/llmgo"
 )
 
 const (
@@ -19,6 +20,7 @@ var ErrNotMsg = fmt.Errorf("buffer is too small to be a Mongo message")
 type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
+	Execute(*mgo.Session) error
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.
@@ -46,6 +48,12 @@ func OpFromReader(r io.Reader) (Op, error) {
 		result = &GetMoreOp{Header: m}
 	case OpCodeInsert:
 		result = &InsertOp{Header: m}
+	case OpCodeDelete:
+		result = &DeleteOp{Header: m}
+	case OpCodeKillCursors:
+		result = &KillCursorsOp{Header: m}
+	case OpCodeUpdate:
+		result = &UpdateOp{Header: m}
 	default:
 		result = &OpUnknown{Header: m}
 	}

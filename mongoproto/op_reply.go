@@ -1,14 +1,13 @@
 package mongoproto
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/10gen/llmgo/bson"
+	mgo "github.com/10gen/llmgo"
 )
 
 const (
@@ -71,25 +70,6 @@ func (op *OpReply) FromReader(r io.Reader) error {
 	}
 	return nil
 }
-
-func (op *OpReply) fromWire(b []byte) {
-	if len(b) < 20 {
-		return
-	}
-	op.Flags = OpReplyFlags(getInt32(b, 0))
-	op.CursorID = getInt64(b, 4)
-	op.StartingFrom = getInt32(b, 12)
-	op.NumberReturned = getInt32(b, 16)
-
-	offset := 20
-	for i := int32(0); i < op.NumberReturned; i++ {
-		doc, err := ReadDocument(bytes.NewReader(b[offset:]))
-		if err != nil {
-			// TODO(tmc) probably should return an error from fromWire
-			log.Println("doc err:", err, len(b[offset:]))
-			break
-		}
-		op.Documents = append(op.Documents, doc)
-		offset += len(doc)
-	}
+func (op *OpReply) Execute(session *mgo.Session) error {
+	return nil
 }

@@ -36,18 +36,6 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *GetMoreOp) fromWire(b []byte) {
-	b = b[4:] // skip ZERO
-	op.Collection = readCString(b)
-	b = b[len(op.Collection)+1:]
-	op.Limit = getInt32(b, 0)
-	op.CursorId = getInt64(b, 4)
-}
-
-func (op *GetMoreOp) toWire() []byte {
-	return nil
-}
-
 func (op *GetMoreOp) Execute(session *mgo.Session) error {
 // XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
 	data, reply, err := session.GetMoreOp(&op.GetMoreOp)
@@ -58,8 +46,9 @@ func (op *GetMoreOp) Execute(session *mgo.Session) error {
 		if err != nil {
 			return err
 		}
+		fmt.Printf("data %#v\n", dataDoc)
+		fmt.Printf("reply %#v\n", reply)
 	}
-	fmt.Printf("data %#v\n", dataDoc)
-	fmt.Printf("reply %#v\n", reply)
+
 	return nil
 }

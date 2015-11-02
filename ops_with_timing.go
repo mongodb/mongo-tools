@@ -70,15 +70,42 @@ func (o *OpWithTime) Execute(session *mgo.Session) error {
 			return err
 		}
 		return insertOp.Execute(session)
+	case mongoproto.OpCodeKillCursors:
+		fmt.Printf("Execute OpKillCursors\n")
+		killCursorOp := &mongoproto.KillCursorsOp{Header: o.OpRaw.Header}
+		err := killCursorOp.FromReader(reader)
+		if err != nil {
+			return err
+		}
+		return killCursorOp.Execute(session)
+	case mongoproto.OpCodeDelete:
+		fmt.Printf("Execute OpCodeDelete\n")
+		deleteOp := &mongoproto.DeleteOp{Header: o.OpRaw.Header}
+		err := deleteOp.FromReader(reader)
+		if err != nil {
+			return err
+		}
+		return deleteOp.Execute(session)
+	case mongoproto.OpCodeUpdate:
+		fmt.Printf("Execute OpCodeUpdate\n")
+		updateOp := &mongoproto.UpdateOp{Header: o.OpRaw.Header}
+		err := updateOp.FromReader(reader)
+		if err != nil {
+			return err
+		}
+		return updateOp.Execute(session)
+
 	default:
-		fmt.Printf("Execute OpUnknown %v\n", o.OpRaw.Header.OpCode)
-		//fmt.Printf("OpWithTime Execute unknown\n")
-		//opUnknown := &mongoproto.OpUnknown{Header: o.OpRaw.Header}
-		//err := opUnknown.FromReader(reader)
-		//if err != nil {
-		//	return err
-		//}
-		//return opUnknown.Execute(session)
+		fmt.Printf("Skipping incomplete op: %v\n", o.OpRaw.Header.OpCode)
+		/*fmt.Printf("OpWithTime Execute unknown\n")
+		opRaw := &mongoproto.OpRaw{Header: o.OpRaw.Header}
+		err := opRaw.FromReader(reader)
+		if err != nil {
+			fmt.Println("opUnknownError")
+			return err
+		}
+		return opRaw.Execute(session)
+		*/
 	}
 	return nil
 }

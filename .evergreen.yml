@@ -86,7 +86,7 @@ tasks:
   - func: "build tool"
 - name: sanity_check
   depends_on:
-  -name: build
+  - name: build
   commands:
   - func: "fetch source"
   - func: "fetch tool"
@@ -98,11 +98,11 @@ tasks:
     params:
       working_dir: src
       script: |
-        ./mongo --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
+        PATH=$PATH:`pwd`/../mongodb
+        mongo --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
         echo "mongod started"
         echo "Running sanity check"
         chmod +x mongoplay
-        PATH=$PATH:`pwd`/../mongodb
         ./sanity_check.sh -p ${mongod_port}
 buildvariants:
 - name: ubuntu

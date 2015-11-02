@@ -31,7 +31,7 @@ done
 OUTFILE="$(echo $PCAPFILE | cut -f 1 -d '.').playback"
 ./mongoplay record -f $PCAPFILE $OUTFILE
 
-if [ $STARTMONGO ]; then
+if [ "$STARTMONGO" = true ]; then
 	rm -rf /data/mongoplay/
 	mkdir /data/mongoplay/
 	echo "starting mongod"
@@ -50,7 +50,7 @@ mongo --port=$PORT mongoplay_test --eval "var query_results = db.sanity_check.fi
 assert.gt(query_results.size(), 0);"
 echo "Success!"
 
-if [ $STARTMONGO ]; then
+if [ "$STARTMONGO" = true ]; then
 	kill $MONGOPID
 fi
 

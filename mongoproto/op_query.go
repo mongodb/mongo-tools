@@ -76,7 +76,7 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 }
 
 func (op *QueryOp) Execute(session *mgo.Session) error {
-
+	fmt.Printf("%v\n", op.Query)
 	data, reply, err := session.QueryOp(&op.QueryOp)
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)

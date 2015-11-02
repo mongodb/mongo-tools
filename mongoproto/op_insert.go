@@ -32,7 +32,7 @@ func (op *InsertOp) String() string {
 		asJSON, _ := json.Marshal(jsonDoc)
 		docs = append(docs, string(asJSON))
 	}
-	return fmt.Sprintf("OpInsert %v %v", op.Collection, docs)
+	return fmt.Sprintf("InsertOp %v %v", op.Collection, docs)
 }
 
 func (op *InsertOp) FromReader(r io.Reader) error {
@@ -64,5 +64,10 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 }
 
 func (op *InsertOp) Execute(session *mgo.Session) error {
+	if err := session.InsertOp(&op.InsertOp); err != nil {
+		return err
+	}
+
+	fmt.Println("Insert Op")
 	return nil
 }

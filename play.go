@@ -12,11 +12,16 @@ import (
 )
 
 type PlayCommand struct {
-	GlobalOpts *Options `no-flag:"true"`
+	GlobalOpts   *Options `no-flag:"true"`
 	PlaybackFile struct {
 		PlaybackFile string
 	} `required:"yes" positional-args:"yes" description:"The file to play back to the mongodb instance"`
-	Url     string `short:"m" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
+	Url string `short:"m" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
+}
+
+type SessionWrapper struct {
+	session chan<- *OpWithTime
+	done    <-chan bool
 }
 
 func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
@@ -48,12 +53,16 @@ func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
 	return ch, nil
 }
 
-func newOpConnection(url string) (chan<- *OpWithTime, error) {
+func newOpConnection(url string) (SessionWrapper, error) {
 	session, err := mgo.Dial(url)
 	if err != nil {
-		return nil, err
+		return SessionWrapper{}, err
 	}
+
 	ch := make(chan *OpWithTime)
+	done := make(chan bool)
+
+	sessionWrapper := SessionWrapper{ch, done}
 	go func() {
 		for op := range ch {
 			t := time.Now()
@@ -65,20 +74,22 @@ func newOpConnection(url string) (chan<- *OpWithTime, error) {
 				fmt.Printf("op.Execute error: %v\n", err)
 			}
 		}
+		done<-true
 	}()
-	return ch, nil
+	return sessionWrapper, nil
 }
 
 func (play *PlayCommand) Execute(args []string) error {
 	fmt.Printf("%s", play.GlobalOpts.Verbose)
-//	play.Logger.Printf("%#v", play)
+	//	play.Logger.Printf("%#v", play)
 	opChan, err := newPlayOpChan(play.PlaybackFile.PlaybackFile)
 	if err != nil {
 		return fmt.Errorf("newPlayOpChan: %v", err)
 	}
 	var playbackStartTime, recordingStartTime time.Time
 	var delta time.Duration
-	sessions := make(map[string]chan<- *OpWithTime)
+	sessionChans := make(map[string]SessionWrapper)
+
 	for op := range opChan {
 		if recordingStartTime.IsZero() && !op.Seen.IsZero() {
 			recordingStartTime = op.Seen
@@ -88,16 +99,22 @@ func (play *PlayCommand) Execute(args []string) error {
 		// if we want to play faster or slower then delta will need to not be constant
 		op.PlayAt = op.Seen.Add(delta)
 		//fmt.Printf("play op %#v\n\n", op)
-		session, ok := sessions[op.Connection]
+		sessionWrapper, ok := sessionChans[op.Connection]
 		if !ok {
-			session, err = newOpConnection(play.Url)
+			sessionWrapper, err = newOpConnection(play.Url)
 			if err != nil {
 				fmt.Printf("newOpConnection: %v\n", err)
 				os.Exit(1)
 			}
-			sessions[op.Connection] = session
+			sessionChans[op.Connection] = sessionWrapper
 		}
-		session <- op
+		sessionWrapper.session <- op
+	}
+	for _, sessionWrapper := range sessionChans {
+		close(sessionWrapper.session)
+	}
+	for _, sessionWrapper := range sessionChans {
+		<-sessionWrapper.done
 	}
 	return nil
 }
