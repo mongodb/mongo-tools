@@ -58,7 +58,8 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 		return err
 	}
 
-	err = bson.Unmarshal(queryAsSlice, &op.Query)
+	op.Query = &bson.D{}
+	err = bson.Unmarshal(queryAsSlice, op.Query)
 	if err != nil {
 		return err
 	}
@@ -80,14 +81,14 @@ func (op *QueryOp) Execute(session *mgo.Session) error {
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
 	}
-	dataDoc := bson.M{}
+	dataDoc := bson.D{}
 	for _, d := range data {
-		err = bson.Unmarshal(d, dataDoc)
+		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
 			return err
 		}
+		fmt.Printf("data: %#v\n", dataDoc)
 	}
-	fmt.Printf("data: %#v\n", dataDoc)
 	fmt.Printf("reply: %#v\n", reply)
 
 	return err
