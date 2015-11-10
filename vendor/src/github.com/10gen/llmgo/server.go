@@ -39,13 +39,13 @@ import (
 // ---------------------------------------------------------------------------
 // Mongo server encapsulation.
 
-type mongoServer struct {
+type MongoServer struct {
 	sync.RWMutex
 	Addr          string
 	ResolvedAddr  string
 	tcpaddr       *net.TCPAddr
-	unusedSockets []*mongoSocket
-	liveSockets   []*mongoSocket
+	unusedSockets []*MongoSocket
+	liveSockets   []*MongoSocket
 	closed        bool
 	abended       bool
 	sync          chan bool
@@ -76,8 +76,8 @@ type mongoServerInfo struct {
 
 var defaultServerInfo mongoServerInfo
 
-func newServer(addr string, tcpaddr *net.TCPAddr, sync chan bool, dial dialer) *mongoServer {
-	server := &mongoServer{
+func newServer(addr string, tcpaddr *net.TCPAddr, sync chan bool, dial dialer) *MongoServer {
+	server := &MongoServer{
 		Addr:         addr,
 		ResolvedAddr: tcpaddr.String(),
 		tcpaddr:      tcpaddr,
@@ -102,7 +102,7 @@ var errServerClosed = errors.New("server was closed")
 // If the poolLimit argument is greater than zero and the number of sockets in
 // use in this server is greater than the provided limit, errPoolLimit is
 // returned.
-func (server *mongoServer) AcquireSocket(poolLimit int, timeout time.Duration) (socket *mongoSocket, abended bool, err error) {
+func (server *MongoServer) AcquireSocket(poolLimit int, timeout time.Duration) (socket *MongoSocket, abended bool, err error) {
 	for {
 		server.Lock()
 		abended = server.abended
@@ -149,7 +149,7 @@ func (server *mongoServer) AcquireSocket(poolLimit int, timeout time.Duration) (
 
 // Connect establishes a new connection to the server. This should
 // generally be done through server.AcquireSocket().
-func (server *mongoServer) Connect(timeout time.Duration) (*mongoSocket, error) {
+func (server *MongoServer) Connect(timeout time.Duration) (*MongoSocket, error) {
 	server.RLock()
 	master := server.info.Master
 	dial := server.dial
@@ -177,12 +177,12 @@ func (server *mongoServer) Connect(timeout time.Duration) (*mongoSocket, error) 
 	logf("Connection to %s established.", server.Addr)
 
 	stats.conn(+1, master)
-	return newSocket(server, conn, timeout), nil
+	return NewSocket(server, conn, timeout), nil
 }
 
 // Close forces closing all sockets that are alive, whether
 // they're currently in use or not.
-func (server *mongoServer) Close() {
+func (server *MongoServer) Close() {
 	server.Lock()
 	server.closed = true
 	liveSockets := server.liveSockets
@@ -201,7 +201,7 @@ func (server *mongoServer) Close() {
 }
 
 // RecycleSocket puts socket back into the unused cache.
-func (server *mongoServer) RecycleSocket(socket *mongoSocket) {
+func (server *MongoServer) RecycleSocket(socket *MongoSocket) {
 	server.Lock()
 	if !server.closed {
 		server.unusedSockets = append(server.unusedSockets, socket)
@@ -209,7 +209,7 @@ func (server *mongoServer) RecycleSocket(socket *mongoSocket) {
 	server.Unlock()
 }
 
-func removeSocket(sockets []*mongoSocket, socket *mongoSocket) []*mongoSocket {
+func removeSocket(sockets []*MongoSocket, socket *MongoSocket) []*MongoSocket {
 	for i, s := range sockets {
 		if s == socket {
 			copy(sockets[i:], sockets[i+1:])
@@ -224,7 +224,7 @@ func removeSocket(sockets []*mongoSocket, socket *mongoSocket) []*mongoSocket {
 
 // AbendSocket notifies the server that the given socket has terminated
 // abnormally, and thus should be discarded rather than cached.
-func (server *mongoServer) AbendSocket(socket *mongoSocket) {
+func (server *MongoServer) AbendSocket(socket *MongoSocket) {
 	server.Lock()
 	server.abended = true
 	if server.closed {
@@ -241,20 +241,20 @@ func (server *mongoServer) AbendSocket(socket *mongoSocket) {
 	}
 }
 
-func (server *mongoServer) SetInfo(info *mongoServerInfo) {
+func (server *MongoServer) SetInfo(info *mongoServerInfo) {
 	server.Lock()
 	server.info = info
 	server.Unlock()
 }
 
-func (server *mongoServer) Info() *mongoServerInfo {
+func (server *MongoServer) Info() *mongoServerInfo {
 	server.Lock()
 	info := server.info
 	server.Unlock()
 	return info
 }
 
-func (server *mongoServer) hasTags(serverTags []bson.D) bool {
+func (server *MongoServer) hasTags(serverTags []bson.D) bool {
 NextTagSet:
 	for _, tags := range serverTags {
 	NextReqTag:
@@ -276,7 +276,7 @@ NextTagSet:
 
 var pingDelay = 5 * time.Second
 
-func (server *mongoServer) pinger(loop bool) {
+func (server *MongoServer) pinger(loop bool) {
 	var delay time.Duration
 	if raceDetector {
 		// This variable is only ever touched by tests.
@@ -329,7 +329,7 @@ func (server *mongoServer) pinger(loop bool) {
 	}
 }
 
-type mongoServerSlice []*mongoServer
+type mongoServerSlice []*MongoServer
 
 func (s mongoServerSlice) Len() int {
 	return len(s)
@@ -359,19 +359,19 @@ type mongoServers struct {
 	slice mongoServerSlice
 }
 
-func (servers *mongoServers) Search(resolvedAddr string) (server *mongoServer) {
+func (servers *mongoServers) Search(resolvedAddr string) (server *MongoServer) {
 	if i, ok := servers.slice.Search(resolvedAddr); ok {
 		return servers.slice[i]
 	}
 	return nil
 }
 
-func (servers *mongoServers) Add(server *mongoServer) {
+func (servers *mongoServers) Add(server *MongoServer) {
 	servers.slice = append(servers.slice, server)
 	servers.slice.Sort()
 }
 
-func (servers *mongoServers) Remove(other *mongoServer) (server *mongoServer) {
+func (servers *mongoServers) Remove(other *MongoServer) (server *MongoServer) {
 	if i, found := servers.slice.Search(other.ResolvedAddr); found {
 		server = servers.slice[i]
 		copy(servers.slice[i:], servers.slice[i+1:])
@@ -382,11 +382,11 @@ func (servers *mongoServers) Remove(other *mongoServer) (server *mongoServer) {
 	return
 }
 
-func (servers *mongoServers) Slice() []*mongoServer {
-	return ([]*mongoServer)(servers.slice)
+func (servers *mongoServers) Slice() []*MongoServer {
+	return ([]*MongoServer)(servers.slice)
 }
 
-func (servers *mongoServers) Get(i int) *mongoServer {
+func (servers *mongoServers) Get(i int) *MongoServer {
 	return servers.slice[i]
 }
 
@@ -400,8 +400,8 @@ func (servers *mongoServers) Empty() bool {
 
 // BestFit returns the best guess of what would be the most interesting
 // server to perform operations on at this point in time.
-func (servers *mongoServers) BestFit(serverTags []bson.D) *mongoServer {
-	var best *mongoServer
+func (servers *mongoServers) BestFit(serverTags []bson.D) *MongoServer {
+	var best *MongoServer
 	for _, next := range servers.slice {
 		if best == nil {
 			best = next

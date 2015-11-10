@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"gopkg.in/mgo.v2/bson"
 	"io"
+	"reflect"
 )
 
 // OpUpdate is used to update a document in a collection.
@@ -42,27 +43,28 @@ func (op *UpdateOp) OpCode() OpCode {
 }
 
 func (op *UpdateOp) FromReader(r io.Reader) error {
-	var b [8]byte
-	if _, err := io.ReadFull(r, b[:4]); err != nil { // skip ZERO
+	var b [4]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil { // skip ZERO
 		return err
 	}
 	name, err := readCStringFromReader(r)
 	if err != nil {
 		return err
 	}
-	op.Flags = uint32(getInt32(b[:], 4))
+	op.Collection = string(name)
 
-	if _, err := io.ReadFull(r, b[4:]); err != nil { // grab the flags
+	if _, err := io.ReadFull(r, b[:]); err != nil { // grab the flags
 		return err
 	}
-	op.Collection = string(name)
+	op.Flags = uint32(getInt32(b[:], 0))
 
 	selectorAsSlice, err := ReadDocument(r)
 	if err != nil {
 		return err
 	}
-
-	if err = bson.Unmarshal(selectorAsSlice, op.Selector); err != nil {
+	op.Selector = &bson.D{}
+	err = bson.Unmarshal(selectorAsSlice, op.Selector)
+	if err != nil {
 		return err
 	}
 
@@ -70,8 +72,9 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-
-	if err = bson.Unmarshal(updateAsSlice, op.Update); err != nil {
+	op.Update = &bson.D{}
+	err = bson.Unmarshal(updateAsSlice, op.Update)
+	if err != nil {
 		return err
 	}
 
@@ -79,10 +82,26 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 }
 
 func (op *UpdateOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
-	if err := session.ExecOpWithoutReply(&op.UpdateOp); err != nil {
+	if err := mgo.ExecOpWithoutReply(session, &op.UpdateOp); err != nil {
 		return nil, err
 	}
-
-	fmt.Println("Update Op")
 	return nil, nil
+}
+
+func (updateOp1 *UpdateOp) Equals(otherOp Op) bool {
+	updateOp2, ok := otherOp.(*UpdateOp)
+	if !ok {
+		return false
+	}
+	switch {
+	case updateOp1.Collection != updateOp2.Collection:
+		return false
+	case reflect.DeepEqual(updateOp1.Selector, updateOp2.Selector):
+		return false
+	case reflect.DeepEqual(updateOp1.Update, updateOp2.Update):
+		return false
+	case updateOp1.Flags != updateOp2.Flags:
+		return false
+	}
+	return true
 }

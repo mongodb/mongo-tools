@@ -32,3 +32,6 @@ func (op *OpUnknown) FromReader(r io.Reader) error {
 func (op *OpUnknown) Execute(session *mgo.Session) (*mgo.ReplyOp, error){
 	return nil, nil
 }
+func (opUnknown1 *OpUnknown) Equals(otherOp Op) bool {
+	return true
+}

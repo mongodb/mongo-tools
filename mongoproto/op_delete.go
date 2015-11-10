@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -37,14 +38,22 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	op.Flags = uint32(getInt32(b[:], 0))
 	name, err := readCStringFromReader(r)
 	if err != nil {
 		return err
 	}
 	op.Collection = string(name)
+	_, err = io.ReadFull(r, b[:]) //Grab the flags
+	if err != nil {
+		return err
+	}
+	op.Flags = uint32(getInt32(b[:], 0))
 
 	selectorAsSlice, err := ReadDocument(r)
+	if err != nil {
+		return err
+	}
+	op.Selector = &bson.D{}
 	err = bson.Unmarshal(selectorAsSlice, op.Selector)
 
 	if err != nil {
@@ -54,10 +63,25 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 }
 
 func (op *DeleteOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
-	if err := session.ExecOpWithoutReply(&op.DeleteOp); err != nil {
+	if err := mgo.ExecOpWithoutReply(session, &op.DeleteOp); err != nil {
 		return nil, err
 	}
-
-	fmt.Println("Delete Op")
 	return nil, nil
 }
+
+func (deleteOp1 *DeleteOp) Equals(otherOp Op) bool {
+	deleteOp2, ok := otherOp.(*DeleteOp)
+	if !ok {
+		return false
+	}
+	switch {
+	case deleteOp1.Collection != deleteOp2.Collection:
+		return false
+	case !reflect.DeepEqual(deleteOp1.Selector, deleteOp2.Selector):
+		return false
+	case deleteOp1.Flags != deleteOp2.Flags:
+		return false
+	}
+	return true
+}
+

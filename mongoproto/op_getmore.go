@@ -38,7 +38,7 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 
 func (op *GetMoreOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
-	data, reply, err := session.ExecOpWithReply(&op.GetMoreOp)
+	data, reply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
 
 	dataDoc := bson.M{}
 	for _, d := range data {
@@ -51,4 +51,19 @@ func (op *GetMoreOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	}
 
 	return reply, nil
+}
+
+func (getMoreOp1 *GetMoreOp) Equals(otherOp Op) bool {
+	getMoreOp2, ok := otherOp.(*GetMoreOp)
+	if !ok {
+		return false
+	}
+	switch {
+	case getMoreOp1.Collection != getMoreOp2.Collection:
+		return false
+	case getMoreOp1.Limit != getMoreOp2.Limit:
+		return false
+	}
+	//currently doesn't compare cursorID's, not totally sure what to do about that just yet
+	return true
 }

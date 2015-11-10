@@ -24,7 +24,7 @@ type SessionWrapper struct {
 	done    <-chan bool
 }
 
-func newPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
+func NewPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
 	opFile, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
@@ -81,8 +81,7 @@ func newOpConnection(url string, context *ExecutionContext) (SessionWrapper, err
 
 func (play *PlayCommand) Execute(args []string) error {
 	fmt.Printf("%s", play.GlobalOpts.Verbose)
-	//	play.Logger.Printf("%#v", play)
-	opChan, err := newPlayOpChan(play.PlaybackFile.PlaybackFile)
+	opChan, err := NewPlayOpChan(play.PlaybackFile.PlaybackFile)
 	if err != nil {
 		return fmt.Errorf("newPlayOpChan: %v", err)
 	}

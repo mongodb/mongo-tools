@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -52,7 +53,7 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	docLen := 0
 	for len(name)+1+4+docLen < int(op.Header.MessageLength)-MsgHeaderLen {
 		docAsSlice, err := ReadDocument(r)
-		var doc interface{}
+		doc := &bson.D{}
 		err = bson.Unmarshal(docAsSlice, doc)
 		if err != nil {
 			return err
@@ -64,10 +65,25 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 }
 
 func (op *InsertOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
-	if err := session.ExecOpWithoutReply(&op.InsertOp); err != nil {
+	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {
 		return nil, err
 	}
 
-	fmt.Println("Insert Op")
 	return nil, nil
+}
+
+func (insertOp1 *InsertOp) Equals(otherOp Op) bool {
+	insertOp2, ok := otherOp.(*InsertOp)
+	if !ok {
+		return false
+	}
+	switch {
+	case insertOp1.Collection != insertOp2.Collection:
+		return false
+	case reflect.DeepEqual(insertOp1.Documents, insertOp2.Documents):
+		return false
+	case insertOp1.Flags != insertOp2.Flags:
+		return false
+	}
+	return true
 }

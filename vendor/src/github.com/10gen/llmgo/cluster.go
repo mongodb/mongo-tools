@@ -116,7 +116,7 @@ func (cluster *mongoCluster) LiveServers() (servers []string) {
 	return servers
 }
 
-func (cluster *mongoCluster) removeServer(server *mongoServer) {
+func (cluster *mongoCluster) removeServer(server *MongoServer) {
 	cluster.Lock()
 	cluster.masters.Remove(server)
 	other := cluster.servers.Remove(server)
@@ -140,7 +140,7 @@ type isMasterResult struct {
 	MaxWireVersion int    `bson:"maxWireVersion"`
 }
 
-func (cluster *mongoCluster) isMaster(socket *mongoSocket, result *isMasterResult) error {
+func (cluster *mongoCluster) isMaster(socket *MongoSocket, result *isMasterResult) error {
 	// Monotonic let's it talk to a slave and still hold the socket.
 	session := newSession(Monotonic, cluster, 10*time.Second)
 	session.setSocket(socket)
@@ -155,7 +155,7 @@ type possibleTimeout interface {
 
 var syncSocketTimeout = 5 * time.Second
 
-func (cluster *mongoCluster) syncServer(server *mongoServer) (info *mongoServerInfo, hosts []string, err error) {
+func (cluster *mongoCluster) syncServer(server *MongoServer) (info *mongoServerInfo, hosts []string, err error) {
 	var syncTimeout time.Duration
 	if raceDetector {
 		// This variable is only ever touched by tests.
@@ -253,7 +253,7 @@ const (
 	partialSync  syncKind = false
 )
 
-func (cluster *mongoCluster) addServer(server *mongoServer, info *mongoServerInfo, syncKind syncKind) {
+func (cluster *mongoCluster) addServer(server *MongoServer, info *mongoServerInfo, syncKind syncKind) {
 	cluster.Lock()
 	current := cluster.servers.Search(server.ResolvedAddr)
 	if current == nil {
@@ -399,7 +399,7 @@ func (cluster *mongoCluster) syncServersLoop() {
 	debugf("SYNC Cluster %p is stopping its sync loop.", cluster)
 }
 
-func (cluster *mongoCluster) server(addr string, tcpaddr *net.TCPAddr) *mongoServer {
+func (cluster *mongoCluster) server(addr string, tcpaddr *net.TCPAddr) *MongoServer {
 	cluster.RLock()
 	server := cluster.servers.Search(tcpaddr.String())
 	cluster.RUnlock()
@@ -440,7 +440,7 @@ func resolveAddr(addr string) (*net.TCPAddr, error) {
 }
 
 type pendingAdd struct {
-	server *mongoServer
+	server *MongoServer
 	info   *mongoServerInfo
 }
 
@@ -548,7 +548,7 @@ func (cluster *mongoCluster) syncServersIteration(direct bool) {
 // AcquireSocket returns a socket to a server in the cluster.  If slaveOk is
 // true, it will attempt to return a socket to a slave server.  If it is
 // false, the socket will necessarily be to a master server.
-func (cluster *mongoCluster) AcquireSocket(slaveOk bool, syncTimeout time.Duration, socketTimeout time.Duration, serverTags []bson.D, poolLimit int) (s *mongoSocket, err error) {
+func (cluster *mongoCluster) AcquireSocket(slaveOk bool, syncTimeout time.Duration, socketTimeout time.Duration, serverTags []bson.D, poolLimit int) (s *MongoSocket, err error) {
 	var started time.Time
 	var syncCount uint
 	warnedLimit := false
@@ -576,7 +576,7 @@ func (cluster *mongoCluster) AcquireSocket(slaveOk bool, syncTimeout time.Durati
 			cluster.serverSynced.Wait()
 		}
 
-		var server *mongoServer
+		var server *MongoServer
 		if slaveOk {
 			server = cluster.servers.BestFit(serverTags)
 		} else {

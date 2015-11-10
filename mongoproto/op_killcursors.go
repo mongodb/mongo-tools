@@ -42,10 +42,20 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 }
 
 func (op *KillCursorsOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
-	if err := session.ExecOpWithoutReply(&op.KillCursorsOp); err != nil {
+	if err := mgo.ExecOpWithoutReply(session, &op.KillCursorsOp); err != nil {
 		return nil, err
 	}
 
-	fmt.Println("Kill cursors")
 	return nil, nil
+}
+
+func (killCursorsOp1 *KillCursorsOp) Equals(otherOp Op) bool {
+	killCursorsOp2, ok := otherOp.(*KillCursorsOp)
+	if !ok {
+		return false
+	}
+	if len(killCursorsOp1.CursorIds) != len(killCursorsOp2.CursorIds) {
+		return false
+	}
+	return true
 }

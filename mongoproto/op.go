@@ -21,6 +21,7 @@ type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
 	Execute(*mgo.Session) (*mgo.ReplyOp, error)
+	Equals(Op) bool
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.

@@ -12,14 +12,18 @@ type OpMsg struct {
 	Message string
 }
 
-func(op *OpMsg) OpCode() OpCode {
+func (op *OpMsg) OpCode() OpCode {
 	return OpCodeMessage
 }
 
-func(op *OpMsg) FromReader(r io.Reader) error {
+func (op *OpMsg) FromReader(r io.Reader) error {
 	return nil
 }
 
-func(op *OpMsg) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *OpMsg) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	return nil, nil
+}
+
+func (op *OpMsg) Equals(otherOp Op) bool {
+	return true
 }

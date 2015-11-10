@@ -92,7 +92,7 @@ type saslStepper interface {
 	Close()
 }
 
-func (socket *mongoSocket) getNonce() (nonce string, err error) {
+func (socket *MongoSocket) getNonce() (nonce string, err error) {
 	socket.Lock()
 	for socket.cachedNonce == "" && socket.dead == nil {
 		debugf("Socket %p to %s: waiting for nonce", socket, socket.addr)
@@ -112,7 +112,7 @@ func (socket *mongoSocket) getNonce() (nonce string, err error) {
 	return
 }
 
-func (socket *mongoSocket) resetNonce() {
+func (socket *MongoSocket) resetNonce() {
 	debugf("Socket %p to %s: requesting a new nonce", socket, socket.addr)
 	op := &QueryOp{}
 	op.Query = &getNonceCmd{GetNonce: 1}
@@ -158,7 +158,7 @@ func (socket *mongoSocket) resetNonce() {
 	}
 }
 
-func (socket *mongoSocket) Login(cred Credential) error {
+func (socket *MongoSocket) Login(cred Credential) error {
 	socket.Lock()
 	if cred.Mechanism == "" && socket.serverInfo.MaxWireVersion >= 3 {
 		cred.Mechanism = "SCRAM-SHA-1"
@@ -201,7 +201,7 @@ func (socket *mongoSocket) Login(cred Credential) error {
 	return err
 }
 
-func (socket *mongoSocket) loginClassic(cred Credential) error {
+func (socket *MongoSocket) loginClassic(cred Credential) error {
 	// Note that this only works properly because this function is
 	// synchronous, which means the nonce won't get reset while we're
 	// using it and any other login requests will block waiting for a
@@ -241,7 +241,7 @@ type authX509Cmd struct {
 	Mechanism    string
 }
 
-func (socket *mongoSocket) loginX509(cred Credential) error {
+func (socket *MongoSocket) loginX509(cred Credential) error {
 	cmd := authX509Cmd{Authenticate: 1, User: cred.Username, Mechanism: "MONGODB-X509"}
 	res := authResult{}
 	return socket.loginRun(cred.Source, &cmd, &res, func() error {
@@ -256,7 +256,7 @@ func (socket *mongoSocket) loginX509(cred Credential) error {
 	})
 }
 
-func (socket *mongoSocket) loginPlain(cred Credential) error {
+func (socket *MongoSocket) loginPlain(cred Credential) error {
 	cmd := saslCmd{Start: 1, Mechanism: "PLAIN", Payload: []byte("\x00" + cred.Username + "\x00" + cred.Password)}
 	res := authResult{}
 	return socket.loginRun(cred.Source, &cmd, &res, func() error {
@@ -271,7 +271,7 @@ func (socket *mongoSocket) loginPlain(cred Credential) error {
 	})
 }
 
-func (socket *mongoSocket) loginSASL(cred Credential) error {
+func (socket *MongoSocket) loginSASL(cred Credential) error {
 	var sasl saslStepper
 	var err error
 	if cred.Mechanism == "SCRAM-SHA-1" {
@@ -372,7 +372,7 @@ func (s *saslScram) Step(serverData []byte) (clientData []byte, done bool, err e
 	return s.client.Out(), !more, s.client.Err()
 }
 
-func (socket *mongoSocket) loginRun(db string, query, result interface{}, f func() error) error {
+func (socket *MongoSocket) loginRun(db string, query, result interface{}, f func() error) error {
 	var mutex sync.Mutex
 	var replyErr error
 	mutex.Lock()
@@ -407,7 +407,7 @@ func (socket *mongoSocket) loginRun(db string, query, result interface{}, f func
 	return replyErr
 }
 
-func (socket *mongoSocket) Logout(db string) {
+func (socket *MongoSocket) Logout(db string) {
 	socket.Lock()
 	cred, found := socket.dropAuth(db)
 	if found {
@@ -417,7 +417,7 @@ func (socket *mongoSocket) Logout(db string) {
 	socket.Unlock()
 }
 
-func (socket *mongoSocket) LogoutAll() {
+func (socket *MongoSocket) LogoutAll() {
 	socket.Lock()
 	if l := len(socket.creds); l > 0 {
 		debugf("Socket %p to %s: logout all (flagged %d)", socket, socket.addr, l)
@@ -427,7 +427,7 @@ func (socket *mongoSocket) LogoutAll() {
 	socket.Unlock()
 }
 
-func (socket *mongoSocket) flushLogout() (ops []interface{}) {
+func (socket *MongoSocket) flushLogout() (ops []interface{}) {
 	socket.Lock()
 	if l := len(socket.logout); l > 0 {
 		debugf("Socket %p to %s: logout all (flushing %d)", socket, socket.addr, l)
@@ -444,7 +444,7 @@ func (socket *mongoSocket) flushLogout() (ops []interface{}) {
 	return
 }
 
-func (socket *mongoSocket) dropAuth(db string) (cred Credential, found bool) {
+func (socket *MongoSocket) dropAuth(db string) (cred Credential, found bool) {
 	for i, sockCred := range socket.creds {
 		if sockCred.Source == db {
 			copy(socket.creds[i:], socket.creds[i+1:])
@@ -455,7 +455,7 @@ func (socket *mongoSocket) dropAuth(db string) (cred Credential, found bool) {
 	return cred, false
 }
 
-func (socket *mongoSocket) dropLogout(cred Credential) (found bool) {
+func (socket *MongoSocket) dropLogout(cred Credential) (found bool) {
 	for i, sockCred := range socket.logout {
 		if sockCred == cred {
 			copy(socket.logout[i:], socket.logout[i+1:])

@@ -58,8 +58,8 @@ const (
 type Session struct {
 	m            sync.RWMutex
 	cluster_     *mongoCluster
-	slaveSocket  *mongoSocket
-	masterSocket *mongoSocket
+	slaveSocket  *MongoSocket
+	masterSocket *MongoSocket
 	slaveOk      bool
 	consistency  mode
 	queryConfig  query
@@ -71,6 +71,10 @@ type Session struct {
 	dialCred     *Credential
 	creds        []Credential
 	poolLimit    int
+}
+
+type MongoSession interface {
+	AcquireSocketPrivate(slaveOk bool) (*MongoSocket, error)
 }
 
 type Database struct {
@@ -108,7 +112,7 @@ type Iter struct {
 	m              sync.Mutex
 	gotReply       sync.Cond
 	session        *Session
-	server         *mongoServer
+	server         *MongoServer
 	docData        queue
 	err            error
 	op             GetMoreOp
@@ -606,7 +610,7 @@ func (db *Database) GridFS(prefix string) *GridFS {
 //     http://www.mongodb.org/display/DOCS/List+of+Database+CommandSkips
 //
 func (db *Database) Run(cmd interface{}, result interface{}) error {
-	socket, err := db.Session.acquireSocket(true)
+	socket, err := db.Session.AcquireSocketPrivate(true)
 	if err != nil {
 		return err
 	}
@@ -617,11 +621,11 @@ func (db *Database) Run(cmd interface{}, result interface{}) error {
 	return err
 }
 
-func (s *Session) ExecOpWithReply(op OpWithReply) (data [][]byte, replyOp *ReplyOp, err error) {
+func ExecOpWithReply(s MongoSession, op OpWithReply) (data [][]byte, replyOp *ReplyOp, err error) {
 	var wait sync.Mutex
 	var replyData [][]byte
 	var replyErr error
-	socket, err := s.acquireSocket(true)
+	socket, err := s.AcquireSocketPrivate(true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -656,8 +660,8 @@ func (s *Session) ExecOpWithReply(op OpWithReply) (data [][]byte, replyOp *Reply
 	return replyData, replyOp, replyErr
 }
 
-func (s *Session) ExecOpWithoutReply(op interface{}) error {
-	socket, err := s.acquireSocket(true)
+func ExecOpWithoutReply(s MongoSession, op interface{}) error {
+	socket, err := s.AcquireSocketPrivate(true)
 	if err != nil {
 		return err
 	}
@@ -709,7 +713,7 @@ func (db *Database) Login(user, pass string) error {
 // Logout is explicitly called for the same database, or the session is
 // closed.
 func (s *Session) Login(cred *Credential) error {
-	socket, err := s.acquireSocket(true)
+	socket, err := s.AcquireSocketPrivate(true)
 	if err != nil {
 		return err
 	}
@@ -734,7 +738,7 @@ func (s *Session) Login(cred *Credential) error {
 	return nil
 }
 
-func (s *Session) socketLogin(socket *mongoSocket) error {
+func (s *Session) socketLogin(socket *MongoSocket) error {
 	for _, cred := range s.creds {
 		if err := socket.Login(cred); err != nil {
 			return err
@@ -2112,7 +2116,7 @@ func (p *Pipe) Iter() *Iter {
 // parameter may be in any mode or state, though.
 //
 func (c *Collection) NewIter(session *Session, firstBatch []bson.Raw, cursorId int64, err error) *Iter {
-	var server *mongoServer
+	var server *MongoServer
 	csession := c.Database.Session
 	csession.m.RLock()
 	socket := csession.masterSocket
@@ -2837,7 +2841,7 @@ func (q *Query) One(result interface{}) (err error) {
 	op := q.op // Copy.
 	q.m.Unlock()
 
-	socket, err := session.acquireSocket(true)
+	socket, err := session.AcquireSocketPrivate(true)
 	if err != nil {
 		return err
 	}
@@ -2868,7 +2872,7 @@ func (q *Query) One(result interface{}) (err error) {
 // run duplicates the behavior of collection.Find(query).One(&result)
 // as performed by Database.Run, specializing the logic for running
 // database commands on a given socket.
-func (db *Database) run(socket *mongoSocket, cmd, result interface{}) (replyOp *ReplyOp, err error) {
+func (db *Database) run(socket *MongoSocket, cmd, result interface{}) (replyOp *ReplyOp, err error) {
 	// Database.Run:
 	if name, ok := cmd.(string); ok {
 		cmd = bson.D{{name, 1}}
@@ -3079,7 +3083,7 @@ func (q *Query) Iter() *Iter {
 	op.replyFunc = iter.op.replyFunc
 	op.Flags |= session.slaveOkFlag()
 
-	socket, err := session.acquireSocket(true)
+	socket, err := session.AcquireSocketPrivate(true)
 	if err != nil {
 		iter.err = err
 	} else {
@@ -3160,7 +3164,7 @@ func (q *Query) Tail(timeout time.Duration) *Iter {
 	op.replyFunc = iter.op.replyFunc
 	op.Flags |= flagTailable | flagAwaitData | session.slaveOkFlag()
 
-	socket, err := session.acquireSocket(true)
+	socket, err := session.AcquireSocketPrivate(true)
 	if err != nil {
 		iter.err = err
 	} else {
@@ -3456,8 +3460,8 @@ func (iter *Iter) For(result interface{}, f func() error) (err error) {
 // WARNING: This method must not be called with iter.m locked. Acquiring the
 // socket depends on the cluster sync loop, and the cluster sync loop might
 // attempt actions which cause replyFunc to be called, inducing a deadlock.
-func (iter *Iter) acquireSocket() (*mongoSocket, error) {
-	socket, err := iter.session.acquireSocket(true)
+func (iter *Iter) acquireSocket() (*MongoSocket, error) {
+	socket, err := iter.session.AcquireSocketPrivate(true)
 	if err != nil {
 		return nil, err
 	}
@@ -3959,7 +3963,7 @@ func (s *Session) BuildInfo() (info BuildInfo, err error) {
 // ---------------------------------------------------------------------------
 // Internal session handling helpers.
 
-func (s *Session) acquireSocket(slaveOk bool) (*mongoSocket, error) {
+func (s *Session) AcquireSocketPrivate(slaveOk bool) (*MongoSocket, error) {
 
 	// Read-only lock to check for previously reserved socket.
 	s.m.RLock()
@@ -4021,7 +4025,7 @@ func (s *Session) acquireSocket(slaveOk bool) (*mongoSocket, error) {
 }
 
 // setSocket binds socket to this section.
-func (s *Session) setSocket(socket *mongoSocket) {
+func (s *Session) setSocket(socket *MongoSocket) {
 	info := socket.Acquire()
 	if info.Master {
 		if s.masterSocket != nil {
@@ -4115,7 +4119,7 @@ type writeCmdResult struct {
 func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
 	s := c.Database.Session
 	dbname := c.Database.Name
-	socket, err := s.acquireSocket(dbname == "local")
+	socket, err := s.AcquireSocketPrivate(dbname == "local")
 	if err != nil {
 		return nil, err
 	}
@@ -4140,7 +4144,7 @@ func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
 				op.Documents = all[i:l]
 				_, err := c.writeCommand(socket, safeOp, op)
 				if err != nil {
-					if op.Flags&1 != 0 {
+					if op.Flags &1 != 0 {
 						if firstErr == nil {
 							firstErr = err
 						}
@@ -4193,7 +4197,7 @@ func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
 	return result, nil
 }
 
-func (c *Collection) writeCommand(socket *mongoSocket, safeOp *QueryOp, op interface{}) (lerr *LastError, err error) {
+func (c *Collection) writeCommand(socket *MongoSocket, safeOp *QueryOp, op interface{}) (lerr *LastError, err error) {
 	var writeConcern interface{}
 	if safeOp == nil {
 		writeConcern = bson.D{{"w", 0}}

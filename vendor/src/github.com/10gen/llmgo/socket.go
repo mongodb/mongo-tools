@@ -28,19 +28,18 @@ package mgo
 
 import (
 	"errors"
+	"github.com/10gen/llmgo/bson"
 	"net"
 	"sync"
 	"time"
-
-	"github.com/10gen/llmgo/bson"
 )
 
 type replyFunc func(err error, reply *ReplyOp, docNum int, docData []byte)
 
-type mongoSocket struct {
+type MongoSocket struct {
 	sync.Mutex
-	server        *mongoServer // nil when cached
-	conn          net.Conn
+	server        *MongoServer // nil when cached
+	Conn          net.Conn
 	timeout       time.Duration
 	addr          string // For debugging only.
 	nextRequestId uint32
@@ -95,7 +94,7 @@ type QueryWrapper struct {
 	Comment        string      "$comment,omitempty"
 }
 
-func (op *QueryOp) finalQuery(socket *mongoSocket) interface{} {
+func (op *QueryOp) finalQuery(socket *MongoSocket) interface{} {
 	if op.Flags&flagSlaveOk != 0 && len(op.ServerTags) > 0 && socket.ServerInfo().Mongos {
 		op.HasOptions = true
 		op.Options.ReadPreference = bson.D{{"mode", "secondaryPreferred"}, {"tags", op.ServerTags}}
@@ -163,9 +162,9 @@ type requestInfo struct {
 	replyFunc replyFunc
 }
 
-func newSocket(server *mongoServer, conn net.Conn, timeout time.Duration) *mongoSocket {
-	socket := &mongoSocket{
-		conn:       conn,
+func NewSocket(server *MongoServer, conn net.Conn, timeout time.Duration) *MongoSocket {
+	socket := &MongoSocket{
+		Conn:       conn,
 		addr:       server.Addr,
 		server:     server,
 		replyFuncs: make(map[uint32]replyFunc),
@@ -183,7 +182,7 @@ func newSocket(server *mongoServer, conn net.Conn, timeout time.Duration) *mongo
 
 // Server returns the server that the socket is associated with.
 // It returns nil while the socket is cached in its respective server.
-func (socket *mongoSocket) Server() *mongoServer {
+func (socket *MongoSocket) Server() *MongoServer {
 	socket.Lock()
 	server := socket.server
 	socket.Unlock()
@@ -192,7 +191,7 @@ func (socket *mongoSocket) Server() *mongoServer {
 
 // ServerInfo returns details for the server at the time the socket
 // was initially acquired.
-func (socket *mongoSocket) ServerInfo() *mongoServerInfo {
+func (socket *MongoSocket) ServerInfo() *mongoServerInfo {
 	socket.Lock()
 	serverInfo := socket.serverInfo
 	socket.Unlock()
@@ -202,7 +201,7 @@ func (socket *mongoSocket) ServerInfo() *mongoServerInfo {
 // InitialAcquire obtains the first reference to the socket, either
 // right after the connection is made or once a recycled socket is
 // being put back in use.
-func (socket *mongoSocket) InitialAcquire(serverInfo *mongoServerInfo, timeout time.Duration) error {
+func (socket *MongoSocket) InitialAcquire(serverInfo *mongoServerInfo, timeout time.Duration) error {
 	socket.Lock()
 	if socket.references > 0 {
 		panic("Socket acquired out of cache with references")
@@ -224,7 +223,7 @@ func (socket *mongoSocket) InitialAcquire(serverInfo *mongoServerInfo, timeout t
 // Acquire obtains an additional reference to the socket.
 // The socket will only be recycled when it's released as many
 // times as it's been acquired.
-func (socket *mongoSocket) Acquire() (info *mongoServerInfo) {
+func (socket *MongoSocket) Acquire() (info *mongoServerInfo) {
 	socket.Lock()
 	if socket.references == 0 {
 		panic("Socket got non-initial acquire with references == 0")
@@ -240,7 +239,7 @@ func (socket *mongoSocket) Acquire() (info *mongoServerInfo) {
 
 // Release decrements a socket reference. The socket will be
 // recycled once its released as many times as it's been acquired.
-func (socket *mongoSocket) Release() {
+func (socket *MongoSocket) Release() {
 	socket.Lock()
 	if socket.references == 0 {
 		panic("socket.Release() with references == 0")
@@ -262,7 +261,7 @@ func (socket *mongoSocket) Release() {
 }
 
 // SetTimeout changes the timeout used on socket operations.
-func (socket *mongoSocket) SetTimeout(d time.Duration) {
+func (socket *MongoSocket) SetTimeout(d time.Duration) {
 	socket.Lock()
 	socket.timeout = d
 	socket.Unlock()
@@ -275,7 +274,7 @@ const (
 	writeDeadline deadlineType = 2
 )
 
-func (socket *mongoSocket) updateDeadline(which deadlineType) {
+func (socket *MongoSocket) updateDeadline(which deadlineType) {
 	var when time.Time
 	if socket.timeout > 0 {
 		when = time.Now().Add(socket.timeout)
@@ -284,13 +283,13 @@ func (socket *mongoSocket) updateDeadline(which deadlineType) {
 	switch which {
 	case readDeadline | writeDeadline:
 		whichstr = "read/write"
-		socket.conn.SetDeadline(when)
+		socket.Conn.SetDeadline(when)
 	case readDeadline:
 		whichstr = "read"
-		socket.conn.SetReadDeadline(when)
+		socket.Conn.SetReadDeadline(when)
 	case writeDeadline:
 		whichstr = "write"
-		socket.conn.SetWriteDeadline(when)
+		socket.Conn.SetWriteDeadline(when)
 	default:
 		panic("invalid parameter to updateDeadline")
 	}
@@ -298,11 +297,11 @@ func (socket *mongoSocket) updateDeadline(which deadlineType) {
 }
 
 // Close terminates the socket use.
-func (socket *mongoSocket) Close() {
+func (socket *MongoSocket) Close() {
 	socket.kill(errors.New("Closed explicitly"), false)
 }
 
-func (socket *mongoSocket) kill(err error, abend bool) {
+func (socket *MongoSocket) kill(err error, abend bool) {
 	socket.Lock()
 	if socket.dead != nil {
 		debugf("Socket %p to %s: killed again: %s (previously: %s)", socket, socket.addr, err.Error(), socket.dead.Error())
@@ -311,7 +310,7 @@ func (socket *mongoSocket) kill(err error, abend bool) {
 	}
 	logf("Socket %p to %s: closing: %s (abend=%v)", socket, socket.addr, err.Error(), abend)
 	socket.dead = err
-	socket.conn.Close()
+	socket.Conn.Close()
 	stats.socketsAlive(-1)
 	replyFuncs := socket.replyFuncs
 	socket.replyFuncs = make(map[uint32]replyFunc)
@@ -328,7 +327,7 @@ func (socket *mongoSocket) kill(err error, abend bool) {
 	}
 }
 
-func (socket *mongoSocket) SimpleQuery(op *QueryOp) (data []byte, replyOp *ReplyOp, err error) {
+func (socket *MongoSocket) SimpleQuery(op *QueryOp) (data []byte, replyOp *ReplyOp, err error) {
 	var wait, change sync.Mutex
 	var replyDone bool
 	var replyData []byte
@@ -359,8 +358,7 @@ func (socket *mongoSocket) SimpleQuery(op *QueryOp) (data []byte, replyOp *Reply
 	return data, replyOp, err
 }
 
-func (socket *mongoSocket) Query(ops ...interface{}) (err error) {
-
+func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 	if lops := socket.flushLogout(); len(lops) > 0 {
 		ops = append(lops, ops...)
 	}
@@ -504,7 +502,8 @@ func (socket *mongoSocket) Query(ops ...interface{}) (err error) {
 	stats.sentOps(len(ops))
 
 	socket.updateDeadline(writeDeadline)
-	_, err = socket.conn.Write(buf)
+	_, err = socket.Conn.Write(buf)
+
 	if !wasWaiting && requestCount > 0 {
 		socket.updateDeadline(readDeadline)
 	}
@@ -525,10 +524,10 @@ func fill(r net.Conn, b []byte) error {
 
 // Estimated minimum cost per socket: 1 goroutine + memory for the largest
 // document ever seen.
-func (socket *mongoSocket) readLoop() {
+func (socket *MongoSocket) readLoop() {
 	p := make([]byte, 36) // 16 from header + 20 from OP_REPLY fixed fields
 	s := make([]byte, 4)
-	conn := socket.conn // No locking, conn never changes.
+	conn := socket.Conn // No locking, conn never changes.
 	for {
 		// XXX Handle timeouts, , etc
 		err := fill(conn, p)
@@ -617,7 +616,7 @@ func (socket *mongoSocket) readLoop() {
 		socket.Lock()
 		if len(socket.replyFuncs) == 0 {
 			// Nothing else to read for now. Disable deadline.
-			socket.conn.SetReadDeadline(time.Time{})
+			socket.Conn.SetReadDeadline(time.Time{})
 		} else {
 			socket.updateDeadline(readDeadline)
 		}

@@ -3,6 +3,7 @@ package mongoproto
 import (
 	"fmt"
 	"io"
+	"reflect"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -66,8 +67,11 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	currentRead := len(queryAsSlice) + len(op.Collection) + 1 + 12 + MsgHeaderLen
 	if int(op.Header.MessageLength) > currentRead {
 		selectorAsSlice, err := ReadDocument(r)
+		if err != nil {
+			return err
+		}
+		op.Selector = &bson.D{}
 		err = bson.Unmarshal(selectorAsSlice, op.Selector)
-
 		if err != nil {
 			return err
 		}
@@ -77,7 +81,7 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 
 func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	fmt.Printf("%v\n", op.Query)
-	data, reply, err := session.ExecOpWithReply(&op.QueryOp)
+	data, reply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
 	}
@@ -92,4 +96,25 @@ func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	fmt.Printf("reply: %#v\n", reply)
 
 	return reply, nil
+}
+
+func (queryOp1 *QueryOp) Equals(otherOp Op) bool {
+	queryOp2, ok := otherOp.(*QueryOp)
+	if ! ok {
+		return false
+	}
+	switch {
+	case queryOp1.Collection != queryOp2.Collection:
+		return false
+	case queryOp1.Skip != queryOp2.Skip:
+		return false
+	case queryOp1.Limit != queryOp2.Limit:
+		return false
+	case queryOp1.Flags != queryOp2.Flags:
+		return false
+	case !reflect.DeepEqual(queryOp1.Query, queryOp2.Query):
+		return false
+	default:
+		return true
+	}
 }
