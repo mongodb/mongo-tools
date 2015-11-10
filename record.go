@@ -2,15 +2,16 @@ package mongoplay
 
 import (
 	"fmt"
-	"os"
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
+	"os"
 )
+
 type RecordCommand struct {
-	GlobalOpts *Options `no-flag:"true"`
+	GlobalOpts   *Options `no-flag:"true"`
 	PlaybackFile struct {
-					 PlaybackFile string
-				 } `required:"yes" positional-args:"yes" description:"path to the playback file to write to"`
+		PlaybackFile string
+	} `required:"yes" positional-args:"yes" description:"path to the playback file to write to"`
 	PcapFile         string `short:"f" description:"path to the pcap file to be read"`
 	NetworkInterface string `short:"i" description:"network interface to listen on"`
 	PacketBufSize    int
@@ -49,9 +50,9 @@ func (record *RecordCommand) Execute(args []string) error {
 	return <-ch
 }
 
-func(record *RecordCommand) ValidateParams(args []string) error {
+func (record *RecordCommand) ValidateParams(args []string) error {
 	switch {
-	case len(args) > 0 :
+	case len(args) > 0:
 		return fmt.Errorf("unknown argument: %s", args[0])
 	case record.PcapFile != "" && record.NetworkInterface != "":
 		return fmt.Errorf("must only specify an interface or a pcap file")

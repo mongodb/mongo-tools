@@ -1,12 +1,12 @@
 package mongoproto
 
 import (
-	"io"
-	"fmt"
 	"encoding/json"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"fmt"
 	"github.com/10gen/llmgo"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"gopkg.in/mgo.v2/bson"
+	"io"
 )
 
 // OpUpdate is used to update a document in a collection.
@@ -15,6 +15,7 @@ type UpdateOp struct {
 	Header MsgHeader
 	mgo.UpdateOp
 }
+
 func (op *UpdateOp) String() string {
 	selectorDoc, err := bsonutil.ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
@@ -39,7 +40,6 @@ func (op *UpdateOp) String() string {
 func (op *UpdateOp) OpCode() OpCode {
 	return OpCodeUpdate
 }
-
 
 func (op *UpdateOp) FromReader(r io.Reader) error {
 	var b [8]byte
@@ -79,7 +79,7 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 }
 
 func (op *UpdateOp) Execute(session *mgo.Session) error {
-	if err := session.UpdateOp(&op.UpdateOp); err != nil {
+	if err := session.ExecOpWithoutReply(&op.UpdateOp); err != nil {
 		return err
 	}
 

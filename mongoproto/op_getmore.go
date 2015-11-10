@@ -10,7 +10,7 @@ import (
 // OpGetMore is used to query the database for documents in a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-get-more
 type GetMoreOp struct {
-	Header	MsgHeader
+	Header MsgHeader
 	mgo.GetMoreOp
 }
 
@@ -37,8 +37,8 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 }
 
 func (op *GetMoreOp) Execute(session *mgo.Session) error {
-// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
-	data, reply, err := session.GetMoreOp(&op.GetMoreOp)
+	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
+	data, reply, err := session.ExecOpWithReply(&op.GetMoreOp)
 
 	dataDoc := bson.M{}
 	for _, d := range data {

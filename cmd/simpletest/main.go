@@ -19,7 +19,7 @@ func main() {
 	}
 	var r bson.M
 
-	data, reply, err := session.QueryOp(&mgo.QueryOp{Collection: "test.bar", Limit: 0})
+	data, reply, err := session.ExecOpWithReply(&mgo.QueryOp{Collection: "test.bar", Limit: 0})
 	if err != nil {
 		fmt.Printf("%v", err)
 		os.Exit(1)
@@ -34,7 +34,7 @@ func main() {
 		fmt.Printf("%#v\n", r)
 	}
 
-	data2, reply2, err2 := session.GetMoreOp(&mgo.GetMoreOp{Collection: "test.bar", Limit: 0, CursorId: reply.CursorId})
+	data2, reply2, err2 := session.ExecOpWithReply(&mgo.GetMoreOp{Collection: "test.bar", Limit: 0, CursorId: reply.CursorId})
 	if err2 != nil {
 		fmt.Printf("%v", err2)
 		os.Exit(1)
@@ -49,7 +49,7 @@ func main() {
 		fmt.Printf("getmore %#v\n", r)
 	}
 
-	err3 := session.KillCursorsOp(&mgo.KillCursorsOp{[]int64{reply.CursorId}})
+	err3 := session.ExecOpWithoutReply(&mgo.KillCursorsOp{[]int64{reply.CursorId}})
 	if err3 != nil {
 		fmt.Printf("%v", err2)
 		os.Exit(1)

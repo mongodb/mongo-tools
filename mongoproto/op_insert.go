@@ -14,7 +14,7 @@ import (
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-insert
 
 type InsertOp struct {
-	Header	MsgHeader
+	Header MsgHeader
 	mgo.InsertOp
 }
 
@@ -64,7 +64,7 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 }
 
 func (op *InsertOp) Execute(session *mgo.Session) error {
-	if err := session.InsertOp(&op.InsertOp); err != nil {
+	if err := session.ExecOpWithoutReply(&op.InsertOp); err != nil {
 		return err
 	}
 

@@ -617,7 +617,7 @@ func (db *Database) Run(cmd interface{}, result interface{}) error {
 	return err
 }
 
-func (s *Session) QueryOp(op *QueryOp) (data [][]byte, replyOp *ReplyOp, err error) {
+func (s *Session) ExecOpWithReply(op OpWithReply) (data [][]byte, replyOp *ReplyOp, err error) {
 	var wait sync.Mutex
 	var replyData [][]byte
 	var replyErr error
@@ -631,7 +631,7 @@ func (s *Session) QueryOp(op *QueryOp) (data [][]byte, replyOp *ReplyOp, err err
 
 	var docCount int32
 
-	op.replyFunc = func(err error, reply *ReplyOp, docNum int, docData []byte) {
+	replyFunc := func(err error, reply *ReplyOp, docNum int, docData []byte) {
 		debugf("replyFunc %v %#v %v %v", err, reply, docNum, docData)
 		replyErr = err
 		replyOp = reply
@@ -645,6 +645,8 @@ func (s *Session) QueryOp(op *QueryOp) (data [][]byte, replyOp *ReplyOp, err err
 			}
 		}
 	}
+
+	op.SetReplyFunc(replyFunc)
 	err = socket.Query(op)
 	if err != nil {
 		return nil, nil, err
@@ -654,84 +656,7 @@ func (s *Session) QueryOp(op *QueryOp) (data [][]byte, replyOp *ReplyOp, err err
 	return replyData, replyOp, replyErr
 }
 
-// Dedupe this function and the previous
-func (s *Session) GetMoreOp(op *GetMoreOp) (data [][]byte, replyOp *ReplyOp, err error) {
-	var wait sync.Mutex
-	var replyData [][]byte
-	var replyErr error
-	socket, err := s.acquireSocket(true)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer socket.Release()
-
-	wait.Lock()
-
-	var docCount int32
-
-	op.replyFunc = func(err error, reply *ReplyOp, docNum int, docData []byte) {
-		debugf("replyFunc %v %#v %v %v", err, reply, docNum, docData)
-		replyErr = err
-		replyOp = reply
-		if err != nil || reply.ReplyDocs == 0 {
-			wait.Unlock()
-		} else {
-			replyData = append(replyData, docData)
-			docCount++
-			if docCount == replyOp.ReplyDocs {
-				wait.Unlock()
-			}
-		}
-	}
-	err = socket.Query(op)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	wait.Lock()
-	return replyData, replyOp, replyErr
-}
-
-func (s *Session) KillCursorsOp(op *KillCursorsOp) error {
-	socket, err := s.acquireSocket(true)
-	if err != nil {
-		return err
-	}
-	defer socket.Release()
-
-	err = socket.Query(op)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (s *Session) DeleteOp(op *DeleteOp) error {
-	socket, err := s.acquireSocket(true)
-	if err != nil {
-		return err
-	}
-	defer socket.Release()
-
-	err = socket.Query(op)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (s *Session) InsertOp(op *InsertOp) error {
-	socket, err := s.acquireSocket(true)
-	if err != nil {
-		return err
-	}
-	defer socket.Release()
-
-	err = socket.Query(op)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (s *Session) UpdateOp(op *UpdateOp) error {
+func (s *Session) ExecOpWithoutReply(op interface{}) error {
 	socket, err := s.acquireSocket(true)
 	if err != nil {
 		return err
@@ -4215,7 +4140,7 @@ func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
 				op.Documents = all[i:l]
 				_, err := c.writeCommand(socket, safeOp, op)
 				if err != nil {
-					if op.Flags &1 != 0 {
+					if op.Flags&1 != 0 {
 						if firstErr == nil {
 							firstErr = err
 						}
@@ -4284,7 +4209,7 @@ func (c *Collection) writeCommand(socket *mongoSocket, safeOp *QueryOp, op inter
 			{"insert", c.Name},
 			{"documents", op.Documents},
 			{"writeConcern", writeConcern},
-			{"ordered", op.Flags &1 == 0},
+			{"ordered", op.Flags&1 == 0},
 		}
 	case *UpdateOp:
 		// http://docs.mongodb.org/manual/reference/command/update
@@ -4294,7 +4219,7 @@ func (c *Collection) writeCommand(socket *mongoSocket, safeOp *QueryOp, op inter
 		}
 		cmd = bson.D{
 			{"update", c.Name},
-			{"updates", []bson.D{{{"q", selector}, {"u", op.Update}, {"upsert", op.Flags &1 != 0}, {"multi", op.Flags &2 != 0}}}},
+			{"updates", []bson.D{{{"q", selector}, {"u", op.Update}, {"upsert", op.Flags&1 != 0}, {"multi", op.Flags&2 != 0}}}},
 			{"writeConcern", writeConcern},
 			//{"ordered", <bool>},
 		}

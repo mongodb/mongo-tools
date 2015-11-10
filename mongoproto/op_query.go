@@ -13,7 +13,7 @@ import (
 // OpQuery is used to query the database for documents in a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-query
 type QueryOp struct {
-	Header	MsgHeader
+	Header MsgHeader
 	mgo.QueryOp
 }
 
@@ -77,7 +77,7 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 
 func (op *QueryOp) Execute(session *mgo.Session) error {
 	fmt.Printf("%v\n", op.Query)
-	data, reply, err := session.QueryOp(&op.QueryOp)
+	data, reply, err := session.ExecOpWithReply(&op.QueryOp)
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
 	}

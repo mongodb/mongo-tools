@@ -54,7 +54,7 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 }
 
 func (op *DeleteOp) Execute(session *mgo.Session) error {
-	if err := session.DeleteOp(&op.DeleteOp); err != nil {
+	if err := session.ExecOpWithoutReply(&op.DeleteOp); err != nil {
 		return err
 	}
 

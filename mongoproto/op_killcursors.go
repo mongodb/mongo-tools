@@ -1,19 +1,22 @@
 package mongoproto
-import(
-	"io"
+
+import (
 	"fmt"
+	"io"
 
 	mgo "github.com/10gen/llmgo"
 )
+
 // OpKillCursors is used to close an active cursor in the database. This is necessary
 // to ensure that database resources are reclaimed at the end of the query.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-kill-cursors
 type KillCursorsOp struct {
-	Header    MsgHeader
+	Header MsgHeader
 	mgo.KillCursorsOp
 }
+
 func (op *KillCursorsOp) String() string {
-	return  fmt.Sprintf("KillCursorsOp %v", op.CursorIds)
+	return fmt.Sprintf("KillCursorsOp %v", op.CursorIds)
 
 }
 func (op *KillCursorsOp) OpCode() OpCode {
@@ -39,7 +42,7 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 }
 
 func (op *KillCursorsOp) Execute(session *mgo.Session) error {
-	if err := session.KillCursorsOp(&op.KillCursorsOp); err != nil {
+	if err := session.ExecOpWithoutReply(&op.KillCursorsOp); err != nil {
 		return err
 	}
 

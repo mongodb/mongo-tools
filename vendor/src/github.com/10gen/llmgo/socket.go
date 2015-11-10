@@ -79,6 +79,10 @@ type QueryOp struct {
 	ServerTags []bson.D
 }
 
+func (op *QueryOp) SetReplyFunc(reply replyFunc) {
+	op.replyFunc = reply
+}
+
 type QueryWrapper struct {
 	Query          interface{} "$query"
 	OrderBy        interface{} "$orderby,omitempty"
@@ -144,6 +148,14 @@ type DeleteOp struct {
 
 type KillCursorsOp struct {
 	CursorIds []int64
+}
+
+func (op *GetMoreOp) SetReplyFunc(reply replyFunc) {
+	op.replyFunc = reply
+}
+
+type OpWithReply interface {
+	SetReplyFunc(reply replyFunc)
 }
 
 type requestInfo struct {
