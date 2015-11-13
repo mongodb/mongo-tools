@@ -41,11 +41,11 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *KillCursorsOp) Execute(session *mgo.Session) error {
+func (op *KillCursorsOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	if err := session.ExecOpWithoutReply(&op.KillCursorsOp); err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println("Kill cursors")
-	return nil
+	return nil, nil
 }

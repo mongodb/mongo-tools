@@ -75,21 +75,21 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *QueryOp) Execute(session *mgo.Session) error {
+func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	fmt.Printf("%v\n", op.Query)
 	data, reply, err := session.ExecOpWithReply(&op.QueryOp)
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
 	}
-	dataDoc := bson.D{}
 	for _, d := range data {
+		dataDoc := bson.D{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		fmt.Printf("data: %#v\n", dataDoc)
 	}
 	fmt.Printf("reply: %#v\n", reply)
 
-	return err
+	return reply, nil
 }

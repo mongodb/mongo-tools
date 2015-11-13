@@ -29,6 +29,6 @@ func (op *OpUnknown) FromReader(r io.Reader) error {
 	return err
 }
 
-func (op *OpUnknown) Execute(session *mgo.Session) error {
-	return nil
+func (op *OpUnknown) Execute(session *mgo.Session) (*mgo.ReplyOp, error){
+	return nil, nil
 }

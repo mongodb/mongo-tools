@@ -78,11 +78,11 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *UpdateOp) Execute(session *mgo.Session) error {
+func (op *UpdateOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	if err := session.ExecOpWithoutReply(&op.UpdateOp); err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println("Update Op")
-	return nil
+	return nil, nil
 }

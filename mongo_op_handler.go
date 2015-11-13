@@ -18,10 +18,10 @@ import (
 )
 
 type MongoOpStream struct {
-	Ops chan OpWithTime
+	Ops chan RecordedOp
 
 	FirstSeen    time.Time
-	unorderedOps chan OpWithTime
+	unorderedOps chan RecordedOp
 	opHeap       *orderedOps
 
 	mu sync.Mutex // for debugging
@@ -30,8 +30,8 @@ type MongoOpStream struct {
 func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 	h := make(orderedOps, 0, heapBufSize)
 	s := &MongoOpStream{
-		Ops:          make(chan OpWithTime), // ordered
-		unorderedOps: make(chan OpWithTime), // unordered
+		Ops:          make(chan RecordedOp), // ordered
+		unorderedOps: make(chan RecordedOp), // unordered
 		opHeap:       &h,
 	}
 	heap.Init(s.opHeap)
@@ -42,7 +42,7 @@ func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 func (s *MongoOpStream) New(a, b gopacket.Flow) tcpassembly.Stream {
 	r := tcpreader.NewReaderStream()
 	log.Println("starting stream", a, b)
-	go s.handleStream(&r, b.String())
+	go s.handleStream(&r, b)
 	return &r
 }
 
@@ -61,11 +61,11 @@ func (s *MongoOpStream) handleOps() {
 	for op := range s.unorderedOps {
 		heap.Push(s.opHeap, op)
 		if len(*s.opHeap) == cap(*s.opHeap) {
-			s.Ops <- heap.Pop(s.opHeap).(OpWithTime)
+			s.Ops <- heap.Pop(s.opHeap).(RecordedOp)
 		}
 	}
 	for len(*s.opHeap) > 0 {
-		s.Ops <- heap.Pop(s.opHeap).(OpWithTime)
+		s.Ops <- heap.Pop(s.opHeap).(RecordedOp)
 	}
 }
 
@@ -77,7 +77,7 @@ func (s *MongoOpStream) readOpRaw(r io.Reader) (*mongoproto.OpRaw, *mongoproto.M
 	return mongoproto.OpRawFromReader(r)
 }
 
-func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection string) {
+func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection gopacket.Flow) {
 	for {
 		op, hdr, seen, err := s.readOpRaw(r)
 		if err == io.EOF {
@@ -105,6 +105,6 @@ func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection strin
 			}
 			return
 		}
-		s.unorderedOps <- OpWithTime{OpRaw: *op, Seen: seen, Connection: connection}
+		s.unorderedOps <- RecordedOp{OpRaw: *op, Seen: seen, Connection: connection}
 	}
 }

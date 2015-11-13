@@ -20,7 +20,7 @@ var ErrNotMsg = fmt.Errorf("buffer is too small to be a Mongo message")
 type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
-	Execute(*mgo.Session) error
+	Execute(*mgo.Session) (*mgo.ReplyOp, error)
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.
@@ -43,7 +43,7 @@ func OpFromReader(r io.Reader) (Op, error) {
 	case OpCodeQuery:
 		result = &QueryOp{Header: m}
 	case OpCodeReply:
-		result = &OpReply{Header: m}
+		result = &ReplyOp{Header: m}
 	case OpCodeGetMore:
 		result = &GetMoreOp{Header: m}
 	case OpCodeInsert:

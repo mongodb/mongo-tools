@@ -53,11 +53,11 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *DeleteOp) Execute(session *mgo.Session) error {
+func (op *DeleteOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	if err := session.ExecOpWithoutReply(&op.DeleteOp); err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println("Delete Op")
-	return nil
+	return nil, nil
 }

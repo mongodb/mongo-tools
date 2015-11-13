@@ -20,16 +20,16 @@ type PlayCommand struct {
 }
 
 type SessionWrapper struct {
-	session chan<- *OpWithTime
+	session chan<- *RecordedOp
 	done    <-chan bool
 }
 
-func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
+func newPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
 	opFile, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
-	ch := make(chan *OpWithTime)
+	ch := make(chan *RecordedOp)
 	go func() {
 		defer close(ch)
 		for {
@@ -41,7 +41,7 @@ func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
 				}
 				os.Exit(1)
 			}
-			var doc OpWithTime
+			var doc RecordedOp
 			err = bson.Unmarshal(buf, &doc)
 			if err != nil {
 				fmt.Printf("Unmarshal: %v\n", err)
@@ -53,13 +53,13 @@ func newPlayOpChan(fileName string) (<-chan *OpWithTime, error) {
 	return ch, nil
 }
 
-func newOpConnection(url string) (SessionWrapper, error) {
+func newOpConnection(url string, context *ExecutionContext) (SessionWrapper, error) {
 	session, err := mgo.Dial(url)
 	if err != nil {
 		return SessionWrapper{}, err
 	}
 
-	ch := make(chan *OpWithTime)
+	ch := make(chan *RecordedOp)
 	done := make(chan bool)
 
 	sessionWrapper := SessionWrapper{ch, done}
@@ -69,9 +69,9 @@ func newOpConnection(url string) (SessionWrapper, error) {
 			if t.Before(op.PlayAt) {
 				time.Sleep(op.PlayAt.Sub(t))
 			}
-			err = op.Execute(session)
+			err = context.Execute(op, session)
 			if err != nil {
-				fmt.Printf("op.Execute error: %v\n", err)
+				fmt.Printf("context.Execute error: %v\n", err)
 			}
 		}
 		done<-true
@@ -90,6 +90,11 @@ func (play *PlayCommand) Execute(args []string) error {
 	var delta time.Duration
 	sessionChans := make(map[string]SessionWrapper)
 
+	context := ExecutionContext{
+		IncompleteReplies: map[string]ReplyPair{},
+		CompleteReplies: map[string]ReplyPair{},
+	}
+
 	for op := range opChan {
 		if recordingStartTime.IsZero() && !op.Seen.IsZero() {
 			recordingStartTime = op.Seen
@@ -99,14 +104,14 @@ func (play *PlayCommand) Execute(args []string) error {
 		// if we want to play faster or slower then delta will need to not be constant
 		op.PlayAt = op.Seen.Add(delta)
 		//fmt.Printf("play op %#v\n\n", op)
-		sessionWrapper, ok := sessionChans[op.Connection]
+		sessionWrapper, ok := sessionChans[op.Connection.String()]
 		if !ok {
-			sessionWrapper, err = newOpConnection(play.Url)
+			sessionWrapper, err = newOpConnection(play.Url, &context)
 			if err != nil {
 				fmt.Printf("newOpConnection: %v\n", err)
 				os.Exit(1)
 			}
-			sessionChans[op.Connection] = sessionWrapper
+			sessionChans[op.Connection.String()] = sessionWrapper
 		}
 		sessionWrapper.session <- op
 	}

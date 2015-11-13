@@ -20,6 +20,6 @@ func(op *OpMsg) FromReader(r io.Reader) error {
 	return nil
 }
 
-func(op *OpMsg) Execute(session *mgo.Session) error {
-	return nil
+func(op *OpMsg) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+	return nil, nil
 }

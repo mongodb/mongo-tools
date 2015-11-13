@@ -63,11 +63,11 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *InsertOp) Execute(session *mgo.Session) error {
+func (op *InsertOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	if err := session.ExecOpWithoutReply(&op.InsertOp); err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println("Insert Op")
-	return nil
+	return nil, nil
 }

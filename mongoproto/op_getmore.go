@@ -36,7 +36,7 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *GetMoreOp) Execute(session *mgo.Session) error {
+func (op *GetMoreOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
 	data, reply, err := session.ExecOpWithReply(&op.GetMoreOp)
 
@@ -44,11 +44,11 @@ func (op *GetMoreOp) Execute(session *mgo.Session) error {
 	for _, d := range data {
 		err = bson.Unmarshal(d, dataDoc)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		fmt.Printf("data %#v\n", dataDoc)
 		fmt.Printf("reply %#v\n", reply)
 	}
 
-	return nil
+	return reply, nil
 }
