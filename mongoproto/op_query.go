@@ -100,7 +100,7 @@ func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 
 func (queryOp1 *QueryOp) Equals(otherOp Op) bool {
 	queryOp2, ok := otherOp.(*QueryOp)
-	if ! ok {
+	if !ok {
 		return false
 	}
 	switch {

@@ -1,4 +1,5 @@
 package mongoproto
+
 import (
 	"github.com/10gen/llmgo"
 	"io"

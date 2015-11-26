@@ -74,7 +74,7 @@ func newOpConnection(url string, context *ExecutionContext) (SessionWrapper, err
 				fmt.Printf("context.Execute error: %v\n", err)
 			}
 		}
-		done<-true
+		done <- true
 	}()
 	return sessionWrapper, nil
 }
@@ -91,7 +91,7 @@ func (play *PlayCommand) Execute(args []string) error {
 
 	context := ExecutionContext{
 		IncompleteReplies: map[string]ReplyPair{},
-		CompleteReplies: map[string]ReplyPair{},
+		CompleteReplies:   map[string]ReplyPair{},
 	}
 
 	for op := range opChan {

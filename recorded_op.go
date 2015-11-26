@@ -1,9 +1,9 @@
 package mongoplay
 
 import (
-	"time"
 	"github.com/10gen/mongoplay/mongoproto"
 	"github.com/google/gopacket"
+	"time"
 )
 
 type RecordedOp struct {
@@ -38,4 +38,3 @@ func (o *orderedOps) Pop() interface{} {
 func (o *orderedOps) Push(op interface{}) {
 	*o = append(*o, op.(RecordedOp))
 }
-

@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/10gen/mongoplay/tcpreader"
 	"github.com/10gen/llmgo"
+	"github.com/10gen/mongoplay/tcpreader"
 )
 
 const (

@@ -84,4 +84,3 @@ func (deleteOp1 *DeleteOp) Equals(otherOp Op) bool {
 	}
 	return true
 }
-

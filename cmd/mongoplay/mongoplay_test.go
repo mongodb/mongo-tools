@@ -137,8 +137,8 @@ func TestOpDelete(t *testing.T) {
 
 type testDoc struct {
 	Name           string `bson:"name"`
-	DocumentNumber int	`bson:"docNum"`
-	Success        bool	`bson:"success"`
+	DocumentNumber int    `bson:"docNum"`
+	Success        bool   `bson:"success"`
 }
 
 func TestInsertOp(t *testing.T) {
@@ -151,12 +151,12 @@ func TestInsertOp(t *testing.T) {
 	op.Flags = 7
 
 	documents := []interface{}(nil)
-	for i:=0; i< 10; i++ {
+	for i := 0; i < 10; i++ {
 		insertDoc := &testDoc{
 			DocumentNumber: i,
-			Success: true,
+			Success:        true,
 		}
-		documents = append(documents,insertDoc)
+		documents = append(documents, insertDoc)
 	}
 	op.Documents = documents
 	err := mgo.ExecOpWithoutReply(&session, &op.InsertOp)
@@ -180,7 +180,7 @@ func TestInsertOp(t *testing.T) {
 	case insertOp.Flags != 7:
 		t.Fail()
 	}
-	for i, doc := range insertOp.Documents{
+	for i, doc := range insertOp.Documents {
 		marshaled, _ := bson.Marshal(documents[i])
 		unmarshaled := &bson.D{}
 		bson.Unmarshal(marshaled, unmarshaled)
@@ -214,11 +214,10 @@ func TestKillCursorsOp(t *testing.T) {
 
 	killCursorsOp := opReceived.(*mongoproto.KillCursorsOp)
 
-	if ! reflect.DeepEqual(killCursorsOp.CursorIds, op.CursorIds) {
+	if !reflect.DeepEqual(killCursorsOp.CursorIds, op.CursorIds) {
 		t.Fatalf("CursorId Arrays not equal %v -- %v\n", killCursorsOp.CursorIds, op.CursorIds)
 	}
 }
-
 
 func TestQueryOp(t *testing.T) {
 	session := SessionStub{}
@@ -235,9 +234,8 @@ func TestQueryOp(t *testing.T) {
 	op.Selector = selector
 	options := mgo.QueryWrapper{}
 	options.Explain = false
-	options.OrderBy = &bson.D{{"_id",1}}
+	options.OrderBy = &bson.D{{"_id", 1}}
 	op.Options = options
-
 
 	err := mgo.ExecOpWithoutReply(&session, &op.QueryOp)
 	if err != nil {
@@ -254,11 +252,11 @@ func TestQueryOp(t *testing.T) {
 	}
 
 	queryOp := opReceived.(*mongoproto.QueryOp)
-	switch{
+	switch {
 	case queryOp.Collection != op.Collection:
 		t.Fatalf("Collections not equal: %v -- %v\n", queryOp.Collection, op.Collection)
 	case !reflect.DeepEqual(&selector, queryOp.Selector):
-		t.Fatalf("Selectors not equal: %v -- %v\n", queryOp.Selector,&selector)
+		t.Fatalf("Selectors not equal: %v -- %v\n", queryOp.Selector, &selector)
 	case queryOp.Flags != op.Flags:
 		t.Fatalf("Flags not equal: %d -- %d\n", queryOp.Flags, op.Flags)
 	case queryOp.Skip != op.Skip:
@@ -269,17 +267,15 @@ func TestQueryOp(t *testing.T) {
 	//currently we do not test the Options functionality of mgo
 }
 
-
-
 func TestOpUpdate(t *testing.T) {
 	session := SessionStub{}
 	var serverConnection ConnStub
 	serverConnection, session.connection = newTwoSidedConn()
 
 	op := mongoproto.UpdateOp{}
-	selector :=  bson.D{{"test", 1}}
+	selector := bson.D{{"test", 1}}
 	op.Selector = selector
-	update := bson.D{ {"$set", bson.D{{ "updated", true }}} }
+	update := bson.D{{"$set", bson.D{{"updated", true}}}}
 	op.Update = update
 	op.Collection = "mongoplay_test.test"
 	op.Flags = 12345
@@ -299,7 +295,7 @@ func TestOpUpdate(t *testing.T) {
 		panic(err)
 	}
 	updateOp := opReceived.(*mongoproto.UpdateOp)
-	switch{
+	switch {
 	case updateOp.Collection != op.Collection:
 		t.Fatalf("Collections not equal: %v -- %v\n", updateOp.Collection, op.Collection)
 	case !reflect.DeepEqual(updateOp.Selector, &selector):

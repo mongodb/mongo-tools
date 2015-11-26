@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/mongoplay/mongoproto"
 )
 
-
 type ReplyPair struct {
 	OpFromFile *mgo.ReplyOp
 	OpFromWire *mgo.ReplyOp
@@ -19,8 +18,8 @@ type ExecutionContext struct {
 }
 
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := recordedOp.Connection.Src().String() +":"+ recordedOp.Connection.Dst().String() +":"+ string(recordedOp.Header.RequestID)
-	replyPair  := context.IncompleteReplies[key]
+	key := recordedOp.Connection.Src().String() + ":" + recordedOp.Connection.Dst().String() + ":" + string(recordedOp.Header.RequestID)
+	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromWire = reply
 	context.IncompleteReplies[key] = replyPair
 	if replyPair.OpFromFile != nil {
@@ -29,11 +28,11 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 }
 
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := recordedOp.Connection.Dst().String() +":"+ recordedOp.Connection.Src().String() + ":"+string(recordedOp.Header.ResponseTo)
+	key := recordedOp.Connection.Dst().String() + ":" + recordedOp.Connection.Src().String() + ":" + string(recordedOp.Header.ResponseTo)
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromFile = reply
 	context.IncompleteReplies[key] = replyPair
-	if replyPair.OpFromWire != nil{
+	if replyPair.OpFromWire != nil {
 		context.handleCompleted(key)
 	}
 }
