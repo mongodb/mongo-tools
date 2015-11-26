@@ -103,7 +103,14 @@ func (play *PlayCommand) Execute(args []string) error {
 		// if we want to play faster or slower then delta will need to not be constant
 		op.PlayAt = op.Seen.Add(delta)
 		//fmt.Printf("play op %#v\n\n", op)
-		sessionWrapper, ok := sessionChans[op.Connection.String()]
+
+		var connectionString string
+		if op.OpCode == OpCodeReply {
+			connectionString = op.Connection.Resrved().String()
+		} else {
+			connectionString = op.Connection.String()
+		}
+		sessionWrapper, ok := sessionChans[connectionString]
 		if !ok {
 			sessionWrapper, err = newOpConnection(play.Url, &context)
 			if err != nil {
