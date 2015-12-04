@@ -92,6 +92,7 @@ func (play *PlayCommand) Execute(args []string) error {
 	context := ExecutionContext{
 		IncompleteReplies: map[string]ReplyPair{},
 		CompleteReplies:   map[string]ReplyPair{},
+		CursorIDMap:       map[int64]int64{},
 	}
 
 	for op := range opChan {
@@ -105,8 +106,8 @@ func (play *PlayCommand) Execute(args []string) error {
 		//fmt.Printf("play op %#v\n\n", op)
 
 		var connectionString string
-		if op.OpCode == OpCodeReply {
-			connectionString = op.Connection.Resrved().String()
+		if op.OpCode() == mongoproto.OpCodeReply {
+			connectionString = op.Connection.Reverse().String()
 		} else {
 			connectionString = op.Connection.String()
 		}
