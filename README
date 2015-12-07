@@ -1,0 +1,7 @@
+Create a file, <recorded-file>, of captured mongodb ops
+
+mongoplay <recording-file> record  -f <tcpdump-file>
+
+Play the file back
+
+mongoplay <recording-file> play [ --host <host> ]
