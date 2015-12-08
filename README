@@ -1,7 +1,11 @@
-Create a file, <recorded-file>, of captured mongodb ops
+Capture some traffic:
+
+tcpdump -i lo 'port 27017' -w <tcpdump-file>
+
+Create a file, <recorded-file>, of captured mongodb ops:
 
 mongoplay <recording-file> record  -f <tcpdump-file>
 
-Play the file back
+Play the file back:
 
 mongoplay <recording-file> play [ --host <host> ]

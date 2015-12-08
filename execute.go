@@ -5,6 +5,7 @@ import (
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/mongoplay/mongoproto"
 	"github.com/mongodb/mongo-tools/common/log"
+	"sync"
 )
 
 type ReplyPair struct {
@@ -15,29 +16,35 @@ type ReplyPair struct {
 type ExecutionContext struct {
 	IncompleteReplies map[string]ReplyPair
 	CompleteReplies   map[string]ReplyPair
+	RepliesLock       sync.Mutex
 	// the management (put/fetch) of the CursorIDMap should be moved in to its own goroutine such that
 	// we can elliminate races
-	CursorIDMap map[int64]int64
+	CursorIDMapLock sync.Mutex
+	CursorIDMap     map[int64]int64
 }
 
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := recordedOp.Connection.Src().String() + ":" + recordedOp.Connection.Dst().String() + ":" + string(recordedOp.Header.RequestID)
+	key := recordedOp.SrcEndpoint + ":" + recordedOp.DstEndpoint + ":" + string(recordedOp.Header.RequestID)
+	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromWire = reply
 	context.IncompleteReplies[key] = replyPair
 	if replyPair.OpFromFile != nil {
 		context.completeReply(key)
 	}
+	context.RepliesLock.Unlock()
 }
 
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := recordedOp.Connection.Dst().String() + ":" + recordedOp.Connection.Src().String() + ":" + string(recordedOp.Header.ResponseTo)
+	key := recordedOp.DstEndpoint + ":" + recordedOp.SrcEndpoint + ":" + string(recordedOp.Header.ResponseTo)
+	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromFile = reply
 	context.IncompleteReplies[key] = replyPair
 	if replyPair.OpFromWire != nil {
 		context.completeReply(key)
 	}
+	context.RepliesLock.Unlock()
 }
 
 func (context *ExecutionContext) completeReply(key string) {
@@ -47,7 +54,9 @@ func (context *ExecutionContext) completeReply(key string) {
 
 func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
 	// can race if GetMore's are executed on different connections then the inital query
+	context.CursorIDMapLock.Lock()
 	cursorId, ok := context.CursorIDMap[opGM.CursorId]
+	context.CursorIDMapLock.Unlock()
 	if !ok {
 		log.Logf(log.Always, "MISSING CURSORID FOR CURSORID %v", opGM.CursorId)
 	}
@@ -55,14 +64,18 @@ func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
 }
 
 func (context *ExecutionContext) handleCompletedReplies() {
+	context.RepliesLock.Lock()
 	for key, rp := range context.CompleteReplies {
 		log.Logf(log.DebugLow, "Completed reply: %v, %v", rp.OpFromFile, rp.OpFromWire)
 		if rp.OpFromFile.CursorId != 0 {
 			// can race if GetMore's are executed on different connections then the inital query
+			context.CursorIDMapLock.Lock()
 			context.CursorIDMap[rp.OpFromFile.CursorId] = rp.OpFromWire.CursorId
+			context.CursorIDMapLock.Unlock()
 		}
 		delete(context.CompleteReplies, key)
 	}
+	context.RepliesLock.Unlock()
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session, connectionId int64) error {
