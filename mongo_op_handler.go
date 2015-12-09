@@ -105,6 +105,6 @@ func (s *MongoOpStream) handleStream(r *tcpreader.ReaderStream, connection gopac
 			}
 			return
 		}
-		s.unorderedOps <- RecordedOp{OpRaw: *op, Seen: seen, Connection: connection}
+		s.unorderedOps <- RecordedOp{OpRaw: *op, Seen: seen, SrcEndpoint: connection.Src().String(), DstEndpoint: connection.Dst().String()}
 	}
 }

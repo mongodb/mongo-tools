@@ -2,16 +2,23 @@ package mongoplay
 
 import (
 	"github.com/10gen/mongoplay/mongoproto"
-	"github.com/google/gopacket"
 	"time"
 )
 
 type RecordedOp struct {
 	mongoproto.OpRaw
-	Seen       time.Time
-	PlayAt     time.Time `bson:",omitempty"`
-	EOF        bool      `bson:",omitempty"`
-	Connection gopacket.Flow
+	Seen        time.Time
+	PlayAt      time.Time `bson:",omitempty"`
+	EOF         bool      `bson:",omitempty"`
+	SrcEndpoint string
+	DstEndpoint string
+}
+
+func (op *RecordedOp) ConnectionString() string {
+	return op.SrcEndpoint + "->" + op.DstEndpoint
+}
+func (op *RecordedOp) ReversedConnectionString() string {
+	return op.DstEndpoint + "->" + op.SrcEndpoint
 }
 
 type orderedOps []RecordedOp

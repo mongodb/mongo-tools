@@ -60,7 +60,7 @@ func newOpConnection(url string, context *ExecutionContext, connectionId int64) 
 		return SessionWrapper{}, err
 	}
 
-	ch := make(chan *RecordedOp)
+	ch := make(chan *RecordedOp, 10000)
 	done := make(chan bool)
 
 	sessionWrapper := SessionWrapper{ch, done}
@@ -129,9 +129,9 @@ func (play *PlayCommand) Execute(args []string) error {
 
 		var connectionString string
 		if op.OpCode() == mongoproto.OpCodeReply {
-			connectionString = op.Connection.Reverse().String()
+			connectionString = op.ReversedConnectionString()
 		} else {
-			connectionString = op.Connection.String()
+			connectionString = op.ConnectionString()
 		}
 		sessionWrapper, ok := sessionChans[connectionString]
 		if !ok {
@@ -141,7 +141,7 @@ func (play *PlayCommand) Execute(args []string) error {
 				log.Logf(log.Always, "Error calling newOpConnection: %v", err)
 				os.Exit(1)
 			}
-			sessionChans[op.Connection.String()] = sessionWrapper
+			sessionChans[connectionString] = sessionWrapper
 		}
 		sessionWrapper.session <- op
 	}
