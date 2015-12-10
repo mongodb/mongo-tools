@@ -11,6 +11,7 @@ import (
 type file interface {
 	io.ReadWriteCloser
 	Open() error
+	Pos() int64
 }
 
 // FileNeedsIOBuffer is an interface that denotes that a struct needs
