@@ -12,8 +12,9 @@ import (
 )
 
 type PlayCommand struct {
-	GlobalOpts *Options `no-flag:"true"`
-	Url        string   `short:"m" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
+	GlobalOpts   *Options `no-flag:"true"`
+	PlaybackFile string   `description:"path to the playback file to play from" short:"p" long:"playback-file" required:"yes"`
+	Url          string   `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 }
 
 type SessionWrapper struct {
@@ -78,7 +79,7 @@ func newOpConnection(url string, context *ExecutionContext) (SessionWrapper, err
 
 func (play *PlayCommand) Execute(args []string) error {
 	fmt.Printf("%s", play.GlobalOpts.Verbose)
-	opChan, err := NewPlayOpChan(play.GlobalOpts.PlaybackFile.PlaybackFile)
+	opChan, err := NewPlayOpChan(play.PlaybackFile)
 	if err != nil {
 		return fmt.Errorf("newPlayOpChan: %v", err)
 	}

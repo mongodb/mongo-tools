@@ -10,6 +10,7 @@ import (
 type RecordCommand struct {
 	GlobalOpts       *Options `no-flag:"true"`
 	PcapFile         string   `short:"f" description:"path to the pcap file to be read"`
+	PlaybackFile     string   `description:"path to playback file to record to" short:"p" long:"playback-file" required:"yes"`
 	NetworkInterface string   `short:"i" description:"network interface to listen on"`
 	PacketBufSize    int
 }
@@ -19,7 +20,7 @@ func (record *RecordCommand) Execute(args []string) error {
 	if err != nil {
 		return fmt.Errorf("error opening pcap file: %v", err)
 	}
-	output, err := os.Create(record.GlobalOpts.PlaybackFile.PlaybackFile)
+	output, err := os.Create(record.PlaybackFile)
 	h := NewPacketHandler(pcap)
 	m := NewMongoOpStream(record.PacketBufSize)
 

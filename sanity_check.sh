@@ -29,7 +29,7 @@ while test $# -gt 0; do
 done
 
 OUTFILE="$(echo $PCAPFILE | cut -f 1 -d '.').playback"
-./mongoplay $OUTFILE record -f $PCAPFILE 
+./mongoplay record -f $PCAPFILE -p $OUTFILE 
 
 if [ "$STARTMONGO" = true ]; then
 	rm -rf /data/mongoplay/
@@ -42,7 +42,7 @@ fi
 mongo --port=$PORT mongoplay_test --eval "db.setProfilingLevel(2);"
 mongo --port=$PORT mongoplay_test --eval "db.createCollection('sanity_check', {});"
 
-./mongoplay $OUTFILE play
+./mongoplay play -p $OUTFILE 
 mongo --port=$PORT mongoplay_test --eval "var profile_results = db.system.profile.find({'ns':'mongoplay_test.sanity_check'});
 assert.gt(profile_results.size(), 0);"
 
