@@ -16,6 +16,7 @@ import (
 type PlayCommand struct {
 	GlobalOpts   *Options `no-flag:"true"`
 	PlaybackFile string   `description:"path to the playback file to play from" short:"p" long:"playback-file" required:"yes"`
+	Speed        float64  `description:"multiplier for playback speed (1.0 = real-time, .5 = half-speed, 3.0 = triple-speed, etc.)" long:"speed" default:"1.0"`
 	Url          string   `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 }
 
@@ -82,15 +83,23 @@ func newOpConnection(url string, context *ExecutionContext, connectionId int64) 
 }
 
 func (play *PlayCommand) Execute(args []string) error {
+	if play.Speed <= 0 {
+		return fmt.Errorf("Invalid setting for --speed: '%v'", play.Speed)
+	}
+
 	// we want to default verbosity to 1 (info), so increment the default setting of 0
 	play.GlobalOpts.Verbose = append(play.GlobalOpts.Verbose, true)
 	log.SetVerbosity(&options.Verbosity{play.GlobalOpts.Verbose, false})
+	log.Logf(log.Info, "Doing playback at %.2fx speed", play.Speed)
 	opChan, err := NewPlayOpChan(play.PlaybackFile)
 	if err != nil {
 		return fmt.Errorf("newPlayOpChan: %v", err)
 	}
 	var playbackStartTime, recordingStartTime time.Time
-	var delta time.Duration
+
+	// recordVsPlaybackDelta represents the difference in time between when
+	// the file was recorded and the time that we begin playing it back.
+	//var recordVsPlaybackDelta time.Duration
 	sessionChans := make(map[string]SessionWrapper)
 
 	context := ExecutionContext{
@@ -104,11 +113,16 @@ func (play *PlayCommand) Execute(args []string) error {
 		if recordingStartTime.IsZero() && !op.Seen.IsZero() {
 			recordingStartTime = op.Seen
 			playbackStartTime = time.Now()
-			delta = playbackStartTime.Sub(recordingStartTime)
 		}
-		// if we want to play faster or slower then delta will need to not be constant
-		op.PlayAt = op.Seen.Add(delta)
-		//fmt.Printf("play op %#v\n\n", op)
+
+		// opDelta is the difference in time between when the file's recording began and
+		// and when this particular op is played. For the first operation in the playback, it's 0.
+		opDelta := op.Seen.Sub(recordingStartTime)
+
+		// Adjust the opDelta for playback by dividing it by playback speed setting;
+		// e.g. 2x speed means the delta is half as long.
+		scaledDelta := float64(opDelta) / (play.Speed)
+		op.PlayAt = playbackStartTime.Add(time.Duration(int64(scaledDelta)))
 
 		var connectionString string
 		if op.OpCode() == mongoproto.OpCodeReply {
