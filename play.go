@@ -110,6 +110,9 @@ func (play *PlayCommand) Execute(args []string) error {
 
 	var connectionId int64
 	for op := range opChan {
+		if op.Seen.IsZero() {
+			return fmt.Errorf("Can't play operation found with zero-timestamp: %#v", op)
+		}
 		if recordingStartTime.IsZero() && !op.Seen.IsZero() {
 			recordingStartTime = op.Seen
 			playbackStartTime = time.Now()
