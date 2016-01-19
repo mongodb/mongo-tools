@@ -8,7 +8,6 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 )
 
 // OpInsert is used to insert one or more documents into a collection.
@@ -26,7 +25,7 @@ func (op *InsertOp) OpCode() OpCode {
 func (op *InsertOp) String() string {
 	docs := make([]string, 0, len(op.Documents))
 	for _, d := range op.Documents {
-		jsonDoc, err := bsonutil.ConvertBSONValueToJSON(d)
+		jsonDoc, err := ConvertBSONValueToJSON(d)
 		if err != nil {
 			return fmt.Sprintf("%#v - %v", op, err)
 		}

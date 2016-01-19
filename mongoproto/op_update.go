@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"io"
 	"reflect"
 )
@@ -18,12 +17,12 @@ type UpdateOp struct {
 }
 
 func (op *UpdateOp) String() string {
-	selectorDoc, err := bsonutil.ConvertBSONValueToJSON(op.Selector)
+	selectorDoc, err := ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
 		return fmt.Sprintf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 
-	updateDoc, err := bsonutil.ConvertBSONValueToJSON(op.Update)
+	updateDoc, err := ConvertBSONValueToJSON(op.Update)
 	if err != nil {
 		return fmt.Sprintf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}

@@ -2,6 +2,8 @@ package mongoplay
 
 import (
 	"fmt"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
 	"io"
 	"os"
 	"time"
@@ -33,16 +35,16 @@ func NewPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
 		for {
 			buf, err := mongoproto.ReadDocument(opFile)
 			if err != nil {
-				fmt.Printf("ReadDocument: %v\n", err)
 				if err == io.EOF {
 					return
 				}
+				log.Logf(log.Always, "Error calling ReadDocument: %v\n", err)
 				os.Exit(1)
 			}
 			var doc RecordedOp
 			err = bson.Unmarshal(buf, &doc)
 			if err != nil {
-				fmt.Printf("Unmarshal: %v\n", err)
+				log.Logf(log.Always, "Error calling Unmarshal: %v\n", err)
 				os.Exit(1)
 			}
 			ch <- &doc
@@ -51,7 +53,7 @@ func NewPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
 	return ch, nil
 }
 
-func newOpConnection(url string, context *ExecutionContext) (SessionWrapper, error) {
+func newOpConnection(url string, context *ExecutionContext, connectionId int64) (SessionWrapper, error) {
 	session, err := mgo.Dial(url)
 	if err != nil {
 		return SessionWrapper{}, err
@@ -62,23 +64,27 @@ func newOpConnection(url string, context *ExecutionContext) (SessionWrapper, err
 
 	sessionWrapper := SessionWrapper{ch, done}
 	go func() {
+		log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionId)
 		for op := range ch {
 			t := time.Now()
 			if t.Before(op.PlayAt) {
 				time.Sleep(op.PlayAt.Sub(t))
 			}
-			err = context.Execute(op, session)
+			err = context.Execute(op, session, connectionId)
 			if err != nil {
-				fmt.Printf("context.Execute error: %v\n", err)
+				log.Logf(log.Always, "context.Execute error: %v", err)
 			}
 		}
+		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionId)
 		done <- true
 	}()
 	return sessionWrapper, nil
 }
 
 func (play *PlayCommand) Execute(args []string) error {
-	fmt.Printf("%s", play.GlobalOpts.Verbose)
+	// we want to default verbosity to 1 (info), so increment the default setting of 0
+	play.GlobalOpts.Verbose = append(play.GlobalOpts.Verbose, true)
+	log.SetVerbosity(&options.Verbosity{play.GlobalOpts.Verbose, false})
 	opChan, err := NewPlayOpChan(play.PlaybackFile)
 	if err != nil {
 		return fmt.Errorf("newPlayOpChan: %v", err)
@@ -93,6 +99,7 @@ func (play *PlayCommand) Execute(args []string) error {
 		CursorIDMap:       map[int64]int64{},
 	}
 
+	var connectionId int64
 	for op := range opChan {
 		if recordingStartTime.IsZero() && !op.Seen.IsZero() {
 			recordingStartTime = op.Seen
@@ -111,9 +118,10 @@ func (play *PlayCommand) Execute(args []string) error {
 		}
 		sessionWrapper, ok := sessionChans[connectionString]
 		if !ok {
-			sessionWrapper, err = newOpConnection(play.Url, &context)
+			connectionId += 1
+			sessionWrapper, err = newOpConnection(play.Url, &context, connectionId)
 			if err != nil {
-				fmt.Printf("newOpConnection: %v\n", err)
+				log.Logf(log.Always, "Error calling newOpConnection: %v", err)
 				os.Exit(1)
 			}
 			sessionChans[op.Connection.String()] = sessionWrapper

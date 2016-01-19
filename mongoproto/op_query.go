@@ -7,7 +7,6 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
 )
 
@@ -19,8 +18,7 @@ type QueryOp struct {
 }
 
 func (op *QueryOp) String() string {
-
-	queryAsJSON, err := bsonutil.ConvertBSONValueToJSON(op.Query)
+	queryAsJSON, err := ConvertBSONValueToJSON(op.Query)
 	if err != nil {
 		return fmt.Sprintf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
@@ -80,7 +78,6 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 }
 
 func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
-	fmt.Printf("%v\n", op.Query)
 	data, reply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
@@ -91,9 +88,8 @@ func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("data: %#v\n", dataDoc)
 	}
-	fmt.Printf("reply: %#v\n", reply)
+	//fmt.Printf("reply: %#v\n", reply)
 
 	return reply, nil
 }

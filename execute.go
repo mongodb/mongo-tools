@@ -2,9 +2,9 @@ package mongoplay
 
 import (
 	"bytes"
-	"fmt"
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/mongodb/mongo-tools/common/log"
 )
 
 type ReplyPair struct {
@@ -49,14 +49,14 @@ func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
 	// can race if GetMore's are executed on different connections then the inital query
 	cursorId, ok := context.CursorIDMap[opGM.CursorId]
 	if !ok {
-		fmt.Printf("MISSING CURSORID FOR CURSORID %v\n", opGM.CursorId)
+		log.Logf(log.Always, "MISSING CURSORID FOR CURSORID %v", opGM.CursorId)
 	}
 	opGM.CursorId = cursorId
 }
 
 func (context *ExecutionContext) handleCompletedReplies() {
 	for key, rp := range context.CompleteReplies {
-		fmt.Printf("completed reply: %#v %#v\n", rp.OpFromFile, rp.OpFromWire)
+		log.Logf(log.DebugLow, "Completed reply: %v, %v", rp.OpFromFile, rp.OpFromWire)
 		if rp.OpFromFile.CursorId != 0 {
 			// can race if GetMore's are executed on different connections then the inital query
 			context.CursorIDMap[rp.OpFromFile.CursorId] = rp.OpFromWire.CursorId
@@ -65,11 +65,10 @@ func (context *ExecutionContext) handleCompletedReplies() {
 	}
 }
 
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {
+func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session, connectionId int64) error {
 	reader := bytes.NewReader(op.OpRaw.Body)
 
 	if op.OpRaw.Header.OpCode == mongoproto.OpCodeReply {
-		fmt.Printf("Correlate OpReply\n")
 		opReply := &mongoproto.ReplyOp{Header: op.OpRaw.Header}
 		err := opReply.FromReader(reader)
 		if err != nil {
@@ -94,10 +93,9 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		case mongoproto.OpCodeUpdate:
 			opToExec = &mongoproto.UpdateOp{Header: op.OpRaw.Header}
 		default:
-			fmt.Printf("Skipping incomplete op: %v\n", op.OpRaw.Header.OpCode)
+			log.Logf(log.Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
 			return nil
 		}
-		fmt.Printf("Execute: %v\n", opToExec.OpCode())
 		err := opToExec.FromReader(reader)
 		if err != nil {
 			return err
@@ -105,6 +103,8 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		if opGM, ok := opToExec.(*mongoproto.GetMoreOp); ok {
 			context.fixupOpGetMore(opGM)
 		}
+
+		log.Logf(log.Info, "(Connection %v) Executing %s", connectionId, opToExec)
 		reply, err := opToExec.Execute(session)
 		if err != nil {
 			return err

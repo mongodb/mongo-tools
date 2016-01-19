@@ -8,7 +8,6 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 )
 
 // OpDelete is used to remove one or more documents from a collection.
@@ -20,7 +19,7 @@ type DeleteOp struct {
 }
 
 func (op *DeleteOp) String() string {
-	jsonDoc, err := bsonutil.ConvertBSONValueToJSON(op.Selector)
+	jsonDoc, err := ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
 		return fmt.Sprintf("%#v - %v", op, err)
 	}
