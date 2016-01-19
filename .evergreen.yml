@@ -38,18 +38,23 @@ functions:
       remote_file: mongoplay/binaries/${build_id}/${tool}
 
   "start mongod" :
-    command: shell.exec
-    params:
-      background: true
-      script: |
-        set -e
-        set -o verbose
-        cd mongodb
-        echo "starting mongodb"
-        mkdir -p ./mongoplay_test
-        ./mongod --dbpath ./mongoplay_test --port=${mongod_port} &
-        sleep 5
-
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          set -e
+          set -o verbose
+          cd mongodb
+          echo "starting mongodb"
+          mkdir -p ./mongoplay_test
+          ./mongod --dbpath ./mongoplay_test --port=${mongod_port} &
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          set -o verbose
+          cd mongodb 
+          ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true}catch(e){return false}}, "timed out connecting")'
 
   "fetch mongodb" :
     command: shell.exec
@@ -101,9 +106,8 @@ tasks:
     params:
       working_dir: src
       script: |
+        set -e
         PATH=$PATH:`pwd`/../mongodb
-        mongo --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:27017"); return true}catch(e){return false}}, "timed out connecting")'
-        echo "mongod started"
         echo "Running sanity check"
         chmod +x mongoplay
         ./sanity_check.sh -p ${mongod_port}
