@@ -5,7 +5,8 @@ import (
 	"io"
 )
 
-const MsgHeaderLen = 16 // mongo MsgHeader length in bytes
+const MsgHeaderLen = 16                 // mongo MsgHeader length in bytes
+const MaxMessageSize = 48 * 1000 * 1000 // The maximum message size as defined by the server code
 
 // MsgHeader is the mongo MessageHeader
 type MsgHeader struct {
@@ -26,12 +27,12 @@ func ReadHeader(r io.Reader) (*MsgHeader, error) {
 		return nil, err
 	}
 	h := MsgHeader{}
-	h.fromWire(b)
+	h.FromWire(b)
 	return &h, nil
 }
 
-// toWire converts the MsgHeader to the wire protocol
-func (m MsgHeader) toWire() []byte {
+// ToWire converts the MsgHeader to the wire protocol
+func (m MsgHeader) ToWire() []byte {
 	var d [MsgHeaderLen]byte
 	b := d[:]
 	setInt32(b, 0, m.MessageLength)
@@ -41,8 +42,8 @@ func (m MsgHeader) toWire() []byte {
 	return b
 }
 
-// fromWire reads the wirebytes into this object
-func (m *MsgHeader) fromWire(b []byte) {
+// FromWire reads the wirebytes into this object
+func (m *MsgHeader) FromWire(b []byte) {
 	m.MessageLength = getInt32(b, 0)
 	m.RequestID = getInt32(b, 4)
 	m.ResponseTo = getInt32(b, 8)
@@ -50,7 +51,7 @@ func (m *MsgHeader) fromWire(b []byte) {
 }
 
 func (m *MsgHeader) WriteTo(w io.Writer) error {
-	b := m.toWire()
+	b := m.ToWire()
 	n, err := w.Write(b)
 	if err != nil {
 		return err
@@ -59,6 +60,35 @@ func (m *MsgHeader) WriteTo(w io.Writer) error {
 		return fmt.Errorf("mongoproto: attempted to write %d but wrote %d", len(b), n)
 	}
 	return nil
+}
+
+var goodOpCode = map[int32]bool{
+	1:    true, //OP_REPLY          Reply to a client request. responseTo is set.
+	1000: true, //OP_MSG            Generic msg command followed by a string.
+	2001: true, //OP_UPDATE         Update document.
+	2002: true, //OP_INSERT         Insert new document.
+	2003: true, //RESERVED          Formerly used for OP_GET_BY_OID.
+	2004: true, //OP_QUERY          Query a collection.
+	2005: true, //OP_GET_MORE	Get more data from a query. See Cursors.
+	2006: true, //OP_DELETE	        Delete documents.
+	2007: true, //OP_KILL_CURSORS   Notify database that the client has finished with the cursor.
+	2011: true, //OP_COMMAND        A new wire protocol message representing a command request
+	2012: true, //OP_COMMANDREPLY   A new wire protocol message representing a command
+}
+
+// LooksReal does a best efffort to detect if a MsgHeadr is not invalid
+func (m *MsgHeader) LooksReal() bool {
+	// AFAIK, the smallest wire protocol message possible is a 24 byte KILL_CURSORS_OP
+	if m.MessageLength > MaxMessageSize || m.MessageLength < 24 {
+		return false
+	}
+	if m.RequestID < 0 {
+		return false
+	}
+	if m.ResponseTo < 0 {
+		return false
+	}
+	return goodOpCode[int32(m.OpCode)]
 }
 
 // String returns a string representation of the message header. Useful for debugging.

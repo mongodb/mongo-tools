@@ -86,7 +86,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		opReply := &mongoproto.ReplyOp{Header: op.OpRaw.Header}
 		err := opReply.FromReader(reader)
 		if err != nil {
-			return err
+			return fmt.Errorf("opReply.FromReader: %v", err)
 		}
 		context.AddFromFile(&opReply.ReplyOp, op)
 		return nil
@@ -111,7 +111,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		}
 		err := opToExec.FromReader(reader)
 		if err != nil {
-			return err
+			return fmt.Errorf("opToExec.FromReader: %v", err)
 		}
 		if opGM, ok := opToExec.(*mongoproto.GetMoreOp); ok {
 			context.fixupOpGetMore(opGM)

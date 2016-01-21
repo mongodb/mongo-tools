@@ -1,9 +1,12 @@
 package mongoplay
 
 import (
-	"fmt"
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
+
+	"fmt"
 	"os"
 )
 
@@ -16,6 +19,10 @@ type RecordCommand struct {
 }
 
 func (record *RecordCommand) Execute(args []string) error {
+	// we want to default verbosity to 1 (info), so increment the default setting of 0
+	record.GlobalOpts.Verbose = append(record.GlobalOpts.Verbose, true)
+	log.SetVerbosity(&options.Verbosity{record.GlobalOpts.Verbose, false})
+
 	pcap, err := pcap.OpenOffline(record.PcapFile)
 	if err != nil {
 		return fmt.Errorf("error opening pcap file: %v", err)

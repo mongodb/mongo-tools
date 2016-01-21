@@ -7,11 +7,6 @@ import (
 
 	"github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongoplay/tcpreader"
-)
-
-const (
-	MaxMessageSize = 48 << 20 // 48 MB
 )
 
 // ErrNotMsg is returned if a provided buffer is too small to contain a Mongo message
@@ -46,6 +41,9 @@ type OpResult struct {
 }
 
 func (opr *OpResult) String() string {
+	if opr == nil {
+		return "OpResult NIL"
+	}
 	return fmt.Sprintf("OpResult latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%s",
 		opr.Latency,
 		opr.ReplyOp.Flags, opr.ReplyOp.CursorId, opr.ReplyOp.FirstDoc, opr.ReplyOp.ReplyDocs,
@@ -88,26 +86,4 @@ func OpFromReader(r io.Reader) (Op, error) {
 	}
 	err = result.FromReader(r)
 	return result, err
-}
-
-// OpRawFromReader reads an op without decoding it.
-func OpRawFromReader(r io.Reader) (*OpRaw, *MsgHeader, time.Time, error) {
-	var seen time.Time
-	msg, err := ReadHeader(r)
-	if err != nil {
-		return nil, nil, seen, err
-	}
-	if readerStream, ok := (r).(*tcpreader.ReaderStream); ok {
-		seen = readerStream.Seen()
-	}
-	result := &OpRaw{Header: *msg}
-	if msg.OpCode == 1 {
-		err = result.ShortReplyFromReader(r)
-	} else {
-		err = result.FromReader(r)
-	}
-	if err != nil {
-		return result, msg, seen, err
-	}
-	return result, msg, seen, nil
 }
