@@ -18,6 +18,10 @@ type DeleteOp struct {
 	mgo.DeleteOp
 }
 
+func (op *DeleteOp) Meta() OpMetadata {
+	return OpMetadata{"Delete", op.Collection, ""}
+}
+
 func (op *DeleteOp) String() string {
 	jsonDoc, err := ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
@@ -61,7 +65,7 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *DeleteOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *DeleteOp) Execute(session *mgo.Session) (*OpResult, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.DeleteOp); err != nil {
 		return nil, err
 	}

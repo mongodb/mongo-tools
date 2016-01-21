@@ -18,6 +18,7 @@ type PlayCommand struct {
 	PlaybackFile string   `description:"path to the playback file to play from" short:"p" long:"playback-file" required:"yes"`
 	Speed        float64  `description:"multiplier for playback speed (1.0 = real-time, .5 = half-speed, 3.0 = triple-speed, etc.)" long:"speed" default:"1.0"`
 	Url          string   `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
+	Report       string   `long:"report" description:"Write report on execution to given output path"`
 }
 
 type SessionWrapper struct {
@@ -54,7 +55,7 @@ func NewPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
 	return ch, nil
 }
 
-func newOpConnection(url string, context *ExecutionContext, connectionId int64) (SessionWrapper, error) {
+func newOpConnection(url string, context *ExecutionContext, connectionNum int64) (SessionWrapper, error) {
 	session, err := mgo.Dial(url)
 	if err != nil {
 		return SessionWrapper{}, err
@@ -65,26 +66,51 @@ func newOpConnection(url string, context *ExecutionContext, connectionId int64) 
 
 	sessionWrapper := SessionWrapper{ch, done}
 	go func() {
-		log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionId)
+		log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionNum)
 		for op := range ch {
+			// Populate the op with the connection num it's being played on.
+			// This allows it to be used for downstream reporting of stats.
+			op.ConnectionNum = connectionNum
 			t := time.Now()
-			if t.Before(op.PlayAt) {
-				time.Sleep(op.PlayAt.Sub(t))
+			if op.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
+				if t.Before(op.PlayAt) {
+					time.Sleep(op.PlayAt.Sub(t))
+				} else {
+				}
+			} else {
+				log.Logf(log.DebugHigh, "Processing reply from playback file %v", op.String())
 			}
-			err = context.Execute(op, session, connectionId)
+			err = context.Execute(op, session)
 			if err != nil {
 				log.Logf(log.Always, "context.Execute error: %v", err)
 			}
 		}
-		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionId)
+		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionNum)
 		done <- true
 	}()
 	return sessionWrapper, nil
 }
 
+func openJSONReporter(path string) (*JSONStatCollector, error) {
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	return &JSONStatCollector{out: f}, nil
+}
+
 func (play *PlayCommand) Execute(args []string) error {
 	if play.Speed <= 0 {
 		return fmt.Errorf("Invalid setting for --speed: '%v'", play.Speed)
+	}
+
+	var statColl StatCollector = &NopCollector{}
+	var err error
+	if len(play.Report) > 0 {
+		statColl, err = openJSONReporter(play.Report)
+		if err != nil {
+			return err
+		}
 	}
 
 	// we want to default verbosity to 1 (info), so increment the default setting of 0
@@ -106,6 +132,7 @@ func (play *PlayCommand) Execute(args []string) error {
 		IncompleteReplies: map[string]ReplyPair{},
 		CompleteReplies:   map[string]ReplyPair{},
 		CursorIDMap:       map[int64]int64{},
+		StatCollector:     statColl,
 	}
 
 	var connectionId int64
@@ -113,7 +140,7 @@ func (play *PlayCommand) Execute(args []string) error {
 		if op.Seen.IsZero() {
 			return fmt.Errorf("Can't play operation found with zero-timestamp: %#v", op)
 		}
-		if recordingStartTime.IsZero() && !op.Seen.IsZero() {
+		if recordingStartTime.IsZero() {
 			recordingStartTime = op.Seen
 			playbackStartTime = time.Now()
 		}
@@ -143,6 +170,7 @@ func (play *PlayCommand) Execute(args []string) error {
 			}
 			sessionChans[connectionString] = sessionWrapper
 		}
+		//fmt.Println("op should be played in", op.PlayAt.Sub(time.Now()))
 		sessionWrapper.session <- op
 	}
 	for _, sessionWrapper := range sessionChans {
@@ -151,5 +179,6 @@ func (play *PlayCommand) Execute(args []string) error {
 	for _, sessionWrapper := range sessionChans {
 		<-sessionWrapper.done
 	}
+	statColl.Close()
 	return nil
 }

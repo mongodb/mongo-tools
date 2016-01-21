@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 	"github.com/10gen/mongoplay/tcpreader"
 )
 
@@ -16,12 +17,39 @@ const (
 // ErrNotMsg is returned if a provided buffer is too small to contain a Mongo message
 var ErrNotMsg = fmt.Errorf("buffer is too small to be a Mongo message")
 
+type OpMetadata struct {
+	// Op represents the actual operation being performed accounting for write commands, so
+	// this may be "insert" or "update" even when the wire protocol message was OP_QUERY.
+	Op string
+
+	// Namespace against which the operation executes. If not applicable, will be blank.
+	Ns string
+
+	// Command name is the name of the command, when Op is "command" (otherwise will be blank.)
+	// For example, this might be "getLastError" or "serverStatus".
+	Command string
+}
+
 // Op is a Mongo operation
 type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
-	Execute(*mgo.Session) (*mgo.ReplyOp, error)
+	Execute(*mgo.Session) (*OpResult, error)
 	Equals(Op) bool
+	Meta() OpMetadata
+}
+
+type OpResult struct {
+	ReplyOp *mgo.ReplyOp
+	Docs    []bson.D
+	Latency time.Duration
+}
+
+func (opr *OpResult) String() string {
+	return fmt.Sprintf("OpResult latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%s",
+		opr.Latency,
+		opr.ReplyOp.Flags, opr.ReplyOp.CursorId, opr.ReplyOp.FirstDoc, opr.ReplyOp.ReplyDocs,
+		stringifyReplyDocs(opr.Docs))
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.

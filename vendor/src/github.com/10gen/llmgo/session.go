@@ -4144,7 +4144,7 @@ func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
 				op.Documents = all[i:l]
 				_, err := c.writeCommand(socket, safeOp, op)
 				if err != nil {
-					if op.Flags &1 != 0 {
+					if op.Flags&1 != 0 {
 						if firstErr == nil {
 							firstErr = err
 						}

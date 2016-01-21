@@ -3,6 +3,8 @@ package mongoproto
 import (
 	"fmt"
 	mgo "github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
+	"github.com/mongodb/mongo-tools/common/json"
 	"io"
 )
 
@@ -20,6 +22,10 @@ type OpReplyFlags int32
 type ReplyOp struct {
 	Header MsgHeader
 	mgo.ReplyOp
+}
+
+func (op *ReplyOp) Meta() OpMetadata {
+	return OpMetadata{"", "", ""}
 }
 
 func (op *ReplyOp) String() string {
@@ -41,9 +47,26 @@ func (op *ReplyOp) FromReader(r io.Reader) error {
 	op.ReplyDocs = getInt32(b[:], 16)
 	return nil
 }
-func (op *ReplyOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+
+func (op *ReplyOp) Execute(session *mgo.Session) (*OpResult, error) {
 	return nil, nil
 }
+
 func (replyOp1 *ReplyOp) Equals(otherOp Op) bool {
 	return true
+}
+
+func stringifyReplyDocs(d []bson.D) string {
+	if len(d) == 0 {
+		return "[empty]"
+	}
+	docsConverted, err := ConvertBSONValueToJSON(d)
+	if err != nil {
+		return fmt.Sprintf("ConvertBSONValueToJSON err on reply docs: %v", err)
+	}
+	asJSON, err := json.Marshal(docsConverted)
+	if err != nil {
+		return fmt.Sprintf("json marshal err on reply docs: %v", err)
+	}
+	return string(asJSON)
 }

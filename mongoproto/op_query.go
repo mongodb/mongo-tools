@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/json"
+	"strings"
 )
 
 // OpQuery is used to query the database for documents in a collection.
@@ -15,6 +17,49 @@ import (
 type QueryOp struct {
 	Header MsgHeader
 	mgo.QueryOp
+}
+
+func (op *QueryOp) Meta() OpMetadata {
+	opType, commandType := extractOpType(op.QueryOp.Query)
+	if !strings.HasSuffix(op.Collection, "$cmd") {
+		return OpMetadata{"query", op.Collection, ""}
+	}
+
+	fmt.Println("found command", commandType, "and", op.Collection)
+	return OpMetadata{opType, op.Collection, commandType}
+}
+
+// extractOpType checks a write command's "query" and determines if it's actually
+// an insert, update, delete, or command.
+func extractOpType(x interface{}) (string, string) {
+	var asMap bson.M
+	var commandName string
+	switch v := x.(type) {
+	case bson.D:
+		if len(v) > 0 {
+			commandName = v[0].Name
+		}
+		asMap = v.Map()
+	case *bson.M: // document
+		asMap = *v
+	case bson.M: // document
+		asMap = v
+	case map[string]interface{}:
+		asMap = bson.M(v)
+	case (*bson.D):
+		if de := []bson.DocElem(*v); len(de) > 0 {
+			commandName = de[0].Name
+		}
+		asMap = v.Map()
+	}
+
+	for _, v := range []string{"insert", "update", "delete"} {
+		if _, ok := asMap[v]; ok {
+			return v, ""
+		}
+	}
+	fmt.Println("returning command", commandName)
+	return "command", commandName
 }
 
 func (op *QueryOp) String() string {
@@ -77,21 +122,25 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *QueryOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *QueryOp) Execute(session *mgo.Session) (*OpResult, error) {
+
+	before := time.Now()
 	data, reply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
+	after := time.Now()
 	if err != nil {
 		fmt.Printf("query error: %v\n", err)
 	}
+
+	result := &OpResult{reply, make([]bson.D, 0, len(data)), after.Sub(before)}
 	for _, d := range data {
 		dataDoc := bson.D{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
 			return nil, err
 		}
+		result.Docs = append(result.Docs, dataDoc)
 	}
-	//fmt.Printf("reply: %#v\n", reply)
-
-	return reply, nil
+	return result, nil
 }
 
 func (queryOp1 *QueryOp) Equals(otherOp Op) bool {

@@ -13,6 +13,10 @@ type OpUnknown struct {
 	Body   []byte
 }
 
+func (op *OpUnknown) Meta() OpMetadata {
+	return OpMetadata{"", "", ""}
+}
+
 func (op *OpUnknown) String() string {
 	return fmt.Sprintf("OpUnkown: %v", op.Header.OpCode)
 }
@@ -29,7 +33,7 @@ func (op *OpUnknown) FromReader(r io.Reader) error {
 	return err
 }
 
-func (op *OpUnknown) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *OpUnknown) Execute(session *mgo.Session) (*OpResult, error) {
 	return nil, nil
 }
 func (opUnknown1 *OpUnknown) Equals(otherOp Op) bool {

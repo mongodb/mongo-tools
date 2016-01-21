@@ -16,6 +16,10 @@ type UpdateOp struct {
 	mgo.UpdateOp
 }
 
+func (op *UpdateOp) Meta() OpMetadata {
+	return OpMetadata{"update", op.Collection, ""}
+}
+
 func (op *UpdateOp) String() string {
 	selectorDoc, err := ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
@@ -80,7 +84,7 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *UpdateOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *UpdateOp) Execute(session *mgo.Session) (*OpResult, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.UpdateOp); err != nil {
 		return nil, err
 	}

@@ -7,11 +7,13 @@ import (
 
 type RecordedOp struct {
 	mongoproto.OpRaw
-	Seen        time.Time
-	PlayAt      time.Time `bson:",omitempty"`
-	EOF         bool      `bson:",omitempty"`
-	SrcEndpoint string
-	DstEndpoint string
+	Seen          time.Time
+	PlayAt        time.Time `bson:",omitempty"`
+	EOF           bool      `bson:",omitempty"`
+	SrcEndpoint   string
+	DstEndpoint   string
+	ConnectionNum int64
+	PlayedAt      time.Time
 }
 
 func (op *RecordedOp) ConnectionString() string {

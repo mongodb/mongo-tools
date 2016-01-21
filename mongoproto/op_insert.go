@@ -18,6 +18,10 @@ type InsertOp struct {
 	mgo.InsertOp
 }
 
+func (op *InsertOp) Meta() OpMetadata {
+	return OpMetadata{"insert", op.Collection, ""}
+}
+
 func (op *InsertOp) OpCode() OpCode {
 	return OpCodeInsert
 }
@@ -63,7 +67,7 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *InsertOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *InsertOp) Execute(session *mgo.Session) (*OpResult, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {
 		return nil, err
 	}

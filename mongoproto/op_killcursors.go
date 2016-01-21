@@ -15,6 +15,10 @@ type KillCursorsOp struct {
 	mgo.KillCursorsOp
 }
 
+func (op *KillCursorsOp) Meta() OpMetadata {
+	return OpMetadata{"killcursors", "", ""}
+}
+
 func (op *KillCursorsOp) String() string {
 	return fmt.Sprintf("KillCursorsOp %v", op.CursorIds)
 
@@ -41,7 +45,7 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *KillCursorsOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *KillCursorsOp) Execute(session *mgo.Session) (*OpResult, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.KillCursorsOp); err != nil {
 		return nil, err
 	}

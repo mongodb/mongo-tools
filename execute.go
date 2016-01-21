@@ -2,10 +2,12 @@ package mongoplay
 
 import (
 	"bytes"
+	"fmt"
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/mongoplay/mongoproto"
 	"github.com/mongodb/mongo-tools/common/log"
 	"sync"
+	"time"
 )
 
 type ReplyPair struct {
@@ -17,10 +19,9 @@ type ExecutionContext struct {
 	IncompleteReplies map[string]ReplyPair
 	CompleteReplies   map[string]ReplyPair
 	RepliesLock       sync.Mutex
-	// the management (put/fetch) of the CursorIDMap should be moved in to its own goroutine such that
-	// we can elliminate races
-	CursorIDMapLock sync.Mutex
-	CursorIDMap     map[int64]int64
+	CursorIDMap       map[int64]int64
+	CursorIDMapLock   sync.Mutex
+	StatCollector
 }
 
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
@@ -58,7 +59,7 @@ func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
 	cursorId, ok := context.CursorIDMap[opGM.CursorId]
 	context.CursorIDMapLock.Unlock()
 	if !ok {
-		log.Logf(log.Always, "MISSING CURSORID FOR CURSORID %v", opGM.CursorId)
+		log.Logf(log.Always, "Missing mapped cursor ID for raw cursor ID: %v", opGM.CursorId)
 	}
 	opGM.CursorId = cursorId
 }
@@ -66,7 +67,7 @@ func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
 func (context *ExecutionContext) handleCompletedReplies() {
 	context.RepliesLock.Lock()
 	for key, rp := range context.CompleteReplies {
-		log.Logf(log.DebugLow, "Completed reply: %v, %v", rp.OpFromFile, rp.OpFromWire)
+		log.Logf(log.DebugHigh, "Completed reply: %v, %v", rp.OpFromFile, rp.OpFromWire)
 		if rp.OpFromFile.CursorId != 0 {
 			// can race if GetMore's are executed on different connections then the inital query
 			context.CursorIDMapLock.Lock()
@@ -78,7 +79,7 @@ func (context *ExecutionContext) handleCompletedReplies() {
 	context.RepliesLock.Unlock()
 }
 
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session, connectionId int64) error {
+func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {
 	reader := bytes.NewReader(op.OpRaw.Body)
 
 	if op.OpRaw.Header.OpCode == mongoproto.OpCodeReply {
@@ -90,7 +91,6 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session, c
 		context.AddFromFile(&opReply.ReplyOp, op)
 		return nil
 	} else {
-
 		var opToExec mongoproto.Op
 		switch op.OpRaw.Header.OpCode {
 		case mongoproto.OpCodeQuery:
@@ -117,13 +117,18 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session, c
 			context.fixupOpGetMore(opGM)
 		}
 
-		log.Logf(log.Info, "(Connection %v) Executing %s", connectionId, opToExec)
+		op.PlayedAt = time.Now()
+		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
 		reply, err := opToExec.Execute(session)
+
 		if err != nil {
-			return err
+			return fmt.Errorf("error executing op: %v", err)
 		}
+
+		context.CollectOpInfo(op, opToExec, reply)
+		log.Logf(log.DebugLow, "(Connection %v) reply: %s", op.ConnectionNum, reply.String()) //(latency:%v, flags:%v, cursorId:%v, docs:%v) %v", op.ConnectionNum, reply.Latency, reply.ReplyOp.Flags, reply.ReplyOp.CursorId, reply.ReplyOp.ReplyDocs, stringifyReplyDocs(reply.Docs))
 		if reply != nil {
-			context.AddFromWire(reply, op)
+			context.AddFromWire(reply.ReplyOp, op)
 		}
 	}
 	context.handleCompletedReplies()

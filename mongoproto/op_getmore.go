@@ -5,6 +5,7 @@ import (
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"io"
+	"time"
 )
 
 // OpGetMore is used to query the database for documents in a collection.
@@ -16,6 +17,14 @@ type GetMoreOp struct {
 
 func (op *GetMoreOp) OpCode() OpCode {
 	return OpCodeGetMore
+}
+
+func (op *GetMoreOp) Meta() OpMetadata {
+	return OpMetadata{"getmore", op.Collection, ""}
+}
+
+func (op *GetMoreOp) String() string {
+	return fmt.Sprintf("GetMore ns:%v limit:%v cursorId:%v", op.Collection, op.Limit, op.CursorId)
 }
 
 func (op *GetMoreOp) FromReader(r io.Reader) error {
@@ -36,21 +45,25 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *GetMoreOp) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *GetMoreOp) Execute(session *mgo.Session) (*OpResult, error) {
+	before := time.Now()
+
 	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
 	data, reply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
+	after := time.Now()
 
-	dataDoc := bson.M{}
+	result := &OpResult{reply, make([]bson.D, 0, len(data)), after.Sub(before)}
+
 	for _, d := range data {
-		err = bson.Unmarshal(d, dataDoc)
+		dataDoc := bson.D{}
+		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("data %#v\n", dataDoc)
-		fmt.Printf("reply %#v\n", reply)
+		result.Docs = append(result.Docs, dataDoc)
 	}
 
-	return reply, nil
+	return result, nil
 }
 
 func (getMoreOp1 *GetMoreOp) Equals(otherOp Op) bool {
