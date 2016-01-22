@@ -17,5 +17,9 @@ func IsTerminal() bool {
 }
 
 func GetPass() string {
-	return string(gopass.GetPasswd())
+	if data, errData := gopass.GetPasswd(); errData != nil {
+		return ``
+	} else {
+		return string(data)
+	}
 }
