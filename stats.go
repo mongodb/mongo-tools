@@ -97,7 +97,7 @@ type OpStat struct {
 	// PlaybackLagMicros is the time difference in microseconds between the time
 	// that the operation was supposed to be played, and the time it was actualy played.
 	// High values indicate that playback is falling behind the intended rate.
-	PlaybackLagMicros string `json:"playbacklag_us,omitempty"`
+	PlaybackLagMicros int64 `json:"playbacklag_us,omitempty"`
 
 	// ConnectionNum represents the number of the connection that the op originated from.
 	// This number does not correspond to any server-side connection IDs - it's simply an
@@ -123,7 +123,7 @@ func GenerateOpStat(op *RecordedOp, replayedOp mongoproto.Op, res *mongoproto.Op
 		NumReturned:       len(res.Docs),
 		ConnectionNum:     op.ConnectionNum,
 		LatencyMicros:     int64(res.Latency / (time.Microsecond)),
-		PlaybackLagMicros: fmt.Sprintf("%v", op.PlayedAt.Sub(op.PlayAt)), // / time.Microsecond),
+		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt) / time.Microsecond),
 		Errors:            extractErrors(replayedOp, res),
 		PlayAt:            op.PlayAt,
 		PlayedAt:          op.PlayedAt,

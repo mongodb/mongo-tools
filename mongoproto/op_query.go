@@ -25,7 +25,6 @@ func (op *QueryOp) Meta() OpMetadata {
 		return OpMetadata{"query", op.Collection, ""}
 	}
 
-	fmt.Println("found command", commandType, "and", op.Collection)
 	return OpMetadata{opType, op.Collection, commandType}
 }
 
@@ -58,7 +57,6 @@ func extractOpType(x interface{}) (string, string) {
 			return v, ""
 		}
 	}
-	fmt.Println("returning command", commandName)
 	return "command", commandName
 }
 
