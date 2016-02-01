@@ -35,10 +35,10 @@ func ReadHeader(r io.Reader) (*MsgHeader, error) {
 func (m MsgHeader) ToWire() []byte {
 	var d [MsgHeaderLen]byte
 	b := d[:]
-	setInt32(b, 0, m.MessageLength)
-	setInt32(b, 4, m.RequestID)
-	setInt32(b, 8, m.ResponseTo)
-	setInt32(b, 12, int32(m.OpCode))
+	SetInt32(b, 0, m.MessageLength)
+	SetInt32(b, 4, m.RequestID)
+	SetInt32(b, 8, m.ResponseTo)
+	SetInt32(b, 12, int32(m.OpCode))
 	return b
 }
 

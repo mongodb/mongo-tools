@@ -78,7 +78,7 @@ pre:
 post:
   - command: gotest.parse_files
     params:
-      files: ["src/cmd/mongoplay/*.suite"]
+      files: ["src/*.suite"]
   - command: shell.cleanup
 
 tasks:
@@ -119,13 +119,16 @@ tasks:
   - func: "fetch tool"
     vars:
       tool: mongoplay
+  - func: "fetch mongodb"
+  - func: "start mongod"
+    vars:
+        mongod_port: 27035
   - command: shell.exec
     type: test
     params:
       working_dir: src
       script: |
         . ./set_gopath.sh
-        cd cmd/mongoplay
         go test -v > mongoplay.suite
 
 buildvariants:

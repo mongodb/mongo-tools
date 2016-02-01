@@ -1,74 +1,13 @@
-package main
+package mongoplay
 
 import (
-	"bytes"
-	"io/ioutil"
-	"net"
 	"testing"
-	"time"
 
-	"github.com/10gen/llmgo"
+	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"github.com/10gen/mongoplay/mongoproto"
 	"reflect"
 )
-
-type SessionStub struct {
-	mgo.MongoSession
-	connection ConnStub
-}
-
-type ConnStub struct {
-	closed      bool
-	readBuffer  *bytes.Buffer
-	writeBuffer *bytes.Buffer
-}
-
-func (conn *ConnStub) Read(b []byte) (n int, err error) {
-	return conn.readBuffer.Read(b)
-}
-
-func (conn *ConnStub) Write(b []byte) (n int, err error) {
-	return conn.writeBuffer.Write(b)
-}
-
-func (conn *ConnStub) Close() error {
-	return ioutil.NopCloser(conn).Close()
-}
-
-func (conn *ConnStub) LocalAddr() net.Addr {
-	return nil
-}
-
-func (conn *ConnStub) RemoteAddr() net.Addr {
-	return nil
-}
-
-func (conn *ConnStub) SetDeadline(t time.Time) error {
-	return nil
-}
-
-func (conn *ConnStub) SetReadDeadline(t time.Time) error {
-	return nil
-}
-
-func (conn *ConnStub) SetWriteDeadline(t time.Time) error {
-	return nil
-}
-
-func newTwoSidedConn() (conn1 ConnStub, conn2 ConnStub) {
-	buffer1 := &bytes.Buffer{}
-	buffer2 := &bytes.Buffer{}
-	conn1 = ConnStub{false, buffer1, buffer2}
-	conn2 = ConnStub{false, buffer2, buffer1}
-	return conn1, conn2
-}
-
-func (session *SessionStub) AcquireSocketPrivate(slaveOk bool) (*mgo.MongoSocket, error) {
-	server := mgo.MongoServer{}
-	var t time.Duration
-	return mgo.NewSocket(&server, &session.connection, t), nil
-}
 
 func TestOpGetMore(t *testing.T) {
 	session := SessionStub{}

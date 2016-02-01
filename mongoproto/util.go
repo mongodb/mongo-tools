@@ -54,7 +54,7 @@ func ReadDocument(r io.Reader) ([]byte, error) {
 	if size < 4 {
 		return doc, nil
 	}
-	setInt32(doc, 0, size)
+	SetInt32(doc, 0, size)
 
 	if _, err := io.ReadFull(r, doc[4:]); err != nil {
 		return doc, err
@@ -95,7 +95,7 @@ func getInt32(b []byte, pos int) int32 {
 		(int32(b[pos+3]) << 24)
 }
 
-func setInt32(b []byte, pos int, i int32) {
+func SetInt32(b []byte, pos int, i int32) {
 	b[pos] = byte(i)
 	b[pos+1] = byte(i >> 8)
 	b[pos+2] = byte(i >> 16)
@@ -122,6 +122,16 @@ func convertKeys(v bson.M) (bson.M, error) {
 		v[key] = jsonValue
 	}
 	return v, nil
+}
+func SetInt64(b []byte, pos int, i int64) {
+	b[pos] = byte(i)
+	b[pos+1] = byte(i >> 8)
+	b[pos+2] = byte(i >> 16)
+	b[pos+3] = byte(i >> 24)
+	b[pos+4] = byte(i >> 32)
+	b[pos+5] = byte(i >> 40)
+	b[pos+6] = byte(i >> 48)
+	b[pos+7] = byte(i >> 56)
 }
 
 // ConvertBSONValueToJSON walks through a document or an array and

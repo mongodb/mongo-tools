@@ -25,6 +25,16 @@ type ExecutionContext struct {
 	StatCollector
 }
 
+func NewExecutionContext(statColl StatCollector) *ExecutionContext {
+	context := ExecutionContext{
+		IncompleteReplies: map[string]ReplyPair{},
+		CompleteReplies:   map[string]ReplyPair{},
+		CursorIDMap:       map[int64]int64{},
+		StatCollector:     statColl,
+	}
+	return &context
+}
+
 // AddFromWire adds a from-wire reply to its IncompleteReplies ReplyPair
 // and moves that ReplyPair to CompleteReplies if it's complete.
 // The index is based on the src/dest of the recordedOp which should be the op
@@ -41,7 +51,7 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 	context.RepliesLock.Unlock()
 }
 
-// AddFromWire adds a from-file reply to its IncompleteReplies ReplyPair
+// AddFromFile adds a from-file reply to its IncompleteReplies ReplyPair
 // and moves that Replypair to CompleteReplies if it's complete.
 // The index is based on the reversed src/dest of the recordedOp which should
 // the RecordedOp that this ReplyOp was unmarshaled out of.
@@ -140,7 +150,6 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 			return fmt.Errorf("opReply.FromReader: %v", err)
 		}
 		context.AddFromFile(&opReply.ReplyOp, op)
-		return nil
 	} else {
 		var opToExec mongoproto.Op
 		switch op.OpRaw.Header.OpCode {

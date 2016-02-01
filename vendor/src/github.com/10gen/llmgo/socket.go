@@ -74,7 +74,7 @@ type QueryOp struct {
 	Flags      QueryOpFlags
 	replyFunc  replyFunc
 
-	mode	   Mode
+	mode       Mode
 	Options    QueryWrapper
 	HasOptions bool
 	ServerTags []bson.D
@@ -457,6 +457,13 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			buf = addInt32(buf, op.Limit)
 			buf = addInt64(buf, op.CursorId)
 			replyFunc = op.replyFunc
+
+		case *ReplyOp:
+			buf = addHeader(buf, 1)
+			buf = addInt32(buf, int32(op.Flags))
+			buf = addInt64(buf, op.CursorId)
+			buf = addInt32(buf, op.FirstDoc)
+			buf = addInt32(buf, op.ReplyDocs)
 
 		case *DeleteOp:
 			buf = addHeader(buf, 2006)

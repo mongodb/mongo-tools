@@ -139,6 +139,19 @@ type StatCollector interface {
 	Close() error
 }
 
+//BufferedStatCollector implements the StatCollector interface using an in-memory slice of OpStats.
+//This allows for the statistics on operations executed by mongoplay to be reviewed by a program directly following execution.
+//BufferedStatCollector's main purpose is for asserting correct execution of ops for testing
+type BufferedStatCollector struct {
+	startup    sync.Once
+	statStream chan statInfo
+	done       chan struct{}
+	//Buffer is a slice of OpStats that is appended to every time CollectOpInfo is called in mongoplay
+	//It stores an in-order series of OpStats that store information about the commands mongoplay ran as a result
+	//of reading a playback file
+	Buffer []OpStat
+}
+
 type JSONStatCollector struct {
 	startup    sync.Once
 	statStream chan statInfo
@@ -194,9 +207,40 @@ func (jsc *JSONStatCollector) CollectOpInfo(op *RecordedOp, replayedOp mongoprot
 	})
 	jsc.statStream <- statInfo{op, replayedOp, res}
 }
-
 func (jsc *JSONStatCollector) Close() error {
 	close(jsc.statStream)
 	_ = <-jsc.done
 	return jsc.out.Close()
+}
+
+func NewBufferedStatCollector() *BufferedStatCollector {
+	return &BufferedStatCollector{
+		Buffer: []OpStat{},
+	}
+}
+
+func (bsc *BufferedStatCollector) CollectOpInfo(op *RecordedOp, replayedOp mongoproto.Op, res *mongoproto.OpResult) {
+	// Ensure that the goroutine for processing stats is started the first time (and *only* the
+	// first time) this func is called.
+	bsc.startup.Do(func() {
+		bsc.statStream = make(chan statInfo, 1024)
+		bsc.done = make(chan struct{})
+		order := int64(0)
+		go func() {
+			for item := range bsc.statStream {
+				order++
+				stat := GenerateOpStat(item.op, item.replayedOp, item.res)
+				stat.Order = order
+				bsc.Buffer = append(bsc.Buffer, stat)
+			}
+			close(bsc.done)
+		}()
+	})
+	bsc.statStream <- statInfo{op, replayedOp, res}
+}
+
+func (bsc *BufferedStatCollector) Close() error {
+	close(bsc.statStream)
+	<-bsc.done
+	return nil
 }

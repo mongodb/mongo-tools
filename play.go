@@ -126,19 +126,30 @@ func (play *PlayCommand) Execute(args []string) error {
 		return err
 	}
 	opChan, errChan := play.NewPlayOpChan(opFile)
-	var playbackStartTime, recordingStartTime time.Time
+
+	context := NewExecutionContext(statColl)
+	err := Play(context, opChan, play.Speed, play.Url, play.Repeat)
+		
+	//handle the error from the errchan
+	err = <-errChan
+	if err != io.EOF {
+		log.Logf(log.Always, "OpChan: %v", err)
+	}
+	return nil
+}
+
+func Play(context *ExecutionContext,
+	opChan <-chan *RecordedOp,
+	speed float64,
+	url string,
+	repeat int,
+	queueTime int) error {
 
 	sessionChans := make(map[string]chan<- *RecordedOp)
-
-	context := &ExecutionContext{
-		IncompleteReplies: map[string]ReplyPair{},
-		CompleteReplies:   map[string]ReplyPair{},
-		CursorIDMap:       map[int64]int64{},
-		StatCollector:     statColl,
-	}
-
+	var playbackStartTime, recordingStartTime time.Time
 	var connectionId int64
 	var opCounter int
+	var err error
 	for op := range opChan {
 		opCounter++
 		if op.Seen.IsZero() {
@@ -155,7 +166,7 @@ func (play *PlayCommand) Execute(args []string) error {
 
 		// Adjust the opDelta for playback by dividing it by playback speed setting;
 		// e.g. 2x speed means the delta is half as long.
-		scaledDelta := float64(opDelta) / (play.Speed)
+		scaledDelta := float64(opDelta) / (speed)
 		op.PlayAt = playbackStartTime.Add(time.Duration(int64(scaledDelta)))
 
 		// Every queueGranularity ops make sure that we're no more then QueueTime seconds ahead
@@ -165,7 +176,7 @@ func (play *PlayCommand) Execute(args []string) error {
 		// sleep after every read, and generally read and queue queueGranularity number
 		// of ops at a time and then sleep until the last read op is QueueTime ahead.
 		if opCounter%queueGranularity == 0 {
-			time.Sleep(op.PlayAt.Add(time.Duration(-play.QueueTime) * time.Second).Sub(time.Now()))
+			time.Sleep(op.PlayAt.Add(time.Duration(-queueTime) * time.Second).Sub(time.Now()))
 		}
 
 		var connectionString string
@@ -174,18 +185,18 @@ func (play *PlayCommand) Execute(args []string) error {
 		} else {
 			connectionString = op.ConnectionString()
 		}
-		sessionChan, ok := sessionChans[connectionString]
+		sessionWrapper, ok := sessionChans[connectionString]
 		if !ok {
 			connectionId += 1
-			sessionChan = context.newExecutionSession(play.Url, op.PlayAt, connectionId)
-			sessionChans[connectionString] = sessionChan
+			sessionWrapper, err = context.newOpConnection(url, connectionId)
+			if err != nil {
+				log.Logf(log.Always, "Error calling newOpConnection: %v", err)
+				os.Exit(1)
+			}
+			sessionChans[connectionString] = sessionWrapper
 		}
-		if op.EOF {
-			close(sessionChan)
-			delete(sessionChans, connectionString)
-		} else {
-			sessionChan <- op
-		}
+		//fmt.Println("op should be played in", op.PlayAt.Sub(time.Now()))
+		sessionWrapper.session <- op
 	}
 	err = <-errChan
 	if err != io.EOF {
@@ -195,13 +206,10 @@ func (play *PlayCommand) Execute(args []string) error {
 		close(sessionChan)
 		delete(sessionChans, connectionString)
 	}
-	log.Logf(log.Info, "Waiting for sessions to finish")
-	context.SessionChansWaitGroup.Wait()
-
-	statColl.Close()
+	context.StatCollector.Close()
 	log.Logf(log.Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
-	if play.Repeat > 1 {
-		log.Logf(log.Always, "%v ops per generation for %v generations", opCounter/play.Repeat, play.Repeat)
+	if repeat > 1 {
+		log.Logf(log.Always, "%v ops per generation for %v generations", opCounter/repeat, repeat)
 	}
 	return nil
 }
