@@ -17,12 +17,13 @@ import (
 // tcpassembly.Stream implementation.
 
 type stream struct {
-	bidi        *bidi
-	reassembled chan []tcpassembly.Reassembly
-	reassembly  tcpassembly.Reassembly
-	done        chan interface{}
-	op          *mongoproto.OpRaw
-	state       streamState
+	bidi             *bidi
+	reassembled      chan []tcpassembly.Reassembly
+	reassembly       tcpassembly.Reassembly
+	done             chan interface{}
+	op               *mongoproto.OpRaw
+	state            streamState
+	netFlow, tcpFlow gopacket.Flow
 }
 
 // Reassembled receives the new slice of reassembled data and forwards it to the
@@ -55,7 +56,6 @@ type bidi struct {
 	streams          [2]*stream
 	openStreamCount  int32
 	opStream         *MongoOpStream
-	netFlow, tcpFlow gopacket.Flow
 	responseStream   bool
 	sawStart         bool
 	connectionNumber int
@@ -68,15 +68,17 @@ func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream) *bidi {
 		reassembled: make(chan []tcpassembly.Reassembly),
 		done:        make(chan interface{}),
 		op:          &mongoproto.OpRaw{},
+		netFlow:     netFlow,
+		tcpFlow:     tcpFlow,
 	}
 	bidi.streams[1] = &stream{
 		bidi:        bidi,
 		reassembled: make(chan []tcpassembly.Reassembly),
 		done:        make(chan interface{}),
 		op:          &mongoproto.OpRaw{},
+		netFlow:     netFlow.Reverse(),
+		tcpFlow:     tcpFlow.Reverse(),
 	}
-	bidi.netFlow = netFlow
-	bidi.tcpFlow = tcpFlow
 	bidi.opStream = opStream
 	bidi.connectionNumber = opStream.connectionNumber
 	opStream.connectionNumber++
@@ -95,8 +97,8 @@ func (bidi *bidi) close() {
 	close(bidi.streams[0].done)
 	close(bidi.streams[1].reassembled)
 	close(bidi.streams[1].done)
-	key := bidiKey{bidi.netFlow, bidi.tcpFlow}
-	delete(bidi.opStream.bidiMap, key)
+	delete(bidi.opStream.bidiMap, bidiKey{bidi.streams[1].netFlow, bidi.streams[1].tcpFlow})
+	delete(bidi.opStream.bidiMap, bidiKey{bidi.streams[0].netFlow, bidi.streams[0].tcpFlow})
 	// probably not important, just trying to make the garbage collection easier.
 	bidi.streams[0].bidi = nil
 	bidi.streams[1].bidi = nil
@@ -244,7 +246,7 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
 		//TODO maybe remember if we were recently in streamStateOutOfSync,
 		// and if so, parse the raw op here.
-		bidi.opStream.unorderedOps <- RecordedOp{OpRaw: *stream.op, Seen: stream.reassembly.Seen, SrcEndpoint: bidi.netFlow.Src().String(), DstEndpoint: bidi.netFlow.Dst().String()}
+		bidi.opStream.unorderedOps <- RecordedOp{OpRaw: *stream.op, Seen: stream.reassembly.Seen, SrcEndpoint: stream.netFlow.Src().String(), DstEndpoint: stream.netFlow.Dst().String()}
 		stream.op = &mongoproto.OpRaw{}
 		stream.state = streamStateBeforeMessage
 		if len(stream.reassembly.Bytes) > 0 {

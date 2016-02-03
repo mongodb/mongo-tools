@@ -24,8 +24,12 @@ type ExecutionContext struct {
 	StatCollector
 }
 
+// AddFromWire adds a from-wire reply to its IncompleteReplies ReplyPair
+// and moves that ReplyPair to CompleteReplies if it's complete.
+// The index is based on the src/dest of the recordedOp which should be the op
+// that this ReplyOp is a reply to.
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := recordedOp.SrcEndpoint + ":" + recordedOp.DstEndpoint + ":" + string(recordedOp.Header.RequestID)
+	key := fmt.Sprintf("%v:%v:%d", recordedOp.SrcEndpoint, recordedOp.DstEndpoint, recordedOp.Header.RequestID)
 	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromWire = reply
@@ -36,8 +40,12 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 	context.RepliesLock.Unlock()
 }
 
+// AddFromWire adds a from-file reply to its IncompleteReplies ReplyPair
+// and moves that Replypair to CompleteReplies if it's complete.
+// The index is based on the reversed src/dest of the recordedOp which should
+// the RecordedOp that this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := recordedOp.DstEndpoint + ":" + recordedOp.SrcEndpoint + ":" + string(recordedOp.Header.ResponseTo)
+	key := fmt.Sprintf("%v:%v:%d", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.RequestID)
 	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromFile = reply
