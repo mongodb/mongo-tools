@@ -120,13 +120,15 @@ func GenerateOpStat(op *RecordedOp, replayedOp mongoproto.Op, res *mongoproto.Op
 		OpType:            opMeta.Op,
 		Ns:                opMeta.Ns,
 		Command:           opMeta.Command,
-		NumReturned:       len(res.Docs),
 		ConnectionNum:     op.ConnectionNum,
-		LatencyMicros:     int64(res.Latency / (time.Microsecond)),
 		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt) / time.Microsecond),
-		Errors:            extractErrors(replayedOp, res),
 		PlayAt:            op.PlayAt,
 		PlayedAt:          op.PlayedAt,
+	}
+	if res != nil {
+		stat.NumReturned = len(res.Docs)
+		stat.LatencyMicros = int64(res.Latency / (time.Microsecond))
+		stat.Errors = extractErrors(replayedOp, res)
 	}
 
 	return stat

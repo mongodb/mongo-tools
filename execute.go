@@ -119,16 +119,19 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 
 		op.PlayedAt = time.Now()
 		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
-		reply, err := opToExec.Execute(session)
+		result, err := opToExec.Execute(session)
 
 		if err != nil {
 			return fmt.Errorf("error executing op: %v", err)
 		}
 
-		context.CollectOpInfo(op, opToExec, reply)
-		log.Logf(log.DebugLow, "(Connection %v) reply: %s", op.ConnectionNum, reply.String()) //(latency:%v, flags:%v, cursorId:%v, docs:%v) %v", op.ConnectionNum, reply.Latency, reply.ReplyOp.Flags, reply.ReplyOp.CursorId, reply.ReplyOp.ReplyDocs, stringifyReplyDocs(reply.Docs))
-		if reply != nil {
-			context.AddFromWire(reply.ReplyOp, op)
+		context.CollectOpInfo(op, opToExec, result)
+
+		if result != nil {
+			log.Logf(log.DebugLow, "(Connection %v) reply: %s", op.ConnectionNum, result.String()) //(latency:%v, flags:%v, cursorId:%v, docs:%v) %v", op.ConnectionNum, reply.Latency, reply.ReplyOp.Flags, reply.ReplyOp.CursorId, reply.ReplyOp.ReplyDocs, stringifyReplyDocs(reply.Docs))
+			context.AddFromWire(result.ReplyOp, op)
+		} else {
+			log.Logf(log.DebugHigh, "(Connection %v) nil reply", op.ConnectionNum) //(latency:%v, flags:%v, cursorId:%v, docs:%v) %v", op.ConnectionNum, reply.Latency, reply.ReplyOp.Flags, reply.ReplyOp.CursorId, reply.ReplyOp.ReplyDocs, stringifyReplyDocs(reply.Docs))
 		}
 	}
 	context.handleCompletedReplies()
