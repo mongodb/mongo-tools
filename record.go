@@ -13,9 +13,9 @@ import (
 type RecordCommand struct {
 	GlobalOpts       *Options `no-flag:"true"`
 	PcapFile         string   `short:"f" description:"path to the pcap file to be read"`
-	PlaybackFile     string   `description:"path to playback file to record to" short:"p" long:"playback-file" required:"yes"`
+	PlaybackFile     string   `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
 	NetworkInterface string   `short:"i" description:"network interface to listen on"`
-	PacketBufSize    int
+	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1000"`
 }
 
 func (record *RecordCommand) Execute(args []string) error {
@@ -26,6 +26,9 @@ func (record *RecordCommand) Execute(args []string) error {
 	pcap, err := pcap.OpenOffline(record.PcapFile)
 	if err != nil {
 		return fmt.Errorf("error opening pcap file: %v", err)
+	}
+	if record.PacketBufSize < 1 {
+		return fmt.Errorf("invalid PacketBufSize")
 	}
 	output, err := os.Create(record.PlaybackFile)
 	h := NewPacketHandler(pcap)
