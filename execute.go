@@ -45,7 +45,7 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 // The index is based on the reversed src/dest of the recordedOp which should
 // the RecordedOp that this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := fmt.Sprintf("%v:%v:%d", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.RequestID)
+	key := fmt.Sprintf("%v:%v:%d", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.ResponseTo)
 	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromFile = reply
