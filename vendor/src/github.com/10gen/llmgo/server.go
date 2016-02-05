@@ -84,6 +84,7 @@ func newServer(addr string, tcpaddr *net.TCPAddr, sync chan bool, dial dialer) *
 		sync:         sync,
 		dial:         dial,
 		info:         &defaultServerInfo,
+		pingValue:    time.Hour, // Push it back before an actual ping.
 	}
 	// Once so the server gets a ping value, then loop in background.
 	server.pinger(false)
@@ -400,7 +401,7 @@ func (servers *mongoServers) Empty() bool {
 
 // BestFit returns the best guess of what would be the most interesting
 // server to perform operations on at this point in time.
-func (servers *mongoServers) BestFit(serverTags []bson.D) *MongoServer {
+func (servers *mongoServers) BestFit(mode Mode, serverTags []bson.D) *MongoServer {
 	var best *MongoServer
 	for _, next := range servers.slice {
 		if best == nil {
@@ -417,9 +418,9 @@ func (servers *mongoServers) BestFit(serverTags []bson.D) *MongoServer {
 		switch {
 		case serverTags != nil && !next.info.Mongos && !next.hasTags(serverTags):
 			// Must have requested tags.
-		case next.info.Master != best.info.Master:
-			// Prefer slaves.
-			swap = best.info.Master
+		case next.info.Master != best.info.Master && mode != Nearest:
+			// Prefer slaves, unless the mode is PrimaryPreferred.
+			swap = (mode == PrimaryPreferred) != best.info.Master
 		case absDuration(next.pingValue-best.pingValue) > 15*time.Millisecond:
 			// Prefer nearest server.
 			swap = next.pingValue < best.pingValue

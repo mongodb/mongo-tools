@@ -28,6 +28,7 @@ package mgo
 
 import (
 	"errors"
+	"fmt"
 	"github.com/10gen/llmgo/bson"
 	"net"
 	"sync"
@@ -73,6 +74,7 @@ type QueryOp struct {
 	Flags      QueryOpFlags
 	replyFunc  replyFunc
 
+	mode	   Mode
 	Options    QueryWrapper
 	HasOptions bool
 	ServerTags []bson.D
@@ -95,9 +97,30 @@ type QueryWrapper struct {
 }
 
 func (op *QueryOp) finalQuery(socket *MongoSocket) interface{} {
-	if op.Flags&flagSlaveOk != 0 && len(op.ServerTags) > 0 && socket.ServerInfo().Mongos {
+	if op.Flags&flagSlaveOk != 0 && socket.ServerInfo().Mongos {
+		var modeName string
+		switch op.mode {
+		case Strong:
+			modeName = "primary"
+		case Monotonic, Eventual:
+			modeName = "secondaryPreferred"
+		case PrimaryPreferred:
+			modeName = "primaryPreferred"
+		case Secondary:
+			modeName = "secondary"
+		case SecondaryPreferred:
+			modeName = "secondaryPreferred"
+		case Nearest:
+			modeName = "nearest"
+		default:
+			panic(fmt.Sprintf("unsupported read mode: %d", op.mode))
+		}
 		op.HasOptions = true
-		op.Options.ReadPreference = bson.D{{"mode", "secondaryPreferred"}, {"tags", op.ServerTags}}
+		op.Options.ReadPreference = make(bson.D, 0, 2)
+		op.Options.ReadPreference = append(op.Options.ReadPreference, bson.DocElem{"mode", modeName})
+		if len(op.ServerTags) > 0 {
+			op.Options.ReadPreference = append(op.Options.ReadPreference, bson.DocElem{"tags", op.ServerTags})
+		}
 	}
 	if op.HasOptions {
 		if op.Query == nil {
@@ -133,16 +156,19 @@ type InsertOp struct {
 }
 
 type UpdateOp struct {
-	Collection string // "database.collection"
-	Selector   interface{}
-	Update     interface{}
-	Flags      uint32
+	Collection string      `bson:"-"` // "database.collection"
+	Selector   interface{} `bson:"q"`
+	Update     interface{} `bson:"u"`
+	Flags      uint32      `bson:"-"`
+	Multi      bool        `bson:"multi,omitempty"`
+	Upsert     bool        `bson:"upsert,omitempty"`
 }
 
 type DeleteOp struct {
-	Collection string // "database.collection"
-	Selector   interface{}
-	Flags      uint32
+	Collection string      `bson:"-"` // "database.collection"
+	Selector   interface{} `bson:"q"`
+	Flags      uint32      `bson:"-"`
+	Limit      int         `bson:"limit"`
 }
 
 type KillCursorsOp struct {
