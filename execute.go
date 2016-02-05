@@ -29,7 +29,7 @@ type ExecutionContext struct {
 // The index is based on the src/dest of the recordedOp which should be the op
 // that this ReplyOp is a reply to.
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := fmt.Sprintf("%v:%v:%d", recordedOp.SrcEndpoint, recordedOp.DstEndpoint, recordedOp.Header.RequestID)
+	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.SrcEndpoint, recordedOp.DstEndpoint, recordedOp.Header.RequestID, recordedOp.Generation)
 	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromWire = reply
@@ -45,7 +45,7 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 // The index is based on the reversed src/dest of the recordedOp which should
 // the RecordedOp that this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := fmt.Sprintf("%v:%v:%d", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.ResponseTo)
+	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.ResponseTo, recordedOp.Generation)
 	context.RepliesLock.Lock()
 	replyPair := context.IncompleteReplies[key]
 	replyPair.OpFromFile = reply
@@ -85,6 +85,40 @@ func (context *ExecutionContext) handleCompletedReplies() {
 		delete(context.CompleteReplies, key)
 	}
 	context.RepliesLock.Unlock()
+}
+
+func (context *ExecutionContext) newOpConnection(url string, connectionNum int64) (SessionWrapper, error) {
+	session, err := mgo.Dial(url)
+	if err != nil {
+		return SessionWrapper{}, err
+	}
+
+	ch := make(chan *RecordedOp, 10000)
+	done := make(chan bool)
+
+	sessionWrapper := SessionWrapper{ch, done}
+	go func() {
+		log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionNum)
+		for op := range ch {
+			// Populate the op with the connection num it's being played on.
+			// This allows it to be used for downstream reporting of stats.
+			op.ConnectionNum = connectionNum
+			t := time.Now()
+			if op.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
+				if t.Before(op.PlayAt) {
+					time.Sleep(op.PlayAt.Sub(t))
+				}
+			}
+			log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, op.String())
+			err = context.Execute(op, session)
+			if err != nil {
+				log.Logf(log.Always, "context.Execute error: %v", err)
+			}
+		}
+		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionNum)
+		done <- true
+	}()
+	return sessionWrapper, nil
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {

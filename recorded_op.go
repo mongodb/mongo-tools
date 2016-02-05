@@ -14,6 +14,7 @@ type RecordedOp struct {
 	DstEndpoint   string
 	ConnectionNum int64
 	PlayedAt      time.Time
+	Generation    int
 }
 
 func (op *RecordedOp) ConnectionString() string {

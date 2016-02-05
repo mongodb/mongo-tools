@@ -18,7 +18,21 @@ type RecordCommand struct {
 	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1000"`
 }
 
+func (record *RecordCommand) ValidateParams(args []string) error {
+	switch {
+	case len(args) > 0:
+		return fmt.Errorf("unknown argument: %s", args[0])
+	case record.PcapFile != "" && record.NetworkInterface != "":
+		return fmt.Errorf("must only specify an interface or a pcap file")
+	}
+	return nil
+}
+
 func (record *RecordCommand) Execute(args []string) error {
+	err := record.ValidateParams(args)
+	if err != nil {
+		return err
+	}
 	// we want to default verbosity to 1 (info), so increment the default setting of 0
 	record.GlobalOpts.Verbose = append(record.GlobalOpts.Verbose, true)
 	log.SetVerbosity(&options.Verbosity{record.GlobalOpts.Verbose, false})
@@ -56,14 +70,4 @@ func (record *RecordCommand) Execute(args []string) error {
 		fmt.Errorf("record: error handling packet stream:", err)
 	}
 	return <-ch
-}
-
-func (record *RecordCommand) ValidateParams(args []string) error {
-	switch {
-	case len(args) > 0:
-		return fmt.Errorf("unknown argument: %s", args[0])
-	case record.PcapFile != "" && record.NetworkInterface != "":
-		return fmt.Errorf("must only specify an interface or a pcap file")
-	}
-	return nil
 }

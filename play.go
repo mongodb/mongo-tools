@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"github.com/10gen/mongoplay/mongoproto"
 )
@@ -19,6 +18,7 @@ type PlayCommand struct {
 	Speed        float64  `description:"multiplier for playback speed (1.0 = real-time, .5 = half-speed, 3.0 = triple-speed, etc.)" long:"speed" default:"1.0"`
 	Url          string   `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 	Report       string   `long:"report" description:"Write report on execution to given output path"`
+	Repeat       int      `long:"repeat" description:"Number of times to play the playback file" default:"1"`
 }
 
 type SessionWrapper struct {
@@ -26,69 +26,57 @@ type SessionWrapper struct {
 	done    <-chan bool
 }
 
-func NewPlayOpChan(fileName string) (<-chan *RecordedOp, error) {
-	opFile, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
+// NewPlayOpChan runs a goroutine that will read and unmarshal recorded ops
+// from a file and push them in to a recorded op chan. Any errors encountered
+// are pushed to an error chan. Both the recorded op chan and the error chan are
+// returned by the function.
+// The error chan won't be readable until the recorded op chan gets closed.
+func (play *PlayCommand) NewPlayOpChan(file io.ReadSeeker) (<-chan *RecordedOp, <-chan error) {
 	ch := make(chan *RecordedOp)
+	e := make(chan error)
+
+	var last time.Time
+	var first time.Time
+	var loopDelta time.Duration
 	go func() {
-		defer close(ch)
-		for {
-			buf, err := mongoproto.ReadDocument(opFile)
-			if err != nil {
-				if err == io.EOF {
-					return
+		defer close(e)
+		e <- func() error {
+			defer close(ch)
+			for generation := 0; generation < play.Repeat; generation++ {
+				for {
+					buf, err := mongoproto.ReadDocument(file)
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						return fmt.Errorf("ReadDocument: %v", err)
+					}
+					doc := &RecordedOp{}
+					err = bson.Unmarshal(buf, doc)
+					if err != nil {
+						return fmt.Errorf("Unmarshal: %v\n", err)
+					}
+					last = doc.Seen
+					if first.IsZero() {
+						first = doc.Seen
+					}
+					doc.Seen = doc.Seen.Add(loopDelta)
+					doc.Generation = generation
+					ch <- doc
 				}
-				log.Logf(log.Always, "Error calling ReadDocument: %v\n", err)
-				os.Exit(1)
-			}
-			var doc RecordedOp
-			err = bson.Unmarshal(buf, &doc)
-			if err != nil {
-				log.Logf(log.Always, "Error calling Unmarshal: %v\n", err)
-				os.Exit(1)
-			}
-			ch <- &doc
-		}
-	}()
-	return ch, nil
-}
-
-func newOpConnection(url string, context *ExecutionContext, connectionNum int64) (SessionWrapper, error) {
-	session, err := mgo.Dial(url)
-	if err != nil {
-		return SessionWrapper{}, err
-	}
-
-	ch := make(chan *RecordedOp, 10000)
-	done := make(chan bool)
-
-	sessionWrapper := SessionWrapper{ch, done}
-	go func() {
-		log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionNum)
-		for op := range ch {
-			// Populate the op with the connection num it's being played on.
-			// This allows it to be used for downstream reporting of stats.
-			op.ConnectionNum = connectionNum
-			t := time.Now()
-			if op.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
-				if t.Before(op.PlayAt) {
-					time.Sleep(op.PlayAt.Sub(t))
-				} else {
+				log.Logf(log.DebugHigh, "generation: %v", generation)
+				loopDelta += last.Sub(first)
+				first = time.Time{}
+				_, err := file.Seek(0, 0)
+				if err != nil {
+					return fmt.Errorf("PlaybackFile Seek: %v", err)
 				}
-			} else {
-				log.Logf(log.DebugHigh, "Processing reply from playback file %v", op.String())
+				continue
 			}
-			err = context.Execute(op, session)
-			if err != nil {
-				log.Logf(log.Always, "context.Execute error: %v", err)
-			}
-		}
-		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionNum)
-		done <- true
+			return io.EOF
+		}()
 	}()
-	return sessionWrapper, nil
+	return ch, e
 }
 
 func openJSONReporter(path string) (*JSONStatCollector, error) {
@@ -99,13 +87,25 @@ func openJSONReporter(path string) (*JSONStatCollector, error) {
 	return &JSONStatCollector{out: f}, nil
 }
 
-func (play *PlayCommand) Execute(args []string) error {
-	if play.Speed <= 0 {
+func (play *PlayCommand) ValidateParams(args []string) error {
+	switch {
+	case len(args) > 0:
+		return fmt.Errorf("unknown argument: %s", args[0])
+	case play.Speed <= 0:
 		return fmt.Errorf("Invalid setting for --speed: '%v'", play.Speed)
+	case play.Repeat < 1:
+		return fmt.Errorf("Invalid setting for --repeat: '%v', value must be >=1", play.Repeat)
+	}
+	return nil
+}
+
+func (play *PlayCommand) Execute(args []string) error {
+	err := play.ValidateParams(args)
+	if err != nil {
+		return err
 	}
 
 	var statColl StatCollector = &NopCollector{}
-	var err error
 	if len(play.Report) > 0 {
 		statColl, err = openJSONReporter(play.Report)
 		if err != nil {
@@ -117,10 +117,11 @@ func (play *PlayCommand) Execute(args []string) error {
 	play.GlobalOpts.Verbose = append(play.GlobalOpts.Verbose, true)
 	log.SetVerbosity(&options.Verbosity{play.GlobalOpts.Verbose, false})
 	log.Logf(log.Info, "Doing playback at %.2fx speed", play.Speed)
-	opChan, err := NewPlayOpChan(play.PlaybackFile)
+	opFile, err := os.Open(play.PlaybackFile)
 	if err != nil {
-		return fmt.Errorf("newPlayOpChan: %v", err)
+		return err
 	}
+	opChan, errChan := play.NewPlayOpChan(opFile)
 	var playbackStartTime, recordingStartTime time.Time
 
 	// recordVsPlaybackDelta represents the difference in time between when
@@ -128,7 +129,7 @@ func (play *PlayCommand) Execute(args []string) error {
 	//var recordVsPlaybackDelta time.Duration
 	sessionChans := make(map[string]SessionWrapper)
 
-	context := ExecutionContext{
+	context := &ExecutionContext{
 		IncompleteReplies: map[string]ReplyPair{},
 		CompleteReplies:   map[string]ReplyPair{},
 		CursorIDMap:       map[int64]int64{},
@@ -136,7 +137,9 @@ func (play *PlayCommand) Execute(args []string) error {
 	}
 
 	var connectionId int64
+	var opCounter int
 	for op := range opChan {
+		opCounter++
 		if op.Seen.IsZero() {
 			return fmt.Errorf("Can't play operation found with zero-timestamp: %#v", op)
 		}
@@ -163,7 +166,7 @@ func (play *PlayCommand) Execute(args []string) error {
 		sessionWrapper, ok := sessionChans[connectionString]
 		if !ok {
 			connectionId += 1
-			sessionWrapper, err = newOpConnection(play.Url, &context, connectionId)
+			sessionWrapper, err = context.newOpConnection(play.Url, connectionId)
 			if err != nil {
 				log.Logf(log.Always, "Error calling newOpConnection: %v", err)
 				os.Exit(1)
@@ -173,12 +176,21 @@ func (play *PlayCommand) Execute(args []string) error {
 		//fmt.Println("op should be played in", op.PlayAt.Sub(time.Now()))
 		sessionWrapper.session <- op
 	}
+	err = <-errChan
+	if err != io.EOF {
+		log.Logf(log.Always, "OpChan: %v", err)
+	}
 	for _, sessionWrapper := range sessionChans {
 		close(sessionWrapper.session)
 	}
+	log.Logf(log.Info, "Waiting for sessions to finish")
 	for _, sessionWrapper := range sessionChans {
 		<-sessionWrapper.done
 	}
 	statColl.Close()
+	log.Logf(log.Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
+	if play.Repeat > 1 {
+		log.Logf(log.Always, "%v ops per generation for %v generations", opCounter/play.Repeat, play.Repeat)
+	}
 	return nil
 }
