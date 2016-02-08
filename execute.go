@@ -125,6 +125,10 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 			context.fixupOpGetMore(opGM)
 		}
 
+		if mongoproto.IsDriverOp(opToExec) {
+			return nil
+		}
+
 		op.PlayedAt = time.Now()
 		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
 		result, err := opToExec.Execute(session)
