@@ -2,36 +2,52 @@ package mongoplay
 
 import (
 	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/mongoplay/mongoproto"
 	"github.com/mongodb/mongo-tools/common/log"
-	"sync"
-	"time"
+
+	"github.com/patrickmn/go-cache"
 )
 
 type ReplyPair struct {
-	OpFromFile *mgo.ReplyOp
-	OpFromWire *mgo.ReplyOp
+	ops [2]*mgo.ReplyOp
 }
 
+const (
+	ReplyFromWire = 0
+	ReplyFromFile = 1
+)
+
 type ExecutionContext struct {
-	IncompleteReplies     map[string]ReplyPair
-	CompleteReplies       map[string]ReplyPair
-	RepliesLock           sync.Mutex
-	CursorIDMap           map[int64]int64
-	CursorIDMapLock       sync.Mutex
+	// IncompleteReplies holds half complete ReplyPairs, which contains either a
+	// live reply or a recorded reply when one arrives before the other.
+	IncompleteReplies *cache.Cache
+
+	// CompleteReplies contains ReplyPairs that have been competed by the arrival
+	// of the missing half of.
+	CompleteReplies map[string]*ReplyPair
+
+	// CursorIdMap contains the mapping between recorded cursorIds and live cursorIds
+	CursorIdMap *cache.Cache
+
+	// lock synchronizes access to all of the caches and maps in the ExecutionContext
+	lock sync.Mutex
+
 	SessionChansWaitGroup sync.WaitGroup
 	StatCollector
 }
 
 func NewExecutionContext(statColl StatCollector) *ExecutionContext {
-	context := ExecutionContext{
-		IncompleteReplies: map[string]ReplyPair{},
-		CompleteReplies:   map[string]ReplyPair{},
-		CursorIDMap:       map[int64]int64{},
+	return &ExecutionContext{
+		IncompleteReplies: cache.New(60*time.Second, 60*time.Second),
+		CompleteReplies:   map[string]*ReplyPair{},
+		CursorIdMap:       cache.New(600*time.Second, 60*time.Second),
 		StatCollector:     statColl,
 	}
-	return &context
 }
 
 // AddFromWire adds a from-wire reply to its IncompleteReplies ReplyPair
@@ -40,61 +56,56 @@ func NewExecutionContext(statColl StatCollector) *ExecutionContext {
 // that this ReplyOp is a reply to.
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
 	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.SrcEndpoint, recordedOp.DstEndpoint, recordedOp.Header.RequestID, recordedOp.Generation)
-	context.RepliesLock.Lock()
-	replyPair := context.IncompleteReplies[key]
-	replyPair.OpFromWire = reply
-	context.IncompleteReplies[key] = replyPair
-	if replyPair.OpFromFile != nil {
-		context.completeReply(key)
-	}
-	context.RepliesLock.Unlock()
+	context.completeReply(key, reply, ReplyFromWire)
 }
 
 // AddFromFile adds a from-file reply to its IncompleteReplies ReplyPair
-// and moves that Replypair to CompleteReplies if it's complete.
+// and moves that ReplyPair to CompleteReplies if it's complete.
 // The index is based on the reversed src/dest of the recordedOp which should
 // the RecordedOp that this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
 	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.ResponseTo, recordedOp.Generation)
-	context.RepliesLock.Lock()
-	replyPair := context.IncompleteReplies[key]
-	replyPair.OpFromFile = reply
-	context.IncompleteReplies[key] = replyPair
-	if replyPair.OpFromWire != nil {
-		context.completeReply(key)
-	}
-	context.RepliesLock.Unlock()
+	context.completeReply(key, reply, ReplyFromFile)
 }
 
-func (context *ExecutionContext) completeReply(key string) {
-	context.CompleteReplies[key] = context.IncompleteReplies[key]
-	delete(context.IncompleteReplies, key)
+func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, opSource int) {
+	context.lock.Lock()
+	if cacheValue, ok := context.IncompleteReplies.Get(key); !ok {
+		rp := &ReplyPair{}
+		rp.ops[opSource] = reply
+		context.IncompleteReplies.Set(key, rp, cache.DefaultExpiration)
+	} else {
+		rp := cacheValue.(*ReplyPair)
+		rp.ops[opSource] = reply
+		if rp.ops[1-opSource] != nil {
+			context.CompleteReplies[key] = rp
+			context.IncompleteReplies.Delete(key)
+		}
+	}
+	context.lock.Unlock()
 }
 
 func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
-	// can race if GetMore's are executed on different connections then the inital query
-	context.CursorIDMapLock.Lock()
-	cursorId, ok := context.CursorIDMap[opGM.CursorId]
-	context.CursorIDMapLock.Unlock()
+	context.lock.Lock()
+	value, ok := context.CursorIdMap.Get(strconv.FormatInt(opGM.CursorId, 10))
+	context.lock.Unlock()
 	if !ok {
 		log.Logf(log.Always, "Missing mapped cursor ID for raw cursor ID: %v", opGM.CursorId)
+	} else {
+		opGM.CursorId = value.(int64)
 	}
-	opGM.CursorId = cursorId
 }
 
 func (context *ExecutionContext) handleCompletedReplies() {
-	context.RepliesLock.Lock()
+	context.lock.Lock()
 	for key, rp := range context.CompleteReplies {
-		log.Logf(log.DebugHigh, "Completed reply: %v, %v", rp.OpFromFile, rp.OpFromWire)
-		if rp.OpFromFile.CursorId != 0 {
-			// can race if GetMore's are executed on different connections then the inital query
-			context.CursorIDMapLock.Lock()
-			context.CursorIDMap[rp.OpFromFile.CursorId] = rp.OpFromWire.CursorId
-			context.CursorIDMapLock.Unlock()
+		log.Logf(log.DebugHigh, "Completed reply: %v, %v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
+		if rp.ops[ReplyFromFile].CursorId != 0 {
+			context.CursorIdMap.Set(strconv.FormatInt(rp.ops[ReplyFromFile].CursorId, 10), rp.ops[ReplyFromWire].CursorId, cache.DefaultExpiration)
 		}
 		delete(context.CompleteReplies, key)
 	}
-	context.RepliesLock.Unlock()
+	context.lock.Unlock()
 }
 
 func (context *ExecutionContext) newExecutionSession(url string, start time.Time, connectionNum int64) chan<- *RecordedOp {

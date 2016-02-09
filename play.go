@@ -2,14 +2,14 @@ package mongoplay
 
 import (
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
 	"io"
 	"os"
 	"time"
 
 	"github.com/10gen/llmgo/bson"
 	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
 )
 
 type PlayCommand struct {
