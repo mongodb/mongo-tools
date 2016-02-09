@@ -45,3 +45,58 @@ func TestRepeatGeneration(t *testing.T) {
 		t.Errorf("should have eof at end, but got %v", err)
 	}
 }
+
+func TestPlayOpEOF(t *testing.T) {
+	ops := []RecordedOp{{
+		Seen: time.Now(),
+	}, {
+		Seen: time.Now(),
+		EOF:  true,
+	}}
+	var buf bytes.Buffer
+	for _, op := range ops {
+		bsonBytes, err := bson.Marshal(op)
+		if err != nil {
+			t.Errorf("couldn't marshal op %v", err)
+		}
+		buf.Write(bsonBytes)
+	}
+	readSeeker := bytes.NewReader(buf.Bytes())
+
+	play := PlayCommand{
+		Repeat: 2,
+	}
+
+	opChan, errChan := play.NewPlayOpChan(readSeeker)
+
+	op1, ok := <-opChan
+	if !ok {
+		t.Errorf("read of op1 failed")
+	}
+	if op1.EOF {
+		t.Errorf("op1 should not be an EOF op")
+	}
+	op2, ok := <-opChan
+	if !ok {
+		t.Errorf("read op2 failed")
+	}
+	if op2.EOF {
+		t.Errorf("op2 should not be an EOF op")
+	}
+	op3, ok := <-opChan
+	if !ok {
+		t.Errorf("read of op3 failed")
+	}
+	if !op3.EOF {
+		t.Errorf("op3 is not an EOF op")
+	}
+
+	_, ok = <-opChan
+	if ok {
+		t.Errorf("Successfully read past end of op chan")
+	}
+	err := <-errChan
+	if err != io.EOF {
+		t.Errorf("should have eof at end, but got %v", err)
+	}
+}

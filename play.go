@@ -19,12 +19,10 @@ type PlayCommand struct {
 	Url          string   `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 	Report       string   `long:"report" description:"Write report on execution to given output path"`
 	Repeat       int      `long:"repeat" description:"Number of times to play the playback file" default:"1"`
+	QueueTime    int      `long:"queueTime" description:"don't queue ops much further in the future than this number of seconds" default:"15"`
 }
 
-type SessionWrapper struct {
-	session chan<- *RecordedOp
-	done    <-chan bool
-}
+const queueGranularity = 1000
 
 // NewPlayOpChan runs a goroutine that will read and unmarshal recorded ops
 // from a file and push them in to a recorded op chan. Any errors encountered
@@ -62,7 +60,13 @@ func (play *PlayCommand) NewPlayOpChan(file io.ReadSeeker) (<-chan *RecordedOp, 
 					}
 					doc.Seen = doc.Seen.Add(loopDelta)
 					doc.Generation = generation
-					ch <- doc
+					// We want to suppress EOF's unless you're in the last generation
+					// because all of the ops for one connection across different generations
+					// get executed in the same session. We don't want to close the session
+					// until the connection closes in the last generation.
+					if !doc.EOF || generation == play.Repeat-1 {
+						ch <- doc
+					}
 				}
 				log.Logf(log.DebugHigh, "generation: %v", generation)
 				loopDelta += last.Sub(first)
@@ -124,10 +128,7 @@ func (play *PlayCommand) Execute(args []string) error {
 	opChan, errChan := play.NewPlayOpChan(opFile)
 	var playbackStartTime, recordingStartTime time.Time
 
-	// recordVsPlaybackDelta represents the difference in time between when
-	// the file was recorded and the time that we begin playing it back.
-	//var recordVsPlaybackDelta time.Duration
-	sessionChans := make(map[string]SessionWrapper)
+	sessionChans := make(map[string]chan<- *RecordedOp)
 
 	context := &ExecutionContext{
 		IncompleteReplies: map[string]ReplyPair{},
@@ -157,36 +158,46 @@ func (play *PlayCommand) Execute(args []string) error {
 		scaledDelta := float64(opDelta) / (play.Speed)
 		op.PlayAt = playbackStartTime.Add(time.Duration(int64(scaledDelta)))
 
+		// Every queueGranularity ops make sure that we're no more then QueueTime seconds ahead
+		// Which should mean that the maximum that we're ever ahead
+		// is QueueTime seconds of ops + queueGranularity more ops.
+		// This is so that when we're at QueueTime ahead in the playback file we don't
+		// sleep after every read, and generally read and queue queueGranularity number
+		// of ops at a time and then sleep until the last read op is QueueTime ahead.
+		if opCounter%queueGranularity == 0 {
+			time.Sleep(op.PlayAt.Add(time.Duration(-play.QueueTime) * time.Second).Sub(time.Now()))
+		}
+
 		var connectionString string
 		if op.OpCode() == mongoproto.OpCodeReply {
 			connectionString = op.ReversedConnectionString()
 		} else {
 			connectionString = op.ConnectionString()
 		}
-		sessionWrapper, ok := sessionChans[connectionString]
+		sessionChan, ok := sessionChans[connectionString]
 		if !ok {
 			connectionId += 1
-			sessionWrapper, err = context.newOpConnection(play.Url, connectionId)
-			if err != nil {
-				log.Logf(log.Always, "Error calling newOpConnection: %v", err)
-				os.Exit(1)
-			}
-			sessionChans[connectionString] = sessionWrapper
+			sessionChan = context.newExecutionSession(play.Url, op.PlayAt, connectionId)
+			sessionChans[connectionString] = sessionChan
 		}
-		//fmt.Println("op should be played in", op.PlayAt.Sub(time.Now()))
-		sessionWrapper.session <- op
+		if op.EOF {
+			close(sessionChan)
+			delete(sessionChans, connectionString)
+		} else {
+			sessionChan <- op
+		}
 	}
 	err = <-errChan
 	if err != io.EOF {
 		log.Logf(log.Always, "OpChan: %v", err)
 	}
-	for _, sessionWrapper := range sessionChans {
-		close(sessionWrapper.session)
+	for connectionString, sessionChan := range sessionChans {
+		close(sessionChan)
+		delete(sessionChans, connectionString)
 	}
 	log.Logf(log.Info, "Waiting for sessions to finish")
-	for _, sessionWrapper := range sessionChans {
-		<-sessionWrapper.done
-	}
+	context.SessionChansWaitGroup.Wait()
+
 	statColl.Close()
 	log.Logf(log.Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
 	if play.Repeat > 1 {

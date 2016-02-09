@@ -16,11 +16,12 @@ type ReplyPair struct {
 }
 
 type ExecutionContext struct {
-	IncompleteReplies map[string]ReplyPair
-	CompleteReplies   map[string]ReplyPair
-	RepliesLock       sync.Mutex
-	CursorIDMap       map[int64]int64
-	CursorIDMapLock   sync.Mutex
+	IncompleteReplies     map[string]ReplyPair
+	CompleteReplies       map[string]ReplyPair
+	RepliesLock           sync.Mutex
+	CursorIDMap           map[int64]int64
+	CursorIDMapLock       sync.Mutex
+	SessionChansWaitGroup sync.WaitGroup
 	StatCollector
 }
 
@@ -87,38 +88,46 @@ func (context *ExecutionContext) handleCompletedReplies() {
 	context.RepliesLock.Unlock()
 }
 
-func (context *ExecutionContext) newOpConnection(url string, connectionNum int64) (SessionWrapper, error) {
-	session, err := mgo.Dial(url)
-	if err != nil {
-		return SessionWrapper{}, err
-	}
+func (context *ExecutionContext) newExecutionSession(url string, start time.Time, connectionNum int64) chan<- *RecordedOp {
 
 	ch := make(chan *RecordedOp, 10000)
-	done := make(chan bool)
 
-	sessionWrapper := SessionWrapper{ch, done}
+	context.SessionChansWaitGroup.Add(1)
 	go func() {
-		log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionNum)
+		now := time.Now()
+		var connected bool
+		time.Sleep(start.Add(-5 * time.Second).Sub(now)) // Sleep until five seconds before the start time
+		session, err := mgo.Dial(url)
+		if err == nil {
+			log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionNum)
+			connected = true
+		} else {
+			log.Logf(log.Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
+		}
 		for op := range ch {
-			// Populate the op with the connection num it's being played on.
-			// This allows it to be used for downstream reporting of stats.
-			op.ConnectionNum = connectionNum
-			t := time.Now()
-			if op.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
-				if t.Before(op.PlayAt) {
-					time.Sleep(op.PlayAt.Sub(t))
+			if connected {
+				// Populate the op with the connection num it's being played on.
+				// This allows it to be used for downstream reporting of stats.
+				op.ConnectionNum = connectionNum
+				t := time.Now()
+				if op.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
+					if t.Before(op.PlayAt) {
+						time.Sleep(op.PlayAt.Sub(t))
+					}
 				}
-			}
-			log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, op.String())
-			err = context.Execute(op, session)
-			if err != nil {
-				log.Logf(log.Always, "context.Execute error: %v", err)
+				log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, op.String())
+				err = context.Execute(op, session)
+				if err != nil {
+					log.Logf(log.Always, "context.Execute error: %v", err)
+				}
+			} else {
+				log.Logf(log.DebugHigh, "(Connection %v) SKIPPING op on non-connected session %v", connectionNum, op.String())
 			}
 		}
 		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionNum)
-		done <- true
+		context.SessionChansWaitGroup.Done()
 	}()
-	return sessionWrapper, nil
+	return ch
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {
