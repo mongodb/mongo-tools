@@ -80,7 +80,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 
 	if restore.ToolOptions.DB == "" && restore.ToolOptions.Collection != "" {
-		return fmt.Errorf("cannot dump a collection without a specified database")
+		return fmt.Errorf("cannot restore a collection without a specified database")
 	}
 
 	if restore.ToolOptions.DB != "" {
