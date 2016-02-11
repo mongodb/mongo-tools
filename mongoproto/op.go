@@ -109,6 +109,10 @@ func IsDriverOp(op Op) bool {
 		return true
 	case "ping":
 		return true
+	case "saslStart":
+		return true
+	case "saslContinue":
+		return true
 	default:
 		return false
 	}

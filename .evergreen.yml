@@ -47,7 +47,7 @@ functions:
           cd mongodb
           echo "starting mongodb"
           mkdir -p ./mongoplay_test
-          ./mongod --dbpath ./mongoplay_test --port=${mongod_port} &
+          ./mongod --dbpath ./mongoplay_test --port=${mongod_port} ${additional_args} &
     - command: shell.exec
       params:
         script: |
@@ -57,7 +57,7 @@ functions:
           ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true}catch(e){return false}}, "timed out connecting")'
 
   "fetch mongodb" :
-    command: shell.exec
+  - command: shell.exec
     params:
       script: |
         rm -rf mongodb
@@ -72,10 +72,29 @@ functions:
         mkdir db_files
         mkdir db_logs
 
+  "create auth_user" :
+  - command: shell.exec
+    params:
+      script: |
+              set -e
+              set -o verbose
+              cd mongodb
+              ./mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\"]});"
+
+  "run go_test" :
+  - command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        . ./set_gopath.sh
+        ${environment_vars} go test -v > ${filename}.suite
+
 pre:
   - command: shell.track
 
 post:
+  - command: shell.exec
   - command: gotest.parse_files
     params:
       files: ["src/*.suite"]
@@ -111,6 +130,7 @@ tasks:
         echo "Running sanity check"
         chmod +x mongoplay
         ./sanity_check.sh -p ${mongod_port}
+
 - name: go_test
   depends_on:
   - name: build
@@ -123,13 +143,30 @@ tasks:
   - func: "start mongod"
     vars:
         mongod_port: 27035
-  - command: shell.exec
-    type: test
-    params:
-      working_dir: src
-      script: |
-        . ./set_gopath.sh
-        go test -v > mongoplay.suite
+  - func: "run go_test"
+    vars:
+        filename: playtest
+
+- name: auth_test
+  depends_on:
+  - name: build
+  commands:
+  - func: "fetch source"
+  - func: "fetch tool"
+    vars:
+      tool: mongoplay
+  - func: "fetch mongodb"
+  - func: "start mongod"
+    vars:
+        mongod_port: 27035
+        additional_args: --auth
+  - func: "create auth_user"
+    vars:
+        mongod_port: 27035
+  - func: "run go_test"
+    vars:
+        environment_vars: AUTH=1
+        filename: authtest
 
 buildvariants:
 - name: ubuntu
@@ -143,3 +180,4 @@ buildvariants:
   - name: build
   - name: sanity_check
   - name: go_test
+  - name: auth_test
