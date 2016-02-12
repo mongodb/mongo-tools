@@ -9,26 +9,29 @@ import (
 	"reflect"
 )
 
+type testDoc struct {
+	Name           string `bson:"name"`
+	DocumentNumber int    `bson:"docNum"`
+	Success        bool   `bson:"success"`
+}
+
 func TestOpGetMore(t *testing.T) {
-	session := SessionStub{}
-	var serverConnection ConnStub
-	serverConnection, session.connection = newTwoSidedConn()
+	generator := newRecordedOpGenerator()
 
 	op := mongoproto.GetMoreOp{}
 	op.Collection = "mongoplay_test.test"
 	op.CursorId = 12345
 	op.Limit = -1
 
-	mgo.ExecOpWithReply(&session, &op.GetMoreOp)
-	_, err := mongoproto.OpFromReader(&serverConnection)
+	result, err := generator.fetchRecordedOpsFromConn(&op.GetMoreOp)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-	opReceived, err := mongoproto.OpFromReader(&serverConnection)
+	receivedOp, err := mongoproto.ParseOpRaw(&result.op.OpRaw)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-	getMoreOp := opReceived.(*mongoproto.GetMoreOp)
+	getMoreOp := receivedOp.(*mongoproto.GetMoreOp)
 
 	switch {
 	case getMoreOp.Collection != "mongoplay_test.test":
@@ -41,9 +44,7 @@ func TestOpGetMore(t *testing.T) {
 }
 
 func TestOpDelete(t *testing.T) {
-	session := SessionStub{}
-	var serverConnection ConnStub
-	serverConnection, session.connection = newTwoSidedConn()
+	generator := newRecordedOpGenerator()
 
 	op := mongoproto.DeleteOp{}
 	op.Collection = "mongoplay_test.test"
@@ -51,18 +52,15 @@ func TestOpDelete(t *testing.T) {
 	selector := bson.D{{"test", 1}}
 	op.Selector = selector
 
-	mgo.ExecOpWithoutReply(&session, &op.DeleteOp)
-	_, err := mongoproto.OpFromReader(&serverConnection)
+	result, err := generator.fetchRecordedOpsFromConn(&op.DeleteOp)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-
-	opReceived, err := mongoproto.OpFromReader(&serverConnection)
+	receivedOp, err := mongoproto.ParseOpRaw(&result.op.OpRaw)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-
-	deleteOp := opReceived.(*mongoproto.DeleteOp)
+	deleteOp := receivedOp.(*mongoproto.DeleteOp)
 
 	switch {
 	case deleteOp.Collection != "mongoplay_test.test":
@@ -74,16 +72,8 @@ func TestOpDelete(t *testing.T) {
 	}
 }
 
-type testDoc struct {
-	Name           string `bson:"name"`
-	DocumentNumber int    `bson:"docNum"`
-	Success        bool   `bson:"success"`
-}
-
 func TestInsertOp(t *testing.T) {
-	session := SessionStub{}
-	var serverConnection ConnStub
-	serverConnection, session.connection = newTwoSidedConn()
+	generator := newRecordedOpGenerator()
 
 	op := mongoproto.InsertOp{}
 	op.Collection = "mongoplay_test.test"
@@ -98,20 +88,16 @@ func TestInsertOp(t *testing.T) {
 		documents = append(documents, insertDoc)
 	}
 	op.Documents = documents
-	err := mgo.ExecOpWithoutReply(&session, &op.InsertOp)
-	if err != nil {
-		panic(err)
-	}
-	_, err = mongoproto.OpFromReader(&serverConnection)
-	if err != nil {
-		panic(err)
-	}
 
-	opReceived, err := mongoproto.OpFromReader(&serverConnection)
+	result, err := generator.fetchRecordedOpsFromConn(&op.InsertOp)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-	insertOp := opReceived.(*mongoproto.InsertOp)
+	receivedOp, err := mongoproto.ParseOpRaw(&result.op.OpRaw)
+	if err != nil {
+		t.Error(err)
+	}
+	insertOp := receivedOp.(*mongoproto.InsertOp)
 
 	switch {
 	case insertOp.Collection != "mongoplay_test.test":
@@ -119,6 +105,7 @@ func TestInsertOp(t *testing.T) {
 	case insertOp.Flags != 7:
 		t.Fail()
 	}
+
 	for i, doc := range insertOp.Documents {
 		marshaled, _ := bson.Marshal(documents[i])
 		unmarshaled := &bson.D{}
@@ -130,28 +117,20 @@ func TestInsertOp(t *testing.T) {
 }
 
 func TestKillCursorsOp(t *testing.T) {
-	session := SessionStub{}
-	var serverConnection ConnStub
-	serverConnection, session.connection = newTwoSidedConn()
+	generator := newRecordedOpGenerator()
 
 	op := mongoproto.KillCursorsOp{}
 	op.CursorIds = []int64{123, 456, 789, 55}
 
-	err := mgo.ExecOpWithoutReply(&session, &op.KillCursorsOp)
+	result, err := generator.fetchRecordedOpsFromConn(&op.KillCursorsOp)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-	_, err = mongoproto.OpFromReader(&serverConnection)
+	receivedOp, err := mongoproto.ParseOpRaw(&result.op.OpRaw)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-
-	opReceived, err := mongoproto.OpFromReader(&serverConnection)
-	if err != nil {
-		panic(err)
-	}
-
-	killCursorsOp := opReceived.(*mongoproto.KillCursorsOp)
+	killCursorsOp := receivedOp.(*mongoproto.KillCursorsOp)
 
 	if !reflect.DeepEqual(killCursorsOp.CursorIds, op.CursorIds) {
 		t.Fatalf("CursorId Arrays not equal %v -- %v\n", killCursorsOp.CursorIds, op.CursorIds)
@@ -159,9 +138,7 @@ func TestKillCursorsOp(t *testing.T) {
 }
 
 func TestQueryOp(t *testing.T) {
-	session := SessionStub{}
-	var serverConnection ConnStub
-	serverConnection, session.connection = newTwoSidedConn()
+	generator := newRecordedOpGenerator()
 
 	op := mongoproto.QueryOp{}
 	op.Collection = "mongoplay_test.test"
@@ -176,21 +153,16 @@ func TestQueryOp(t *testing.T) {
 	options.OrderBy = &bson.D{{"_id", 1}}
 	op.Options = options
 
-	err := mgo.ExecOpWithoutReply(&session, &op.QueryOp)
+	result, err := generator.fetchRecordedOpsFromConn(&op.QueryOp)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
-	_, err = mongoproto.OpFromReader(&serverConnection)
+	receivedOp, err := mongoproto.ParseOpRaw(&result.op.OpRaw)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
+	queryOp := receivedOp.(*mongoproto.QueryOp)
 
-	opReceived, err := mongoproto.OpFromReader(&serverConnection)
-	if err != nil {
-		panic(err)
-	}
-
-	queryOp := opReceived.(*mongoproto.QueryOp)
 	switch {
 	case queryOp.Collection != op.Collection:
 		t.Fatalf("Collections not equal: %v -- %v\n", queryOp.Collection, op.Collection)
@@ -207,9 +179,7 @@ func TestQueryOp(t *testing.T) {
 }
 
 func TestOpUpdate(t *testing.T) {
-	session := SessionStub{}
-	var serverConnection ConnStub
-	serverConnection, session.connection = newTwoSidedConn()
+	generator := newRecordedOpGenerator()
 
 	op := mongoproto.UpdateOp{}
 	selector := bson.D{{"test", 1}}
@@ -219,21 +189,16 @@ func TestOpUpdate(t *testing.T) {
 	op.Collection = "mongoplay_test.test"
 	op.Flags = 12345
 
-	err := mgo.ExecOpWithoutReply(&session, &op.UpdateOp)
+	result, err := generator.fetchRecordedOpsFromConn(&op.UpdateOp)
 	if err != nil {
-		panic(err)
+		t.Error(err)
+	}
+	receivedOp, err := mongoproto.ParseOpRaw(&result.op.OpRaw)
+	if err != nil {
+		t.Error(err)
 	}
 
-	_, err = mongoproto.OpFromReader(&serverConnection)
-	if err != nil {
-		panic(err)
-	}
-
-	opReceived, err := mongoproto.OpFromReader(&serverConnection)
-	if err != nil {
-		panic(err)
-	}
-	updateOp := opReceived.(*mongoproto.UpdateOp)
+	updateOp := receivedOp.(*mongoproto.UpdateOp)
 	switch {
 	case updateOp.Collection != op.Collection:
 		t.Fatalf("Collections not equal: %v -- %v\n", updateOp.Collection, op.Collection)

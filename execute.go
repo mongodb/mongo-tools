@@ -1,7 +1,6 @@
 package mongoplay
 
 import (
-	"bytes"
 	"fmt"
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/mongoplay/mongoproto"
@@ -142,48 +141,18 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {
-	reader := bytes.NewReader(op.OpRaw.Body[mongoproto.MsgHeaderLen:])
+	opToExec, err := mongoproto.ParseOpRaw(&op.OpRaw)
+	if err != nil {
+		return fmt.Errorf("ParseOpRawError: %v", err)
+	}
+	if opToExec == nil {
+		log.Logf(log.Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
+	}
 
-	if op.OpRaw.Header.OpCode == mongoproto.OpCodeReply {
-		opReply := &mongoproto.ReplyOp{Header: op.OpRaw.Header}
-		err := opReply.FromReader(reader)
-		if err != nil {
-			return fmt.Errorf("opReply.FromReader: %v", err)
-		}
-		cursorId, err := mongoproto.GetCursorId(&(opReply.ReplyOp), opReply.Docs)
-		if err != nil {
-			log.Logf(log.Always, "Warning: error when trying to find cursor ID in reply: %v", err)
-		}
-		log.Logf(log.DebugHigh, "Adding reply from file: %v, %v %v docs, cursorId %v", op.OpRaw.Header, opReply.ReplyDocs, len(opReply.Docs), cursorId)
-		if cursorId != 0 {
-			opReply.ReplyOp.CursorId = cursorId
-		}
-		// release docs data to garbage collection
-		opReply.Docs = nil
-		context.AddFromFile(&opReply.ReplyOp, op)
+	if reply, ok := opToExec.(*mongoproto.ReplyOp); ok {
+		context.AddFromFile(&reply.ReplyOp, op)
 	} else {
-		var opToExec mongoproto.Op
-		switch op.OpRaw.Header.OpCode {
-		case mongoproto.OpCodeQuery:
-			opToExec = &mongoproto.QueryOp{Header: op.OpRaw.Header}
-		case mongoproto.OpCodeGetMore:
-			opToExec = &mongoproto.GetMoreOp{Header: op.OpRaw.Header}
-		case mongoproto.OpCodeInsert:
-			opToExec = &mongoproto.InsertOp{Header: op.OpRaw.Header}
-		case mongoproto.OpCodeKillCursors:
-			opToExec = &mongoproto.KillCursorsOp{Header: op.OpRaw.Header}
-		case mongoproto.OpCodeDelete:
-			opToExec = &mongoproto.DeleteOp{Header: op.OpRaw.Header}
-		case mongoproto.OpCodeUpdate:
-			opToExec = &mongoproto.UpdateOp{Header: op.OpRaw.Header}
-		default:
-			log.Logf(log.Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
-			return nil
-		}
-		err := opToExec.FromReader(reader)
-		if err != nil {
-			return fmt.Errorf("opToExec.FromReader: %v", err)
-		}
+
 		if opGM, ok := opToExec.(*mongoproto.GetMoreOp); ok {
 			context.fixupOpGetMore(opGM)
 		}
@@ -193,7 +162,6 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		}
 
 		op.PlayedAt = time.Now()
-
 		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
 		result, err := opToExec.Execute(session)
 
