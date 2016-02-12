@@ -36,7 +36,7 @@ type Op interface {
 
 type OpResult struct {
 	ReplyOp *mgo.ReplyOp
-	Docs    []bson.D
+	Docs    []bson.Raw
 	Latency time.Duration
 }
 
@@ -44,7 +44,7 @@ func (opr *OpResult) String() string {
 	if opr == nil {
 		return "OpResult NIL"
 	}
-	return fmt.Sprintf("OpResult latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%s",
+	return fmt.Sprintf("OpResult latency:%v reply:[flags:%s, cursorid:%s, first:%s ndocs:%s] docs:%s",
 		opr.Latency,
 		opr.ReplyOp.Flags, opr.ReplyOp.CursorId, opr.ReplyOp.FirstDoc, opr.ReplyOp.ReplyDocs,
 		stringifyReplyDocs(opr.Docs))

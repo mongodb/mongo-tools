@@ -30,7 +30,11 @@ func extractErrors(op mongoproto.Op, res *mongoproto.OpResult) []string {
 	}
 
 	retVal := []string{}
-	firstDoc := res.Docs[0]
+	firstDoc := bson.D{}
+	err := res.Docs[0].Unmarshal(&firstDoc)
+	if err != nil {
+		panic("failed to unmarshal Raw into bson.D")
+	}
 	if val, ok := FindValueByKey("$err", &firstDoc); ok {
 		retVal = append(retVal, fmt.Sprintf("%v", val))
 	}

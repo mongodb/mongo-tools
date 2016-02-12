@@ -126,6 +126,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 					}
 				}
 				log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, op.String())
+				session.SetSocketTimeout(0)
 				err = context.Execute(op, session)
 				if err != nil {
 					log.Logf(log.Always, "context.Execute error: %v", err)
@@ -149,6 +150,16 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		if err != nil {
 			return fmt.Errorf("opReply.FromReader: %v", err)
 		}
+		cursorId, err := mongoproto.GetCursorId(&(opReply.ReplyOp), opReply.Docs)
+		if err != nil {
+			log.Logf(log.Always, "Warning: error when trying to find cursor ID in reply: %v", err)
+		}
+		log.Logf(log.DebugHigh, "Adding reply from file: %v, %v %v docs, cursorId %v", op.OpRaw.Header, opReply.ReplyDocs, len(opReply.Docs), cursorId)
+		if cursorId != 0 {
+			opReply.ReplyOp.CursorId = cursorId
+		}
+		// release docs data to garbage collection
+		opReply.Docs = nil
 		context.AddFromFile(&opReply.ReplyOp, op)
 	} else {
 		var opToExec mongoproto.Op
@@ -182,6 +193,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		}
 
 		op.PlayedAt = time.Now()
+
 		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
 		result, err := opToExec.Execute(session)
 
@@ -191,11 +203,20 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 
 		context.CollectOpInfo(op, opToExec, result)
 
-		if result != nil {
-			log.Logf(log.DebugLow, "(Connection %v) reply: %s", op.ConnectionNum, result.String()) //(latency:%v, flags:%v, cursorId:%v, docs:%v) %v", op.ConnectionNum, reply.Latency, reply.ReplyOp.Flags, reply.ReplyOp.CursorId, reply.ReplyOp.ReplyDocs, stringifyReplyDocs(reply.Docs))
+		if result != nil && result.ReplyOp != nil {
+			// Check verbosity level before entering this block to avoid
+			// the performance penalty of evaluating reply.String() unless necessary.
+			if log.IsInVerbosity(log.DebugHigh) {
+				log.Logf(log.DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, result)
+			}
+			cursorId, err := mongoproto.GetCursorId(result.ReplyOp, result.Docs)
+			log.Logf(log.Always, "Warning: error when trying to find cursor ID in reply: %v", err)
+			if cursorId != 0 {
+				result.ReplyOp.CursorId = cursorId
+			}
 			context.AddFromWire(result.ReplyOp, op)
 		} else {
-			log.Logf(log.DebugHigh, "(Connection %v) nil reply", op.ConnectionNum) //(latency:%v, flags:%v, cursorId:%v, docs:%v) %v", op.ConnectionNum, reply.Latency, reply.ReplyOp.Flags, reply.ReplyOp.CursorId, reply.ReplyOp.ReplyDocs, stringifyReplyDocs(reply.Docs))
+			log.Logf(log.DebugHigh, "(Connection %v) nil reply", op.ConnectionNum)
 		}
 	}
 	context.handleCompletedReplies()

@@ -46,16 +46,17 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 }
 
 func (op *GetMoreOp) Execute(session *mgo.Session) (*OpResult, error) {
+	session.SetSocketTimeout(0)
 	before := time.Now()
 
 	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
 	data, reply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
 	after := time.Now()
 
-	result := &OpResult{reply, make([]bson.D, 0, len(data)), after.Sub(before)}
+	result := &OpResult{reply, make([]bson.Raw, 0, len(data)), after.Sub(before)}
 
 	for _, d := range data {
-		dataDoc := bson.D{}
+		dataDoc := bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
 			return nil, err

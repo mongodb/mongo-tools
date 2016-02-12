@@ -46,6 +46,7 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 }
 
 func (op *KillCursorsOp) Execute(session *mgo.Session) (*OpResult, error) {
+	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.KillCursorsOp); err != nil {
 		return nil, err
 	}

@@ -22,6 +22,7 @@ type OpReplyFlags int32
 type ReplyOp struct {
 	Header MsgHeader
 	mgo.ReplyOp
+	Docs []bson.Raw
 }
 
 func (op *ReplyOp) Meta() OpMetadata {
@@ -45,6 +46,30 @@ func (op *ReplyOp) FromReader(r io.Reader) error {
 	op.CursorId = getInt64(b[:], 4)
 	op.FirstDoc = getInt32(b[:], 12)
 	op.ReplyDocs = getInt32(b[:], 16)
+	op.Docs = []bson.Raw{}
+
+	// read as many docs as we can from the reader
+	for {
+		docBytes, err := ReadDocument(r)
+		if err != nil {
+			if err != io.EOF {
+				// Broken BSON in reply data. TODO log something here?
+				return err
+			}
+			break
+		}
+		if len(docBytes) == 0 {
+			break
+		}
+		nextDoc := bson.Raw{}
+		err = bson.Unmarshal(docBytes, &nextDoc)
+		if err != nil {
+			// Unmarshaling []byte to bson.Raw should never ever fail.
+			panic("failed to unmarshal []byte to Raw")
+		}
+		op.Docs = append(op.Docs, nextDoc)
+	}
+
 	return nil
 }
 
@@ -56,7 +81,7 @@ func (replyOp1 *ReplyOp) Equals(otherOp Op) bool {
 	return true
 }
 
-func stringifyReplyDocs(d []bson.D) string {
+func stringifyReplyDocs(d []bson.Raw) string {
 	if len(d) == 0 {
 		return "[empty]"
 	}

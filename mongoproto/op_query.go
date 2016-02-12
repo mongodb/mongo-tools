@@ -100,7 +100,7 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 		return err
 	}
 
-	op.Query = &bson.D{}
+	op.Query = &bson.Raw{}
 	err = bson.Unmarshal(queryAsSlice, op.Query)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 }
 
 func (op *QueryOp) Execute(session *mgo.Session) (*OpResult, error) {
-
+	session.SetSocketTimeout(0)
 	before := time.Now()
 	data, reply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
 	after := time.Now()
@@ -129,9 +129,9 @@ func (op *QueryOp) Execute(session *mgo.Session) (*OpResult, error) {
 		fmt.Printf("query error: %v\n", err)
 	}
 
-	result := &OpResult{reply, make([]bson.D, 0, len(data)), after.Sub(before)}
+	result := &OpResult{reply, make([]bson.Raw, 0, len(data)), after.Sub(before)}
 	for _, d := range data {
-		dataDoc := bson.D{}
+		dataDoc := bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
 			return nil, err
