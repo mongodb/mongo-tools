@@ -122,7 +122,7 @@ func (context *ExecutionContext) newOpConnection(url string, connectionNum int64
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {
-	reader := bytes.NewReader(op.OpRaw.Body)
+	reader := bytes.NewReader(op.OpRaw.Body[mongoproto.MsgHeaderLen:])
 
 	if op.OpRaw.Header.OpCode == mongoproto.OpCodeReply {
 		opReply := &mongoproto.ReplyOp{Header: op.OpRaw.Header}

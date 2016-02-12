@@ -242,7 +242,10 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 		copySize = len(stream.reassembly.Bytes)
 	}
 	stream.op.Body = stream.op.Body[:bodyLen+copySize]
-	copy(stream.op.Body, stream.reassembly.Bytes)
+	copied := copy(stream.op.Body[bodyLen:], stream.reassembly.Bytes)
+	if copied != copySize {
+		panic("copied != copySize")
+	}
 	stream.reassembly.Bytes = stream.reassembly.Bytes[copySize:]
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
 		//TODO maybe remember if we were recently in streamStateOutOfSync,
