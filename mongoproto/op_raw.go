@@ -26,8 +26,14 @@ func (op *OpRaw) FromReader(r io.Reader) error {
 	if op.Header.MessageLength > MaxMessageSize {
 		return fmt.Errorf("wire message size, %v, was greater then the maximum, %v bytes", op.Header.MessageLength, MaxMessageSize)
 	}
-	op.Body = make([]byte, op.Header.MessageLength-MsgHeaderLen)
-	_, err := io.ReadFull(r, op.Body)
+	tempBody := make([]byte, op.Header.MessageLength-MsgHeaderLen)
+	_, err := io.ReadFull(r, tempBody)
+
+	if op.Body != nil {
+		op.Body = append(op.Body, tempBody...)
+	} else {
+		op.Body = tempBody
+	}
 	return err
 }
 

@@ -128,8 +128,10 @@ func (play *PlayCommand) Execute(args []string) error {
 	opChan, errChan := play.NewPlayOpChan(opFile)
 
 	context := NewExecutionContext(statColl)
-	err := Play(context, opChan, play.Speed, play.Url, play.Repeat)
-		
+	if err := Play(context, opChan, play.Speed, play.Url, play.Repeat, play.QueueTime); err != nil {
+		log.Logf(log.Always, "Play: %v\n", err)
+	}
+
 	//handle the error from the errchan
 	err = <-errChan
 	if err != io.EOF {
@@ -149,7 +151,6 @@ func Play(context *ExecutionContext,
 	var playbackStartTime, recordingStartTime time.Time
 	var connectionId int64
 	var opCounter int
-	var err error
 	for op := range opChan {
 		opCounter++
 		if op.Seen.IsZero() {
@@ -185,27 +186,27 @@ func Play(context *ExecutionContext,
 		} else {
 			connectionString = op.ConnectionString()
 		}
-		sessionWrapper, ok := sessionChans[connectionString]
+		sessionChan, ok := sessionChans[connectionString]
 		if !ok {
 			connectionId += 1
-			sessionWrapper, err = context.newOpConnection(url, connectionId)
-			if err != nil {
-				log.Logf(log.Always, "Error calling newOpConnection: %v", err)
-				os.Exit(1)
-			}
-			sessionChans[connectionString] = sessionWrapper
+			sessionChan = context.newExecutionSession(url, op.PlayAt, connectionId)
+			sessionChans[connectionString] = sessionChan
 		}
-		//fmt.Println("op should be played in", op.PlayAt.Sub(time.Now()))
-		sessionWrapper.session <- op
-	}
-	err = <-errChan
-	if err != io.EOF {
-		log.Logf(log.Always, "OpChan: %v", err)
+		if op.EOF {
+			close(sessionChan)
+			delete(sessionChans, connectionString)
+		} else {
+			sessionChan <- op
+
+		}
 	}
 	for connectionString, sessionChan := range sessionChans {
 		close(sessionChan)
 		delete(sessionChans, connectionString)
 	}
+	log.Logf(log.Info, "Waiting for sessions to finish")
+	context.SessionChansWaitGroup.Wait()
+
 	context.StatCollector.Close()
 	log.Logf(log.Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
 	if repeat > 1 {

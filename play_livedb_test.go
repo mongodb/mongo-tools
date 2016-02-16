@@ -82,7 +82,7 @@ func TestOpInsertLiveDB(t *testing.T) {
 	context := NewExecutionContext(statColl)
 
 	//run Mongoplay's Play loop with the stubbed objects
-	err := Play(context, generator.opChan, testSpeed, testUrl, 1)
+	err := Play(context, generator.opChan, testSpeed, testUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -166,7 +166,7 @@ func TestOpQueryLiveDB(t *testing.T) {
 	context := NewExecutionContext(statColl)
 
 	//run Mongoplay's Play loop with the stubbed objects
-	err := Play(context, generator.opChan, testSpeed, testUrl, 1)
+	err := Play(context, generator.opChan, testSpeed, testUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -235,7 +235,7 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 	context := NewExecutionContext(statColl)
 
 	//run Mongoplay's Play loop with the stubbed objects
-	err := Play(context, generator.opChan, testSpeed, testUrl, 1)
+	err := Play(context, generator.opChan, testSpeed, testUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -326,7 +326,7 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	context := NewExecutionContext(statColl)
 
 	//run Mongoplay's Play loop with the stubbed objects
-	err := Play(context, generator.opChan, testSpeed, testUrl, 1)
+	err := Play(context, generator.opChan, testSpeed, testUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -477,6 +477,7 @@ func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (
 			return nil, fmt.Errorf("ReadHeader Error: %v\n", err)
 		}
 		nonceResult := mongoproto.OpRaw{Header: *msg}
+		nonceResult.Body = make([]byte, mongoproto.MsgHeaderLen)
 		nonceResult.FromReader(generator.serverConnection)
 		recordedNonce = &RecordedOp{OpRaw: nonceResult, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}
 
@@ -489,6 +490,7 @@ func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (
 		return nil, fmt.Errorf("ReadHeader Error: %v\n", err)
 	}
 	result := mongoproto.OpRaw{Header: *msg}
+	result.Body = make([]byte, mongoproto.MsgHeaderLen)
 	result.FromReader(generator.serverConnection)
 
 	recordedOp := &RecordedOp{OpRaw: result, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}
