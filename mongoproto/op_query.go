@@ -129,25 +129,29 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *QueryOp) Execute(session *mgo.Session) (*OpResult, error) {
+func (op *QueryOp) Execute(session *mgo.Session) (*ReplyOp, error) {
 	session.SetSocketTimeout(0)
 	before := time.Now()
-	data, reply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
+	data, mgoReply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
 	after := time.Now()
 	if err != nil {
-		fmt.Printf("query error: %v\n", err)
+		return nil, err
+	}
+	reply := &ReplyOp{
+		ReplyOp: *mgoReply,
+		Latency: after.Sub(before),
+		Docs:    make([]bson.Raw, 0, len(data)),
 	}
 
-	result := &OpResult{reply, make([]bson.Raw, 0, len(data)), after.Sub(before)}
 	for _, d := range data {
 		dataDoc := bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
 			return nil, err
 		}
-		result.Docs = append(result.Docs, dataDoc)
+		reply.Docs = append(reply.Docs, dataDoc)
 	}
-	return result, nil
+	return reply, nil
 }
 
 func (queryOp1 *QueryOp) Equals(otherOp Op) bool {

@@ -84,7 +84,7 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *UpdateOp) Execute(session *mgo.Session) (*OpResult, error) {
+func (op *UpdateOp) Execute(session *mgo.Session) (*ReplyOp, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.UpdateOp); err != nil {
 		return nil, err
 	}

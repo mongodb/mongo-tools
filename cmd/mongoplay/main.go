@@ -16,6 +16,8 @@ func main() {
 		&mongoplay.PlayCommand{GlobalOpts: &opts})
 	parser.AddCommand("record", "Convert network traffic into mongodb queries", "",
 		&mongoplay.RecordCommand{GlobalOpts: &opts})
+	parser.AddCommand("stat", "Generate statistics on captured traffic", "",
+		&mongoplay.StatCommand{GlobalOpts: &opts})
 	// we want to default verbosity to 1 (info), so increment the default setting of 0
 	opts.Verbose = append(opts.Verbose, true)
 	log.SetVerbosity(&options.Verbosity{opts.Verbose, false})

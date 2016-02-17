@@ -41,7 +41,10 @@ type ExecutionContext struct {
 	StatCollector
 }
 
-func NewExecutionContext(statColl StatCollector) *ExecutionContext {
+func NewExecutionContext(statRec StatRecorder) *ExecutionContext {
+	statColl := StatCollector{
+		StatRecorder: statRec,
+	}
 	return &ExecutionContext{
 		IncompleteReplies: cache.New(60*time.Second, 60*time.Second),
 		CompleteReplies:   map[string]*ReplyPair{},
@@ -124,25 +127,37 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 		} else {
 			log.Logf(log.Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
 		}
-		for op := range ch {
+		for recordedOp := range ch {
+			var parsedOp mongoproto.Op
+			var reply *mongoproto.ReplyOp
+			var err error
+			msg := ""
 			if connected {
 				// Populate the op with the connection num it's being played on.
 				// This allows it to be used for downstream reporting of stats.
-				op.ConnectionNum = connectionNum
+				recordedOp.ConnectionNum = connectionNum
 				t := time.Now()
-				if op.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
-					if t.Before(op.PlayAt) {
-						time.Sleep(op.PlayAt.Sub(t))
+				if recordedOp.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
+					if t.Before(recordedOp.PlayAt) {
+						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
 				}
-				log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, op.String())
+				log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
 				session.SetSocketTimeout(0)
-				err = context.Execute(op, session)
+				parsedOp, reply, err = context.Execute(recordedOp, session)
 				if err != nil {
 					log.Logf(log.Always, "context.Execute error: %v", err)
 				}
 			} else {
-				log.Logf(log.DebugHigh, "(Connection %v) SKIPPING op on non-connected session %v", connectionNum, op.String())
+				parsedOp, err = recordedOp.Parse()
+				if err != nil {
+					log.Logf(log.Always, "Execution Session error: %v", err)
+				}
+
+				msg = fmt.Sprintf("Skipped on non-connected session (Connection %v)", connectionNum)
+			}
+			if shouldCollectOp(parsedOp) {
+				context.Collect(recordedOp, parsedOp, reply, msg)
 			}
 		}
 		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionNum)
@@ -151,17 +166,18 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 	return ch
 }
 
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) error {
-	opToExec, err := mongoproto.ParseOpRaw(&op.OpRaw)
+func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (mongoproto.Op, *mongoproto.ReplyOp, error) {
+	opToExec, err := op.OpRaw.Parse()
+	var replyOp *mongoproto.ReplyOp
+
 	if err != nil {
-		return fmt.Errorf("ParseOpRawError: %v", err)
+		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
 	}
 	if opToExec == nil {
 		log.Logf(log.Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
 	}
-
-	if reply, ok := opToExec.(*mongoproto.ReplyOp); ok {
-		context.AddFromFile(&reply.ReplyOp, op)
+	if recordedReply, ok := opToExec.(*mongoproto.ReplyOp); ok {
+		context.AddFromFile(&recordedReply.ReplyOp, op)
 	} else {
 
 		if opGM, ok := opToExec.(*mongoproto.GetMoreOp); ok {
@@ -169,36 +185,36 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		}
 
 		if mongoproto.IsDriverOp(opToExec) {
-			return nil
+			return opToExec, replyOp, nil
 		}
 
 		op.PlayedAt = time.Now()
 		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
-		result, err := opToExec.Execute(session)
+		replyOp, err = opToExec.Execute(session)
 
 		if err != nil {
-			return fmt.Errorf("error executing op: %v", err)
+			return opToExec, replyOp, fmt.Errorf("error executing op: %v", err)
 		}
 
-		context.CollectOpInfo(op, opToExec, result)
-
-		if result != nil && result.ReplyOp != nil {
+		if replyOp != nil && &replyOp.ReplyOp != nil {
 			// Check verbosity level before entering this block to avoid
 			// the performance penalty of evaluating reply.String() unless necessary.
 			if log.IsInVerbosity(log.DebugHigh) {
-				log.Logf(log.DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, result)
+				log.Logf(log.DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp)
 			}
-			cursorId, err := mongoproto.GetCursorId(result.ReplyOp, result.Docs)
-			log.Logf(log.Always, "Warning: error when trying to find cursor ID in reply: %v", err)
+			cursorId, err := mongoproto.GetCursorId(&replyOp.ReplyOp, replyOp.Docs)
+			if err != nil {
+				log.Logf(log.Always, "Warning: error when trying to find cursor ID in reply: %v", err)
+			}
 			if cursorId != 0 {
-				result.ReplyOp.CursorId = cursorId
+				replyOp.ReplyOp.CursorId = cursorId
 			}
-			context.AddFromWire(result.ReplyOp, op)
+			context.AddFromWire(&replyOp.ReplyOp, op)
 		} else {
 			log.Logf(log.DebugHigh, "(Connection %v) nil reply", op.ConnectionNum)
 		}
 	}
 	context.handleCompletedReplies()
 
-	return nil
+	return opToExec, replyOp, nil
 }

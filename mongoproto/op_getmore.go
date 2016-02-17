@@ -45,15 +45,19 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *GetMoreOp) Execute(session *mgo.Session) (*OpResult, error) {
+func (op *GetMoreOp) Execute(session *mgo.Session) (*ReplyOp, error) {
 	session.SetSocketTimeout(0)
 	before := time.Now()
 
 	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
-	data, reply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
+	data, mgoReply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
 	after := time.Now()
 
-	result := &OpResult{reply, make([]bson.Raw, 0, len(data)), after.Sub(before)}
+	reply := &ReplyOp{
+		ReplyOp: *mgoReply,
+		Latency: after.Sub(before),
+		Docs:    make([]bson.Raw, 0, len(data)),
+	}
 
 	for _, d := range data {
 		dataDoc := bson.Raw{}
@@ -61,10 +65,10 @@ func (op *GetMoreOp) Execute(session *mgo.Session) (*OpResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		result.Docs = append(result.Docs, dataDoc)
+		reply.Docs = append(reply.Docs, dataDoc)
 	}
 
-	return result, nil
+	return reply, nil
 }
 
 func (getMoreOp1 *GetMoreOp) Equals(otherOp Op) bool {

@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/json"
 	"io"
+	"time"
 )
 
 const (
@@ -22,15 +23,22 @@ type OpReplyFlags int32
 type ReplyOp struct {
 	Header MsgHeader
 	mgo.ReplyOp
-	Docs []bson.Raw
+	Docs    []bson.Raw
+	Latency time.Duration
 }
 
 func (op *ReplyOp) Meta() OpMetadata {
 	return OpMetadata{"", "", ""}
 }
 
-func (op *ReplyOp) String() string {
-	return fmt.Sprintf("op: %v\nflags: %v\ncursorId: %v\nstartingFrom: %v\n numReturned: %v\n", op.OpCode(), op.Flags, op.CursorId, op.FirstDoc, op.ReplyDocs)
+func (opr *ReplyOp) String() string {
+	if opr == nil {
+		return "Reply NIL"
+	}
+	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%s, cursorid:%s, first:%s ndocs:%s] docs:%s",
+		opr.Latency,
+		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
+		stringifyReplyDocs(opr.Docs))
 }
 
 func (op *ReplyOp) OpCode() OpCode {
@@ -73,7 +81,7 @@ func (op *ReplyOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *ReplyOp) Execute(session *mgo.Session) (*OpResult, error) {
+func (op *ReplyOp) Execute(session *mgo.Session) (*ReplyOp, error) {
 	return nil, nil
 }
 

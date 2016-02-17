@@ -15,6 +15,7 @@ type RecordedOp struct {
 	ConnectionNum int64
 	PlayedAt      time.Time
 	Generation    int
+	Order         int64
 }
 
 func (op *RecordedOp) ConnectionString() string {

@@ -92,8 +92,8 @@ func TestOpInsertLiveDB(t *testing.T) {
 		}
 	}()
 
-	statColl := NewBufferedStatCollector()
-	context := NewExecutionContext(statColl)
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
 
 	//run Mongoplay's Play loop with the stubbed objects
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
@@ -128,14 +128,14 @@ func TestOpInsertLiveDB(t *testing.T) {
 
 	//iterate over the operations found by the BufferedStatCollector
 	for i := 0; i < numInserts; i++ {
-		stat := statColl.Buffer[i]
+		stat := statRec.Buffer[i]
 		//All commands should be inserts into mongoplay.test
 		if stat.OpType != "insert" ||
 			stat.Ns != "mongoplay.test" {
 			t.Errorf("Expected to see an insert into mongoplay.test, but instead saw %v, %v\n", stat.OpType, stat.Command)
 		}
 	}
-	stat := statColl.Buffer[numInserts]
+	stat := statRec.Buffer[numInserts]
 	if stat.OpType != "command" ||
 		stat.Ns != "admin.$cmd" ||
 		stat.Command != "getLastError" {
@@ -153,6 +153,7 @@ func TestOpQueryLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
+
 	insertName := "LiveDB Query Test"
 	numInserts := 20
 	numQueries := 4
@@ -182,8 +183,8 @@ func TestOpQueryLiveDB(t *testing.T) {
 		}
 	}()
 
-	statColl := NewBufferedStatCollector()
-	context := NewExecutionContext(statColl)
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
 
 	//run Mongoplay's Play loop with the stubbed objects
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
@@ -192,14 +193,14 @@ func TestOpQueryLiveDB(t *testing.T) {
 	}
 
 	for i := 0; i < numQueries; i++ { //loop over the BufferedStatCollector for each of the numQueries queries created
-		stat := statColl.Buffer[numInserts+i]
+		stat := statRec.Buffer[numInserts+i]
 		if stat.OpType != "query" ||
 			stat.Ns != "mongoplay.test" ||
 			stat.NumReturned != 5 { //ensure that they match what we expected mongoplay to have executed
 			t.Errorf("Query Not Matched %#v\n", stat)
 		}
 	}
-	stat := statColl.Buffer[numInserts+numQueries]
+	stat := statRec.Buffer[numInserts+numQueries]
 	if stat.OpType != "query" ||
 		stat.Ns != "mongoplay.test" ||
 		stat.NumReturned != 20 { //ensure that the last query that was making a query on the 'success' field executed how we expected
@@ -251,8 +252,8 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 			}
 		}
 	}()
-	statColl := NewBufferedStatCollector()
-	context := NewExecutionContext(statColl)
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
 
 	//run Mongoplay's Play loop with the stubbed objects
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
@@ -261,7 +262,7 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 	}
 	//loop over the BufferedStatCollector in the positions the getmores should have been played int
 	for i := 0; i < numGetMores; i++ {
-		stat := statColl.Buffer[numInserts+1+i]
+		stat := statRec.Buffer[numInserts+1+i]
 		if stat.OpType != "getmore" ||
 			stat.NumReturned != 5 ||
 			stat.Ns != "mongoplay.test" { //ensure that each getMore matches the criteria we expected it to have
@@ -342,8 +343,8 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 			}
 		}
 	}()
-	statColl := NewBufferedStatCollector()
-	context := NewExecutionContext(statColl)
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
 
 	//run Mongoplay's Play loop with the stubbed objects
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
@@ -355,7 +356,7 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	totalGetMores := numGetMoresLimit5 + numGetMoresLimit2
 	//loop over the total number of getmores played at their expected positions in the BufferedStatCollector
 	for i := 0; i < totalGetMores; i++ {
-		stat := statColl.Buffer[numInserts+2+i]
+		stat := statRec.Buffer[numInserts+2+i]
 		//the first set of getmores should be alternating between having a limit of 5 and a limit of 2
 		if i < numGetMoresLimit5*2 && shouldBeLimit5 {
 			limit = 5

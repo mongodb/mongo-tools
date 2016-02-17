@@ -27,7 +27,7 @@ func TestOpGetMore(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	receivedOp, err := mongoproto.ParseOpRaw(&result.OpRaw)
+	receivedOp, err := result.OpRaw.Parse()
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,7 +56,7 @@ func TestOpDelete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	receivedOp, err := mongoproto.ParseOpRaw(&result.OpRaw)
+	receivedOp, err := result.OpRaw.Parse()
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,7 +93,7 @@ func TestInsertOp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	receivedOp, err := mongoproto.ParseOpRaw(&result.OpRaw)
+	receivedOp, err := result.OpRaw.Parse()
 	if err != nil {
 		t.Error(err)
 	}
@@ -126,7 +126,7 @@ func TestKillCursorsOp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	receivedOp, err := mongoproto.ParseOpRaw(&result.OpRaw)
+	receivedOp, err := result.OpRaw.Parse()
 	if err != nil {
 		t.Error(err)
 	}
@@ -157,7 +157,7 @@ func TestQueryOp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	receivedOp, err := mongoproto.ParseOpRaw(&result.OpRaw)
+	receivedOp, err := result.OpRaw.Parse()
 	if err != nil {
 		t.Error(err)
 	}
@@ -193,7 +193,7 @@ func TestOpUpdate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	receivedOp, err := mongoproto.ParseOpRaw(&result.OpRaw)
+	receivedOp, err := result.OpRaw.Parse()
 	if err != nil {
 		t.Error(err)
 	}

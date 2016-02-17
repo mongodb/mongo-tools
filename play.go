@@ -29,7 +29,7 @@ const queueGranularity = 1000
 // are pushed to an error chan. Both the recorded op chan and the error chan are
 // returned by the function.
 // The error chan won't be readable until the recorded op chan gets closed.
-func (play *PlayCommand) NewPlayOpChan(file io.ReadSeeker) (<-chan *RecordedOp, <-chan error) {
+func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *RecordedOp, <-chan error) {
 	ch := make(chan *RecordedOp)
 	e := make(chan error)
 
@@ -41,40 +41,39 @@ func (play *PlayCommand) NewPlayOpChan(file io.ReadSeeker) (<-chan *RecordedOp, 
 		e <- func() error {
 			defer close(ch)
 			for generation := 0; generation < play.Repeat; generation++ {
-				for {
-					buf, err := mongoproto.ReadDocument(file)
-					if err != nil {
-						if err == io.EOF {
-							break
-						}
-						return fmt.Errorf("ReadDocument: %v", err)
-					}
-					doc := &RecordedOp{}
-					err = bson.Unmarshal(buf, doc)
-					if err != nil {
-						return fmt.Errorf("Unmarshal: %v\n", err)
-					}
-					last = doc.Seen
-					if first.IsZero() {
-						first = doc.Seen
-					}
-					doc.Seen = doc.Seen.Add(loopDelta)
-					doc.Generation = generation
-					// We want to suppress EOF's unless you're in the last generation
-					// because all of the ops for one connection across different generations
-					// get executed in the same session. We don't want to close the session
-					// until the connection closes in the last generation.
-					if !doc.EOF || generation == play.Repeat-1 {
-						ch <- doc
-					}
-				}
-				log.Logf(log.DebugHigh, "generation: %v", generation)
-				loopDelta += last.Sub(first)
-				first = time.Time{}
 				_, err := file.Seek(0, 0)
 				if err != nil {
 					return fmt.Errorf("PlaybackFile Seek: %v", err)
 				}
+
+				var order int64 = 0
+				for {
+					recordedOp, err := file.NextRecordedOp()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						return err
+					}
+					last = recordedOp.Seen
+					if first.IsZero() {
+						first = recordedOp.Seen
+					}
+					recordedOp.Seen = recordedOp.Seen.Add(loopDelta)
+					recordedOp.Generation = generation
+					recordedOp.Order = order
+					// We want to suppress EOF's unless you're in the last generation
+					// because all of the ops for one connection across different generations
+					// get executed in the same session. We don't want to close the session
+					// until the connection closes in the last generation.
+					if !recordedOp.EOF || generation == play.Repeat-1 {
+						ch <- recordedOp
+					}
+					order++
+				}
+				log.Logf(log.DebugHigh, "generation: %v", generation)
+				loopDelta += last.Sub(first)
+				first = time.Time{}
 				continue
 			}
 			return io.EOF
@@ -83,12 +82,33 @@ func (play *PlayCommand) NewPlayOpChan(file io.ReadSeeker) (<-chan *RecordedOp, 
 	return ch, e
 }
 
-func openJSONReporter(path string) (*JSONStatCollector, error) {
-	f, err := os.Create(path)
+type PlaybackFileReader struct {
+	io.ReadSeeker
+}
+
+func NewPlaybackFileReader(filename string) (*PlaybackFileReader, error) {
+	opFile, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
-	return &JSONStatCollector{out: f}, nil
+	return &PlaybackFileReader{opFile}, nil
+
+}
+
+func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
+	buf, err := mongoproto.ReadDocument(file)
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+		return nil, fmt.Errorf("ReadDocument Error: %v", err)
+	}
+	doc := &RecordedOp{}
+	err = bson.Unmarshal(buf, doc)
+	if err != nil {
+		return nil, fmt.Errorf("Unmarshal RecordedOp Error: %v\n", err)
+	}
+	return doc, nil
 }
 
 func (play *PlayCommand) ValidateParams(args []string) error {
@@ -109,9 +129,9 @@ func (play *PlayCommand) Execute(args []string) error {
 		return err
 	}
 
-	var statColl StatCollector = &NopCollector{}
+	var statRec StatRecorder = &NopRecorder{}
 	if len(play.Report) > 0 {
-		statColl, err = openJSONReporter(play.Report)
+		statRec, err = openJSONRecorder(play.Report)
 		if err != nil {
 			return err
 		}
@@ -121,13 +141,14 @@ func (play *PlayCommand) Execute(args []string) error {
 	play.GlobalOpts.Verbose = append(play.GlobalOpts.Verbose, true)
 	log.SetVerbosity(&options.Verbosity{play.GlobalOpts.Verbose, false})
 	log.Logf(log.Info, "Doing playback at %.2fx speed", play.Speed)
-	opFile, err := os.Open(play.PlaybackFile)
+
+	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile)
 	if err != nil {
 		return err
 	}
-	opChan, errChan := play.NewPlayOpChan(opFile)
+	opChan, errChan := play.NewPlayOpChan(playbackFileReader)
 
-	context := NewExecutionContext(statColl)
+	context := NewExecutionContext(statRec)
 	if err := Play(context, opChan, play.Speed, play.Url, play.Repeat, play.QueueTime); err != nil {
 		log.Logf(log.Always, "Play: %v\n", err)
 	}
@@ -146,6 +167,8 @@ func Play(context *ExecutionContext,
 	url string,
 	repeat int,
 	queueTime int) error {
+
+	context.StatCollector.StatGenerator = &LiveStatGenerator{}
 
 	sessionChans := make(map[string]chan<- *RecordedOp)
 	var playbackStartTime, recordingStartTime time.Time

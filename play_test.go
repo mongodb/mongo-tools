@@ -17,11 +17,11 @@ func TestRepeatGeneration(t *testing.T) {
 	if err != nil {
 		t.Errorf("couldn't marshal %v", err)
 	}
-	readSeeker := bytes.NewReader(bsonBytes)
+	playbackReader := &PlaybackFileReader{bytes.NewReader(bsonBytes)}
 	play := PlayCommand{
 		Repeat: 2,
 	}
-	opChan, errChan := play.NewPlayOpChan(readSeeker)
+	opChan, errChan := play.NewPlayOpChan(playbackReader)
 	op1, ok := <-opChan
 	if !ok {
 		t.Errorf("read of 0-generation op failed")
@@ -61,13 +61,13 @@ func TestPlayOpEOF(t *testing.T) {
 		}
 		buf.Write(bsonBytes)
 	}
-	readSeeker := bytes.NewReader(buf.Bytes())
+	playbackReader := &PlaybackFileReader{bytes.NewReader(buf.Bytes())}
 
 	play := PlayCommand{
 		Repeat: 2,
 	}
 
-	opChan, errChan := play.NewPlayOpChan(readSeeker)
+	opChan, errChan := play.NewPlayOpChan(playbackReader)
 
 	op1, ok := <-opChan
 	if !ok {

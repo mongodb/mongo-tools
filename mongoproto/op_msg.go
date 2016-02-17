@@ -21,7 +21,7 @@ func (op *OpMsg) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *OpMsg) Execute(session *mgo.Session) (*mgo.ReplyOp, error) {
+func (op *OpMsg) Execute(session *mgo.Session) (*ReplyOp, error) {
 	return nil, nil
 }
 

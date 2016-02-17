@@ -67,7 +67,7 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *InsertOp) Execute(session *mgo.Session) (*OpResult, error) {
+func (op *InsertOp) Execute(session *mgo.Session) (*ReplyOp, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {
 		return nil, err

@@ -26,8 +26,8 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	statColl := NewBufferedStatCollector()
-	context := NewExecutionContext(statColl)
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
 	err := Play(context, generator.opChan, testSpeed, authTestServerUrl, 1, 10)
 	if err != nil {
 		t.Error(err)
@@ -84,8 +84,8 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	statColl := NewBufferedStatCollector()
-	context := NewExecutionContext(statColl)
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
 	err := Play(context, generator.opChan, testSpeed, nonAuthTestServerUrl, 1, 10)
 	if err != nil {
 		t.Error(err)

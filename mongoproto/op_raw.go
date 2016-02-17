@@ -1,6 +1,7 @@
 package mongoproto
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -51,4 +52,32 @@ func (op *OpRaw) ShortReplyFromReader(r io.Reader) error {
 	}
 	_, err = io.CopyN(ioutil.Discard, r, int64(op.Header.MessageLength-MsgHeaderLen-20))
 	return err
+}
+func (opRaw *OpRaw) Parse() (Op, error) {
+	var parsedOp Op
+	switch opRaw.Header.OpCode {
+	case OpCodeQuery:
+		parsedOp = &QueryOp{Header: opRaw.Header}
+	case OpCodeReply:
+		parsedOp = &ReplyOp{Header: opRaw.Header}
+	case OpCodeGetMore:
+		parsedOp = &GetMoreOp{Header: opRaw.Header}
+	case OpCodeInsert:
+		parsedOp = &InsertOp{Header: opRaw.Header}
+	case OpCodeKillCursors:
+		parsedOp = &KillCursorsOp{Header: opRaw.Header}
+	case OpCodeDelete:
+		parsedOp = &DeleteOp{Header: opRaw.Header}
+	case OpCodeUpdate:
+		parsedOp = &UpdateOp{Header: opRaw.Header}
+	default:
+		return nil, nil
+	}
+	reader := bytes.NewReader(opRaw.Body[MsgHeaderLen:])
+	err := parsedOp.FromReader(reader)
+	if err != nil {
+		return nil, err
+	}
+	return parsedOp, nil
+
 }
