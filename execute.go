@@ -202,6 +202,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) e
 		}
 
 		context.CollectOpInfo(op, opToExec, result)
+		fmt.Printf("Executing OP: %v\n", opToExec)
 
 		if result != nil && result.ReplyOp != nil {
 			// Check verbosity level before entering this block to avoid

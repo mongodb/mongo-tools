@@ -103,6 +103,7 @@ func IsDriverOp(op Op) bool {
 	if opType != "command" {
 		return false
 	}
+	fmt.Printf("commandType: %v\n", commandType)
 	switch commandType {
 	case "isMaster", "ismaster":
 		return true

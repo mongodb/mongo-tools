@@ -41,6 +41,15 @@ func extractOpType(x interface{}) (string, string) {
 		asMap = v.Map()
 	case *bson.M: // document
 		asMap = *v
+	case *bson.Raw: // document
+		return extractOpType(*v)
+	case bson.Raw: // document
+		asD := bson.D{}
+		err := v.Unmarshal(&asD)
+		if err != nil {
+			panic(fmt.Sprintf("couldn't unmarshal Raw bson into D: %v", err))
+		}
+		return extractOpType(asD)
 	case bson.M: // document
 		asMap = v
 	case map[string]interface{}:

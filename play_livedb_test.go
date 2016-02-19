@@ -373,6 +373,7 @@ func (generator *recordedOpGenerator) generateInsert(docs []interface{}) error {
 		Documents: docs,
 		Flags:     0,
 	}
+	fmt.Printf("GENERATING INSERT: %#v\n", insert)
 	requestOps, err := generator.fetchRecordedOpsFromConn(&insert)
 	if err != nil {
 		return err
