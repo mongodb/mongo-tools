@@ -17,10 +17,11 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 	}
 	numInserts := 20
 	generator := newRecordedOpGenerator()
+	docName := "Authed Insert Test"
 
 	go func() {
 		defer close(generator.opChan)
-		err := generator.generateInsertHelper("Authed Insert Test", 0, numInserts)
+		err := generator.generateInsertHelper(docName, 0, numInserts)
 		if err != nil {
 			t.Error(err)
 		}
@@ -46,8 +47,8 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 		if result.DocumentNumber != ind {
 			t.Errorf("Inserted document number did not match expected document number. Found: %v -- Expected: %v", result.DocumentNumber, ind)
 		}
-		if result.Name != "Authed insert test" {
-			t.Errorf("Inserted document name did not match expected name. Found %v -- Expected: %v", result.Name, "Authed insert test")
+		if result.Name != "Authed Insert Test" {
+			t.Errorf("Inserted document name did not match expected name. Found %v -- Expected: %v", result.Name, docName)
 		}
 		if !result.Success {
 			t.Errorf("Inserted document field 'Success' was expected to be true, but was false")
