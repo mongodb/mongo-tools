@@ -76,10 +76,7 @@ func newTwoSidedConn() (conn1 ConnStub, conn2 ConnStub) {
 //the a stubbed connection to the passed to the other operations of llmgo for testing
 func (session *SessionStub) AcquireSocketPrivate(slaveOk bool) (*mgo.MongoSocket, error) {
 	session.startup.Do(func() {
-		server := mgo.MongoServer{}
-		var t time.Duration
-		session.socket = mgo.NewSocket(&server, &session.connection, t)
+		session.socket = mgo.NewDumbSocket(&session.connection)
 	})
-	session.socket.Acquire()
 	return session.socket, nil
 }

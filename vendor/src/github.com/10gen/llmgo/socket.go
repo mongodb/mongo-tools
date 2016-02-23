@@ -206,6 +206,16 @@ func NewSocket(server *MongoServer, conn net.Conn, timeout time.Duration) *Mongo
 	return socket
 }
 
+func NewDumbSocket(conn net.Conn) *MongoSocket {
+	server := &MongoServer{}
+	return &MongoSocket{
+		server:     server,
+		addr:       server.Addr,
+		Conn:       conn,
+		replyFuncs: make(map[uint32]replyFunc),
+	}
+}
+
 // Server returns the server that the socket is associated with.
 // It returns nil while the socket is cached in its respective server.
 func (socket *MongoSocket) Server() *MongoServer {

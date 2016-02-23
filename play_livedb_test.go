@@ -29,7 +29,6 @@ type recordedOpGenerator struct {
 	session          *SessionStub
 	serverConnection *ConnStub
 	opChan           chan *RecordedOp
-	nonceRequested   bool
 }
 
 func TestMain(m *testing.M) {
@@ -54,19 +53,14 @@ func newRecordedOpGenerator() *recordedOpGenerator {
 		session:          &session,
 		serverConnection: &serverConnection,
 		opChan:           opChan,
-		nonceRequested:   false,
 	}
 
 }
 
 //pushDriverRequestOps takes the pair of ops that the driver generator (the nonce and the main op)
 // and places them in the channel
-func (generator *recordedOpGenerator) pushDriverRequestOps(requests *driverRequestOps) {
-
-	if requests.nonce != nil {
-		generator.opChan <- requests.nonce
-	}
-	generator.opChan <- requests.op
+func (generator *recordedOpGenerator) pushDriverRequestOps(recordedOp *RecordedOp) {
+	generator.opChan <- recordedOp
 }
 
 type driverRequestOps struct {
@@ -89,6 +83,10 @@ func TestOpInsertLiveDB(t *testing.T) {
 		defer close(generator.opChan)
 		//generate numInserts RecordedOps
 		err := generator.generateInsertHelper(insertName, 0, numInserts)
+		if err != nil {
+			t.Error(err)
+		}
+		err = generator.generateGetLastError()
 		if err != nil {
 			t.Error(err)
 		}
@@ -129,12 +127,19 @@ func TestOpInsertLiveDB(t *testing.T) {
 	}
 
 	//iterate over the operations found by the BufferedStatCollector
-	for _, stat := range statColl.Buffer {
+	for i := 0; i < numInserts; i++ {
+		stat := statColl.Buffer[i]
 		//All commands should be inserts into mongoplay.test
 		if stat.OpType != "insert" ||
 			stat.Ns != "mongoplay.test" {
 			t.Errorf("Expected to see an insert into mongoplay.test, but instead saw %v, %v\n", stat.OpType, stat.Command)
 		}
+	}
+	stat := statColl.Buffer[numInserts]
+	if stat.OpType != "command" ||
+		stat.Ns != "admin.$cmd" ||
+		stat.Command != "getLastError" {
+		t.Errorf("Epected to see a get last error, but instead saw %v, %v\n", stat.OpType, stat.Command)
 	}
 	if err := teardownDB(); err != nil {
 		t.Error(err)
@@ -148,7 +153,6 @@ func TestOpQueryLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
-
 	insertName := "LiveDB Query Test"
 	numInserts := 20
 	numQueries := 4
@@ -389,12 +393,27 @@ func (generator *recordedOpGenerator) generateInsert(docs []interface{}) error {
 		Documents: docs,
 		Flags:     0,
 	}
-	fmt.Printf("GENERATING INSERT: %#v\n", insert)
-	requestOps, err := generator.fetchRecordedOpsFromConn(&insert)
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&insert)
 	if err != nil {
 		return err
 	}
-	generator.pushDriverRequestOps(requestOps)
+	generator.pushDriverRequestOps(recordedOp)
+	return nil
+
+}
+
+func (generator *recordedOpGenerator) generateGetLastError() error {
+	getLastError := mgo.QueryOp{
+		Collection: "admin.$cmd",
+		Query:      bson.D{{Name: "getLastError", Value: 1}},
+		Limit:      -1,
+		Flags:      0,
+	}
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&getLastError)
+	if err != nil {
+		return err
+	}
+	generator.pushDriverRequestOps(recordedOp)
 	return nil
 
 }
@@ -428,12 +447,12 @@ func (generator *recordedOpGenerator) generateQuery(querySelection interface{}, 
 		Options:    mgo.QueryWrapper{},
 	}
 
-	requestOps, err := generator.fetchRecordedOpsFromConn(&query)
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&query)
 	if err != nil {
 		return err
 	}
-	requestOps.op.OpRaw.Header.RequestID = requestId
-	generator.pushDriverRequestOps(requestOps)
+	recordedOp.OpRaw.Header.RequestID = requestId
+	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }
 
@@ -446,11 +465,11 @@ func (generator *recordedOpGenerator) generateGetMore(cursorId int64, limit int3
 		Limit:      limit,
 	}
 
-	requestOps, err := generator.fetchRecordedOpsFromConn(&getMore)
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&getMore)
 	if err != nil {
 		return err
 	}
-	generator.pushDriverRequestOps(requestOps)
+	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }
 
@@ -464,43 +483,31 @@ func (generator *recordedOpGenerator) generateReply(responseTo int32, cursorId i
 		ReplyDocs: 5,
 	}
 
-	replyRequest, err := generator.fetchRecordedOpsFromConn(&reply)
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&reply)
 	if err != nil {
 		return err
 	}
 
-	replyRequest.op.OpRaw.Header.ResponseTo = responseTo
-	mongoproto.SetInt64(replyRequest.op.OpRaw.Body, 4, cursorId) //change the cursorId field in the OpRaw.Body
-	tempEnd := replyRequest.op.SrcEndpoint
-	replyRequest.op.SrcEndpoint = replyRequest.op.DstEndpoint
-	replyRequest.op.DstEndpoint = tempEnd
-	replyRequest.nonce = nil
-	generator.pushDriverRequestOps(replyRequest)
+	recordedOp.OpRaw.Header.ResponseTo = responseTo
+	mongoproto.SetInt64(recordedOp.OpRaw.Body, 4, cursorId) //change the cursorId field in the OpRaw.Body
+	tempEnd := recordedOp.SrcEndpoint
+	recordedOp.SrcEndpoint = recordedOp.DstEndpoint
+	recordedOp.DstEndpoint = tempEnd
+	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }
 
 //fetchRecordedOpsFromConn runs the created mgo op through mgo and fetches its result from the stubbed connection.
 //In the case that a connection has not been used before it reads two ops from the connection, the first being the
 //'getNonce' request generated by the driver
-func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (*driverRequestOps, error) {
-	err := mgo.ExecOpWithoutReply(generator.session, op)
+func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (*RecordedOp, error) {
+	socket, err := generator.session.AcquireSocketPrivate(true)
 	if err != nil {
-		return nil, fmt.Errorf("ExecOpWithoutReply: %v\n", err)
+		return nil, fmt.Errorf("AcquireSocketPrivate: %v\n", err)
 	}
-	var recordedNonce *RecordedOp = nil
-	if !generator.nonceRequested {
-		msg, err := mongoproto.ReadHeader(generator.serverConnection)
-		if err != nil {
-			return nil, fmt.Errorf("ReadHeader Error: %v\n", err)
-		}
-		nonceResult := mongoproto.OpRaw{Header: *msg}
-		nonceResult.Body = make([]byte, mongoproto.MsgHeaderLen)
-		nonceResult.FromReader(generator.serverConnection)
-		recordedNonce = &RecordedOp{OpRaw: nonceResult, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}
-
-		d, _ := time.ParseDuration("2ms")
-		testTime = testTime.Add(d)
-		generator.nonceRequested = true
+	err = socket.Query(op)
+	if err != nil {
+		return nil, fmt.Errorf("Socket.Query: %v\n", err)
 	}
 	msg, err := mongoproto.ReadHeader(generator.serverConnection)
 	if err != nil {
@@ -514,9 +521,5 @@ func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (
 
 	d, _ := time.ParseDuration("2ms")
 	testTime = testTime.Add(d)
-	results := &driverRequestOps{
-		nonce: recordedNonce,
-		op:    recordedOp,
-	}
-	return results, nil
+	return recordedOp, nil
 }
