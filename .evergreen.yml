@@ -81,6 +81,44 @@ functions:
               cd mongodb
               ./mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\"]});"
 
+  "create sharded_cluster" :
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          set -e
+          set -o verbose
+          cd mongodb
+          echo "starting mongodb"
+          ./mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}' 
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          set -o verbose
+          cd mongodb 
+          ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+
+  "create repl_set" :
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          set -e
+          set -o verbose
+          cd mongodb
+          echo "starting mongodb"
+          mkdir -p /data/db/
+          ./mongo --nodb --eval 'var repl = new ReplSetTest({nodes:3, startPort:${mongod_port}});repl.startSet();repl.initiate({_id: "testReplSet", members:[{_id:1, host: "localhost:${mongod_port}", priority: 1}, {_id:2, host: "localhost:${mongod_alt_port1}", priority: 0}, {_id:3, host: "localhost:${mongod_alt_port2}", priority: 0}]});repl.awaitSecondaryNodes();while(true){sleep(1000)}'
+
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          set -o verbose
+          cd mongodb 
+          ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+
   "run go_test" :
   - command: shell.exec
     type: test
@@ -88,7 +126,7 @@ functions:
       working_dir: src
       script: |
         . ./set_gopath.sh
-        ${environment_vars} go test -v > ${filename}.suite
+        ${environment_vars} go test ${additional_args} -v > ${filename}.suite
 
 pre:
   - command: shell.track
@@ -147,6 +185,23 @@ tasks:
     vars:
         filename: playtest
 
+- name: sharded_test
+  depends_on:
+  - name: build
+  commands:
+  - func: "fetch source"
+  - func: "fetch tool"
+    vars:
+      tool: mongoplay
+  - func: "fetch mongodb"
+  - func: "create sharded_cluster"
+    vars:
+        mongod_port: 27035
+  - func: "run go_test"
+    vars:
+        filename: sharded
+        additional_args: --run "LiveDB"
+
 - name: auth_test
   depends_on:
   - name: build
@@ -167,6 +222,26 @@ tasks:
     vars:
         environment_vars: AUTH=1
         filename: authtest
+        additional_args: --run "(LiveDB)|(Authed)"
+
+- name: repl_test
+  depends_on:
+  - name: build
+  commands:
+  - func: "fetch source"
+  - func: "fetch tool"
+    vars:
+      tool: mongoplay
+  - func: "fetch mongodb"
+  - func: "create repl_set"
+    vars:
+      mongod_port: 27035
+      mongod_alt_port1: 27036
+      mongod_alt_port2: 27037
+  - func: "run go_test"
+    vars:
+        filename: repltest
+        additional_args: --run "LiveDB"
 
 buildvariants:
 - name: ubuntu
@@ -181,3 +256,5 @@ buildvariants:
   - name: sanity_check
   - name: go_test
   - name: auth_test
+  - name: sharded_test
+  - name: repl_test
