@@ -21,6 +21,7 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 
 	go func() {
 		defer close(generator.opChan)
+		t.Logf("Generating %d inserts\n", numInserts)
 		err := generator.generateInsertHelper(docName, 0, numInserts)
 		if err != nil {
 			t.Error(err)
@@ -28,10 +29,12 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 	}()
 	statRec := NewBufferedStatRecorder()
 	context := NewExecutionContext(statRec)
+	t.Logf("Beginning Mongoplay playback of generated traffic against host: %v\n", authTestServerUrl)	
 	err := Play(context, generator.opChan, testSpeed, authTestServerUrl, 1, 10)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log("Completed Mongoplay playback of generated traffic")
 
 	session, err := mgo.Dial(authTestServerUrl)
 	coll := session.DB(testDB).C(testCollection)
@@ -40,7 +43,9 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 	ind := 0
 	result := testDoc{}
 
+	t.Log("Querying database to ensure insert occured successfully")
 	for iter.Next(&result) {
+		t.Logf("Query result: %#v\n", result)
 		if err := iter.Err(); err != nil {
 			t.Errorf("Iterator returned an error: %v\n", err)
 		}
@@ -79,6 +84,8 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 
 	go func() {
 		defer close(generator.opChan)
+
+		t.Logf("Generating %d inserts\n", numInserts)
 		err := generator.generateInsertHelper("Non-Authed Insert Test", 0, numInserts)
 		if err != nil {
 			t.Error(err)
@@ -90,8 +97,13 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log("Completed Mongoplay playback of generated traffic")
+
 	session, err := mgo.Dial(authTestServerUrl)
 	coll := session.DB(testDB).C(testCollection)
+
+	t.Log("Performing query to ensure collection received no documents")
+
 	num, err := coll.Find(bson.D{}).Count()
 	if err != nil {
 		t.Error(err)
