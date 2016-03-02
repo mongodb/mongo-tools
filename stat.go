@@ -46,6 +46,7 @@ func (gen *StaticStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply
 }
 
 func (stat *StatCommand) Execute(args []string) error {
+	stat.GlobalOpts.SetLogging()
 	playbackFileReader, err := NewPlaybackFileReader(stat.PlaybackFile)
 	if err != nil {
 		return err

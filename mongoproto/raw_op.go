@@ -16,6 +16,11 @@ type RawOp struct {
 func (op *RawOp) String() string {
 	return fmt.Sprintf("RawOp: %v", op.Header.OpCode)
 }
+
+func (op *RawOp) Abbreviated(chars int) string {
+	return fmt.Sprintf("%v", op)
+}
+
 func (op *RawOp) OpCode() OpCode {
 	return op.Header.OpCode
 }

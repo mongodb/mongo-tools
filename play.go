@@ -8,8 +8,6 @@ import (
 
 	"github.com/10gen/llmgo/bson"
 	"github.com/10gen/mongoplay/mongoproto"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
 )
 
 type PlayCommand struct {
@@ -40,6 +38,7 @@ func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *Record
 		defer close(e)
 		e <- func() error {
 			defer close(ch)
+			toolDebugLogger.Log(Info, "Beginning playback")
 			for generation := 0; generation < play.Repeat; generation++ {
 				_, err := file.Seek(0, 0)
 				if err != nil {
@@ -71,7 +70,7 @@ func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *Record
 					}
 					order++
 				}
-				log.Logf(log.DebugHigh, "generation: %v", generation)
+				toolDebugLogger.Logf(DebugHigh, "generation: %v", generation)
 				loopDelta += last.Sub(first)
 				first = time.Time{}
 				continue
@@ -105,6 +104,7 @@ func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
 	}
 	doc := &RecordedOp{}
 	err = bson.Unmarshal(buf, doc)
+
 	if err != nil {
 		return nil, fmt.Errorf("Unmarshal RecordedOp Error: %v\n", err)
 	}
@@ -128,6 +128,7 @@ func (play *PlayCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	play.GlobalOpts.SetLogging()
 
 	var statRec StatRecorder = &NopRecorder{}
 	if len(play.Report) > 0 {
@@ -137,10 +138,7 @@ func (play *PlayCommand) Execute(args []string) error {
 		}
 	}
 
-	// we want to default verbosity to 1 (info), so increment the default setting of 0
-	play.GlobalOpts.Verbose = append(play.GlobalOpts.Verbose, true)
-	log.SetVerbosity(&options.Verbosity{play.GlobalOpts.Verbose, false})
-	log.Logf(log.Info, "Doing playback at %.2fx speed", play.Speed)
+	userInfoLogger.Logf(Always, "Doing playback at %.2fx speed", play.Speed)
 
 	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile)
 	if err != nil {
@@ -150,13 +148,13 @@ func (play *PlayCommand) Execute(args []string) error {
 
 	context := NewExecutionContext(statRec)
 	if err := Play(context, opChan, play.Speed, play.Url, play.Repeat, play.QueueTime); err != nil {
-		log.Logf(log.Always, "Play: %v\n", err)
+		userInfoLogger.Logf(Always, "Play: %v\n", err)
 	}
 
 	//handle the error from the errchan
 	err = <-errChan
 	if err != io.EOF {
-		log.Logf(log.Always, "OpChan: %v", err)
+		userInfoLogger.Logf(Always, "OpChan: %v", err)
 	}
 	return nil
 }
@@ -200,6 +198,7 @@ func Play(context *ExecutionContext,
 		// sleep after every read, and generally read and queue queueGranularity number
 		// of ops at a time and then sleep until the last read op is QueueTime ahead.
 		if opCounter%queueGranularity == 0 {
+			toolDebugLogger.Logf(DebugHigh, "Waiting to prevent excess buffering with opCounter: %v", opCounter)
 			time.Sleep(op.PlayAt.Add(time.Duration(-queueTime) * time.Second).Sub(time.Now()))
 		}
 
@@ -216,6 +215,7 @@ func Play(context *ExecutionContext,
 			sessionChans[connectionString] = sessionChan
 		}
 		if op.EOF {
+			userInfoLogger.Log(DebugLow, "EOF Seen in playback")
 			close(sessionChan)
 			delete(sessionChans, connectionString)
 		} else {
@@ -227,13 +227,13 @@ func Play(context *ExecutionContext,
 		close(sessionChan)
 		delete(sessionChans, connectionString)
 	}
-	log.Logf(log.Info, "Waiting for sessions to finish")
+	toolDebugLogger.Logf(Info, "Waiting for sessions to finish")
 	context.SessionChansWaitGroup.Wait()
 
 	context.StatCollector.Close()
-	log.Logf(log.Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
+	toolDebugLogger.Logf(Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
 	if repeat > 1 {
-		log.Logf(log.Always, "%v ops per generation for %v generations", opCounter/repeat, repeat)
+		toolDebugLogger.Logf(Always, "%v ops per generation for %v generations", opCounter/repeat, repeat)
 	}
 	return nil
 }

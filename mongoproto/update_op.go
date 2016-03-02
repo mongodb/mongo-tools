@@ -21,24 +21,39 @@ func (op *UpdateOp) Meta() OpMetadata {
 }
 
 func (op *UpdateOp) String() string {
+	selectorString, updateString, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("OpQuery %v %v %v", op.Collection, selectorString, updateString)
+}
+
+func (op *UpdateOp) getOpBodyString() (string, string, error) {
 	selectorDoc, err := ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
-		return fmt.Sprintf("ConvertBSONValueToJSON err: %#v - %v", op, err)
+		return "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 
 	updateDoc, err := ConvertBSONValueToJSON(op.Update)
 	if err != nil {
-		return fmt.Sprintf("ConvertBSONValueToJSON err: %#v - %v", op, err)
+		return "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 	selectorAsJson, err := json.Marshal(selectorDoc)
 	if err != nil {
-		return fmt.Sprintf("json marshal err: %#v - %v", op, err)
+		return "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
 	updateAsJson, err := json.Marshal(updateDoc)
 	if err != nil {
-		return fmt.Sprintf("json marshal err: %#v - %v", op, err)
+		return "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
-	return fmt.Sprintf("OpQuery %v %v %v", op.Collection, string(selectorAsJson), string(updateAsJson))
+	return string(selectorAsJson), string(updateAsJson), nil
+}
+func (op *UpdateOp) Abbreviated(chars int) string {
+	selectorString, updateString, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("OpQuery %v %v %v", op.Collection, Abbreviate(selectorString, chars), Abbreviate(updateString, chars))
 }
 
 func (op *UpdateOp) OpCode() OpCode {

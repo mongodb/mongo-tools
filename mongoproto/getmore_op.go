@@ -26,6 +26,9 @@ func (op *GetMoreOp) Meta() OpMetadata {
 func (op *GetMoreOp) String() string {
 	return fmt.Sprintf("GetMore ns:%v limit:%v cursorId:%v", op.Collection, op.Limit, op.CursorId)
 }
+func (op *GetMoreOp) Abbreviated(chars int) string {
+	return fmt.Sprintf("%v", op)
+}
 
 func (op *GetMoreOp) FromReader(r io.Reader) error {
 	var b [12]byte

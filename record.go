@@ -3,8 +3,6 @@ package mongoplay
 import (
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
 
 	"fmt"
 	"os"
@@ -33,10 +31,8 @@ func (record *RecordCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	record.GlobalOpts.SetLogging()
 	// we want to default verbosity to 1 (info), so increment the default setting of 0
-	record.GlobalOpts.Verbose = append(record.GlobalOpts.Verbose, true)
-	log.SetVerbosity(&options.Verbosity{record.GlobalOpts.Verbose, false})
-
 	pcap, err := pcap.OpenOffline(record.PcapFile)
 	if err != nil {
 		return fmt.Errorf("error opening pcap file: %v", err)
@@ -44,6 +40,7 @@ func (record *RecordCommand) Execute(args []string) error {
 	if record.PacketBufSize < 1 {
 		return fmt.Errorf("invalid PacketBufSize")
 	}
+	toolDebugLogger.Logf(DebugLow, "Opening playback file %v", record.PlaybackFile)
 	output, err := os.Create(record.PlaybackFile)
 	h := NewPacketHandler(pcap)
 	m := NewMongoOpStream(record.PacketBufSize)

@@ -23,6 +23,9 @@ func (op *KillCursorsOp) String() string {
 	return fmt.Sprintf("KillCursorsOp %v", op.CursorIds)
 
 }
+func (op *KillCursorsOp) Abbreviated(chars int) string {
+	return fmt.Sprintf("%v", op)
+}
 func (op *KillCursorsOp) OpCode() OpCode {
 	return OpCodeKillCursors
 }

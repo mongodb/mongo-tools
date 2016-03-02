@@ -9,8 +9,6 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
 
-	"github.com/mongodb/mongo-tools/common/log"
-
 	"github.com/10gen/mongoplay/mongoproto"
 )
 
@@ -86,7 +84,7 @@ func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream) *bidi {
 }
 
 func (bidi *bidi) logf(minVerb int, format string, a ...interface{}) {
-	log.Logf(minVerb, "stream %v %v", bidi.connectionNumber, fmt.Sprintf(format, a...))
+	userInfoLogger.Logf(minVerb, "stream %v %v", bidi.connectionNumber, fmt.Sprintf(format, a...))
 }
 
 // close closes the channels used to communicate between the
@@ -221,8 +219,8 @@ func (bidi *bidi) handleStreamStateBeforeMessage(stream *stream) {
 		// When we're here and stream.reassembly.Start is true
 		// we may be able to know that we're actually not looking at mongodb traffic
 		// and that this whole stream should be discarded.
-		bidi.logf(log.DebugLow, "not a good header %#v", stream.op.Header)
-		bidi.logf(log.Info, "Expected to, but didn't see a valid protocol message")
+		bidi.logf(DebugLow, "not a good header %#v", stream.op.Header)
+		bidi.logf(Info, "Expected to, but didn't see a valid protocol message")
 		stream.state = streamStateOutOfSync
 		stream.reassembly.Bytes = stream.reassembly.Bytes[:0]
 		return
@@ -261,16 +259,16 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	return
 }
 func (bidi *bidi) handleStreamStateOutOfSync(stream *stream) {
-	bidi.logf(log.DebugHigh, "out of sync")
+	bidi.logf(DebugHigh, "out of sync")
 	if len(stream.reassembly.Bytes) < 16 {
 		stream.reassembly.Bytes = stream.reassembly.Bytes[:0]
 		return
 	}
 	stream.op.Header.FromWire(stream.reassembly.Bytes)
-	bidi.logf(log.DebugHigh, "possible message header %#v", stream.op.Header)
+	bidi.logf(DebugHigh, "possible message header %#v", stream.op.Header)
 	if stream.op.Header.LooksReal() {
 		stream.state = streamStateBeforeMessage
-		bidi.logf(log.DebugLow, "synchronized")
+		bidi.logf(DebugLow, "synchronized")
 		return
 	}
 	stream.reassembly.Bytes = stream.reassembly.Bytes[:0]
@@ -280,7 +278,7 @@ func (bidi *bidi) handleStreamStateOutOfSync(stream *stream) {
 // streamOps reads tcpassembly.Reassembly[] blocks from the
 // stream's and tries to create whole protocol messages from them.
 func (bidi *bidi) streamOps() {
-	bidi.logf(log.Info, "starting")
+	bidi.logf(Info, "starting")
 	for {
 		var reassemblies []tcpassembly.Reassembly
 		var reassembliesStream int
@@ -302,19 +300,19 @@ func (bidi *bidi) streamOps() {
 				// TODO, we may want to do more state specific reporting here.
 				stream.state = streamStateOutOfSync
 				stream.op.Body = stream.op.Body[:0]
-				bidi.logf(log.Info, "ignoring incomplete packet")
+				bidi.logf(Info, "ignoring incomplete packet")
 				continue
 			}
 			// Skip < 0 means that we're picking up a stream mid-stream, and we don't really know the
 			// state of what's in hand;
 			// we need to synchronize.
 			if stream.reassembly.Skip < 0 {
-				bidi.logf(log.Info, "capture started in the middle a stream")
+				bidi.logf(Info, "capture started in the middle a stream")
 				stream.state = streamStateOutOfSync
 			}
 
 			for len(stream.reassembly.Bytes) > 0 {
-				bidi.logf(log.DebugHigh, "state %v", stream.state)
+				bidi.logf(DebugHigh, "state %v", stream.state)
 				switch stream.state {
 				case streamStateBeforeMessage:
 					bidi.handleStreamStateBeforeMessage(stream)
@@ -328,5 +326,5 @@ func (bidi *bidi) streamOps() {
 		// inform the tcpassembly that we've finished with the reassemblies.
 		stream.done <- nil
 	}
-	bidi.logf(log.Info, "finishing")
+	bidi.logf(Info, "finishing")
 }

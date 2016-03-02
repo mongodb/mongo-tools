@@ -20,6 +20,9 @@ func (op *UnknownOp) Meta() OpMetadata {
 func (op *UnknownOp) String() string {
 	return fmt.Sprintf("OpUnkown: %v", op.Header.OpCode)
 }
+func (op *UnknownOp) Abbreviated(chars int) string {
+	return fmt.Sprintf("%v", op)
+}
 func (op *UnknownOp) OpCode() OpCode {
 	return op.Header.OpCode
 }

@@ -30,6 +30,7 @@ type Op interface {
 	Execute(*mgo.Session) (*ReplyOp, error)
 	Equals(Op) bool
 	Meta() OpMetadata
+	Abbreviated(int) string
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.

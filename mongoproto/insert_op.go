@@ -27,16 +27,32 @@ func (op *InsertOp) OpCode() OpCode {
 }
 
 func (op *InsertOp) String() string {
+	body, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("InsertOp %v %v", op.Collection, body)
+}
+
+func (op *InsertOp) getOpBodyString() (string, error) {
 	docs := make([]string, 0, len(op.Documents))
 	for _, d := range op.Documents {
 		jsonDoc, err := ConvertBSONValueToJSON(d)
 		if err != nil {
-			return fmt.Sprintf("%#v - %v", op, err)
+			return "", fmt.Errorf("%#v - %v", op, err)
 		}
 		asJSON, _ := json.Marshal(jsonDoc)
 		docs = append(docs, string(asJSON))
 	}
-	return fmt.Sprintf("InsertOp %v %v", op.Collection, Abbreviate(fmt.Sprintf("%v", docs), 256))
+	return fmt.Sprintf("%v", docs), nil
+}
+
+func (op *InsertOp) Abbreviated(chars int) string {
+	body, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("InsertOp %v %v", op.Collection, Abbreviate(body, chars))
 }
 
 func (op *InsertOp) FromReader(r io.Reader) error {

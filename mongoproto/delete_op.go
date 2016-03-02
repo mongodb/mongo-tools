@@ -23,12 +23,28 @@ func (op *DeleteOp) Meta() OpMetadata {
 }
 
 func (op *DeleteOp) String() string {
+	body, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("DeleteOp %v %v", op.Collection, body)
+}
+
+func (op *DeleteOp) getOpBodyString() (string, error) {
 	jsonDoc, err := ConvertBSONValueToJSON(op.Selector)
 	if err != nil {
-		return fmt.Sprintf("%#v - %v", op, err)
+		return "", fmt.Errorf("%#v - %v", op, err)
 	}
 	selectorAsJSON, _ := json.Marshal(jsonDoc)
-	return fmt.Sprintf("DeleteOp %v %v", op.Collection, string(selectorAsJSON))
+	return string(selectorAsJSON), nil
+}
+
+func (op *DeleteOp) Abbreviated(chars int) string {
+	body, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("DeleteOp %v %v", op.Collection, Abbreviate(body, chars))
 }
 
 func (op *DeleteOp) OpCode() OpCode {

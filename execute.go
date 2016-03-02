@@ -8,8 +8,6 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/mongoplay/mongoproto"
-	"github.com/mongodb/mongo-tools/common/log"
-
 	"github.com/patrickmn/go-cache"
 )
 
@@ -59,6 +57,7 @@ func NewExecutionContext(statRec StatRecorder) *ExecutionContext {
 // that this ReplyOp is a reply to.
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
 	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.SrcEndpoint, recordedOp.DstEndpoint, recordedOp.Header.RequestID, recordedOp.Generation)
+	toolDebugLogger.Logf(DebugHigh, "Adding live reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromWire)
 }
 
@@ -68,6 +67,7 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 // the RecordedOp that this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
 	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.ResponseTo, recordedOp.Generation)
+	toolDebugLogger.Logf(DebugHigh, "Adding recorded reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromFile)
 }
 
@@ -89,11 +89,12 @@ func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, o
 }
 
 func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
+	userInfoLogger.Logf(DebugLow, "Rewriting getmore cursorid with CursorId: %v", opGM.CursorId)
 	context.lock.Lock()
 	value, ok := context.CursorIdMap.Get(strconv.FormatInt(opGM.CursorId, 10))
 	context.lock.Unlock()
 	if !ok {
-		log.Logf(log.Always, "Missing mapped cursor ID for raw cursor ID: %v", opGM.CursorId)
+		userInfoLogger.Logf(Always, "Missing mapped cursor ID for raw cursor ID: %v", opGM.CursorId)
 	} else {
 		opGM.CursorId = value.(int64)
 	}
@@ -102,7 +103,7 @@ func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
 func (context *ExecutionContext) handleCompletedReplies() {
 	context.lock.Lock()
 	for key, rp := range context.CompleteReplies {
-		log.Logf(log.DebugHigh, "Completed reply: %v, %v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
+		userInfoLogger.Logf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
 		if rp.ops[ReplyFromFile].CursorId != 0 {
 			context.CursorIdMap.Set(strconv.FormatInt(rp.ops[ReplyFromFile].CursorId, 10), rp.ops[ReplyFromWire].CursorId, cache.DefaultExpiration)
 		}
@@ -122,10 +123,10 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 		time.Sleep(start.Add(-5 * time.Second).Sub(now)) // Sleep until five seconds before the start time
 		session, err := mgo.Dial(url)
 		if err == nil {
-			log.Logf(log.Info, "(Connection %v) New connection CREATED.", connectionNum)
+			userInfoLogger.Logf(Info, "(Connection %v) New connection CREATED.", connectionNum)
 			connected = true
 		} else {
-			log.Logf(log.Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
+			userInfoLogger.Logf(Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
 		}
 		for recordedOp := range ch {
 			var parsedOp mongoproto.Op
@@ -142,39 +143,40 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
 				}
-				log.Logf(log.DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
+				userInfoLogger.Logf(DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
 				session.SetSocketTimeout(0)
 				parsedOp, reply, err = context.Execute(recordedOp, session)
 				if err != nil {
-					log.Logf(log.Always, "context.Execute error: %v", err)
+					toolDebugLogger.Logf(Always, "context.Execute error: %v", err)
 				}
 			} else {
 				parsedOp, err = recordedOp.Parse()
 				if err != nil {
-					log.Logf(log.Always, "Execution Session error: %v", err)
+					toolDebugLogger.Logf(Always, "Execution Session error: %v", err)
 				}
 
 				msg = fmt.Sprintf("Skipped on non-connected session (Connection %v)", connectionNum)
+				toolDebugLogger.Log(Always, msg)
 			}
 			if shouldCollectOp(parsedOp) {
 				context.Collect(recordedOp, parsedOp, reply, msg)
 			}
 		}
-		log.Logf(log.Info, "(Connection %v) Connection ENDED.", connectionNum)
+		userInfoLogger.Logf(Info, "(Connection %v) Connection ENDED.", connectionNum)
 		context.SessionChansWaitGroup.Done()
 	}()
 	return ch
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (mongoproto.Op, *mongoproto.ReplyOp, error) {
-	opToExec, err := op.RawOp.Parse()
+	opToExec, err := op.OpRaw.Parse()
 	var replyOp *mongoproto.ReplyOp
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("ParseRawOpError: %v", err)
+		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
 	}
 	if opToExec == nil {
-		log.Logf(log.Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
+		toolDebugLogger.Logf(Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
 		return nil, nil, nil
 	}
 	if recordedReply, ok := opToExec.(*mongoproto.ReplyOp); ok {
@@ -190,7 +192,11 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		}
 
 		op.PlayedAt = time.Now()
-		log.Logf(log.Info, "(Connection %v) [lag: %v] Executing: %v", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
+		if userInfoLogger.isInVerbosity(DebugHigh) {
+			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
+		} else if userInfoLogger.isInVerbosity(Info) {
+			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec.Abbreviated(256))
+		}
 		replyOp, err = opToExec.Execute(session)
 
 		if err != nil {
@@ -200,19 +206,22 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		if replyOp != nil && &replyOp.ReplyOp != nil {
 			// Check verbosity level before entering this block to avoid
 			// the performance penalty of evaluating reply.String() unless necessary.
-			if log.IsInVerbosity(log.DebugHigh) {
-				log.Logf(log.DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp)
+			if userInfoLogger.isInVerbosity(DebugHigh) {
+				userInfoLogger.Logf(DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp)
+			}
+			if userInfoLogger.isInVerbosity(Info) {
+				userInfoLogger.Logf(DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp.Abbreviated(256))
 			}
 			cursorId, err := mongoproto.GetCursorId(&replyOp.ReplyOp, replyOp.Docs)
 			if err != nil {
-				log.Logf(log.Always, "Warning: error when trying to find cursor ID in reply: %v", err)
+				toolDebugLogger.Logf(Always, "Warning: error when trying to find cursor ID in reply: %v", err)
 			}
 			if cursorId != 0 {
 				replyOp.ReplyOp.CursorId = cursorId
 			}
 			context.AddFromWire(&replyOp.ReplyOp, op)
 		} else {
-			log.Logf(log.DebugHigh, "(Connection %v) nil reply", op.ConnectionNum)
+			userInfoLogger.Logf(Info, "(Connection %v) nil reply", op.ConnectionNum)
 		}
 	}
 	context.handleCompletedReplies()

@@ -70,15 +70,31 @@ func extractOpType(x interface{}) (string, string) {
 }
 
 func (op *QueryOp) String() string {
+	body, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("OpQuery %v %v", op.Collection, body)
+}
+
+func (op *QueryOp) getOpBodyString() (string, error) {
 	queryAsJSON, err := ConvertBSONValueToJSON(op.Query)
 	if err != nil {
-		return fmt.Sprintf("ConvertBSONValueToJSON err: %#v - %v", op, err)
+		return "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 	asJSON, err := json.Marshal(queryAsJSON)
 	if err != nil {
-		return fmt.Sprintf("json marshal err: %#v - %v", op, err)
+		return "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
-	return fmt.Sprintf("QueryOp %v %v", op.Collection, Abbreviate(string(asJSON), 256))
+	return string(asJSON), nil
+}
+
+func (op *QueryOp) Abbreviated(chars int) string {
+	body, err := op.getOpBodyString()
+	if err != nil {
+		return fmt.Sprintf("%v", err)
+	}
+	return fmt.Sprintf("OpQuery %v %v", op.Collection, Abbreviate(body, chars))
 }
 
 func (op *QueryOp) OpCode() OpCode {
