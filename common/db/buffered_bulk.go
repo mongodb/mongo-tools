@@ -17,6 +17,7 @@ type BufferedBulkInserter struct {
 	docLimit        int
 	byteCount       int
 	docCount        int
+	unordered       bool
 }
 
 // NewBufferedBulkInserter returns an initialized BufferedBulkInserter
@@ -32,10 +33,15 @@ func NewBufferedBulkInserter(collection *mgo.Collection, docLimit int,
 	return bb
 }
 
+func (bb *BufferedBulkInserter) Unordered() {
+	bb.unordered = true
+	bb.bulk.Unordered()
+}
+
 // throw away the old bulk and init a new one
 func (bb *BufferedBulkInserter) resetBulk() {
 	bb.bulk = bb.collection.Bulk()
-	if bb.continueOnError {
+	if bb.continueOnError || bb.unordered {
 		bb.bulk.Unordered()
 	}
 	bb.byteCount = 0
