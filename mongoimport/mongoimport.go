@@ -2,21 +2,22 @@
 package mongoimport
 
 import (
-	"fmt"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/text"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
+
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // Input format types accepted by mongoimport.
@@ -27,10 +28,8 @@ const (
 )
 
 const (
-	maxBSONSize         = 16 * (1024 * 1024)
-	maxMessageSizeBytes = 2 * maxBSONSize
-	workerBufferSize    = 16
-	progressBarLength   = 24
+	workerBufferSize  = 16
+	progressBarLength = 24
 )
 
 // MongoImport is a container for the user-specified options and
@@ -47,10 +46,6 @@ type MongoImport struct {
 
 	// SessionProvider is used for connecting to the database
 	SessionProvider *db.SessionProvider
-
-	// insertionLock is used to prevent race conditions in incrementing
-	// the insertion count
-	insertionLock sync.Mutex
 
 	// insertionCount keeps track of how many documents have successfully
 	// been inserted into the database
@@ -349,10 +344,9 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 		processingErrChan <- imp.ingestDocuments(readDocs)
 	}()
 
-	// expressions are evaluated from left to right so wait for the channels
-	// to complete before we read from imp.insertionCount
 	e1 := channelQuorumError(processingErrChan, 2)
-	return imp.insertionCount, e1
+	insertionCount := atomic.LoadUint64(&imp.insertionCount)
+	return insertionCount, e1
 }
 
 // ingestDocuments accepts a channel from which it reads documents to be inserted
@@ -412,6 +406,11 @@ func (imp *MongoImport) configureSession(session *mgo.Session) error {
 	return nil
 }
 
+type flushInserter interface {
+	Insert(doc interface{}) error
+	Flush() error
+}
+
 // runInsertionWorker is a helper to InsertDocuments - it reads document off
 // the read channel and prepares then in batches for insertion into the databas
 func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
@@ -425,9 +424,16 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	}
 	collection := session.DB(imp.ToolOptions.DB).C(imp.ToolOptions.Collection)
 	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
-	var documentBytes []byte
-	var documents []bson.Raw
-	numMessageBytes := 0
+
+	var inserter flushInserter
+	if imp.IngestOptions.Upsert {
+		inserter = imp.newUpserter(collection)
+	} else {
+		inserter = db.NewBufferedBulkInserter(collection, imp.ToolOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
+		if !imp.IngestOptions.MaintainInsertionOrder {
+			inserter.(*db.BufferedBulkInserter).Unordered()
+		}
+	}
 
 readLoop:
 	for {
@@ -436,116 +442,53 @@ readLoop:
 			if !alive {
 				break readLoop
 			}
-			// the mgo driver doesn't currently respect the maxBatchSize
-			// limit so we self impose a limit by using maxMessageSizeBytes
-			// and send documents over the wire when we hit the batch size
-			// or when we're at/over the maximum message size threshold
-			if len(documents) == imp.ToolOptions.BulkBufferSize || numMessageBytes >= maxMessageSizeBytes {
-				if err = imp.insert(documents, collection); err != nil {
-					return err
-				}
-				documents = documents[:0]
-				numMessageBytes = 0
-			}
-
 			// ignore blank fields if specified
 			if ignoreBlanks {
 				document = removeBlankFields(document)
 			}
-			if documentBytes, err = bson.Marshal(document); err != nil {
+			err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Insert(document))
+			if err != nil {
 				return err
 			}
-			if len(documentBytes) > maxBSONSize {
-				log.Logf(log.Always, "warning: attempting to insert document with size %v (exceeds %v limit)",
-					text.FormatByteAmount(int64(len(documentBytes))), text.FormatByteAmount(maxBSONSize))
-			}
-			numMessageBytes += len(documentBytes)
-			documents = append(documents, bson.Raw{3, documentBytes})
+			atomic.AddUint64(&imp.insertionCount, 1)
 		case <-imp.Dying():
 			return nil
 		}
 	}
 
-	// ingest any documents left in slice
-	if len(documents) != 0 {
-		return imp.insert(documents, collection)
+	return filterIngestError(imp.IngestOptions.StopOnError, inserter.Flush())
+}
+
+type upserter struct {
+	imp        *MongoImport
+	collection *mgo.Collection
+}
+
+func (imp *MongoImport) newUpserter(collection *mgo.Collection) *upserter {
+	return &upserter{
+		imp:        imp,
+		collection: collection,
 	}
+}
+
+// Insert is part of the flushInserter interface and performs
+// upserts or inserts.
+func (up *upserter) Insert(doc interface{}) error {
+	document := doc.(bson.D)
+	selector := constructUpsertDocument(up.imp.upsertFields, document)
+	var err error
+	if selector == nil {
+		err = up.collection.Insert(document)
+	} else {
+		_, err = up.collection.Upsert(selector, document)
+	}
+	return err
+}
+
+// Flush is needed so that upserter implements flushInserter, but upserter
+// doesn't buffer anything so we don't need to do anything in Flush.
+func (up *upserter) Flush() error {
 	return nil
-}
-
-// TODO: TOOLS-317: add tests/update this to be more efficient
-// handleUpsert upserts documents into the database - used if --upsert is passed
-// to mongoimport
-func (imp *MongoImport) handleUpsert(documents []bson.Raw, collection *mgo.Collection) (numInserted int, err error) {
-	stopOnError := imp.IngestOptions.StopOnError
-	for _, rawBsonDocument := range documents {
-		document := bson.D{}
-		err = bson.Unmarshal(rawBsonDocument.Data, &document)
-		if err != nil {
-			return numInserted, fmt.Errorf("error unmarshaling document: %v", err)
-		}
-		selector := constructUpsertDocument(imp.upsertFields, document)
-		if selector == nil {
-			err = collection.Insert(document)
-		} else {
-			_, err = collection.Upsert(selector, document)
-		}
-		if err == nil {
-			numInserted++
-		}
-		if err = filterIngestError(stopOnError, err); err != nil {
-			return numInserted, err
-		}
-	}
-	return numInserted, nil
-}
-
-// insert  performs the actual insertion/updates. If no upsert fields are
-// present in the document to be inserted, it simply inserts the documents
-// into the given collection
-func (imp *MongoImport) insert(documents []bson.Raw, collection *mgo.Collection) (err error) {
-	numInserted := 0
-	stopOnError := imp.IngestOptions.StopOnError
-	maintainInsertionOrder := imp.IngestOptions.MaintainInsertionOrder
-
-	defer func() {
-		imp.insertionLock.Lock()
-		imp.insertionCount += uint64(numInserted)
-		imp.insertionLock.Unlock()
-	}()
-
-	if imp.IngestOptions.Upsert {
-		numInserted, err = imp.handleUpsert(documents, collection)
-		return err
-	}
-	if len(documents) == 0 {
-		return
-	}
-	bulk := collection.Bulk()
-	for _, document := range documents {
-		bulk.Insert(document)
-	}
-	if !maintainInsertionOrder {
-		bulk.Unordered()
-	}
-
-	// mgo.Bulk doesn't currently implement write commands so mgo.BulkResult
-	// isn't informative
-	_, err = bulk.Run()
-
-	// TOOLS-349: Note that this count may not be entirely accurate if some
-	// ingester workers insert when another errors out.
-	//
-	// Without write commands, we can't say for sure how many documents
-	// were inserted when we use bulk inserts so we assume the entire batch
-	// insert failed if an error is returned. The result is that we may
-	// report that less documents - than were actually inserted - were
-	// inserted into the database. This will change as soon as BulkResults
-	// are supported by the driver
-	if err == nil {
-		numInserted = len(documents)
-	}
-	return filterIngestError(stopOnError, err)
 }
 
 // getInputReader returns an implementation of InputReader based on the input type
