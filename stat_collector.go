@@ -45,12 +45,12 @@ type OpStat struct {
 	NumReturned int `json:"nreturned,omitempty"`
 
 	//PlayedAt is the time that this operation was replayed
-	PlayedAt time.Time `json:"played_at"`
+	PlayedAt time.Time `json:"played_at,omitempty"`
 
 	//PlayAt is the time that this operation is scheduled to be played. It represents the time
 	//that it is supposed to be played by mongoplay, but can be different from
 	//PlayedAt if the playback is lagging for any reason
-	PlayAt time.Time `json:"play_at"`
+	PlayAt time.Time `json:"play_at,omitempty"`
 
 	// PlaybackLagMicros is the time difference in microseconds between the time
 	// that the operation was supposed to be played, and the time it was actualy played.
@@ -215,6 +215,10 @@ func NewBufferedStatRecorder() *BufferedStatRecorder {
 }
 
 func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
+	if stat == nil {
+		// TODO log warning.
+		return
+	}
 	jsonBytes, err := json.Marshal(stat)
 	if err != nil {
 		// TODO log error?
@@ -259,6 +263,9 @@ type StaticStatGenerator struct {
 }
 
 func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp mongoproto.Op, reply *mongoproto.ReplyOp, msg string) *OpStat {
+	if replayedOp == nil || op == nil {
+		return nil
+	}
 	opMeta := replayedOp.Meta()
 	stat := &OpStat{
 		Order:             op.Order,
@@ -282,6 +289,10 @@ func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp mongopro
 }
 
 func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp mongoproto.Op, reply *mongoproto.ReplyOp, msg string) *OpStat {
+	if recordedOp == nil || parsedOp == nil {
+		//TODO log a warning
+		return nil
+	}
 	meta := parsedOp.Meta()
 	stat := &OpStat{
 		Order:         recordedOp.Order,

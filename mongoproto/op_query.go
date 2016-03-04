@@ -78,7 +78,7 @@ func (op *QueryOp) String() string {
 	if err != nil {
 		return fmt.Sprintf("json marshal err: %#v - %v", op, err)
 	}
-	return fmt.Sprintf("OpQuery %v %v", op.Collection, string(asJSON))
+	return fmt.Sprintf("OpQuery %v %v", op.Collection, Abbreviate(string(asJSON), 256))
 }
 
 func (op *QueryOp) OpCode() OpCode {

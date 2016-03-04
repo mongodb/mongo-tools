@@ -38,7 +38,7 @@ func (opr *ReplyOp) String() string {
 	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%s, cursorid:%s, first:%s ndocs:%s] docs:%s",
 		opr.Latency,
 		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
-		stringifyReplyDocs(opr.Docs))
+		Abbreviate(stringifyReplyDocs(opr.Docs), 256))
 }
 
 func (op *ReplyOp) OpCode() OpCode {

@@ -60,6 +60,17 @@ func GetCursorId(op *mgo.ReplyOp, docs []bson.Raw) (int64, error) {
 	return 0, nil
 }
 
+// Abbreviate returns a reduced copy of the given string if it's longer than maxLen by
+// showing only a prefix and suffix of size
+// windowLen with an ellipsis in the middle.
+func Abbreviate(data string, maxLen int) string {
+	if len(data) <= maxLen {
+		return data
+	}
+	windowLen := (maxLen - 3) / 2
+	return data[0:windowLen] + "..." + data[len(data)-windowLen:]
+}
+
 // CopyMessage copies reads & writes an entire message.
 func CopyMessage(w io.Writer, r io.Reader) error {
 	h, err := ReadHeader(r)

@@ -36,7 +36,7 @@ func (op *InsertOp) String() string {
 		asJSON, _ := json.Marshal(jsonDoc)
 		docs = append(docs, string(asJSON))
 	}
-	return fmt.Sprintf("InsertOp %v %v", op.Collection, docs)
+	return fmt.Sprintf("InsertOp %v %v", op.Collection, Abbreviate(fmt.Sprintf("%v", docs), 256))
 }
 
 func (op *InsertOp) FromReader(r io.Reader) error {

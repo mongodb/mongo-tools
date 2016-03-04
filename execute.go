@@ -175,6 +175,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 	}
 	if opToExec == nil {
 		log.Logf(log.Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
+		return nil, nil, nil
 	}
 	if recordedReply, ok := opToExec.(*mongoproto.ReplyOp); ok {
 		context.AddFromFile(&recordedReply.ReplyOp, op)
