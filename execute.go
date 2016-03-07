@@ -137,7 +137,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				// This allows it to be used for downstream reporting of stats.
 				recordedOp.ConnectionNum = connectionNum
 				t := time.Now()
-				if recordedOp.OpRaw.Header.OpCode != mongoproto.OpCodeReply {
+				if recordedOp.RawOp.Header.OpCode != mongoproto.OpCodeReply {
 					if t.Before(recordedOp.PlayAt) {
 						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
@@ -167,14 +167,14 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 }
 
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (mongoproto.Op, *mongoproto.ReplyOp, error) {
-	opToExec, err := op.OpRaw.Parse()
+	opToExec, err := op.RawOp.Parse()
 	var replyOp *mongoproto.ReplyOp
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
+		return nil, nil, fmt.Errorf("ParseRawOpError: %v", err)
 	}
 	if opToExec == nil {
-		log.Logf(log.Always, "Skipping incomplete op: %v", op.OpRaw.Header.OpCode)
+		log.Logf(log.Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
 		return nil, nil, nil
 	}
 	if recordedReply, ok := opToExec.(*mongoproto.ReplyOp); ok {
@@ -190,7 +190,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		}
 
 		op.PlayedAt = time.Now()
-		log.Logf(log.Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
+		log.Logf(log.Info, "(Connection %v) [lag: %v] Executing: %v", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
 		replyOp, err = opToExec.Execute(session)
 
 		if err != nil {

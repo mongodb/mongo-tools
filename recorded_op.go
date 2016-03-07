@@ -6,7 +6,7 @@ import (
 )
 
 type RecordedOp struct {
-	mongoproto.OpRaw
+	mongoproto.RawOp
 	Seen          time.Time
 	PlayAt        time.Time `bson:",omitempty"`
 	EOF           bool      `bson:",omitempty"`

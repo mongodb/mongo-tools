@@ -146,10 +146,10 @@ func TestOpInsertLiveDB(t *testing.T) {
 	}
 }
 
-//TestOpQueryLiveDB tests the functionality of some basic queries through mongoplay.
+//TestQueryOpLiveDB tests the functionality of some basic queries through mongoplay.
 //It generates inserts and queries and sends them to the main execution of mongoplay.
 //TestQueryOp then examines a BufferedStatCollector to ensure the queries executed as expected
-func TestOpQueryLiveDB(t *testing.T) {
+func TestQueryOpLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -452,7 +452,7 @@ func (generator *recordedOpGenerator) generateQuery(querySelection interface{}, 
 	if err != nil {
 		return err
 	}
-	recordedOp.OpRaw.Header.RequestID = requestId
+	recordedOp.RawOp.Header.RequestID = requestId
 	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }
@@ -489,8 +489,8 @@ func (generator *recordedOpGenerator) generateReply(responseTo int32, cursorId i
 		return err
 	}
 
-	recordedOp.OpRaw.Header.ResponseTo = responseTo
-	mongoproto.SetInt64(recordedOp.OpRaw.Body, 4, cursorId) //change the cursorId field in the OpRaw.Body
+	recordedOp.RawOp.Header.ResponseTo = responseTo
+	mongoproto.SetInt64(recordedOp.RawOp.Body, 4, cursorId) //change the cursorId field in the RawOp.Body
 	tempEnd := recordedOp.SrcEndpoint
 	recordedOp.SrcEndpoint = recordedOp.DstEndpoint
 	recordedOp.DstEndpoint = tempEnd
@@ -514,11 +514,11 @@ func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (
 	if err != nil {
 		return nil, fmt.Errorf("ReadHeader Error: %v\n", err)
 	}
-	result := mongoproto.OpRaw{Header: *msg}
+	result := mongoproto.RawOp{Header: *msg}
 	result.Body = make([]byte, mongoproto.MsgHeaderLen)
 	result.FromReader(generator.serverConnection)
 
-	recordedOp := &RecordedOp{OpRaw: result, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}
+	recordedOp := &RecordedOp{RawOp: result, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}
 
 	d, _ := time.ParseDuration("2ms")
 	testTime = testTime.Add(d)

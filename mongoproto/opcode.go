@@ -33,17 +33,6 @@ func (c OpCode) String() string {
 	}
 }
 
-// IsMutation tells us if the operation will mutate data. These operations can
-// be followed up by a getLastErr operation.
-func (c OpCode) IsMutation() bool {
-	return c == OpCodeInsert || c == OpCodeUpdate || c == OpCodeDelete
-}
-
-// HasResponse tells us if the operation will have a response from the server.
-func (c OpCode) HasResponse() bool {
-	return c == OpCodeQuery || c == OpCodeGetMore
-}
-
 // The full set of known request op codes:
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#request-opcodes
 const (

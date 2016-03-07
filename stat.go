@@ -74,7 +74,7 @@ func (stat *StatCommand) Execute(args []string) error {
 			break
 		}
 		recordedOp.Order = order
-		parsedOp, err := recordedOp.OpRaw.Parse()
+		parsedOp, err := recordedOp.RawOp.Parse()
 		if err != nil {
 			return err
 		}

@@ -21,7 +21,7 @@ type stream struct {
 	reassembled      chan []tcpassembly.Reassembly
 	reassembly       tcpassembly.Reassembly
 	done             chan interface{}
-	op               *mongoproto.OpRaw
+	op               *mongoproto.RawOp
 	state            streamState
 	netFlow, tcpFlow gopacket.Flow
 }
@@ -67,7 +67,7 @@ func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream) *bidi {
 		bidi:        bidi,
 		reassembled: make(chan []tcpassembly.Reassembly),
 		done:        make(chan interface{}),
-		op:          &mongoproto.OpRaw{},
+		op:          &mongoproto.RawOp{},
 		netFlow:     netFlow,
 		tcpFlow:     tcpFlow,
 	}
@@ -75,7 +75,7 @@ func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream) *bidi {
 		bidi:        bidi,
 		reassembled: make(chan []tcpassembly.Reassembly),
 		done:        make(chan interface{}),
-		op:          &mongoproto.OpRaw{},
+		op:          &mongoproto.RawOp{},
 		netFlow:     netFlow.Reverse(),
 		tcpFlow:     tcpFlow.Reverse(),
 	}
@@ -250,8 +250,8 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
 		//TODO maybe remember if we were recently in streamStateOutOfSync,
 		// and if so, parse the raw op here.
-		bidi.opStream.unorderedOps <- RecordedOp{OpRaw: *stream.op, Seen: stream.reassembly.Seen, SrcEndpoint: stream.netFlow.Src().String(), DstEndpoint: stream.netFlow.Dst().String()}
-		stream.op = &mongoproto.OpRaw{}
+		bidi.opStream.unorderedOps <- RecordedOp{RawOp: *stream.op, Seen: stream.reassembly.Seen, SrcEndpoint: stream.netFlow.Src().String(), DstEndpoint: stream.netFlow.Dst().String()}
+		stream.op = &mongoproto.RawOp{}
 		stream.state = streamStateBeforeMessage
 		if len(stream.reassembly.Bytes) > 0 {
 			// parse the remainder of the stream.reassembly as a new message.

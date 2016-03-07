@@ -22,7 +22,7 @@ func TestCompleteReply(t *testing.T) {
 	recordedOp1 := &RecordedOp{
 		DstEndpoint: "a",
 		SrcEndpoint: "b",
-		OpRaw: mongoproto.OpRaw{
+		RawOp: mongoproto.RawOp{
 			Header: mongoproto.MsgHeader{
 				RequestID: 1000,
 			},
@@ -38,7 +38,7 @@ func TestCompleteReply(t *testing.T) {
 	recordedOp2 := &RecordedOp{
 		DstEndpoint: "b",
 		SrcEndpoint: "a",
-		OpRaw: mongoproto.OpRaw{
+		RawOp: mongoproto.RawOp{
 			Header: mongoproto.MsgHeader{
 				ResponseTo: 1000,
 			},
