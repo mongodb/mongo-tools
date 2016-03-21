@@ -90,6 +90,7 @@ functions:
           set -o verbose
           cd mongodb
           echo "starting mongodb"
+          mkdir -p /data/db/
           ./mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}' 
     - command: shell.exec
       params:
