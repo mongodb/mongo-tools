@@ -126,7 +126,9 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			return fmt.Errorf("cannot use --oplogFile with --archive specified")
 		}
 	}
-
+	if restore.InputOptions.Archive == "" && restore.OutputOptions.TargetDB != "" {
+		return fmt.Errorf("cannot use --targetDb with --archive unspecified")
+	}
 	// check if we are using a replica set and fall back to w=1 if we aren't (for <= 2.4)
 	nodeType, err := restore.SessionProvider.GetNodeType()
 	if err != nil {
@@ -150,7 +152,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	} else {
 		restore.tempRolesCol = *restore.ToolOptions.HiddenOptions.TempRolesColl
 	}
-	
+
 	if len(restore.OutputOptions.ExcludedCollections) > 0 && restore.ToolOptions.Namespace.Collection != "" {
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	}
@@ -263,7 +265,7 @@ func (restore *MongoRestore) Restore() error {
 			In: restore.archive.In,
 		}
 	}
-
+	log.Logf(log.Always, "Target database set: %v", restore.OutputOptions.TargetDB)
 	switch {
 	case restore.InputOptions.Archive != "":
 		log.Logf(log.Always,
