@@ -11,7 +11,7 @@ mongo_tools_variables:
 
 ## Common download URLs (merge in as hashes)
   mongo_download_urls:
-    osx_108: &mongo_url_osx108
+    osx_1010: &mongo_url_osx1010
       mongo_os: "osx"
       mongo_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-latest.tgz"
       mongo32_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.0.tgz"
@@ -67,7 +67,7 @@ mongo_tools_variables:
 
 ## List of tests to run on each buildvariant
   mongo_tools_task_lists:
-    osx_108_task_list: &osx_108_tasks
+    osx_1010_task_list: &osx_1010_tasks
       - name: db
       - name: dist
       - name: integration
@@ -79,7 +79,7 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: unit
-    osx_108_ssl_task_list: &osx_108_ssl_tasks
+    osx_1010_ssl_task_list: &osx_1010_ssl_tasks
       - name: dist
       - name: qa-tests
     solaris_task_list: &solaris_tasks
@@ -1410,30 +1410,30 @@ buildvariants:
 #######################################
 #           OSX Buildvariant          #
 #######################################
-- name: osx-108
-  display_name: OSX 10.8 64-bit
+- name: osx-1010
+  display_name: OSX 10.10 64-bit
   run_on:
-  - osx-108
+  - osx-1010
   expansions:
-    <<: *mongo_url_osx108
+    <<: *mongo_url_osx1010
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
-  tasks: *osx_108_tasks
+  tasks: *osx_1010_tasks
 
-- name: osx-108-ssl
-  display_name: OSX 10.8 64-bit SSL
+- name: osx-1010-ssl
+  display_name: OSX 10.10 64-bit SSL
   run_on:
-  - osx-108
+  - osx-1010
   expansions:
-    <<: *mongo_url_osx108
+    <<: *mongo_url_osx1010
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
     edition: ssl
-  tasks: *osx_108_ssl_tasks
+  tasks: *osx_1010_ssl_tasks
 
 #######################################
 #          Ubuntu Buildvariants       #
