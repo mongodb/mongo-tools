@@ -1,4 +1,4 @@
-package mongoplay
+package mongotape
 
 import (
 	"log"

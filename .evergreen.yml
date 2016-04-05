@@ -22,7 +22,7 @@ functions:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       local_file: src/bin/${tool}
-      remote_file: mongoplay/binaries/${build_id}/${tool}
+      remote_file: mongotape/binaries/${build_id}/${tool}
       bucket: mciuploads
       permissions: public-read
       content_type: application/octet-stream
@@ -35,7 +35,7 @@ functions:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       local_file: src/${tool}
-      remote_file: mongoplay/binaries/${build_id}/${tool}
+      remote_file: mongotape/binaries/${build_id}/${tool}
 
   "start mongod" :
     - command: shell.exec
@@ -46,8 +46,8 @@ functions:
           set -o verbose
           cd mongodb
           echo "starting mongodb"
-          mkdir -p ./mongoplay_test
-          ./mongod --dbpath ./mongoplay_test --port=${mongod_port} ${additional_args} &
+          mkdir -p ./mongotape_test
+          ./mongod --dbpath ./mongotape_test --port=${mongod_port} ${additional_args} &
     - command: shell.exec
       params:
         script: |
@@ -145,10 +145,10 @@ tasks:
   - func: "fetch source"
   - func: "build tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "upload tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "build tool"
 - name: sanity_check
   depends_on:
@@ -157,7 +157,7 @@ tasks:
   - func: "fetch source"
   - func: "fetch tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "fetch mongodb"
   - func: "start mongod"
   - command: shell.exec
@@ -167,7 +167,7 @@ tasks:
         set -e
         PATH=$PATH:`pwd`/../mongodb
         echo "Running sanity check"
-        chmod +x mongoplay
+        chmod +x mongotape
         ./sanity_check.sh -p ${mongod_port}
 
 - name: go_test
@@ -177,7 +177,7 @@ tasks:
   - func: "fetch source"
   - func: "fetch tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "fetch mongodb"
   - func: "start mongod"
     vars:
@@ -193,7 +193,7 @@ tasks:
   - func: "fetch source"
   - func: "fetch tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "fetch mongodb"
   - func: "create sharded_cluster"
     vars:
@@ -210,7 +210,7 @@ tasks:
   - func: "fetch source"
   - func: "fetch tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "fetch mongodb"
   - func: "start mongod"
     vars:
@@ -232,7 +232,7 @@ tasks:
   - func: "fetch source"
   - func: "fetch tool"
     vars:
-      tool: mongoplay
+      tool: mongotape
   - func: "fetch mongodb"
   - func: "create repl_set"
     vars:

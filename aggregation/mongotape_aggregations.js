@@ -1,8 +1,8 @@
-//mongoplay_aggregations.js
+//mongotape_aggregations.js
 
 
 //max_latency_per_type returns an aggregation pipeline to view the average and max latency for each type in a 
-//mongoplay report. Latency is calculated as the amount of time between when an operation is played and when it completes
+//mongotape report. Latency is calculated as the amount of time between when an operation is played and when it completes
 function max_latency_per_type(){
   return  [
     {$project:
@@ -28,9 +28,9 @@ function max_latency_per_type(){
 }
 
 
-//average_and_peak_lag returns an aggregation pipeline to view the average and max lag for a mongoplay report
+//average_and_peak_lag returns an aggregation pipeline to view the average and max lag for a mongotape report
 //Lag is calculated as the amount of time between when an operation is scheduled to be played as per the playback information
-//and when it actually is played in mongoplay
+//and when it actually is played in mongotape
 function average_and_peak_lag() {
   return [
     {$group: {
@@ -48,7 +48,7 @@ function average_and_peak_lag() {
   ]
 }
 
-//latency_delta returns an aggregation pipeline to view the difference in latency in two mongoplay reports
+//latency_delta returns an aggregation pipeline to view the difference in latency in two mongotape reports
 //The 'other_collection' is the collection you wish to take a delta against
 function latency_delta(other_collection) {
   return [
@@ -78,7 +78,7 @@ function latency_delta(other_collection) {
 }
 
 
-//latency_delta returns an aggregation pipeline to view the difference in errors in two mongoplay reports
+//latency_delta returns an aggregation pipeline to view the difference in errors in two mongotape reports
 //This pipeline returns all ops where the errors in one report do not match the errors in another
 //The 'other_collection' is the collection you wish to take a diff against
 function errors_diff(other_collection) {
@@ -112,7 +112,7 @@ function errors_diff(other_collection) {
     }
   ]
 }
-//average_latency_compare returns a pipeline to view the average latency of each optype in different mongoplay reports
+//average_latency_compare returns a pipeline to view the average latency of each optype in different mongotape reports
 //the 'other_collection' is the collection you wish to compare a different collection to 
 function average_latency_compare(other_collection) {
   return [
@@ -150,7 +150,7 @@ function average_latency_compare(other_collection) {
 }
 
 //getStats executes an aggregation query using the pipeline function specified.
-//it is a helper function to execute any of the mongoplay statics functions
+//it is a helper function to execute any of the mongotape statics functions
 //the aggregation_func is a function that returns an aggregation pipeline and collection1 and collection2 are string names of the 
 //collections you wish to input to your pipeline. Collection2 may be optional depending on the aggregation_func you use
 function getStats(aggregation_func, collection1, collection2) {

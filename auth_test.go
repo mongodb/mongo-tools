@@ -1,4 +1,4 @@
-package mongoplay
+package mongotape
 
 import (
 	mgo "github.com/10gen/llmgo"
@@ -29,12 +29,12 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 	}()
 	statRec := NewBufferedStatRecorder()
 	context := NewExecutionContext(statRec)
-	t.Logf("Beginning Mongoplay playback of generated traffic against host: %v\n", authTestServerUrl)	
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", authTestServerUrl)
 	err := Play(context, generator.opChan, testSpeed, authTestServerUrl, 1, 10)
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log("Completed Mongoplay playback of generated traffic")
+	t.Log("Completed Mongotape playback of generated traffic")
 
 	session, err := mgo.Dial(authTestServerUrl)
 	coll := session.DB(testDB).C(testCollection)
@@ -97,7 +97,7 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log("Completed Mongoplay playback of generated traffic")
+	t.Log("Completed mongotape playback of generated traffic")
 
 	session, err := mgo.Dial(authTestServerUrl)
 	coll := session.DB(testDB).C(testCollection)

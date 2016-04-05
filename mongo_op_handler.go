@@ -1,4 +1,4 @@
-package mongoplay
+package mongotape
 
 import (
 	"container/heap"
@@ -9,7 +9,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
 
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 )
 
 // tcpassembly.Stream implementation.

@@ -1,4 +1,4 @@
-package mongoplay
+package mongotape
 
 import (
 	"github.com/10gen/llmgo/bson"

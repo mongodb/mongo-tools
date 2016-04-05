@@ -1,7 +1,7 @@
-package mongoplay
+package mongotape
 
 import (
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 	"time"
 )
 

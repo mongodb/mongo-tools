@@ -1,8 +1,8 @@
-package mongoplay
+package mongotape
 
 import (
 	"fmt"
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 	"io"
 	"time"
 )

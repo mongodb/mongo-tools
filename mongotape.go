@@ -1,4 +1,4 @@
-package mongoplay
+package mongotape
 
 type Options struct {
 	Verbosity []bool `short:"v" long:"verbosity" description:"increase the detail regarding the tools performance on the input file that is output to logs (include multiple times for increased logging verbosity, e.g. -vvv)"`

@@ -1,11 +1,11 @@
-package mongoplay
+package mongotape
 
 import (
 	"testing"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 	"reflect"
 )
 
@@ -19,7 +19,7 @@ func TestOpGetMore(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
 	op := mongoproto.GetMoreOp{}
-	op.Collection = "mongoplay_test.test"
+	op.Collection = "mongotape_test.test"
 	op.CursorId = 12345
 	op.Limit = -1
 
@@ -37,8 +37,8 @@ func TestOpGetMore(t *testing.T) {
 
 	t.Log("Comparing parsed Getmore to original Getmore")
 	switch {
-	case getMoreOp.Collection != "mongoplay_test.test":
-		t.Errorf("Collection not matched. Saw %v -- Expected %v\n", getMoreOp.Collection, "mongoplay_test.test")
+	case getMoreOp.Collection != "mongotape_test.test":
+		t.Errorf("Collection not matched. Saw %v -- Expected %v\n", getMoreOp.Collection, "mongotape_test.test")
 	case getMoreOp.CursorId != 12345:
 		t.Errorf("CursorId not matched. Saw %v -- Expected %v\n", getMoreOp.CursorId, 12345)
 	case getMoreOp.Limit != -1:
@@ -50,7 +50,7 @@ func TestOpDelete(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
 	op := mongoproto.DeleteOp{}
-	op.Collection = "mongoplay_test.test"
+	op.Collection = "mongotape_test.test"
 	op.Flags = 7
 	selector := bson.D{{"test", 1}}
 	op.Selector = selector
@@ -69,8 +69,8 @@ func TestOpDelete(t *testing.T) {
 
 	t.Log("Comparing parsed Delete to original Delete")
 	switch {
-	case deleteOp.Collection != "mongoplay_test.test":
-		t.Errorf("Collection not matched. Saw %v -- Expected %v\n", deleteOp.Collection, "mongoplay_test.test")
+	case deleteOp.Collection != "mongotape_test.test":
+		t.Errorf("Collection not matched. Saw %v -- Expected %v\n", deleteOp.Collection, "mongotape_test.test")
 	case deleteOp.Flags != 7:
 		t.Errorf("Flags not matched. Saw %v -- Expected %v\n", deleteOp.Flags, 7)
 	case !reflect.DeepEqual(deleteOp.Selector, &selector):
@@ -82,7 +82,7 @@ func TestInsertOp(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
 	op := mongoproto.InsertOp{}
-	op.Collection = "mongoplay_test.test"
+	op.Collection = "mongotape_test.test"
 	op.Flags = 7
 
 	documents := []interface{}(nil)
@@ -108,8 +108,8 @@ func TestInsertOp(t *testing.T) {
 
 	t.Log("Comparing parsed Insert to original Insert")
 	switch {
-	case insertOp.Collection != "mongoplay_test.test":
-		t.Errorf("Collection not matched. Saw %v -- Expected %v\n", insertOp.Collection, "mongoplay_test.test")
+	case insertOp.Collection != "mongotape_test.test":
+		t.Errorf("Collection not matched. Saw %v -- Expected %v\n", insertOp.Collection, "mongotape_test.test")
 	case insertOp.Flags != 7:
 		t.Errorf("Flags not matched. Saw %v -- Expected %v\n", insertOp.Flags, 7)
 	}
@@ -152,7 +152,7 @@ func TestQueryOp(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
 	op := mongoproto.QueryOp{}
-	op.Collection = "mongoplay_test.test"
+	op.Collection = "mongotape_test.test"
 	op.Flags = 0
 	op.HasOptions = true
 	op.Limit = -1
@@ -200,7 +200,7 @@ func TestOpUpdate(t *testing.T) {
 	op.Selector = selector
 	update := bson.D{{"$set", bson.D{{"updated", true}}}}
 	op.Update = update
-	op.Collection = "mongoplay_test.test"
+	op.Collection = "mongotape_test.test"
 	op.Flags = 12345
 
 	t.Logf("Generated Update: %#v\n", op.UpdateOp)

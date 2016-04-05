@@ -1,4 +1,4 @@
-package mongoplay
+package mongotape
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	mgo "github.com/10gen/llmgo"
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 	"github.com/patrickmn/go-cache"
 )
 

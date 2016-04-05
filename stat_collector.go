@@ -1,10 +1,10 @@
-package mongoplay
+package mongotape
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 	"io"
 	"os"
 	"reflect"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-//StatCollector is a struct that handles generation and recording of statistics about operations mongoplay performs.
+//StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
 //It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
 type StatCollector struct {
 	sync.Once
@@ -190,11 +190,11 @@ type JSONStatRecorder struct {
 }
 
 //BufferedStatRecorder implements the StatRecorder interface using an in-memory slice of OpStats.
-//This allows for the statistics on operations executed by mongoplay to be reviewed by a program directly following execution.
+//This allows for the statistics on operations executed by mongotape to be reviewed by a program directly following execution.
 //BufferedStatCollector's main purpose is for asserting correct execution of ops for testing
 type BufferedStatRecorder struct {
 	//Buffer is a slice of OpStats that is appended to every time the Collect function makes a record
-	//It stores an in-order series of OpStats that store information about the commands mongoplay ran as a result
+	//It stores an in-order series of OpStats that store information about the commands mongotape ran as a result
 	//of reading a playback file
 	Buffer []OpStat
 }

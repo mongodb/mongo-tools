@@ -1,10 +1,10 @@
-package mongoplay
+package mongotape
 
 import (
 	"fmt"
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongoplay/mongoproto"
+	"github.com/10gen/mongotape/mongoproto"
 	"os"
 	"testing"
 	"time"
@@ -13,7 +13,7 @@ import (
 const (
 	nonAuthTestServerUrl = "mongodb://localhost:27035"
 	authTestServerUrl    = "mongodb://authorizedUser:authorizedPwd@localhost:27035/admin"
-	testDB               = "mongoplay"
+	testDB               = "mongotape"
 	testCollection       = "test"
 	testCursorId         = int64(12345)
 	testSpeed            = float64(100)
@@ -68,8 +68,8 @@ type driverRequestOps struct {
 	op    *RecordedOp
 }
 
-//TestOpInsertLiveDB tests the functionality of mongoplay replaying inserts against a live database
-//Generates 20 recorded inserts and passes them to the main execution of mongoplay and queries the database
+//TestOpInsertLiveDB tests the functionality of mongotape replaying inserts against a live database
+//Generates 20 recorded inserts and passes them to the main execution of mongotape and queries the database
 //to verify they were completed. It then checks its BufferedStatCollector to ensure the inserts match what we expected
 func TestOpInsertLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
@@ -97,16 +97,20 @@ func TestOpInsertLiveDB(t *testing.T) {
 	statRec := NewBufferedStatRecorder()
 	context := NewExecutionContext(statRec)
 
-	//run Mongoplay's Play loop with the stubbed objects
-	t.Logf("Beginning Mongoplay playback of generated traffic against host: %v\n", currentTestServerUrl)
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
-	t.Log("Completed Mongoplay playback of generated traffic")
+	t.Log("Completed Mongotape playback of generated traffic")
 
 	//prepare a query for the database
 	session, err := mgo.Dial(currentTestServerUrl)
+	if err != nil {
+		t.Errorf("Error connecting to test server: %v", err)
+	}
+
 	coll := session.DB(testDB).C(testCollection)
 
 	iter := coll.Find(bson.D{}).Sort("docNum").Iter()
@@ -137,10 +141,10 @@ func TestOpInsertLiveDB(t *testing.T) {
 	for i := 0; i < numInserts; i++ {
 		stat := statRec.Buffer[i]
 		t.Logf("Stat result: %#v\n", stat)
-		//All commands should be inserts into mongoplay.test
+		//All commands should be inserts into mongotape.test
 		if stat.OpType != "insert" ||
-			stat.Ns != "mongoplay.test" {
-			t.Errorf("Expected to see an insert into mongoplay.test, but instead saw %v, %v\n", stat.OpType, stat.Command)
+			stat.Ns != "mongotape.test" {
+			t.Errorf("Expected to see an insert into mongotape.test, but instead saw %v, %v\n", stat.OpType, stat.Command)
 		}
 	}
 	stat := statRec.Buffer[numInserts]
@@ -155,8 +159,8 @@ func TestOpInsertLiveDB(t *testing.T) {
 	}
 }
 
-//TestQueryOpLiveDB tests the functionality of some basic queries through mongoplay.
-//It generates inserts and queries and sends them to the main execution of mongoplay.
+//TestQueryOpLiveDB tests the functionality of some basic queries through mongotape.
+//It generates inserts and queries and sends them to the main execution of mongotape.
 //TestQueryOp then examines a BufferedStatCollector to ensure the queries executed as expected
 func TestQueryOpLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
@@ -169,7 +173,7 @@ func TestQueryOpLiveDB(t *testing.T) {
 	generator := newRecordedOpGenerator()
 	go func() {
 		defer close(generator.opChan)
-		//generate numInsert inserts and feed them to the opChan for play
+		//generate numInsert inserts and feed them to the opChan for tape
 		for i := 0; i < numQueries; i++ {
 			t.Logf("Generating %d inserts\n", numInserts/numQueries)
 			err := generator.generateInsertHelper(fmt.Sprintf("%s: %d", insertName, i), i*(numInserts/numQueries), numInserts/numQueries)
@@ -197,28 +201,28 @@ func TestQueryOpLiveDB(t *testing.T) {
 	statRec := NewBufferedStatRecorder()
 	context := NewExecutionContext(statRec)
 
-	//run Mongoplay's Play loop with the stubbed objects
-	t.Logf("Beginning Mongoplay playback of generated traffic against host: %v\n", currentTestServerUrl)
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
-	t.Log("Completed Mongoplay playback of generated traffic")
+	t.Log("Completed Mongotape playback of generated traffic")
 
 	t.Log("Examining collected stats to ensure they match expected")
 	for i := 0; i < numQueries; i++ { //loop over the BufferedStatCollector for each of the numQueries queries created
 		stat := statRec.Buffer[numInserts+i]
 		t.Logf("Stat result: %#v\n", stat)
 		if stat.OpType != "query" ||
-			stat.Ns != "mongoplay.test" ||
-			stat.NumReturned != 5 { //ensure that they match what we expected mongoplay to have executed
+			stat.Ns != "mongotape.test" ||
+			stat.NumReturned != 5 { //ensure that they match what we expected mongotape to have executed
 			t.Errorf("Query Not Matched %#v\n", stat)
 		}
 	}
 	stat := statRec.Buffer[numInserts+numQueries]
 	t.Logf("Stat result: %#v\n", stat)
 	if stat.OpType != "query" ||
-		stat.Ns != "mongoplay.test" ||
+		stat.Ns != "mongotape.test" ||
 		stat.NumReturned != 20 { //ensure that the last query that was making a query on the 'success' field executed how we expected
 		t.Errorf("Query Not Matched %#v\n", stat)
 	}
@@ -243,7 +247,7 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 	go func() {
 		defer close(generator.opChan)
 		t.Logf("Generating %d inserts\n", numInserts)
-		//generate numInserts RecordedOp inserts and push them into a channel for use in mongoplay's Play()
+		//generate numInserts RecordedOp inserts and push them into a channel for use in mongotape's Play()
 		err := generator.generateInsertHelper(insertName, 0, numInserts)
 		if err != nil {
 			t.Error(err)
@@ -251,14 +255,14 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 		querySelection := bson.D{}
 
 		t.Log("Generating query")
-		//generate a query with a known requestId to be played in mongoplay
+		//generate a query with a known requestId to be played in mongotape
 		err = generator.generateQuery(querySelection, 5, requestId)
 		if err != nil {
 			t.Error(err)
 		}
 		t.Log("Generating reply")
 		//generate a RecordedOp reply whose ResponseTo field matches that of the original with a known cursorId
-		//so that these pieces of information can be correlated by mongoplay
+		//so that these pieces of information can be correlated by mongotape
 		err = generator.generateReply(requestId, testCursorId, 0)
 		if err != nil {
 			t.Error(err)
@@ -275,13 +279,13 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 	statRec := NewBufferedStatRecorder()
 	context := NewExecutionContext(statRec)
 
-	//run Mongoplay's Play loop with the stubbed objects
-	t.Logf("Beginning Mongoplay playback of generated traffic against host: %v\n", currentTestServerUrl)
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
-	t.Log("Completed Mongoplay playback of generated traffic")
+	t.Log("Completed Mongotape playback of generated traffic")
 
 	//loop over the BufferedStatCollector in the positions the getmores should have been played int
 	t.Log("Examining collected stats to ensure they match expected")
@@ -290,7 +294,7 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 		t.Logf("Stat result: %#v\n", stat)
 		if stat.OpType != "getmore" ||
 			stat.NumReturned != 5 ||
-			stat.Ns != "mongoplay.test" { //ensure that each getMore matches the criteria we expected it to have
+			stat.Ns != "mongotape.test" { //ensure that each getMore matches the criteria we expected it to have
 			t.Errorf("Getmore Not matched: %#v\n", stat)
 		}
 	}
@@ -370,13 +374,13 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	statRec := NewBufferedStatRecorder()
 	context := NewExecutionContext(statRec)
 
-	//run Mongoplay's Play loop with the stubbed objects
-	t.Logf("Beginning Mongoplay playback of generated traffic against host: %v\n", currentTestServerUrl)	
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
 	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
-	t.Log("Completed Mongoplay playback of generated traffic")
+	t.Log("Completed Mongotape playback of generated traffic")
 
 	shouldBeLimit5 := true
 	var limit int
@@ -397,7 +401,7 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 		}
 		if stat.OpType != "getmore" ||
 			stat.NumReturned != limit ||
-			stat.Ns != "mongoplay.test" { //ensure that the operations in the BufferedStatCollector match what expected
+			stat.Ns != "mongotape.test" { //ensure that the operations in the BufferedStatCollector match what expected
 			t.Errorf("Getmore Not matched: %#v\n", stat)
 		}
 	}
