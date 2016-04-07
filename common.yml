@@ -38,13 +38,13 @@ mongo_tools_variables:
       mongo30_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-3.0.7.tgz"
       mongo26_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-2.6.5.tgz"
       mongo24_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-subscription-ubuntu1204-2.4.12.tgz"
-    linux_ppc64le_bit_enterprise: &mongo_url_ubuntu1504_ppc64le_enterprise
-      mongo_os: "ubuntu1504"
-      mongo_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-ubuntu1504-3.3.1.tgz"
-      mongo32_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-ubuntu1504-3.3.1.tgz"
-      mongo30_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-ubuntu1504-3.3.1.tgz"
-      mongo26_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-ubuntu1504-3.3.1.tgz"
-      mongo24_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-ubuntu1504-3.3.1.tgz"
+    linux_ppc64le_bit_enterprise: &mongo_url_rhel71_ppc64le_enterprise
+      mongo_os: "rhel71"
+      mongo_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-latest.tgz"
+      mongo32_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
+      mongo30_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
+      mongo26_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
+      mongo24_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
     windows_32_bit: &mongo_url_windows32
       mongo_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-latest.zip"
       mongo32_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-3.2.0.zip"
@@ -213,7 +213,7 @@ mongo_tools_variables:
         distros:
         - windows-64-vs2013-test
       - name: unit
-    ubuntu1504_enterprise_task_list: &ubuntu1504_enterprise_tasks
+    rhel71_enterprise_task_list: &rhel71_enterprise_tasks
       - name: bsonutil
       - name: db
       - name: dist
@@ -221,7 +221,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: json
       #- name: kerberos
-      - name: lint
       - name: log
       - name: progress
       - name: qa-dump-restore-archiving
@@ -230,7 +229,6 @@ mongo_tools_variables:
       - name: qa-tests-unstable
       - name: qa-tests-wt
       - name: text
-      - name: unit
       - name: util
       - name: vet
 
@@ -1485,23 +1483,25 @@ buildvariants:
     integration_test_args: integration
   tasks: *ubuntu1204_enterprise_tasks
 
-- name: ubuntu-ppc64le-enterprise
-  display_name: Linux PPC64LE Enterprise
+- name: rhel71-ppc64le-enterprise
+  display_name: Linux PPC64LE RHEL 7.1 Enterprise
   run_on:
-  - ubuntu-1504-power8-build
+  - rhel71-power8-test
   expansions:
-    <<: *mongo_url_ubuntu1504_ppc64le_enterprise
+    <<: *mongo_url_rhel71_ppc64le_enterprise
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
-    # Ubuntu 1504 does not include gcc 5.3 yet so SSL is disabled
-    #build_tags: -tags "ssl sasl"
-    #resmoke_use_ssl: _ssl
+    # RHEL 7.1 PPC64LE machines kerberos setup does not work for mongo-tools
+    #build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)" -tags 'sasl ssl'
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
+    resmoke_use_ssl: _ssl
+    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     resmoke_args: --excludeWithAnyTags=requires_mongo_24,requires_mongo_26,requires_mongo_30
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
     integration_test_args: integration
-  tasks: *ubuntu1504_enterprise_tasks
+  tasks: *rhel71_enterprise_tasks
 
 #######################################
 #         Solaris Buildvariant        #
