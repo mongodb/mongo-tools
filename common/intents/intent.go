@@ -14,6 +14,15 @@ type file interface {
 	Pos() int64
 }
 
+// FileNeedsIOBuffer is an interface that denotes that a struct needs
+// an IO buffer that is managed by an outside control. This interface
+// is used to both hand off a buffer to a struct and signal that it should
+// release its buffer. Added to reduce memory usage as outlined in TOOLS-1088.
+type FileNeedsIOBuffer interface {
+	TakeIOBuffer([]byte)
+	ReleaseIOBuffer()
+}
+
 // mongorestore first scans the directory to generate a list
 // of all files to restore and what they map to. TODO comments
 type Intent struct {

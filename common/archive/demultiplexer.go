@@ -189,7 +189,7 @@ type RegularCollectionReceiver struct {
 	readBufChan      chan<- []byte
 	Intent           *intents.Intent
 	Demux            *Demultiplexer
-	partialReadArray [db.MaxBSONSize]byte
+	partialReadArray []byte
 	partialReadBuf   []byte
 	isOpen           bool
 	pos              int64
@@ -275,6 +275,14 @@ func (receiver *RegularCollectionReceiver) Open() error {
 // It does nothing, and only exists so that RegularCollectionReceiver fulfills the interface
 func (receiver *RegularCollectionReceiver) Write([]byte) (int, error) {
 	return 0, nil
+}
+
+func (receiver *RegularCollectionReceiver) TakeIOBuffer(ioBuf []byte) {
+	receiver.partialReadArray = ioBuf
+
+}
+func (receiver *RegularCollectionReceiver) ReleaseIOBuffer() {
+	receiver.partialReadArray = nil
 }
 
 // regularCollectionSender implements DemuxOut
