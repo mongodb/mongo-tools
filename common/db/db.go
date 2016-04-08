@@ -11,7 +11,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"io"
 	"sync"
-	"time"
 )
 
 type (
@@ -41,7 +40,6 @@ var (
 	ErrLostConnection     = errors.New("lost connection to server")
 	ErrNoReachableServers = errors.New("no reachable servers")
 	ErrNsNotFound         = errors.New("ns not found")
-	DefaultDialTimeout    = time.Second * 3
 	GetConnectorFuncs     = []GetConnectorFunc{}
 )
 

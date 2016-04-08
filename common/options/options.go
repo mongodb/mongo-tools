@@ -3,9 +3,10 @@
 package options
 
 import (
-	"fmt"
 	"github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/log"
+
+	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 const (
 	VersionStr = "3.0.10-pre-"
 )
+
+const DefaultDialTimeoutSeconds = 3
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
 var (
@@ -64,8 +67,9 @@ type HiddenOptions struct {
 	// Deprecated flag for csv writing in mongoexport
 	CSVOutputType bool
 
-	TempUsersColl *string
-	TempRolesColl *string
+	TempUsersColl      *string
+	TempRolesColl      *string
+	DialTimeoutSeconds *int
 }
 
 type Namespace struct {
@@ -138,8 +142,10 @@ type EnabledOptions struct {
 
 // Ask for a new instance of tool options
 func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
+	var timeout = DefaultDialTimeoutSeconds
 	hiddenOpts := &HiddenOptions{
-		BulkBufferSize: 10000,
+		BulkBufferSize:     10000,
+		DialTimeoutSeconds: &timeout,
 	}
 
 	opts := &ToolOptions{
@@ -311,6 +317,12 @@ See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information`
 		opts.BulkBufferSize = optionValue
 	case "numDecodingWorkers":
 		opts.NumDecodingWorkers = optionValue
+	case "dialTimeout":
+		if optionValue >= 0 {
+			opts.DialTimeoutSeconds = &optionValue
+		} else {
+			return args, fmt.Errorf("invalid negative value for --dialTimeout")
+		}
 	default:
 		return args, fmt.Errorf(`unknown option "%v"`, option)
 	}
