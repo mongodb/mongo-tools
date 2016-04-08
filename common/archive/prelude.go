@@ -73,13 +73,13 @@ func (prelude *Prelude) Read(in io.Reader) error {
 }
 
 // NewPrelude generates a Prelude using the contents of an intent.Manager.
-func NewPrelude(manager *intents.Manager, maxProcs int, serverVersion string) (*Prelude, error) {
+func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion string) (*Prelude, error) {
 	prelude := Prelude{
 		Header: &Header{
 			FormatVersion:         archiveFormatVersion,
 			ServerVersion:         serverVersion,
 			ToolVersion:           options.VersionStr,
-			ConcurrentCollections: int32(maxProcs),
+			ConcurrentCollections: int32(concurrentColls),
 		},
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),
 	}

@@ -299,7 +299,7 @@ func (dump *MongoDump) Dump() (err error) {
 		} else {
 			serverVersion = buildInfo.Version
 		}
-		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.ToolOptions.HiddenOptions.MaxProcs, serverVersion)
+		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.OutputOptions.NumParallelCollections, serverVersion)
 		if err != nil {
 			return fmt.Errorf("creating archive prelude: %v", err)
 		}
