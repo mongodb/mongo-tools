@@ -232,7 +232,7 @@ func TestQueryOpLiveDB(t *testing.T) {
 
 }
 
-//TestOpGetMoreLiveDB tests the functionality of a getmore command played through mongoplay.
+//TestOpGetMoreLiveDB tests the functionality of a getmore command played through mongotape.
 //It generates inserts, a query, and a series of getmores based on the original query. It then
 //Uses a BufferedStatCollector to ensure the getmores executed as expected
 func TestOpGetMoreLiveDB(t *testing.T) {
@@ -321,7 +321,7 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	go func() {
 		defer close(generator.opChan)
 
-		//generate numInserts RecordedOp inserts and send them to a channel to be played in mongoplays main Play function
+		//generate numInserts RecordedOp inserts and send them to a channel to be played in mongotape's main Play function
 		t.Logf("Generating %v inserts\n", numInserts)
 		err := generator.generateInsertHelper(insertName, 0, numInserts)
 		if err != nil {

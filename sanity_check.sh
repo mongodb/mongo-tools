@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PORT=27017
-PCAPFILE="mongoplay_test.out"
+PCAPFILE="mongotape_test.out"
 STARTMONGO=false
 
 set -e
@@ -29,24 +29,24 @@ while test $# -gt 0; do
 done
 
 OUTFILE="$(echo $PCAPFILE | cut -f 1 -d '.').playback"
-./mongoplay record -f $PCAPFILE -p $OUTFILE 
+./mongotape record -f $PCAPFILE -p $OUTFILE 
 
 if [ "$STARTMONGO" = true ]; then
-	rm -rf /data/mongoplay/
-	mkdir /data/mongoplay/
+	rm -rf /data/mongotape/
+	mkdir /data/mongotape/
 	echo "starting mongod"
-	mongod --port=$PORT --dbpath=/data/mongoplay > /dev/null 2>&1 &
+	mongod --port=$PORT --dbpath=/data/mongotape > /dev/null 2>&1 &
 	MONGOPID=$!
 fi
 
 mongo --port=$PORT mongoplay_test --eval "db.setProfilingLevel(2);"
 mongo --port=$PORT mongoplay_test --eval "db.createCollection('sanity_check', {});"
 
-./mongoplay play -p $OUTFILE 
+./mongotape play -p $OUTFILE 
 mongo --port=$PORT mongoplay_test --eval "var profile_results = db.system.profile.find({'ns':'mongoplay_test.sanity_check'});
 assert.gt(profile_results.size(), 0);"
 
-mongo --port=$PORT mongoplay_test --eval "var query_results = db.sanity_check.find({"test_success":1});
+mongo --port=$PORT mongoplay_test --eval "var query_results = db.sanity_check.find({'test_success':1});
 assert.gt(query_results.size(), 0);"
 echo "Success!"
 

@@ -48,7 +48,7 @@ type OpStat struct {
 	PlayedAt time.Time `json:"played_at,omitempty"`
 
 	//PlayAt is the time that this operation is scheduled to be played. It represents the time
-	//that it is supposed to be played by mongoplay, but can be different from
+	//that it is supposed to be played by mongotape, but can be different from
 	//PlayedAt if the playback is lagging for any reason
 	PlayAt time.Time `json:"play_at,omitempty"`
 
