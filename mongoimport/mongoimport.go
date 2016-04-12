@@ -175,8 +175,8 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 	}
 
 	// get the number of documents per batch
-	if imp.ToolOptions.BulkBufferSize <= 0 {
-		imp.ToolOptions.BulkBufferSize = 10000
+	if imp.ToolOptions.BulkBufferSize <= 0 || imp.ToolOptions.BulkBufferSize > 1000 {
+		imp.ToolOptions.BulkBufferSize = 1000
 	}
 
 	// ensure no more than one positional argument is supplied

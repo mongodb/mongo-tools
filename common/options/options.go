@@ -153,7 +153,7 @@ func parseVal(val string) int {
 func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 	var timeout = DefaultDialTimeoutSeconds
 	hiddenOpts := &HiddenOptions{
-		BulkBufferSize:     10000,
+		BulkBufferSize:     1000,
 		DialTimeoutSeconds: &timeout,
 	}
 
