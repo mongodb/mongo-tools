@@ -65,9 +65,10 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 		}
 	}()
 	ticker := time.Tick(time.Second * 1)
+	var pkt gopacket.Packet
 	for {
 		select {
-		case pkt := <-source.Packets():
+		case pkt = <-source.Packets():
 			if pkt == nil { // end of pcap file
 				if p.Verbose {
 					log.Println("end of stream")
@@ -93,6 +94,9 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 				break
 			}
 		case <-ticker:
+			if pkt != nil {
+				log.Println("processed packet with timestamp", pkt.Metadata().Timestamp.Format(time.RFC3339))
+			}
 			if p.Verbose {
 				log.Println("flushing old streams")
 			}

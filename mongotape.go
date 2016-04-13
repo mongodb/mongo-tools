@@ -6,8 +6,6 @@ type Options struct {
 }
 
 func (opts *Options) SetLogging() {
-	opts.Verbosity = append(opts.Verbosity, true)
-	opts.Debug = append(opts.Debug, true)
 	userInfoLogger.setVerbosity(opts.Verbosity)
 	toolDebugLogger.setVerbosity(opts.Debug)
 }
