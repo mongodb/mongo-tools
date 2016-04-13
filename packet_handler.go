@@ -15,11 +15,13 @@ type PacketHandler struct {
 	Verbose    bool
 	pcap       *pcap.Handle
 	numDropped int64
+	stop       chan struct{}
 }
 
 func NewPacketHandler(pcapHandle *pcap.Handle) *PacketHandler {
 	return &PacketHandler{
 		pcap: pcapHandle,
+		stop: make(chan struct{}),
 	}
 }
 
@@ -30,6 +32,10 @@ type StreamHandler interface {
 
 type SetFirstSeener interface {
 	SetFirstSeen(t time.Time)
+}
+
+func (p *PacketHandler) Close() {
+	p.stop <- struct{}{}
 }
 
 func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) error {
@@ -91,6 +97,9 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 				log.Println("flushing old streams")
 			}
 			assembler.FlushOlderThan(time.Now().Add(time.Second * -5))
+		case <-p.stop:
+			assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
+			return nil
 		}
 	}
 	return nil
