@@ -22,18 +22,29 @@ type Multiplexer struct {
 	Out       io.WriteCloser
 	Control   chan *MuxIn
 	Completed chan error
+	// shutdownInputs allows the mux to tell the intent dumping worker
+	// go routines to shutdown, so that we can shutdown
+	shutdownInputs notifier
 	// ins and selectCases are correlating slices
 	ins              []*MuxIn
 	selectCases      []reflect.SelectCase
 	currentNamespace string
 }
 
+type notifier interface {
+	Notify()
+}
+
 // NewMultiplexer creates a Multiplexer and populates its Control/Completed chans
-func NewMultiplexer(out io.WriteCloser) *Multiplexer {
+// it takes a WriteCloser, which is where in imputs will get multiplexed on to,
+// and it takes a notifier, which should allow the multiplexer to ask for the shutdown
+// of the inputs.
+func NewMultiplexer(out io.WriteCloser, shutdownInputs notifier) *Multiplexer {
 	mux := &Multiplexer{
-		Out:       out,
-		Control:   make(chan *MuxIn),
-		Completed: make(chan error),
+		Out:            out,
+		Control:        make(chan *MuxIn),
+		Completed:      make(chan error),
+		shutdownInputs: shutdownInputs,
 		ins: []*MuxIn{
 			nil, // There is no MuxIn for the Control case
 		},
@@ -50,7 +61,7 @@ func NewMultiplexer(out io.WriteCloser) *Multiplexer {
 
 // Run multiplexes until it receives an EOF on its Control chan.
 func (mux *Multiplexer) Run() {
-	var err error
+	var err, completionErr error
 	for {
 		index, value, notEOF := reflect.Select(mux.selectCases)
 		EOF := !notEOF
@@ -58,12 +69,14 @@ func (mux *Multiplexer) Run() {
 			if EOF {
 				log.Logf(log.DebugLow, "Mux finish")
 				mux.Out.Close()
-				if len(mux.selectCases) != 1 {
+				if completionErr != nil {
+					mux.Completed <- completionErr
+				} else if len(mux.selectCases) != 1 {
 					mux.Completed <- fmt.Errorf("Mux ending but selectCases still open %v",
 						len(mux.selectCases))
-					return
+				} else {
+					mux.Completed <- nil
 				}
-				mux.Completed <- nil
 				return
 			}
 			muxIn, ok := value.Interface().(*MuxIn)
@@ -90,8 +103,9 @@ func (mux *Multiplexer) Run() {
 
 				err = mux.formatEOF(index, mux.ins[index])
 				if err != nil {
-					mux.Completed <- err
-					return
+					mux.shutdownInputs.Notify()
+					mux.Out = &nopCloseNopWriter{}
+					completionErr = err
 				}
 				log.Logf(log.DebugLow, "Mux close namespace %v", mux.ins[index].Intent.Namespace())
 				mux.currentNamespace = ""
@@ -106,18 +120,28 @@ func (mux *Multiplexer) Run() {
 				mux.ins[index].hash.Write(bsonBytes)
 				err = mux.formatBody(mux.ins[index], bsonBytes)
 				if err != nil {
-					mux.Completed <- err
-					return
+					mux.shutdownInputs.Notify()
+					mux.Out = &nopCloseNopWriter{}
+					completionErr = err
 				}
 			}
 		}
 	}
 }
 
+type nopCloseNopWriter struct{}
+
+func (*nopCloseNopWriter) Close() error                { return nil }
+func (*nopCloseNopWriter) Write(p []byte) (int, error) { return len(p), nil }
+
 // formatBody writes the BSON in to the archive, potentially writing a new header
 // if the document belongs to a different namespace from the last header.
 func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 	var err error
+	var length int
+	defer func() {
+		in.writeLenChan <- length
+	}()
 	if in.Intent.Namespace() != mux.currentNamespace {
 		// Handle the change of which DB/Collection we're writing docs for
 		// If mux.currentNamespace then we need to terminate the current block
@@ -146,11 +170,10 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 		}
 	}
 	mux.currentNamespace = in.Intent.Namespace()
-	length, err := mux.Out.Write(bsonBytes)
+	length, err = mux.Out.Write(bsonBytes)
 	if err != nil {
 		return err
 	}
-	in.writeLenChan <- length
 	return nil
 }
 

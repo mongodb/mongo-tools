@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -48,13 +49,24 @@ type MongoDump struct {
 	authVersion     int
 	archive         *archive.Writer
 	progressManager *progress.Manager
-	// channel on which to notify if/when a termination signal is received
-	termChan chan struct{}
+	// shutdownIntentsNotifier is provided to the multiplexer
+	// as well as the signal handler, and allows them to notify
+	// the intent dumpers that they should shutdown
+	shutdownIntentsNotifier *notifier
 	// the value of stdout gets initizlied to os.Stdout if it's unset
 	stdout       io.Writer
 	readPrefMode mgo.Mode
 	readPrefTags []bson.D
 }
+
+type notifier struct {
+	notified chan struct{}
+	once     sync.Once
+}
+
+func (n *notifier) Notify() { n.once.Do(func() { close(n.notified) }) }
+
+func newNotifier() *notifier { return &notifier{notified: make(chan struct{})} }
 
 // ValidateOptions checks for any incompatible sets of options.
 func (dump *MongoDump) ValidateOptions() error {
@@ -164,6 +176,8 @@ func (dump *MongoDump) Init() error {
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
 
+	dump.shutdownIntentsNotifier = newNotifier()
+
 	if dump.InputOptions.HasQuery() {
 		// parse JSON then convert extended JSON values
 		var asJSON interface{}
@@ -211,7 +225,7 @@ func (dump *MongoDump) Dump() (err error) {
 			// The archive.Writer needs its own copy of archiveOut because things
 			// like the prelude are not written by the multiplexer.
 			Out: archiveOut,
-			Mux: archive.NewMultiplexer(archiveOut),
+			Mux: archive.NewMultiplexer(archiveOut, dump.shutdownIntentsNotifier),
 		}
 		go dump.archive.Mux.Run()
 		defer func() {
@@ -221,11 +235,11 @@ func (dump *MongoDump) Dump() (err error) {
 			archiveOut.Close()
 			if muxErr != nil {
 				if err != nil {
-					err = fmt.Errorf("%v && %v", err, muxErr)
+					err = fmt.Errorf("archive writer: %v / %v", err, muxErr)
 				} else {
-					err = muxErr
+					err = fmt.Errorf("archive writer: %v", muxErr)
 				}
-				log.Logf(log.DebugLow, "mux returned an error: %v", err)
+				log.Logf(log.DebugLow, "%v", err)
 			} else {
 				log.Logf(log.DebugLow, "mux completed successfully")
 			}
@@ -358,7 +372,6 @@ func (dump *MongoDump) Dump() (err error) {
 	dump.progressManager.Start()
 	defer dump.progressManager.Stop()
 
-	dump.termChan = make(chan struct{})
 	go dump.handleSignals()
 
 	if err := dump.DumpIntents(); err != nil {
@@ -408,7 +421,7 @@ func (dump *MongoDump) Dump() (err error) {
 		log.Logf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 	}
 
-	log.Logf(log.Info, "done")
+	log.Logf(log.DebugLow, "finishing dump")
 
 	return err
 }
@@ -580,7 +593,7 @@ func (dump *MongoDump) dumpIterToWriter(
 	go func() {
 		for {
 			select {
-			case <-dump.termChan:
+			case <-dump.shutdownIntentsNotifier.notified:
 				log.Logf(log.DebugHigh, "terminating writes")
 				termErr = util.ErrTerminated
 				close(buffChan)
@@ -784,14 +797,15 @@ func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 func (dump *MongoDump) handleSignals() {
 	log.Log(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
 	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGPIPE)
 	// first signal cleanly terminates dump writes
 	<-sigChan
-	log.Log(log.Always, "ending dump writes")
-	close(dump.termChan)
+	log.Log(log.Always, "signal received; shutting down mongodump")
+	//
+	dump.shutdownIntentsNotifier.Notify()
 	// second signal exits immediately
 	<-sigChan
-	log.Log(log.Always, "forcefully terminating mongodump")
+	log.Log(log.Always, "second signal received; forcefully terminating mongodump")
 	os.Exit(util.ExitKill)
 }
 
