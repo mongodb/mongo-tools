@@ -38,6 +38,13 @@ func (p *PacketHandler) Close() {
 	p.stop <- struct{}{}
 }
 
+func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *tcpassembly.Assembler) {
+	if pkt != nil {
+		log.Printf("processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
+	}
+	assembler.FlushOlderThan(time.Now().Add(time.Second * -5))
+}
+
 func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) error {
 	count := int64(0)
 	start := time.Now()
@@ -66,9 +73,11 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 	}()
 	ticker := time.Tick(time.Second * 1)
 	var pkt gopacket.Packet
+	var pktCount uint
 	for {
 		select {
 		case pkt = <-source.Packets():
+			pktCount++
 			if pkt == nil { // end of pcap file
 				if p.Verbose {
 					log.Println("end of stream")
@@ -93,14 +102,13 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 				}
 				break
 			}
+			select {
+			case <-ticker:
+				bookkeep(pktCount, pkt, assembler)
+			default:
+			}
 		case <-ticker:
-			if pkt != nil {
-				log.Println("processed packet with timestamp", pkt.Metadata().Timestamp.Format(time.RFC3339))
-			}
-			if p.Verbose {
-				log.Println("flushing old streams")
-			}
-			assembler.FlushOlderThan(time.Now().Add(time.Second * -5))
+			bookkeep(pktCount, pkt, assembler)
 		case <-p.stop:
 			assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
 			return nil

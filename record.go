@@ -64,6 +64,8 @@ func getOpstream(cfg opStreamSettings) (*packetHandlerContext, error) {
 	}
 
 	h := NewPacketHandler(pcapHandle)
+	h.Verbose = userInfoLogger.isInVerbosity(DebugLow)
+
 	m := NewMongoOpStream(cfg.packetBufSize)
 	return &packetHandlerContext{h, m, pcapHandle}, nil
 }
