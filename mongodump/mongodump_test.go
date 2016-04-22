@@ -8,6 +8,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
@@ -19,6 +20,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -33,6 +35,7 @@ var (
 
 const (
 	KerberosDumpDirectory = "dump-kerberos"
+	progressBarWaitTime = time.Second * 3
 )
 
 func simpleMongoDumpInstance() *MongoDump {
@@ -64,6 +67,8 @@ func simpleMongoDumpInstance() *MongoDump {
 		ToolOptions:   toolOptions,
 		InputOptions:  inputOptions,
 		OutputOptions: outputOptions,
+		ProgressManager: progress.NewProgressBarManager(log.Writer(0), progressBarWaitTime),
+		HandleSignals: HandleSignals,
 	}
 }
 
