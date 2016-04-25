@@ -19,6 +19,52 @@ type RecordCommand struct {
 	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1000"`
 }
 
+type opStreamSettings struct {
+	networkInterface string
+	pcapFile         string
+	packetBufSize    int
+	expression       string
+}
+
+type packetHandlerContext struct {
+	packetHandler *PacketHandler
+	mongoOpStream *MongoOpStream
+	pcapHandle    *pcap.Handle
+}
+
+func getOpstream(cfg opStreamSettings) (*packetHandlerContext, error) {
+	if cfg.packetBufSize < 1 {
+		return nil, fmt.Errorf("invalid packet buffer size")
+	}
+
+	var pcapHandle *pcap.Handle
+	var err error
+	if len(cfg.pcapFile) > 0 {
+		pcapHandle, err = pcap.OpenOffline(cfg.pcapFile)
+		if err != nil {
+			return nil, fmt.Errorf("error opening pcap file: %v", err)
+		}
+	} else if len(cfg.networkInterface) > 0 {
+		pcapHandle, err = pcap.OpenLive(cfg.networkInterface, 32*1024*1024, false, pcap.BlockForever)
+		if err != nil {
+			return nil, fmt.Errorf("error listening to network interface: %v", err)
+		}
+	} else {
+		return nil, fmt.Errorf("must specify either a pcap file or network interface to record from")
+	}
+
+	if len(cfg.expression) > 0 {
+		err = pcapHandle.SetBPFFilter(cfg.expression)
+		if err != nil {
+			return nil, fmt.Errorf("error setting packet filter expression: %v", err)
+		}
+	}
+
+	h := NewPacketHandler(pcapHandle)
+	m := NewMongoOpStream(cfg.packetBufSize)
+	return &packetHandlerContext{h, m, pcapHandle}, nil
+}
+
 func (record *RecordCommand) ValidateParams(args []string) error {
 	switch {
 	case len(args) > 0:
@@ -35,37 +81,17 @@ func (record *RecordCommand) Execute(args []string) error {
 		return err
 	}
 	record.GlobalOpts.SetLogging()
-
-	if record.PacketBufSize < 1 {
-		return fmt.Errorf("invalid PacketBufSize")
-	}
-
-	var pcapHandle *pcap.Handle
-	if len(record.PcapFile) > 0 {
-		pcapHandle, err = pcap.OpenOffline(record.PcapFile)
-		if err != nil {
-			return fmt.Errorf("error opening pcap file: %v", err)
-		}
-	} else if len(record.NetworkInterface) > 0 {
-		pcapHandle, err = pcap.OpenLive(record.NetworkInterface, 32*1024*1024, false, pcap.BlockForever)
-		if err != nil {
-			return fmt.Errorf("error listening to network interface: %v", err)
-		}
-	} else {
-		return fmt.Errorf("must specify either a pcap file (-f) or network interface (-i) to record from")
-	}
-
-	if len(record.Expression) > 0 {
-		err = pcapHandle.SetBPFFilter(record.Expression)
-		if err != nil {
-			return fmt.Errorf("error setting packet filter expression: %v", err)
-		}
-	}
-
 	toolDebugLogger.Logf(DebugLow, "Opening playback file %v", record.PlaybackFile)
-	output, err := os.Create(record.PlaybackFile)
-	h := NewPacketHandler(pcapHandle)
-	m := NewMongoOpStream(record.PacketBufSize)
+
+	ctx, err := getOpstream(opStreamSettings{
+		networkInterface: record.NetworkInterface,
+		pcapFile:         record.PcapFile,
+		packetBufSize:    record.PacketBufSize,
+		expression:       record.Expression,
+	})
+	if err != nil {
+		return err
+	}
 
 	// When a signal is received to kill the process, stop the packet handler so we
 	// gracefully flush all ops being processed before exiting.
@@ -75,13 +101,15 @@ func (record *RecordCommand) Execute(args []string) error {
 		// Block until a signal is received.
 		s := <-sigChan
 		toolDebugLogger.Logf(Info, "Got signal %v, closing PCAP handle", s)
-		h.Close()
+		ctx.packetHandler.Close()
 	}()
+
+	output, err := os.Create(record.PlaybackFile)
 
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		for op := range m.Ops {
+		for op := range ctx.mongoOpStream.Ops {
 			bsonBytes, err := bson.Marshal(op)
 			if err != nil {
 				ch <- fmt.Errorf("error marshaling message: %v", err)
@@ -96,11 +124,11 @@ func (record *RecordCommand) Execute(args []string) error {
 		ch <- nil
 	}()
 
-	if err := h.Handle(m, -1); err != nil {
+	if err := ctx.packetHandler.Handle(ctx.mongoOpStream, -1); err != nil {
 		fmt.Errorf("record: error handling packet stream:", err)
 	}
 
-	stats, err := pcapHandle.Stats()
+	stats, err := ctx.pcapHandle.Stats()
 	if err != nil {
 		toolDebugLogger.Logf(Always, "Warning: got err %v getting pcap handle stats", err)
 	} else {
