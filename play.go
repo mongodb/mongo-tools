@@ -1,6 +1,7 @@
 package mongotape
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -18,6 +19,7 @@ type PlayCommand struct {
 	Report       string   `long:"report" description:"Write report on execution to given output path"`
 	Repeat       int      `long:"repeat" description:"Number of times to play the playback file" default:"1"`
 	QueueTime    int      `long:"queueTime" description:"don't queue ops much further in the future than this number of seconds" default:"15"`
+	Gzip         bool     `long:"gzip" description:"decompress gzipped input"`
 }
 
 const queueGranularity = 1000
@@ -81,17 +83,52 @@ func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *Record
 	return ch, e
 }
 
+type GzipReadSeeker struct {
+	readSeeker io.ReadSeeker
+	*gzip.Reader
+}
+
+func NewGzipReadSeeker(rs io.ReadSeeker) (*GzipReadSeeker, error) {
+	gzipReader, err := gzip.NewReader(rs)
+	if err != nil {
+		return nil, err
+	}
+	return &GzipReadSeeker{rs, gzipReader}, nil
+
+}
+
+func (g *GzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	if whence != 0 || offset != 0 {
+		return 0, fmt.Errorf("GzipReadSeeker can only seek to beginning of file")
+	}
+	_, err := g.readSeeker.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+	g.Reset(g.readSeeker)
+	return 0, nil
+}
+
 type PlaybackFileReader struct {
 	io.ReadSeeker
 }
 
-func NewPlaybackFileReader(filename string) (*PlaybackFileReader, error) {
-	opFile, err := os.Open(filename)
+func NewPlaybackFileReader(filename string, gzip bool) (*PlaybackFileReader, error) {
+	var readSeeker io.ReadSeeker
+
+	readSeeker, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
-	return &PlaybackFileReader{opFile}, nil
 
+	if gzip {
+		readSeeker, err = NewGzipReadSeeker(readSeeker)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &PlaybackFileReader{readSeeker}, nil
 }
 
 func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
@@ -140,7 +177,7 @@ func (play *PlayCommand) Execute(args []string) error {
 
 	userInfoLogger.Logf(Always, "Doing playback at %.2fx speed", play.Speed)
 
-	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile)
+	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile, play.Gzip)
 	if err != nil {
 		return err
 	}

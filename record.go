@@ -1,8 +1,10 @@
 package mongotape
 
 import (
+	"compress/gzip"
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
+	"io"
 	"os/signal"
 
 	"fmt"
@@ -14,6 +16,7 @@ type RecordCommand struct {
 	GlobalOpts       *Options `no-flag:"true"`
 	PcapFile         string   `short:"f" description:"path to the pcap file to be read"`
 	Expression       string   `short:"e" long:"expr" description:"BPF filter expression to apply to packets for recording"`
+	Gzip             bool     `long:"gzip" description:"compress output file with Gzip"`
 	PlaybackFile     string   `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
 	NetworkInterface string   `short:"i" description:"network interface to listen on"`
 	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1000"`
@@ -65,6 +68,27 @@ func getOpstream(cfg opStreamSettings) (*packetHandlerContext, error) {
 	return &packetHandlerContext{h, m, pcapHandle}, nil
 }
 
+type PlaybackWriter struct {
+	io.WriteCloser
+	fname string
+}
+
+func (record *RecordCommand) NewPlaybackWriter() (*PlaybackWriter, error) {
+	pbWriter := &PlaybackWriter{
+		fname: record.PlaybackFile,
+	}
+	file, err := os.Create(pbWriter.fname)
+	if err != nil {
+		return nil, fmt.Errorf("error opening playback file to write to: %v", err)
+	}
+	if record.Gzip {
+		pbWriter.WriteCloser = gzip.NewWriter(file)
+	} else {
+		pbWriter.WriteCloser = file
+	}
+	return pbWriter, nil
+}
+
 func (record *RecordCommand) ValidateParams(args []string) error {
 	switch {
 	case len(args) > 0:
@@ -103,8 +127,10 @@ func (record *RecordCommand) Execute(args []string) error {
 		toolDebugLogger.Logf(Info, "Got signal %v, closing PCAP handle", s)
 		ctx.packetHandler.Close()
 	}()
-
-	output, err := os.Create(record.PlaybackFile)
+	playbackWriter, err := record.NewPlaybackWriter()
+	if err != nil {
+		return err
+	}
 
 	ch := make(chan error)
 	go func() {
@@ -115,7 +141,7 @@ func (record *RecordCommand) Execute(args []string) error {
 				ch <- fmt.Errorf("error marshaling message: %v", err)
 				return
 			}
-			_, err = output.Write(bsonBytes)
+			_, err = playbackWriter.Write(bsonBytes)
 			if err != nil {
 				ch <- fmt.Errorf("error writing message: %v", err)
 				return

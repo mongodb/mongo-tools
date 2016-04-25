@@ -9,6 +9,7 @@ import (
 
 type StatCommand struct {
 	GlobalOpts   *Options `no-flag:"true"`
+	Gzip         bool     `long:"gzip" description:"decompress gzipped input"`
 	PlaybackFile string   `description:"path to the playback file to analyze for stats" short:"p" long:"playback-file" required:"yes"`
 	Report       string   `long:"report" description:"Write report on execution to given output path" required:"yes"`
 }
@@ -47,7 +48,7 @@ func (gen *StaticStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply
 
 func (stat *StatCommand) Execute(args []string) error {
 	stat.GlobalOpts.SetLogging()
-	playbackFileReader, err := NewPlaybackFileReader(stat.PlaybackFile)
+	playbackFileReader, err := NewPlaybackFileReader(stat.PlaybackFile, stat.Gzip)
 	if err != nil {
 		return err
 	}
