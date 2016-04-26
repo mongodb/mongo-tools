@@ -27,6 +27,7 @@ mongo_tools_variables:
     osx_1010_ssl_task_list: &osx_1010_ssl_tasks
       - name: dist
       - name: qa-tests
+      - name: native-cert-ssl
     solaris_task_list: &solaris_tasks
       - name: db
       - name: dist
@@ -58,6 +59,7 @@ mongo_tools_variables:
       - name: legacy28
       - name: qa-tests
       - name: qa-tests-unstable
+      - name: native-cert-ssl
     ubuntu1204_enterprise_task_list: &ubuntu1204_enterprise_tasks
       - name: db
       - name: dist
@@ -68,6 +70,7 @@ mongo_tools_variables:
       - name: legacy26
       - name: legacy24
       - name: qa-tests
+      - name: native-cert-ssl
     ubuntu1204_race_task_list: &ubuntu1204_race_tasks
       - name: db
       - name: dist
@@ -127,6 +130,7 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy28
       - name: qa-tests
+      - name: native-cert-ssl
     windows_64_enterprise_task_list: &windows_64_enterprise_tasks
       - name: db
       - name: dist
@@ -140,6 +144,7 @@ mongo_tools_variables:
         distros:
         - windows-64-vs2013-test
       - name: unit
+      - name: native-cert-ssl
     rhel71_enterprise_task_list: &rhel71_enterprise_tasks
       - name: db
       - name: dist
@@ -151,6 +156,7 @@ mongo_tools_variables:
       - name: qa-tests
       - name: qa-tests-unstable
       - name: qa-tests-wt
+      - name: native-cert-ssl
     rhel72_enterprise_task_list: &rhel72_enterprise_tasks
       - name: db
       - name: dist
@@ -161,6 +167,7 @@ mongo_tools_variables:
       - name: qa-dump-restore-gzip
       - name: qa-tests-unstable
       - name: qa-tests-wt
+      - name: native-cert-ssl
     ubuntu1604_ssl_task_list: &ubuntu1604_ssl_tasks
       - name: db
       - name: dist
@@ -170,6 +177,7 @@ mongo_tools_variables:
       - name: qa-dump-restore-gzip
       - name: qa-tests-unstable
       - name: qa-tests-wt
+      - name: native-cert-ssl
 
 
 ## Common mongodb arguments
@@ -1059,6 +1067,67 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
+
+- name: native-cert-ssl
+  depends_on:
+  - name: dist
+  commands:
+    - command: git.get_project
+      params:
+        directory: src
+    - command: git.apply_patch
+      params:
+        directory: src
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "latest"
+    - func: "fetch tool"
+      vars:
+        tool: mongoimport
+    - func: "fetch tool"
+      vars:
+        tool: mongoexport
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "fetch tool"
+      vars:
+        tool: mongostat
+    - func: "fetch tool"
+      vars:
+        tool: mongotop
+    - func: "fetch tool"
+      vars:
+        tool: mongooplog
+    - func: "fetch tool"
+      vars:
+        tool: mongofiles
+    - func: "fetch tool"
+      vars:
+        tool: bsondump
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          set -e
+          mv ./mongodb/mongod${extension} .
+          mv ./mongodb/mongo${extension} .
+          mv ./mongodb/mongos${extension} .
+          mv test/qa-tests/* .
+          chmod +x mongo*
+          chmod +x bsondump*
+          rm -rf /data/install /data/multiversion
+          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
+          chmod 400 jstests/libs/key*
+
+          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
 
 - name: qa-dump-restore-archiving
   depends_on:

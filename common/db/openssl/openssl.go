@@ -35,7 +35,7 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 
 	var flags openssl.DialFlags
 	flags = 0
-	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.SSLCAFile == "" {
+	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
 		flags = openssl.InsecureSkipHostVerification
 	}
 	// create the dialer func that will be used to connect
@@ -139,19 +139,23 @@ func setupCtx(opts options.ToolOptions) (*openssl.Ctx, error) {
 			return nil, fmt.Errorf("LoadClientCAFile: %v", err)
 		}
 		ctx.SetClientCAList(calist)
-
 		if err = ctx.LoadVerifyLocations(opts.SSLCAFile, ""); err != nil {
 			return nil, fmt.Errorf("LoadVerifyLocations: %v", err)
 		}
-
-		var verifyOption openssl.VerifyOptions
-		if opts.SSLAllowInvalidCert {
-			verifyOption = openssl.VerifyNone
-		} else {
-			verifyOption = openssl.VerifyPeer
+	} else {
+		err = ctx.SetupSystemCA()
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up system certificate authority: %v", err)
 		}
-		ctx.SetVerify(verifyOption, nil)
 	}
+
+	var verifyOption openssl.VerifyOptions
+	if opts.SSLAllowInvalidCert {
+		verifyOption = openssl.VerifyNone
+	} else {
+		verifyOption = openssl.VerifyPeer
+	}
+	ctx.SetVerify(verifyOption, nil)
 
 	if opts.SSLCRLFile != "" {
 		store := ctx.GetCertificateStore()
