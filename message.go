@@ -72,8 +72,8 @@ var goodOpCode = map[int32]bool{
 	2005: true, //OP_GET_MORE	Get more data from a query. See Cursors.
 	2006: true, //OP_DELETE	        Delete documents.
 	2007: true, //OP_KILL_CURSORS   Notify database that the client has finished with the cursor.
-	2011: true, //OP_COMMAND        A new wire protocol message representing a command request
-	2012: true, //OP_COMMANDREPLY   A new wire protocol message representing a command
+	2010: true, //OP_COMMAND        A new wire protocol message representing a command request
+	2011: true, //OP_COMMANDREPLY   A new wire protocol message representing a command
 }
 
 // LooksReal does a best efffort to detect if a MsgHeadr is not invalid

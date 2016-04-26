@@ -175,6 +175,20 @@ type KillCursorsOp struct {
 	CursorIds []int64
 }
 
+type CommandOp struct {
+	Database    string
+	CommandName string
+	Metadata    interface{}
+	CommandArgs interface{}
+	InputDocs   []interface{}
+}
+
+type CommandReplyOp struct {
+	Metadata     interface{}
+	CommandReply interface{}
+	OutputDocs   []interface{}
+}
+
 func (op *GetMoreOp) SetReplyFunc(reply replyFunc) {
 	op.replyFunc = reply
 }

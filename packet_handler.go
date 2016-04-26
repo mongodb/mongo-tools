@@ -114,5 +114,4 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 			return nil
 		}
 	}
-	return nil
 }

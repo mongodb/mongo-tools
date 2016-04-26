@@ -32,7 +32,7 @@ func (op *UpdateOp) String() string {
 	if err != nil {
 		return fmt.Sprintf("%v", err)
 	}
-	return fmt.Sprintf("OpQuery %v %v %v", op.Collection, selectorString, updateString)
+	return fmt.Sprintf("OpUpdate %v %v %v", op.Collection, selectorString, updateString)
 }
 
 func (op *UpdateOp) getOpBodyString() (string, string, error) {

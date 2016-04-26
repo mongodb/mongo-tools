@@ -75,6 +75,10 @@ func (rawOp *RawOp) Parse() (Op, error) {
 		parsedOp = &DeleteOp{Header: rawOp.Header}
 	case OpCodeUpdate:
 		parsedOp = &UpdateOp{Header: rawOp.Header}
+	case OpCodeCommand:
+		parsedOp = &CommandOp{Header: rawOp.Header}
+	case OpCodeCommandReply:
+		parsedOp = &CommandReplyOp{Header: rawOp.Header}
 	default:
 		return nil, nil
 	}

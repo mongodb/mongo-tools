@@ -28,6 +28,10 @@ func (c OpCode) String() string {
 		return "delete"
 	case OpCodeKillCursors:
 		return "kill_cursors"
+	case OpCodeCommand:
+		return "command"
+	case OpCodeCommandReply:
+		return "command_reply"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", c)
 	}
@@ -36,13 +40,15 @@ func (c OpCode) String() string {
 // The full set of known request op codes:
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#request-opcodes
 const (
-	OpCodeReply       = OpCode(1)
-	OpCodeMessage     = OpCode(1000)
-	OpCodeUpdate      = OpCode(2001)
-	OpCodeInsert      = OpCode(2002)
-	OpCodeReserved    = OpCode(2003)
-	OpCodeQuery       = OpCode(2004)
-	OpCodeGetMore     = OpCode(2005)
-	OpCodeDelete      = OpCode(2006)
-	OpCodeKillCursors = OpCode(2007)
+	OpCodeReply        = OpCode(1)
+	OpCodeMessage      = OpCode(1000)
+	OpCodeUpdate       = OpCode(2001)
+	OpCodeInsert       = OpCode(2002)
+	OpCodeReserved     = OpCode(2003)
+	OpCodeQuery        = OpCode(2004)
+	OpCodeGetMore      = OpCode(2005)
+	OpCodeDelete       = OpCode(2006)
+	OpCodeKillCursors  = OpCode(2007)
+	OpCodeCommand      = OpCode(2010)
+	OpCodeCommandReply = OpCode(2011)
 )

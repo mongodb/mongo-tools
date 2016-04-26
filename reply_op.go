@@ -26,7 +26,7 @@ func (opr *ReplyOp) String() string {
 	if opr == nil {
 		return "Reply NIL"
 	}
-	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%s, cursorid:%s, first:%s ndocs:%s] docs:%s",
+	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
 		opr.Latency,
 		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
 		stringifyReplyDocs(opr.Docs),
@@ -36,7 +36,7 @@ func (opr *ReplyOp) Abbreviated(chars int) string {
 	if opr == nil {
 		return "Reply NIL"
 	}
-	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%s, cursorid:%s, first:%s ndocs:%s] docs:%s",
+	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
 		opr.Latency,
 		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
 		Abbreviate(stringifyReplyDocs(opr.Docs), chars),
