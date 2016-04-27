@@ -32,7 +32,7 @@ type ExecutionContext struct {
 	CursorIdMap *cache.Cache
 
 	// lock synchronizes access to all of the caches and maps in the ExecutionContext
-	lock sync.Mutex
+	sync.RWMutex
 
 	SessionChansWaitGroup sync.WaitGroup
 	StatCollector
@@ -71,7 +71,7 @@ func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *Rec
 }
 
 func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, opSource int) {
-	context.lock.Lock()
+	context.Lock()
 	if cacheValue, ok := context.IncompleteReplies.Get(key); !ok {
 		rp := &ReplyPair{}
 		rp.ops[opSource] = reply
@@ -84,23 +84,41 @@ func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, o
 			context.IncompleteReplies.Delete(key)
 		}
 	}
-	context.lock.Unlock()
+	context.Unlock()
 }
 
-func (context *ExecutionContext) fixupOpGetMore(opGM *GetMoreOp) {
-	userInfoLogger.Logf(DebugLow, "Rewriting getmore cursorid with CursorId: %v", opGM.CursorId)
-	context.lock.Lock()
-	value, ok := context.CursorIdMap.Get(strconv.FormatInt(opGM.CursorId, 10))
-	context.lock.Unlock()
+func (context *ExecutionContext) fixupGetMoreOp(getmoreOp *GetMoreOp) {
+	userInfoLogger.Logf(DebugLow, "Rewriting getmore cursor with ID: %v", getmoreOp.CursorId)
+	context.RLock()
+	value, ok := context.CursorIdMap.Get(strconv.FormatInt(getmoreOp.CursorId, 10))
+	context.RUnlock()
 	if !ok {
-		userInfoLogger.Logf(Always, "Missing mapped cursor ID for raw cursor ID: %v", opGM.CursorId)
+		userInfoLogger.Logf(Always, "Missing mapped cursorId for raw cursorId : %v in GetMoreOp", getmoreOp.CursorId)
 	} else {
-		opGM.CursorId = value.(int64)
+		getmoreOp.CursorId = value.(int64)
 	}
 }
 
+func (context *ExecutionContext) fixupKillCursorsOp(killcursorsOp *KillCursorsOp) {
+
+	index := 0
+	for _, cursorId := range killcursorsOp.CursorIds {
+		userInfoLogger.Logf(DebugLow, "Rewriting killcursors cursorId : %v", cursorId)
+		context.RLock()
+		value, ok := context.CursorIdMap.Get(strconv.FormatInt(cursorId, 10))
+		context.RUnlock()
+		if ok {
+			killcursorsOp.CursorIds[index] = value.(int64)
+			index++
+		} else {
+			userInfoLogger.Logf(Always, "Missing mapped cursorId for raw cursorId : %v in KillCursorsOp", cursorId)
+		}
+	}
+	killcursorsOp.CursorIds = killcursorsOp.CursorIds[0:index]
+}
+
 func (context *ExecutionContext) handleCompletedReplies() {
-	context.lock.Lock()
+	context.Lock()
 	for key, rp := range context.CompleteReplies {
 		userInfoLogger.Logf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
 		if rp.ops[ReplyFromFile].CursorId != 0 {
@@ -108,7 +126,7 @@ func (context *ExecutionContext) handleCompletedReplies() {
 		}
 		delete(context.CompleteReplies, key)
 	}
-	context.lock.Unlock()
+	context.Unlock()
 }
 
 func (context *ExecutionContext) newExecutionSession(url string, start time.Time, connectionNum int64) chan<- *RecordedOp {
@@ -182,12 +200,15 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		context.AddFromFile(&recordedReply.ReplyOp, op)
 	} else {
 
-		if opGM, ok := opToExec.(*GetMoreOp); ok {
-			context.fixupOpGetMore(opGM)
-		}
-
 		if IsDriverOp(opToExec) {
 			return opToExec, replyOp, nil
+		}
+
+		switch t := opToExec.(type) {
+		case *GetMoreOp:
+			context.fixupGetMoreOp(t)
+		case *KillCursorsOp:
+			context.fixupKillCursorsOp(t)
 		}
 
 		op.PlayedAt = time.Now()

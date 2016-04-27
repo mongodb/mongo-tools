@@ -409,6 +409,124 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	}
 }
 
+//TestOpKillCursorsLiveDB tests the functionality of killcursors using multiple cursors against a live database.
+//It generates a series of inserts followed by two seperate queries. It then uses each of those queries to generate multiple getmores.
+//Finally, it runs a killcursors op and one getmore for each killed cursor
+//TestOpKillCursorsLiveDB uses a BufferedStatCollector to ensure that each killcursors played against the database is executed and recieves
+//the response expected
+func TestOpKillCursorsLiveDB(t *testing.T) {
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+	generator := newRecordedOpGenerator()
+	var cursor1 int64 = 123
+	var cursor2 int64 = 456
+	numInserts := 20
+	insertName := "LiveDB KillCursors Test"
+	go func() {
+		defer close(generator.opChan)
+
+		//generate numInserts RecordedOp inserts and send them to a channel to be played in mongotape's main Play function
+		t.Logf("Generating %v inserts\n", numInserts)
+		err := generator.generateInsertHelper(insertName, 0, numInserts)
+		if err != nil {
+			t.Error(err)
+		}
+		querySelection := bson.D{{}}
+		var responseId1 int32 = 2
+		//generate a first query with a known requestId
+		t.Log("Generating query/reply pair")
+		err = generator.generateQuery(querySelection, 2, responseId1)
+		if err != nil {
+			t.Error(err)
+		}
+
+		//generate a reply with a known cursorId to be the direct response to the first Query
+		err = generator.generateReply(responseId1, cursor1, 0)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var responseId2 int32 = 3
+		t.Log("Generating query/reply pair")
+		//generate a second query with a different requestId
+		err = generator.generateQuery(querySelection, 2, responseId2)
+		if err != nil {
+			t.Error(err)
+		}
+		//generate a reply to the second query with another known cursorId
+		err = generator.generateReply(responseId2, cursor2, 0)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("Generating getmores")
+		//Issue two getmores, one with each cursorId
+		err = generator.generateGetMore(cursor2, 2)
+		if err != nil {
+			t.Error(err)
+		}
+		err = generator.generateGetMore(cursor1, 2)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("Generating killcursors")
+		//issue a KillCursor to kill these cursors on the database
+		err = generator.generateKillCursors([]int64{cursor1, cursor2})
+		if err != nil {
+			t.Error(err)
+		}
+		//Issue two more getmores, one with each cursorId that should have been killed
+		err = generator.generateGetMore(cursor2, 2)
+		if err != nil {
+			t.Error(err)
+		}
+		err = generator.generateGetMore(cursor1, 2)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+	statRec := NewBufferedStatRecorder()
+	context := NewExecutionContext(statRec)
+
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
+	if err != nil {
+		t.Errorf("Error Playing traffic: %v\n", err)
+	}
+	t.Log("Completed Mongotape playback of generated traffic")
+
+	t.Log("Examining collected getMores and replies to ensure they match expected")
+
+	for i := 0; i < 2; i++ {
+		stat := statRec.Buffer[numInserts+2+i]
+		t.Logf("Stat result: %#v\n", stat)
+		if stat.OpType != "getmore" ||
+			stat.NumReturned != 2 ||
+			stat.Ns != "mongotape.test" { //ensure that the operations in the BufferedStatCollector match what expected
+			t.Errorf("Getmore Not matched: %#v\n", stat)
+		}
+	}
+	stat := statRec.Buffer[numInserts+2+2]
+	t.Logf("Stat result: %#v\n", stat)
+	if stat.OpType != "killcursors" { //ensure that the operations in the BufferedStatCollector match what expected
+		t.Errorf("KillCursors Not matched: %#v\n", stat)
+	}
+	for i := 0; i < 2; i++ {
+		stat := statRec.Buffer[numInserts+5+i]
+		t.Logf("Stat result: %#v\n", stat)
+		if stat.OpType != "getmore" ||
+			stat.NumReturned != 0 ||
+			stat.Ns != "mongotape.test" { //ensure that the operations in the BufferedStatCollector match what expected
+			t.Errorf("Getmore Not matched: %#v\n", stat)
+		}
+	}
+
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+}
+
 func teardownDB() error {
 	session, err := mgo.Dial(currentTestServerUrl)
 	if err != nil {
@@ -527,6 +645,21 @@ func (generator *recordedOpGenerator) generateReply(responseTo int32, cursorId i
 	tempEnd := recordedOp.SrcEndpoint
 	recordedOp.SrcEndpoint = recordedOp.DstEndpoint
 	recordedOp.DstEndpoint = tempEnd
+	generator.pushDriverRequestOps(recordedOp)
+	return nil
+}
+
+//generateKillCursorsOp creates a RecordedOp killCursors using the given cursorIds and pushes it to the recordedOpGenerator's channel
+//to be executed when Play() is called
+func (generator *recordedOpGenerator) generateKillCursors(cursorIds []int64) error {
+	killCursors := mgo.KillCursorsOp{
+		CursorIds: cursorIds,
+	}
+
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&killCursors)
+	if err != nil {
+		return err
+	}
 	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }
