@@ -4,6 +4,7 @@ if (typeof getToolTest === 'undefined') {
 
 (function() {
   resetDbpath('dump');
+  var targetPath = "forceTableScanDumpTest";
   var toolTest = getToolTest('forceTableScanTest');
   var commonToolArgs = getCommonToolArguments();
 
@@ -31,7 +32,7 @@ if (typeof getToolTest === 'undefined') {
   assert.gt(countBeforeMongodump, 0);
 
   var dumpArgs = ['dump', '--forceTableScan'].
-      concat(getDumpTarget()).
+      concat(getDumpTarget(targetPath)).
       concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump --forceTableScan should succeed');
@@ -46,7 +47,7 @@ if (typeof getToolTest === 'undefined') {
   // be careful to set this.
   var restoreArgs = ['restore', '--batchSize', '1',
     '--drop'].
-        concat(getRestoreTarget()).
+        concat(getRestoreTarget(targetPath)).
         concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');

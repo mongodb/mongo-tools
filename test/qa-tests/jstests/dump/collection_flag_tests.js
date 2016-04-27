@@ -4,6 +4,7 @@ if (typeof getToolTest === 'undefined') {
 
 (function() {
   resetDbpath('dump');
+  var targetPath = "collFlags"
   var toolTest = getToolTest('collectionFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -21,7 +22,7 @@ if (typeof getToolTest === 'undefined') {
   // Running mongodump with `--collection bar` and no '--db' flag should throw
   // an error
   var dumpArgs = ['dump', '--collection', 'bar'].
-      concat(getDumpTarget()).
+      concat(getDumpTarget(targetPath)).
       concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should exit with a non-zero status when --collection is ' +
@@ -31,7 +32,7 @@ if (typeof getToolTest === 'undefined') {
   // the 'foo' database and ignore the 'baz' database
   resetDbpath('dump');
   var dumpArgs = ['dump', '--collection', 'bar', '--db', 'foo'].
-    concat(getDumpTarget()).
+    concat(getDumpTarget(targetPath)).
     concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should succeed when both --collection and --db are specified');
@@ -41,7 +42,7 @@ if (typeof getToolTest === 'undefined') {
   assert.eq(0, db.getSiblingDB('baz').bar.count());
 
   var restoreArgs = ['restore'].
-      concat(getRestoreTarget()).
+      concat(getRestoreTarget(targetPath)).
       concat(commonToolArgs);
   toolTest.runTool.apply(toolTest, restoreArgs);
   assert.eq(1, db.bar.count());

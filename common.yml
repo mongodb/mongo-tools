@@ -1448,6 +1448,7 @@ buildvariants:
     build_tags: -tags "ssl"
     arch: "linux/x86_64"
     integration_test_args: integration
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks: *ubuntu1204_tasks
 
 - name: ubuntu-ssl
@@ -1463,6 +1464,7 @@ buildvariants:
     arch: "linux/x86_64"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     integration_test_args: "integration,ssl"
   tasks: *ubuntu1204_ssl_tasks
 
@@ -1481,6 +1483,7 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     integration_test_args: integration
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks: *ubuntu1204_enterprise_tasks
 
 - name: rhel71-ppc64le-enterprise
@@ -1496,7 +1499,7 @@ buildvariants:
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     resmoke_use_ssl: _ssl
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    resmoke_args: --excludeWithAnyTags=requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: --excludeWithAnyTags=requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
@@ -1514,6 +1517,7 @@ buildvariants:
     <<: *mongo_url_solaris
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    resmoke_args: -j$(kstat cpu | sort -u | grep -c "^module")
   tasks: *solaris_tasks
 
 #######################################

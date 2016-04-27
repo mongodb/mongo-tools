@@ -4,6 +4,7 @@ if (typeof getToolTest === 'undefined') {
 
 (function() {
   resetDbpath('dump');
+  var targetPath = "oplogFlagDumpTest";
   var toolTest = getToolTest('oplogFlagTest');
   var commonToolArgs = getCommonToolArguments();
 
@@ -34,7 +35,7 @@ if (typeof getToolTest === 'undefined') {
   assert.gt(countBeforeMongodump, 1000);
 
   var dumpArgs = ['dump', '--oplog'].
-      concat(getDumpTarget()).
+      concat(getDumpTarget(targetPath)).
       concat(commonToolArgs);
 
   if (toolTest.isReplicaSet) {
@@ -49,7 +50,7 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(0, db.bar.count());
 
     var restoreArgs = ['restore'].
-        concat(getRestoreTarget()).
+        concat(getRestoreTarget(targetPath)).
         concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
       'mongorestore should succeed');
@@ -67,7 +68,7 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(0, db.bar.count());
 
     var restoreArgs = ['restore'].
-        concat(getRestoreTarget()).
+        concat(getRestoreTarget(targetPath)).
         concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
       'mongorestore should succeed');
