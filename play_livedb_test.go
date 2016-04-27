@@ -4,7 +4,6 @@ import (
 	"fmt"
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongotape/mongoproto"
 	"os"
 	"testing"
 	"time"
@@ -524,7 +523,7 @@ func (generator *recordedOpGenerator) generateReply(responseTo int32, cursorId i
 	}
 
 	recordedOp.RawOp.Header.ResponseTo = responseTo
-	mongoproto.SetInt64(recordedOp.RawOp.Body, 4, cursorId) //change the cursorId field in the RawOp.Body
+	SetInt64(recordedOp.RawOp.Body, 4, cursorId) //change the cursorId field in the RawOp.Body
 	tempEnd := recordedOp.SrcEndpoint
 	recordedOp.SrcEndpoint = recordedOp.DstEndpoint
 	recordedOp.DstEndpoint = tempEnd
@@ -544,12 +543,12 @@ func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (
 	if err != nil {
 		return nil, fmt.Errorf("Socket.Query: %v\n", err)
 	}
-	msg, err := mongoproto.ReadHeader(generator.serverConnection)
+	msg, err := ReadHeader(generator.serverConnection)
 	if err != nil {
 		return nil, fmt.Errorf("ReadHeader Error: %v\n", err)
 	}
-	result := mongoproto.RawOp{Header: *msg}
-	result.Body = make([]byte, mongoproto.MsgHeaderLen)
+	result := RawOp{Header: *msg}
+	result.Body = make([]byte, MsgHeaderLen)
 	result.FromReader(generator.serverConnection)
 
 	recordedOp := &RecordedOp{RawOp: result, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}

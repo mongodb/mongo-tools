@@ -5,7 +5,6 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongotape/mongoproto"
 	"reflect"
 )
 
@@ -18,7 +17,7 @@ type testDoc struct {
 func TestOpGetMore(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
-	op := mongoproto.GetMoreOp{}
+	op := GetMoreOp{}
 	op.Collection = "mongotape_test.test"
 	op.CursorId = 12345
 	op.Limit = -1
@@ -33,7 +32,7 @@ func TestOpGetMore(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	getMoreOp := receivedOp.(*mongoproto.GetMoreOp)
+	getMoreOp := receivedOp.(*GetMoreOp)
 
 	t.Log("Comparing parsed Getmore to original Getmore")
 	switch {
@@ -49,7 +48,7 @@ func TestOpGetMore(t *testing.T) {
 func TestOpDelete(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
-	op := mongoproto.DeleteOp{}
+	op := DeleteOp{}
 	op.Collection = "mongotape_test.test"
 	op.Flags = 7
 	selector := bson.D{{"test", 1}}
@@ -65,7 +64,7 @@ func TestOpDelete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	deleteOp := receivedOp.(*mongoproto.DeleteOp)
+	deleteOp := receivedOp.(*DeleteOp)
 
 	t.Log("Comparing parsed Delete to original Delete")
 	switch {
@@ -81,7 +80,7 @@ func TestOpDelete(t *testing.T) {
 func TestInsertOp(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
-	op := mongoproto.InsertOp{}
+	op := InsertOp{}
 	op.Collection = "mongotape_test.test"
 	op.Flags = 7
 
@@ -104,7 +103,7 @@ func TestInsertOp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	insertOp := receivedOp.(*mongoproto.InsertOp)
+	insertOp := receivedOp.(*InsertOp)
 
 	t.Log("Comparing parsed Insert to original Insert")
 	switch {
@@ -127,7 +126,7 @@ func TestInsertOp(t *testing.T) {
 func TestKillCursorsOp(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
-	op := mongoproto.KillCursorsOp{}
+	op := KillCursorsOp{}
 	op.CursorIds = []int64{123, 456, 789, 55}
 
 	t.Logf("Generated KillCursors: %#v\n", op.KillCursorsOp)
@@ -140,7 +139,7 @@ func TestKillCursorsOp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	killCursorsOp := receivedOp.(*mongoproto.KillCursorsOp)
+	killCursorsOp := receivedOp.(*KillCursorsOp)
 
 	t.Log("Comparing parsed KillCursors to original KillCursors")
 	if !reflect.DeepEqual(killCursorsOp.CursorIds, op.CursorIds) {
@@ -151,7 +150,7 @@ func TestKillCursorsOp(t *testing.T) {
 func TestQueryOp(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
-	op := mongoproto.QueryOp{}
+	op := QueryOp{}
 	op.Collection = "mongotape_test.test"
 	op.Flags = 0
 	op.HasOptions = true
@@ -174,7 +173,7 @@ func TestQueryOp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	queryOp := receivedOp.(*mongoproto.QueryOp)
+	queryOp := receivedOp.(*QueryOp)
 
 	t.Log("Comparing parsed Query to original Query")
 	switch {
@@ -195,7 +194,7 @@ func TestQueryOp(t *testing.T) {
 func TestOpUpdate(t *testing.T) {
 	generator := newRecordedOpGenerator()
 
-	op := mongoproto.UpdateOp{}
+	op := UpdateOp{}
 	selector := bson.D{{"test", 1}}
 	op.Selector = selector
 	update := bson.D{{"$set", bson.D{{"updated", true}}}}
@@ -214,7 +213,7 @@ func TestOpUpdate(t *testing.T) {
 		t.Error(err)
 	}
 
-	updateOp := receivedOp.(*mongoproto.UpdateOp)
+	updateOp := receivedOp.(*UpdateOp)
 	t.Log("Comparing parsed Update to original Update")
 	switch {
 	case updateOp.Collection != op.Collection:

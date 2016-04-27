@@ -2,7 +2,6 @@ package mongotape
 
 import (
 	"fmt"
-	"github.com/10gen/mongotape/mongoproto"
 	"io"
 	"time"
 )
@@ -16,13 +15,13 @@ type StatCommand struct {
 
 type UnresolvedOpInfo struct {
 	Stat     *OpStat
-	ParsedOp mongoproto.Op
+	ParsedOp Op
 	Op       *RecordedOp
 }
 
 //AddUnresolved takes an operation that is supposed to receive a reply and keeps it around so that its latency can be calculated
 //using the incoming reply
-func (gen *StaticStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp mongoproto.Op, stat *OpStat) {
+func (gen *StaticStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, stat *OpStat) {
 	key := fmt.Sprintf("%v:%v:%d", op.SrcEndpoint, op.DstEndpoint, op.Header.RequestID)
 	unresolvedOp := UnresolvedOpInfo{
 		Stat:     stat,
@@ -32,7 +31,7 @@ func (gen *StaticStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp mongopr
 	gen.UnresolvedOps[key] = unresolvedOp
 }
 
-func (gen *StaticStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply *mongoproto.ReplyOp) *OpStat {
+func (gen *StaticStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply *ReplyOp) *OpStat {
 	key := fmt.Sprintf("%v:%v:%d", recordedReply.DstEndpoint, recordedReply.SrcEndpoint, recordedReply.Header.ResponseTo)
 	originalOpInfo, ok := gen.UnresolvedOps[key]
 	if !ok {
@@ -80,7 +79,7 @@ func (stat *StatCommand) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		if !mongoproto.IsDriverOp(parsedOp) {
+		if !IsDriverOp(parsedOp) {
 			statColl.Collect(recordedOp, parsedOp, nil, "")
 		}
 		order++

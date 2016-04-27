@@ -7,7 +7,6 @@ import (
 	"time"
 
 	mgo "github.com/10gen/llmgo"
-	"github.com/10gen/mongotape/mongoproto"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -88,7 +87,7 @@ func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, o
 	context.lock.Unlock()
 }
 
-func (context *ExecutionContext) fixupOpGetMore(opGM *mongoproto.GetMoreOp) {
+func (context *ExecutionContext) fixupOpGetMore(opGM *GetMoreOp) {
 	userInfoLogger.Logf(DebugLow, "Rewriting getmore cursorid with CursorId: %v", opGM.CursorId)
 	context.lock.Lock()
 	value, ok := context.CursorIdMap.Get(strconv.FormatInt(opGM.CursorId, 10))
@@ -129,8 +128,8 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 			userInfoLogger.Logf(Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
 		}
 		for recordedOp := range ch {
-			var parsedOp mongoproto.Op
-			var reply *mongoproto.ReplyOp
+			var parsedOp Op
+			var reply *ReplyOp
 			var err error
 			msg := ""
 			if connected {
@@ -138,7 +137,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				// This allows it to be used for downstream reporting of stats.
 				recordedOp.ConnectionNum = connectionNum
 				t := time.Now()
-				if recordedOp.RawOp.Header.OpCode != mongoproto.OpCodeReply {
+				if recordedOp.RawOp.Header.OpCode != OpCodeReply {
 					if t.Before(recordedOp.PlayAt) {
 						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
@@ -168,9 +167,9 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 	return ch
 }
 
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (mongoproto.Op, *mongoproto.ReplyOp, error) {
+func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, *ReplyOp, error) {
 	opToExec, err := op.RawOp.Parse()
-	var replyOp *mongoproto.ReplyOp
+	var replyOp *ReplyOp
 
 	if err != nil {
 		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
@@ -179,15 +178,15 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		toolDebugLogger.Logf(Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
 		return nil, nil, nil
 	}
-	if recordedReply, ok := opToExec.(*mongoproto.ReplyOp); ok {
+	if recordedReply, ok := opToExec.(*ReplyOp); ok {
 		context.AddFromFile(&recordedReply.ReplyOp, op)
 	} else {
 
-		if opGM, ok := opToExec.(*mongoproto.GetMoreOp); ok {
+		if opGM, ok := opToExec.(*GetMoreOp); ok {
 			context.fixupOpGetMore(opGM)
 		}
 
-		if mongoproto.IsDriverOp(opToExec) {
+		if IsDriverOp(opToExec) {
 			return opToExec, replyOp, nil
 		}
 
@@ -212,7 +211,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 			if userInfoLogger.isInVerbosity(Info) {
 				userInfoLogger.Logf(DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp.Abbreviated(256))
 			}
-			cursorId, err := mongoproto.GetCursorId(&replyOp.ReplyOp, replyOp.Docs)
+			cursorId, err := GetCursorId(&replyOp.ReplyOp, replyOp.Docs)
 			if err != nil {
 				toolDebugLogger.Logf(Always, "Warning: error when trying to find cursor ID in reply: %v", err)
 			}

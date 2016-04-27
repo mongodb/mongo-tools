@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	mgo "github.com/10gen/llmgo"
-	"github.com/10gen/mongotape/mongoproto"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 )
@@ -22,8 +21,8 @@ func TestCompleteReply(t *testing.T) {
 	recordedOp1 := &RecordedOp{
 		DstEndpoint: "a",
 		SrcEndpoint: "b",
-		RawOp: mongoproto.RawOp{
-			Header: mongoproto.MsgHeader{
+		RawOp: RawOp{
+			Header: MsgHeader{
 				RequestID: 1000,
 			},
 		},
@@ -38,8 +37,8 @@ func TestCompleteReply(t *testing.T) {
 	recordedOp2 := &RecordedOp{
 		DstEndpoint: "b",
 		SrcEndpoint: "a",
-		RawOp: mongoproto.RawOp{
-			Header: mongoproto.MsgHeader{
+		RawOp: RawOp{
+			Header: MsgHeader{
 				ResponseTo: 1000,
 			},
 		},

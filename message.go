@@ -1,4 +1,4 @@
-package mongoproto
+package mongotape
 
 import (
 	"fmt"
@@ -57,7 +57,7 @@ func (m *MsgHeader) WriteTo(w io.Writer) error {
 		return err
 	}
 	if n != len(b) {
-		return fmt.Errorf("mongoproto: attempted to write %d but wrote %d", len(b), n)
+		return fmt.Errorf("attempted to write %d but wrote %d", len(b), n)
 	}
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongotape/mongoproto"
 	"io"
 	"os"
 	"reflect"
@@ -86,7 +85,7 @@ func (statColl *StatCollector) Close() error {
 
 //StatGenerator is an interface that specifies how to accept operation information to be recorded
 type StatGenerator interface {
-	GenerateOpStat(op *RecordedOp, replayedOp mongoproto.Op, reply *mongoproto.ReplyOp, msg string) *OpStat
+	GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat
 	Finalize(chan *OpStat)
 }
 
@@ -108,7 +107,7 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, bool) {
 }
 
 // extractErrors inspects a request/reply pair and returns all the error messages that were found.
-func extractErrors(op mongoproto.Op, reply *mongoproto.ReplyOp) []string {
+func extractErrors(op Op, reply *ReplyOp) []string {
 	if len(reply.Docs) == 0 {
 		return nil
 	}
@@ -123,7 +122,7 @@ func extractErrors(op mongoproto.Op, reply *mongoproto.ReplyOp) []string {
 		retVal = append(retVal, fmt.Sprintf("%v", val))
 	}
 
-	if qop, ok := op.(*mongoproto.QueryOp); ok {
+	if qop, ok := op.(*QueryOp); ok {
 		if strings.HasSuffix(qop.Collection, "$cmd") {
 			// This query was actually a command, so we should look for errors in the following
 			// places in the returned document:
@@ -162,14 +161,14 @@ func extractErrors(op mongoproto.Op, reply *mongoproto.ReplyOp) []string {
 	}
 	return retVal
 }
-func shouldCollectOp(op mongoproto.Op) bool {
-	_, ok := op.(*mongoproto.ReplyOp)
-	return !ok && !mongoproto.IsDriverOp(op)
+func shouldCollectOp(op Op) bool {
+	_, ok := op.(*ReplyOp)
+	return !ok && !IsDriverOp(op)
 }
 
 //Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
 //some form of storage as specified by the contained StatRecorder
-func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp mongoproto.Op, reply *mongoproto.ReplyOp, msg string) {
+func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) {
 	statColl.Do(func() {
 		statColl.statStream = make(chan *OpStat, 1024)
 		statColl.done = make(chan struct{})
@@ -262,7 +261,7 @@ type StaticStatGenerator struct {
 	UnresolvedOps map[string]UnresolvedOpInfo
 }
 
-func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp mongoproto.Op, reply *mongoproto.ReplyOp, msg string) *OpStat {
+func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat {
 	if replayedOp == nil || op == nil {
 		return nil
 	}
@@ -288,7 +287,7 @@ func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp mongopro
 	return stat
 }
 
-func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp mongoproto.Op, reply *mongoproto.ReplyOp, msg string) *OpStat {
+func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply *ReplyOp, msg string) *OpStat {
 	if recordedOp == nil || parsedOp == nil {
 		//TODO log a warning
 		return nil
@@ -305,10 +304,10 @@ func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp 
 		stat.Message = msg
 	}
 	switch recordedOp.Header.OpCode {
-	case mongoproto.OpCodeQuery, mongoproto.OpCodeGetMore:
+	case OpCodeQuery, OpCodeGetMore:
 		gen.AddUnresolvedOp(recordedOp, parsedOp, stat)
-	case mongoproto.OpCodeReply:
-		return gen.ResolveOp(recordedOp, parsedOp.(*mongoproto.ReplyOp))
+	case OpCodeReply:
+		return gen.ResolveOp(recordedOp, parsedOp.(*ReplyOp))
 	default:
 		return stat
 	}

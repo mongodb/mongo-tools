@@ -1,12 +1,11 @@
 package mongotape
 
 import (
-	"github.com/10gen/mongotape/mongoproto"
 	"time"
 )
 
 type RecordedOp struct {
-	mongoproto.RawOp
+	RawOp
 	Seen          time.Time
 	PlayAt        time.Time `bson:",omitempty"`
 	EOF           bool      `bson:",omitempty"`

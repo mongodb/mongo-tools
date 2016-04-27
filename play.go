@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/10gen/llmgo/bson"
-	"github.com/10gen/mongotape/mongoproto"
 )
 
 type PlayCommand struct {
@@ -132,7 +131,7 @@ func NewPlaybackFileReader(filename string, gzip bool) (*PlaybackFileReader, err
 }
 
 func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
-	buf, err := mongoproto.ReadDocument(file)
+	buf, err := ReadDocument(file)
 	if err != nil {
 		if err == io.EOF {
 			return nil, io.EOF
@@ -240,7 +239,7 @@ func Play(context *ExecutionContext,
 		}
 
 		var connectionString string
-		if op.OpCode() == mongoproto.OpCodeReply {
+		if op.OpCode() == OpCodeReply {
 			connectionString = op.ReversedConnectionString()
 		} else {
 			connectionString = op.ConnectionString()

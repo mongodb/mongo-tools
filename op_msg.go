@@ -1,4 +1,4 @@
-package mongoproto
+package mongotape
 
 import (
 	"github.com/10gen/llmgo"

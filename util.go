@@ -1,4 +1,4 @@
-package mongoproto
+package mongotape
 
 import (
 	"encoding/base64"
@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrInvalidSize = errors.New("mongoproto: got invalid document size")
+	ErrInvalidSize = errors.New("got invalid document size")
 )
 
 const (
