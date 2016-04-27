@@ -935,7 +935,7 @@ startMongoProgram = function(){
     // Enable test commands.
     // TODO: Make this work better with multi-version testing so that we can support
     // enabling this on 2.4 when testing 2.6
-    var args = argumentsToArray( arguments );
+    var args = Array.from( arguments );
     args = appendSetParameterArgs(args);
     var pid = _startMongoProgram.apply( null, args );
 
@@ -962,7 +962,7 @@ startMongoProgram = function(){
 }
 
 runMongoProgram = function() {
-    var args = argumentsToArray( arguments );
+    var args = Array.from( arguments );
     var progName = args[0];
 
     if ( jsTestOptions().auth ) {
@@ -991,7 +991,7 @@ runMongoProgram = function() {
 // program name, and subsequent arguments to this function are passed as
 // command line arguments to the program.  Returns pid of the spawned program.
 startMongoProgramNoConnect = function() {
-    var args = argumentsToArray( arguments );
+    var args = Array.from( arguments );
     var progName = args[0];
 
     if ( jsTestOptions().auth ) {
