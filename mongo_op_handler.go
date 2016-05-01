@@ -54,11 +54,11 @@ type bidi struct {
 	opStream         *MongoOpStream
 	responseStream   bool
 	sawStart         bool
-	connectionNumber int
+	connectionNumber int64
 }
 
-func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream) *bidi {
-	bidi := &bidi{}
+func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream, num int64) *bidi {
+	bidi := &bidi{connectionNumber: num}
 	bidi.streams[0] = &stream{
 		bidi:        bidi,
 		reassembled: make(chan []tcpassembly.Reassembly),
@@ -76,8 +76,6 @@ func newBidi(netFlow, tcpFlow gopacket.Flow, opStream *MongoOpStream) *bidi {
 		tcpFlow:     tcpFlow.Reverse(),
 	}
 	bidi.opStream = opStream
-	bidi.connectionNumber = opStream.connectionNumber
-	opStream.connectionNumber++
 	return bidi
 }
 
@@ -107,22 +105,31 @@ type bidiKey struct {
 type MongoOpStream struct {
 	Ops chan RecordedOp
 
-	FirstSeen        time.Time
-	unorderedOps     chan RecordedOp
-	opHeap           *orderedOps
-	bidiMap          map[bidiKey]*bidi
-	connectionNumber int
+	FirstSeen         time.Time
+	unorderedOps      chan RecordedOp
+	opHeap            *orderedOps
+	bidiMap           map[bidiKey]*bidi
+	connectionCounter chan int64
+	connectionNumber  int64
 }
 
 func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 	h := make(orderedOps, 0, heapBufSize)
 	os := &MongoOpStream{
-		Ops:          make(chan RecordedOp), // ordered
-		unorderedOps: make(chan RecordedOp), // unordered
-		opHeap:       &h,
-		bidiMap:      make(map[bidiKey]*bidi),
+		Ops:               make(chan RecordedOp), // ordered
+		unorderedOps:      make(chan RecordedOp), // unordered
+		opHeap:            &h,
+		bidiMap:           make(map[bidiKey]*bidi),
+		connectionCounter: make(chan int64, 1024),
 	}
 	heap.Init(os.opHeap)
+	go func() {
+		var counter int64 = 0
+		for {
+			os.connectionCounter <- counter
+			counter++
+		}
+	}()
 	go os.handleOps()
 	return os
 }
@@ -136,7 +143,7 @@ func (os *MongoOpStream) New(netFlow, tcpFlow gopacket.Flow) tcpassembly.Stream 
 		delete(os.bidiMap, key)
 		return bidi.streams[1]
 	} else {
-		bidi := newBidi(netFlow, tcpFlow, os)
+		bidi := newBidi(netFlow, tcpFlow, os, <-os.connectionCounter)
 		os.bidiMap[rkey] = bidi
 		atomic.AddInt32(&bidi.openStreamCount, 1)
 		go bidi.streamOps()
@@ -166,14 +173,21 @@ func (os *MongoOpStream) SetFirstSeen(t time.Time) {
 // them out on the Ops channel.
 func (os *MongoOpStream) handleOps() {
 	defer close(os.Ops)
+	var counter int64 = 0
 	for op := range os.unorderedOps {
 		heap.Push(os.opHeap, op)
 		if len(*os.opHeap) == cap(*os.opHeap) {
-			os.Ops <- heap.Pop(os.opHeap).(RecordedOp)
+			nextOp := heap.Pop(os.opHeap).(RecordedOp)
+			counter += 1
+			nextOp.Order = counter
+			os.Ops <- nextOp
 		}
 	}
 	for len(*os.opHeap) > 0 {
-		os.Ops <- heap.Pop(os.opHeap).(RecordedOp)
+		nextOp := heap.Pop(os.opHeap).(RecordedOp)
+		counter += 1
+		nextOp.Order = counter
+		os.Ops <- nextOp
 	}
 }
 
@@ -246,7 +260,7 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
 		//TODO maybe remember if we were recently in streamStateOutOfSync,
 		// and if so, parse the raw op here.
-		bidi.opStream.unorderedOps <- RecordedOp{RawOp: *stream.op, Seen: stream.reassembly.Seen, SrcEndpoint: stream.netFlow.Src().String(), DstEndpoint: stream.netFlow.Dst().String()}
+		bidi.opStream.unorderedOps <- RecordedOp{RawOp: *stream.op, Seen: stream.reassembly.Seen, SrcEndpoint: stream.netFlow.Src().String(), DstEndpoint: stream.netFlow.Dst().String(), ConnectionNum: bidi.connectionNumber}
 		stream.op = &RawOp{}
 		stream.state = streamStateBeforeMessage
 		if len(stream.reassembly.Bytes) > 0 {
