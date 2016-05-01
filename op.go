@@ -21,6 +21,14 @@ type OpMetadata struct {
 	// Command name is the name of the command, when Op is "command" (otherwise will be blank.)
 	// For example, this might be "getLastError" or "serverStatus".
 	Command string
+
+	// Data contains the payload of the operation.
+	// For queries: the query selector, limit and sort, etc.
+	// For inserts: the document(s) to be inserted.
+	// For updates: the query selector, modifiers, and upsert/multi flags.
+	// For removes: the query selector for removes.
+	// For commands: the full set of parameters for the command.
+	Data interface{}
 }
 
 // Op is a Mongo operation

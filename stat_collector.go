@@ -40,16 +40,19 @@ type OpStat struct {
 	// Namespace that the operation was performed against, if relevant.
 	Ns string `json:"ns,omitempty"`
 
+	// Data represents the payload of the operation.
+	Data interface{} `json:"data"`
+
 	//NumReturned is the number of documents that were fetched as a result of this operation.
 	NumReturned int `json:"nreturned,omitempty"`
 
 	//PlayedAt is the time that this operation was replayed
-	PlayedAt time.Time `json:"played_at,omitempty"`
+	PlayedAt *time.Time `json:"played_at,omitempty"`
 
 	//PlayAt is the time that this operation is scheduled to be played. It represents the time
 	//that it is supposed to be played by mongotape, but can be different from
 	//PlayedAt if the playback is lagging for any reason
-	PlayAt time.Time `json:"play_at,omitempty"`
+	PlayAt *time.Time `json:"play_at,omitempty"`
 
 	// PlaybackLagMicros is the time difference in microseconds between the time
 	// that the operation was supposed to be played, and the time it was actualy played.
@@ -70,7 +73,7 @@ type OpStat struct {
 	// If unset, the operation did not receive any errors from the server.
 	Errors []string `json:"errors,omitempty"`
 
-	Message string `json:"msg, omitempty"`
+	Message string `json:"msg,omitempty"`
 }
 
 func (statColl *StatCollector) Close() error {
@@ -218,6 +221,14 @@ func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 		// TODO log warning.
 		return
 	}
+
+	// TODO use variant of this function that does not mutate its argument.
+	d, err := ConvertBSONValueToJSON(stat.Data)
+	if err != nil {
+		//TODO log a warning.
+	}
+	stat.Data = d
+
 	jsonBytes, err := json.Marshal(stat)
 	if err != nil {
 		// TODO log error?
@@ -270,11 +281,16 @@ func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, repl
 		Order:             op.Order,
 		OpType:            opMeta.Op,
 		Ns:                opMeta.Ns,
+		Data:              opMeta.Data,
 		Command:           opMeta.Command,
 		ConnectionNum:     op.ConnectionNum,
 		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt) / time.Microsecond),
-		PlayAt:            op.PlayAt,
-		PlayedAt:          op.PlayedAt,
+	}
+	if !op.PlayAt.IsZero() {
+		stat.PlayAt = &op.PlayAt
+	}
+	if !op.PlayedAt.IsZero() {
+		stat.PlayedAt = &op.PlayedAt
 	}
 	if reply != nil {
 		stat.NumReturned = len(reply.Docs)
@@ -296,6 +312,7 @@ func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp 
 	stat := &OpStat{
 		Order:         recordedOp.Order,
 		OpType:        meta.Op,
+		Data:          meta.Data,
 		Ns:            meta.Ns,
 		Command:       meta.Command,
 		ConnectionNum: recordedOp.ConnectionNum,
@@ -306,12 +323,11 @@ func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp 
 	switch recordedOp.Header.OpCode {
 	case OpCodeQuery, OpCodeGetMore:
 		gen.AddUnresolvedOp(recordedOp, parsedOp, stat)
+		return nil
 	case OpCodeReply:
 		return gen.ResolveOp(recordedOp, parsedOp.(*ReplyOp))
-	default:
-		return stat
 	}
-	return nil
+	return stat
 }
 func (gen *LiveStatGenerator) Finalize(statStream chan *OpStat) {}
 func (gen *StaticStatGenerator) Finalize(statStream chan *OpStat) {

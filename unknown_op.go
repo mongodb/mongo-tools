@@ -14,7 +14,7 @@ type UnknownOp struct {
 }
 
 func (op *UnknownOp) Meta() OpMetadata {
-	return OpMetadata{"", "", ""}
+	return OpMetadata{"", "", "", nil}
 }
 
 func (op *UnknownOp) String() string {

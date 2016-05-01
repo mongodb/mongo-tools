@@ -20,7 +20,7 @@ func (op *GetMoreOp) OpCode() OpCode {
 }
 
 func (op *GetMoreOp) Meta() OpMetadata {
-	return OpMetadata{"getmore", op.Collection, ""}
+	return OpMetadata{"getmore", op.Collection, "", op.CursorId}
 }
 
 func (op *GetMoreOp) String() string {

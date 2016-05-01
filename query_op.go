@@ -20,12 +20,12 @@ type QueryOp struct {
 }
 
 func (op *QueryOp) Meta() OpMetadata {
-	opType, commandType := extractOpType(op.QueryOp.Query)
+	opType, commandType := extractOpType(op.Query)
 	if !strings.HasSuffix(op.Collection, "$cmd") {
-		return OpMetadata{"query", op.Collection, ""}
+		return OpMetadata{"query", op.Collection, "", op.Query}
 	}
 
-	return OpMetadata{opType, op.Collection, commandType}
+	return OpMetadata{opType, op.Collection, commandType, op.QueryOp.Query}
 }
 
 // extractOpType checks a write command's "query" and determines if it's actually
@@ -74,7 +74,7 @@ func (op *QueryOp) String() string {
 	if err != nil {
 		return fmt.Sprintf("%v", err)
 	}
-	return fmt.Sprintf("OpQuery %v %v", op.Collection, body)
+	return fmt.Sprintf("OpQuery collection:%v %v", op.Collection, body)
 }
 
 func (op *QueryOp) getOpBodyString() (string, error) {

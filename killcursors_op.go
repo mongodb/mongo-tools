@@ -16,7 +16,7 @@ type KillCursorsOp struct {
 }
 
 func (op *KillCursorsOp) Meta() OpMetadata {
-	return OpMetadata{"killcursors", "", ""}
+	return OpMetadata{"killcursors", "", "", op.CursorIds}
 }
 
 func (op *KillCursorsOp) String() string {

@@ -19,7 +19,7 @@ type InsertOp struct {
 }
 
 func (op *InsertOp) Meta() OpMetadata {
-	return OpMetadata{"insert", op.Collection, ""}
+	return OpMetadata{"insert", op.Collection, "", op.Documents}
 }
 
 func (op *InsertOp) OpCode() OpCode {

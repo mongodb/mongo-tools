@@ -19,7 +19,12 @@ type DeleteOp struct {
 }
 
 func (op *DeleteOp) Meta() OpMetadata {
-	return OpMetadata{"Delete", op.Collection, ""}
+	return OpMetadata{
+		"Delete",
+		op.Collection,
+		"",
+		op.Selector,
+	}
 }
 
 func (op *DeleteOp) String() string {

@@ -17,7 +17,14 @@ type UpdateOp struct {
 }
 
 func (op *UpdateOp) Meta() OpMetadata {
-	return OpMetadata{"update", op.Collection, ""}
+	return OpMetadata{"update",
+		op.Collection,
+		"",
+		map[string]interface{}{
+			"query":  op.Selector,
+			"update": op.Update,
+		},
+	}
 }
 
 func (op *UpdateOp) String() string {
