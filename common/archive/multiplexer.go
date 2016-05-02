@@ -117,7 +117,6 @@ func (mux *Multiplexer) Run() {
 					mux.Completed <- fmt.Errorf("multiplexer received a value that wasn't a []byte")
 					return
 				}
-				mux.ins[index].hash.Write(bsonBytes)
 				err = mux.formatBody(mux.ins[index], bsonBytes)
 				if err != nil {
 					mux.shutdownInputs.Notify()
@@ -310,5 +309,6 @@ func (muxIn *MuxIn) Write(buf []byte) (int, error) {
 			return 0, io.ErrShortWrite
 		}
 	}
+	muxIn.hash.Write(buf)
 	return len(buf), nil
 }
