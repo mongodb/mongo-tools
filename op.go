@@ -28,6 +28,8 @@ type OpMetadata struct {
 	// For updates: the query selector, modifiers, and upsert/multi flags.
 	// For removes: the query selector for removes.
 	// For commands: the full set of parameters for the command.
+	// For killcursors: the list of cursorId's to be killed.
+	// For getmores: the cursorId for the getmore batch.
 	Data interface{}
 }
 
