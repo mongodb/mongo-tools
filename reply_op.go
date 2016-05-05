@@ -19,7 +19,7 @@ type ReplyOp struct {
 }
 
 func (op *ReplyOp) Meta() OpMetadata {
-	return OpMetadata{"", "", "", nil}
+	return OpMetadata{"reply", "", "", op.Docs}
 }
 
 func (opr *ReplyOp) String() string {

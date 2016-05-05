@@ -14,8 +14,8 @@ func main() {
 		&mongotape.PlayCommand{GlobalOpts: &opts})
 	parser.AddCommand("record", "Convert network traffic into mongodb queries", "",
 		&mongotape.RecordCommand{GlobalOpts: &opts})
-	parser.AddCommand("stat", "Generate statistics on captured traffic", "",
-		&mongotape.StatCommand{GlobalOpts: &opts})
+	parser.AddCommand("monitor", "Inspect live or pre-recorded mongodb traffic", "",
+		&mongotape.MonitorCommand{GlobalOpts: &opts})
 
 	_, err := parser.Parse()
 	if err != nil {

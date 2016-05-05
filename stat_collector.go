@@ -1,6 +1,7 @@
 package mongotape
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/10gen/llmgo/bson"
@@ -12,8 +13,8 @@ import (
 	"time"
 )
 
-//StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
-//It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
+// StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
+// It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
 type StatCollector struct {
 	sync.Once
 	done       chan struct{}
@@ -25,11 +26,11 @@ type StatCollector struct {
 // OpStat is a set of metadata about an executed operation and its result which can be
 // used for generating reports about the results of a playback command.
 type OpStat struct {
-	//Order is a number denoting the position in the traffic in which this operation appeared
+	// Order is a number denoting the position in the traffic in which this operation appeared
 	Order int64 `json:"order"`
 
-	//OpType is a string representation of the function of this operation. For example an 'insert'
-	//or a 'query'
+	// OpType is a string representation of the function of this operation. For example an 'insert'
+	// or a 'query'
 	OpType string `json:"op,omitempty"`
 
 	// If the operation was a command, this field represents the name of the database command
@@ -40,18 +41,21 @@ type OpStat struct {
 	// Namespace that the operation was performed against, if relevant.
 	Ns string `json:"ns,omitempty"`
 
-	// Data represents the payload of the operation.
-	Data interface{} `json:"data"`
+	// Data represents the payload of the request operation.
+	RequestData interface{} `json:"request_data, omitempty"`
 
-	//NumReturned is the number of documents that were fetched as a result of this operation.
+	// Data represents the payload of the reply operation.
+	ReplyData interface{} `json:"reply_data, omitempty"`
+
+	// NumReturned is the number of documents that were fetched as a result of this operation.
 	NumReturned int `json:"nreturned,omitempty"`
 
-	//PlayedAt is the time that this operation was replayed
+	// PlayedAt is the time that this operation was replayed
 	PlayedAt *time.Time `json:"played_at,omitempty"`
 
-	//PlayAt is the time that this operation is scheduled to be played. It represents the time
-	//that it is supposed to be played by mongotape, but can be different from
-	//PlayedAt if the playback is lagging for any reason
+	// PlayAt is the time that this operation is scheduled to be played. It represents the time
+	// that it is supposed to be played by mongotape, but can be different from
+	// PlayedAt if the playback is lagging for any reason
 	PlayAt *time.Time `json:"play_at,omitempty"`
 
 	// PlaybackLagMicros is the time difference in microseconds between the time
@@ -67,13 +71,21 @@ type OpStat struct {
 
 	// LatencyMicros represents the time difference in microseconds between when the operation
 	// was executed and when the reply from the server was received.
-	LatencyMicros int64 `json:"latency_us"`
+	LatencyMicros int64 `json:"latency_us,omitempty"`
 
 	// Errors contains the error messages returned from the server populated in the $err field.
 	// If unset, the operation did not receive any errors from the server.
 	Errors []string `json:"errors,omitempty"`
 
 	Message string `json:"msg,omitempty"`
+
+	// Seen is the time that this operation was originally seen.
+	Seen *time.Time `json:"seen,omitempty"`
+
+	// RequestId is the Id of the mongodb operation as taken from the header.
+	// The RequestId for a request operation is the same as the ResponseId for
+	// the corresponding reply, so this field will be the same for request/reply pairs.
+	RequestId int32 `json:"request_id, omitempty"`
 }
 
 func (statColl *StatCollector) Close() error {
@@ -86,13 +98,13 @@ func (statColl *StatCollector) Close() error {
 	return statColl.StatRecorder.Close()
 }
 
-//StatGenerator is an interface that specifies how to accept operation information to be recorded
+// StatGenerator is an interface that specifies how to accept operation information to be recorded
 type StatGenerator interface {
 	GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat
 	Finalize(chan *OpStat)
 }
 
-//StatRecorder is an interface that specifies how to take OpStats to be recorded
+// StatRecorder is an interface that specifies how to take OpStats to be recorded
 type StatRecorder interface {
 	RecordStat(stat *OpStat)
 	Close() error
@@ -169,8 +181,8 @@ func shouldCollectOp(op Op) bool {
 	return !ok && !IsDriverOp(op)
 }
 
-//Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
-//some form of storage as specified by the contained StatRecorder
+// Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
+// some form of storage as specified by the contained StatRecorder
 func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) {
 	statColl.Do(func() {
 		statColl.statStream = make(chan *OpStat, 1024)
@@ -191,13 +203,17 @@ type JSONStatRecorder struct {
 	out io.WriteCloser
 }
 
-//BufferedStatRecorder implements the StatRecorder interface using an in-memory slice of OpStats.
-//This allows for the statistics on operations executed by mongotape to be reviewed by a program directly following execution.
-//BufferedStatCollector's main purpose is for asserting correct execution of ops for testing
+type TerminalStatRecorder struct {
+	out io.WriteCloser
+}
+
+// BufferedStatRecorder implements the StatRecorder interface using an in-memory slice of OpStats.
+// This allows for the statistics on operations executed by mongotape to be reviewed by a program directly following execution.
+// BufferedStatCollector's main purpose is for asserting correct execution of ops for testing
 type BufferedStatRecorder struct {
-	//Buffer is a slice of OpStats that is appended to every time the Collect function makes a record
-	//It stores an in-order series of OpStats that store information about the commands mongotape ran as a result
-	//of reading a playback file
+	// Buffer is a slice of OpStats that is appended to every time the Collect function makes a record
+	// It stores an in-order series of OpStats that store information about the commands mongotape ran as a result
+	// of reading a playback file
 	Buffer []OpStat
 }
 type NopRecorder struct{}
@@ -223,11 +239,20 @@ func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 	}
 
 	// TODO use variant of this function that does not mutate its argument.
-	d, err := ConvertBSONValueToJSON(stat.Data)
-	if err != nil {
-		//TODO log a warning.
+	if stat.RequestData != nil {
+		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
+		if err != nil {
+			// TODO log a warning.
+		}
+		stat.RequestData = reqD
 	}
-	stat.Data = d
+	if stat.ReplyData != nil {
+		repD, err := ConvertBSONValueToJSON(stat.ReplyData)
+		if err != nil {
+			// TODO log a warning.
+		}
+		stat.ReplyData = repD
+	}
 
 	jsonBytes, err := json.Marshal(stat)
 	if err != nil {
@@ -250,6 +275,69 @@ func (bsr *BufferedStatRecorder) RecordStat(stat *OpStat) {
 	bsr.Buffer = append(bsr.Buffer, *stat)
 }
 
+func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
+	if stat == nil {
+		// TODO log warning.
+		return
+	}
+
+	var payload bytes.Buffer
+	if stat.RequestData != nil {
+		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
+		if err != nil {
+			// TODO log a warning.
+		}
+		stat.RequestData = reqD
+		payload.WriteString("request_data:")
+		jsonBytes, err := json.Marshal(stat.RequestData)
+		if err != nil {
+			payload.WriteString(err.Error())
+		} else {
+			payload.Write(jsonBytes)
+			payload.WriteString(" ")
+		}
+	}
+	if stat.ReplyData != nil {
+		repD, err := ConvertBSONValueToJSON(stat.ReplyData)
+		if err != nil {
+			// TODO log a warning.
+		}
+		stat.ReplyData = repD
+		stat.RequestData = repD
+		payload.WriteString("reply_data:")
+		jsonBytes, err := json.Marshal(stat.ReplyData)
+		if err != nil {
+			payload.WriteString(err.Error())
+		} else {
+			payload.Write(jsonBytes)
+			payload.WriteString(" ")
+		}
+	}
+
+	var output bytes.Buffer
+	output.WriteString(fmt.Sprintf("(%v)(Connection: %v:%v)", stat.Seen, stat.ConnectionNum, stat.RequestId))
+	if stat.OpType != "" {
+		output.WriteString(fmt.Sprintf(" %v", stat.OpType))
+	}
+	if stat.Ns != "" {
+		output.WriteString(fmt.Sprintf(" %v", stat.Ns))
+	}
+
+	output.WriteString(" ")
+	payload.WriteTo(&output)
+
+	if stat.LatencyMicros > 0 {
+		output.WriteString(fmt.Sprintf(" +%vms", stat.LatencyMicros))
+	}
+	output.WriteString("\n")
+
+	_, err := output.WriteTo(dsr.out)
+	if err != nil {
+		// TODO log error?
+		return
+	}
+}
+
 func (nr *NopRecorder) RecordStat(stat *OpStat) {
 }
 
@@ -264,15 +352,19 @@ func (bsr *BufferedStatRecorder) Close() error {
 func (nc *NopRecorder) Close() error {
 	return nil
 }
-
-type LiveStatGenerator struct {
+func (dsr *TerminalStatRecorder) Close() error {
+	return dsr.out.Close()
 }
 
-type StaticStatGenerator struct {
+type ComparativeStatGenerator struct {
+}
+
+type RegularStatGenerator struct {
+	PairedMode    bool
 	UnresolvedOps map[string]UnresolvedOpInfo
 }
 
-func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat {
+func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat {
 	if replayedOp == nil || op == nil {
 		return nil
 	}
@@ -281,7 +373,7 @@ func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, repl
 		Order:             op.Order,
 		OpType:            opMeta.Op,
 		Ns:                opMeta.Ns,
-		Data:              opMeta.Data,
+		RequestData:       opMeta.Data,
 		Command:           opMeta.Command,
 		ConnectionNum:     op.ConnectionNum,
 		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt) / time.Microsecond),
@@ -293,9 +385,13 @@ func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, repl
 		stat.PlayedAt = &op.PlayedAt
 	}
 	if reply != nil {
+		replyMeta := reply.Meta()
 		stat.NumReturned = len(reply.Docs)
 		stat.LatencyMicros = int64(reply.Latency / (time.Microsecond))
 		stat.Errors = extractErrors(replayedOp, reply)
+		stat.ReplyData = replyMeta.Data
+	} else {
+		stat.ReplyData = nil
 	}
 	if msg != "" {
 		stat.Message = msg
@@ -303,34 +399,44 @@ func (gen *LiveStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, repl
 	return stat
 }
 
-func (gen *StaticStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply *ReplyOp, msg string) *OpStat {
+func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply *ReplyOp, msg string) *OpStat {
 	if recordedOp == nil || parsedOp == nil {
-		//TODO log a warning
+		// TODO log a warning
 		return nil
 	}
 	meta := parsedOp.Meta()
 	stat := &OpStat{
 		Order:         recordedOp.Order,
 		OpType:        meta.Op,
-		Data:          meta.Data,
 		Ns:            meta.Ns,
 		Command:       meta.Command,
 		ConnectionNum: recordedOp.ConnectionNum,
+		Seen:          &recordedOp.Seen,
 	}
 	if msg != "" {
 		stat.Message = msg
 	}
 	switch recordedOp.Header.OpCode {
 	case OpCodeQuery, OpCodeGetMore:
+		stat.RequestData = meta.Data
+		stat.RequestId = recordedOp.Header.RequestID
 		gen.AddUnresolvedOp(recordedOp, parsedOp, stat)
-		return nil
+		if gen.PairedMode {
+			return nil
+		}
 	case OpCodeReply:
-		return gen.ResolveOp(recordedOp, parsedOp.(*ReplyOp))
+		stat.RequestId = recordedOp.Header.ResponseTo
+		stat.ReplyData = meta.Data
+		return gen.ResolveOp(recordedOp, parsedOp.(*ReplyOp), stat)
+	default:
+		stat.RequestData = meta.Data
 	}
 	return stat
 }
-func (gen *LiveStatGenerator) Finalize(statStream chan *OpStat) {}
-func (gen *StaticStatGenerator) Finalize(statStream chan *OpStat) {
+
+func (gen *ComparativeStatGenerator) Finalize(statStream chan *OpStat) {}
+
+func (gen *RegularStatGenerator) Finalize(statStream chan *OpStat) {
 	for _, unresolved := range gen.UnresolvedOps {
 		statStream <- unresolved.Stat
 	}

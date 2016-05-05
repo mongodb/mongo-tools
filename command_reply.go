@@ -26,7 +26,15 @@ func (op *CommandReplyOp) OpCode() OpCode {
 // Currently only returns 'unknown' as it is not fully parsed and analyzed.
 
 func (op *CommandReplyOp) Meta() OpMetadata {
-	return OpMetadata{"", "", "unknown", nil}
+	return OpMetadata{"op_commandreply",
+		"",
+		"",
+		map[string]interface{}{
+			"metadata":      op.Metadata,
+			"command_reply": op.CommandReply,
+			"output_docs":   op.OutputDocs,
+		},
+	}
 }
 
 func (op *CommandReplyOp) String() string {

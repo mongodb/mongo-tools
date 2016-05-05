@@ -2,7 +2,6 @@ package mongotape
 
 import (
 	"io"
-	"log"
 	"time"
 
 	"github.com/google/gopacket"
@@ -40,7 +39,7 @@ func (p *PacketHandler) Close() {
 
 func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *tcpassembly.Assembler) {
 	if pkt != nil {
-		log.Printf("processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
+		userInfoLogger.Logf(DebugLow, "processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
 	}
 	assembler.FlushOlderThan(time.Now().Add(time.Second * -5))
 }
@@ -49,26 +48,26 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 	count := int64(0)
 	start := time.Now()
 	if p.Verbose && numToHandle > 0 {
-		log.Println("Processing", numToHandle, "packets")
+		userInfoLogger.Logf(Always, "Processing", numToHandle, "packets")
 	}
 	source := gopacket.NewPacketSource(p.pcap, p.pcap.LinkType())
 	streamPool := tcpassembly.NewStreamPool(streamHandler)
 	assembler := tcpassembly.NewAssembler(streamPool)
 	defer func() {
-		if p.Verbose {
-			log.Println("flushing assembler.")
-			log.Println("num flushed/closed:", assembler.FlushAll())
-			log.Println("closing stream handler.")
+		if userInfoLogger.isInVerbosity(DebugLow) {
+			userInfoLogger.Log(DebugLow, "flushing assembler.")
+			userInfoLogger.Logf(DebugLow, "num flushed/closed:", assembler.FlushAll())
+			userInfoLogger.Log(DebugLow, "closing stream handler.")
 		} else {
 			assembler.FlushAll()
 		}
 		streamHandler.Close()
 	}()
 	defer func() {
-		if p.Verbose {
-			log.Println("Dropped", p.numDropped, "packets out of", count)
+		if userInfoLogger.isInVerbosity(DebugLow) {
+			userInfoLogger.Logf(DebugLow, "Dropped", p.numDropped, "packets out of", count)
 			runTime := float64(time.Now().Sub(start)) / float64(time.Second)
-			log.Println("Processed", float64(count-p.numDropped)/runTime, "packets per second")
+			userInfoLogger.Logf(DebugLow, "Processed", float64(count-p.numDropped)/runTime, "packets per second")
 		}
 	}()
 	ticker := time.Tick(time.Second * 1)
@@ -79,9 +78,7 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 		case pkt = <-source.Packets():
 			pktCount++
 			if pkt == nil { // end of pcap file
-				if p.Verbose {
-					log.Println("end of stream")
-				}
+				userInfoLogger.Log(DebugLow, "end of stream")
 				return nil
 			}
 			if tcpLayer := pkt.Layer(layers.LayerTypeTCP); tcpLayer != nil {
@@ -97,9 +94,7 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 			}
 			count++
 			if numToHandle > 0 && count >= int64(numToHandle) {
-				if p.Verbose {
-					log.Println("Count exceeds requested packets, returning.")
-				}
+				userInfoLogger.Log(DebugLow, "Count exceeds requested packets, returning.")
 				break
 			}
 			select {
@@ -110,7 +105,6 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 		case <-ticker:
 			bookkeep(pktCount, pkt, assembler)
 		case <-p.stop:
-			assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
 			return nil
 		}
 	}

@@ -30,7 +30,15 @@ func (op *CommandOp) String() string {
 // Currently only returns 'unknown' as it is not fully parsed and analyzed.
 
 func (op *CommandOp) Meta() OpMetadata {
-	return OpMetadata{"", "", "unknown", nil}
+	return OpMetadata{"op_command",
+		op.Database,
+		op.CommandName,
+		map[string]interface{}{
+			"metadata":     op.Metadata,
+			"command_args": op.CommandArgs,
+			"input_docs":   op.InputDocs,
+		},
+	}
 }
 
 func (op *CommandOp) Abbreviated(chars int) string {

@@ -202,7 +202,7 @@ func Play(context *ExecutionContext,
 	repeat int,
 	queueTime int) error {
 
-	context.StatCollector.StatGenerator = &LiveStatGenerator{}
+	context.StatCollector.StatGenerator = &ComparativeStatGenerator{}
 
 	sessionChans := make(map[string]chan<- *RecordedOp)
 	var playbackStartTime, recordingStartTime time.Time

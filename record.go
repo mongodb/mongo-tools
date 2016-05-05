@@ -14,9 +14,9 @@ import (
 
 type RecordCommand struct {
 	GlobalOpts       *Options `no-flag:"true"`
+	Gzip             bool     `long:"gzip" description:"compress output file with Gzip"`
 	PcapFile         string   `short:"f" description:"path to the pcap file to be read"`
 	Expression       string   `short:"e" long:"expr" description:"BPF filter expression to apply to packets for recording"`
-	Gzip             bool     `long:"gzip" description:"compress output file with Gzip"`
 	PlaybackFile     string   `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
 	NetworkInterface string   `short:"i" description:"network interface to listen on"`
 	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1000"`
