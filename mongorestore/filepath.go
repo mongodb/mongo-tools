@@ -370,7 +370,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					skip = true
 				}
 
-				// TOOLS-976: skip restoring the collections should be excluded 
+				// TOOLS-976: skip restoring the collections should be excluded
 				if filterCollection == "" && restore.shouldSkipCollection(collection) {
 					log.Logf(log.DebugLow, "skipping restoring %v.%v, it is excluded", db, collection)
 					skip = true
@@ -397,8 +397,9 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 						continue
 					} else {
 						if intent.IsSpecialCollection() {
-							intent.BSONFile = &archive.SpecialCollectionCache{Intent: intent, Demux: restore.archive.Demux}
-							restore.archive.Demux.Open(intent.Namespace(), intent.BSONFile)
+							specialCollectionCache := &archive.SpecialCollectionCache{Intent: intent, Demux: restore.archive.Demux}
+							intent.BSONFile = specialCollectionCache
+							restore.archive.Demux.Open(intent.Namespace(), specialCollectionCache)
 						} else {
 							intent.BSONFile = &archive.RegularCollectionReceiver{Intent: intent, Demux: restore.archive.Demux}
 						}
@@ -413,10 +414,10 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 				log.Logf(log.Info, "found collection %v bson to restore", intent.Namespace())
 				restore.manager.Put(intent)
 			case MetadataFileType:
-				// TOOLS-976: skip restoring the collections should be excluded 
+				// TOOLS-976: skip restoring the collections should be excluded
 				if filterCollection == "" && restore.shouldSkipCollection(collection) {
 					log.Logf(log.DebugLow, "skipping restoring %v.%v metadata, it is excluded", db, collection)
-					continue	
+					continue
 				}
 
 				usesMetadataFiles = true
@@ -424,7 +425,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					DB: db,
 					C:  collection,
 				}
-				
+
 				if restore.InputOptions.Archive != "" {
 					if restore.InputOptions.Archive == "-" {
 						intent.MetadataLocation = "archive on stdin"
