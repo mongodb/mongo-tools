@@ -137,7 +137,7 @@ func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 // New is the factory method called by the tcpassembly to generate new tcpassembly.Stream.
 func (os *MongoOpStream) New(netFlow, tcpFlow gopacket.Flow) tcpassembly.Stream {
 	key := bidiKey{netFlow, tcpFlow}
-	rkey := bidiKey{netFlow, tcpFlow}
+	rkey := bidiKey{netFlow.Reverse(), tcpFlow.Reverse()}
 	if bidi, ok := os.bidiMap[key]; ok {
 		atomic.AddInt32(&bidi.openStreamCount, 1)
 		delete(os.bidiMap, key)
