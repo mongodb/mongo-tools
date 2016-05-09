@@ -19,6 +19,7 @@ type MonitorCommand struct {
 	NetworkInterface string   `short:"i" description:"network interface to listen on"`
 	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1"`
 	Report           string   `long:"report" description:"Write report on execution to given output path"`
+	PairedMode       bool     `long:"paired" description:"Output only one line for a request/reply pair"`
 }
 
 type UnresolvedOpInfo struct {
@@ -138,7 +139,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 	}
 
 	staticStatGenerator := &RegularStatGenerator{
-		PairedMode:    false,
+		PairedMode:    monitor.PairedMode,
 		UnresolvedOps: make(map[string]UnresolvedOpInfo, 1024),
 	}
 
@@ -150,13 +151,14 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 
 	var order int64 = 0
 	for op := range opChan {
-		op.Order = order
+		temp := op
+		temp.Order = order
 		order++
-		parsedOp, err := op.RawOp.Parse()
+		parsedOp, err := temp.RawOp.Parse()
 		if err != nil {
 			return err
 		}
-		statColl.Collect(&op, parsedOp, nil, "")
+		statColl.Collect(&temp, parsedOp, nil, "")
 	}
 	return nil
 }
