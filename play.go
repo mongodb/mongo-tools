@@ -93,7 +93,6 @@ func NewGzipReadSeeker(rs io.ReadSeeker) (*GzipReadSeeker, error) {
 		return nil, err
 	}
 	return &GzipReadSeeker{rs, gzipReader}, nil
-
 }
 
 func (g *GzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
@@ -173,7 +172,6 @@ func (play *PlayCommand) Execute(args []string) error {
 			return err
 		}
 	}
-
 	userInfoLogger.Logf(Always, "Doing playback at %.2fx speed", play.Speed)
 
 	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile, play.Gzip)

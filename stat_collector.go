@@ -299,7 +299,6 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	}
 
 	var payload bytes.Buffer
-
 	if stat.RequestData != nil {
 		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
 		if err != nil {
@@ -341,10 +340,15 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	}
 
 	var output bytes.Buffer
-	output.WriteString(blue("%v", stat.Seen.Format("2/15 15:04:05.000")))
+
+	var timestamp *time.Time = stat.Seen
+	if stat.PlayedAt != nil {
+		timestamp = stat.PlayedAt
+	}
+	output.WriteString(blue("%v", timestamp.Format("2/15 15:04:05.000")))
 
 	output.WriteString(cyan(" (Connection %v:%v)", stat.ConnectionNum, stat.RequestId))
-
+	
 	if stat.LatencyMicros > 0 {
 		latency := time.Microsecond * time.Duration(stat.LatencyMicros)
 		output.WriteString(yellow(fmt.Sprintf(" +%v", latency.String())))

@@ -23,6 +23,7 @@ type MonitorCommand struct {
 	PairedMode       bool     `long:"paired" description:"Output only one line for a request/reply pair"`
 	NoTruncate       bool     `long:"no-truncate" description:"Disable truncation of large payload data in log output"`
 	NoColors         bool     `long:"no-colors" description:"Disable colorized output"`
+	JSON             bool     `long:"json" description:"Output operation data in JSON format"`
 }
 
 type UnresolvedOpInfo struct {
@@ -137,9 +138,14 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 			ctx.packetHandler.Close()
 		}()
 	}
-	terminalStatRecorder := &TerminalStatRecorder{
+	var statRecorder StatRecorder = &TerminalStatRecorder{
 		out:      os.Stdout,
 		truncate: !monitor.NoTruncate,
+	}
+	if monitor.JSON {
+		statRecorder = &JSONStatRecorder{
+			out: os.Stdout,
+		}
 	}
 	if monitor.NoColors {
 		color.NoColor = true
@@ -152,7 +158,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 
 	statColl := &StatCollector{
 		StatGenerator: staticStatGenerator,
-		StatRecorder:  terminalStatRecorder,
+		StatRecorder:  statRecorder,
 	}
 	defer statColl.Close()
 
