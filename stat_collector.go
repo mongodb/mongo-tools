@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// TruncateLength is the maximum number of characters allowed for long substrings when constructing
+// log output lines.
+const TruncateLength = 512
+
 // StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
 // It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
 type StatCollector struct {
@@ -204,7 +208,8 @@ type JSONStatRecorder struct {
 }
 
 type TerminalStatRecorder struct {
-	out io.WriteCloser
+	out      io.WriteCloser
+	truncate bool
 }
 
 // BufferedStatRecorder implements the StatRecorder interface using an in-memory slice of OpStats.
@@ -293,7 +298,11 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 		if err != nil {
 			payload.WriteString(err.Error())
 		} else {
-			payload.Write(jsonBytes)
+			if dsr.truncate {
+				payload.WriteString(Abbreviate(string(jsonBytes), TruncateLength))
+			} else {
+				payload.Write(jsonBytes)
+			}
 			payload.WriteString(" ")
 		}
 	}
@@ -309,7 +318,11 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 		if err != nil {
 			payload.WriteString(err.Error())
 		} else {
-			payload.Write(jsonBytes)
+			if dsr.truncate {
+				payload.WriteString(Abbreviate(string(jsonBytes), TruncateLength))
+			} else {
+				payload.Write(jsonBytes)
+			}
 			payload.WriteString(" ")
 		}
 	}

@@ -20,6 +20,7 @@ type MonitorCommand struct {
 	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1"`
 	Report           string   `long:"report" description:"Write report on execution to given output path"`
 	PairedMode       bool     `long:"paired" description:"Output only one line for a request/reply pair"`
+	NoTruncate       bool     `long:"no-truncate" description:"Disable truncation of large payload data in log output"`
 }
 
 type UnresolvedOpInfo struct {
@@ -135,7 +136,8 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 		}()
 	}
 	terminalStatRecorder := &TerminalStatRecorder{
-		out: os.Stdout,
+		out:      os.Stdout,
+		truncate: !monitor.NoTruncate,
 	}
 
 	staticStatGenerator := &RegularStatGenerator{
