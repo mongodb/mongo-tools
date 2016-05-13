@@ -3,12 +3,13 @@ package mongotape
 import (
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
-)
 
-import "os"
-import "os/signal"
-import "syscall"
+	"github.com/fatih/color"
+)
 
 type MonitorCommand struct {
 	GlobalOpts       *Options `no-flag:"true"`
@@ -21,6 +22,7 @@ type MonitorCommand struct {
 	Report           string   `long:"report" description:"Write report on execution to given output path"`
 	PairedMode       bool     `long:"paired" description:"Output only one line for a request/reply pair"`
 	NoTruncate       bool     `long:"no-truncate" description:"Disable truncation of large payload data in log output"`
+	NoColors         bool     `long:"no-colors" description:"Disable colorized output"`
 }
 
 type UnresolvedOpInfo struct {
@@ -138,6 +140,9 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 	terminalStatRecorder := &TerminalStatRecorder{
 		out:      os.Stdout,
 		truncate: !monitor.NoTruncate,
+	}
+	if monitor.NoColors {
+		color.NoColor = true
 	}
 
 	staticStatGenerator := &RegularStatGenerator{

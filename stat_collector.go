@@ -4,18 +4,30 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/10gen/llmgo/bson"
 	"io"
 	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/10gen/llmgo/bson"
+	"github.com/fatih/color"
 )
 
 // TruncateLength is the maximum number of characters allowed for long substrings when constructing
 // log output lines.
 const TruncateLength = 512
+
+var (
+	yellow  = color.New(color.FgYellow).SprintfFunc()
+	red     = color.New(color.FgRed).SprintfFunc()
+	green   = color.New(color.FgGreen).SprintfFunc()
+	blue    = color.New(color.FgBlue).SprintfFunc()
+	magenta = color.New(color.FgMagenta).SprintfFunc()
+	cyan    = color.New(color.FgCyan).SprintfFunc()
+	white   = color.New(color.FgWhite).SprintfFunc()
+)
 
 // StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
 // It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
@@ -287,13 +299,14 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	}
 
 	var payload bytes.Buffer
+
 	if stat.RequestData != nil {
 		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
 		if err != nil {
 			// TODO log a warning.
 		}
 		stat.RequestData = reqD
-		payload.WriteString("request_data:")
+		payload.WriteString(green("Request:"))
 		jsonBytes, err := json.Marshal(stat.RequestData)
 		if err != nil {
 			payload.WriteString(err.Error())
@@ -313,7 +326,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 		}
 		stat.ReplyData = repD
 		stat.RequestData = repD
-		payload.WriteString("reply_data:")
+		payload.WriteString(green("Reply:"))
 		jsonBytes, err := json.Marshal(stat.ReplyData)
 		if err != nil {
 			payload.WriteString(err.Error())
@@ -328,20 +341,24 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	}
 
 	var output bytes.Buffer
-	output.WriteString(fmt.Sprintf("(%v)(Connection: %v:%v)", stat.Seen, stat.ConnectionNum, stat.RequestId))
+	output.WriteString(blue("%v", stat.Seen.Format("2/15 15:04:05.000")))
+
+	output.WriteString(cyan(" (Connection %v:%v)", stat.ConnectionNum, stat.RequestId))
+
+	if stat.LatencyMicros > 0 {
+		latency := time.Microsecond * time.Duration(stat.LatencyMicros)
+		output.WriteString(yellow(fmt.Sprintf(" +%v", latency.String())))
+	}
 	if stat.OpType != "" {
-		output.WriteString(fmt.Sprintf(" %v", stat.OpType))
+		output.WriteString(red(" %v", stat.OpType))
 	}
 	if stat.Ns != "" {
-		output.WriteString(fmt.Sprintf(" %v", stat.Ns))
+		output.WriteString(white(" %v", stat.Ns))
 	}
 
 	output.WriteString(" ")
 	payload.WriteTo(&output)
 
-	if stat.LatencyMicros > 0 {
-		output.WriteString(fmt.Sprintf(" +%vms", stat.LatencyMicros))
-	}
 	output.WriteString("\n")
 
 	_, err := output.WriteTo(dsr.out)

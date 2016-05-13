@@ -19,7 +19,14 @@ type ReplyOp struct {
 }
 
 func (op *ReplyOp) Meta() OpMetadata {
-	return OpMetadata{"reply", "", "", op.Docs}
+	var resultDocs interface{} = op.Docs
+
+	// If the reply only contains a single doc, just use that doc instead of also including the array
+	// containing it.
+	if len(op.Docs) == 1 {
+		resultDocs = op.Docs[0]
+	}
+	return OpMetadata{"reply", "", "", resultDocs}
 }
 
 func (opr *ReplyOp) String() string {
