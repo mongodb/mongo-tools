@@ -17,7 +17,7 @@ import (
 
 // TruncateLength is the maximum number of characters allowed for long substrings when constructing
 // log output lines.
-const TruncateLength = 512
+const TruncateLength = 350
 
 var (
 	yellow  = color.New(color.FgYellow).SprintfFunc()
