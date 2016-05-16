@@ -35,13 +35,11 @@ type ExecutionContext struct {
 	sync.RWMutex
 
 	SessionChansWaitGroup sync.WaitGroup
-	StatCollector
+
+	*StatCollector
 }
 
-func NewExecutionContext(statRec StatRecorder) *ExecutionContext {
-	statColl := StatCollector{
-		StatRecorder: statRec,
-	}
+func NewExecutionContext(statColl *StatCollector) *ExecutionContext {
 	return &ExecutionContext{
 		IncompleteReplies: cache.New(60*time.Second, 60*time.Second),
 		CompleteReplies:   map[string]*ReplyPair{},
@@ -212,11 +210,6 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		}
 
 		op.PlayedAt = &PreciseTime{time.Now()}
-		if userInfoLogger.isInVerbosity(DebugHigh) {
-			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt.Time), opToExec)
-		} else if userInfoLogger.isInVerbosity(Info) {
-			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt.Time), opToExec.Abbreviated(256))
-		}
 		replyOp, err = opToExec.Execute(session)
 
 		if err != nil {
@@ -224,14 +217,6 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		}
 
 		if replyOp != nil && &replyOp.ReplyOp != nil {
-			// Check verbosity level before entering this block to avoid
-			// the performance penalty of evaluating reply.String() unless necessary.
-			if userInfoLogger.isInVerbosity(DebugHigh) {
-				userInfoLogger.Logf(DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp)
-			}
-			if userInfoLogger.isInVerbosity(Info) {
-				userInfoLogger.Logf(DebugHigh, "(Connection %v) reply: %s", op.ConnectionNum, replyOp.Abbreviated(256))
-			}
 			cursorId, err := GetCursorId(&replyOp.ReplyOp, replyOp.Docs)
 			if err != nil {
 				toolDebugLogger.Logf(Always, "Warning: error when trying to find cursor ID in reply: %v", err)
@@ -240,8 +225,6 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 				replyOp.ReplyOp.CursorId = cursorId
 			}
 			context.AddFromWire(&replyOp.ReplyOp, op)
-		} else {
-			userInfoLogger.Logf(Info, "(Connection %v) nil reply", op.ConnectionNum)
 		}
 	}
 	context.handleCompletedReplies()

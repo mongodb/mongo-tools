@@ -7,23 +7,15 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/fatih/color"
 )
 
 type MonitorCommand struct {
-	GlobalOpts       *Options `no-flag:"true"`
-	Gzip             bool     `long:"gzip" description:"decompress gzipped input"`
-	PlaybackFile     string   `short:"p" description:"path to playback file to read from" long:"playback-file"`
-	PcapFile         string   `short:"f" description:"path to the pcap file to be read"`
-	Expression       string   `short:"e" long:"expr" description:"BPF filter expression to apply to packets"`
-	NetworkInterface string   `short:"i" description:"network interface to listen on"`
-	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1"`
-	Report           string   `long:"report" description:"Write report on execution to given output path"`
-	PairedMode       bool     `long:"paired" description:"Output only one line for a request/reply pair"`
-	NoTruncate       bool     `long:"no-truncate" description:"Disable truncation of large payload data in log output"`
-	NoColors         bool     `long:"no-colors" description:"Disable colorized output"`
-	JSON             bool     `long:"json" description:"Output operation data in JSON format"`
+	GlobalOpts *Options `no-flag:"true"`
+	StatOptions
+	OpStreamSettings
+	PairedMode   bool   `long:"paired" description:"Output only one line for a request/reply pair"`
+	Gzip         bool   `long:"gzip" description:"decompress gzipped input"`
+	PlaybackFile string `short:"p" description:"path to playback file to read from" long:"playback-file"`
 }
 
 type UnresolvedOpInfo struct {
@@ -111,12 +103,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 			}()
 		}()
 	} else {
-		ctx, err := getOpstream(opStreamSettings{
-			networkInterface: monitor.NetworkInterface,
-			pcapFile:         monitor.PcapFile,
-			packetBufSize:    monitor.PacketBufSize,
-			expression:       monitor.Expression,
-		})
+		ctx, err := getOpstream(monitor.OpStreamSettings)
 		if err != nil {
 			return err
 		}
@@ -138,27 +125,9 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 			ctx.packetHandler.Close()
 		}()
 	}
-	var statRecorder StatRecorder = &TerminalStatRecorder{
-		out:      os.Stdout,
-		truncate: !monitor.NoTruncate,
-	}
-	if monitor.JSON {
-		statRecorder = &JSONStatRecorder{
-			out: os.Stdout,
-		}
-	}
-	if monitor.NoColors {
-		color.NoColor = true
-	}
-
-	staticStatGenerator := &RegularStatGenerator{
-		PairedMode:    monitor.PairedMode,
-		UnresolvedOps: make(map[string]UnresolvedOpInfo, 1024),
-	}
-
-	statColl := &StatCollector{
-		StatGenerator: staticStatGenerator,
-		StatRecorder:  statRecorder,
+	statColl, err := newStatCollector(monitor.StatOptions, monitor.PairedMode, false)
+	if err != nil {
+		return err
 	}
 	defer statColl.Close()
 

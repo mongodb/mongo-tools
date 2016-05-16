@@ -27,8 +27,8 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	statRec := NewBufferedStatRecorder()
-	context := NewExecutionContext(statRec)
+	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
+	context := NewExecutionContext(statCollector)
 	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", authTestServerUrl)
 	err := Play(context, generator.opChan, testSpeed, authTestServerUrl, 1, 10)
 	if err != nil {
@@ -91,8 +91,8 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	statRec := NewBufferedStatRecorder()
-	context := NewExecutionContext(statRec)
+	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
+	context := NewExecutionContext(statCollector)
 	err := Play(context, generator.opChan, testSpeed, nonAuthTestServerUrl, 1, 10)
 	if err != nil {
 		t.Error(err)

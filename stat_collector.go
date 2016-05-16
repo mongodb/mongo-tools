@@ -29,6 +29,14 @@ var (
 	white   = color.New(color.FgWhite).SprintfFunc()
 )
 
+type StatOptions struct {
+	JSON       bool   `long:"json" description:"Output operation data in JSON format"`
+	Buffered   bool   `hidden:"yes"`
+	Report     string `long:"report" description:"Write report on execution to given output path"`
+	NoTruncate bool   `long:"no-truncate" description:"Disable truncation of large payload data in log output"`
+	NoColors   bool   `long:"no-colors" description:"Disable colorized output"`
+}
+
 // StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
 // It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
 type StatCollector struct {
@@ -112,6 +120,55 @@ func (statColl *StatCollector) Close() error {
 	close(statColl.statStream)
 	<-statColl.done
 	return statColl.StatRecorder.Close()
+}
+
+func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (*StatCollector, error) {
+
+	if opts.NoColors {
+		color.NoColor = true
+	}
+	var statGen StatGenerator
+	if isComparative {
+		statGen = &ComparativeStatGenerator{}
+	} else {
+		statGen = &RegularStatGenerator{
+			PairedMode:    isPairedMode,
+			UnresolvedOps: make(map[string]UnresolvedOpInfo, 1024),
+		}
+	}
+
+	var o io.WriteCloser
+	var err error
+	if opts.Report != "" {
+		o, err = os.Create(opts.Report)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		o = os.Stdout
+	}
+
+	var statRec StatRecorder
+	switch {
+	case opts.JSON:
+		statRec = &JSONStatRecorder{
+			out: o,
+		}
+	case opts.Buffered:
+		statRec = &BufferedStatRecorder{
+			Buffer: []OpStat{},
+		}
+	default:
+		statRec = &TerminalStatRecorder{
+			out:      o,
+			truncate: !opts.NoTruncate,
+		}
+	}
+
+	return &StatCollector{
+		StatGenerator: statGen,
+		StatRecorder:  statRec,
+	}, nil
 }
 
 // StatGenerator is an interface that specifies how to accept operation information to be recorded
@@ -234,20 +291,6 @@ type BufferedStatRecorder struct {
 	Buffer []OpStat
 }
 type NopRecorder struct{}
-
-func openJSONRecorder(path string) (*JSONStatRecorder, error) {
-	f, err := os.Create(path)
-	if err != nil {
-		return nil, err
-	}
-	return &JSONStatRecorder{out: f}, nil
-}
-
-func NewBufferedStatRecorder() *BufferedStatRecorder {
-	return &BufferedStatRecorder{
-		Buffer: []OpStat{},
-	}
-}
 
 func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 	if stat == nil {
@@ -411,6 +454,7 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 		Command:           opMeta.Command,
 		ConnectionNum:     op.ConnectionNum,
 		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt.Time) / time.Microsecond),
+		Seen:              &op.Seen.Time,
 	}
 	if !op.PlayAt.IsZero() {
 		stat.PlayAt = &op.PlayAt.Time

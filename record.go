@@ -13,20 +13,10 @@ import (
 )
 
 type RecordCommand struct {
-	GlobalOpts       *Options `no-flag:"true"`
-	Gzip             bool     `long:"gzip" description:"compress output file with Gzip"`
-	PcapFile         string   `short:"f" description:"path to the pcap file to be read"`
-	Expression       string   `short:"e" long:"expr" description:"BPF filter expression to apply to packets for recording"`
-	PlaybackFile     string   `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
-	NetworkInterface string   `short:"i" description:"network interface to listen on"`
-	PacketBufSize    int      `short:"b" description:"Size of heap used to merge separate streams together" default:"1000"`
-}
-
-type opStreamSettings struct {
-	networkInterface string
-	pcapFile         string
-	packetBufSize    int
-	expression       string
+	GlobalOpts *Options `no-flag:"true"`
+	OpStreamSettings
+	Gzip         bool   `long:"gzip" description:"compress output file with Gzip"`
+	PlaybackFile string `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
 }
 
 type packetHandlerContext struct {
@@ -35,20 +25,20 @@ type packetHandlerContext struct {
 	pcapHandle    *pcap.Handle
 }
 
-func getOpstream(cfg opStreamSettings) (*packetHandlerContext, error) {
-	if cfg.packetBufSize < 1 {
+func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
+	if cfg.PacketBufSize < 1 {
 		return nil, fmt.Errorf("invalid packet buffer size")
 	}
 
 	var pcapHandle *pcap.Handle
 	var err error
-	if len(cfg.pcapFile) > 0 {
-		pcapHandle, err = pcap.OpenOffline(cfg.pcapFile)
+	if len(cfg.PcapFile) > 0 {
+		pcapHandle, err = pcap.OpenOffline(cfg.PcapFile)
 		if err != nil {
 			return nil, fmt.Errorf("error opening pcap file: %v", err)
 		}
-	} else if len(cfg.networkInterface) > 0 {
-		pcapHandle, err = pcap.OpenLive(cfg.networkInterface, 32*1024*1024, false, pcap.BlockForever)
+	} else if len(cfg.NetworkInterface) > 0 {
+		pcapHandle, err = pcap.OpenLive(cfg.NetworkInterface, 32*1024*1024, false, pcap.BlockForever)
 		if err != nil {
 			return nil, fmt.Errorf("error listening to network interface: %v", err)
 		}
@@ -56,8 +46,8 @@ func getOpstream(cfg opStreamSettings) (*packetHandlerContext, error) {
 		return nil, fmt.Errorf("must specify either a pcap file or network interface to record from")
 	}
 
-	if len(cfg.expression) > 0 {
-		err = pcapHandle.SetBPFFilter(cfg.expression)
+	if len(cfg.Expression) > 0 {
+		err = pcapHandle.SetBPFFilter(cfg.Expression)
 		if err != nil {
 			return nil, fmt.Errorf("error setting packet filter expression: %v", err)
 		}
@@ -66,7 +56,7 @@ func getOpstream(cfg opStreamSettings) (*packetHandlerContext, error) {
 	h := NewPacketHandler(pcapHandle)
 	h.Verbose = userInfoLogger.isInVerbosity(DebugLow)
 
-	m := NewMongoOpStream(cfg.packetBufSize)
+	m := NewMongoOpStream(cfg.PacketBufSize)
 	return &packetHandlerContext{h, m, pcapHandle}, nil
 }
 
@@ -109,12 +99,7 @@ func (record *RecordCommand) Execute(args []string) error {
 	record.GlobalOpts.SetLogging()
 	toolDebugLogger.Logf(DebugLow, "Opening playback file %v", record.PlaybackFile)
 
-	ctx, err := getOpstream(opStreamSettings{
-		networkInterface: record.NetworkInterface,
-		pcapFile:         record.PcapFile,
-		packetBufSize:    record.PacketBufSize,
-		expression:       record.Expression,
-	})
+	ctx, err := getOpstream(record.OpStreamSettings)
 	if err != nil {
 		return err
 	}

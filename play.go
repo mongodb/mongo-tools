@@ -11,14 +11,14 @@ import (
 )
 
 type PlayCommand struct {
-	GlobalOpts   *Options `no-flag:"true"`
-	PlaybackFile string   `description:"path to the playback file to play from" short:"p" long:"playback-file" required:"yes"`
-	Speed        float64  `description:"multiplier for playback speed (1.0 = real-time, .5 = half-speed, 3.0 = triple-speed, etc.)" long:"speed" default:"1.0"`
-	Url          string   `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
-	Report       string   `long:"report" description:"Write report on execution to given output path"`
-	Repeat       int      `long:"repeat" description:"Number of times to play the playback file" default:"1"`
-	QueueTime    int      `long:"queueTime" description:"don't queue ops much further in the future than this number of seconds" default:"15"`
-	Gzip         bool     `long:"gzip" description:"decompress gzipped input"`
+	GlobalOpts *Options `no-flag:"true"`
+	StatOptions
+	PlaybackFile string  `description:"path to the playback file to play from" short:"p" long:"playback-file" required:"yes"`
+	Speed        float64 `description:"multiplier for playback speed (1.0 = real-time, .5 = half-speed, 3.0 = triple-speed, etc.)" long:"speed" default:"1.0"`
+	Url          string  `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
+	Repeat       int     `long:"repeat" description:"Number of times to play the playback file" default:"1"`
+	QueueTime    int     `long:"queueTime" description:"don't queue ops much further in the future than this number of seconds" default:"15"`
+	Gzip         bool    `long:"gzip" description:"decompress gzipped input"`
 }
 
 const queueGranularity = 1000
@@ -165,12 +165,9 @@ func (play *PlayCommand) Execute(args []string) error {
 	}
 	play.GlobalOpts.SetLogging()
 
-	var statRec StatRecorder = &NopRecorder{}
-	if len(play.Report) > 0 {
-		statRec, err = openJSONRecorder(play.Report)
-		if err != nil {
-			return err
-		}
+	statColl, err := newStatCollector(play.StatOptions, true, true)
+	if err != nil {
+		return err
 	}
 	userInfoLogger.Logf(Always, "Doing playback at %.2fx speed", play.Speed)
 
@@ -180,7 +177,8 @@ func (play *PlayCommand) Execute(args []string) error {
 	}
 	opChan, errChan := play.NewPlayOpChan(playbackFileReader)
 
-	context := NewExecutionContext(statRec)
+	context := NewExecutionContext(statColl)
+
 	if err := Play(context, opChan, play.Speed, play.Url, play.Repeat, play.QueueTime); err != nil {
 		userInfoLogger.Logf(Always, "Play: %v\n", err)
 	}
@@ -199,8 +197,6 @@ func Play(context *ExecutionContext,
 	url string,
 	repeat int,
 	queueTime int) error {
-
-	context.StatCollector.StatGenerator = &ComparativeStatGenerator{}
 
 	sessionChans := make(map[string]chan<- *RecordedOp)
 	var playbackStartTime, recordingStartTime time.Time

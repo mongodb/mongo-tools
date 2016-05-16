@@ -10,7 +10,7 @@ import (
 )
 
 func TestCompleteReply(t *testing.T) {
-	context := NewExecutionContext(nil)
+	context := NewExecutionContext(&StatCollector{})
 
 	log.SetVerbosity(&options.Verbosity{[]bool{true, true, true, true, true}, false})
 
