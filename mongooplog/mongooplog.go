@@ -85,6 +85,8 @@ func (mo *MongoOplog) Run() error {
 
 	log.Log(log.DebugLow, "applying oplog entries...")
 
+	opCount := 0
+
 	for tail.Next(oplogEntry) {
 
 		// skip noops
@@ -92,6 +94,7 @@ func (mo *MongoOplog) Run() error {
 			log.Logf(log.DebugHigh, "skipping no-op for namespace `%v`", oplogEntry.Namespace)
 			continue
 		}
+		opCount++
 
 		// prepare the op to be applied
 		opsToApply := []db.Oplog{*oplogEntry}
@@ -114,7 +117,7 @@ func (mo *MongoOplog) Run() error {
 		return fmt.Errorf("error querying oplog: %v", err)
 	}
 
-	log.Log(log.DebugLow, "done applying oplog entries")
+	log.Logf(log.DebugLow, "done applying %v oplog entries", opCount)
 
 	return nil
 }
