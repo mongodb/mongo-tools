@@ -28,9 +28,9 @@ type UnresolvedOpInfo struct {
 // using the incoming reply.
 func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, requestStat *OpStat) {
 	gen.UnresolvedOps[opKey{
-		src: op.SrcEndpoint,
-		dst: op.DstEndpoint,
-		id:  op.Header.RequestID,
+		driverEndpoint: op.SrcEndpoint,
+		serverEndpoint: op.DstEndpoint,
+		opId:           op.Header.RequestID,
 	}] = UnresolvedOpInfo{
 		Stat:     requestStat,
 		Op:       op,
@@ -46,12 +46,12 @@ func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, re
 // parsedReply is the same reply, parsed so that the payload of the op can be accesssed.
 // replyStat is the OpStat created by the GenerateOpStat function, containing computed metadata about the reply.
 func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply *ReplyOp, replyStat *OpStat) *OpStat {
-	var result *OpStat = &OpStat{}
+	result := &OpStat{}
 
 	key := opKey{
-		src: recordedReply.DstEndpoint,
-		dst: recordedReply.SrcEndpoint,
-		id:  recordedReply.Header.ResponseTo,
+		driverEndpoint: recordedReply.DstEndpoint,
+		serverEndpoint: recordedReply.SrcEndpoint,
+		opId:           recordedReply.Header.ResponseTo,
 	}
 	originalOpInfo, foundOriginal := gen.UnresolvedOps[key]
 	if !foundOriginal {

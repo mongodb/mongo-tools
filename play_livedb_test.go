@@ -25,6 +25,7 @@ var urlAuth string
 var urlNonAuth string
 var currentTestUrl string
 var authTestServerMode bool
+var isMongosTestServer bool
 var testCollectorOpts StatOptions = StatOptions{
 	JSON:     false,
 	Buffered: true,
@@ -40,13 +41,12 @@ type recordedOpGenerator struct {
 
 func setConnectionUrl() error {
 	var url string
-	var port interface{}
 	if os.Getenv("AUTH") == "1" {
 		url = authTestServerUrl
 	} else {
 		url = nonAuthTestServerUrl
 	}
-	dialUrl := fmt.Sprintf("%s:%d", url, defaultTestPort)
+	dialUrl := fmt.Sprintf("%s:%v", url, defaultTestPort)
 	if os.Getenv("AUTH") == "1" {
 		dialUrl += "/admin"
 	}
@@ -54,31 +54,48 @@ func setConnectionUrl() error {
 	if err != nil {
 		return err
 	}
-	result := struct {
-		Members []struct {
-			Name     string `bson:"name"`
-			StateStr string `bson:"stateStr"`
-		} `bson:"members"`
-	}{}
-	err = session.DB("admin").Run("replSetGetStatus", &result)
-	if err != nil && err.Error() != "not running with --replSet" {
+
+	port, err := getTestDBPort(session)
+	if err != nil {
 		return err
-	} else if err != nil && err.Error() == "not running with --replSet" {
-		port = defaultTestPort
-	} else {
-		for _, member := range result.Members {
-			if member.StateStr == "PRIMARY" {
-				port = strings.Split(member.Name, ":")[1]
-			}
-		}
 	}
-	urlNonAuth = fmt.Sprintf("%s:%v", nonAuthTestServerUrl, port)
+	urlNonAuth = fmt.Sprintf("%s:%s", nonAuthTestServerUrl, port)
 	urlAuth = fmt.Sprintf("%s:%v/admin", authTestServerUrl, port)
 	currentTestUrl = urlNonAuth
 	if os.Getenv("AUTH") == "1" {
 		currentTestUrl = urlAuth
 	}
 	return nil
+}
+
+func getTestDBPort(session *mgo.Session) (string, error) {
+	if port := os.Getenv("DB_PORT"); port != "" {
+		return port, nil
+	}
+
+	result := struct {
+		Members []struct {
+			Name     string `bson:"name"`
+			StateStr string `bson:"stateStr"`
+		} `bson:"members"`
+	}{}
+
+	err := session.DB("admin").Run("replSetGetStatus", &result)
+	if err != nil && err.Error() != "not running with --replSet" {
+		return "", err
+	}
+
+	if err != nil && err.Error() == "not running with --replSet" {
+		return fmt.Sprintf("%d", defaultTestPort), nil
+	}
+
+	for _, member := range result.Members {
+		if member.StateStr == "PRIMARY" {
+			return strings.Split(member.Name, ":")[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to determine database port")
 }
 
 func TestMain(m *testing.M) {
@@ -91,6 +108,18 @@ func TestMain(m *testing.M) {
 	} else {
 		authTestServerMode = false
 	}
+
+	session, err := mgo.Dial(currentTestUrl)
+	if err != nil {
+		panic(err)
+	}
+	res := &struct {
+		Msg string
+	}{}
+	session.Run("ismaster", res)
+	isMongosTestServer = (res.Msg == "isdbgrid")
+	session.Close()
+
 	os.Exit(m.Run())
 }
 
@@ -587,6 +616,9 @@ func TestCommandOpInsertLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
+	if isMongosTestServer {
+		t.Skipf("Skipping OpCommand test against mongos")
+	}
 
 	numInserts := 20
 	insertName := "LiveDB CommandOp insert test"
@@ -665,6 +697,9 @@ func TestCommandOpInsertLiveDB(t *testing.T) {
 func TestCommandOpFindLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
+	}
+	if isMongosTestServer {
+		t.Skipf("Skipping OpCommand test against mongos")
 	}
 
 	insertName := "LiveDB CommandOp Find Test"

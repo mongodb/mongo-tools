@@ -24,6 +24,7 @@ type stream struct {
 	reassembly       tcpassembly.Reassembly
 	done             chan interface{}
 	op               *RawOp
+	opTimeStamp      time.Time
 	state            streamState
 	netFlow, tcpFlow gopacket.Flow
 }
@@ -246,6 +247,7 @@ func (bidi *bidi) handleStreamStateBeforeMessage(stream *stream) {
 	}
 	stream.op.Body = make([]byte, 16, stream.op.Header.MessageLength)
 	stream.state = streamStateInMessage
+	stream.opTimeStamp = stream.reassembly.Seen
 	copy(stream.op.Body, stream.reassembly.Bytes)
 	stream.reassembly.Bytes = stream.reassembly.Bytes[16:]
 	return
@@ -269,11 +271,11 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 		// and if so, parse the raw op here.
 
 		bidi.opStream.unorderedOps <- RecordedOp{
-			RawOp:         *stream.op,
-			Seen:          &PreciseTime{stream.reassembly.Seen},
-			SrcEndpoint:   stream.netFlow.Src().String(),
-			DstEndpoint:   stream.netFlow.Dst().String(),
-			ConnectionNum: bidi.connectionNumber,
+			RawOp:             *stream.op,
+			Seen:              &PreciseTime{stream.opTimeStamp},
+			SrcEndpoint:       stream.netFlow.Src().String(),
+			DstEndpoint:       stream.netFlow.Dst().String(),
+			SeenConnectionNum: bidi.connectionNumber,
 		}
 
 		stream.op = &RawOp{}
@@ -326,6 +328,7 @@ func (bidi *bidi) streamOps() {
 			if stream.reassembly.Skip > 0 {
 				// TODO, we may want to do more state specific reporting here.
 				stream.state = streamStateOutOfSync
+				//when we have skip, we destroy this buffer
 				stream.op.Body = stream.op.Body[:0]
 				bidi.logf(Info, "Connection %v state '%v': ignoring incomplete packet (skip: %v)", bidi.connectionNumber, stream.state, stream.reassembly.Skip)
 				continue

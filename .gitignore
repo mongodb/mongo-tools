@@ -1,3 +1,17 @@
 .gopath
+.idea
 bin
 tags
+*.tape
+*.pcap
+*.json
+*.swp
+*.playback
+*.temp
+*.log
+*.out
+*.zip
+*.bson
+*.dump
+
+*temp*

@@ -148,7 +148,6 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 func (op *CommandOp) Execute(session *mgo.Session) (replyContainer, error) {
 	session.SetSocketTimeout(0)
 	var replyContainer replyContainer
-
 	before := time.Now()
 	metadata, commandReply, replyData, resultReply, err := mgo.ExecOpWithReply(session, &op.CommandOp)
 	after := time.Now()

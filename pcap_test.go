@@ -8,16 +8,19 @@ import (
 	"testing"
 )
 
-type verifyFunc func(*testing.T, *mgo.Session)
+type verifyFunc func(*testing.T, *mgo.Session, *BufferedStatRecorder)
 
-func TestOpCommandFromPcapFile(t *testing.T) {
+func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
+	}
+	if isMongosTestServer {
+		t.Skipf("Skipping OpCommand test when running against mongos")
 	}
 
 	pcapFname := "op_command_2inserts.pcap"
 
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session) {
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder) {
 		coll := session.DB(testDB).C(testCollection)
 		iter := coll.Find(bson.D{}).Sort("op_command_test").Iter()
 		result := struct {
@@ -28,22 +31,96 @@ func TestOpCommandFromPcapFile(t *testing.T) {
 		ind := 1
 		for iter.Next(&result) {
 			if result.TestNum != ind {
-				t.Errorf("document number not matched. Expected: %v -- found %v --", ind, result.TestNum)
+				t.Errorf("document number not matched. Expected: %v -- found %v", ind, result.TestNum)
 			}
 			ind++
 		}
+		if ind != 3 {
+			t.Errorf("did not find the correct number of documents. Expected %v -- found %v", ind-1, 2)
+
+		}
 	}
-	pcapTestHelper(t, pcapFname, verifier)
+
+	pcapTestHelper(t, pcapFname, false, verifier)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
 
 }
 
-func pcapTestHelper(t *testing.T, pcapFname string, verifier verifyFunc) {
+func TestSingleChannelGetMoreLiveDB(t *testing.T) {
+	pcapFname := "getmore_single_channel.pcap"
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder) {
+		getMoresSeen := 0
+		for _, val := range statRecorder.Buffer {
+			if val.OpType == "getmore" {
+				getMoresSeen++
+				if val.NumReturned > 0 {
+					t.Errorf("Getmore shouldn't have returned anything, but returned %v", val.NumReturned)
+				}
+			}
+		}
+		if getMoresSeen != 8 {
+			t.Errorf("Didn't seen the correct number of getmores, expected 8 but saw %v", getMoresSeen)
+		}
+		coll := session.DB(testDB).C(testCollection)
+		num, _ := coll.Count()
+
+		if num < 1 {
+			t.Error("Didn't find any documents in the database")
+		}
+
+	}
+	pcapTestHelper(t, pcapFname, true, verifier)
+}
+
+func TestMultiChannelGetMoreLiveDB(t *testing.T) {
+
+	pcapFname := "getmore_multi_channel.pcap"
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder) {
+		aggregationsSeen := 0
+		getMoresSeen := 0
+		for _, val := range statRecorder.Buffer {
+			if val.OpType == "command" && val.Command == "aggregate" {
+				aggregationsSeen++
+			} else if val.OpType == "getmore" {
+				getMoresSeen++
+				if aggregationsSeen != 2 {
+					t.Error("Getmore seen before cursor producing operation")
+				}
+				if val.NumReturned < 100 {
+					t.Errorf("Getmore should have returned a full batch, but only returned %v", val.NumReturned)
+				}
+			}
+		}
+		if getMoresSeen != 8 {
+			t.Errorf("Didn't seen the correct number of getmores, expected 8 but saw %v", getMoresSeen)
+		}
+		coll := session.DB(testDB).C(testCollection)
+		num, _ := coll.Count()
+
+		if num < 1 {
+			t.Error("Didn't find any documents in the database")
+		}
+
+	}
+	pcapTestHelper(t, pcapFname, true, verifier)
+}
+
+func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier verifyFunc) {
+
+	pcapFile := "testPcap/" + pcapFname
+	if _, err := os.Stat(pcapFile); err != nil {
+		t.Skipf("pcap file %v not present, skipping test", pcapFile)
+	}
+
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+
 	playbackFname := "pcap_test_run.tape"
 	streamSettings := OpStreamSettings{
-		PcapFile:      "testPcap/" + pcapFname,
+		PcapFile:      pcapFile,
 		PacketBufSize: 1000,
 	}
 	t.Log("Opening op stream")
@@ -69,11 +146,31 @@ func pcapTestHelper(t *testing.T, pcapFname string, verifier verifyFunc) {
 		t.Errorf("error opening playback file to write: %v\n", err)
 	}
 
-	opChan, errChan := NewOpChanFromFile(playbackReader, 1)
-
 	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
-	//statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
+	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
 	context := NewExecutionContext(statCollector)
+
+	if preprocess {
+		opChan, errChan := NewOpChanFromFile(playbackReader, 1)
+		preprocessMap, err := newPreprocessCursorManager(opChan)
+
+		if err != nil {
+			t.Errorf("error creating preprocess map: %v", err)
+		}
+
+		err = <-errChan
+		if err != io.EOF {
+			t.Errorf("error creating preprocess map: %v", err)
+		}
+
+		_, err = playbackReader.Seek(0, 0)
+		if err != nil {
+			t.Errorf("error seeking playbackfile: %v", err)
+		}
+		context.CursorIdMap = preprocessMap
+	}
+
+	opChan, errChan := NewOpChanFromFile(playbackReader, 1)
 
 	t.Log("Reading ops from playback file")
 	err = Play(context, opChan, testSpeed, currentTestUrl, 1, 10)
@@ -89,5 +186,9 @@ func pcapTestHelper(t *testing.T, pcapFname string, verifier verifyFunc) {
 	if err != nil {
 		t.Errorf("Error connecting to test server: %v", err)
 	}
-	verifier(t, session)
+	verifier(t, session, statRec)
+
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
 }

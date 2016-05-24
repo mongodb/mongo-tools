@@ -452,7 +452,7 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 		Ns:            opMeta.Ns,
 		RequestData:   opMeta.Data,
 		Command:       opMeta.Command,
-		ConnectionNum: op.ConnectionNum,
+		ConnectionNum: op.PlayedConnectionNum,
 		Seen:          &op.Seen.Time,
 	}
 	var playAtHasVal bool
@@ -504,7 +504,7 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 		OpType:        meta.Op,
 		Ns:            meta.Ns,
 		Command:       meta.Command,
-		ConnectionNum: recordedOp.ConnectionNum,
+		ConnectionNum: recordedOp.SeenConnectionNum,
 		Seen:          &recordedOp.Seen.Time,
 	}
 	if msg != "" {

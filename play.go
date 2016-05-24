@@ -18,6 +18,7 @@ type PlayCommand struct {
 	Url          string  `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 	Repeat       int     `long:"repeat" description:"Number of times to play the playback file" default:"1"`
 	QueueTime    int     `long:"queueTime" description:"don't queue ops much further in the future than this number of seconds" default:"15"`
+	NoPreprocess bool    `long:"no-preprocess" description:"don't preprocess the input file to premap data such as mongo cursorIds"`
 	Gzip         bool    `long:"gzip" description:"decompress gzipped input"`
 }
 
@@ -175,9 +176,34 @@ func (play *PlayCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	opChan, errChan := NewOpChanFromFile(playbackFileReader, play.Repeat)
 
 	context := NewExecutionContext(statColl)
+
+	var opChan <-chan *RecordedOp
+	var errChan <-chan error
+
+	if !play.NoPreprocess {
+		opChan, errChan = NewOpChanFromFile(playbackFileReader, 1)
+
+		preprocessMap, err := newPreprocessCursorManager(opChan)
+
+		if err != nil {
+			return fmt.Errorf("PreprocessMap: %v", err)
+		}
+
+		err = <-errChan
+		if err != io.EOF {
+			return fmt.Errorf("OpChan: %v", err)
+		}
+
+		_, err = playbackFileReader.Seek(0, 0)
+		if err != nil {
+			return err
+		}
+		context.CursorIdMap = preprocessMap
+	}
+
+	opChan, errChan = NewOpChanFromFile(playbackFileReader, play.Repeat)
 
 	if err := Play(context, opChan, play.Speed, play.Url, play.Repeat, play.QueueTime); err != nil {
 		userInfoLogger.Logf(Always, "Play: %v\n", err)

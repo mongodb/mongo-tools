@@ -2,15 +2,16 @@ package mongotape
 
 type RecordedOp struct {
 	RawOp
-	Seen          *PreciseTime
-	PlayAt        *PreciseTime `bson:",omitempty"`
-	EOF           bool         `bson:",omitempty"`
-	SrcEndpoint   string
-	DstEndpoint   string
-	ConnectionNum int64
-	PlayedAt      *PreciseTime `bson:",omitempty"`
-	Generation    int
-	Order         int64
+	Seen                *PreciseTime
+	PlayAt              *PreciseTime `bson:",omitempty"`
+	EOF                 bool         `bson:",omitempty"`
+	SrcEndpoint         string
+	DstEndpoint         string
+	SeenConnectionNum   int64
+	PlayedConnectionNum int64
+	PlayedAt            *PreciseTime `bson:",omitempty"`
+	Generation          int
+	Order               int64
 }
 
 func (op *RecordedOp) ConnectionString() string {
@@ -46,6 +47,6 @@ func (o *orderedOps) Push(op interface{}) {
 }
 
 type opKey struct {
-	src, dst string
-	id       int32
+	driverEndpoint, serverEndpoint string
+	opId                           int32
 }

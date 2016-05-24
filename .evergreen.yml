@@ -37,6 +37,15 @@ functions:
       local_file: src/${tool}
       remote_file: mongotape/binaries/${build_id}/${tool}
 
+  "fetch pcap" :
+      command: s3.get
+      params:
+        bucket: boxes.10gen.com
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/testPcap/${pcapFname}
+        remote_file: build/mongotape/${pcapFname}
+
   "start mongod" :
     - command: shell.exec
       params:
@@ -98,7 +107,7 @@ functions:
           set -e
           set -o verbose
           cd mongodb 
-          ./mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+          ./mongo --nodb --eval 'var d; assert.soon(function(x){try{d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection");d.setLogLevel(5, "write");'
 
   "create repl_set" :
     - command: shell.exec
@@ -177,6 +186,12 @@ tasks:
   - func: "fetch tool"
     vars:
       tool: mongotape
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_multi_channel.pcap
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_single_channel.pcap
   - func: "fetch mongodb"
   - func: "start mongod"
     vars:
@@ -193,13 +208,20 @@ tasks:
   - func: "fetch tool"
     vars:
       tool: mongotape
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_multi_channel.pcap
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_single_channel.pcap
   - func: "fetch mongodb"
   - func: "create sharded_cluster"
     vars:
-        mongod_port: 20000
+        mongod_port: 20010
   - func: "run go_test"
     vars:
         filename: sharded
+        environment_vars: DB_PORT=20010
         additional_args: --run "LiveDB"
 
 - name: auth_test
@@ -210,6 +232,12 @@ tasks:
   - func: "fetch tool"
     vars:
       tool: mongotape
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_multi_channel.pcap
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_single_channel.pcap
   - func: "fetch mongodb"
   - func: "start mongod"
     vars:
@@ -232,6 +260,12 @@ tasks:
   - func: "fetch tool"
     vars:
       tool: mongotape
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_multi_channel.pcap
+  - func: "fetch pcap"
+    vars:
+      pcapFname: getmore_single_channel.pcap
   - func: "fetch mongodb"
   - func: "create repl_set"
     vars:
@@ -246,7 +280,7 @@ buildvariants:
   display_name: Ubuntu
   expansions:
     mongod_port: 27017
-    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.7.tgz
+    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.4.tgz
   run_on:
   - ubuntu1404-test
   tasks:

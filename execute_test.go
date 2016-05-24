@@ -1,7 +1,6 @@
 package mongotape
 
 import (
-	"strconv"
 	"testing"
 
 	mgo "github.com/10gen/llmgo"
@@ -50,11 +49,11 @@ func TestCompleteReply(t *testing.T) {
 	}
 	context.handleCompletedReplies()
 
-	cursorIdLookup, ok := context.CursorIdMap.Get(strconv.FormatInt(1500, 10))
+	cursorIdLookup, ok := context.CursorIdMap.GetCursor(1500, -1)
 	if !ok {
 		t.Error("can't find cursorId in map")
 	}
-	if cursorIdLookup.(int64) != 2500 {
+	if cursorIdLookup != 2500 {
 		t.Errorf("looked up cursorId is wrong: %v, should be 2500", cursorIdLookup)
 	}
 }
