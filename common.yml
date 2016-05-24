@@ -6,6 +6,7 @@ command_type: system
 
 # run the same task in the previous revision if the current task fails
 stepback: true
+disable_cleanup: true
 
 mongo_tools_variables:
 
