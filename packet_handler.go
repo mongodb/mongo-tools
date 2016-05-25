@@ -37,7 +37,7 @@ func (p *PacketHandler) Close() {
 	p.stop <- struct{}{}
 }
 
-func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *tcpassembly.Assembler) {
+func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *Assembler) {
 	if pkt != nil {
 		userInfoLogger.Logf(DebugLow, "processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
 	}
@@ -51,8 +51,8 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 		userInfoLogger.Logf(Always, "Processing", numToHandle, "packets")
 	}
 	source := gopacket.NewPacketSource(p.pcap, p.pcap.LinkType())
-	streamPool := tcpassembly.NewStreamPool(streamHandler)
-	assembler := tcpassembly.NewAssembler(streamPool)
+	streamPool := NewStreamPool(streamHandler)
+	assembler := NewAssembler(streamPool)
 	defer func() {
 		if userInfoLogger.isInVerbosity(DebugLow) {
 			userInfoLogger.Log(DebugLow, "flushing assembler.")
