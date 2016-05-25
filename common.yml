@@ -818,7 +818,7 @@ tasks:
           mv ./mongodb/mongo${extension} .
           mv test/legacy28/* .
           chmod +x mongo*
-          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 tool
+          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 tool --buildlogger-url https://logkeeper.mongodb.org
 
 - name: legacy28-wt
   depends_on:
@@ -865,7 +865,7 @@ tasks:
           mv ./mongodb/mongo${extension} .
           mv test/legacy28/* .
           chmod +x mongo*
-          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger tool
+          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger tool --buildlogger-url https://logkeeper.mongodb.org
 
 - name: legacy26
   depends_on:
@@ -912,7 +912,7 @@ tasks:
           mv ./mongodb/mongo${extension} .
           mv test/legacy26/* .
           chmod +x mongo*
-          python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool
+          python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool --buildlogger-url https://logkeeper.mongodb.org
 
 - name: legacy24
   depends_on:
@@ -962,7 +962,7 @@ tasks:
           mv ./mongodb/mongo${extension} .
           mv test/legacy24/* .
           chmod +x mongo*
-          python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool
+          python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool --buildlogger-url https://logkeeper.mongodb.org
 
 - name: lint
   commands:
@@ -1069,7 +1069,7 @@ tasks:
           rm -rf /data/install /data/multiversion
           python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
-          PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 top oplog dump files restore stat bson export import ssl unstable
+          PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 top oplog dump files restore stat bson export import ssl unstable --buildlogger-url https://logkeeper.mongodb.org
 
 
 - name: qa-tests
@@ -1129,7 +1129,7 @@ tasks:
           rm -rf /data/install /data/multiversion
           python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
-          PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 top oplog dump files restore stat bson export import ssl
+          PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 top oplog dump files restore stat bson export import ssl --buildlogger-url https://logkeeper.mongodb.org
 
 - name: qa-dump-restore-archiving
   depends_on:
@@ -1166,7 +1166,7 @@ tasks:
           rm -rf /data/install /data/multiversion
           python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
-          SMOKE_EVAL="load('jstests/configs/archive_targets.js')" PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 dump restore
+          SMOKE_EVAL="load('jstests/configs/archive_targets.js')" PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 dump restore --buildlogger-url https://logkeeper.mongodb.org
 
 - name: qa-dump-restore-gzip
   depends_on:
@@ -1203,7 +1203,7 @@ tasks:
           rm -rf /data/install /data/multiversion
           python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
-          SMOKE_EVAL="load('jstests/configs/gzip_targets.js')" PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 dump restore
+          SMOKE_EVAL="load('jstests/configs/gzip_targets.js')" PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 dump restore --buildlogger-url https://logkeeper.mongodb.org
 
 - name: qa-tests-wt
   depends_on:
@@ -1261,7 +1261,7 @@ tasks:
           rm -rf /data/install /data/multiversion
           python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
-          PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger top dump oplog files restore stat bson export import
+          PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger top dump oplog files restore stat bson export import --buildlogger-url https://logkeeper.mongodb.org
 
 - name: text
   commands:
