@@ -397,7 +397,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 						continue
 					} else {
 						if intent.IsSpecialCollection() {
-							specialCollectionCache := &archive.SpecialCollectionCache{Intent: intent, Demux: restore.archive.Demux}
+							specialCollectionCache := archive.NewSpecialCollectionCache(intent, restore.archive.Demux)
 							intent.BSONFile = specialCollectionCache
 							restore.archive.Demux.Open(intent.Namespace(), specialCollectionCache)
 						} else {

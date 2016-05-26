@@ -315,6 +315,14 @@ type SpecialCollectionCache struct {
 	hash   hash.Hash64
 }
 
+func NewSpecialCollectionCache(intent *intents.Intent, demux *Demultiplexer) *SpecialCollectionCache {
+	return &SpecialCollectionCache{
+		Intent: intent,
+		Demux:  demux,
+		hash:   crc64.New(crc64.MakeTable(crc64.ECMA)),
+	}
+}
+
 // Open is part of the both interfaces, and it does nothing
 func (cache *SpecialCollectionCache) Open() error {
 	return nil
