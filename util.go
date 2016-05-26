@@ -328,3 +328,37 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 
 	return nil, fmt.Errorf("conversion of BSON type '%v' not supported %v", reflect.TypeOf(x), x)
 }
+
+type PreciseTime time.Time
+
+func (b *PreciseTime) GetBSON() (interface{}, error) {
+
+	t := (*time.Time)(b)
+
+	result := struct {
+		Sec  int64 `bson:"sec"`
+		Nsec int32 `bson:"nsec"`
+	}{
+		Sec:  t.Unix() + (1969*365+1969/4-1969/100+1969/400)*86400,
+		Nsec: int32(t.Nanosecond()),
+	}
+	return result, nil
+
+}
+
+func (b *PreciseTime) SetBSON(raw bson.Raw) error {
+	decoder := new(struct {
+		Sec  int64 `bson:"sec"`
+		Nsec int32 `bson:"nsec"`
+	})
+
+	bsonErr := raw.Unmarshal(&decoder)
+	if bsonErr != nil {
+		return bsonErr
+	}
+
+	t := time.Unix(decoder.Sec-(1969*365+1969/4-1969/100+1969/400)*86400, int64(decoder.Nsec))
+	asPrecise := PreciseTime(t)
+	*b = asPrecise
+	return nil
+}

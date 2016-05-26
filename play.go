@@ -137,11 +137,34 @@ func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
 		}
 		return nil, fmt.Errorf("ReadDocument Error: %v", err)
 	}
-	doc := &RecordedOp{}
-	err = bson.Unmarshal(buf, doc)
+	preciseOp := &struct {
+		RawOp
+		Seen          *PreciseTime
+		PlayAt        *PreciseTime `bson:",omitempty"`
+		EOF           bool         `bson:",omitempty"`
+		SrcEndpoint   string
+		DstEndpoint   string
+		ConnectionNum int64
+		PlayedAt      *PreciseTime
+		Generation    int
+		Order         int64
+	}{}
+	err = bson.Unmarshal(buf, preciseOp)
 
 	if err != nil {
 		return nil, fmt.Errorf("Unmarshal RecordedOp Error: %v\n", err)
+	}
+	doc := &RecordedOp{
+		RawOp:         preciseOp.RawOp,
+		Seen:          time.Time(*preciseOp.Seen),
+		PlayAt:        time.Time(*preciseOp.PlayAt),
+		EOF:           preciseOp.EOF,
+		SrcEndpoint:   preciseOp.SrcEndpoint,
+		DstEndpoint:   preciseOp.DstEndpoint,
+		ConnectionNum: preciseOp.ConnectionNum,
+		PlayedAt:      time.Time(*preciseOp.PlayedAt),
+		Generation:    preciseOp.Generation,
+		Order:         preciseOp.Order,
 	}
 	return doc, nil
 }
