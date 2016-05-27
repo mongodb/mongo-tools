@@ -11,7 +11,7 @@ import (
 
 func TestRepeatGeneration(t *testing.T) {
 	recOp := &RecordedOp{
-		Seen: time.Now(),
+		Seen: &PreciseTime{time.Now()},
 	}
 	bsonBytes, err := bson.Marshal(recOp)
 	if err != nil {
@@ -48,9 +48,9 @@ func TestRepeatGeneration(t *testing.T) {
 
 func TestPlayOpEOF(t *testing.T) {
 	ops := []RecordedOp{{
-		Seen: time.Now(),
+		Seen: &PreciseTime{time.Now()},
 	}, {
-		Seen: time.Now(),
+		Seen: &PreciseTime{time.Now()},
 		EOF:  true,
 	}}
 	var buf bytes.Buffer

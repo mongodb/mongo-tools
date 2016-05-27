@@ -2,6 +2,7 @@ package mongotape
 
 import (
 	"testing"
+	"time"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -224,5 +225,23 @@ func TestOpUpdate(t *testing.T) {
 		t.Errorf("Updates not equal. Saw %v -- Expected %v\n", updateOp.Update, &update)
 	case updateOp.Flags != op.Flags:
 		t.Errorf("Flags not equal. Saw %d -- Expected %d\n", updateOp.Flags, op.Flags)
+	}
+}
+
+func TestPreciseTimeMarshal(t *testing.T) {
+	t1 := time.Date(2015, 4, 8, 15, 16, 23, 651387237, time.UTC)
+	preciseTime := &PreciseTime{t1}
+	asBson, err := bson.Marshal(preciseTime)
+	if err != nil {
+		t.Error(err)
+	}
+	result := &PreciseTime{}
+	err = bson.Unmarshal(asBson, result)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if t1 != result.Time {
+		t.Errorf("Times not equal. Input: %v -- Result: %v", t1, result.Time)
 	}
 }

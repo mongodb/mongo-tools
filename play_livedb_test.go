@@ -684,7 +684,7 @@ func (generator *recordedOpGenerator) fetchRecordedOpsFromConn(op interface{}) (
 	result.Body = make([]byte, MsgHeaderLen)
 	result.FromReader(generator.serverConnection)
 
-	recordedOp := &RecordedOp{RawOp: result, Seen: testTime, SrcEndpoint: "a", DstEndpoint: "b"}
+	recordedOp := &RecordedOp{RawOp: result, Seen: &PreciseTime{testTime}, SrcEndpoint: "a", DstEndpoint: "b", PlayedAt: &PreciseTime{}}
 
 	d, _ := time.ParseDuration("2ms")
 	testTime = testTime.Add(d)

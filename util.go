@@ -333,30 +333,39 @@ type PreciseTime struct {
 	time.Time
 }
 
+type preciseTimeDecoder struct {
+	Sec  int64 `bson:"sec"`
+	Nsec int32 `bson:"nsec"`
+}
+
+const (
+	// Time.Unix() returns the number of seconds from the unix epoch
+	// but time's underlying struct stores 'sec' as the number of seconds
+	// elapsed since January 1, year 1 00:00:00 UTC
+	// This calculation allows for conversion between the internal representation
+	// and the UTC representation
+	unixToInternal int64 = (1969*365 + 1969/4 - 1969/100 + 1969/400) * 86400
+
+	internalToUnix int64 = -unixToInternal
+)
+
 func (b *PreciseTime) GetBSON() (interface{}, error) {
-	result := struct {
-		Sec  int64 `bson:"sec"`
-		Nsec int32 `bson:"nsec"`
-	}{
-		Sec:  b.Unix() + (1969*365+1969/4-1969/100+1969/400)*86400,
+	result := preciseTimeDecoder{
+		Sec:  b.Unix() + unixToInternal,
 		Nsec: int32(b.Nanosecond()),
 	}
-	return result, nil
+	return &result, nil
 
 }
 
 func (b *PreciseTime) SetBSON(raw bson.Raw) error {
-	decoder := new(struct {
-		Sec  int64 `bson:"sec"`
-		Nsec int32 `bson:"nsec"`
-	})
-
+	decoder := preciseTimeDecoder{}
 	bsonErr := raw.Unmarshal(&decoder)
 	if bsonErr != nil {
 		return bsonErr
 	}
 
-	t := time.Unix(decoder.Sec-(1969*365+1969/4-1969/100+1969/400)*86400, int64(decoder.Nsec))
-	b.Time = t
+	t := time.Unix(decoder.Sec+internalToUnix, int64(decoder.Nsec))
+	b.Time = t.UTC()
 	return nil
 }
