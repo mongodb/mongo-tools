@@ -1,18 +1,14 @@
 package mongotape
 
-import (
-	"time"
-)
-
 type RecordedOp struct {
 	RawOp
-	Seen          time.Time
-	PlayAt        time.Time `bson:",omitempty"`
-	EOF           bool      `bson:",omitempty"`
+	Seen          *PreciseTime
+	PlayAt        *PreciseTime `bson:",omitempty"`
+	EOF           bool         `bson:",omitempty"`
 	SrcEndpoint   string
 	DstEndpoint   string
 	ConnectionNum int64
-	PlayedAt      time.Time
+	PlayedAt      *PreciseTime `bson:",omitempty"`
 	Generation    int
 	Order         int64
 }
@@ -31,7 +27,7 @@ func (o orderedOps) Len() int {
 }
 
 func (o orderedOps) Less(i, j int) bool {
-	return o[i].Seen.Before(o[j].Seen)
+	return o[i].Seen.Before(o[j].Seen.Time)
 }
 
 func (o orderedOps) Swap(i, j int) {

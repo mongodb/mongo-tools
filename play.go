@@ -55,11 +55,11 @@ func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *Record
 						}
 						return err
 					}
-					last = recordedOp.Seen
+					last = recordedOp.Seen.Time
 					if first.IsZero() {
-						first = recordedOp.Seen
+						first = recordedOp.Seen.Time
 					}
-					recordedOp.Seen = recordedOp.Seen.Add(loopDelta)
+					recordedOp.Seen.Time = recordedOp.Seen.Add(loopDelta)
 					recordedOp.Generation = generation
 					recordedOp.Order = order
 					// We want to suppress EOF's unless you're in the last generation
@@ -137,34 +137,11 @@ func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
 		}
 		return nil, fmt.Errorf("ReadDocument Error: %v", err)
 	}
-	preciseOp := &struct {
-		RawOp
-		Seen          *PreciseTime
-		PlayAt        *PreciseTime `bson:",omitempty"`
-		EOF           bool         `bson:",omitempty"`
-		SrcEndpoint   string
-		DstEndpoint   string
-		ConnectionNum int64
-		PlayedAt      *PreciseTime
-		Generation    int
-		Order         int64
-	}{}
-	err = bson.Unmarshal(buf, preciseOp)
+	doc := &RecordedOp{}
+	err = bson.Unmarshal(buf, doc)
 
 	if err != nil {
 		return nil, fmt.Errorf("Unmarshal RecordedOp Error: %v\n", err)
-	}
-	doc := &RecordedOp{
-		RawOp:         preciseOp.RawOp,
-		Seen:          time.Time(*preciseOp.Seen),
-		PlayAt:        time.Time(*preciseOp.PlayAt),
-		EOF:           preciseOp.EOF,
-		SrcEndpoint:   preciseOp.SrcEndpoint,
-		DstEndpoint:   preciseOp.DstEndpoint,
-		ConnectionNum: preciseOp.ConnectionNum,
-		PlayedAt:      time.Time(*preciseOp.PlayedAt),
-		Generation:    preciseOp.Generation,
-		Order:         preciseOp.Order,
 	}
 	return doc, nil
 }
@@ -235,7 +212,7 @@ func Play(context *ExecutionContext,
 			return fmt.Errorf("Can't play operation found with zero-timestamp: %#v", op)
 		}
 		if recordingStartTime.IsZero() {
-			recordingStartTime = op.Seen
+			recordingStartTime = op.Seen.Time
 			playbackStartTime = time.Now()
 		}
 
@@ -246,7 +223,7 @@ func Play(context *ExecutionContext,
 		// Adjust the opDelta for playback by dividing it by playback speed setting;
 		// e.g. 2x speed means the delta is half as long.
 		scaledDelta := float64(opDelta) / (speed)
-		op.PlayAt = playbackStartTime.Add(time.Duration(int64(scaledDelta)))
+		op.PlayAt = &PreciseTime{playbackStartTime.Add(time.Duration(int64(scaledDelta)))}
 
 		// Every queueGranularity ops make sure that we're no more then QueueTime seconds ahead
 		// Which should mean that the maximum that we're ever ahead
@@ -268,7 +245,7 @@ func Play(context *ExecutionContext,
 		sessionChan, ok := sessionChans[connectionString]
 		if !ok {
 			connectionId += 1
-			sessionChan = context.newExecutionSession(url, op.PlayAt, connectionId)
+			sessionChan = context.newExecutionSession(url, op.PlayAt.Time, connectionId)
 			sessionChans[connectionString] = sessionChan
 		}
 		if op.EOF {

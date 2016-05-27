@@ -156,7 +156,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				recordedOp.ConnectionNum = connectionNum
 				t := time.Now()
 				if recordedOp.RawOp.Header.OpCode != OpCodeReply {
-					if t.Before(recordedOp.PlayAt) {
+					if t.Before(recordedOp.PlayAt.Time) {
 						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
 				}
@@ -211,11 +211,11 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 			context.fixupKillCursorsOp(t)
 		}
 
-		op.PlayedAt = time.Now()
+		op.PlayedAt = &PreciseTime{time.Now()}
 		if userInfoLogger.isInVerbosity(DebugHigh) {
-			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec)
+			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt.Time), opToExec)
 		} else if userInfoLogger.isInVerbosity(Info) {
-			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt), opToExec.Abbreviated(256))
+			userInfoLogger.Logf(Info, "(Connection %v) [lag: %8s] Executing: %s", op.ConnectionNum, op.PlayedAt.Sub(op.PlayAt.Time), opToExec.Abbreviated(256))
 		}
 		replyOp, err = opToExec.Execute(session)
 

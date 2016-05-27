@@ -348,7 +348,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	output.WriteString(blue("%v", timestamp.Format("2/15 15:04:05.000")))
 
 	output.WriteString(cyan(" (Connection %v:%v)", stat.ConnectionNum, stat.RequestId))
-	
+
 	if stat.LatencyMicros > 0 {
 		latency := time.Microsecond * time.Duration(stat.LatencyMicros)
 		output.WriteString(yellow(fmt.Sprintf(" +%v", latency.String())))
@@ -410,13 +410,13 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 		RequestData:       opMeta.Data,
 		Command:           opMeta.Command,
 		ConnectionNum:     op.ConnectionNum,
-		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt) / time.Microsecond),
+		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt.Time) / time.Microsecond),
 	}
 	if !op.PlayAt.IsZero() {
-		stat.PlayAt = &op.PlayAt
+		stat.PlayAt = &op.PlayAt.Time
 	}
 	if !op.PlayedAt.IsZero() {
-		stat.PlayedAt = &op.PlayedAt
+		stat.PlayedAt = &op.PlayedAt.Time
 	}
 	if reply != nil {
 		replyMeta := reply.Meta()
@@ -445,7 +445,7 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 		Ns:            meta.Ns,
 		Command:       meta.Command,
 		ConnectionNum: recordedOp.ConnectionNum,
-		Seen:          &recordedOp.Seen,
+		Seen:          &recordedOp.Seen.Time,
 	}
 	if msg != "" {
 		stat.Message = msg

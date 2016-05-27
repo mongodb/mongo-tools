@@ -105,7 +105,6 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 						}
 						break
 					}
-					fmt.Println("seen: ", recordedOp.Seen)
 					opChan <- *recordedOp
 				}
 				return nil

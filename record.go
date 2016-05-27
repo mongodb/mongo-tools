@@ -138,30 +138,7 @@ func (record *RecordCommand) Execute(args []string) error {
 	go func() {
 		defer close(ch)
 		for op := range ctx.mongoOpStream.Ops {
-			preciseOp := struct {
-				RawOp
-				Seen          *PreciseTime
-				PlayAt        *PreciseTime `bson:",omitempty"`
-				EOF           bool         `bson:",omitempty"`
-				SrcEndpoint   string
-				DstEndpoint   string
-				ConnectionNum int64
-				PlayedAt      *PreciseTime
-				Generation    int
-				Order         int64
-			}{
-				RawOp:       op.RawOp,
-				Seen:        (*PreciseTime)(&op.Seen),
-				PlayAt:      (*PreciseTime)(&op.PlayAt),
-				EOF:         op.EOF,
-				SrcEndpoint: op.SrcEndpoint,
-				DstEndpoint: op.DstEndpoint,
-				PlayedAt:    (*PreciseTime)(&op.PlayedAt),
-				Generation:  op.Generation,
-				Order:       op.Order,
-			}
-			fmt.Println("op seen:", preciseOp.Seen)
-			bsonBytes, err := bson.Marshal(preciseOp)
+			bsonBytes, err := bson.Marshal(op)
 			if err != nil {
 				ch <- fmt.Errorf("error marshaling message: %v", err)
 				return
