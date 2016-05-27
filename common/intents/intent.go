@@ -89,7 +89,7 @@ func (it *Intent) IsAuthVersion() bool {
 }
 
 func (it *Intent) IsSystemIndexes() bool {
-	return it.C == "system.indexes" && it.BSONFile != nil
+	return it.C == "system.indexes"
 }
 
 func (intent *Intent) IsSpecialCollection() bool {
@@ -256,8 +256,10 @@ func (manager *Manager) Put(intent *Intent) {
 		return
 	}
 	if intent.IsSystemIndexes() {
-		manager.indexIntents[intent.DB] = intent
-		manager.specialIntents[intent.Namespace()] = intent
+		if intent.BSONFile != nil {
+			manager.indexIntents[intent.DB] = intent
+			manager.specialIntents[intent.Namespace()] = intent
+		}
 		return
 	}
 	if intent.IsUsers() {
