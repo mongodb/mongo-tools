@@ -39,8 +39,8 @@ type PosReader interface {
 // posTrackingReader is a type for reading from a file and being able to determine
 // what position the file is at.
 type posTrackingReader struct {
+	pos int64 // updated atomically, aligned at the beginning of the struct
 	io.ReadCloser
-	pos int64
 }
 
 func (f *posTrackingReader) Read(p []byte) (int, error) {
@@ -102,10 +102,10 @@ func (f *realBSONFile) Open() (err error) {
 	if err != nil {
 		return fmt.Errorf("error reading BSON file %v: %v", f.path, err)
 	}
-	posFile := &posTrackingReader{file, 0}
+	posFile := &posTrackingReader{0, file}
 	if f.gzip {
 		gzFile, err := gzip.NewReader(posFile)
-		posUncompressedFile := &posTrackingReader{gzFile, 0}
+		posUncompressedFile := &posTrackingReader{0, gzFile}
 		if err != nil {
 			return fmt.Errorf("error decompressing compresed BSON file %v: %v", f.path, err)
 		}
@@ -123,6 +123,7 @@ func (f *realBSONFile) Open() (err error) {
 // The Read, Write and Close methods of the intents.file interface is implemented here by the
 // embedded os.File, the Write will return an error and not succeed
 type realMetadataFile struct {
+	pos int64 // updated atomically, aligned at the beginning of the struct
 	io.ReadCloser
 	path string
 	// errorWrite adds a Write() method to this object allowing it to be an
@@ -130,7 +131,6 @@ type realMetadataFile struct {
 	errorWriter
 	intent *intents.Intent
 	gzip   bool
-	pos    int64
 }
 
 // Open is part of the intents.file interface. realMetadataFiles need to be Opened before Read
@@ -168,9 +168,9 @@ func (f *realMetadataFile) Pos() int64 {
 // stdinFile implements the intents.file interface. They allow intents to read single collections
 // from standard input
 type stdinFile struct {
+	pos int64 // updated atomically, aligned at the beginning of the struct
 	io.Reader
 	errorWriter
-	pos int64
 }
 
 // Open is part of the intents.file interface. stdinFile needs to have Open called on it before

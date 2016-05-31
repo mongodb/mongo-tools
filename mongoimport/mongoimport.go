@@ -35,6 +35,11 @@ const (
 // MongoImport is a container for the user-specified options and
 // internal state used for running mongoimport.
 type MongoImport struct {
+	// insertionCount keeps track of how many documents have successfully
+	// been inserted into the database
+	// updated atomically, aligned at the beginning of the struct
+	insertionCount uint64
+
 	// generic mongo tool options
 	ToolOptions *options.ToolOptions
 
@@ -46,10 +51,6 @@ type MongoImport struct {
 
 	// SessionProvider is used for connecting to the database
 	SessionProvider *db.SessionProvider
-
-	// insertionCount keeps track of how many documents have successfully
-	// been inserted into the database
-	insertionCount uint64
 
 	// the tomb is used to synchronize ingestion goroutines and causes
 	// other sibling goroutines to terminate immediately if one errors out

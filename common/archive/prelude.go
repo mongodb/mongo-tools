@@ -14,9 +14,9 @@ import (
 
 //MetadataFile implements intents.file
 type MetadataFile struct {
+	pos int64 // updated atomically, aligned at the beginning of the struct
 	*bytes.Buffer
 	Intent *intents.Intent
-	pos    int64
 }
 
 func (md *MetadataFile) Open() error {
@@ -343,10 +343,10 @@ func (pe *PreludeExplorer) Parent() DirLike {
 
 // MetadataPreludeFile is part of the intents.file. It allows the metadata contained in the prelude to be opened and read
 type MetadataPreludeFile struct {
+	pos     int64 // updated atomically, aligned at the beginning of the struct
 	Intent  *intents.Intent
 	Prelude *Prelude
 	*bytes.Buffer
-	pos int64
 }
 
 // Open is part of the intents.file interface, it finds the metadata in the prelude and creates a bytes.Buffer from it.

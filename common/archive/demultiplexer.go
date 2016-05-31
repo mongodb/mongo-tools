@@ -184,13 +184,13 @@ func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 
 // RegularCollectionReceiver implements the intents.file interface.
 type RegularCollectionReceiver struct {
+	pos              int64 // updated atomically, aligned at the beginning of the struct
 	readLenChan      chan int
 	readBufChan      chan []byte
 	Intent           *intents.Intent
 	Demux            *Demultiplexer
 	partialReadArray []byte
 	partialReadBuf   []byte
-	pos              int64
 	hash             hash.Hash64
 	closeOnce        sync.Once
 	openOnce         sync.Once
@@ -308,10 +308,10 @@ func (receiver *RegularCollectionReceiver) Close() error {
 
 // SpecialCollectionCache implemnts both DemuxOut as well as intents.file
 type SpecialCollectionCache struct {
+	pos    int64 // updated atomically, aligned at the beginning of the struct
 	Intent *intents.Intent
 	Demux  *Demultiplexer
 	buf    bytes.Buffer
-	pos    int64
 	hash   hash.Hash64
 }
 
