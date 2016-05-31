@@ -109,7 +109,7 @@ type bidiKey struct {
 }
 
 type MongoOpStream struct {
-	Ops chan RecordedOp
+	Ops chan *RecordedOp
 
 	FirstSeen         time.Time
 	unorderedOps      chan RecordedOp
@@ -122,8 +122,8 @@ type MongoOpStream struct {
 func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 	h := make(orderedOps, 0, heapBufSize)
 	os := &MongoOpStream{
-		Ops:               make(chan RecordedOp), // ordered
-		unorderedOps:      make(chan RecordedOp), // unordered
+		Ops:               make(chan *RecordedOp), // ordered
+		unorderedOps:      make(chan RecordedOp),  // unordered
 		opHeap:            &h,
 		bidiMap:           make(map[bidiKey]*bidi),
 		connectionCounter: make(chan int64, 1024),
@@ -186,14 +186,14 @@ func (os *MongoOpStream) handleOps() {
 			nextOp := heap.Pop(os.opHeap).(RecordedOp)
 			counter += 1
 			nextOp.Order = counter
-			os.Ops <- nextOp
+			os.Ops <- &nextOp
 		}
 	}
 	for len(*os.opHeap) > 0 {
 		nextOp := heap.Pop(os.opHeap).(RecordedOp)
 		counter += 1
 		nextOp.Order = counter
-		os.Ops <- nextOp
+		os.Ops <- &nextOp
 	}
 }
 

@@ -23,12 +23,12 @@ type PlayCommand struct {
 
 const queueGranularity = 1000
 
-// NewPlayOpChan runs a goroutine that will read and unmarshal recorded ops
+// NewOpChanFromFile runs a goroutine that will read and unmarshal recorded ops
 // from a file and push them in to a recorded op chan. Any errors encountered
 // are pushed to an error chan. Both the recorded op chan and the error chan are
 // returned by the function.
 // The error chan won't be readable until the recorded op chan gets closed.
-func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *RecordedOp, <-chan error) {
+func NewOpChanFromFile(file *PlaybackFileReader, repeat int) (<-chan *RecordedOp, <-chan error) {
 	ch := make(chan *RecordedOp)
 	e := make(chan error)
 
@@ -39,8 +39,8 @@ func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *Record
 		defer close(e)
 		e <- func() error {
 			defer close(ch)
-			toolDebugLogger.Log(Info, "Beginning playback")
-			for generation := 0; generation < play.Repeat; generation++ {
+			toolDebugLogger.Log(Info, "Beginning tapefile read")
+			for generation := 0; generation < repeat; generation++ {
 				_, err := file.Seek(0, 0)
 				if err != nil {
 					return fmt.Errorf("PlaybackFile Seek: %v", err)
@@ -66,7 +66,7 @@ func (play *PlayCommand) NewPlayOpChan(file *PlaybackFileReader) (<-chan *Record
 					// because all of the ops for one connection across different generations
 					// get executed in the same session. We don't want to close the session
 					// until the connection closes in the last generation.
-					if !recordedOp.EOF || generation == play.Repeat-1 {
+					if !recordedOp.EOF || generation == repeat-1 {
 						ch <- recordedOp
 					}
 					order++
@@ -175,7 +175,7 @@ func (play *PlayCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	opChan, errChan := play.NewPlayOpChan(playbackFileReader)
+	opChan, errChan := NewOpChanFromFile(playbackFileReader, play.Repeat)
 
 	context := NewExecutionContext(statColl)
 

@@ -76,38 +76,23 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 	monitor.GlobalOpts.SetLogging()
 	monitor.ValidateParams(args)
 
-	var opChan chan RecordedOp
-	e := make(chan error)
+	var opChan <-chan *RecordedOp
+	var errChan <-chan error
 	if monitor.PlaybackFile != "" {
 		playbackFileReader, err := NewPlaybackFileReader(monitor.PlaybackFile, monitor.Gzip)
 		if err != nil {
 			return err
 		}
+		opChan, errChan = NewOpChanFromFile(playbackFileReader, 1)
 
-		opChan = make(chan RecordedOp)
-		go func() {
-			defer close(e)
-			e <- func() error {
-				defer close(opChan)
-				for {
-					recordedOp, err := playbackFileReader.NextRecordedOp()
-					if err != nil {
-						if err != io.EOF {
-							return err
-						}
-						break
-					}
-					opChan <- *recordedOp
-				}
-				return nil
-			}()
-		}()
 	} else {
 		ctx, err := getOpstream(monitor.OpStreamSettings)
 		if err != nil {
 			return err
 		}
 		opChan = ctx.mongoOpStream.Ops
+		e := make(chan error)
+		errChan = e
 		go func() {
 			defer close(e)
 			if err := ctx.packetHandler.Handle(ctx.mongoOpStream, -1); err != nil {
@@ -131,16 +116,16 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 	}
 	defer statColl.Close()
 
-	var order int64 = 0
 	for op := range opChan {
-		temp := op
-		temp.Order = order
-		order++
-		parsedOp, err := temp.RawOp.Parse()
+		parsedOp, err := op.RawOp.Parse()
 		if err != nil {
 			return err
 		}
-		statColl.Collect(&temp, parsedOp, nil, "")
+		statColl.Collect(op, parsedOp, nil, "")
+	}
+	err = <-errChan
+	if err != io.EOF {
+		userInfoLogger.Logf(Always, "OpChan: %v", err)
 	}
 	return nil
 }
