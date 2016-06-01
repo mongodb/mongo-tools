@@ -526,7 +526,11 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 func (gen *ComparativeStatGenerator) Finalize(statStream chan *OpStat) {}
 
 func (gen *RegularStatGenerator) Finalize(statStream chan *OpStat) {
-	for _, unresolved := range gen.UnresolvedOps {
-		statStream <- unresolved.Stat
+	for key, unresolved := range gen.UnresolvedOps {
+		if gen.PairedMode {
+			statStream <- unresolved.Stat
+		}
+		delete(gen.UnresolvedOps, key)
 	}
+	gen.UnresolvedOps = nil
 }
