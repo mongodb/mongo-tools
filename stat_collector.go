@@ -447,21 +447,28 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 	}
 	opMeta := replayedOp.Meta()
 	stat := &OpStat{
-		Order:             op.Order,
-		OpType:            opMeta.Op,
-		Ns:                opMeta.Ns,
-		RequestData:       opMeta.Data,
-		Command:           opMeta.Command,
-		ConnectionNum:     op.ConnectionNum,
-		PlaybackLagMicros: int64(op.PlayedAt.Sub(op.PlayAt.Time) / time.Microsecond),
-		Seen:              &op.Seen.Time,
+		Order:         op.Order,
+		OpType:        opMeta.Op,
+		Ns:            opMeta.Ns,
+		RequestData:   opMeta.Data,
+		Command:       opMeta.Command,
+		ConnectionNum: op.ConnectionNum,
+		Seen:          &op.Seen.Time,
 	}
-	if !op.PlayAt.IsZero() {
+	var playAtHasVal bool
+	if op.PlayAt != nil && !op.PlayAt.IsZero() {
 		stat.PlayAt = &op.PlayAt.Time
+
+		playAtHasVal = true
 	}
-	if !op.PlayedAt.IsZero() {
+	if op.PlayedAt != nil && !op.PlayedAt.IsZero() {
 		stat.PlayedAt = &op.PlayedAt.Time
+
+		if playAtHasVal {
+			stat.PlaybackLagMicros = int64(op.PlayedAt.Sub(op.PlayAt.Time) / time.Microsecond)
+		}
 	}
+
 	if reply != nil {
 		replyMeta := reply.Meta()
 		stat.NumReturned = len(reply.Docs)
