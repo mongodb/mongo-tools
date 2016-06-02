@@ -326,6 +326,20 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		}
 	}
 
+	if valueOfX := reflect.ValueOf(x); valueOfX.Kind() == reflect.Slice || valueOfX.Kind() == reflect.Array {
+		result := make([]interface{}, 0, valueOfX.Len())
+		for i := 0; i < (valueOfX.Len()); i++ {
+			v := valueOfX.Index(i).Interface()
+			jsonResult, err := ConvertBSONValueToJSON(v)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, jsonResult)
+		}
+		return result, nil
+
+	}
+
 	return nil, fmt.Errorf("conversion of BSON type '%v' not supported %v", reflect.TypeOf(x), x)
 }
 

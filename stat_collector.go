@@ -344,6 +344,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	var payload bytes.Buffer
 	if stat.RequestData != nil {
 		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
+
 		if err != nil {
 			// TODO log a warning.
 		}
