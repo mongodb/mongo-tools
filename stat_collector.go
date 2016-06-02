@@ -302,31 +302,31 @@ func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 	if stat.RequestData != nil {
 		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
 		if err != nil {
-			// TODO log a warning.
+			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		}
 		stat.RequestData = reqD
 	}
 	if stat.ReplyData != nil {
 		repD, err := ConvertBSONValueToJSON(stat.ReplyData)
 		if err != nil {
-			// TODO log a warning.
+			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		}
 		stat.ReplyData = repD
 	}
 
 	jsonBytes, err := json.Marshal(stat)
 	if err != nil {
-		// TODO log error?
+		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		return
 	}
 	_, err = jsr.out.Write(jsonBytes)
 	if err != nil {
-		// TODO log error?
+		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		return
 	}
 	_, err = jsr.out.Write([]byte("\n"))
 	if err != nil {
-		// TODO log error?
+		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		return
 	}
 }
@@ -346,7 +346,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
 
 		if err != nil {
-			// TODO log a warning.
+			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		}
 		stat.RequestData = reqD
 		payload.WriteString(green("Request:"))
@@ -365,7 +365,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	if stat.ReplyData != nil {
 		repD, err := ConvertBSONValueToJSON(stat.ReplyData)
 		if err != nil {
-			// TODO log a warning.
+			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		}
 		stat.ReplyData = repD
 		stat.RequestData = repD
@@ -411,7 +411,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 
 	_, err := output.WriteTo(dsr.out)
 	if err != nil {
-		// TODO log error?
+		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		return
 	}
 }
