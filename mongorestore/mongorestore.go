@@ -204,7 +204,7 @@ func (restore *MongoRestore) Restore() error {
 		}
 		target, err = newActualPath(restore.TargetDirectory)
 		if err != nil {
-			return fmt.Errorf("can't create ActualPath object from path %v: %v", restore.TargetDirectory, err)
+			return fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
