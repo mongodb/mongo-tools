@@ -49,7 +49,7 @@ func NewTSVInputReader(fields []string, in io.Reader, numDecoders int) *TSVInput
 	szCount := newSizeTrackingReader(in)
 	return &TSVInputReader{
 		fields:       fields,
-		tsvReader:    bufio.NewReader(in),
+		tsvReader:    bufio.NewReader(szCount),
 		numProcessed: uint64(0),
 		numDecoders:  numDecoders,
 		sizeTracker:  szCount,
