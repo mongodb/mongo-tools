@@ -132,6 +132,33 @@ func TestCSVStreamDocument(t *testing.T) {
 			So(<-docChan, ShouldResemble, expectedReadOne)
 			So(<-docChan, ShouldResemble, expectedReadTwo)
 		})
+		Convey("valid CSV input file that starts with the UTF-8 BOM should "+
+			"not raise an error", func() {
+			fields := []string{"a", "b", "c"}
+			expectedReads := []bson.D{
+				bson.D{
+					bson.DocElem{"a", 1},
+					bson.DocElem{"b", 2},
+					bson.DocElem{"c", 3},
+				},
+				bson.D{
+					bson.DocElem{"a", 4},
+					bson.DocElem{"b", 5},
+					bson.DocElem{"c", 6},
+				},
+			}
+			fileHandle, err := os.Open("testdata/test_bom.csv")
+			So(err, ShouldBeNil)
+			r := NewCSVInputReader(fields, fileHandle, 1)
+			docChan := make(chan bson.D, len(expectedReads))
+			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			for _, expectedRead := range expectedReads {
+				for i, readDocument := range <-docChan {
+					So(readDocument.Name, ShouldResemble, expectedRead[i].Name)
+					So(readDocument.Value, ShouldResemble, expectedRead[i].Value)
+				}
+			}
+		})
 	})
 }
 

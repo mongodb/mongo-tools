@@ -1,6 +1,8 @@
 package mongoimport
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -70,6 +72,31 @@ func newSizeTrackingReader(reader io.Reader) *sizeTrackingReader {
 		bytesRead:      0,
 		bytesReadMutex: sync.Mutex{},
 	}
+}
+
+var (
+	UTF8_BOM = []byte{0xEF, 0xBB, 0xBF}
+)
+
+// bomDiscardingReader implements and wraps io.Reader, discarding the UTF-8 BOM, if applicable
+type bomDiscardingReader struct {
+	buf     *bufio.Reader
+	didRead bool
+}
+
+func (bd *bomDiscardingReader) Read(p []byte) (int, error) {
+	if !bd.didRead {
+		bom, err := bd.buf.Peek(3)
+		if err == nil && bytes.Equal(bom, UTF8_BOM) {
+			bd.buf.Read(make([]byte, 3)) // discard BOM
+		}
+		bd.didRead = true
+	}
+	return bd.buf.Read(p)
+}
+
+func newBomDiscardingReader(r io.Reader) *bomDiscardingReader {
+	return &bomDiscardingReader{buf: bufio.NewReader(r)}
 }
 
 // channelQuorumError takes a channel and a quorum - which specifies how many
