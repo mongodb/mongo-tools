@@ -39,7 +39,7 @@ type CSVConverter struct {
 // given io.Reader, extracting only the specified fields using exactly "numDecoders"
 // goroutines.
 func NewCSVInputReader(fields []string, in io.Reader, numDecoders int) *CSVInputReader {
-	szCount := newSizeTrackingReader(in)
+	szCount := newSizeTrackingReader(newBomDiscardingReader(in))
 	csvReader := csv.NewReader(szCount)
 	// allow variable number of fields in document
 	csvReader.FieldsPerRecord = -1

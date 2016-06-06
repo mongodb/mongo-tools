@@ -26,6 +26,22 @@ func TestTSVStreamDocument(t *testing.T) {
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
+		Convey("valid TSV input file that starts with the UTF-8 BOM should "+
+			"not raise an error", func() {
+			fields := []string{"a", "b", "c"}
+			expectedRead := bson.D{
+				bson.DocElem{"a", 1},
+				bson.DocElem{"b", 2},
+				bson.DocElem{"c", 3},
+			}
+			fileHandle, err := os.Open("testdata/test_bom.tsv")
+			So(err, ShouldBeNil)
+			r := NewTSVInputReader(fields, fileHandle, 1)
+			docChan := make(chan bson.D, 2)
+			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(<-docChan, ShouldResemble, expectedRead)
+		})
+
 		Convey("integer valued strings should be converted tsv2", func() {
 			contents := "a\tb\t\"cccc,cccc\"\td\n"
 			fields := []string{"a", "b", "c"}

@@ -145,6 +145,33 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 			}
 		})
 
+		Convey("reading JSON that starts with a UTF-8 BOM should not error",
+			func() {
+				expectedReads := []bson.D{
+					bson.D{
+						bson.DocElem{"a", 1},
+						bson.DocElem{"b", 2},
+						bson.DocElem{"c", 3},
+					},
+					bson.D{
+						bson.DocElem{"a", 4},
+						bson.DocElem{"b", 5},
+						bson.DocElem{"c", 6},
+					},
+				}
+				fileHandle, err := os.Open("testdata/test_bom.json")
+				So(err, ShouldBeNil)
+				r := NewJSONInputReader(false, fileHandle, 1)
+				docChan := make(chan bson.D, 2)
+				So(r.StreamDocument(true, docChan), ShouldBeNil)
+				for _, expectedRead := range expectedReads {
+					for i, readDocument := range <-docChan {
+						So(readDocument.Name, ShouldEqual, expectedRead[i].Name)
+						So(readDocument.Value, ShouldEqual, expectedRead[i].Value)
+					}
+				}
+			})
+
 		Reset(func() {
 			jsonFile.Close()
 			fileHandle.Close()
