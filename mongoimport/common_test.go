@@ -2,6 +2,9 @@ package mongoimport
 
 import (
 	"fmt"
+	"io"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -9,8 +12,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
-	"io"
-	"testing"
 )
 
 func init() {
@@ -23,29 +24,49 @@ var (
 	index         = uint64(0)
 	csvConverters = []CSVConverter{
 		CSVConverter{
-			fields: []string{"field1", "field2", "field3"},
-			data:   []string{"a", "b", "c"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"a", "b", "c"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field4", "field5", "field6"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field6", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field7", "field8", "field9"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field7", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field8", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field9", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field10", "field11", "field12"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field10", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field11", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field12", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 		CSVConverter{
-			fields: []string{"field13", "field14", "field15"},
-			data:   []string{"d", "e", "f"},
-			index:  index,
+			colSpecs: []ColumnSpec{
+				{"field13", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field14", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field15", new(FieldAutoParser), pgAutoCast, "auto"},
+			},
+			data:  []string{"d", "e", "f"},
+			index: index,
 		},
 	}
 	expectedDocuments = []bson.D{
@@ -192,22 +213,6 @@ func TestConstructUpsertDocument(t *testing.T) {
 	})
 }
 
-func TestGetParsedValue(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
-
-	Convey("Given a string token to parse", t, func() {
-		Convey("an int token should return the underlying int value", func() {
-			So(getParsedValue("3"), ShouldEqual, 3)
-		})
-		Convey("a float token should return the underlying float value", func() {
-			So(getParsedValue(".33"), ShouldEqual, 0.33)
-		})
-		Convey("a string token should return the underlying string value", func() {
-			So(getParsedValue("sd"), ShouldEqual, "sd")
-		})
-	})
-}
-
 func TestSetNestedValue(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
@@ -296,22 +301,31 @@ func TestRemoveBlankFields(t *testing.T) {
 func TestTokensToBSON(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
-	Convey("Given an slice of fields and tokens to convert to BSON", t, func() {
-		Convey("the expected ordered BSON should be produced for the fields/tokens given", func() {
-			fields := []string{"a", "b", "c"}
+	Convey("Given an slice of column specs and tokens to convert to BSON", t, func() {
+		Convey("the expected ordered BSON should be produced for the given"+
+			"column specs and tokens", func() {
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
 				bson.DocElem{"a", 1},
 				bson.DocElem{"b", 2},
 				bson.DocElem{"c", "hello"},
 			}
-			bsonD, err := tokensToBSON(fields, tokens, uint64(0))
+			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
 			So(bsonD, ShouldResemble, expectedDocument)
 		})
 		Convey("if there are more tokens than fields, additional fields should be prefixed"+
 			" with 'fields' and an index indicating the header number", func() {
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
 			expectedDocument := bson.D{
 				bson.DocElem{"a", 1},
@@ -320,18 +334,26 @@ func TestTokensToBSON(t *testing.T) {
 				bson.DocElem{"field3", "mongodb"},
 				bson.DocElem{"field4", "user"},
 			}
-			bsonD, err := tokensToBSON(fields, tokens, uint64(0))
+			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
 			So(bsonD, ShouldResemble, expectedDocument)
 		})
 		Convey("an error should be thrown if duplicate headers are found", func() {
-			fields := []string{"a", "b", "field3"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
-			_, err := tokensToBSON(fields, tokens, uint64(0))
+			_, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("fields with nested values should be set appropriately", func() {
-			fields := []string{"a", "b", "c.a"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c.a", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
 				bson.DocElem{"a", 1},
@@ -340,7 +362,7 @@ func TestTokensToBSON(t *testing.T) {
 					bson.DocElem{"a", "hello"},
 				}},
 			}
-			bsonD, err := tokensToBSON(fields, tokens, uint64(0))
+			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
 			So(expectedDocument[0].Name, ShouldResemble, bsonD[0].Name)
 			So(expectedDocument[0].Value, ShouldResemble, bsonD[0].Value)
@@ -359,14 +381,22 @@ func TestProcessDocuments(t *testing.T) {
 		index := uint64(0)
 		csvConverters := []CSVConverter{
 			CSVConverter{
-				fields: []string{"field1", "field2", "field3"},
-				data:   []string{"a", "b", "c"},
-				index:  index,
+				colSpecs: []ColumnSpec{
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  []string{"a", "b", "c"},
+				index: index,
 			},
 			CSVConverter{
-				fields: []string{"field4", "field5", "field6"},
-				data:   []string{"d", "e", "f"},
-				index:  index,
+				colSpecs: []ColumnSpec{
+					{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field6", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  []string{"d", "e", "f"},
+				index: index,
 			},
 		}
 		expectedDocuments := []bson.D{
@@ -498,9 +528,12 @@ func TestStreamDocuments(t *testing.T) {
 		Convey("the entire pipeline should complete with error if an error is encountered", func() {
 			// stream in some documents - create duplicate headers to simulate an error
 			csvConverter := CSVConverter{
-				fields: []string{"field1", "field2"},
-				data:   []string{"a", "b", "c"},
-				index:  uint64(0),
+				colSpecs: []ColumnSpec{
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  []string{"a", "b", "c"},
+				index: uint64(0),
 			}
 			inputChannel <- csvConverter
 			close(inputChannel)

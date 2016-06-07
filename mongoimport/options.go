@@ -9,7 +9,7 @@ See http://docs.mongodb.org/manual/reference/program/mongoimport/ for more infor
 // InputOptions defines the set of options for reading input data.
 type InputOptions struct {
 	// Fields is an option to directly specify comma-separated fields to import to CSV.
-	Fields *string `long:"fields" value-name:"<field>[,<field>]*" short:"f" description:"comma separated list of field names, e.g. -f name,age"`
+	Fields *string `long:"fields" value-name:"<field>[,<field>]*" short:"f" description:"comma separated list of fields, e.g. -f name,age"`
 
 	// FieldFile is a filename that refers to a list of fields to import, 1 per line.
 	FieldFile *string `long:"fieldFile" value-name:"<filename>" description:"file with field names - 1 per line"`
@@ -23,8 +23,14 @@ type InputOptions struct {
 	// Indicates that the underlying input source contains a single JSON array with the documents to import.
 	JSONArray bool `long:"jsonArray" description:"treat input source as a JSON array"`
 
+	// Indicates how to handle type coercion failures
+	ParseGrace string `long:"parseGrace" value-name:"<grace>" default:"stop" description:"controls behavior when type coercion fails - one of: autoCast, skipField, skipRow, stop (defaults to 'stop')"`
+
 	// Specifies the file type to import. The default format is JSON, but it’s possible to import CSV and TSV files.
 	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"input format to import: json, csv, or tsv (defaults to 'json')"`
+
+	// Indicates that field names include type descriptions
+	ColumnsHaveTypes bool `long:"columnsHaveTypes" description:"indicated that the field list (from --fields, --fieldsFile, or --headerline) specifies types; They must be in the form of '<colName>.<type>(<arg>)'. The type can be one of: auto, binary, bool, date, date_go, date_ms, date_oracle, double, int32, int64, string. For each of the date types, the argument is a datetime layout string. For the binary type, the argument can be one of: base32, base64, hex. All other types take an empty argument. Only valid for CSV and TSV imports. e.g. zipcode.string(), thumbnail.binary(base64)"`
 }
 
 // Name returns a description of the InputOptions struct.

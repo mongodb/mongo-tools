@@ -1,20 +1,24 @@
 package mongoimport
 
 import (
+	gocsv "encoding/csv"
 	"fmt"
+	"io"
+
 	"github.com/mongodb/mongo-tools/mongoimport/csv"
 	"gopkg.in/mgo.v2/bson"
-	"io"
 )
 
 // CSVInputReader implements the InputReader interface for CSV input types.
 type CSVInputReader struct {
-
-	// fields is a list of field names in the BSON documents to be imported
-	fields []string
+	// colSpecs is a list of column specifications in the BSON documents to be imported
+	colSpecs []ColumnSpec
 
 	// csvReader is the underlying reader used to read data in from the CSV or CSV file
 	csvReader *csv.Reader
+
+	// csvRejectWriter is where coercion-failed rows are written, if applicable
+	csvRejectWriter *gocsv.Writer
 
 	// csvRecord stores each line of input we read from the underlying reader
 	csvRecord []string
@@ -27,29 +31,37 @@ type CSVInputReader struct {
 
 	// embedded sizeTracker exposes the Size() method to check the number of bytes read so far
 	sizeTracker
+
+	// ignoreBlanks is whether empty fields should be ignored
+	ignoreBlanks bool
 }
 
 // CSVConverter implements the Converter interface for CSV input.
 type CSVConverter struct {
-	fields, data []string
+	colSpecs     []ColumnSpec
+	data         []string
 	index        uint64
+	ignoreBlanks bool
+	rejectWriter *gocsv.Writer
 }
 
 // NewCSVInputReader returns a CSVInputReader configured to read data from the
-// given io.Reader, extracting only the specified fields using exactly "numDecoders"
+// given io.Reader, extracting only the specified columns using exactly "numDecoders"
 // goroutines.
-func NewCSVInputReader(fields []string, in io.Reader, numDecoders int) *CSVInputReader {
+func NewCSVInputReader(colSpecs []ColumnSpec, in io.Reader, rejects io.Writer, numDecoders int, ignoreBlanks bool) *CSVInputReader {
 	szCount := newSizeTrackingReader(newBomDiscardingReader(in))
 	csvReader := csv.NewReader(szCount)
-	// allow variable number of fields in document
+	// allow variable number of colSpecs in document
 	csvReader.FieldsPerRecord = -1
 	csvReader.TrimLeadingSpace = true
 	return &CSVInputReader{
-		fields:       fields,
-		csvReader:    csvReader,
-		numProcessed: uint64(0),
-		numDecoders:  numDecoders,
-		sizeTracker:  szCount,
+		colSpecs:        colSpecs,
+		csvReader:       csvReader,
+		csvRejectWriter: gocsv.NewWriter(rejects),
+		numProcessed:    uint64(0),
+		numDecoders:     numDecoders,
+		sizeTracker:     szCount,
+		ignoreBlanks:    ignoreBlanks,
 	}
 }
 
@@ -60,8 +72,22 @@ func (r *CSVInputReader) ReadAndValidateHeader() (err error) {
 	if err != nil {
 		return err
 	}
-	r.fields = fields
-	return validateReaderFields(r.fields)
+	r.colSpecs = ParseAutoHeaders(fields)
+	return validateReaderFields(ColumnNames(r.colSpecs))
+}
+
+// ReadAndValidateHeader reads the header from the underlying reader and validates
+// the header fields. It sets err if the read/validation fails.
+func (r *CSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err error) {
+	fields, err := r.csvReader.Read()
+	if err != nil {
+		return err
+	}
+	r.colSpecs, err = ParseTypedHeaders(fields, parseGrace)
+	if err != nil {
+		return err
+	}
+	return validateReaderFields(ColumnNames(r.colSpecs))
 }
 
 // StreamDocument takes a boolean indicating if the documents should be streamed
@@ -87,9 +113,11 @@ func (r *CSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (ret
 				return
 			}
 			csvRecordChan <- CSVConverter{
-				fields: r.fields,
-				data:   r.csvRecord,
-				index:  r.numProcessed,
+				colSpecs:     r.colSpecs,
+				data:         r.csvRecord,
+				index:        r.numProcessed,
+				ignoreBlanks: r.ignoreBlanks,
+				rejectWriter: r.csvRejectWriter,
 			}
 			r.numProcessed++
 		}
@@ -104,10 +132,20 @@ func (r *CSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (ret
 
 // Convert implements the Converter interface for CSV input. It converts a
 // CSVConverter struct to a BSON document.
-func (c CSVConverter) Convert() (bson.D, error) {
-	return tokensToBSON(
-		c.fields,
+func (c CSVConverter) Convert() (b bson.D, err error) {
+	b, err = tokensToBSON(
+		c.colSpecs,
 		c.data,
 		c.index,
+		c.ignoreBlanks,
 	)
+	if _, ok := err.(coercionError); ok {
+		c.Print()
+		err = nil
+	}
+	return
+}
+
+func (c CSVConverter) Print() {
+	c.rejectWriter.Write(c.data)
 }

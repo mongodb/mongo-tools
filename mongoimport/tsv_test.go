@@ -2,11 +2,12 @@ package mongoimport
 
 import (
 	"bytes"
+	"os"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"os"
-	"testing"
 )
 
 func TestTSVStreamDocument(t *testing.T) {
@@ -14,13 +15,17 @@ func TestTSVStreamDocument(t *testing.T) {
 	Convey("With a TSV input reader", t, func() {
 		Convey("integer valued strings should be converted tsv1", func() {
 			contents := "1\t2\t3e\n"
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedRead := bson.D{
 				bson.DocElem{"a", 1},
 				bson.DocElem{"b", 2},
 				bson.DocElem{"c", "3e"},
 			}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -28,7 +33,11 @@ func TestTSVStreamDocument(t *testing.T) {
 
 		Convey("valid TSV input file that starts with the UTF-8 BOM should "+
 			"not raise an error", func() {
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedRead := bson.D{
 				bson.DocElem{"a", 1},
 				bson.DocElem{"b", 2},
@@ -36,7 +45,7 @@ func TestTSVStreamDocument(t *testing.T) {
 			}
 			fileHandle, err := os.Open("testdata/test_bom.tsv")
 			So(err, ShouldBeNil)
-			r := NewTSVInputReader(fields, fileHandle, 1)
+			r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false)
 			docChan := make(chan bson.D, 2)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -44,29 +53,37 @@ func TestTSVStreamDocument(t *testing.T) {
 
 		Convey("integer valued strings should be converted tsv2", func() {
 			contents := "a\tb\t\"cccc,cccc\"\td\n"
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedRead := bson.D{
 				bson.DocElem{"a", "a"},
 				bson.DocElem{"b", "b"},
 				bson.DocElem{"c", `"cccc,cccc"`},
 				bson.DocElem{"field3", "d"},
 			}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
-		Convey("extra fields should be prefixed with 'field'", func() {
+		Convey("extra columns should be prefixed with 'field'", func() {
 			contents := "1\t2\t3e\t may\n"
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedRead := bson.D{
 				bson.DocElem{"a", 1},
 				bson.DocElem{"b", 2},
 				bson.DocElem{"c", "3e"},
 				bson.DocElem{"field3", " may"},
 			}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -74,14 +91,19 @@ func TestTSVStreamDocument(t *testing.T) {
 
 		Convey("mixed values should be parsed correctly", func() {
 			contents := "12\t13.3\tInline\t14\n"
-			fields := []string{"a", "b", "c", "d"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"d", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedRead := bson.D{
 				bson.DocElem{"a", 12},
 				bson.DocElem{"b", 13.3},
 				bson.DocElem{"c", "Inline"},
 				bson.DocElem{"d", 14},
 			}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -90,7 +112,11 @@ func TestTSVStreamDocument(t *testing.T) {
 		Convey("calling StreamDocument() in succession for TSVs should "+
 			"return the correct next set of values", func() {
 			contents := "1\t2\t3\n4\t5\t6\n"
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedReads := []bson.D{
 				bson.D{
 					bson.DocElem{"a", 1},
@@ -103,7 +129,7 @@ func TestTSVStreamDocument(t *testing.T) {
 					bson.DocElem{"c", 6},
 				},
 			}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, len(expectedReads))
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			for i := 0; i < len(expectedReads); i++ {
@@ -117,7 +143,11 @@ func TestTSVStreamDocument(t *testing.T) {
 		Convey("calling StreamDocument() in succession for TSVs that contain "+
 			"quotes should return the correct next set of values", func() {
 			contents := "1\t2\t3\n4\t\"\t6\n"
-			fields := []string{"a", "b", "c"}
+			colSpecs := []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+			}
 			expectedReadOne := bson.D{
 				bson.DocElem{"a", 1},
 				bson.DocElem{"b", 2},
@@ -128,7 +158,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				bson.DocElem{"b", `"`},
 				bson.DocElem{"c", 6},
 			}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 2)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedReadOne)
@@ -138,7 +168,11 @@ func TestTSVStreamDocument(t *testing.T) {
 		Convey("plain TSV input file sources should be parsed correctly and "+
 			"subsequent imports should parse correctly",
 			func() {
-				fields := []string{"a", "b", "c"}
+				colSpecs := []ColumnSpec{
+					{"a", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"b", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				}
 				expectedReadOne := bson.D{
 					bson.DocElem{"a", 1},
 					bson.DocElem{"b", 2},
@@ -151,7 +185,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				}
 				fileHandle, err := os.Open("testdata/test.tsv")
 				So(err, ShouldBeNil)
-				r := NewTSVInputReader(fields, fileHandle, 1)
+				r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false)
 				docChan := make(chan bson.D, 50)
 				So(r.StreamDocument(true, docChan), ShouldBeNil)
 				So(<-docChan, ShouldResemble, expectedReadOne)
@@ -165,10 +199,10 @@ func TestTSVReadAndValidateHeader(t *testing.T) {
 	Convey("With a TSV input reader", t, func() {
 		Convey("setting the header should read the first line of the TSV", func() {
 			contents := "extraHeader1\textraHeader2\textraHeader3\n"
-			fields := []string{}
-			r := NewTSVInputReader(fields, bytes.NewReader([]byte(contents)), 1)
+			colSpecs := []ColumnSpec{}
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
-			So(len(r.fields), ShouldEqual, 3)
+			So(len(r.colSpecs), ShouldEqual, 3)
 		})
 	})
 }
@@ -178,9 +212,13 @@ func TestTSVConvert(t *testing.T) {
 	Convey("With a TSV input reader", t, func() {
 		Convey("calling convert on a TSVConverter should return the expected BSON document", func() {
 			tsvConverter := TSVConverter{
-				fields: []string{"field1", "field2", "field3"},
-				data:   "a\tb\tc",
-				index:  uint64(0),
+				colSpecs: []ColumnSpec{
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+				},
+				data:  "a\tb\tc",
+				index: uint64(0),
 			}
 			expectedDocument := bson.D{
 				bson.DocElem{"field1", "a"},

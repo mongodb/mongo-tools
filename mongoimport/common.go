@@ -4,18 +4,51 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
-	"io"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
 )
+
+type ParseGrace int
+
+const (
+	pgAutoCast ParseGrace = iota
+	pgSkipField
+	pgSkipRow
+	pgStop
+)
+
+// ValidatePG ensures the user-provided parseGrace is one of the allowed
+// values.
+func ValidatePG(pg string) (ParseGrace, error) {
+	switch pg {
+	case "autoCast":
+		return pgAutoCast, nil
+	case "skipField":
+		return pgSkipField, nil
+	case "skipRow":
+		return pgSkipRow, nil
+	case "stop":
+		return pgStop, nil
+	default:
+		return pgAutoCast, fmt.Errorf("invalid parse grace: %s", pg)
+	}
+}
+
+// ParsePG interprets the user-provided parseGrace, assuming it is valid.
+func ParsePG(pg string) (res ParseGrace) {
+	res, _ = ValidatePG(pg)
+	return
+}
 
 // Converter is an interface that adds the basic Convert method which returns a
 // valid BSON document that has been converted by the underlying implementation.
@@ -169,22 +202,6 @@ func doSequentialStreaming(workers []*importWorker, readDocs chan Converter, out
 	}
 }
 
-// getParsedValue returns the appropriate concrete type for the given token
-// it first attempts to convert it to an int, if that doesn't succeed, it
-// attempts conversion to a float, if that doesn't succeed, it returns the
-// token as is.
-func getParsedValue(token string) interface{} {
-	parsedInt, err := strconv.Atoi(token)
-	if err == nil {
-		return parsedInt
-	}
-	parsedFloat, err := strconv.ParseFloat(token, 64)
-	if err == nil {
-		return parsedFloat
-	}
-	return token
-}
-
 // getUpsertValue takes a given BSON document and a given field, and returns the
 // field's associated value in the document. The field is specified using dot
 // notation for nested fields. e.g. "person.age" would return 34 would return
@@ -328,23 +345,51 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 	return
 }
 
-// tokensToBSON reads in slice of records - along with ordered fields names -
+// coercionError should only be used as a specific error type to check
+// whether tokensToBSON wants the row to print
+type coercionError struct{}
+
+func (coercionError) Error() string { return "coercionError" }
+
+// tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
-func tokensToBSON(fields, tokens []string, numProcessed uint64) (bson.D, error) {
+func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool) (bson.D, error) {
 	log.Logf(log.DebugHigh, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
 	for index, token := range tokens {
-		parsedValue = getParsedValue(token)
-		if index < len(fields) {
-			if strings.Index(fields[index], ".") != -1 {
-				setNestedValue(fields[index], parsedValue, &document)
+		if token == "" && ignoreBlanks {
+			continue
+		}
+		if index < len(colSpecs) {
+			parsedValue, err := colSpecs[index].Parser.Parse(token)
+			if err != nil {
+				log.Logf(log.DebugHigh, "parse failure in document #%d for column '%s',"+
+					"could not parse token '%s' to type %s",
+					numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
+				switch colSpecs[index].ParseGrace {
+				case pgAutoCast:
+					parsedValue = autoParse(token)
+				case pgSkipField:
+					continue
+				case pgSkipRow:
+					log.Logf(log.Always, "skipping row #%d: %v", numProcessed, tokens)
+					return nil, coercionError{}
+				case pgStop:
+					return nil, fmt.Errorf("type coercion failure in document #%d for column '%s', "+
+						"could not parse token '%s' to type %s",
+						numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
+				}
+			}
+			if strings.Index(colSpecs[index].Name, ".") != -1 {
+				setNestedValue(colSpecs[index].Name, parsedValue, &document)
 			} else {
-				document = append(document, bson.DocElem{fields[index], parsedValue})
+				document = append(document, bson.DocElem{colSpecs[index].Name, parsedValue})
 			}
 		} else {
+			parsedValue = autoParse(token)
 			key := "field" + strconv.Itoa(index)
-			if util.StringSliceContains(fields, key) {
+			if util.StringSliceContains(ColumnNames(colSpecs), key) {
 				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v ('%v') in document #%v",
 					key, index+1, parsedValue, numProcessed)
 			}
@@ -423,6 +468,9 @@ func (iw *importWorker) processDocuments(ordered bool) error {
 			document, err := converter.Convert()
 			if err != nil {
 				return err
+			}
+			if document == nil {
+				continue
 			}
 			iw.processedDocumentChan <- document
 		case <-iw.tomb.Dying():

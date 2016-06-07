@@ -3,12 +3,13 @@ package mongoimport
 import (
 	"errors"
 	"fmt"
+	"io"
+	"strings"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"strings"
 )
 
 // JSONInputReader is an implementation of InputReader that reads documents
@@ -83,6 +84,11 @@ func NewJSONInputReader(isArray bool, in io.Reader, numDecoders int) *JSONInputR
 
 // ReadAndValidateHeader is a no-op for JSON imports; always returns nil.
 func (r *JSONInputReader) ReadAndValidateHeader() error {
+	return nil
+}
+
+// ReadAndValidateTypedHeader is a no-op for JSON imports; always returns nil.
+func (r *JSONInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) error {
 	return nil
 }
 

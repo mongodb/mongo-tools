@@ -2,12 +2,13 @@ package mongoimport
 
 import (
 	"bytes"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/testutil"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func TestJSONArrayStreamDocument(t *testing.T) {

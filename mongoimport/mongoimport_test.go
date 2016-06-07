@@ -2,16 +2,18 @@ package mongoimport
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"reflect"
+	"strings"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"io/ioutil"
-	"os"
-	"reflect"
-	"testing"
 )
 
 const (
@@ -71,7 +73,9 @@ func getBasicToolOptions() *options.ToolOptions {
 
 func NewMongoImport() (*MongoImport, error) {
 	toolOptions := getBasicToolOptions()
-	inputOptions := &InputOptions{}
+	inputOptions := &InputOptions{
+		ParseGrace: "stop",
+	}
 	ingestOptions := &IngestOptions{}
 	provider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -83,6 +87,31 @@ func NewMongoImport() (*MongoImport, error) {
 		IngestOptions:   ingestOptions,
 		SessionProvider: provider,
 	}, nil
+}
+
+func TestSplitInlineHeader(t *testing.T) {
+	testutil.VerifyTestType(t, testutil.UnitTestType)
+	Convey("handle normal, untyped headers", t, func() {
+		fields := []string{"foo.bar", "baz", "boo"}
+		header := strings.Join(fields, ",")
+		Convey("with '"+header+"'", func() {
+			So(splitInlineHeader(header), ShouldResemble, fields)
+		})
+	})
+	Convey("handle typed headers", t, func() {
+		fields := []string{"foo.bar.string()", "baz.date(January 2 2006)", "boo.binary(hex)"}
+		header := strings.Join(fields, ",")
+		Convey("with '"+header+"'", func() {
+			So(splitInlineHeader(header), ShouldResemble, fields)
+		})
+	})
+	Convey("handle typed headers that include commas", t, func() {
+		fields := []string{"foo.bar.date(,,,,)", "baz.date(January 2, 2006)", "boo.binary(hex)"}
+		header := strings.Join(fields, ",")
+		Convey("with '"+header+"'", func() {
+			So(splitInlineHeader(header), ShouldResemble, fields)
+		})
+	})
 }
 
 func TestMongoImportValidateSettings(t *testing.T) {
@@ -340,6 +369,26 @@ func TestGetSourceReader(t *testing.T) {
 func TestGetInputReader(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 	Convey("Given a io.Reader on calling getInputReader", t, func() {
+		Convey("should parse --fields using valid csv escaping", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.InputOptions.Fields = new(string)
+			*imp.InputOptions.Fields = "foo.auto(),bar.date(January 2, 2006)"
+			imp.InputOptions.File = "/path/to/input/file/dot/input.txt"
+			imp.InputOptions.ColumnsHaveTypes = true
+			_, err = imp.getInputReader(&os.File{})
+			So(err, ShouldBeNil)
+		})
+		Convey("should complain about non-escaped new lines in --fields", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.InputOptions.Fields = new(string)
+			*imp.InputOptions.Fields = "foo.auto(),\nblah.binary(hex),bar.date(January 2, 2006)"
+			imp.InputOptions.File = "/path/to/input/file/dot/input.txt"
+			imp.InputOptions.ColumnsHaveTypes = true
+			_, err = imp.getInputReader(&os.File{})
+			So(err, ShouldBeNil)
+		})
 		Convey("no error should be thrown if neither --fields nor --fieldFile "+
 			"is used", func() {
 			imp, err := NewMongoImport()
