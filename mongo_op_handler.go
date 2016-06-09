@@ -42,6 +42,7 @@ func (stream *stream) Reassembled(reassembly []tcpassembly.Reassembly) {
 // now finished. Because our streamOps function may be reading from more then
 // one stream, we only shut down the bidi once all the streams are finished.
 func (stream *stream) ReassemblyComplete() {
+
 	count := atomic.AddInt32(&stream.bidi.openStreamCount, -1)
 	if count < 0 {
 		panic("negative openStreamCount")
@@ -266,7 +267,14 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
 		//TODO maybe remember if we were recently in streamStateOutOfSync,
 		// and if so, parse the raw op here.
-		bidi.opStream.unorderedOps <- RecordedOp{RawOp: *stream.op, Seen: &PreciseTime{stream.reassembly.Seen}, SrcEndpoint: stream.netFlow.Src().String(), DstEndpoint: stream.netFlow.Dst().String(), ConnectionNum: bidi.connectionNumber}
+		bidi.opStream.unorderedOps <- RecordedOp{
+			RawOp:         *stream.op,
+			Seen:          &PreciseTime{stream.reassembly.Seen},
+			SrcEndpoint:   stream.netFlow.Src().String(),
+			DstEndpoint:   stream.netFlow.Dst().String(),
+			ConnectionNum: bidi.connectionNumber,
+		}
+
 		stream.op = &RawOp{}
 		stream.state = streamStateBeforeMessage
 		if len(stream.reassembly.Bytes) > 0 {
@@ -318,19 +326,19 @@ func (bidi *bidi) streamOps() {
 				// TODO, we may want to do more state specific reporting here.
 				stream.state = streamStateOutOfSync
 				stream.op.Body = stream.op.Body[:0]
-				bidi.logf(Info, "ignoring incomplete packet")
+				bidi.logf(Info, "Connection %v state '%v': ignoring incomplete packet (skip: %v)", bidi.connectionNumber, stream.state, stream.reassembly.Skip)
 				continue
 			}
 			// Skip < 0 means that we're picking up a stream mid-stream, and we don't really know the
 			// state of what's in hand;
 			// we need to synchronize.
 			if stream.reassembly.Skip < 0 {
-				bidi.logf(Info, "capture started in the middle a stream")
+				bidi.logf(Info, "Connection %v state '%v': capture started in the middle of stream", bidi.connectionNumber, stream.state)
 				stream.state = streamStateOutOfSync
 			}
 
 			for len(stream.reassembly.Bytes) > 0 {
-				bidi.logf(DebugHigh, "state %v", stream.state)
+				bidi.logf(DebugHigh, "Connection %v: state '%v'", bidi.connectionNumber, stream.state)
 				switch stream.state {
 				case streamStateBeforeMessage:
 					bidi.handleStreamStateBeforeMessage(stream)
@@ -344,5 +352,5 @@ func (bidi *bidi) streamOps() {
 		// inform the tcpassembly that we've finished with the reassemblies.
 		stream.done <- nil
 	}
-	bidi.logf(Info, "finishing")
+	bidi.logf(Info, "Connection %v: finishing", bidi.connectionNumber)
 }

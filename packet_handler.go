@@ -40,8 +40,8 @@ func (p *PacketHandler) Close() {
 func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *Assembler) {
 	if pkt != nil {
 		userInfoLogger.Logf(DebugLow, "processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
+		assembler.FlushOlderThan(pkt.Metadata().CaptureInfo.Timestamp.Add(time.Minute * -5))
 	}
-	assembler.FlushOlderThan(time.Now().Add(time.Second * -5))
 }
 
 func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) error {
@@ -56,7 +56,7 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 	defer func() {
 		if userInfoLogger.isInVerbosity(DebugLow) {
 			userInfoLogger.Log(DebugLow, "flushing assembler.")
-			userInfoLogger.Logf(DebugLow, "num flushed/closed:", assembler.FlushAll())
+			userInfoLogger.Logf(DebugLow, "num flushed/closed: %v", assembler.FlushAll())
 			userInfoLogger.Log(DebugLow, "closing stream handler.")
 		} else {
 			assembler.FlushAll()
@@ -65,9 +65,9 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 	}()
 	defer func() {
 		if userInfoLogger.isInVerbosity(DebugLow) {
-			userInfoLogger.Logf(DebugLow, "Dropped", p.numDropped, "packets out of", count)
+			userInfoLogger.Logf(DebugLow, "Dropped %v packets out of %v", p.numDropped, count)
 			runTime := float64(time.Now().Sub(start)) / float64(time.Second)
-			userInfoLogger.Logf(DebugLow, "Processed", float64(count-p.numDropped)/runTime, "packets per second")
+			userInfoLogger.Logf(DebugLow, "Processed %v packets per second", float64(count-p.numDropped)/runTime)
 		}
 	}()
 	ticker := time.Tick(time.Second * 1)
@@ -78,10 +78,11 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 		case pkt = <-source.Packets():
 			pktCount++
 			if pkt == nil { // end of pcap file
-				userInfoLogger.Log(DebugLow, "end of stream")
+				userInfoLogger.Log(DebugLow, "Reached end of stream")
 				return nil
 			}
 			if tcpLayer := pkt.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+				userInfoLogger.Log(DebugHigh, "Assembling TCP layer")
 				assembler.AssembleWithTimestamp(
 					pkt.TransportLayer().TransportFlow(),
 					tcpLayer.(*layers.TCP),

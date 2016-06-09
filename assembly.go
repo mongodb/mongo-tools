@@ -534,18 +534,15 @@ func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, 
 	}
 	seq, bytes := Sequence(t.Seq), t.Payload
 	if conn.nextSeq == invalidSequence {
-		if t.SYN {
-			if *debugLog {
-				log.Printf("%v saw first SYN packet, returning immediately, seq=%v", key, seq)
-			}
+		log.Printf("%v saw first SYN packet, returning immediately, seq=%v", key, seq)
+		conn.nextSeq = seq.Add(len(bytes) + 1)
+		if !t.SYN {
 			a.ret = append(a.ret, tcpassembly.Reassembly{
 				Bytes: bytes,
 				Skip:  0,
-				Start: true,
+				Start: t.SYN,
 				Seen:  timestamp,
 			})
-			conn.nextSeq = seq.Add(len(bytes) + 1)
-		} else {
 			a.insertIntoConn(t, conn, timestamp)
 		}
 	} else if diff := conn.nextSeq.Difference(seq); diff > 0 {
