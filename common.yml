@@ -601,6 +601,12 @@ post:
   - command: gotest.parse_files
     params:
       files: ["src/*.suite"]
+  - command: shell.exec
+    params:
+      script: |
+        rm -rf /data/db/*
+        exit 0
+
 
 tasks:
 - name: bsonutil
