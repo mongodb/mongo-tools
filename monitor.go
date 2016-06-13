@@ -124,7 +124,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 		statColl.Collect(op, parsedOp, nil, "")
 	}
 	err = <-errChan
-	if err != io.EOF {
+	if err != nil && err != io.EOF {
 		userInfoLogger.Logf(Always, "OpChan: %v", err)
 	}
 	return nil

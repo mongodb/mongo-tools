@@ -267,6 +267,7 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
 		//TODO maybe remember if we were recently in streamStateOutOfSync,
 		// and if so, parse the raw op here.
+
 		bidi.opStream.unorderedOps <- RecordedOp{
 			RawOp:         *stream.op,
 			Seen:          &PreciseTime{stream.reassembly.Seen},

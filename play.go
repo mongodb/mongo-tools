@@ -185,7 +185,7 @@ func (play *PlayCommand) Execute(args []string) error {
 
 	//handle the error from the errchan
 	err = <-errChan
-	if err != io.EOF {
+	if err != nil && err != io.EOF {
 		userInfoLogger.Logf(Always, "OpChan: %v", err)
 	}
 	return nil

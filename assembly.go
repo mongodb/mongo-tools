@@ -501,9 +501,6 @@ func (a *Assembler) Assemble(netFlow gopacket.Flow, t *layers.TCP) {
 func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, timestamp time.Time) {
 	// Ignore empty TCP packets
 	if !t.SYN && !t.FIN && !t.RST && len(t.LayerPayload()) == 0 {
-		if *debugLog {
-			log.Println("ignoring useless packet")
-		}
 		return
 	}
 
@@ -533,18 +530,27 @@ func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, 
 		conn.lastSeen = timestamp
 	}
 	seq, bytes := Sequence(t.Seq), t.Payload
+
 	if conn.nextSeq == invalidSequence {
-		log.Printf("%v saw first SYN packet, returning immediately, seq=%v", key, seq)
-		conn.nextSeq = seq.Add(len(bytes) + 1)
+		// Handling the first packet we've seen on the stream.
+		skip := 0
+		conn.nextSeq = seq.Add(len(bytes))
 		if !t.SYN {
-			a.ret = append(a.ret, tcpassembly.Reassembly{
-				Bytes: bytes,
-				Skip:  0,
-				Start: t.SYN,
-				Seen:  timestamp,
-			})
-			a.insertIntoConn(t, conn, timestamp)
+			// don't add 1 since we're just going to assume the sequence number without the SYN packet.
+			// stream was picked up somewhere in the middle, so indicate that we don't know
+			// how many packets came before it.
+			skip = -1
+		} else {
+			// for SYN packets, also increment the sequence number by 1
+			conn.nextSeq = seq.Add(len(bytes) + 1)
 		}
+		a.ret = append(a.ret, tcpassembly.Reassembly{
+			Bytes: bytes,
+			Skip:  skip,
+			Start: t.SYN,
+			Seen:  timestamp,
+		})
+		a.insertIntoConn(t, conn, timestamp)
 	} else if diff := conn.nextSeq.Difference(seq); diff > 0 {
 		a.insertIntoConn(t, conn, timestamp)
 	} else {
