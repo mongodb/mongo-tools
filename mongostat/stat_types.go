@@ -501,6 +501,19 @@ func (jlf *JSONLineFormatter) FormatLines(lines []StatLine, index int, discover 
 			lineJson["locked"] = highestLockedVal
 		}
 
+		if lineFlags&WTOnly > 0 {
+			if line.CacheDirtyPercent < 0 {
+				lineJson["% dirty"] = ""
+			} else {
+				lineJson["% dirty"] = fmt.Sprintf("%.1f", line.CacheDirtyPercent*100)
+			}
+			if line.CacheUsedPercent < 0 {
+				lineJson["% used"] = ""
+			} else {
+				lineJson["% used"] = fmt.Sprintf("%.1f", line.CacheUsedPercent*100)
+			}
+		}
+
 		if lineFlags&Repl > 0 {
 			lineJson["set"] = line.ReplSetName
 			lineJson["repl"] = line.NodeType
