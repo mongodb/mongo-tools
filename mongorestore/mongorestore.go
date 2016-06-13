@@ -4,6 +4,14 @@ package mongorestore
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"sync"
+	"syscall"
+
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -12,15 +20,9 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"io/ioutil"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"sync"
-	"syscall"
 )
 
 // MongoRestore is a container for the user-specified options and
@@ -29,6 +31,7 @@ type MongoRestore struct {
 	ToolOptions   *options.ToolOptions
 	InputOptions  *InputOptions
 	OutputOptions *OutputOptions
+	NSOptions     *NSOptions
 
 	SessionProvider *db.SessionProvider
 
@@ -51,6 +54,10 @@ type MongoRestore struct {
 	// a map of database names to a list of collection names
 	knownCollections      map[string][]string
 	knownCollectionsMutex sync.Mutex
+
+	renamer  *ns.Renamer
+	includer *ns.Matcher
+	excluder *ns.Matcher
 
 	// indexes belonging to dbs and collections
 	dbCollectionIndexes map[string]collectionIndexes
@@ -79,24 +86,24 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		log.Logv(log.DebugHigh, "\tdumping with object check disabled")
 	}
 
-	if restore.ToolOptions.DB == "" && restore.ToolOptions.Collection != "" {
+	if restore.NSOptions.DB == "" && restore.NSOptions.Collection != "" {
 		return fmt.Errorf("cannot restore a collection without a specified database")
 	}
 
-	if restore.ToolOptions.DB != "" {
-		if err := util.ValidateDBName(restore.ToolOptions.DB); err != nil {
+	if restore.NSOptions.DB != "" {
+		if err := util.ValidateDBName(restore.NSOptions.DB); err != nil {
 			return fmt.Errorf("invalid db name: %v", err)
 		}
 	}
-	if restore.ToolOptions.Collection != "" {
-		if err := util.ValidateCollectionGrammar(restore.ToolOptions.Collection); err != nil {
+	if restore.NSOptions.Collection != "" {
+		if err := util.ValidateCollectionGrammar(restore.NSOptions.Collection); err != nil {
 			return fmt.Errorf("invalid collection name: %v", err)
 		}
 	}
-	if restore.InputOptions.RestoreDBUsersAndRoles && restore.ToolOptions.DB == "" {
+	if restore.InputOptions.RestoreDBUsersAndRoles && restore.NSOptions.DB == "" {
 		return fmt.Errorf("cannot use --restoreDbUsersAndRoles without a specified database")
 	}
-	if restore.InputOptions.RestoreDBUsersAndRoles && restore.ToolOptions.DB == "admin" {
+	if restore.InputOptions.RestoreDBUsersAndRoles && restore.NSOptions.DB == "admin" {
 		return fmt.Errorf("cannot use --restoreDbUsersAndRoles with the admin database")
 	}
 
@@ -151,11 +158,73 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		restore.tempRolesCol = *restore.ToolOptions.HiddenOptions.TempRolesColl
 	}
 
-	if len(restore.OutputOptions.ExcludedCollections) > 0 && restore.ToolOptions.Namespace.Collection != "" {
+	// deprecations with --nsInclude --nsExclude
+	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
+		// these are only okay if restoring from a bson file
+		_, fileType := restore.getInfoFromFilename(restore.TargetDirectory)
+		if fileType != BSONFileType {
+			log.Logvf(log.Always, "the --db and --collection args should only be used when "+
+				"restoring from a BSON file. Other uses are deprecated and will not exist "+
+				"in the future; use --nsInclude instead")
+		}
+	}
+	if len(restore.NSOptions.ExcludedCollections) > 0 ||
+		len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 {
+		log.Logvf(log.Always, "the --excludeCollections and --excludeCollectionPrefixes options "+
+			"are deprecated and will not exist in the future; use --nsExclude instead")
+	}
+	if restore.InputOptions.OplogReplay {
+		if len(restore.NSOptions.NSInclude) > 0 || restore.NSOptions.DB != "" {
+			return fmt.Errorf("cannot use --oplogReplay with includes specified")
+		}
+		if len(restore.NSOptions.NSExclude) > 0 || len(restore.NSOptions.ExcludedCollections) > 0 ||
+			len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 {
+			return fmt.Errorf("cannot use --oplogReplay with excludes specified")
+		}
+		if len(restore.NSOptions.NSFrom) > 0 {
+			return fmt.Errorf("cannot use --oplogReplay with namespace renames specified")
+		}
+	}
+
+	includes := restore.NSOptions.NSInclude
+	if restore.NSOptions.DB != "" && restore.NSOptions.Collection != "" {
+		includes = append(includes, ns.Escape(restore.NSOptions.DB)+"."+
+			restore.NSOptions.Collection)
+	} else if restore.NSOptions.DB != "" {
+		includes = append(includes, ns.Escape(restore.NSOptions.DB)+".*")
+	}
+	if len(includes) == 0 {
+		includes = []string{"*"}
+	}
+	restore.includer, err = ns.NewMatcher(includes)
+	if err != nil {
+		return fmt.Errorf("invalid includes: %v", err)
+	}
+
+	if len(restore.NSOptions.ExcludedCollections) > 0 && restore.NSOptions.Collection != "" {
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	}
-	if len(restore.OutputOptions.ExcludedCollectionPrefixes) > 0 && restore.ToolOptions.Namespace.Collection != "" {
+	if len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 && restore.NSOptions.Collection != "" {
 		return fmt.Errorf("--collection is not allowed when --excludeCollectionsWithPrefix is specified")
+	}
+	excludes := restore.NSOptions.NSExclude
+	for _, col := range restore.NSOptions.ExcludedCollections {
+		excludes = append(excludes, "*."+ns.Escape(col))
+	}
+	for _, colPrefix := range restore.NSOptions.ExcludedCollectionPrefixes {
+		excludes = append(excludes, "*."+ns.Escape(colPrefix)+"*")
+	}
+	restore.excluder, err = ns.NewMatcher(excludes)
+	if err != nil {
+		return fmt.Errorf("invalid excludes: %v", err)
+	}
+
+	if len(restore.NSOptions.NSFrom) != len(restore.NSOptions.NSTo) {
+		return fmt.Errorf("--nsFrom and --nsTo arguments must be specified an equal number of times")
+	}
+	restore.renamer, err = ns.NewRenamer(restore.NSOptions.NSFrom, restore.NSOptions.NSTo)
+	if err != nil {
+		return fmt.Errorf("invalid renames: %v", err)
 	}
 
 	if restore.OutputOptions.NumInsertionWorkers < 0 {
@@ -169,7 +238,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			return fmt.Errorf(
 				"cannot restore from \"-\" when --archive is specified")
 		}
-		if restore.ToolOptions.Collection == "" {
+		if restore.NSOptions.Collection == "" {
 			return fmt.Errorf("cannot restore from stdin without a specified collection")
 		}
 	}
@@ -240,7 +309,7 @@ func (restore *MongoRestore) Restore() error {
 			log.Logv(log.DebugLow, "mongorestore target is a directory, not a file")
 		}
 	}
-	if restore.ToolOptions.Collection != "" &&
+	if restore.NSOptions.Collection != "" &&
 		restore.OutputOptions.NumParallelCollections > 1 &&
 		restore.OutputOptions.NumInsertionWorkers == 1 {
 		// handle special parallelization case when we are only restoring one collection
@@ -271,43 +340,38 @@ func (restore *MongoRestore) Restore() error {
 
 	switch {
 	case restore.InputOptions.Archive != "":
-		log.Logvf(log.Always,
-			"creating intents for archive")
-		err = restore.CreateAllIntents(target, restore.ToolOptions.DB, restore.ToolOptions.Collection)
-	case restore.ToolOptions.DB == "" && restore.ToolOptions.Collection == "":
-		log.Logvf(log.Always,
-			"building a list of dbs and collections to restore from %v dir",
-			target.Path())
-		err = restore.CreateAllIntents(target, "", "")
-	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection == "":
+		log.Logvf(log.Always, "preparing collections to restore from")
+		err = restore.CreateAllIntents(target)
+	case restore.NSOptions.DB != "" && restore.NSOptions.Collection == "":
 		log.Logvf(log.Always,
 			"building a list of collections to restore from %v dir",
 			target.Path())
 		err = restore.CreateIntentsForDB(
-			restore.ToolOptions.DB,
-			"",
+			restore.NSOptions.DB,
 			target,
-			false,
 		)
-	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "" && restore.TargetDirectory == "-":
+	case restore.NSOptions.DB != "" && restore.NSOptions.Collection != "" && restore.TargetDirectory == "-":
 		log.Logvf(log.Always, "setting up a collection to be read from standard input")
 		err = restore.CreateStdinIntentForCollection(
-			restore.ToolOptions.DB,
-			restore.ToolOptions.Collection,
+			restore.NSOptions.DB,
+			restore.NSOptions.Collection,
 		)
-	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "":
+	case restore.NSOptions.DB != "" && restore.NSOptions.Collection != "":
 		log.Logvf(log.Always, "checking for collection data in %v", target.Path())
 		err = restore.CreateIntentForCollection(
-			restore.ToolOptions.DB,
-			restore.ToolOptions.Collection,
+			restore.NSOptions.DB,
+			restore.NSOptions.Collection,
 			target,
 		)
+	default:
+		log.Logvf(log.Always, "preparing collections to restore from")
+		err = restore.CreateAllIntents(target)
 	}
 	if err != nil {
 		return fmt.Errorf("error scanning filesystem: %v", err)
 	}
 
-	if restore.isMongos && restore.manager.HasConfigDBIntent() && restore.ToolOptions.DB == "" {
+	if restore.isMongos && restore.manager.HasConfigDBIntent() && restore.NSOptions.DB == "" {
 		return fmt.Errorf("cannot do a full restore on a sharded system - " +
 			"remove the 'config' directory from the dump directory first")
 	}
@@ -324,6 +388,19 @@ func (restore *MongoRestore) Restore() error {
 	if restore.manager.GetOplogConflict() {
 		return fmt.Errorf("cannot provide both an oplog.bson file and an oplog file with --oplogFile, " +
 			"nor can you provide both a local/oplog.rs.bson and a local/oplog.$main.bson file.")
+	}
+
+	conflicts := restore.manager.GetDestinationConflicts()
+	if len(conflicts) > 0 {
+		for _, conflict := range conflicts {
+			log.Logvf(log.Always, "%s", conflict.Error())
+		}
+		return fmt.Errorf("cannot restore with conflicting namespace destinations")
+	}
+
+	if restore.OutputOptions.DryRun {
+		log.Logvf(log.Always, "dry run completed")
+		return nil
 	}
 
 	if restore.InputOptions.Archive != "" {

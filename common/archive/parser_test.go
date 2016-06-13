@@ -3,10 +3,11 @@ package archive
 import (
 	"bytes"
 	"fmt"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"io"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type testConsumer struct {

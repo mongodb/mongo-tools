@@ -2,8 +2,9 @@ package archive
 
 import (
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/db"
 	"io"
+
+	"github.com/mongodb/mongo-tools/common/db"
 )
 
 // parser.go implements the parsing of the low-level archive format

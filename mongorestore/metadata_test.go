@@ -1,13 +1,14 @@
 package mongorestore
 
 import (
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 const ExistsDB = "restore_collection_exists"
@@ -87,6 +88,7 @@ func TestGetDumpAuthVersion(t *testing.T) {
 			restore = &MongoRestore{
 				InputOptions: &InputOptions{},
 				ToolOptions:  &commonOpts.ToolOptions{},
+				NSOptions:    &NSOptions{},
 			}
 			Convey("auth version 1 should be detected", func() {
 				restore.manager = intents.NewIntentManager()
@@ -129,10 +131,9 @@ func TestGetDumpAuthVersion(t *testing.T) {
 				InputOptions: &InputOptions{
 					RestoreDBUsersAndRoles: true,
 				},
-				ToolOptions: &commonOpts.ToolOptions{
-					Namespace: &commonOpts.Namespace{
-						DB: "TestDB",
-					},
+				ToolOptions: &commonOpts.ToolOptions{},
+				NSOptions: &NSOptions{
+					DB: "TestDB",
 				},
 			}
 

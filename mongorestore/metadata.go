@@ -2,6 +2,8 @@ package mongorestore
 
 import (
 	"fmt"
+
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -10,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
 
 // Specially treated restore collection types.
@@ -127,11 +128,8 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 }
 
 func stripDBFromNS(ns string) string {
-	i := strings.Index(ns, ".")
-	if i > 0 && i < len(ns) {
-		return ns[i+1:]
-	}
-	return ns
+	_, c := common.SplitNamespace(ns)
+	return c
 }
 
 // CollectionExists returns true if the given intent's collection exists.
@@ -412,7 +410,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			// If we are using --restoreDbUsersAndRoles, we cannot guarantee an
 			// $admin.system.version collection from a 2.6 server,
 			// so we can assume up to version 3.
-			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.ToolOptions.DB)
+			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.NSOptions.DB)
 			log.Logv(log.Always, "warning: assuming users and roles collections are of auth version 3")
 			log.Logv(log.Always, "if users are from an earlier version of MongoDB, they may not restore properly")
 			return 3, nil
@@ -502,8 +500,8 @@ func (restore *MongoRestore) ShouldRestoreUsersAndRoles() bool {
 	// is doing a full restore), then we check if users or roles BSON files
 	// actually exist in the dump dir. If they do, return true.
 	if restore.InputOptions.RestoreDBUsersAndRoles ||
-		restore.ToolOptions.DB == "" ||
-		restore.ToolOptions.DB == "admin" {
+		restore.NSOptions.DB == "" ||
+		restore.NSOptions.DB == "admin" {
 		if restore.manager.Users() != nil || restore.manager.Roles() != nil {
 			return true
 		}

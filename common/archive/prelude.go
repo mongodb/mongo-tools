@@ -3,13 +3,15 @@ package archive
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"path/filepath"
+	"sync/atomic"
+
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"path/filepath"
-	"sync/atomic"
 )
 
 //MetadataFile implements intents.file
@@ -345,26 +347,25 @@ func (pe *PreludeExplorer) Parent() DirLike {
 type MetadataPreludeFile struct {
 	pos     int64 // updated atomically, aligned at the beginning of the struct
 	Intent  *intents.Intent
+	Origin  string
 	Prelude *Prelude
 	*bytes.Buffer
 }
 
 // Open is part of the intents.file interface, it finds the metadata in the prelude and creates a bytes.Buffer from it.
 func (mpf *MetadataPreludeFile) Open() error {
-	if mpf.Intent.C == "" {
-		return fmt.Errorf("so such file") // what's the errno that occurs when one tries to open a directory
-	}
-	dbMetadatas, ok := mpf.Prelude.NamespaceMetadatasByDB[mpf.Intent.DB]
+	db, c := common.SplitNamespace(mpf.Origin)
+	dbMetadatas, ok := mpf.Prelude.NamespaceMetadatasByDB[db]
 	if !ok {
-		return fmt.Errorf("so such file") // what's the errno that occurs when one tries to open a directory
+		return fmt.Errorf("no metadata found for '%s'", db)
 	}
 	for _, metadata := range dbMetadatas {
-		if metadata.Collection == mpf.Intent.C {
+		if metadata.Collection == c {
 			mpf.Buffer = bytes.NewBufferString(metadata.Metadata)
 			return nil
 		}
 	}
-	return fmt.Errorf("so such file") // what's the errno that occurs when one tries to open a directory
+	return fmt.Errorf("no matching metadata found for '%s'", mpf.Origin)
 }
 
 // Close is part of the intents.file interface.

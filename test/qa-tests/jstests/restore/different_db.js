@@ -25,6 +25,12 @@
   // the db we will restore to
   var destDB = toolTest.db.getSiblingDB('dest');
 
+  // dump the data
+  var ret = toolTest.runTool.apply(toolTest, ['dump']
+      .concat(getDumpTarget(dumpTarget))
+      .concat(commonToolArgs));
+  assert.eq(0, ret);
+
   // we'll use two collections
   var collNames = ['coll1', 'coll2'];
 
@@ -38,7 +44,7 @@
   });
 
   // dump the data
-  var ret = toolTest.runTool.apply(toolTest, ['dump']
+  ret = toolTest.runTool.apply(toolTest, ['dump']
       .concat(getDumpTarget(dumpTarget))
       .concat(commonToolArgs));
   assert.eq(0, ret);
@@ -57,7 +63,22 @@
     }
   });
 
-    // success
+  // restore the data to another different db
+  ret = toolTest.runTool.apply(toolTest, ['restore',
+      '--nsFrom', '$db$.$collection$',
+      '--nsTo', 'otherdest.$collection$_$db$']
+      .concat(getRestoreTarget(dumpTarget))
+      .concat(commonToolArgs));
+  assert.eq(0, ret);
+  destDB = toolTest.db.getSiblingDB('otherdest');
+  collNames.forEach(function(collName) {
+    assert.eq(500, destDB[collName+'_source'].count());
+    for (var i = 0; i < 500; i++) {
+      assert.eq(1, destDB[collName+'_source'].count({_id: i+'_'+collName}));
+    }
+  });
+
+  // success
   toolTest.stop();
 
 }());

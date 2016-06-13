@@ -1,8 +1,6 @@
 package archive
 
-import (
-	"io"
-)
+import "io"
 
 // NamespaceHeader is a data structure that, as BSON, is found in archives where it indicates
 // that either the subsequent stream of BSON belongs to this new namespace, or that the

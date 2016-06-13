@@ -24,16 +24,22 @@ func SliceContains(slice, elt interface{}) bool {
 	return false
 }
 
+// StringSliceContains reports whether str is in the slice.
 func StringSliceContains(slice []string, str string) bool {
-	if slice == nil {
-		return false
-	}
-	for _, element := range slice {
-		if element == str {
-			return true
+	return StringSliceIndex(slice, str) != -1
+}
+
+// StringSliceContains returns the first index at which the given element
+// can be found in the slice, or -1 if it is not present.
+func StringSliceIndex(slice []string, str string) int {
+	i := -1
+	for j, v := range slice {
+		if v == str {
+			i = j
+			break
 		}
 	}
-	return false
+	return i
 }
 
 // generic function that returns number of instances of 'elt' in 'slice'.

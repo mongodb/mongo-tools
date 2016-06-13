@@ -3,18 +3,21 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
-	"os"
 )
 
 func main() {
 	// initialize command-line opts
 	opts := options.New("mongorestore", mongorestore.Usage,
-		options.EnabledOptions{Auth: true, Connection: true, Namespace: true})
+		options.EnabledOptions{Auth: true, Connection: true})
+	nsOpts := &mongorestore.NSOptions{}
+	opts.AddOptions(nsOpts)
 	inputOpts := &mongorestore.InputOptions{}
 	opts.AddOptions(inputOpts)
 	outputOpts := &mongorestore.OutputOptions{}
@@ -64,6 +67,7 @@ func main() {
 		ToolOptions:     opts,
 		OutputOptions:   outputOpts,
 		InputOptions:    inputOpts,
+		NSOptions:       nsOpts,
 		TargetDirectory: targetDir,
 		SessionProvider: provider,
 	}

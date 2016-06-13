@@ -2,15 +2,17 @@ package mongorestore
 
 import (
 	"bytes"
+	"strings"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	. "github.com/smartystreets/goconvey/convey"
-	"strings"
-	"testing"
 )
 
 func init() {
@@ -18,6 +20,21 @@ func init() {
 	log.SetVerbosity(&options.Verbosity{
 		VLevel: 4,
 	})
+}
+
+func newMongoRestore() *MongoRestore {
+	renamer, _ := ns.NewRenamer([]string{}, []string{})
+	includer, _ := ns.NewMatcher([]string{"*"})
+	excluder, _ := ns.NewMatcher([]string{})
+	return &MongoRestore{
+		manager:      intents.NewIntentManager(),
+		InputOptions: &InputOptions{},
+		ToolOptions:  &commonOpts.ToolOptions{},
+		NSOptions:    &NSOptions{},
+		renamer:      renamer,
+		includer:     includer,
+		excluder:     excluder,
+	}
 }
 
 func TestCreateAllIntents(t *testing.T) {
@@ -42,17 +59,13 @@ func TestCreateAllIntents(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
-		mr = &MongoRestore{
-			manager:      intents.NewIntentManager(),
-			InputOptions: &InputOptions{},
-			ToolOptions:  &commonOpts.ToolOptions{Namespace: &commonOpts.Namespace{}},
-		}
+		mr = newMongoRestore()
 		log.SetWriter(&buff)
 
 		Convey("running CreateAllIntents should succeed", func() {
 			ddl, err := newActualPath("testdata/testdirs/")
 			So(err, ShouldBeNil)
-			So(mr.CreateAllIntents(ddl, "", ""), ShouldBeNil)
+			So(mr.CreateAllIntents(ddl), ShouldBeNil)
 			mr.manager.Finalize(intents.Legacy)
 
 			Convey("and reading the intents should show alphabetical order", func() {
@@ -110,17 +123,13 @@ func TestCreateIntentsForDB(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
-		mr = &MongoRestore{
-			InputOptions: &InputOptions{},
-			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{Namespace: &commonOpts.Namespace{}},
-		}
+		mr = newMongoRestore()
 		log.SetWriter(&buff)
 
 		Convey("running CreateIntentsForDB should succeed", func() {
 			ddl, err := newActualPath("testdata/testdirs/db1")
 			So(err, ShouldBeNil)
-			err = mr.CreateIntentsForDB("myDB", "", ddl, false)
+			err = mr.CreateIntentsForDB("myDB", ddl)
 			So(err, ShouldBeNil)
 			mr.manager.Finalize(intents.Legacy)
 
@@ -158,43 +167,73 @@ func TestCreateIntentsForDB(t *testing.T) {
 	})
 }
 
+func TestCreateIntentsRenamed(t *testing.T) {
+	Convey("With a test MongoRestore", t, func() {
+		mr := newMongoRestore()
+		mr.renamer, _ = ns.NewRenamer([]string{"db1.*"}, []string{"db4.test.*"})
+
+		Convey("running CreateAllIntents should succeed", func() {
+			ddl, err := newActualPath("testdata/testdirs/")
+			So(err, ShouldBeNil)
+			So(mr.CreateAllIntents(ddl), ShouldBeNil)
+			mr.manager.Finalize(intents.Legacy)
+
+			Convey("and reading the intents should show new collection names", func() {
+				i0 := mr.manager.Pop()
+				So(i0.C, ShouldEqual, "test.c1")
+				i1 := mr.manager.Pop()
+				So(i1.C, ShouldEqual, "test.c2")
+				i2 := mr.manager.Pop()
+				So(i2.C, ShouldEqual, "test.c3")
+				i3 := mr.manager.Pop()
+				So(i3.C, ShouldEqual, "c1")
+				i4 := mr.manager.Pop()
+				So(i4, ShouldBeNil)
+
+				Convey("and intents should have the renamed db", func() {
+					So(i0.DB, ShouldEqual, "db4")
+					So(i1.DB, ShouldEqual, "db4")
+					So(i2.DB, ShouldEqual, "db4")
+					So(i3.DB, ShouldEqual, "db2")
+				})
+			})
+		})
+	})
+}
+
 func TestHandlingBSON(t *testing.T) {
 	var mr *MongoRestore
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
-		mr = &MongoRestore{
-			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{Namespace: &commonOpts.Namespace{}},
-			InputOptions: &InputOptions{},
-		}
+		mr = newMongoRestore()
 
 		Convey("with a target path to a bson file instead of a directory", func() {
 			err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c2.bson")
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.ToolOptions.DB, ShouldEqual, "db1")
-				So(mr.ToolOptions.Collection, ShouldEqual, "c2")
+				So(mr.NSOptions.DB, ShouldEqual, "db1")
+				So(mr.NSOptions.Collection, ShouldEqual, "c2")
 			})
 		})
 
 		Convey("but pre-existing settings should not be overwritten", func() {
-			mr.ToolOptions.DB = "a"
+			mr.NSOptions.DB = "a"
 
 			Convey("either collection settings", func() {
-				mr.ToolOptions.Collection = "b"
+				mr.NSOptions.Collection = "b"
 				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
 				So(err, ShouldBeNil)
-				So(mr.ToolOptions.DB, ShouldEqual, "a")
-				So(mr.ToolOptions.Collection, ShouldEqual, "b")
+				So(mr.NSOptions.DB, ShouldEqual, "a")
+				So(mr.NSOptions.Collection, ShouldEqual, "b")
 			})
 
 			Convey("or db settings", func() {
 				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
 				So(err, ShouldBeNil)
-				So(mr.ToolOptions.DB, ShouldEqual, "a")
-				So(mr.ToolOptions.Collection, ShouldEqual, "c1")
+				So(mr.NSOptions.DB, ShouldEqual, "a")
+				So(mr.NSOptions.Collection, ShouldEqual, "c1")
 			})
 		})
 	})
@@ -210,7 +249,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 		buff = bytes.Buffer{}
 		mr = &MongoRestore{
 			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{Namespace: &commonOpts.Namespace{}},
+			ToolOptions:  &commonOpts.ToolOptions{},
 			InputOptions: &InputOptions{},
 		}
 		log.SetWriter(&buff)

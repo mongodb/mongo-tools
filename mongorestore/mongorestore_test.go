@@ -37,7 +37,6 @@ func TestMongorestore(t *testing.T) {
 		},
 		Auth:          &auth,
 		SSL:           &ssl,
-		Namespace:     &options.Namespace{},
 		HiddenOptions: &options.HiddenOptions{},
 	}
 	inputOptions := &InputOptions{}
@@ -46,6 +45,7 @@ func TestMongorestore(t *testing.T) {
 		NumInsertionWorkers:    1,
 		WriteConcern:           "majority",
 	}
+	nsOptions := &NSOptions{}
 	Convey("With a test MongoRestore", t, func() {
 		provider, err := db.NewSessionProvider(*toolOptions)
 		if err != nil {
@@ -56,6 +56,7 @@ func TestMongorestore(t *testing.T) {
 			ToolOptions:     toolOptions,
 			OutputOptions:   outputOptions,
 			InputOptions:    inputOptions,
+			NSOptions:       nsOptions,
 			SessionProvider: provider,
 		}
 		session, _ := provider.GetSession()

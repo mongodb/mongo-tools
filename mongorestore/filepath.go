@@ -3,16 +3,18 @@ package mongorestore
 import (
 	"compress/gzip"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/archive"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/util"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
+
+	"github.com/mongodb/mongo-tools/common"
+	"github.com/mongodb/mongo-tools/common/archive"
+	"github.com/mongodb/mongo-tools/common/intents"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // FileType describes the various types of restore documents.
@@ -31,6 +33,8 @@ func (errorWriter) Write([]byte) (int, error) {
 	return 0, os.ErrInvalid
 }
 
+// PosReader is a ReadCloser which maintains the position of what has been
+// read from the Reader.
 type PosReader interface {
 	io.ReadCloser
 	Pos() int64
@@ -228,7 +232,7 @@ func (restore *MongoRestore) getInfoFromFilename(filename string) (string, FileT
 
 // CreateAllIntents drills down into a dump folder, creating intents for all of
 // the databases and collections it finds.
-func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB string, filterCollection string) error {
+func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 	log.Logvf(log.DebugHigh, "using %v as dump root directory", dir.Path())
 	entries, err := dir.ReadDir()
 	if err != nil {
@@ -239,11 +243,7 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 			if err = util.ValidateDBName(entry.Name()); err != nil {
 				return fmt.Errorf("invalid database name '%v': %v", entry.Name(), err)
 			}
-			if filterDB == "" || entry.Name() == filterDB {
-				err = restore.CreateIntentsForDB(entry.Name(), filterCollection, entry, false)
-			} else {
-				err = restore.CreateIntentsForDB(entry.Name(), "", entry, true)
-			}
+			err = restore.CreateIntentsForDB(entry.Name(), entry)
 			if err != nil {
 				return err
 			}
@@ -257,12 +257,8 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 					Size:     entry.Size(),
 					Location: entry.Path(),
 				}
-				// filterDB is used to mimic CreateIntentsForDB, and since CreateIntentsForDB wouldn't
-				// apply the oplog, even when asked, we don't either.
-				if filterDB != "" || !restore.InputOptions.OplogReplay {
-					if restore.InputOptions.Archive == "" {
-						continue
-					} else {
+				if !restore.InputOptions.OplogReplay {
+					if restore.InputOptions.Archive != "" {
 						mutedOut := &archive.MutedCollection{
 							Intent: oplogIntent,
 							Demux:  restore.archive.Demux,
@@ -271,8 +267,8 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 							oplogIntent.Namespace(),
 							mutedOut,
 						)
-						continue
 					}
+					continue
 				}
 				if restore.InputOptions.Archive != "" {
 					if restore.InputOptions.Archive == "-" {
@@ -282,11 +278,11 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 					}
 
 					// no need to check that we want to cache here
-					oplogIntent.BSONFile =
-						&archive.RegularCollectionReceiver{
-							Intent: oplogIntent,
-							Demux:  restore.archive.Demux,
-						}
+					oplogIntent.BSONFile = &archive.RegularCollectionReceiver{
+						Intent: oplogIntent,
+						Origin: oplogIntent.Namespace(),
+						Demux:  restore.archive.Demux,
+					}
 				} else {
 					oplogIntent.BSONFile = &realBSONFile{path: entry.Path(), intent: oplogIntent, gzip: restore.InputOptions.Gzip}
 				}
@@ -323,12 +319,11 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 	intent.BSONFile = &realBSONFile{path: target.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 	restore.manager.PutOplogIntent(intent, "oplogFile")
 	return nil
-
 }
 
 // CreateIntentsForDB drills down into the dir folder, creating intents
 // for all of the collection dump files it finds for the db database.
-func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection string, dir archive.DirLike, mute bool) (err error) {
+func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) (err error) {
 	var entries []archive.DirLike
 	log.Logvf(log.DebugHigh, "reading collections for database %v in %v", db, dir.Name())
 	entries, err = dir.ReadDir()
@@ -342,15 +337,16 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 				filepath.Join(dir.Name(), entry.Name()))
 		} else {
 			collection, fileType := restore.getInfoFromFilename(entry.Name())
+			sourceNS := db + "." + collection
 			switch fileType {
 			case BSONFileType:
-				var skip = mute
+				var skip bool
 				// Dumps of a single database (i.e. with the -d flag) may contain special
 				// db-specific collections that start with a "$" (for example, $admin.system.users
 				// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
 				// If these special files manage to be included in a dump directory during a full
 				// (multi-db) restore, we should ignore them.
-				if restore.ToolOptions.DB == "" && strings.HasPrefix(collection, "$") {
+				if restore.NSOptions.DB == "" && strings.HasPrefix(collection, "$") {
 					log.Logvf(log.DebugLow, "not restoring special collection %v.%v", db, collection)
 					skip = true
 				}
@@ -370,18 +366,19 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					skip = true
 				}
 
-				// TOOLS-976: skip restoring the collections should be excluded
-				if filterCollection == "" && restore.shouldSkipCollection(collection) {
+				if !restore.includer.Has(sourceNS) {
+					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)
+					skip = true
+				}
+				if restore.excluder.Has(sourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is excluded", db, collection)
 					skip = true
 				}
-
-				if filterCollection != "" && filterCollection != collection {
-					skip = true
-				}
+				destNS := restore.renamer.Get(sourceNS)
+				destDB, destC := common.SplitNamespace(destNS)
 				intent := &intents.Intent{
-					DB:   db,
-					C:    collection,
+					DB:   destDB,
+					C:    destC,
 					Size: entry.Size(),
 				}
 				if restore.InputOptions.Archive != "" {
@@ -393,15 +390,18 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					if skip {
 						// adding the DemuxOut to the demux, but not adding the intent to the manager
 						mutedOut := &archive.MutedCollection{Intent: intent, Demux: restore.archive.Demux}
-						restore.archive.Demux.Open(intent.Namespace(), mutedOut)
+						restore.archive.Demux.Open(sourceNS, mutedOut)
 						continue
+					}
+					if intent.IsSpecialCollection() {
+						specialCollectionCache := archive.NewSpecialCollectionCache(intent, restore.archive.Demux)
+						intent.BSONFile = specialCollectionCache
+						restore.archive.Demux.Open(sourceNS, specialCollectionCache)
 					} else {
-						if intent.IsSpecialCollection() {
-							specialCollectionCache := archive.NewSpecialCollectionCache(intent, restore.archive.Demux)
-							intent.BSONFile = specialCollectionCache
-							restore.archive.Demux.Open(intent.Namespace(), specialCollectionCache)
-						} else {
-							intent.BSONFile = &archive.RegularCollectionReceiver{Intent: intent, Demux: restore.archive.Demux}
+						intent.BSONFile = &archive.RegularCollectionReceiver{
+							Origin: sourceNS,
+							Intent: intent,
+							Demux:  restore.archive.Demux,
 						}
 					}
 				} else {
@@ -411,19 +411,24 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					intent.Location = entry.Path()
 					intent.BSONFile = &realBSONFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
-				log.Logvf(log.Info, "found collection %v bson to restore", intent.Namespace())
-				restore.manager.Put(intent)
+				log.Logvf(log.Info, "found collection %v bson to restore to %v", sourceNS, destNS)
+				restore.manager.PutWithNamespace(sourceNS, intent)
 			case MetadataFileType:
-				// TOOLS-976: skip restoring the collections should be excluded
-				if filterCollection == "" && restore.shouldSkipCollection(collection) {
+				if !restore.includer.Has(sourceNS) {
+					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is not included", db, collection)
+					continue
+				}
+				if restore.excluder.Has(sourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is excluded", db, collection)
 					continue
 				}
 
 				usesMetadataFiles = true
+				destNS := restore.renamer.Get(sourceNS)
+				rnDB, rnC := common.SplitNamespace(destNS)
 				intent := &intents.Intent{
-					DB: db,
-					C:  collection,
+					DB: rnDB,
+					C:  rnC,
 				}
 
 				if restore.InputOptions.Archive != "" {
@@ -432,13 +437,13 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 					} else {
 						intent.MetadataLocation = fmt.Sprintf("archive '%v'", restore.InputOptions.Archive)
 					}
-					intent.MetadataFile = &archive.MetadataPreludeFile{Intent: intent, Prelude: restore.archive.Prelude}
+					intent.MetadataFile = &archive.MetadataPreludeFile{Origin: sourceNS, Intent: intent, Prelude: restore.archive.Prelude}
 				} else {
 					intent.MetadataLocation = entry.Path()
 					intent.MetadataFile = &realMetadataFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
-				log.Logvf(log.Info, "found collection %v metadata to restore", intent.Namespace())
-				restore.manager.Put(intent)
+				log.Logvf(log.Info, "found collection metadata from %v to restore to %v", sourceNS, destNS)
+				restore.manager.PutWithNamespace(sourceNS, intent)
 			default:
 				log.Logvf(log.Always, `don't know what to do with file "%v", skipping...`,
 					entry.Path())
@@ -528,24 +533,6 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	return nil
 }
 
-func (restore *MongoRestore) shouldSkipCollection(colName string) bool {
-	if restore.OutputOptions != nil && len(restore.OutputOptions.ExcludedCollections) > 0 {
-		for _, excludedCollection := range restore.OutputOptions.ExcludedCollections {
-			if colName == excludedCollection {
-				return true
-			}
-		}
-	}
-	if restore.OutputOptions != nil && len(restore.OutputOptions.ExcludedCollectionPrefixes) > 0 {
-		for _, excludedCollectionPrefix := range restore.OutputOptions.ExcludedCollectionPrefixes {
-			if strings.HasPrefix(colName, excludedCollectionPrefix) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // helper for searching a list of FileInfo for metadata files
 func hasMetadataFiles(files []archive.DirLike) bool {
 	for _, file := range files {
@@ -565,16 +552,16 @@ func hasMetadataFiles(files []archive.DirLike) bool {
 func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 	// we know we have been given a non-directory, so we should handle it
 	// like a bson file and infer as much as we can
-	if restore.ToolOptions.Collection == "" {
+	if restore.NSOptions.Collection == "" {
 		// if the user did not set -c, use the file name for the collection
 		newCollectionName, fileType := restore.getInfoFromFilename(path)
 		if fileType != BSONFileType {
 			return fmt.Errorf("file %v does not have .bson extension", path)
 		}
-		restore.ToolOptions.Collection = newCollectionName
-		log.Logvf(log.DebugLow, "inferred collection '%v' from file", restore.ToolOptions.Collection)
+		restore.NSOptions.Collection = newCollectionName
+		log.Logvf(log.DebugLow, "inferred collection '%v' from file", restore.NSOptions.Collection)
 	}
-	if restore.ToolOptions.DB == "" {
+	if restore.NSOptions.DB == "" {
 		// if the user did not set -d, use the directory containing the target
 		// file as the db name (as it would be in a dump directory). If
 		// we cannot determine the directory name, use "test"
@@ -582,8 +569,8 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 		if dirForFile == "." || dirForFile == ".." {
 			dirForFile = "test"
 		}
-		restore.ToolOptions.DB = dirForFile
-		log.Logvf(log.DebugLow, "inferred db '%v' from the file's directory", restore.ToolOptions.DB)
+		restore.NSOptions.DB = dirForFile
+		log.Logvf(log.DebugLow, "inferred db '%v' from the file's directory", restore.NSOptions.DB)
 	}
 	return nil
 }

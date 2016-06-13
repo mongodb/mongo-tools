@@ -3,15 +3,16 @@ package archive
 import (
 	"bytes"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"gopkg.in/mgo.v2/bson"
 	"hash"
 	"hash/crc64"
 	"io"
 	"sync"
 	"sync/atomic"
+
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/intents"
+	"github.com/mongodb/mongo-tools/common/log"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // DemuxOut is a Demultiplexer output consumer
@@ -188,6 +189,7 @@ type RegularCollectionReceiver struct {
 	readLenChan      chan int
 	readBufChan      chan []byte
 	Intent           *intents.Intent
+	Origin           string
 	Demux            *Demultiplexer
 	partialReadArray []byte
 	partialReadBuf   []byte
@@ -263,7 +265,7 @@ func (receiver *RegularCollectionReceiver) Open() error {
 		receiver.readLenChan = make(chan int)
 		receiver.readBufChan = make(chan []byte)
 		receiver.hash = crc64.New(crc64.MakeTable(crc64.ECMA))
-		receiver.Demux.Open(receiver.Intent.Namespace(), receiver)
+		receiver.Demux.Open(receiver.Origin, receiver)
 	})
 	return nil
 }
