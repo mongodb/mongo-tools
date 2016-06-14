@@ -24,10 +24,10 @@ func TestIntentManager(t *testing.T) {
 			So(len(manager.intents), ShouldEqual, 4)
 
 			Convey("and then some matching metadata intents", func() {
-				manager.Put(&Intent{DB: "2", C: "1", MetadataPath: "/4m/"})
-				manager.Put(&Intent{DB: "1", C: "3", MetadataPath: "/3m/"})
-				manager.Put(&Intent{DB: "1", C: "1", MetadataPath: "/1m/"})
-				manager.Put(&Intent{DB: "1", C: "2", MetadataPath: "/2m/"})
+				manager.Put(&Intent{DB: "2", C: "1", MetadataLocation: "/4m/"})
+				manager.Put(&Intent{DB: "1", C: "3", MetadataLocation: "/3m/"})
+				manager.Put(&Intent{DB: "1", C: "1", MetadataLocation: "/1m/"})
+				manager.Put(&Intent{DB: "1", C: "2", MetadataLocation: "/2m/"})
 
 				Convey("the size of the queue should be unchanged", func() {
 					So(len(manager.intentsByDiscoveryOrder), ShouldEqual, 4)
@@ -45,20 +45,20 @@ func TestIntentManager(t *testing.T) {
 
 					Convey("should return them in insert order", func() {
 						So(*it0, ShouldResemble,
-							Intent{DB: "1", C: "1", Location: "/b1/", MetadataPath: "/1m/"})
+							Intent{DB: "1", C: "1", Location: "/b1/", MetadataLocation: "/1m/"})
 						So(*it1, ShouldResemble,
-							Intent{DB: "1", C: "2", Location: "/b2/", MetadataPath: "/2m/"})
+							Intent{DB: "1", C: "2", Location: "/b2/", MetadataLocation: "/2m/"})
 						So(*it2, ShouldResemble,
-							Intent{DB: "1", C: "3", Location: "/b3/", MetadataPath: "/3m/"})
+							Intent{DB: "1", C: "3", Location: "/b3/", MetadataLocation: "/3m/"})
 						So(*it3, ShouldResemble,
-							Intent{DB: "2", C: "1", Location: "/b4/", MetadataPath: "/4m/"})
+							Intent{DB: "2", C: "1", Location: "/b4/", MetadataLocation: "/4m/"})
 					})
 				})
 			})
 
 			Convey("but adding non-matching intents", func() {
-				manager.Put(&Intent{DB: "7", C: "49", MetadataPath: "/5/"})
-				manager.Put(&Intent{DB: "27", C: "B", MetadataPath: "/6/"})
+				manager.Put(&Intent{DB: "7", C: "49", MetadataLocation: "/5/"})
+				manager.Put(&Intent{DB: "27", C: "B", MetadataLocation: "/6/"})
 
 				Convey("should increase the size, because they are not merged in", func() {
 					So(len(manager.intentsByDiscoveryOrder), ShouldEqual, 6)
