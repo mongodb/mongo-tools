@@ -534,11 +534,12 @@ func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, 
 	if conn.nextSeq == invalidSequence {
 		// Handling the first packet we've seen on the stream.
 		skip := 0
-		conn.nextSeq = seq.Add(len(bytes))
 		if !t.SYN {
 			// don't add 1 since we're just going to assume the sequence number without the SYN packet.
 			// stream was picked up somewhere in the middle, so indicate that we don't know
 			// how many packets came before it.
+			//conn.nextSeq = seq.Add(len(bytes))
+			conn.nextSeq = seq.Add(len(bytes))
 			skip = -1
 		} else {
 			// for SYN packets, also increment the sequence number by 1
