@@ -145,29 +145,34 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *QueryOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *QueryOp) Execute(session *mgo.Session) (replyContainer, error) {
 	session.SetSocketTimeout(0)
+	var replyContainer replyContainer
 	before := time.Now()
-	data, mgoReply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
+	_, _, replyData, resultReply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
 	after := time.Now()
 	if err != nil {
-		return nil, err
+		return replyContainer, err
+	}
+	mgoReply, ok := resultReply.(*mgo.ReplyOp)
+	if !ok {
+		panic("reply from execution was not the correct type")
 	}
 	reply := &ReplyOp{
 		ReplyOp: *mgoReply,
-		Latency: after.Sub(before),
-		Docs:    make([]bson.Raw, 0, len(data)),
 	}
 
-	for _, d := range data {
+	for _, d := range replyData {
 		dataDoc := bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
-			return nil, err
+			return replyContainer, err
 		}
 		reply.Docs = append(reply.Docs, dataDoc)
 	}
-	return reply, nil
+	replyContainer.ReplyOp = reply
+	replyContainer.Latency = after.Sub(before)
+	return replyContainer, nil
 }
 
 func (queryOp1 *QueryOp) Equals(otherOp Op) bool {

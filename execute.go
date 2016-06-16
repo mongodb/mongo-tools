@@ -145,7 +145,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 		}
 		for recordedOp := range ch {
 			var parsedOp Op
-			var reply *ReplyOp
+			var replyContainer replyContainer
 			var err error
 			msg := ""
 			if connected {
@@ -160,7 +160,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				}
 				userInfoLogger.Logf(DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
 				session.SetSocketTimeout(0)
-				parsedOp, reply, err = context.Execute(recordedOp, session)
+				parsedOp, replyContainer, err = context.Execute(recordedOp, session)
 				if err != nil {
 					toolDebugLogger.Logf(Always, "context.Execute error: %v", err)
 				}
@@ -174,7 +174,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				toolDebugLogger.Log(Always, msg)
 			}
 			if shouldCollectOp(parsedOp) {
-				context.Collect(recordedOp, parsedOp, reply, msg)
+				context.Collect(recordedOp, parsedOp, replyContainer, msg)
 			}
 		}
 		userInfoLogger.Logf(Info, "(Connection %v) Connection ENDED.", connectionNum)
@@ -183,23 +183,24 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 	return ch
 }
 
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, *ReplyOp, error) {
+func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, replyContainer, error) {
 	opToExec, err := op.RawOp.Parse()
-	var replyOp *ReplyOp
+	var replyContainer replyContainer
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
+		return nil, replyContainer, fmt.Errorf("ParseOpRawError: %v", err)
 	}
 	if opToExec == nil {
 		toolDebugLogger.Logf(Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
-		return nil, nil, nil
+		return nil, replyContainer, nil
 	}
 	if recordedReply, ok := opToExec.(*ReplyOp); ok {
 		context.AddFromFile(&recordedReply.ReplyOp, op)
+	} else if _, ok := opToExec.(*CommandReplyOp); ok {
+		// XXX handle the CommandReplyOp and pair it with it's other one from the wire
 	} else {
-
 		if IsDriverOp(opToExec) {
-			return opToExec, replyOp, nil
+			return opToExec, replyContainer, nil
 		}
 
 		switch t := opToExec.(type) {
@@ -210,24 +211,24 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		}
 
 		op.PlayedAt = &PreciseTime{time.Now()}
-		replyOp, err = opToExec.Execute(session)
+		replyContainer, err = opToExec.Execute(session)
 
 		if err != nil {
-			return opToExec, replyOp, fmt.Errorf("error executing op: %v", err)
+			return opToExec, replyContainer, fmt.Errorf("error executing op: %v", err)
 		}
-
-		if replyOp != nil && &replyOp.ReplyOp != nil {
-			cursorId, err := GetCursorId(&replyOp.ReplyOp, replyOp.Docs)
+		if replyContainer.ReplyOp != nil {
+			cursorId, err := GetCursorId(replyContainer)
 			if err != nil {
 				toolDebugLogger.Logf(Always, "Warning: error when trying to find cursor ID in reply: %v", err)
 			}
 			if cursorId != 0 {
-				replyOp.ReplyOp.CursorId = cursorId
+				replyContainer.ReplyOp.CursorId = cursorId
 			}
-			context.AddFromWire(&replyOp.ReplyOp, op)
+			context.AddFromWire(&replyContainer.ReplyOp.ReplyOp, op)
 		}
+
 	}
 	context.handleCompletedReplies()
 
-	return opToExec, replyOp, nil
+	return opToExec, replyContainer, nil
 }

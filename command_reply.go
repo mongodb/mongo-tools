@@ -16,6 +16,7 @@ import (
 type CommandReplyOp struct {
 	Header MsgHeader
 	mgo.CommandReplyOp
+	Docs []interface{}
 }
 
 func (op *CommandReplyOp) OpCode() OpCode {
@@ -26,6 +27,8 @@ func (op *CommandReplyOp) OpCode() OpCode {
 // Currently only returns 'unknown' as it is not fully parsed and analyzed.
 
 func (op *CommandReplyOp) Meta() OpMetadata {
+	var doc bson.M
+	op.CommandReply.Unmarshal(&doc)
 	return OpMetadata{"op_commandreply",
 		"",
 		"",
@@ -97,7 +100,7 @@ func (op *CommandReplyOp) FromReader(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	op.CommandReply = &bson.D{}
+	op.CommandReply = &bson.Raw{}
 	err = bson.Unmarshal(commandReplyAsSlice, op.CommandReply)
 	if err != nil {
 		return err
@@ -131,9 +134,9 @@ func (op *CommandReplyOp) FromReader(r io.Reader) error {
 
 // Execute logs a warning and returns nil because OP_COMMANDREPLY cannot yet be handled fully by mongotape.
 
-func (op *CommandReplyOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *CommandReplyOp) Execute(session *mgo.Session) (replyContainer, error) {
 	userInfoLogger.Log(Always, "Skipping unimplemented op: OP_COMMANDREPLY")
-	return nil, nil
+	return replyContainer{}, nil
 }
 
 func (commandReplyOp1 *CommandReplyOp) Equals(otherOp Op) bool {

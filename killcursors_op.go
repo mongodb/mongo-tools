@@ -48,13 +48,13 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *KillCursorsOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *KillCursorsOp) Execute(session *mgo.Session) (replyContainer, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.KillCursorsOp); err != nil {
-		return nil, err
+		return replyContainer{}, err
 	}
 
-	return nil, nil
+	return replyContainer{}, nil
 }
 
 func (killCursorsOp1 *KillCursorsOp) Equals(otherOp Op) bool {

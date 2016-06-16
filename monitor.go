@@ -121,7 +121,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		statColl.Collect(op, parsedOp, nil, "")
+		statColl.Collect(op, parsedOp, replyContainer{}, "")
 	}
 	err = <-errChan
 	if err != nil && err != io.EOF {

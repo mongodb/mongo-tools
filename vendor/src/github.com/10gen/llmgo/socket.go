@@ -35,7 +35,7 @@ import (
 	"time"
 )
 
-type replyFunc func(err error, reply *ReplyOp, docNum int, docData []byte)
+type replyFunc func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs)
 
 type MongoSocket struct {
 	sync.Mutex
@@ -181,15 +181,55 @@ type CommandOp struct {
 	Metadata    interface{}
 	CommandArgs interface{}
 	InputDocs   []interface{}
+	replyFunc   replyFunc
 }
 
 type CommandReplyOp struct {
 	Metadata     interface{}
-	CommandReply interface{}
+	CommandReply *bson.Raw
 	OutputDocs   []interface{}
 }
 
+// replyFuncCommandArgs contains the arguments needed by the replyFunc to complete a CommandReplyOp.
+type replyFuncCommandArgs struct {
+	// op is the newly generated CommandReplyOp
+	op *CommandReplyOp
+
+	// bytesLeft is the number of bytes that remain to be read by the readLoop.
+	// This indicates if there is more data or not so that the reply can decide
+	// whether or not to release its lock.
+	bytesLeft int
+
+	// metadata is a slice containing the unread bson of the CommandReplyOp's metadata field.
+	metadata []byte
+
+	// commandReply is a slice containing the unread bson of the CommandReplyOp's commandReply field.
+	commandReply []byte
+
+	// outputDoc is a slice of bytes containing the unread bson of a reply document being handed to the
+	// replyFunc
+	outputDoc []byte
+}
+
+// replyFuncLegacyArgs contains the arguments needed by the replyFunc to complete a ReplyOp.
+type replyFuncLegacyArgs struct {
+	// op is the newly generated ReplyOp
+	op *ReplyOp
+
+	//docNum is the number of the current document being handed to the reply func.
+	// This indicates how many docs have been read so the replyFunc can determine if
+	// it can release its lock.
+	docNum int
+
+	// docData is a slice of bytes containing the unread bson of reply document being handed to the
+	// replyFunc
+	docData []byte
+}
+
 func (op *GetMoreOp) SetReplyFunc(reply replyFunc) {
+	op.replyFunc = reply
+}
+func (op *CommandOp) SetReplyFunc(reply replyFunc) {
 	op.replyFunc = reply
 }
 
@@ -370,7 +410,7 @@ func (socket *MongoSocket) kill(err error, abend bool) {
 	socket.Unlock()
 	for _, replyFunc := range replyFuncs {
 		logf("Socket %p to %s: notifying replyFunc of closed socket: %s", socket, socket.addr, err.Error())
-		replyFunc(err, nil, -1, nil)
+		replyFunc(err, nil, nil)
 	}
 	if abend {
 		server.AbendSocket(socket)
@@ -383,14 +423,14 @@ func (socket *MongoSocket) SimpleQuery(op *QueryOp) (data []byte, replyOp *Reply
 	var replyData []byte
 	var replyErr error
 	wait.Lock()
-	op.replyFunc = func(err error, reply *ReplyOp, docNum int, docData []byte) {
+	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
 		change.Lock()
 		if !replyDone {
 			replyDone = true
 			replyErr = err
-			replyOp = reply
+			replyOp = rfl.op
 			if err == nil {
-				replyData = docData
+				replyData = rfl.docData
 			}
 		}
 		change.Unlock()
@@ -507,6 +547,26 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			for _, cursorId := range op.CursorIds {
 				buf = addInt64(buf, cursorId)
 			}
+		case *CommandOp:
+			buf = addHeader(buf, 2010)
+			buf = addCString(buf, op.Database)
+			buf = addCString(buf, op.CommandName)
+			buf, err = addBSON(buf, op.CommandArgs)
+			if err != nil {
+				return err
+			}
+			buf, err = addBSON(buf, op.Metadata)
+			if err != nil {
+				return err
+			}
+			for _, doc := range op.InputDocs {
+				debugf("Socket %p to %s: serializing document for opcommand: %#v", socket, socket.addr, doc)
+				buf, err = addBSON(buf, doc)
+				if err != nil {
+					return err
+				}
+			}
+			replyFunc = op.replyFunc
 
 		default:
 			panic("internal error: unknown operation type")
@@ -534,7 +594,7 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 		for i := 0; i != requestCount; i++ {
 			request := &requests[i]
 			if request.replyFunc != nil {
-				request.replyFunc(dead, nil, -1, nil)
+				request.replyFunc(dead, nil, nil)
 			}
 		}
 		return dead
@@ -582,42 +642,27 @@ func fill(r net.Conn, b []byte) error {
 // Estimated minimum cost per socket: 1 goroutine + memory for the largest
 // document ever seen.
 func (socket *MongoSocket) readLoop() {
-	p := make([]byte, 36) // 16 from header + 20 from OP_REPLY fixed fields
-	s := make([]byte, 4)
+	headerBuf := make([]byte, 16)        // 16 from header
+	opReplyFieldsBuf := make([]byte, 20) // 20 from OP_REPLY fixed fields
+	sizeBuf := make([]byte, 4)
 	conn := socket.Conn // No locking, conn never changes.
 	for {
 		// XXX Handle timeouts, , etc
-		err := fill(conn, p)
+		err := fill(conn, headerBuf)
 		if err != nil {
 			socket.kill(err, true)
 			return
 		}
 
-		totalLen := getInt32(p, 0)
-		responseTo := getInt32(p, 8)
-		opCode := getInt32(p, 12)
+		totalLen := getInt32(headerBuf, 0)
+		responseTo := getInt32(headerBuf, 8)
+		opCode := getInt32(headerBuf, 12)
 
 		// Don't use socket.server.Addr here.  socket is not
 		// locked and socket.server may go away.
 		debugf("Socket %p to %s: got reply (%d bytes)", socket, socket.addr, totalLen)
 
 		_ = totalLen
-
-		if opCode != 1 {
-			socket.kill(errors.New("opcode != 1, corrupted data?"), true)
-			return
-		}
-
-		reply := ReplyOp{
-			Flags:     uint32(getInt32(p, 16)),
-			CursorId:  getInt64(p, 20),
-			FirstDoc:  getInt32(p, 28),
-			ReplyDocs: getInt32(p, 32),
-		}
-
-		stats.receivedOps(+1)
-		stats.receivedDocs(int(reply.ReplyDocs))
-
 		socket.Lock()
 		replyFunc, ok := socket.replyFuncs[uint32(responseTo)]
 		if ok {
@@ -625,49 +670,90 @@ func (socket *MongoSocket) readLoop() {
 		}
 		socket.Unlock()
 
-		if replyFunc != nil && reply.ReplyDocs == 0 {
-			replyFunc(nil, &reply, -1, nil)
-		} else {
-			for i := 0; i != int(reply.ReplyDocs); i++ {
-				err := fill(conn, s)
-				if err != nil {
-					if replyFunc != nil {
-						replyFunc(err, nil, -1, nil)
-					}
-					socket.kill(err, true)
-					return
-				}
-
-				b := make([]byte, int(getInt32(s, 0)))
-
-				// copy(b, s) in an efficient way.
-				b[0] = s[0]
-				b[1] = s[1]
-				b[2] = s[2]
-				b[3] = s[3]
-
-				err = fill(conn, b[4:])
-				if err != nil {
-					if replyFunc != nil {
-						replyFunc(err, nil, -1, nil)
-					}
-					socket.kill(err, true)
-					return
-				}
-
-				if globalDebug && globalLogger != nil {
-					m := bson.M{}
-					if err := bson.Unmarshal(b, m); err == nil {
-						debugf("Socket %p to %s: received document: %#v", socket, socket.addr, m)
-					}
-				}
-
-				if replyFunc != nil {
-					replyFunc(nil, &reply, i, b)
-				}
-
-				// XXX Do bound checking against totalLen.
+		switch opCode {
+		case 1:
+			err := fill(conn, opReplyFieldsBuf)
+			if err != nil {
+				socket.kill(err, true)
+				return
 			}
+			reply := ReplyOp{
+				Flags:     uint32(getInt32(opReplyFieldsBuf, 0)),
+				CursorId:  getInt64(opReplyFieldsBuf, 4),
+				FirstDoc:  getInt32(opReplyFieldsBuf, 12),
+				ReplyDocs: getInt32(opReplyFieldsBuf, 16),
+			}
+			stats.receivedOps(+1)
+			stats.receivedDocs(int(reply.ReplyDocs))
+			if replyFunc != nil && reply.ReplyDocs == 0 {
+				rfl := replyFuncLegacyArgs{
+					op:     &reply,
+					docNum: -1,
+				}
+				replyFunc(nil, &rfl, nil)
+			} else {
+				for i := 0; i != int(reply.ReplyDocs); i++ {
+					b, err := readDocument(socket, sizeBuf)
+					if err != nil {
+						if replyFunc != nil {
+							replyFunc(err, &replyFuncLegacyArgs{docNum: -1}, nil)
+						}
+						socket.kill(err, true)
+						return
+					}
+
+					if replyFunc != nil {
+						rfl := replyFuncLegacyArgs{
+							op:      &reply,
+							docNum:  i,
+							docData: *b,
+						}
+						replyFunc(nil, &rfl, nil)
+					}
+					// XXX Do bound checking against totalLen.
+				}
+			}
+		case 2011:
+			commandReplyAsSlice, err := readDocument(socket, sizeBuf)
+			if err != nil {
+				socket.kill(err, true)
+				return
+			}
+			metadataAsSlice, err := readDocument(socket, sizeBuf)
+			if err != nil {
+				socket.kill(err, true)
+				return
+			}
+			rfc := replyFuncCommandArgs{
+				op:           &CommandReplyOp{},
+				metadata:     *metadataAsSlice,
+				commandReply: *commandReplyAsSlice,
+			}
+			lengthRead := len(*commandReplyAsSlice) + len(*metadataAsSlice)
+			if replyFunc != nil && lengthRead+16 >= int(totalLen) {
+				replyFunc(nil, nil, &rfc)
+			}
+
+			docLen := 0
+			for lengthRead+docLen < int(totalLen)-16 {
+				documentBuf, err := readDocument(socket, sizeBuf)
+				if err != nil {
+					rfc.bytesLeft = 0
+					if replyFunc != nil {
+						replyFunc(err, nil, &rfc)
+					}
+					socket.kill(err, true)
+					return
+				}
+				rfc.outputDoc = *documentBuf
+				if replyFunc != nil {
+					replyFunc(nil, nil, &rfc)
+				}
+				docLen += len(*documentBuf)
+			}
+		default:
+			socket.kill(errors.New("opcode != 1 or 2011, corrupted data?"), true)
+			return
 		}
 
 		socket.Lock()
@@ -681,6 +767,33 @@ func (socket *MongoSocket) readLoop() {
 
 		// XXX Do bound checking against totalLen.
 	}
+}
+
+func readDocument(socket *MongoSocket, sizeBuf []byte) (*[]byte, error) {
+	conn := socket.Conn
+	err := fill(conn, sizeBuf)
+	if err != nil {
+		return nil, err
+	}
+	documentBuf := make([]byte, int(getInt32(sizeBuf, 0)))
+
+	// copy(b, s) in an efficient way.
+	documentBuf[0] = sizeBuf[0]
+	documentBuf[1] = sizeBuf[1]
+	documentBuf[2] = sizeBuf[2]
+	documentBuf[3] = sizeBuf[3]
+
+	err = fill(conn, documentBuf[4:])
+	if err != nil {
+		return nil, err
+	}
+	if globalDebug && globalLogger != nil {
+		m := bson.M{}
+		if err := bson.Unmarshal(documentBuf, m); err == nil {
+			debugf("Socket %p to %s: received document: %#v", socket, socket.addr, m)
+		}
+	}
+	return &documentBuf, nil
 }
 
 var emptyHeader = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}

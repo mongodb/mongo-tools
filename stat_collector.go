@@ -173,7 +173,7 @@ func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (
 
 // StatGenerator is an interface that specifies how to accept operation information to be recorded
 type StatGenerator interface {
-	GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat
+	GenerateOpStat(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) *OpStat
 	Finalize(chan *OpStat)
 }
 
@@ -250,13 +250,14 @@ func extractErrors(op Op, reply *ReplyOp) []string {
 	return retVal
 }
 func shouldCollectOp(op Op) bool {
-	_, ok := op.(*ReplyOp)
-	return !ok && !IsDriverOp(op)
+	_, isReplyOp := op.(*ReplyOp)
+	_, isCommandReplyOp := op.(*CommandReplyOp)
+	return !isReplyOp && !isCommandReplyOp && !IsDriverOp(op)
 }
 
 // Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
 // some form of storage as specified by the contained StatRecorder
-func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) {
+func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) {
 	statColl.Do(func() {
 		statColl.statStream = make(chan *OpStat, 1024)
 		statColl.done = make(chan struct{})
@@ -400,6 +401,9 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	if stat.OpType != "" {
 		output.WriteString(red(" %v", stat.OpType))
 	}
+	if stat.Command != "" {
+		output.WriteString(red(" %v", stat.Command))
+	}
 	if stat.Ns != "" {
 		output.WriteString(white(" %v", stat.Ns))
 	}
@@ -442,7 +446,7 @@ type RegularStatGenerator struct {
 	UnresolvedOps map[string]UnresolvedOpInfo
 }
 
-func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply *ReplyOp, msg string) *OpStat {
+func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) *OpStat {
 	if replayedOp == nil || op == nil {
 		return nil
 	}
@@ -470,22 +474,31 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 		}
 	}
 
-	if reply != nil {
-		replyMeta := reply.Meta()
-		stat.NumReturned = len(reply.Docs)
+	if reply.ReplyOp != nil {
+		replyOp := reply.ReplyOp
+		replyMeta := replyOp.Meta()
+
+		stat.NumReturned = len(replyOp.Docs)
 		stat.LatencyMicros = int64(reply.Latency / (time.Microsecond))
-		stat.Errors = extractErrors(replayedOp, reply)
+		stat.Errors = extractErrors(replayedOp, replyOp)
 		stat.ReplyData = replyMeta.Data
+	} else if reply.CommandReplyOp != nil {
+		commandReplyOp := reply.CommandReplyOp
+		crOpMeta := commandReplyOp.Meta()
+		stat.NumReturned = len(commandReplyOp.Docs)
+		stat.ReplyData = crOpMeta.Data
+		stat.LatencyMicros = int64(reply.Latency / (time.Microsecond))
 	} else {
 		stat.ReplyData = nil
 	}
+
 	if msg != "" {
 		stat.Message = msg
 	}
 	return stat
 }
 
-func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply *ReplyOp, msg string) *OpStat {
+func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply replyContainer, msg string) *OpStat {
 	if recordedOp == nil || parsedOp == nil {
 		// TODO log a warning
 		return nil

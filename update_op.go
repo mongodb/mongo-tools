@@ -106,11 +106,11 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *UpdateOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *UpdateOp) Execute(session *mgo.Session) (replyContainer, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.UpdateOp); err != nil {
-		return nil, err
+		return replyContainer{}, err
 	}
-	return nil, nil
+	return replyContainer{}, nil
 }
 
 func (updateOp1 *UpdateOp) Equals(otherOp Op) bool {

@@ -118,13 +118,13 @@ func (socket *MongoSocket) resetNonce() {
 	op.Query = &getNonceCmd{GetNonce: 1}
 	op.Collection = "admin.$cmd"
 	op.Limit = -1
-	op.replyFunc = func(err error, reply *ReplyOp, docNum int, docData []byte) {
+	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
 		if err != nil {
 			socket.kill(errors.New("getNonce: "+err.Error()), true)
 			return
 		}
 		result := &getNonceResult{}
-		err = bson.Unmarshal(docData, &result)
+		err = bson.Unmarshal(rfl.docData, &result)
 		if err != nil {
 			socket.kill(errors.New("Failed to unmarshal nonce: "+err.Error()), true)
 			return
@@ -381,7 +381,7 @@ func (socket *MongoSocket) loginRun(db string, query, result interface{}, f func
 	op.Query = query
 	op.Collection = db + ".$cmd"
 	op.Limit = -1
-	op.replyFunc = func(err error, reply *ReplyOp, docNum int, docData []byte) {
+	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
 		defer mutex.Unlock()
 
 		if err != nil {
@@ -389,7 +389,7 @@ func (socket *MongoSocket) loginRun(db string, query, result interface{}, f func
 			return
 		}
 
-		err = bson.Unmarshal(docData, result)
+		err = bson.Unmarshal(rfl.docData, result)
 		if err != nil {
 			replyErr = err
 		} else {

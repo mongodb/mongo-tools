@@ -65,15 +65,16 @@ type PlaybackWriter struct {
 	fname string
 }
 
-func (record *RecordCommand) NewPlaybackWriter() (*PlaybackWriter, error) {
+func NewPlaybackWriter(playbackFileName string, isGzipWriter bool) (*PlaybackWriter, error) {
 	pbWriter := &PlaybackWriter{
-		fname: record.PlaybackFile,
+		fname: playbackFileName,
 	}
+	toolDebugLogger.Logf(DebugLow, "Opening playback file %v", playbackFileName)
 	file, err := os.Create(pbWriter.fname)
 	if err != nil {
 		return nil, fmt.Errorf("error opening playback file to write to: %v", err)
 	}
-	if record.Gzip {
+	if isGzipWriter {
 		pbWriter.WriteCloser = gzip.NewWriter(file)
 	} else {
 		pbWriter.WriteCloser = file
@@ -97,7 +98,6 @@ func (record *RecordCommand) Execute(args []string) error {
 		return err
 	}
 	record.GlobalOpts.SetLogging()
-	toolDebugLogger.Logf(DebugLow, "Opening playback file %v", record.PlaybackFile)
 
 	ctx, err := getOpstream(record.OpStreamSettings)
 	if err != nil {
@@ -114,10 +114,17 @@ func (record *RecordCommand) Execute(args []string) error {
 		toolDebugLogger.Logf(Info, "Got signal %v, closing PCAP handle", s)
 		ctx.packetHandler.Close()
 	}()
-	playbackWriter, err := record.NewPlaybackWriter()
+	playbackWriter, err := NewPlaybackWriter(record.PlaybackFile, record.Gzip)
 	if err != nil {
 		return err
 	}
+
+	return Record(ctx, playbackWriter)
+
+}
+
+func Record(ctx *packetHandlerContext,
+	playbackWriter *PlaybackWriter) error {
 
 	ch := make(chan error)
 	go func() {
@@ -149,4 +156,5 @@ func (record *RecordCommand) Execute(args []string) error {
 	}
 
 	return <-ch
+
 }

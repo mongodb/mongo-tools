@@ -79,7 +79,7 @@ functions:
               set -e
               set -o verbose
               cd mongodb
-              ./mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\"]});"
+              ./mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\", \"clusterManager\"]});"
 
   "create sharded_cluster" :
     - command: shell.exec
@@ -110,8 +110,7 @@ functions:
           cd mongodb
           echo "starting mongodb"
           mkdir -p /data/db/
-          ./mongo --nodb --eval 'var repl = new ReplSetTest({nodes:3, startPort:${mongod_port}});repl.startSet();repl.initiate({_id: "testReplSet", members:[{_id:1, host: "localhost:${mongod_port}", priority: 1}, {_id:2, host: "localhost:${mongod_alt_port1}", priority: 0}, {_id:3, host: "localhost:${mongod_alt_port2}", priority: 0}]});repl.awaitSecondaryNodes();while(true){sleep(1000)}'
-
+          ./mongo --nodb --eval 'var repl = new ReplSetTest({nodes:3, startPort:${mongod_port}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         script: |
@@ -181,7 +180,7 @@ tasks:
   - func: "fetch mongodb"
   - func: "start mongod"
     vars:
-        mongod_port: 27035
+        mongod_port: 20000
   - func: "run go_test"
     vars:
         filename: playtest
@@ -197,7 +196,7 @@ tasks:
   - func: "fetch mongodb"
   - func: "create sharded_cluster"
     vars:
-        mongod_port: 27035
+        mongod_port: 20000
   - func: "run go_test"
     vars:
         filename: sharded
@@ -214,11 +213,11 @@ tasks:
   - func: "fetch mongodb"
   - func: "start mongod"
     vars:
-        mongod_port: 27035
+        mongod_port: 20000
         additional_args: --auth
   - func: "create auth_user"
     vars:
-        mongod_port: 27035
+        mongod_port: 20000
   - func: "run go_test"
     vars:
         environment_vars: AUTH=1
@@ -236,9 +235,7 @@ tasks:
   - func: "fetch mongodb"
   - func: "create repl_set"
     vars:
-      mongod_port: 27035
-      mongod_alt_port1: 27036
-      mongod_alt_port2: 27037
+      mongod_port: 20000
   - func: "run go_test"
     vars:
         filename: repltest
@@ -249,7 +246,7 @@ buildvariants:
   display_name: Ubuntu
   expansions:
     mongod_port: 27017
-    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.0.7.tgz
+    mongo_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.7.tgz
   run_on:
   - ubuntu1404-test
   tasks:

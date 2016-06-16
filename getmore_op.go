@@ -48,17 +48,21 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *GetMoreOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *GetMoreOp) Execute(session *mgo.Session) (replyContainer, error) {
 	session.SetSocketTimeout(0)
 	before := time.Now()
+	var replyContainer replyContainer
 
-	// XXX don't actually use op.CursorID, but look up the translated cursor id from op.CursorID
-	data, mgoReply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
+	_, _, data, resultReply, err := mgo.ExecOpWithReply(session, &op.GetMoreOp)
 	after := time.Now()
+
+	mgoReply, ok := resultReply.(*mgo.ReplyOp)
+	if !ok {
+		panic("reply from execution was not the correct type")
+	}
 
 	reply := &ReplyOp{
 		ReplyOp: *mgoReply,
-		Latency: after.Sub(before),
 		Docs:    make([]bson.Raw, 0, len(data)),
 	}
 
@@ -66,12 +70,14 @@ func (op *GetMoreOp) Execute(session *mgo.Session) (*ReplyOp, error) {
 		dataDoc := bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
-			return nil, err
+			return replyContainer, err
 		}
 		reply.Docs = append(reply.Docs, dataDoc)
 	}
 
-	return reply, nil
+	replyContainer.ReplyOp = reply
+	replyContainer.Latency = after.Sub(before)
+	return replyContainer, nil
 }
 
 func (getMoreOp1 *GetMoreOp) Equals(otherOp Op) bool {

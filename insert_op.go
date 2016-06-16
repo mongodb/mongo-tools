@@ -83,13 +83,13 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *InsertOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *InsertOp) Execute(session *mgo.Session) (replyContainer, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {
-		return nil, err
+		return replyContainer{}, err
 	}
 
-	return nil, nil
+	return replyContainer{}, nil
 }
 
 func (insertOp1 *InsertOp) Equals(otherOp Op) bool {

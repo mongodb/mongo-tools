@@ -228,6 +228,56 @@ func TestOpUpdate(t *testing.T) {
 	}
 }
 
+func TestCommandOp(t *testing.T) {
+	generator := newRecordedOpGenerator()
+
+	op := CommandOp{}
+	op.Database = "foo"
+	op.CommandName = "query"
+	metadata := bson.D{{"metadata", 1}}
+	op.Metadata = metadata
+	commandArgs := bson.D{{"$set", bson.D{{"updated", true}}}}
+	op.CommandArgs = commandArgs
+	inputDocs := make([]interface{}, 0)
+	for i := 0; i < 5; i++ {
+		inputDocs = append(inputDocs, &bson.D{{"outputDoc", 1}})
+	}
+
+	op.InputDocs = inputDocs
+
+	t.Logf("Generated CommandOp: %#v\n", op.CommandOp)
+
+	result, err := generator.fetchRecordedOpsFromConn(&op.CommandOp)
+	if err != nil {
+		t.Error(err)
+	}
+	receivedOp, err := result.RawOp.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+
+	commandOp := receivedOp.(*CommandOp)
+	t.Log("Comparing parsed Command to original Command")
+	switch {
+	case commandOp.Database != op.Database:
+		t.Errorf("Databases not equal. Saw %v -- Expected %v\n", commandOp.Database, op.Database)
+	case commandOp.CommandName != op.CommandName:
+		t.Errorf("CommandNames not equal. Saw %v -- Expected %v\n", commandOp.CommandName, op.CommandName)
+	case !reflect.DeepEqual(commandOp.Metadata, &metadata):
+		t.Errorf("Metadata not equal. Saw %v -- Expected %v\n", commandOp.Metadata, &metadata)
+	case !reflect.DeepEqual(commandOp.CommandArgs, &commandArgs):
+		t.Errorf("CommandArgs not equal. Saw %v -- Expected %v\n", commandOp.CommandArgs, &commandArgs)
+	}
+	for i, doc := range commandOp.InputDocs {
+		marshaled, _ := bson.Marshal(inputDocs[i])
+		unmarshaled := &bson.D{}
+		bson.Unmarshal(marshaled, unmarshaled)
+		if !reflect.DeepEqual(unmarshaled, doc) {
+			t.Errorf("Document from InputDocs not matched. Saw %v -- Expected %v\n", unmarshaled, doc)
+		}
+	}
+}
+
 func TestPreciseTimeMarshal(t *testing.T) {
 	t1 := time.Date(2015, 4, 8, 15, 16, 23, 651387237, time.UTC)
 	preciseTime := &PreciseTime{t1}

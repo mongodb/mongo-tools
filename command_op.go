@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -144,9 +145,60 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 
 // Execute logs a warning and returns nil because OP_COMMAND cannot yet be handled fully by mongotape.
 
-func (op *CommandOp) Execute(session *mgo.Session) (*ReplyOp, error) {
-	userInfoLogger.Log(Always, "Skipping unimplmented op: OP_COMMAND")
-	return nil, nil
+func (op *CommandOp) Execute(session *mgo.Session) (replyContainer, error) {
+	session.SetSocketTimeout(0)
+	var replyContainer replyContainer
+
+	before := time.Now()
+	metadata, commandReply, replyData, resultReply, err := mgo.ExecOpWithReply(session, &op.CommandOp)
+	after := time.Now()
+	if err != nil {
+		return replyContainer, err
+	}
+	mgoCommandReplyOp, ok := resultReply.(*mgo.CommandReplyOp)
+	if !ok {
+		panic("reply from execution was not the correct type")
+	}
+	commandReplyOp := &CommandReplyOp{
+		CommandReplyOp: *mgoCommandReplyOp,
+	}
+
+	commandReplyOp.Metadata = &bson.D{}
+	err = bson.Unmarshal(metadata, commandReplyOp.Metadata)
+	if err != nil {
+		return replyContainer, err
+	}
+	commandReplyOp.CommandReply = &bson.Raw{}
+	err = bson.Unmarshal(commandReply, commandReplyOp.CommandReply)
+	if err != nil {
+		return replyContainer, err
+	}
+	var doc bson.M
+	err = commandReplyOp.CommandReply.Unmarshal(&doc)
+	if err != nil {
+		return replyContainer, err
+	}
+	cursorInfo := doc["cursor"]
+	if cursorInfo != nil {
+		cursorInfoMap := cursorInfo.(bson.M)
+		firstBatch := cursorInfoMap["firstBatch"]
+		if firstBatch != nil {
+			commandReplyOp.Docs = firstBatch.([]interface{})
+		}
+	}
+
+	for _, d := range replyData {
+		dataDoc := &bson.D{}
+		err = bson.Unmarshal(d, &dataDoc)
+		if err != nil {
+			return replyContainer, err
+		}
+		commandReplyOp.OutputDocs = append(commandReplyOp.OutputDocs, dataDoc)
+	}
+	replyContainer.CommandReplyOp = commandReplyOp
+	replyContainer.Latency = after.Sub(before)
+	return replyContainer, nil
+
 }
 func (commandOp1 *CommandOp) Equals(otherOp Op) bool {
 	return false

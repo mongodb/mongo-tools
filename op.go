@@ -3,6 +3,7 @@ package mongotape
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/10gen/llmgo"
 )
@@ -37,10 +38,16 @@ type OpMetadata struct {
 type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
-	Execute(*mgo.Session) (*ReplyOp, error)
+	Execute(*mgo.Session) (replyContainer, error)
 	Equals(Op) bool
 	Meta() OpMetadata
 	Abbreviated(int) string
+}
+
+type replyContainer struct {
+	*CommandReplyOp
+	*ReplyOp
+	Latency time.Duration
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.

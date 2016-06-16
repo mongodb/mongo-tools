@@ -86,12 +86,13 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *DeleteOp) Execute(session *mgo.Session) (*ReplyOp, error) {
+func (op *DeleteOp) Execute(session *mgo.Session) (replyContainer, error) {
 	session.SetSocketTimeout(0)
+	var replyContainer replyContainer
 	if err := mgo.ExecOpWithoutReply(session, &op.DeleteOp); err != nil {
-		return nil, err
+		return replyContainer, err
 	}
-	return nil, nil
+	return replyContainer, nil
 }
 
 func (deleteOp1 *DeleteOp) Equals(otherOp Op) bool {

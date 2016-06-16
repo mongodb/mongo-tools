@@ -6,7 +6,6 @@ import (
 	"github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/json"
 	"io"
-	"time"
 )
 
 // ReplyOp is sent by the database in response to an QueryOp or OpGetMore message.
@@ -14,8 +13,7 @@ import (
 type ReplyOp struct {
 	Header MsgHeader
 	mgo.ReplyOp
-	Docs    []bson.Raw
-	Latency time.Duration
+	Docs []bson.Raw
 }
 
 func (op *ReplyOp) Meta() OpMetadata {
@@ -33,8 +31,7 @@ func (opr *ReplyOp) String() string {
 	if opr == nil {
 		return "Reply NIL"
 	}
-	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
-		opr.Latency,
+	return fmt.Sprintf("ReplyOp reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
 		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
 		stringifyReplyDocs(opr.Docs),
 	)
@@ -43,8 +40,7 @@ func (opr *ReplyOp) Abbreviated(chars int) string {
 	if opr == nil {
 		return "Reply NIL"
 	}
-	return fmt.Sprintf("ReplyOp latency:%v reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
-		opr.Latency,
+	return fmt.Sprintf("ReplyOp reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
 		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
 		Abbreviate(stringifyReplyDocs(opr.Docs), chars),
 	)
@@ -90,8 +86,8 @@ func (op *ReplyOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *ReplyOp) Execute(session *mgo.Session) (*ReplyOp, error) {
-	return nil, nil
+func (op *ReplyOp) Execute(session *mgo.Session) (replyContainer, error) {
+	return replyContainer{}, nil
 }
 
 func (replyOp1 *ReplyOp) Equals(otherOp Op) bool {

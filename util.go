@@ -23,41 +23,34 @@ const (
 // GetCursorId examines a set of docs to look for a command reply that contains a cursor ID, and
 // returns it if found. Returns 0 if no cursor ID was found. May return an error if the given
 // documents contain invalid or corrupt bson.
-func GetCursorId(op *mgo.ReplyOp, docs []bson.Raw) (int64, error) {
-	if op == nil {
-		return 0, nil
-	}
-	if op.CursorId != 0 {
-		return op.CursorId, nil
-	}
-	if len(docs) != 1 {
-		return 0, nil
-	}
-	firstDoc := bson.M{}
-	err := docs[0].Unmarshal(&firstDoc)
-	if err != nil {
-		// can happen if there's corrupt bson in the doc.
-		return 0, fmt.Errorf("failed to unmarshal raw into bson.D: %v", err)
-	}
-	cursorInfo := firstDoc["cursor"]
-	if cursorInfo == nil {
-		return 0, nil
-	}
-	var cursorInfoMap bson.M
-	var ok bool
-	if cursorInfoMap, ok = cursorInfo.(bson.M); !ok {
-		return 0, nil
-	}
-	if cursorId, ok := cursorInfoMap["id"]; ok {
-		switch v := cursorId.(type) {
-		case int64:
-			return v, nil
-		default:
+func GetCursorId(replyContainer replyContainer) (int64, error) {
+	doc := &struct {
+		Cursor struct {
+			Id int64 `bson:"id"`
+		} `bson: "cursor"`
+	}{}
+
+	switch {
+	case replyContainer.ReplyOp != nil:
+		if replyContainer.ReplyOp.CursorId != 0 {
+			return replyContainer.ReplyOp.CursorId, nil
+		}
+		if len(replyContainer.ReplyOp.Docs) != 1 {
 			return 0, nil
 		}
+		err := replyContainer.ReplyOp.Docs[0].Unmarshal(&doc)
+		if err != nil {
+			// can happen if there's corrupt bson in the doc.
+			return 0, fmt.Errorf("failed to unmarshal raw into bson.M: %v", err)
+		}
+	case replyContainer.CommandReplyOp != nil:
+		err := replyContainer.CommandReplyOp.CommandReply.Unmarshal(&doc)
+		if err != nil {
+			// can happen if there's corrupt bson in the doc.
+			return 0, fmt.Errorf("failed to unmarshal raw into bson.M: %v", err)
+		}
 	}
-
-	return 0, nil
+	return doc.Cursor.Id, nil
 }
 
 // Abbreviate returns a reduced copy of the given string if it's longer than maxLen by

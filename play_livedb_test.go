@@ -5,13 +5,15 @@ import (
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
 
 const (
-	nonAuthTestServerUrl = "mongodb://localhost:27035"
-	authTestServerUrl    = "mongodb://authorizedUser:authorizedPwd@localhost:27035/admin"
+	defaultTestPort      = 20000
+	nonAuthTestServerUrl = "mongodb://localhost"
+	authTestServerUrl    = "mongodb://authorizedUser:authorizedPwd@localhost"
 	testDB               = "mongotape"
 	testCollection       = "test"
 	testCursorId         = int64(12345)
@@ -19,7 +21,9 @@ const (
 )
 
 var testTime = time.Now()
-var currentTestServerUrl string
+var urlAuth string
+var urlNonAuth string
+var currentTestUrl string
 var authTestServerMode bool
 var testCollectorOpts StatOptions = StatOptions{
 	JSON:     false,
@@ -34,16 +38,60 @@ type recordedOpGenerator struct {
 	opChan           chan *RecordedOp
 }
 
-func TestMain(m *testing.M) {
+func setConnectionUrl() error {
+	var url string
+	var port interface{}
 	if os.Getenv("AUTH") == "1" {
-		currentTestServerUrl = authTestServerUrl
+		url = authTestServerUrl
+	} else {
+		url = nonAuthTestServerUrl
+	}
+	dialUrl := fmt.Sprintf("%s:%d", url, defaultTestPort)
+	if os.Getenv("AUTH") == "1" {
+		dialUrl += "/admin"
+	}
+	session, err := mgo.Dial(dialUrl)
+	if err != nil {
+		return err
+	}
+	result := struct {
+		Members []struct {
+			Name     string `bson:"name"`
+			StateStr string `bson:"stateStr"`
+		} `bson:"members"`
+	}{}
+	err = session.DB("admin").Run("replSetGetStatus", &result)
+	if err != nil && err.Error() != "not running with --replSet" {
+		return err
+	} else if err != nil && err.Error() == "not running with --replSet" {
+		port = defaultTestPort
+	} else {
+		for _, member := range result.Members {
+			if member.StateStr == "PRIMARY" {
+				port = strings.Split(member.Name, ":")[1]
+			}
+		}
+	}
+	urlNonAuth = fmt.Sprintf("%s:%v", nonAuthTestServerUrl, port)
+	urlAuth = fmt.Sprintf("%s:%v/admin", authTestServerUrl, port)
+	currentTestUrl = urlNonAuth
+	if os.Getenv("AUTH") == "1" {
+		currentTestUrl = urlAuth
+	}
+	return nil
+}
+
+func TestMain(m *testing.M) {
+	err := setConnectionUrl()
+	if err != nil {
+		panic(err)
+	}
+	if os.Getenv("AUTH") == "1" {
 		authTestServerMode = true
 	} else {
-		currentTestServerUrl = nonAuthTestServerUrl
 		authTestServerMode = false
 	}
 	os.Exit(m.Run())
-
 }
 
 func newRecordedOpGenerator() *recordedOpGenerator {
@@ -102,15 +150,15 @@ func TestOpInsertLiveDB(t *testing.T) {
 	context := NewExecutionContext(statCollector)
 
 	//run Mongotape's Play loop with the stubbed objects
-	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
-	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
 	t.Log("Completed Mongotape playback of generated traffic")
 
 	//prepare a query for the database
-	session, err := mgo.Dial(currentTestServerUrl)
+	session, err := mgo.Dial(currentTestUrl)
 	if err != nil {
 		t.Errorf("Error connecting to test server: %v", err)
 	}
@@ -207,8 +255,8 @@ func TestQueryOpLiveDB(t *testing.T) {
 	context := NewExecutionContext(statCollector)
 
 	//run Mongotape's Play loop with the stubbed objects
-	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
-	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -286,8 +334,8 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 	context := NewExecutionContext(statCollector)
 
 	//run Mongotape's Play loop with the stubbed objects
-	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
-	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -382,8 +430,8 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	context := NewExecutionContext(statCollector)
 
 	//run Mongotape's Play loop with the stubbed objects
-	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
-	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -498,8 +546,8 @@ func TestOpKillCursorsLiveDB(t *testing.T) {
 	context := NewExecutionContext(statCollector)
 
 	//run Mongotape's Play loop with the stubbed objects
-	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestServerUrl)
-	err := Play(context, generator.opChan, testSpeed, currentTestServerUrl, 1, 10)
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
 	if err != nil {
 		t.Errorf("Error Playing traffic: %v\n", err)
 	}
@@ -535,9 +583,165 @@ func TestOpKillCursorsLiveDB(t *testing.T) {
 		t.Error(err)
 	}
 }
+func TestCommandOpInsertLiveDB(t *testing.T) {
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+
+	numInserts := 20
+	insertName := "LiveDB CommandOp insert test"
+	generator := newRecordedOpGenerator()
+	go func() {
+		defer close(generator.opChan)
+		//generate numInserts RecordedOps
+		t.Logf("Generating %d commandOp inserts\n", numInserts)
+		err := generator.generateCommandOpInsertHelper(insertName, 0, numInserts)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
+	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
+	context := NewExecutionContext(statCollector)
+
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
+	if err != nil {
+		t.Errorf("Error Playing traffic: %v\n", err)
+	}
+	t.Log("Completed Mongotape playback of generated traffic")
+
+	//prepare a query for the database
+	session, err := mgo.Dial(currentTestUrl)
+	if err != nil {
+		t.Errorf("Error connecting to test server: %v", err)
+	}
+
+	coll := session.DB(testDB).C(testCollection)
+
+	iter := coll.Find(bson.D{}).Sort("docNum").Iter()
+	ind := 0
+	result := testDoc{}
+
+	//iterate over the results of the query and ensure they match expected documents
+	t.Log("Querying database to ensure insert occured successfully")
+	for iter.Next(&result) {
+		t.Logf("Query result: %#v\n", result)
+		if result.DocumentNumber != ind {
+			t.Errorf("Inserted document number did not match expected document number. Found: %v -- Expected: %v", result.DocumentNumber, ind)
+		}
+		if result.Name != insertName {
+			t.Errorf("Inserted document name did not match expected name. Found %v -- Expected: %v", result.Name, "LiveDB Insert Test")
+		}
+		if !result.Success {
+			t.Errorf("Inserted document field 'Success' was expected to be true, but was false")
+		}
+		ind++
+	}
+	if err := iter.Close(); err != nil {
+		t.Error(err)
+	}
+
+	//iterate over the operations found by the BufferedStatCollector
+	t.Log("Examining collected stats to ensure they match expected")
+	for i := 0; i < numInserts; i++ {
+		stat := statRec.Buffer[i]
+		t.Logf("Stat result: %#v\n", stat)
+		//All commands should be inserts into mongotape.test
+		if stat.OpType != "op_command" ||
+			stat.Command != "insert" ||
+			stat.Ns != "mongotape" {
+			t.Errorf("Expected to see an insert into mongotape, but instead saw %v, %v into %v\n", stat.OpType, stat.Command, stat.Ns)
+		}
+	}
+
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestCommandOpFindLiveDB(t *testing.T) {
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+
+	insertName := "LiveDB CommandOp Find Test"
+	numInserts := 20
+	numFinds := 4
+	generator := newRecordedOpGenerator()
+	go func() {
+		defer close(generator.opChan)
+		//generate numInsert inserts and feed them to the opChan for tape
+		for i := 0; i < numFinds; i++ {
+			t.Logf("Generating %d inserts\n", numInserts/numFinds)
+			err := generator.generateInsertHelper(fmt.Sprintf("%s: %d", insertName, i), i*(numInserts/numFinds), numInserts/numFinds)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+		//generate numFinds queries and feed them to the opChan for play
+		t.Logf("Generating %d finds\n", numFinds)
+		for j := 0; j < numFinds; j++ {
+			filter := bson.D{{"name", fmt.Sprintf("%s: %d", insertName, j)}}
+			findArgs := bson.D{{"find", testCollection}, {"filter", filter}}
+			err := generator.generateCommandOp("find", findArgs)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+		//generate another query that tests a different field
+		filter := bson.D{{"success", true}}
+		findArgs := bson.D{{"find", testCollection}, {"filter", filter}}
+		err := generator.generateCommandOp("find", findArgs)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
+	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
+	context := NewExecutionContext(statCollector)
+
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
+	if err != nil {
+		t.Errorf("Error Playing traffic: %v\n", err)
+	}
+	t.Log("Completed Mongotape playback of generated traffic")
+
+	t.Log("Examining collected stats to ensure they match expected")
+	opType := "op_command"
+	ns := "mongotape"
+	numReturned := 5
+	for i := 0; i < numFinds; i++ { //loop over the BufferedStatCollector for each of the numFinds queries created
+		stat := statRec.Buffer[numInserts+i]
+		t.Logf("Stat result: %#v\n", stat)
+		if stat.OpType != opType ||
+			stat.Ns != ns ||
+			stat.NumReturned != numReturned { //ensure that they match what we expected mongotape to have executed
+			t.Errorf("CommandOp Find Not Matched expected OpType: %s, Ns: %s, NumReturned: %d ---- found OpType: %s, Ns: %s, NumReturned: %d\n",
+				opType, ns, numReturned, stat.OpType, stat.Ns, stat.NumReturned)
+		}
+	}
+	stat := statRec.Buffer[numInserts+numFinds]
+	t.Logf("Stat result: %#v\n", stat)
+	if stat.OpType != opType ||
+		stat.Ns != ns ||
+		stat.NumReturned != 20 { //ensure that the last query that was making a query on the 'success' field executed how we expected
+		t.Errorf("CommandOp Find Not Matched expected OpType: %s, Ns: %s, NumReturned: %d ---- found OpType: %s, Ns: %s, NumReturned: %d\n",
+			opType, ns, 20, stat.OpType, stat.Ns, stat.NumReturned)
+	}
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+
+}
 
 func teardownDB() error {
-	session, err := mgo.Dial(currentTestServerUrl)
+	session, err := mgo.Dial(currentTestUrl)
 	if err != nil {
 		return err
 	}
@@ -613,6 +817,39 @@ func (generator *recordedOpGenerator) generateQuery(querySelection interface{}, 
 		return err
 	}
 	recordedOp.RawOp.Header.RequestID = requestId
+	generator.pushDriverRequestOps(recordedOp)
+	return nil
+}
+
+func (generator *recordedOpGenerator) generateCommandOpInsertHelper(name string, startFrom, numInserts int) error {
+	for i := 0; i < numInserts; i++ {
+		doc := testDoc{
+			Name:           name,
+			DocumentNumber: i + startFrom,
+			Success:        true,
+		}
+		commandArgs := bson.D{{"documents", []testDoc{doc}}, {"insert", testCollection}}
+		err := generator.generateCommandOp("insert", commandArgs)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (generator *recordedOpGenerator) generateCommandOp(commandName string, commandArgs bson.D) error {
+	command := mgo.CommandOp{
+		Database:    testDB,
+		CommandName: commandName,
+		Metadata:    bson.D{},
+		CommandArgs: commandArgs,
+		InputDocs:   make([]interface{}, 0),
+	}
+
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&command)
+	if err != nil {
+		return err
+	}
 	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }

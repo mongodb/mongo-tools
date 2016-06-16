@@ -75,21 +75,21 @@ const (
 // multiple goroutines will cause them to share the same underlying socket.
 // See the documentation on Session.SetMode for more details.
 type Session struct {
-	m            sync.RWMutex
-	cluster_     *mongoCluster
-	slaveSocket  *MongoSocket
-	masterSocket *MongoSocket
-	slaveOk      bool
-	consistency  Mode
-	queryConfig  query
-	safeOp       *QueryOp
-	syncTimeout  time.Duration
-	sockTimeout  time.Duration
-	defaultdb    string
-	sourcedb     string
-	dialCred     *Credential
-	creds        []Credential
-	poolLimit    int
+	m                sync.RWMutex
+	cluster_         *mongoCluster
+	slaveSocket      *MongoSocket
+	masterSocket     *MongoSocket
+	slaveOk          bool
+	consistency      Mode
+	queryConfig      query
+	safeOp           *QueryOp
+	syncTimeout      time.Duration
+	sockTimeout      time.Duration
+	defaultdb        string
+	sourcedb         string
+	dialCred         *Credential
+	creds            []Credential
+	poolLimit        int
 	bypassValidation bool
 }
 
@@ -643,13 +643,15 @@ func (db *Database) Run(cmd interface{}, result interface{}) error {
 	return err
 }
 
-func ExecOpWithReply(s MongoSession, op OpWithReply) (data [][]byte, replyOp *ReplyOp, err error) {
+func ExecOpWithReply(s MongoSession, op OpWithReply) (m []byte, c []byte, data [][]byte, reply interface{}, err error) {
 	var wait sync.Mutex
+	var metaData []byte
+	var commandData []byte
 	var replyData [][]byte
 	var replyErr error
 	socket, err := s.AcquireSocketPrivate(true)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	defer socket.Release()
 
@@ -657,29 +659,50 @@ func ExecOpWithReply(s MongoSession, op OpWithReply) (data [][]byte, replyOp *Re
 
 	var docCount int32
 
-	replyFunc := func(err error, reply *ReplyOp, docNum int, docData []byte) {
-		debugf("replyFunc %v %#v %v %v", err, reply, docNum, docData)
+	replyFunc := func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+		debugf("replyFunc %v %#v %#v", err, rfl, rfc)
 		replyErr = err
-		replyOp = reply
-		if err != nil || reply.ReplyDocs == 0 {
-			wait.Unlock()
-		} else {
-			replyData = append(replyData, docData)
-			docCount++
-			if docCount == replyOp.ReplyDocs {
+
+		if rfl != nil { // Here, we have a regular reply and need to handle its fields
+			reply = rfl.op
+			if err != nil || rfl.op.ReplyDocs == 0 {
+				wait.Unlock()
+			} else {
+				replyData = append(replyData, rfl.docData)
+				docCount++
+				if docCount == rfl.op.ReplyDocs {
+					wait.Unlock()
+				}
+			}
+		} else if rfc != nil {
+			reply = rfc.op
+			if err == nil {
+				if metaData == nil {
+					metaData = rfc.metadata
+				}
+				if commandData == nil {
+					commandData = rfc.commandReply
+				}
+				if rfc.bytesLeft != 0 {
+					replyData = append(replyData, rfc.outputDoc)
+				} else {
+					wait.Unlock()
+				}
+			} else {
 				wait.Unlock()
 			}
 		}
+
 	}
 
 	op.SetReplyFunc(replyFunc)
 	err = socket.Query(op)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	wait.Lock()
-	return replyData, replyOp, replyErr
+	return metaData, commandData, replyData, reply, replyErr
 }
 
 func ExecOpWithoutReply(s MongoSession, op interface{}) error {
@@ -3271,7 +3294,6 @@ func (q *Query) Iter() *Iter {
 	session.prepareQuery(&op)
 	op.replyFunc = iter.op.replyFunc
 
-
 	socket, err := session.AcquireSocketPrivate(true)
 	if err != nil {
 		iter.err = err
@@ -4249,26 +4271,27 @@ func (s *Session) unsetSocket() {
 }
 
 func (iter *Iter) replyFunc() replyFunc {
-	return func(err error, op *ReplyOp, docNum int, docData []byte) {
+	return func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+		replyOp := rfl.op
 		iter.m.Lock()
 		iter.docsToReceive--
 		if err != nil {
 			iter.err = err
 			debugf("Iter %p received an error: %s", iter, err.Error())
-		} else if docNum == -1 {
-			debugf("Iter %p received no documents (cursor=%d).", iter, op.CursorId)
-			if op != nil && op.CursorId != 0 {
+		} else if rfl.docNum == -1 {
+			debugf("Iter %p received no documents (cursor=%d).", iter, replyOp.CursorId)
+			if replyOp != nil && replyOp.CursorId != 0 {
 				// It's a tailable cursor.
-				iter.op.CursorId = op.CursorId
-			} else if op != nil && op.CursorId == 0 && op.Flags&1 == 1 {
+				iter.op.CursorId = replyOp.CursorId
+			} else if replyOp != nil && replyOp.CursorId == 0 && replyOp.Flags&1 == 1 {
 				// Cursor likely timed out.
 				iter.err = ErrCursor
 			} else {
 				iter.err = ErrNotFound
 			}
 		} else {
-			rdocs := int(op.ReplyDocs)
-			if docNum == 0 {
+			rdocs := int(replyOp.ReplyDocs)
+			if rfl.docNum == 0 {
 				iter.docsToReceive += rdocs - 1
 				docsToProcess := iter.docData.Len() + rdocs
 				if iter.limit == 0 || int32(docsToProcess) < iter.limit {
@@ -4276,11 +4299,11 @@ func (iter *Iter) replyFunc() replyFunc {
 				} else {
 					iter.docsBeforeMore = -1
 				}
-				iter.op.CursorId = op.CursorId
+				iter.op.CursorId = replyOp.CursorId
 			}
 			// XXX Handle errors and flags.
-			debugf("Iter %p received reply document %d/%d (cursor=%d)", iter, docNum+1, rdocs, op.CursorId)
-			iter.docData.Push(docData)
+			debugf("Iter %p received reply document %d/%d (cursor=%d)", iter, rfl.docNum+1, rdocs, replyOp.CursorId)
+			iter.docData.Push(rfl.docData)
 		}
 		iter.gotReply.Broadcast()
 		iter.m.Unlock()
@@ -4410,8 +4433,8 @@ func (c *Collection) writeOpQuery(socket *MongoSocket, safeOp *QueryOp, op inter
 	mutex.Lock()
 	query := *safeOp // Copy the data.
 	query.Collection = c.Database.Name + ".$cmd"
-	query.replyFunc = func(err error, reply *ReplyOp, docNum int, docData []byte) {
-		replyData = docData
+	query.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+		replyData = rfl.docData
 		replyErr = err
 		mutex.Unlock()
 	}
