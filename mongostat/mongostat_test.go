@@ -1,236 +1,94 @@
 package mongostat
 
 import (
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
+	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
+	"github.com/mongodb/mongo-tools/mongostat/status"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
+
+func readBSONFile(file string, t *testing.T) (stat *status.ServerStatus) {
+	stat = &status.ServerStatus{}
+	ssBSON, err := ioutil.ReadFile(file)
+	if err == nil {
+		err = bson.Unmarshal(ssBSON, stat)
+	}
+	if err != nil {
+		t.Logf("Could not load new ServerStatus BSON: %s", err)
+		t.FailNow()
+	}
+	return
+}
 
 func TestStatLine(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
-	faultsOld := int64(10)
-	faultsNew := int64(15)
-	timeOld, _ := time.Parse("2006 Jan 02 15:04:05", "2015 Nov 30 4:25:30")
-	timeNew1, _ := time.Parse("2006 Jan 02 15:04:05", "2015 Nov 30 4:25:31")
-	timeNew3, _ := time.Parse("2006 Jan 02 15:04:05", "2015 Nov 30 4:25:33")
-	serverStatusOld := ServerStatus{
-		SampleTime:     timeOld,
-		Host:           "localhost",
-		Version:        "test-version",
-		Process:        "mongod",
-		Pid:            10,
-		Uptime:         1000,
-		UptimeMillis:   1000,
-		UptimeEstimate: 1000,
-		LocalTime:      time.Now(),
-		Asserts:        map[string]int64{},
-		BackgroundFlushing: &FlushStats{
-			Flushes:      2,
-			TotalMs:      100,
-			AverageMs:    101,
-			LastMs:       102,
-			LastFinished: time.Now(),
-		},
-		ExtraInfo: &ExtraInfo{PageFaults: &faultsOld},
-		Connections: &ConnectionStats{
-			Current:      5,
-			Available:    1024,
-			TotalCreated: 2048,
-		},
-		Dur: &DurStats{
-			Commits:            1,
-			JournaledMB:        2,
-			WriteToDataFilesMB: 4,
-			Compression:        8,
-			CommitsInWriteLock: 16,
-			EarlyCommits:       32,
-		},
-		GlobalLock: &GlobalLockStats{
-			TotalTime: 1024,
-			LockTime:  2048,
-			CurrentQueue: &QueueStats{
-				Total:   5,
-				Readers: 3,
-				Writers: 2,
-			},
-			ActiveClients: &ClientStats{
-				Total:   5,
-				Readers: 3,
-				Writers: 2,
-			},
-		},
-		Locks: map[string]LockStats{
-			".": {
-				TimeLockedMicros:    ReadWriteLockTimes{Read: 2850999, Write: 1807873},
-				TimeAcquiringMicros: ReadWriteLockTimes{Read: 1393322, Write: 246102},
-			},
-			"test": {
-				TimeLockedMicros:    ReadWriteLockTimes{Read: 663190, Write: 379},
-				TimeAcquiringMicros: ReadWriteLockTimes{Read: 200443, Write: 6},
-			},
-		},
-		Network: &NetworkStats{
-			BytesIn:     106484804,
-			BytesOut:    52805308,
-			NumRequests: 873667,
-		},
-		Opcounters: &OpcountStats{
-			Insert:  872001,
-			Query:   2877,
-			Update:  399,
-			Delete:  203,
-			GetMore: 101,
-			Command: 985,
-		},
-		OpcountersRepl: &OpcountStats{
-			Insert:  1234,
-			Query:   4567,
-			Update:  89,
-			Delete:  10,
-			GetMore: 111,
-			Command: 999,
-		},
-		Mem: &MemStats{
-			Bits:              64,
-			Resident:          53,
-			Virtual:           35507,
-			Supported:         true,
-			Mapped:            16489,
-			MappedWithJournal: 32978,
-		},
+	defaultHeaders := make([]string, len(line.CondHeaders))
+	for i, h := range line.CondHeaders {
+		defaultHeaders[i] = h.Key
 	}
 
-	serverStatusNew := ServerStatus{
-		SampleTime:     timeNew1,
-		Host:           "localhost",
-		Version:        "test-version",
-		Process:        "mongod",
-		Pid:            10,
-		Uptime:         1000,
-		UptimeMillis:   2000,
-		UptimeEstimate: 1000,
-		LocalTime:      time.Now(),
-		Asserts:        map[string]int64{},
-		BackgroundFlushing: &FlushStats{
-			Flushes:      2,
-			TotalMs:      100,
-			AverageMs:    101,
-			LastMs:       102,
-			LastFinished: time.Now(),
-		},
-		ExtraInfo: &ExtraInfo{PageFaults: &faultsNew},
-		Connections: &ConnectionStats{
-			Current:      5,
-			Available:    1024,
-			TotalCreated: 2048,
-		},
-		Dur: &DurStats{
-			Commits:            1,
-			JournaledMB:        2,
-			WriteToDataFilesMB: 4,
-			Compression:        8,
-			CommitsInWriteLock: 16,
-			EarlyCommits:       32,
-		},
-		GlobalLock: &GlobalLockStats{
-			TotalTime: 1024,
-			LockTime:  2048,
-			CurrentQueue: &QueueStats{
-				Total:   5,
-				Readers: 3,
-				Writers: 2,
-			},
-			ActiveClients: &ClientStats{
-				Total:   5,
-				Readers: 4,
-				Writers: 6,
-			},
-		},
-		Locks: map[string]LockStats{
-			".": {
-				TimeLockedMicros:    ReadWriteLockTimes{Read: 2850999, Write: 1807873},
-				TimeAcquiringMicros: ReadWriteLockTimes{Read: 1393322, Write: 246102},
-			},
-			"test": {
-				TimeLockedMicros:    ReadWriteLockTimes{Read: 663190, Write: 500397},
-				TimeAcquiringMicros: ReadWriteLockTimes{Read: 200443, Write: 6},
-			},
-		},
-		Network: &NetworkStats{
-			BytesIn:     106486804,
-			BytesOut:    52808308,
-			NumRequests: 873667,
-		},
-		Opcounters: &OpcountStats{
-			Insert:  872011,
-			Query:   2882,
-			Update:  406,
-			Delete:  205,
-			GetMore: 104,
-			Command: 1654,
-		},
-		OpcountersRepl: &OpcountStats{
-			Insert:  1234,
-			Query:   4567,
-			Update:  89,
-			Delete:  10,
-			GetMore: 111,
-			Command: 999,
-		},
-		Mem: &MemStats{
-			Bits:              64,
-			Resident:          53,
-			Virtual:           35507,
-			Supported:         true,
-			Mapped:            16489,
-			MappedWithJournal: 32978,
-		},
-	}
+	serverStatusOld := readBSONFile("test_data/server_status_old.bson", t)
+	serverStatusNew := readBSONFile("test_data/server_status_new.bson", t)
+	serverStatusNew.ShardCursorType = nil
+	serverStatusOld.ShardCursorType = nil
 
 	Convey("StatsLine should accurately calculate opcounter diffs", t, func() {
-		statsLine := NewStatLine(serverStatusOld, serverStatusNew, "", false)
-		So(statsLine.Insert, ShouldEqual, 10)
-		So(statsLine.Query, ShouldEqual, 5)
-		So(statsLine.Update, ShouldEqual, 7)
-		So(statsLine.Delete, ShouldEqual, 2)
-		So(statsLine.GetMore, ShouldEqual, 3)
-		So(statsLine.Command, ShouldEqual, 669)
+		statsLine := line.NewStatLine(serverStatusOld, serverStatusNew, defaultHeaders)
+		So(statsLine.Fields["insert"], ShouldEqual, "10")
+		So(statsLine.Fields["query"], ShouldEqual, "5")
+		So(statsLine.Fields["update"], ShouldEqual, "7")
+		So(statsLine.Fields["delete"], ShouldEqual, "2")
+		So(statsLine.Fields["getmore"], ShouldEqual, "3")
+		command := strings.Split(statsLine.Fields["command"], "|")[0]
+		So(command, ShouldEqual, "669")
+		So(statsLine.Fields["faults"], ShouldEqual, "5")
 
-		So(statsLine.Faults, ShouldEqual, 5)
-		So(statsLine.HighestLocked.DBName, ShouldEqual, "test")
-		So(statsLine.HighestLocked.Percentage, ShouldAlmostEqual, 50.0)
-		So(statsLine.QueuedReaders, ShouldEqual, 3)
-		So(statsLine.QueuedWriters, ShouldEqual, 2)
-		So(statsLine.ActiveReaders, ShouldEqual, 4)
-		So(statsLine.ActiveWriters, ShouldEqual, 6)
-		So(statsLine.NetIn, ShouldEqual, 2000)
-		So(statsLine.NetOut, ShouldEqual, 3000)
-		So(statsLine.NumConnections, ShouldEqual, 5)
+		locked := strings.Split(statsLine.Fields["locked_db"], ":")
+		So(locked[0], ShouldEqual, "test")
+		So(locked[1], ShouldEqual, "50.0%")
+		qrw := strings.Split(statsLine.Fields["qrw"], "|")
+		So(qrw[0], ShouldEqual, "3")
+		So(qrw[1], ShouldEqual, "2")
+		arw := strings.Split(statsLine.Fields["arw"], "|")
+		So(arw[0], ShouldEqual, "4")
+		So(arw[1], ShouldEqual, "6")
+		So(statsLine.Fields["net_in"], ShouldEqual, "2.00k")
+		So(statsLine.Fields["net_out"], ShouldEqual, "3.00k")
+		So(statsLine.Fields["conn"], ShouldEqual, "5")
 	})
 
-	serverStatusNew.SampleTime = timeNew3
+	serverStatusNew.SampleTime, _ = time.Parse("2006 Jan 02 15:04:05", "2015 Nov 30 4:25:33")
 	Convey("StatsLine with non-default interval should calculate average diffs", t, func() {
-		statsLine := NewStatLine(serverStatusOld, serverStatusNew, "", false)
+		statsLine := line.NewStatLine(serverStatusOld, serverStatusNew, defaultHeaders)
 		// Opcounters and faults are averaged over sample period
-		So(statsLine.Insert, ShouldEqual, 3)
-		So(statsLine.Query, ShouldEqual, 1)
-		So(statsLine.Update, ShouldEqual, 2)
-		So(statsLine.Delete, ShouldEqual, 0)
-		So(statsLine.GetMore, ShouldEqual, 1)
-		So(statsLine.Command, ShouldEqual, 223)
-		So(statsLine.Faults, ShouldEqual, 1)
+		So(statsLine.Fields["insert"], ShouldEqual, "3")
+		So(statsLine.Fields["query"], ShouldEqual, "1")
+		So(statsLine.Fields["update"], ShouldEqual, "2")
+		delete := strings.TrimPrefix(statsLine.Fields["delete"], "*")
+		So(delete, ShouldEqual, "0")
+		So(statsLine.Fields["getmore"], ShouldEqual, "1")
+		command := strings.Split(statsLine.Fields["command"], "|")[0]
+		So(command, ShouldEqual, "223")
+		So(statsLine.Fields["faults"], ShouldEqual, "1")
 
-		So(statsLine.HighestLocked.DBName, ShouldEqual, "test")
-		So(statsLine.HighestLocked.Percentage, ShouldAlmostEqual, 50.0)
-		So(statsLine.QueuedReaders, ShouldEqual, 3)
-		So(statsLine.QueuedWriters, ShouldEqual, 2)
-		So(statsLine.ActiveReaders, ShouldEqual, 4)
-		So(statsLine.ActiveWriters, ShouldEqual, 6)
-		// NetIn/Out is averaged over sample period
-		So(statsLine.NetIn, ShouldEqual, 666)
-		So(statsLine.NetOut, ShouldEqual, 1000)
-		So(statsLine.NumConnections, ShouldEqual, 5)
+		locked := strings.Split(statsLine.Fields["locked_db"], ":")
+		So(locked[0], ShouldEqual, "test")
+		So(locked[1], ShouldEqual, "50.0%")
+		qrw := strings.Split(statsLine.Fields["qrw"], "|")
+		So(qrw[0], ShouldEqual, "3")
+		So(qrw[1], ShouldEqual, "2")
+		arw := strings.Split(statsLine.Fields["arw"], "|")
+		So(arw[0], ShouldEqual, "4")
+		So(arw[1], ShouldEqual, "6")
+		So(statsLine.Fields["net_in"], ShouldEqual, "666b")
+		So(statsLine.Fields["net_out"], ShouldEqual, "1.00k")
+		So(statsLine.Fields["conn"], ShouldEqual, "5")
 	})
 }

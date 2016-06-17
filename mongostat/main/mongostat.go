@@ -2,6 +2,10 @@
 package main
 
 import (
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/password"
@@ -9,9 +13,9 @@ import (
 	"github.com/mongodb/mongo-tools/common/text"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongostat"
-	"os"
-	"strconv"
-	"time"
+	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
+	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
+	"github.com/mongodb/mongo-tools/mongostat/status"
 )
 
 func main() {
@@ -68,35 +72,60 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
+	if statOpts.Deprecated && !statOpts.Json {
+		log.Logf(log.Always, "--deprecated can only be used when --json is also specified")
+		os.Exit(util.ExitBadOptions)
+	}
+
 	// we have to check this here, otherwise the user will be prompted
 	// for a password for each discovered node
 	if opts.Auth.ShouldAskForPassword() {
 		opts.Auth.Password = password.Prompt()
 	}
 
-	var formatter mongostat.LineFormatter
+	var formatter stat_consumer.LineFormatter
 	if statOpts.Json {
-		formatter = &mongostat.JSONLineFormatter{}
+		formatter = &stat_consumer.JSONLineFormatter{}
 	} else {
-		formatter = &mongostat.GridLineFormatter{
+		formatter = &stat_consumer.GridLineFormatter{
 			IncludeHeader:  !statOpts.NoHeaders,
 			HeaderInterval: 10,
 			Writer:         &text.GridWriter{ColumnPadding: 1},
 		}
 	}
 
+	var cliFlags = line.FlagAlways
+	if statOpts.Discover {
+		cliFlags |= line.FlagDiscover
+	}
+	if statOpts.All {
+		cliFlags |= line.FlagAll
+	}
+
+	customHeaders := []string{}
+
+	var keyNames map[string]string
+	if statOpts.Deprecated {
+		keyNames = line.DeprecatedKeyMap()
+	} else {
+		keyNames = line.DefaultKeyMap()
+	}
+
+	consumer := stat_consumer.NewStatConsumer(cliFlags, customHeaders, keyNames, formatter, os.Stdout)
 	seedHosts := util.CreateConnectionAddrs(opts.Host, opts.Port)
 	var cluster mongostat.ClusterMonitor
 	if statOpts.Discover || len(seedHosts) > 1 {
 		cluster = &mongostat.AsyncClusterMonitor{
-			ReportChan:    make(chan mongostat.StatLine),
-			LastStatLines: map[string]*mongostat.StatLine{},
-			Formatter:     formatter,
+			ReportChan:    make(chan *status.ServerStatus),
+			ErrorChan:     make(chan *status.NodeError),
+			LastStatLines: map[string]*line.StatLine{},
+			Consumer:      consumer,
 		}
 	} else {
 		cluster = &mongostat.SyncClusterMonitor{
-			ReportChan: make(chan mongostat.StatLine),
-			Formatter:  formatter,
+			ReportChan: make(chan *status.ServerStatus),
+			ErrorChan:  make(chan *status.NodeError),
+			Consumer:   consumer,
 		}
 	}
 
