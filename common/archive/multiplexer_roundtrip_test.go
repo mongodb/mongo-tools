@@ -11,6 +11,7 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
+	"sync"
 	"testing"
 )
 
@@ -50,13 +51,24 @@ func (*closingBuffer) Close() error {
 	return nil
 }
 
+type testNotifier struct {
+	notified chan struct{}
+	once     sync.Once
+}
+
+func (n *testNotifier) Notify() {
+	n.once.Do(func() {
+		close(n.notified)
+	})
+}
+
 func TestBasicMux(t *testing.T) {
 	var err error
 
 	Convey("with 10000 docs in each of five collections", t, func() {
 		buf := &closingBuffer{bytes.Buffer{}}
 
-		mux := NewMultiplexer(buf)
+		mux := NewMultiplexer(buf, &testNotifier{notified: make(chan struct{})})
 		muxIns := map[string]*MuxIn{}
 
 		inChecksum := map[string]hash.Hash{}
@@ -162,7 +174,7 @@ func TestParallelMux(t *testing.T) {
 		readPipe, writePipe, err := os.Pipe()
 		So(err, ShouldBeNil)
 
-		mux := NewMultiplexer(writePipe)
+		mux := NewMultiplexer(writePipe, &testNotifier{notified: make(chan struct{})})
 		muxIns := map[string]*MuxIn{}
 
 		demux := &Demultiplexer{In: readPipe}

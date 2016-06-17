@@ -92,19 +92,15 @@ mongo_tools_variables:
       - name: legacy26
       - name: legacy24
     ubuntu1204_task_list: &ubuntu1204_tasks
-      - name: bsonutil
       - name: db
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: json
       - name: legacy28
       - name: legacy28-wt
       - name: legacy26
       - name: legacy24
       - name: lint
-      - name: log
-      - name: progress
       - name: qa-tests
       - name: qa-tests-unstable
       - name: qa-dump-restore-archiving
@@ -122,33 +118,26 @@ mongo_tools_variables:
       - name: qa-tests
       - name: qa-tests-unstable
     ubuntu1204_enterprise_task_list: &ubuntu1204_enterprise_tasks
-      - name: bsonutil
       - name: db
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: json
       - name: kerberos
       - name: legacy28
       - name: lint
-      - name: log
-      - name: progress
       - name: qa-tests
       - name: text
       - name: util
       - name: vet
     ubuntu1204_race_task_list: &ubuntu1204_race_tasks
-      - name: bsonutil
       - name: db
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: json
       - name: legacy28
       - name: legacy28-wt
       - name: legacy26
       - name: legacy24
-      - name: log
       - name: qa-tests
       - name: qa-tests-wt
       - name: text
@@ -215,15 +204,11 @@ mongo_tools_variables:
         - windows-64-vs2013-test
       - name: unit
     rhel71_enterprise_task_list: &rhel71_enterprise_tasks
-      - name: bsonutil
       - name: db
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: json
       #- name: kerberos
-      - name: log
-      - name: progress
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests
@@ -401,9 +386,25 @@ functions:
         fi;
         . ./set_gopath.sh
 
-        # TODO bsondump needs tests
-        # TODO mongotop needs tests
+        # run unit tests under common package
+        for i in "common/bsonutil" "common/json" "common/archive" "common/log" "common/options" "common/progress" "common/text"; do
+            cd $i
+            COMMON_SUBPKG=$(basename $i)
+            COVERAGE_ARGS=""
+            if [ "${run_coverage}" ]; then
+                COVERAGE_ARGS="-coverprofile=coverage_$COMMON_SUBPKG.out"
+            fi;
+            ${library_path} go test $COVERAGE_ARGS ${args} ${build_tags} -test.v > $COMMON_SUBPKG.suite
+            if [ $? -ne 0 ]; then
+                echo "suite failed, will exit with error on finish"
+                export exitcode=1
+            fi
+            cat $COMMON_SUBPKG.suite
+            cp $COMMON_SUBPKG.suite ../../
+            cd ../..
+        done
 
+        #TODO mongotop needs a test
         for i in mongoimport mongoexport mongostat mongooplog mongorestore mongodump mongofiles; do
             cd $i
             COVERAGE_ARGS=""
@@ -567,19 +568,6 @@ functions:
       display_name: ${tool}
 
 pre:
-  - command: expansions.fetch
-    params:
-      keys:
-        - local_key: "aws_key"
-          remote_key: "project_aws_key"
-        - local_key: "aws_secret"
-          remote_key: "project_aws_secret"
-        - local_key: "slave"
-          remote_key: "slave"
-        - local_key: "passwd"
-          remote_key: "passwd"
-        - local_key: "kerberos_password"
-          remote_key: "kerberos_password"
   - command: shell.exec
     params:
       silent: true
@@ -609,21 +597,6 @@ post:
 
 
 tasks:
-- name: bsonutil
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
-    - command: expansions.update
-      params:
-        updates:
-          - key: "package"
-            value: "common/bsonutil"
-    - func: "run unit test"
-
 - name: db
   commands:
     - command: git.get_project
@@ -774,21 +747,6 @@ tasks:
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
-
-- name: json
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
-    - command: expansions.update
-      params:
-        updates:
-          - key: "package"
-            value: "common/json"
-    - func: "run unit test"
 
 - name: kerberos
   commands:
@@ -1015,36 +973,6 @@ tasks:
           set -o verbose
           retVal=$(. ./set_gopath.sh && go run vendor/src/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
-
-- name: log
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
-    - command: expansions.update
-      params:
-        updates:
-          - key: "package"
-            value: "common/log"
-    - func: "run unit test"
-
-- name: progress
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
-    - command: expansions.update
-      params:
-        updates:
-          - key: "package"
-            value: "common/progress"
-    - func: "run unit test"
 
 - name: qa-tests-unstable
   depends_on:
