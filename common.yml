@@ -1524,6 +1524,8 @@ buildvariants:
     <<: *mongo_url_solaris
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
+    build_tags: -gccgoflags "-lsocket -lnsl"
     resmoke_args: -j$(kstat cpu | sort -u | grep -c "^module")
   tasks: *solaris_tasks
 
