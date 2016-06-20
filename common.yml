@@ -1261,6 +1261,8 @@ buildvariants:
   expansions:
     <<: *mongo_url_solaris
     <<: *mongodb_default_startup_args
+    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
+    build_tags: -gccgoflags "-lsocket -lnsl"
   tasks: *solaris_tasks
 
 #######################################
