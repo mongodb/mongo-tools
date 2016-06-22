@@ -105,9 +105,9 @@ func (op *UpdateOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *UpdateOp) Execute(session *mgo.Session) (replyContainer, error) {
+func (op *UpdateOp) Execute(session *mgo.Session) (Replyable, error) {
 	if err := mgo.ExecOpWithoutReply(session, &op.UpdateOp); err != nil {
-		return replyContainer{}, err
+		return nil, err
 	}
-	return replyContainer{}, nil
+	return nil, nil
 }

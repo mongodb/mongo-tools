@@ -23,39 +23,6 @@ const (
 	maximumDocumentSize = 49 * 1024 * 1024 // there is a 48MB max message size
 )
 
-// GetCursorId examines a set of docs to look for a command reply that contains a cursor ID, and
-// returns it if found. Returns 0 if no cursor ID was found. May return an error if the given
-// documents contain invalid or corrupt bson.
-func GetCursorId(replyContainer replyContainer) (int64, error) {
-	doc := &struct {
-		Cursor struct {
-			Id int64 `bson:"id"`
-		} `bson: "cursor"`
-	}{}
-
-	switch {
-	case replyContainer.ReplyOp != nil:
-		if replyContainer.ReplyOp.CursorId != 0 {
-			return replyContainer.ReplyOp.CursorId, nil
-		}
-		if len(replyContainer.ReplyOp.Docs) != 1 {
-			return 0, nil
-		}
-		err := replyContainer.ReplyOp.Docs[0].Unmarshal(&doc)
-		if err != nil {
-			// can happen if there's corrupt bson in the doc.
-			return 0, fmt.Errorf("failed to unmarshal raw into bson.M: %v", err)
-		}
-	case replyContainer.CommandReplyOp != nil:
-		err := replyContainer.CommandReplyOp.CommandReply.Unmarshal(&doc)
-		if err != nil {
-			// can happen if there's corrupt bson in the doc.
-			return 0, fmt.Errorf("failed to unmarshal raw into bson.M: %v", err)
-		}
-	}
-	return doc.Cursor.Id, nil
-}
-
 // AbbreviateBytes returns a reduced byte array of the given one if it's
 // longer than maxLen by showing only a prefix and suffix of size windowLen
 // with an ellipsis in the middle.
@@ -124,6 +91,24 @@ func ReadDocument(r io.Reader) ([]byte, error) {
 	return doc, nil
 }
 
+func getCommandName(rawOp *RawOp) (string, error) {
+	if rawOp.Header.OpCode != OpCodeCommand {
+		return "", fmt.Errorf("getCommandName received wrong opType: %v", rawOp.Header.OpCode)
+	}
+	reader := bytes.NewReader(rawOp.Body[MsgHeaderLen:])
+
+	_, err := readCStringFromReader(reader)
+	if err != nil {
+		return "", err
+	}
+
+	commandName, err := readCStringFromReader(reader)
+	if err != nil {
+		return "", err
+	}
+	return string(commandName), nil
+}
+
 func cacheKey(op *RecordedOp, response bool) string {
 	var src, dst string
 	var id int32
@@ -137,6 +122,44 @@ func cacheKey(op *RecordedOp, response bool) string {
 		id = op.Header.ResponseTo
 	}
 	return fmt.Sprintf("%v:%v:%d:%v", src, dst, id, op.Generation)
+}
+
+// extractErrors inspects a bson doc and returns all of the mongodb errors contained within.
+func extractErrorsFromDoc(doc *bson.D) []error {
+	// errors may exist in the following places in the returned document:
+	// - the "$err" field, which is set if bit #1 is set on the responseFlags
+	// - the "errmsg" field on the top-level returned document
+	// - the "writeErrors" and "writeConcernErrors" arrays, which contain objects
+	//   that each have an "errmsg" field
+	errors := []error{}
+
+	if val, ok := FindValueByKey("$err", doc); ok {
+		errors = append(errors, fmt.Errorf("%v", val))
+	}
+
+	if val, ok := FindValueByKey("errmsg", doc); ok {
+		errors = append(errors, fmt.Errorf("%v", val))
+	}
+
+	if val, ok := FindValueByKey("writeErrors", doc); ok {
+		if reflect.TypeOf(val).Kind() == reflect.Slice {
+			s := reflect.ValueOf(val)
+			for i := 0; i < s.Len(); i++ {
+				errors = append(errors, fmt.Errorf("%v", s.Index(i).Interface()))
+			}
+		}
+	}
+
+	if val, ok := FindValueByKey("writeConcernErrors", doc); ok {
+		if reflect.TypeOf(val).Kind() == reflect.Slice {
+			s := reflect.ValueOf(val)
+			for i := 0; i < s.Len(); i++ {
+				errors = append(errors, fmt.Errorf("%v", s.Index(i).Interface()))
+			}
+		}
+	}
+
+	return errors
 }
 
 // readCStringFromReader reads a null turminated string from an io.Reader.

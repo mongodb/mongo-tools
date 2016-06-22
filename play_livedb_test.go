@@ -698,13 +698,15 @@ func TestOpKillCursorsLiveDB(t *testing.T) {
 		if stat.OpType != "getmore" ||
 			stat.NumReturned != 2 ||
 			stat.Ns != "mongotape.test" { //ensure that the operations in the BufferedStatCollector match what expected
-			t.Errorf("Getmore Not matched: %#v\n", stat)
+			t.Errorf("Getmore Not matched: Expected OpType: %s NumReturned: %d NameSpace: %s --- Found OpType: %s NumReturned: %d NameSpace: %s",
+				"getmore", 2, "mongotape.test", stat.OpType, stat.NumReturned, stat.Ns)
 		}
 	}
 	stat := statRec.Buffer[numInserts+2+2]
 	t.Logf("Stat result: %#v\n", stat)
 	if stat.OpType != "killcursors" { //ensure that the operations in the BufferedStatCollector match what expected
-		t.Errorf("KillCursors Not matched: %#v\n", stat)
+		t.Errorf("Killcursors Not matched: Expected OpType: %s --- Found OpType: %s",
+			"killcursors", stat.OpType)
 	}
 	for i := 0; i < 2; i++ {
 		stat := statRec.Buffer[numInserts+5+i]
@@ -712,7 +714,8 @@ func TestOpKillCursorsLiveDB(t *testing.T) {
 		if stat.OpType != "getmore" ||
 			stat.NumReturned != 0 ||
 			stat.Ns != "mongotape.test" { //ensure that the operations in the BufferedStatCollector match what expected
-			t.Errorf("Getmore Not matched: %#v\n", stat)
+			t.Errorf("Getmore Not matched: Expected OpType: %s NumReturned: %d NameSpace: %s --- Found OpType: %s NumReturned: %d NameSpace: %s",
+				"getmore", 0, "mongotape.test", stat.OpType, stat.NumReturned, stat.Ns)
 		}
 	}
 
@@ -828,16 +831,14 @@ func TestCommandOpFindLiveDB(t *testing.T) {
 		t.Logf("Generating %d finds\n", numFinds)
 		for j := 0; j < numFinds; j++ {
 			filter := bson.D{{"name", fmt.Sprintf("%s: %d", insertName, j)}}
-			findArgs := bson.D{{"find", testCollection}, {"filter", filter}}
-			err := generator.generateCommandOp("find", findArgs)
+			err := generator.generateCommandFind(filter, 0, 0)
 			if err != nil {
 				t.Error(err)
 			}
 		}
 		//generate another query that tests a different field
 		filter := bson.D{{"success", true}}
-		findArgs := bson.D{{"find", testCollection}, {"filter", filter}}
-		err := generator.generateCommandOp("find", findArgs)
+		err := generator.generateCommandFind(filter, 0, 0)
 		if err != nil {
 			t.Error(err)
 		}
@@ -881,6 +882,86 @@ func TestCommandOpFindLiveDB(t *testing.T) {
 		t.Error(err)
 	}
 
+}
+
+func TestCommandOpGetMoreLiveDB(t *testing.T) {
+	if isMongosTestServer {
+		t.Skipf("Skipping OpCommand test against mongos")
+	}
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+	generator := newRecordedOpGenerator()
+	insertName := "LiveDB CommandGetmore Test"
+	var requestId int32 = 2
+	numInserts := 20
+	numGetMores := 3
+	go func() {
+		defer close(generator.opChan)
+		t.Logf("Generating %d inserts\n", numInserts)
+		//generate numInserts RecordedOp inserts and push them into a channel for use in mongotape's Play()
+		err := generator.generateInsertHelper(insertName, 0, numInserts)
+		if err != nil {
+			t.Error(err)
+		}
+		querySelection := bson.D{}
+
+		t.Log("Generating CommandFind")
+		//generate a query with a known requestId to be played in mongotape
+		err = generator.generateCommandFind(querySelection, 5, requestId)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Log("Generating reply")
+		//generate a RecordedOp reply whose ResponseTo field matches that of the original with a known cursorId
+		//so that these pieces of information can be correlated by mongotape
+		err = generator.generateCommandReply(requestId, testCursorId)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Log("Generating commandGetMore")
+		//generate numGetMores RecordedOp getmores with a cursorId matching that of the found reply
+		for i := 0; i < numGetMores; i++ {
+			err = generator.generateCommandGetMore(testCursorId, 5)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}()
+	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
+	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
+	context := NewExecutionContext(statCollector)
+
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
+	if err != nil {
+		t.Errorf("Error Playing traffic: %v\n", err)
+	}
+	t.Log("Completed Mongotape playback of generated traffic")
+
+	//loop over the BufferedStatCollector in the positions the getmores should have been played int
+	t.Log("Examining collected stats to ensure they match expected")
+	commandFind := statRec.Buffer[numInserts]
+	if commandFind.OpType != "op_command" ||
+		commandFind.Command != "find" ||
+		commandFind.NumReturned != 5 {
+		t.Errorf("CommandFind not matched. Expected OpType %s CommandName %s NumReturned %d --- Found OpType %s CommandName %s NumReturned: %d", "op_command", "find", 5, commandFind.OpType, commandFind.Command, commandFind.NumReturned)
+	}
+	for i := 0; i < numGetMores; i++ {
+		stat := statRec.Buffer[numInserts+1+i]
+		t.Logf("Stat result: %#v\n", stat)
+		if stat.OpType != "op_command" ||
+			stat.NumReturned != 5 ||
+			stat.Command != "getMore" ||
+			stat.Ns != "mongotape" { //ensure that each getMore matches the criteria we expected it to have
+			t.Errorf("CommandOpGetmore Not matched.Expected OpType:%s NumReturned:%d Ns:%s --- Found OpType:%s NumReturned: %d Ns: %s\n",
+				"op_command", 5, "mongotape", stat.OpType, stat.NumReturned, stat.Ns)
+		}
+	}
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
 }
 
 func teardownDB() error {
@@ -972,15 +1053,36 @@ func (generator *recordedOpGenerator) generateCommandOpInsertHelper(name string,
 			Success:        true,
 		}
 		commandArgs := bson.D{{"documents", []testDoc{doc}}, {"insert", testCollection}}
-		err := generator.generateCommandOp("insert", commandArgs)
+		err := generator.generateCommandOp("insert", commandArgs, 0)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
+func (generator *recordedOpGenerator) generateCommandFind(filter interface{}, limit int32, requestId int32) error {
+	var findArgs bson.D
+	if limit > 0 {
+		findArgs = bson.D{{"find", testCollection}, {"filter", filter}, {"batchSize", limit}}
+	} else {
+		findArgs = bson.D{{"find", testCollection}, {"filter", filter}}
+	}
 
-func (generator *recordedOpGenerator) generateCommandOp(commandName string, commandArgs bson.D) error {
+	return generator.generateCommandOp("find", findArgs, requestId)
+}
+func (generator *recordedOpGenerator) generateCommandGetMore(cursorId int64, limit int32) error {
+	var getmoreArgs bson.D
+	if limit > 0 {
+		getmoreArgs = bson.D{{"collection", testCollection}, {"getMore", cursorId}, {"batchSize", limit}}
+	} else {
+		getmoreArgs = bson.D{{"collection", testCollection}, {"getMore", cursorId}}
+	}
+
+	return generator.generateCommandOp("getMore", getmoreArgs, 0)
+
+}
+
+func (generator *recordedOpGenerator) generateCommandOp(commandName string, commandArgs bson.D, requestId int32) error {
 	command := mgo.CommandOp{
 		Database:    testDB,
 		CommandName: commandName,
@@ -993,6 +1095,7 @@ func (generator *recordedOpGenerator) generateCommandOp(commandName string, comm
 	if err != nil {
 		return err
 	}
+	recordedOp.RawOp.Header.RequestID = requestId
 	generator.pushDriverRequestOps(recordedOp)
 	return nil
 }
@@ -1031,6 +1134,33 @@ func (generator *recordedOpGenerator) generateReply(responseTo int32, cursorId i
 
 	recordedOp.RawOp.Header.ResponseTo = responseTo
 	SetInt64(recordedOp.RawOp.Body, 4, cursorId) //change the cursorId field in the RawOp.Body
+	tempEnd := recordedOp.SrcEndpoint
+	recordedOp.SrcEndpoint = recordedOp.DstEndpoint
+	recordedOp.DstEndpoint = tempEnd
+	generator.pushDriverRequestOps(recordedOp)
+	return nil
+}
+
+func (generator *recordedOpGenerator) generateCommandReply(responseTo int32, cursorId int64) error {
+	commandReply := &struct {
+		Cursor struct {
+			Id int64 `bson:"id"`
+		} `bson: "cursor"`
+	}{}
+	commandReply.Cursor.Id = cursorId
+
+	reply := mgo.CommandReplyOp{
+		Metadata:     &struct{}{},
+		CommandReply: commandReply,
+		OutputDocs:   []interface{}{},
+	}
+
+	recordedOp, err := generator.fetchRecordedOpsFromConn(&reply)
+	if err != nil {
+		return err
+	}
+
+	recordedOp.RawOp.Header.ResponseTo = responseTo
 	tempEnd := recordedOp.SrcEndpoint
 	recordedOp.SrcEndpoint = recordedOp.DstEndpoint
 	recordedOp.DstEndpoint = tempEnd

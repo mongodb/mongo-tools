@@ -1,4 +1,3 @@
-/*
 var toInsert = [];
 for (var j = 0; j < 10000; j++) {
     toInsert.push({
@@ -10,7 +9,6 @@ for (var i = 0; i < 100; i++) {
     db.test.insert(toInsert);
 }
 
-*/
 db1 = (new Mongo()).getDB("mongotape");
 
 var c = db1.runCommand({
@@ -26,8 +24,8 @@ print("got cursor fron cxn1: ", cursorId);
 
 var cursor1 = db1.getMongo().cursorFromId("mongotape.test", cursorId);
 
-while (cursor1.hasNext()) {
-    printjson(cursor1.next());
+while (c.hasNext()) {
+    printjson(c.next());
 }
 
 for (var i = 0; i < 100; i++) {

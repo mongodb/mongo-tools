@@ -3,7 +3,6 @@ package mongotape
 import (
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/10gen/llmgo"
 )
@@ -38,15 +37,26 @@ type OpMetadata struct {
 type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
-	Execute(*mgo.Session) (replyContainer, error)
+	Execute(*mgo.Session) (Replyable, error)
 	Meta() OpMetadata
 	Abbreviated(int) string
 }
 
-type replyContainer struct {
-	*CommandReplyOp
-	*ReplyOp
-	Latency time.Duration
+// cursorsRewriteable is an interface for any operation that has cursors
+// that should be rewritten during live traffic playback.
+type cursorsRewriteable interface {
+	getCursorIds() ([]int64, error)
+	setCursorIds([]int64) error
+}
+
+// Replyable is an interface representing any operation that has the functionality
+// of a reply from a mongodb server. This includes both ReplyOps and CommandOpReplies.
+type Replyable interface {
+	getCursorId() (int64, error)
+	Meta() OpMetadata
+	getLatencyMicros() int64
+	getNumReturned() int
+	getErrors() []error
 }
 
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.
@@ -61,16 +71,20 @@ func (e ErrUnknownOpcode) Error() string {
 //unmarshalled using its 'FromReader' method and checks if it is a command matching
 //the ones the driver generates.
 func IsDriverOp(op Op) bool {
-	query, ok := op.(*QueryOp)
-
-	if !ok {
+	var commandType string
+	var opType string
+	switch castOp := op.(type) {
+	case *QueryOp:
+		opType, commandType = extractOpType(castOp.QueryOp.Query)
+		if opType != "command" {
+			return false
+		}
+	case *CommandOp:
+		commandType = castOp.CommandName
+	default:
 		return false
 	}
 
-	opType, commandType := extractOpType(query.QueryOp.Query)
-	if opType != "command" {
-		return false
-	}
 	switch commandType {
 	case "isMaster", "ismaster":
 		return true

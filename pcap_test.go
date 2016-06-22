@@ -1,14 +1,15 @@
 package mongotape
 
 import (
-	mgo "github.com/10gen/llmgo"
-	"github.com/10gen/llmgo/bson"
 	"io"
 	"os"
 	"testing"
+
+	mgo "github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 )
 
-type verifyFunc func(*testing.T, *mgo.Session, *BufferedStatRecorder)
+type verifyFunc func(*testing.T, *mgo.Session, *BufferedStatRecorder, *preprocessCursorManager)
 
 func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
@@ -20,7 +21,8 @@ func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 
 	pcapFname := "op_command_2inserts.pcap"
 
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder) {
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
+		t.Log("Verifying that the correct number of getmores were seen")
 		coll := session.DB(testDB).C(testCollection)
 		iter := coll.Find(bson.D{}).Sort("op_command_test").Iter()
 		result := struct {
@@ -50,7 +52,7 @@ func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 
 func TestSingleChannelGetMoreLiveDB(t *testing.T) {
 	pcapFname := "getmore_single_channel.pcap"
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder) {
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
 		getMoresSeen := 0
 		for _, val := range statRecorder.Buffer {
 			if val.OpType == "getmore" {
@@ -77,7 +79,7 @@ func TestSingleChannelGetMoreLiveDB(t *testing.T) {
 func TestMultiChannelGetMoreLiveDB(t *testing.T) {
 
 	pcapFname := "getmore_multi_channel.pcap"
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder) {
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
 		aggregationsSeen := 0
 		getMoresSeen := 0
 		for _, val := range statRecorder.Buffer {
@@ -121,7 +123,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 	playbackFname := "pcap_test_run.tape"
 	streamSettings := OpStreamSettings{
 		PcapFile:      pcapFile,
-		PacketBufSize: 1000,
+		PacketBufSize: 9000,
 	}
 	t.Log("Opening op stream")
 	ctx, err := getOpstream(streamSettings)
@@ -150,6 +152,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
 	context := NewExecutionContext(statCollector)
 
+	var preprocessMap preprocessCursorManager
 	if preprocess {
 		opChan, errChan := NewOpChanFromFile(playbackReader, 1)
 		preprocessMap, err := newPreprocessCursorManager(opChan)
@@ -173,7 +176,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 	opChan, errChan := NewOpChanFromFile(playbackReader, 1)
 
 	t.Log("Reading ops from playback file")
-	err = Play(context, opChan, testSpeed, currentTestUrl, 1, 10)
+	err = Play(context, opChan, testSpeed, currentTestUrl, 1, 30)
 	if err != nil {
 		t.Errorf("error playing back recorded file: %v\n", err)
 	}
@@ -186,7 +189,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 	if err != nil {
 		t.Errorf("Error connecting to test server: %v", err)
 	}
-	verifier(t, session, statRec)
+	verifier(t, session, statRec, &preprocessMap)
 
 	if err := teardownDB(); err != nil {
 		t.Error(err)

@@ -58,6 +58,49 @@ func TestFetchingCursorFromPreprocessManager(t *testing.T) {
 	}
 }
 
+// TestPreprocessingFileWithOpCommand tests that a preprocessManager is correctly generated from
+// from a known series of op_commands. It generates a commandreply and a command_op getmore which both use the
+// same cursorId and feeds a channel with these ops in it to the newPreprocessCursorManager
+// function. Finally, it verifies that the predefined cursorId was set in the manager.
+func TestPreprocessingFileWithOpCommand(t *testing.T) {
+	requestId := int32(1234)
+	testCursorId := int64(4567)
+
+	//Generate a channel with a getmore and a reply
+	generator := newRecordedOpGenerator()
+	var err error
+
+	err = generator.generateCommandReply(requestId, testCursorId)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = generator.generateCommandGetMore(testCursorId, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	close(generator.opChan)
+	t.Log("Creating preprocessCursorManager with newPreprocessCursorManager")
+
+	// Attempt to load these into the preprocessCursorManger
+	preprocessManager, err := newPreprocessCursorManager((<-chan *RecordedOp)(generator.opChan))
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Verify that the cursorId was entered into the map
+	t.Log("Verifying that cursor was mapped")
+	cursorInfo, ok := preprocessManager.cursorInfos[testCursorId]
+	if !ok {
+		t.Errorf("Cursor %v was supposed to be mapped, but wasn't", testCursorId)
+		return
+	}
+	if cursorInfo.numUsesLeft != 1 {
+		t.Error("Incorrect number of uses left for cursor %v. Should be: %d ---- Found: %d",
+			testCursorId, 1, cursorInfo.numUsesLeft)
+	}
+}
+
 // TestPreprocessingFile tests that a preprocessManager is correctly generated from
 // from a known series of ops. It generates a reply and a getmore which both use the
 // same cursorId and feeds a channel with these ops in it to the newPreprocessCursorManager

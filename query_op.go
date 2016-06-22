@@ -144,14 +144,13 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *QueryOp) Execute(session *mgo.Session) (replyContainer, error) {
+func (op *QueryOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
-	var replyContainer replyContainer
 	before := time.Now()
 	_, _, replyData, resultReply, err := mgo.ExecOpWithReply(session, &op.QueryOp)
 	after := time.Now()
 	if err != nil {
-		return replyContainer, err
+		return nil, err
 	}
 	mgoReply, ok := resultReply.(*mgo.ReplyOp)
 	if !ok {
@@ -165,11 +164,11 @@ func (op *QueryOp) Execute(session *mgo.Session) (replyContainer, error) {
 		dataDoc := bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
-			return replyContainer, err
+			return nil, err
 		}
 		reply.Docs = append(reply.Docs, dataDoc)
 	}
-	replyContainer.ReplyOp = reply
-	replyContainer.Latency = after.Sub(before)
-	return replyContainer, nil
+
+	reply.Latency = after.Sub(before)
+	return reply, nil
 }

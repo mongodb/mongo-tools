@@ -3,11 +3,8 @@ package mongotape
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
-	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,7 +36,7 @@ type StatCollector struct {
 }
 
 func (statColl *StatCollector) Close() error {
-	if statColl.noop || statColl.statStream == nil {
+	if statColl.statStream == nil {
 		return nil
 	}
 	statColl.StatGenerator.Finalize(statColl.statStream)
@@ -107,7 +104,7 @@ func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (
 
 // StatGenerator is an interface that specifies how to accept operation information to be recorded
 type StatGenerator interface {
-	GenerateOpStat(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) *OpStat
+	GenerateOpStat(op *RecordedOp, replayedOp Op, reply Replyable, msg string) *OpStat
 	Finalize(chan *OpStat)
 }
 
@@ -128,61 +125,6 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, bool) {
 	return nil, false
 }
 
-// extractErrors inspects a request/reply pair and returns all the error messages that were found.
-func extractErrors(op Op, reply *ReplyOp) []string {
-	if len(reply.Docs) == 0 {
-		return nil
-	}
-
-	retVal := []string{}
-	firstDoc := bson.D{}
-	err := reply.Docs[0].Unmarshal(&firstDoc)
-	if err != nil {
-		panic("failed to unmarshal Raw into bson.D")
-	}
-	if val, ok := FindValueByKey("$err", &firstDoc); ok {
-		retVal = append(retVal, fmt.Sprintf("%v", val))
-	}
-
-	if qop, ok := op.(*QueryOp); ok {
-		if strings.HasSuffix(qop.Collection, "$cmd") {
-			// This query was actually a command, so we should look for errors in the following
-			// places in the returned document:
-			// - the "$err" field, which is set if bit #1 is set on the responseFlags
-			// - the "errmsg" field on the top-level returned document
-			// - the "writeErrors" and "writeConcernErrors" arrays, which contain objects
-			//   that each have an "errmsg" field
-
-			// TODO if more than one doc was returned by the query,
-			// something weird is going on, and we should print a warning.
-			if val, ok := FindValueByKey("errmsg", &firstDoc); ok {
-				retVal = append(retVal, fmt.Sprintf("%v", val))
-			}
-
-			if val, ok := FindValueByKey("writeErrors", &firstDoc); ok {
-				switch reflect.TypeOf(val).Kind() {
-				case reflect.Slice:
-					s := reflect.ValueOf(val)
-					for i := 0; i < s.Len(); i++ {
-						retVal = append(retVal, fmt.Sprintf("%v", s.Index(i).Interface()))
-					}
-				}
-			}
-
-			if val, ok := FindValueByKey("writeConcernErrors", &firstDoc); ok {
-				switch reflect.TypeOf(val).Kind() {
-				case reflect.Slice:
-					s := reflect.ValueOf(val)
-					for i := 0; i < s.Len(); i++ {
-						retVal = append(retVal, fmt.Sprintf("%v", s.Index(i).Interface()))
-					}
-				}
-			}
-
-		}
-	}
-	return retVal
-}
 func shouldCollectOp(op Op) bool {
 	_, isReplyOp := op.(*ReplyOp)
 	_, isCommandReplyOp := op.(*CommandReplyOp)
@@ -191,7 +133,7 @@ func shouldCollectOp(op Op) bool {
 
 // Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
 // some form of storage as specified by the contained StatRecorder
-func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) {
+func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply Replyable, msg string) {
 	if statColl.noop {
 		return
 	}
@@ -344,7 +286,7 @@ type RegularStatGenerator struct {
 	UnresolvedOps map[opKey]UnresolvedOpInfo
 }
 
-func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) *OpStat {
+func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply Replyable, msg string) *OpStat {
 	if replayedOp == nil || op == nil {
 		return nil
 	}
@@ -372,23 +314,13 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 			stat.PlaybackLagMicros = int64(op.PlayedAt.Sub(op.PlayAt.Time) / time.Microsecond)
 		}
 	}
+	if reply != nil {
 
-	if reply.ReplyOp != nil {
-		replyOp := reply.ReplyOp
-		replyMeta := replyOp.Meta()
-
-		stat.NumReturned = len(replyOp.Docs)
-		stat.LatencyMicros = int64(reply.Latency / (time.Microsecond))
-		stat.Errors = extractErrors(replayedOp, replyOp)
+		stat.NumReturned = reply.getNumReturned()
+		stat.LatencyMicros = reply.getLatencyMicros()
+		stat.Errors = reply.getErrors()
+		replyMeta := reply.Meta()
 		stat.ReplyData = replyMeta.Data
-	} else if reply.CommandReplyOp != nil {
-		commandReplyOp := reply.CommandReplyOp
-		crOpMeta := commandReplyOp.Meta()
-		stat.NumReturned = len(commandReplyOp.Docs)
-		stat.ReplyData = crOpMeta.Data
-		stat.LatencyMicros = int64(reply.Latency / (time.Microsecond))
-	} else {
-		stat.ReplyData = nil
 	}
 
 	if msg != "" {
@@ -397,7 +329,7 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 	return stat
 }
 
-func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply replyContainer, msg string) *OpStat {
+func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply Replyable, msg string) *OpStat {
 	if recordedOp == nil || parsedOp == nil {
 		// TODO log a warning
 		return nil
@@ -415,7 +347,7 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 		stat.Message = msg
 	}
 	switch recordedOp.Header.OpCode {
-	case OpCodeQuery, OpCodeGetMore:
+	case OpCodeQuery, OpCodeGetMore, OpCodeCommand:
 		stat.RequestData = meta.Data
 		stat.RequestId = recordedOp.Header.RequestID
 		gen.AddUnresolvedOp(recordedOp, parsedOp, stat)
@@ -426,10 +358,15 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 		if gen.PairedMode {
 			return nil
 		}
-	case OpCodeReply:
+	case OpCodeReply, OpCodeCommandReply:
 		stat.RequestId = recordedOp.Header.ResponseTo
 		stat.ReplyData = meta.Data
-		return gen.ResolveOp(recordedOp, parsedOp.(*ReplyOp), stat)
+		switch t := parsedOp.(type) {
+		case *CommandReplyOp:
+			return gen.ResolveOp(recordedOp, t, stat)
+		case *ReplyOp:
+			return gen.ResolveOp(recordedOp, t, stat)
+		}
 	default:
 		stat.RequestData = meta.Data
 	}

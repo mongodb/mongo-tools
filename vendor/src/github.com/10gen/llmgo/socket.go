@@ -186,7 +186,7 @@ type CommandOp struct {
 
 type CommandReplyOp struct {
 	Metadata     interface{}
-	CommandReply *bson.Raw
+	CommandReply interface{}
 	OutputDocs   []interface{}
 }
 
@@ -567,6 +567,23 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 				}
 			}
 			replyFunc = op.replyFunc
+		case *CommandReplyOp:
+			buf = addHeader(buf, 2011)
+			buf, err = addBSON(buf, op.CommandReply)
+			if err != nil {
+				return err
+			}
+			buf, err = addBSON(buf, op.Metadata)
+			if err != nil {
+				return err
+			}
+			for _, doc := range op.OutputDocs {
+				debugf("Socket %p to %s: serializing document for opcommand: %#v", socket, socket.addr, doc)
+				buf, err = addBSON(buf, doc)
+				if err != nil {
+					return err
+				}
+			}
 
 		default:
 			panic("internal error: unknown operation type")

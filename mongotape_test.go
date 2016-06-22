@@ -240,7 +240,7 @@ func TestCommandOp(t *testing.T) {
 	op.CommandArgs = commandArgs
 	inputDocs := make([]interface{}, 0)
 	for i := 0; i < 5; i++ {
-		inputDocs = append(inputDocs, &bson.D{{"outputDoc", 1}})
+		inputDocs = append(inputDocs, &bson.D{{"inputDoc", 1}})
 	}
 
 	op.InputDocs = inputDocs
@@ -257,21 +257,30 @@ func TestCommandOp(t *testing.T) {
 	}
 
 	commandOp := receivedOp.(*CommandOp)
+
+	metadataAsBytes, _ := bson.Marshal(metadata)
+	metadataRaw := &bson.Raw{}
+	bson.Unmarshal(metadataAsBytes, metadataRaw)
+
+	commandArgsAsBytes, _ := bson.Marshal(commandArgs)
+	commandArgsRaw := &bson.Raw{}
+	bson.Unmarshal(commandArgsAsBytes, commandArgsRaw)
+
 	t.Log("Comparing parsed Command to original Command")
 	switch {
 	case commandOp.Database != op.Database:
 		t.Errorf("Databases not equal. Saw %v -- Expected %v\n", commandOp.Database, op.Database)
 	case commandOp.CommandName != op.CommandName:
 		t.Errorf("CommandNames not equal. Saw %v -- Expected %v\n", commandOp.CommandName, op.CommandName)
-	case !reflect.DeepEqual(commandOp.Metadata, &metadata):
-		t.Errorf("Metadata not equal. Saw %v -- Expected %v\n", commandOp.Metadata, &metadata)
-	case !reflect.DeepEqual(commandOp.CommandArgs, &commandArgs):
-		t.Errorf("CommandArgs not equal. Saw %v -- Expected %v\n", commandOp.CommandArgs, &commandArgs)
+	case !reflect.DeepEqual(commandOp.Metadata, metadataRaw):
+		t.Errorf("Metadata not equal. Saw %v -- Expected %v\n", commandOp.Metadata, metadataRaw)
+	case !reflect.DeepEqual(commandOp.CommandArgs, commandArgsRaw):
+		t.Errorf("CommandArgs not equal. Saw %v -- Expected %v\n", commandOp.CommandArgs, commandArgsRaw)
 	}
 	for i, doc := range commandOp.InputDocs {
-		marshaled, _ := bson.Marshal(inputDocs[i])
-		unmarshaled := &bson.D{}
-		bson.Unmarshal(marshaled, unmarshaled)
+		marshaledAsBytes, _ := bson.Marshal(inputDocs[i])
+		unmarshaled := &bson.Raw{}
+		bson.Unmarshal(marshaledAsBytes, unmarshaled)
 		if !reflect.DeepEqual(unmarshaled, doc) {
 			t.Errorf("Document from InputDocs not matched. Saw %v -- Expected %v\n", unmarshaled, doc)
 		}
@@ -293,5 +302,239 @@ func TestPreciseTimeMarshal(t *testing.T) {
 
 	if t1 != result.Time {
 		t.Errorf("Times not equal. Input: %v -- Result: %v", t1, result.Time)
+	}
+}
+
+func TestCommandOpGetMoreCursorsRewriteable(t *testing.T) {
+	oldCursorId := int64(1234)
+	newCursorId := int64(5678)
+
+	commandGM := &CommandGetMore{
+		CommandOp: CommandOp{},
+	}
+
+	doc := &bson.D{{"getMore", oldCursorId}}
+
+	asByte, err := bson.Marshal(doc)
+	if err != nil {
+		t.Errorf("could not marshal bson: %v", err)
+	}
+	asRaw := &bson.Raw{}
+	bson.Unmarshal(asByte, asRaw)
+	commandGM.CommandOp.CommandArgs = asRaw
+
+	t.Log("fetching getmore cursorId")
+	cursorIds, err := commandGM.getCursorIds()
+	if err != nil {
+		t.Errorf("error fetching cursorIds: %v", err)
+	}
+	if len(cursorIds) != 1 {
+		t.Errorf("differing number of cursorIds found in commandlgetmore. Expected: %v --- Found: %v", 1, len(cursorIds))
+	} else {
+		if oldCursorId != cursorIds[0] {
+			t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", oldCursorId, cursorIds[0])
+		}
+	}
+
+	t.Log("setting getmore cursorId")
+	err = commandGM.setCursorIds([]int64{newCursorId})
+	if err != nil {
+		t.Errorf("error setting cursorIds: %v", err)
+	}
+
+	t.Log("fetching new getmore cursorId")
+	cursorIds, err = commandGM.getCursorIds()
+	if err != nil {
+		t.Errorf("error fetching cursorIds: %v", err)
+	}
+	if len(cursorIds) != 1 {
+		t.Errorf("differing number of cursorIds found in killcursors. Expected: %v --- Found: %v", 1, len(cursorIds))
+	} else {
+		if newCursorId != cursorIds[0] {
+			t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", newCursorId, cursorIds[0])
+		}
+	}
+	commandArgs, ok := commandGM.CommandOp.CommandArgs.(*bson.D)
+	if !ok {
+		t.Errorf("commandArgs not a *bson.D")
+	} else {
+		for _, bsonDoc := range *commandArgs {
+			if bsonDoc.Name == "getMore" {
+				getmoreId, ok := bsonDoc.Value.(int64)
+				if !ok {
+					t.Errorf("cursorId in command is not int64")
+				}
+				if newCursorId != getmoreId {
+					t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", newCursorId, getmoreId)
+				}
+				break
+			}
+		}
+	}
+}
+
+func TestOpGetMoreCursorsRewriteable(t *testing.T) {
+	oldCursorId := int64(1234)
+	newCursorId := int64(5678)
+
+	gm := &GetMoreOp{}
+	gm.CursorId = oldCursorId
+
+	t.Log("fetching getmore cursorId")
+	cursorIds, err := gm.getCursorIds()
+	if err != nil {
+		t.Errorf("error fetching cursorIds: %v", err)
+	}
+	if len(cursorIds) != 1 {
+		t.Errorf("differing number of cursorIds found in getmore. Expected: %v --- Found: %v", 1, len(cursorIds))
+	} else {
+		if oldCursorId != cursorIds[0] {
+			t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", oldCursorId, cursorIds[0])
+		}
+	}
+
+	t.Log("setting getmore cursorId")
+	err = gm.setCursorIds([]int64{newCursorId})
+	if err != nil {
+		t.Errorf("error setting cursorIds: %v", err)
+	}
+
+	t.Log("fetching new getmore cursorId")
+	cursorIds, err = gm.getCursorIds()
+	if err != nil {
+		t.Errorf("error fetching cursorIds: %v", err)
+	}
+	if len(cursorIds) != 1 {
+		t.Errorf("differing number of cursorIds found in killcursors. Expected: %v --- Found: %v", 1, len(cursorIds))
+	} else {
+		if newCursorId != cursorIds[0] {
+			t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", newCursorId, cursorIds[0])
+		}
+	}
+
+}
+
+func TestKillCursorsRewriteable(t *testing.T) {
+	oldCursorIds := []int64{11, 12, 13}
+	newCursorIds := []int64{21, 22}
+
+	kc := &KillCursorsOp{}
+	kc.CursorIds = oldCursorIds
+
+	cursorIds, err := kc.getCursorIds()
+	if err != nil {
+		t.Errorf("error fetching cursorIds: %v", err)
+	}
+	if len(cursorIds) != len(oldCursorIds) {
+		t.Errorf("differing number of cursorIds found in killcursors. Expected: %v --- Found: %v", len(oldCursorIds), len(cursorIds))
+	} else {
+		for i := range cursorIds {
+			if oldCursorIds[i] != cursorIds[i] {
+				t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", oldCursorIds[i], cursorIds[i])
+			}
+		}
+	}
+
+	err = kc.setCursorIds(newCursorIds)
+	if err != nil {
+		t.Errorf("error setting cursorIds: %v", err)
+	}
+
+	cursorIds, err = kc.getCursorIds()
+	if err != nil {
+		t.Errorf("error fetching cursorIds: %v", err)
+	}
+	if len(cursorIds) != len(newCursorIds) {
+		t.Errorf("differing number of cursorIds found in killcursors. Expected: %v --- Found: %v", len(oldCursorIds), len(cursorIds))
+	} else {
+		for i := range cursorIds {
+			if newCursorIds[i] != cursorIds[i] {
+				t.Errorf("cursorIds not matched when retrieved. Expected: %v --- Found: %v", newCursorIds[i], cursorIds[i])
+			}
+		}
+	}
+}
+
+func TestOpCommandReplyGetCursorId(t *testing.T) {
+	testCursorId := int64(123)
+	doc := &struct {
+		Cursor struct {
+			Id int64 `bson:"id"`
+		} `bson: "cursor"`
+	}{}
+	doc.Cursor.Id = testCursorId
+	asByte, err := bson.Marshal(doc)
+	if err != nil {
+		t.Errorf("could not marshal bson: %v", err)
+	}
+	asRaw := &bson.Raw{}
+	bson.Unmarshal(asByte, asRaw)
+
+	commandReplyOp := &CommandReplyOp{}
+	commandReplyOp.CommandReply = asRaw
+	cursorId, err := commandReplyOp.getCursorId()
+	if err != nil {
+		t.Errorf("error fetching cursor %v", err)
+	}
+	if cursorId != testCursorId {
+		t.Errorf("cursorId did not match expected. Found: %v --- Expected: %v", cursorId, testCursorId)
+	}
+
+	t.Log("Ensuring cursorId consistent between multiple calls")
+	cursorId, err = commandReplyOp.getCursorId()
+	if err != nil {
+		t.Errorf("error fetching cursor %v", err)
+	}
+	if cursorId != testCursorId {
+		t.Errorf("cursorId did not match expected. Found: %v --- Expected: %v", cursorId, testCursorId)
+	}
+}
+
+func TestLegacyOpReplyGetCursorId(t *testing.T) {
+	testCursorId := int64(123)
+	doc := &struct {
+		Cursor struct {
+			Id int64 `bson:"id"`
+		} `bson: "cursor"`
+	}{}
+	doc.Cursor.Id = testCursorId
+	asByte, err := bson.Marshal(doc)
+	if err != nil {
+		t.Errorf("could not marshal bson: %v", err)
+	}
+	asRaw := bson.Raw{}
+	bson.Unmarshal(asByte, &asRaw)
+
+	reply := &ReplyOp{}
+	reply.Docs = []bson.Raw{asRaw}
+
+	t.Log("Retrieving cursorId from reply docs")
+	cursorId, err := reply.getCursorId()
+	if err != nil {
+		t.Errorf("error fetching cursor %v", err)
+	}
+	if cursorId != testCursorId {
+		t.Errorf("cursorId did not match expected. Found: %v --- Expected: %v", cursorId, testCursorId)
+	}
+
+	t.Log("Ensuring cursorId consistent between multiple calls")
+	cursorId, err = reply.getCursorId()
+	if err != nil {
+		t.Errorf("error fetching cursor %v", err)
+	}
+	if cursorId != testCursorId {
+		t.Errorf("cursorId did not match expected. Found: %v --- Expected: %v", cursorId, testCursorId)
+	}
+
+	reply2 := &ReplyOp{}
+	reply2.CursorId = testCursorId
+
+	t.Log("Retrieving cursorId from reply field")
+	cursorId, err = reply.getCursorId()
+	if err != nil {
+		t.Errorf("error fetching cursor %v", err)
+	}
+	if cursorId != testCursorId {
+		t.Errorf("cursorId did not match expected. Found: %v --- Expected: %v", cursorId, testCursorId)
 	}
 }

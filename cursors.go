@@ -155,9 +155,20 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 	for op := range opChan {
 
 		// If they don't produce a cursor, skip them
-		if op.RawOp.Header.OpCode != OpCodeGetMore && op.RawOp.Header.OpCode != OpCodeKillCursors && op.RawOp.Header.OpCode != OpCodeReply {
+		if op.RawOp.Header.OpCode != OpCodeGetMore && op.RawOp.Header.OpCode != OpCodeKillCursors &&
+			op.RawOp.Header.OpCode != OpCodeReply && op.RawOp.Header.OpCode != OpCodeCommandReply && op.RawOp.Header.OpCode != OpCodeCommand {
 			continue
 		}
+		if op.RawOp.Header.OpCode == OpCodeCommand {
+			commandName, err := getCommandName(&op.RawOp)
+			if err != nil {
+				return nil, err
+			}
+			if commandName != "getMore" && commandName != "getmore" {
+				continue
+			}
+		}
+
 		parsedOp, err := op.RawOp.Parse()
 		if err != nil {
 			return nil, err
@@ -167,21 +178,22 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 		// If the op makes use of a cursor, such as a getmore or a killcursors, track this op and
 		// attemp to match it with the reply that contains its cursor
 
-		case *GetMoreOp:
-			cursorsSeen.trackSeen(castOp.CursorId, op.SeenConnectionNum)
-
-		case *KillCursorsOp:
-			for _, cursorId := range castOp.CursorIds {
+		case cursorsRewriteable:
+			cursorIds, err := castOp.getCursorIds()
+			if err != nil {
+				return nil, err
+			}
+			for _, cursorId := range cursorIds {
+				if cursorId == 0 {
+					continue
+				}
 				cursorsSeen.trackSeen(cursorId, op.SeenConnectionNum)
 			}
+
 			// If the op is a reply it may contain a cursorId. If so, track this op and attempt to
 			// pair it with the the op that requires its cursor id.
-		case *ReplyOp:
-
-			replyCon := replyContainer{}
-			replyCon.ReplyOp = castOp
-
-			cursorId, err := GetCursorId(replyCon)
+		case Replyable:
+			cursorId, err := castOp.getCursorId()
 			if err != nil {
 				return nil, err
 			}
@@ -207,6 +219,7 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 	}
 	userInfoLogger.Logf(Always, "Preprocess complete")
 	return &result, nil
+
 }
 
 // GetCursor is an implementation of the cursorManager's GetCursor by the preprocessCursorManager. It takes a cursorId from
@@ -230,6 +243,7 @@ func (p *preprocessCursorManager) GetCursor(fileCursorId int64, connectionNum in
 		if connectionNum == cursorInfo.replyConn {
 			// the channels are not closed, and this the same connection we are supposed to be waiting on the reply for
 			// therefore, the traffic was read out of order at some point, so we should not block
+			toolDebugLogger.Logf(DebugLow, "Skipping cursor rewrite of op on same connection with connection number: %v and cursorId: %v", connectionNum, fileCursorId)
 			return 0, false
 		}
 		// otherwise, the channel is not closed, but we are not waiting on a cursor form the same connection,
@@ -260,8 +274,13 @@ func (p *preprocessCursorManager) SetCursor(fileCursorId int64, liveCursorId int
 	p.Lock()
 	cursorInfo, ok := p.cursorInfos[fileCursorId]
 	if ok {
-		cursorInfo.liveCursorId = liveCursorId
-		close(cursorInfo.successChan)
+		select {
+		case <-cursorInfo.successChan:
+			// if we've already closed the successChan, don't do it again
+		default:
+			cursorInfo.liveCursorId = liveCursorId
+			close(cursorInfo.successChan)
+		}
 	}
 	p.Unlock()
 }

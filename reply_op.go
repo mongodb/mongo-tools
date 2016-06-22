@@ -1,11 +1,13 @@
 package mongotape
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"time"
+
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"github.com/mongodb/mongo-tools/common/json"
-	"io"
 )
 
 // ReplyOp is sent by the database in response to an QueryOp or OpGetMore message.
@@ -13,7 +15,9 @@ import (
 type ReplyOp struct {
 	Header MsgHeader
 	mgo.ReplyOp
-	Docs []bson.Raw
+	Docs         []bson.Raw
+	Latency      time.Duration
+	cursorCached bool
 }
 
 func (op *ReplyOp) Meta() OpMetadata {
@@ -86,8 +90,8 @@ func (op *ReplyOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *ReplyOp) Execute(session *mgo.Session) (replyContainer, error) {
-	return replyContainer{}, nil
+func (op *ReplyOp) Execute(session *mgo.Session) (Replyable, error) {
+	return nil, nil
 }
 
 func stringifyReplyDocs(d []bson.Raw) string {
@@ -103,4 +107,53 @@ func stringifyReplyDocs(d []bson.Raw) string {
 		return fmt.Sprintf("json marshal err on reply docs: %v", err)
 	}
 	return string(asJSON)
+}
+
+// getCursorId implements the Replyable interface method. It
+// returns the cursorId stored in this reply. It returns an error
+// if there is an issue unmarshaling the underlying bson. It caches
+// the cursorId in the ReplyOp struct so that subsequent calls to this
+// function do not incur cost of unmarshalling the bson each time.
+func (opr *ReplyOp) getCursorId() (int64, error) {
+	if opr.CursorId != 0 || opr.cursorCached {
+		return opr.CursorId, nil
+	}
+	opr.cursorCached = true
+	if len(opr.Docs) != 1 {
+		return 0, nil
+	}
+	doc := &struct {
+		Cursor struct {
+			Id int64 `bson:"id"`
+		} `bson: "cursor"`
+	}{}
+	err := opr.Docs[0].Unmarshal(&doc)
+	if err != nil {
+		// can happen if there's corrupt bson in the doc.
+		return 0, fmt.Errorf("failed to unmarshal raw into bson.M: %v", err)
+	}
+	opr.CursorId = doc.Cursor.Id
+
+	return opr.CursorId, nil
+}
+
+func (opr *ReplyOp) getLatencyMicros() int64 {
+	return int64(opr.Latency / (time.Microsecond))
+}
+
+func (opr *ReplyOp) getNumReturned() int {
+	return len(opr.Docs)
+}
+
+func (opr *ReplyOp) getErrors() []error {
+	if len(opr.Docs) == 0 {
+		return nil
+	}
+
+	firstDoc := bson.D{}
+	err := opr.Docs[0].Unmarshal(&firstDoc)
+	if err != nil {
+		panic("failed to unmarshal Raw into bson.D")
+	}
+	return extractErrorsFromDoc(&firstDoc)
 }

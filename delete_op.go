@@ -85,11 +85,10 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *DeleteOp) Execute(session *mgo.Session) (replyContainer, error) {
+func (op *DeleteOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
-	var replyContainer replyContainer
 	if err := mgo.ExecOpWithoutReply(session, &op.DeleteOp); err != nil {
-		return replyContainer, err
+		return nil, err
 	}
-	return replyContainer, nil
+	return nil, nil
 }

@@ -61,7 +61,7 @@ type OpStat struct {
 
 	// Errors contains the error messages returned from the server populated in the $err field.
 	// If unset, the operation did not receive any errors from the server.
-	Errors []string `json:"errors,omitempty"`
+	Errors []error `json:"errors,omitempty"`
 
 	Message string `json:"msg,omitempty"`
 

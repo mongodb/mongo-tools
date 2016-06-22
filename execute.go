@@ -10,7 +10,7 @@ import (
 )
 
 type ReplyPair struct {
-	ops [2]*mgo.ReplyOp
+	ops [2]Replyable
 }
 
 const (
@@ -51,7 +51,10 @@ func NewExecutionContext(statColl *StatCollector) *ExecutionContext {
 // and moves that ReplyPair to CompleteReplies if it's complete.
 // The index is based on the src/dest of the recordedOp which should be the op
 // that this ReplyOp is a reply to.
-func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
+func (context *ExecutionContext) AddFromWire(reply Replyable, recordedOp *RecordedOp) {
+	if cursorId, _ := reply.getCursorId(); cursorId == 0 {
+		return
+	}
 	key := cacheKey(recordedOp, false)
 	toolDebugLogger.Logf(DebugHigh, "Adding live reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromWire)
@@ -61,13 +64,13 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 // and moves that ReplyPair to CompleteReplies if it's complete.
 // The index is based on the reversed src/dest of the recordedOp which should
 // the RecordedOp that this ReplyOp was unmarshaled out of.
-func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
+func (context *ExecutionContext) AddFromFile(reply Replyable, recordedOp *RecordedOp) {
 	key := cacheKey(recordedOp, true)
 	toolDebugLogger.Logf(DebugHigh, "Adding recorded reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromFile)
 }
 
-func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, opSource int) {
+func (context *ExecutionContext) completeReply(key string, reply Replyable, opSource int) {
 	context.Lock()
 	if cacheValue, ok := context.IncompleteReplies.Get(key); !ok {
 		rp := &ReplyPair{}
@@ -84,42 +87,49 @@ func (context *ExecutionContext) completeReply(key string, reply *mgo.ReplyOp, o
 	context.Unlock()
 }
 
-func (context *ExecutionContext) fixupGetMoreOp(getmoreOp *GetMoreOp, connectionNum int64) bool {
-	userInfoLogger.Logf(DebugLow, "Rewriting getmore cursor with ID: %v", getmoreOp.CursorId)
-
-	cursorId, ok := context.CursorIdMap.GetCursor(getmoreOp.CursorId, connectionNum)
-	getmoreOp.CursorId = cursorId
-	return ok
-}
-
-func (context *ExecutionContext) fixupKillCursorsOp(killcursorsOp *KillCursorsOp, connectionNum int64) bool {
+func (context *ExecutionContext) rewriteCursors(rewriteable cursorsRewriteable, connectionNum int64) (bool, error) {
+	cursorIds, err := rewriteable.getCursorIds()
 
 	index := 0
-	for _, cursorId := range killcursorsOp.CursorIds {
-		userInfoLogger.Logf(DebugLow, "Rewriting killcursors cursorId : %v", cursorId)
+	for _, cursorId := range cursorIds {
+		userInfoLogger.Logf(DebugLow, "Rewriting cursorId : %v", cursorId)
 		liveCursorId, ok := context.CursorIdMap.GetCursor(cursorId, connectionNum)
 		if ok {
-			killcursorsOp.CursorIds[index] = liveCursorId
+			cursorIds[index] = liveCursorId
 			index++
 		} else {
-			userInfoLogger.Logf(Always, "Missing mapped cursorId for raw cursorId : %v in KillCursorsOp", cursorId)
+			userInfoLogger.Logf(DebugLow, "Missing mapped cursorId for raw cursorId : %v", cursorId)
 		}
 	}
-	killcursorsOp.CursorIds = killcursorsOp.CursorIds[0:index]
-
-	return len(killcursorsOp.CursorIds) != 0
+	newCursors := cursorIds[0:index]
+	err = rewriteable.setCursorIds(newCursors)
+	if err != nil {
+		return false, err
+	}
+	return len(newCursors) != 0, nil
 }
 
-func (context *ExecutionContext) handleCompletedReplies() {
+func (context *ExecutionContext) handleCompletedReplies() error {
 	context.Lock()
 	for key, rp := range context.CompleteReplies {
 		userInfoLogger.Logf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
-		if rp.ops[ReplyFromFile].CursorId != 0 {
-			context.CursorIdMap.SetCursor(rp.ops[ReplyFromFile].CursorId, rp.ops[ReplyFromWire].CursorId)
+		cursorFromFile, err := rp.ops[ReplyFromFile].getCursorId()
+		if err != nil {
+			return err
 		}
+		cursorFromWire, err := rp.ops[ReplyFromWire].getCursorId()
+		if err != nil {
+			return err
+		}
+		if cursorFromFile != 0 {
+			context.CursorIdMap.SetCursor(cursorFromFile, cursorFromWire)
+		}
+
 		delete(context.CompleteReplies, key)
 	}
+
 	context.Unlock()
+	return nil
 }
 
 func (context *ExecutionContext) newExecutionSession(url string, start time.Time, connectionNum int64) chan<- *RecordedOp {
@@ -140,7 +150,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 		}
 		for recordedOp := range ch {
 			var parsedOp Op
-			var replyContainer replyContainer
+			var reply Replyable
 			var err error
 			msg := ""
 			if connected {
@@ -155,7 +165,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				}
 				userInfoLogger.Logf(DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
 				session.SetSocketTimeout(0)
-				parsedOp, replyContainer, err = context.Execute(recordedOp, session)
+				parsedOp, reply, err = context.Execute(recordedOp, session)
 				if err != nil {
 					toolDebugLogger.Logf(Always, "context.Execute error: %v", err)
 				}
@@ -169,7 +179,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				toolDebugLogger.Log(Always, msg)
 			}
 			if shouldCollectOp(parsedOp) {
-				context.Collect(recordedOp, parsedOp, replyContainer, msg)
+				context.Collect(recordedOp, parsedOp, reply, msg)
 			}
 		}
 		userInfoLogger.Logf(Info, "(Connection %v) Connection ENDED.", connectionNum)
@@ -178,67 +188,51 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 	return ch
 }
 
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, replyContainer, error) {
+func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, Replyable, error) {
 	opToExec, err := op.RawOp.Parse()
-	var replyContainer replyContainer
+	var reply Replyable
 
 	if err != nil {
-		return nil, replyContainer, fmt.Errorf("ParseOpRawError: %v", err)
+		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
 	}
 	if opToExec == nil {
 		toolDebugLogger.Logf(Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
-		return nil, replyContainer, nil
+		return nil, nil, nil
 	}
 	if recordedReply, ok := opToExec.(*ReplyOp); ok {
-		replyContainer.ReplyOp = recordedReply
-		cursorId, err := GetCursorId(replyContainer)
-		if err != nil {
-			toolDebugLogger.Logf(Always, "Warning: error when trying to find cursor ID in reply: %v", err)
-		}
-		if cursorId != 0 {
-			recordedReply.ReplyOp.CursorId = cursorId
-		}
-		context.AddFromFile(&recordedReply.ReplyOp, op)
-	} else if _, ok := opToExec.(*CommandReplyOp); ok {
-		// XXX handle the CommandReplyOp and pair it with it's other one from the wire
+		context.AddFromFile(recordedReply, op)
+	} else if recordedCommandReply, ok := opToExec.(*CommandReplyOp); ok {
+		context.AddFromFile(recordedCommandReply, op)
 	} else {
-
 		if IsDriverOp(opToExec) {
-			return opToExec, replyContainer, nil
+			return opToExec, nil, nil
 		}
 
-		switch t := opToExec.(type) {
-		case *GetMoreOp:
-			ok := context.fixupGetMoreOp(t, op.SeenConnectionNum)
-			if !ok {
-				return opToExec, replyContainer, nil
+		if rewriteable, ok1 := opToExec.(cursorsRewriteable); ok1 {
+			ok2, err := context.rewriteCursors(rewriteable, op.SeenConnectionNum)
+			if err != nil {
+				return opToExec, nil, err
 			}
-		case *KillCursorsOp:
-			ok := context.fixupKillCursorsOp(t, op.SeenConnectionNum)
-			if !ok {
-				return opToExec, replyContainer, nil
+			if !ok2 {
+				return opToExec, nil, nil
 			}
 		}
 
 		op.PlayedAt = &PreciseTime{time.Now()}
-		replyContainer, err = opToExec.Execute(session)
+
+		reply, err = opToExec.Execute(session)
 
 		if err != nil {
 			context.CursorIdMap.MarkFailed(op)
-			return opToExec, replyContainer, fmt.Errorf("error executing op: %v", err)
+			return opToExec, reply, fmt.Errorf("error executing op: %v", err)
 		}
-		if replyContainer.ReplyOp != nil {
-			cursorId, err := GetCursorId(replyContainer)
-			if err != nil {
-				toolDebugLogger.Logf(Always, "Warning: error when trying to find cursor ID in reply: %v", err)
-			}
-			if cursorId != 0 {
-				replyContainer.ReplyOp.CursorId = cursorId
-			}
-			context.AddFromWire(&replyContainer.ReplyOp.ReplyOp, op)
+		if reply != nil {
+			context.AddFromWire(reply, op)
+
 		}
+
 	}
 	context.handleCompletedReplies()
 
-	return opToExec, replyContainer, nil
+	return opToExec, reply, nil
 }

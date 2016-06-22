@@ -82,11 +82,11 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *InsertOp) Execute(session *mgo.Session) (replyContainer, error) {
+func (op *InsertOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {
-		return replyContainer{}, err
+		return nil, err
 	}
 
-	return replyContainer{}, nil
+	return nil, nil
 }

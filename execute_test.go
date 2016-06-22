@@ -14,7 +14,8 @@ func TestCompleteReply(t *testing.T) {
 	log.SetVerbosity(&options.Verbosity{[]bool{true, true, true, true, true}, false})
 
 	// AddFromWire takes a recorded request and a live reply to the re-execution of that reply
-	reply1 := &mgo.ReplyOp{
+	reply1 := &ReplyOp{}
+	reply1.ReplyOp = mgo.ReplyOp{
 		CursorId: 2500,
 	}
 	recordedOp1 := &RecordedOp{
@@ -30,9 +31,11 @@ func TestCompleteReply(t *testing.T) {
 	context.AddFromWire(reply1, recordedOp1)
 
 	// AddFromFile takes a recorded reply and the contained reply
-	reply2 := &mgo.ReplyOp{
+	reply2 := &ReplyOp{}
+	reply2.ReplyOp = mgo.ReplyOp{
 		CursorId: 1500,
 	}
+
 	recordedOp2 := &RecordedOp{
 		DstEndpoint: "b",
 		SrcEndpoint: "a",

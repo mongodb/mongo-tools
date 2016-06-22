@@ -11,12 +11,95 @@ import (
 )
 
 // CommandOp is a struct for parsing OP_COMMAND as defined here: https://github.com/mongodb/mongo/blob/master/src/mongo/rpc/command_request.h.
-// Although this file parses the wire protocol message into a more useable struct, it does not currently provide functionality to execute
-// the operation, as it is not implemented fully in llmgo.
-
 type CommandOp struct {
 	Header MsgHeader
 	mgo.CommandOp
+}
+
+// CommandGetMore is a struct representing a special case of an OP_COMMAND which has commandName 'getmore'.
+// It implements the cursorsRewriteable interface and has fields for caching the found cursors so that multiple
+// calls to these methods do not incur the overhead of searching the underlying bson for the cursorId.
+type CommandGetMore struct {
+	CommandOp
+	cachedCursor *int64
+}
+
+// getCursorIds is an implementation of the cursorsRewriteable interface method. It
+// returns an array of the cursors contained in the CommandGetMore, which is only ever
+// one cursor. It may return an error if unmarshalling the command's bson fails.
+func (gmCommand *CommandGetMore) getCursorIds() ([]int64, error) {
+	if gmCommand.cachedCursor != nil {
+		return []int64{*gmCommand.cachedCursor}, nil
+	}
+
+	var err error
+	switch t := gmCommand.CommandArgs.(type) {
+	case *bson.D:
+		for _, bsonDoc := range *t {
+			if bsonDoc.Name == "getMore" {
+				getmoreId, ok := bsonDoc.Value.(int64)
+				if !ok {
+					return []int64{}, fmt.Errorf("cursorId is not int64")
+				}
+				gmCommand.cachedCursor = &getmoreId
+				break
+			}
+		}
+	case *bson.Raw:
+		doc := &struct {
+			GetMore int64 `bson:"getMore"`
+		}{}
+		err = t.Unmarshal(doc)
+		if err != nil {
+			return []int64{}, fmt.Errorf("failed to unmarshal bson.Raw into struct: %v", err)
+		}
+
+		gmCommand.cachedCursor = &doc.GetMore
+	default:
+		panic("not a *bson.D or *bson.Raw")
+	}
+
+	return []int64{*gmCommand.cachedCursor}, err
+}
+
+// setCursorIds is an implementation of the cusorsRewriteable interface method. It
+// takes an array of of cursors that will function as the new cursors for this operation.
+// If there are more than one cursorIds in the array, it errors, as it only ever expects one.
+// It may also error if unmarshalling the underlying bson fails.
+func (gmCommand *CommandGetMore) setCursorIds(newCursorIds []int64) error {
+	var newCursorId int64
+
+	if len(newCursorIds) > 1 {
+		return fmt.Errorf("rewriting getmore command cursorIds requires 1 id, received: %d", len(newCursorIds))
+	}
+	if len(newCursorIds) < 1 {
+		newCursorId = 0
+	} else {
+		newCursorId = newCursorIds[0]
+	}
+	var doc bson.D
+	switch t := gmCommand.CommandArgs.(type) {
+	case *bson.D:
+		doc = *t
+	case *bson.Raw:
+		err := t.Unmarshal(&doc)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal bson.Raw into struct: %v", err)
+		}
+	default:
+		panic("not a *bson.D or *bson.Raw")
+	}
+
+	// loop over the keys of the bson.D and the set the correct one
+	for i, bsonDoc := range doc {
+		if bsonDoc.Name == "getMore" {
+			doc[i].Value = newCursorId
+			break
+		}
+	}
+	gmCommand.cachedCursor = &newCursorId
+	gmCommand.CommandArgs = &doc
+	return nil
 }
 
 func (op *CommandOp) String() string {
@@ -28,8 +111,6 @@ func (op *CommandOp) String() string {
 }
 
 // Meta returns metadata about the operation, useful for analysis of traffic.
-// Currently only returns 'unknown' as it is not fully parsed and analyzed.
-
 func (op *CommandOp) Meta() OpMetadata {
 	return OpMetadata{"op_command",
 		op.Database,
@@ -110,7 +191,7 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	op.CommandArgs = &bson.D{}
+	op.CommandArgs = &bson.Raw{}
 	err = bson.Unmarshal(commandArgsAsSlice, op.CommandArgs)
 	if err != nil {
 		return err
@@ -120,7 +201,7 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	op.Metadata = &bson.D{}
+	op.Metadata = &bson.Raw{}
 	err = bson.Unmarshal(metadataAsSlice, op.Metadata)
 	if err != nil {
 		return err
@@ -132,7 +213,7 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 	docLen := 0
 	for lengthRead+docLen < int(op.Header.MessageLength)-MsgHeaderLen {
 		docAsSlice, err := ReadDocument(r)
-		doc := &bson.D{}
+		doc := &bson.Raw{}
 		err = bson.Unmarshal(docAsSlice, doc)
 		if err != nil {
 			return err
@@ -143,16 +224,14 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-// Execute logs a warning and returns nil because OP_COMMAND cannot yet be handled fully by mongotape.
-
-func (op *CommandOp) Execute(session *mgo.Session) (replyContainer, error) {
+func (op *CommandOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
-	var replyContainer replyContainer
+
 	before := time.Now()
 	metadata, commandReply, replyData, resultReply, err := mgo.ExecOpWithReply(session, &op.CommandOp)
 	after := time.Now()
 	if err != nil {
-		return replyContainer, err
+		return nil, err
 	}
 	mgoCommandReplyOp, ok := resultReply.(*mgo.CommandReplyOp)
 	if !ok {
@@ -162,40 +241,43 @@ func (op *CommandOp) Execute(session *mgo.Session) (replyContainer, error) {
 		CommandReplyOp: *mgoCommandReplyOp,
 	}
 
-	commandReplyOp.Metadata = &bson.D{}
+	commandReplyOp.Metadata = &bson.Raw{}
 	err = bson.Unmarshal(metadata, commandReplyOp.Metadata)
 	if err != nil {
-		return replyContainer, err
+		return nil, err
 	}
-	commandReplyOp.CommandReply = &bson.Raw{}
-	err = bson.Unmarshal(commandReply, commandReplyOp.CommandReply)
+	commandReplyAsRaw := &bson.Raw{}
+	err = bson.Unmarshal(commandReply, commandReplyAsRaw)
 	if err != nil {
-		return replyContainer, err
+		return nil, err
 	}
-	var doc bson.M
-	err = commandReplyOp.CommandReply.Unmarshal(&doc)
+	commandReplyOp.CommandReply = commandReplyAsRaw
+	doc := &struct {
+		Cursor struct {
+			FirstBatch []bson.Raw `bson:"firstBatch"`
+			NextBatch  []bson.Raw `bson:"nextBatch"`
+		} `bson:"cursor"`
+	}{}
+	err = commandReplyAsRaw.Unmarshal(&doc)
 	if err != nil {
-		return replyContainer, err
+		return nil, err
 	}
-	cursorInfo := doc["cursor"]
-	if cursorInfo != nil {
-		cursorInfoMap := cursorInfo.(bson.M)
-		firstBatch := cursorInfoMap["firstBatch"]
-		if firstBatch != nil {
-			commandReplyOp.Docs = firstBatch.([]interface{})
-		}
+
+	if doc.Cursor.FirstBatch != nil {
+		commandReplyOp.Docs = doc.Cursor.FirstBatch
+	} else if doc.Cursor.NextBatch != nil {
+		commandReplyOp.Docs = doc.Cursor.NextBatch
 	}
 
 	for _, d := range replyData {
-		dataDoc := &bson.D{}
+		dataDoc := &bson.Raw{}
 		err = bson.Unmarshal(d, &dataDoc)
 		if err != nil {
-			return replyContainer, err
+			return nil, err
 		}
 		commandReplyOp.OutputDocs = append(commandReplyOp.OutputDocs, dataDoc)
 	}
-	replyContainer.CommandReplyOp = commandReplyOp
-	replyContainer.Latency = after.Sub(before)
-	return replyContainer, nil
+	commandReplyOp.Latency = after.Sub(before)
+	return commandReplyOp, nil
 
 }

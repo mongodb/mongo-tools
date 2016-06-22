@@ -45,7 +45,7 @@ func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, re
 // recordedReply is the just received reply in the form of a RecordedOp, which contains additional metadata.
 // parsedReply is the same reply, parsed so that the payload of the op can be accesssed.
 // replyStat is the OpStat created by the GenerateOpStat function, containing computed metadata about the reply.
-func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply *ReplyOp, replyStat *OpStat) *OpStat {
+func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, reply Replyable, replyStat *OpStat) *OpStat {
 	result := &OpStat{}
 
 	key := opKey{
@@ -69,8 +69,8 @@ func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedRepl
 		// about the original op is largely ignored.
 		result = replyStat
 	}
-	result.Errors = extractErrors(originalOpInfo.ParsedOp, parsedReply)
-	result.NumReturned = int(parsedReply.ReplyDocs)
+	result.Errors = reply.getErrors()
+	result.NumReturned = reply.getNumReturned()
 	result.ReplyData = replyStat.ReplyData
 	result.LatencyMicros = int64(replyStat.Seen.Sub(*originalOpInfo.Stat.Seen) / (time.Microsecond))
 	delete(gen.UnresolvedOps, key)
@@ -127,7 +127,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		statColl.Collect(op, parsedOp, replyContainer{}, "")
+		statColl.Collect(op, parsedOp, nil, "")
 	}
 	err = <-errChan
 	if err != nil && err != io.EOF {

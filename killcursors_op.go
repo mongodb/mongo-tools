@@ -30,6 +30,14 @@ func (op *KillCursorsOp) OpCode() OpCode {
 	return OpCodeKillCursors
 }
 
+func (op *KillCursorsOp) getCursorIds() ([]int64, error) {
+	return op.KillCursorsOp.CursorIds, nil
+}
+func (op *KillCursorsOp) setCursorIds(cursorIds []int64) error {
+	op.KillCursorsOp.CursorIds = cursorIds
+	return nil
+}
+
 func (op *KillCursorsOp) FromReader(r io.Reader) error {
 	var b [8]byte
 	_, err := io.ReadFull(r, b[:]) //skip ZERO and grab numberOfCursors
@@ -48,11 +56,11 @@ func (op *KillCursorsOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-func (op *KillCursorsOp) Execute(session *mgo.Session) (replyContainer, error) {
+func (op *KillCursorsOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.KillCursorsOp); err != nil {
-		return replyContainer{}, err
+		return nil, err
 	}
 
-	return replyContainer{}, nil
+	return nil, nil
 }

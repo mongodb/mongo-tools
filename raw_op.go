@@ -87,6 +87,14 @@ func (rawOp *RawOp) Parse() (Op, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Special case to check if this commandOp contains a cursor, which means it needs to be remapped
+	// at some point.
+	if commandOp, ok := parsedOp.(*CommandOp); ok {
+		if commandOp.CommandName == "getMore" {
+			return &CommandGetMore{
+				CommandOp: *commandOp,
+			}, nil
+		}
+	}
 	return parsedOp, nil
-
 }
