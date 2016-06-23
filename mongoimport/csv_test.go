@@ -53,8 +53,8 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", `foo" "bar`},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
@@ -70,8 +70,8 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", " 3e"},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
@@ -87,7 +87,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
+				bson.DocElem{"a", int32(1)},
 				bson.DocElem{"b", "2f"},
 				bson.DocElem{"c", " 3e"},
 				bson.DocElem{"field3", " may"},
@@ -105,7 +105,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
+				bson.DocElem{"a", int32(1)},
 				bson.DocElem{"b", bson.D{
 					bson.DocElem{"c", "2f"},
 				}},
@@ -154,14 +154,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedReadOne := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", 3},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
+				bson.DocElem{"c", int32(3)},
 			}
 			expectedReadTwo := bson.D{
-				bson.DocElem{"a", 4},
-				bson.DocElem{"b", 5},
-				bson.DocElem{"c", 6},
+				bson.DocElem{"a", int32(4)},
+				bson.DocElem{"b", int32(5)},
+				bson.DocElem{"c", int32(6)},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 2)
@@ -178,14 +178,14 @@ func TestCSVStreamDocument(t *testing.T) {
 			}
 			expectedReads := []bson.D{
 				bson.D{
-					bson.DocElem{"a", 1},
-					bson.DocElem{"b", 2},
-					bson.DocElem{"c", 3},
+					bson.DocElem{"a", int32(1)},
+					bson.DocElem{"b", int32(2)},
+					bson.DocElem{"c", int32(3)},
 				},
 				bson.D{
-					bson.DocElem{"a", 4},
-					bson.DocElem{"b", 5},
-					bson.DocElem{"c", 6},
+					bson.DocElem{"a", int32(4)},
+					bson.DocElem{"b", int32(5)},
+					bson.DocElem{"c", int32(6)},
 				},
 			}
 			fileHandle, err := os.Open("testdata/test_bom.csv")
@@ -310,12 +310,12 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedReadOne := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", 3},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
+				bson.DocElem{"c", int32(3)},
 			}
 			expectedReadTwo := bson.D{
-				bson.DocElem{"a", 3},
+				bson.DocElem{"a", int32(3)},
 				bson.DocElem{"b", 5.4},
 				bson.DocElem{"c", "string"},
 			}

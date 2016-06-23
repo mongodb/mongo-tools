@@ -47,29 +47,28 @@ func TestTypedHeaderParser(t *testing.T) {
 	})
 
 	Convey("Using various bad headers", t, func() {
-		var columnSpec ColumnSpec
 		var err error
 
 		Convey("with non-empty arguments for types that don't want them", func() {
-			columnSpec, err = ParseTypedHeader("zip.string(blah)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.string(blah)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.string(0)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.string(0)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.int32(0)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.int32(0)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.int64(0)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.int64(0)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.double(0)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.double(0)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.auto(0)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.auto(0)", pgAutoCast)
 			So(err, ShouldNotBeNil)
 		})
 		Convey("with bad arguments for the binary type", func() {
-			columnSpec, err = ParseTypedHeader("zip.binary(blah)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.binary(blah)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.binary(binary)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.binary(binary)", pgAutoCast)
 			So(err, ShouldNotBeNil)
-			columnSpec, err = ParseTypedHeader("zip.binary(decimal)", pgAutoCast)
+			_, err = ParseTypedHeader("zip.binary(decimal)", pgAutoCast)
 			So(err, ShouldNotBeNil)
 		})
 	})
@@ -97,13 +96,13 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses integers when it can", func() {
 			value, err = p.Parse("2147483648")
-			So(value.(int), ShouldEqual, 2147483648)
+			So(value.(int64), ShouldEqual, int64(2147483648))
 			So(err, ShouldBeNil)
 			value, err = p.Parse("42")
-			So(value.(int), ShouldEqual, 42)
+			So(value.(int32), ShouldEqual, 42)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-2147483649")
-			So(value.(int), ShouldEqual, -2147483649)
+			So(value.(int64), ShouldEqual, int64(-2147483649))
 		})
 		Convey("parses decimals when it can", func() {
 			value, err = p.Parse("3.14159265")
@@ -345,13 +344,13 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses valid integer values correctly", func() {
 			value, err = p.Parse("2147483648")
-			So(value.(int64), ShouldEqual, 2147483648)
+			So(value.(int64), ShouldEqual, int64(2147483648))
 			So(err, ShouldBeNil)
 			value, err = p.Parse("42")
 			So(value.(int64), ShouldEqual, 42)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-2147483649")
-			So(value.(int64), ShouldEqual, -2147483649)
+			So(value.(int64), ShouldEqual, int64(-2147483649))
 		})
 		Convey("does not parse invalid numbers", func() {
 			_, err = p.Parse("")

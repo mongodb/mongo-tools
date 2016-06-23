@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -183,8 +184,11 @@ func NewFieldParser(t columnType, arg string) (parser FieldParser, err error) {
 }
 
 func autoParse(in string) interface{} {
-	parsedInt, err := strconv.Atoi(in)
+	parsedInt, err := strconv.ParseInt(in, 10, 64)
 	if err == nil {
+		if math.MinInt32 <= parsedInt && parsedInt <= math.MaxInt32 {
+			return int32(parsedInt)
+		}
 		return parsedInt
 	}
 	parsedFloat, err := strconv.ParseFloat(in, 64)

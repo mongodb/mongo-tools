@@ -529,9 +529,9 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2},
+				bson.M{"_id": 1, "b": int(2)},
 				bson.M{"_id": 5, "c": "6e"},
-				bson.M{"_id": 7, "b": 8, "c": 6},
+				bson.M{"_id": 7, "b": int(8), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -546,9 +546,9 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": ""},
+				bson.M{"_id": 1, "b": int(2), "c": ""},
 				bson.M{"_id": 5, "b": "", "c": "6e"},
-				bson.M{"_id": 7, "b": 8, "c": 6},
+				bson.M{"_id": 7, "b": int(8), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -565,9 +565,9 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": 3},
+				bson.M{"_id": 1, "b": int(2), "c": int(3)},
 				bson.M{"_id": 3, "b": 5.4, "c": "string"},
-				bson.M{"_id": 5, "b": 6, "c": 6},
+				bson.M{"_id": 5, "b": int(6), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -586,9 +586,9 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": 3},
+				bson.M{"_id": 1, "b": int(2), "c": int(3)},
 				bson.M{"_id": 3, "b": 5.4, "c": "string"},
-				bson.M{"_id": 5, "b": 6, "c": 6},
+				bson.M{"_id": 5, "b": int(6), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -606,10 +606,10 @@ func TestImportDocuments(t *testing.T) {
 			So(numImported, ShouldEqual, 5)
 
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": 3},
+				bson.M{"_id": 1, "b": int(2), "c": int(3)},
 				bson.M{"_id": 3, "b": 5.4, "c": "string"},
-				bson.M{"_id": 5, "b": 6, "c": 6},
-				bson.M{"_id": 8, "b": 6, "c": 6},
+				bson.M{"_id": 5, "b": int(6), "c": int(6)},
+				bson.M{"_id": 8, "b": int(6), "c": int(6)},
 			}
 			// all docs except the one with duplicate _id - should be imported
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
@@ -628,9 +628,9 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": 3},
+				bson.M{"_id": 1, "b": int(2), "c": int(3)},
 				bson.M{"_id": 3, "b": 5.4, "c": "string"},
-				bson.M{"_id": 5, "b": 6, "c": 6},
+				bson.M{"_id": 5, "b": int(6), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -676,9 +676,9 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "c": 2, "b": 3},
+				bson.M{"_id": 1, "c": int(2), "b": int(3)},
 				bson.M{"_id": 3, "c": 5.4, "b": "string"},
-				bson.M{"_id": 5, "c": 6, "b": 6},
+				bson.M{"_id": 5, "c": int(6), "b": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -696,10 +696,10 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 5)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": 3},
+				bson.M{"_id": 1, "b": int(2), "c": int(3)},
 				bson.M{"_id": 3, "b": 5.4, "c": "string"},
-				bson.M{"_id": 5, "b": 6, "c": 9},
-				bson.M{"_id": 8, "b": 6, "c": 6},
+				bson.M{"_id": 5, "b": int(6), "c": int(9)},
+				bson.M{"_id": 8, "b": int(6), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -717,9 +717,9 @@ func TestImportDocuments(t *testing.T) {
 			_, err = imp.ImportDocuments()
 			So(err, ShouldNotBeNil)
 			expectedDocuments := []bson.M{
-				bson.M{"_id": 1, "b": 2, "c": 3},
+				bson.M{"_id": 1, "b": int(2), "c": int(3)},
 				bson.M{"_id": 3, "b": 5.4, "c": "string"},
-				bson.M{"_id": 5, "b": 6, "c": 6},
+				bson.M{"_id": 5, "b": int(6), "c": int(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})

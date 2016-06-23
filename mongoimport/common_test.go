@@ -311,8 +311,8 @@ func TestTokensToBSON(t *testing.T) {
 			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", "hello"},
 			}
 			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
@@ -328,8 +328,8 @@ func TestTokensToBSON(t *testing.T) {
 			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", "hello"},
 				bson.DocElem{"field3", "mongodb"},
 				bson.DocElem{"field4", "user"},
@@ -356,8 +356,8 @@ func TestTokensToBSON(t *testing.T) {
 			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", bson.D{
 					bson.DocElem{"a", "hello"},
 				}},

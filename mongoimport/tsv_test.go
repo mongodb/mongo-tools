@@ -21,8 +21,8 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", "3e"},
 			}
 			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
@@ -39,9 +39,9 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", 3},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
+				bson.DocElem{"c", int32(3)},
 			}
 			fileHandle, err := os.Open("testdata/test_bom.tsv")
 			So(err, ShouldBeNil)
@@ -78,8 +78,8 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
 				bson.DocElem{"c", "3e"},
 				bson.DocElem{"field3", " may"},
 			}
@@ -98,10 +98,10 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"d", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", 12},
+				bson.DocElem{"a", int32(12)},
 				bson.DocElem{"b", 13.3},
 				bson.DocElem{"c", "Inline"},
-				bson.DocElem{"d", 14},
+				bson.DocElem{"d", int32(14)},
 			}
 			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
@@ -119,14 +119,14 @@ func TestTSVStreamDocument(t *testing.T) {
 			}
 			expectedReads := []bson.D{
 				bson.D{
-					bson.DocElem{"a", 1},
-					bson.DocElem{"b", 2},
-					bson.DocElem{"c", 3},
+					bson.DocElem{"a", int32(1)},
+					bson.DocElem{"b", int32(2)},
+					bson.DocElem{"c", int32(3)},
 				},
 				bson.D{
-					bson.DocElem{"a", 4},
-					bson.DocElem{"b", 5},
-					bson.DocElem{"c", 6},
+					bson.DocElem{"a", int32(4)},
+					bson.DocElem{"b", int32(5)},
+					bson.DocElem{"c", int32(6)},
 				},
 			}
 			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
@@ -149,14 +149,14 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedReadOne := bson.D{
-				bson.DocElem{"a", 1},
-				bson.DocElem{"b", 2},
-				bson.DocElem{"c", 3},
+				bson.DocElem{"a", int32(1)},
+				bson.DocElem{"b", int32(2)},
+				bson.DocElem{"c", int32(3)},
 			}
 			expectedReadTwo := bson.D{
-				bson.DocElem{"a", 4},
+				bson.DocElem{"a", int32(4)},
 				bson.DocElem{"b", `"`},
-				bson.DocElem{"c", 6},
+				bson.DocElem{"c", int32(6)},
 			}
 			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 2)
@@ -174,14 +174,14 @@ func TestTSVStreamDocument(t *testing.T) {
 					{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 				}
 				expectedReadOne := bson.D{
-					bson.DocElem{"a", 1},
-					bson.DocElem{"b", 2},
-					bson.DocElem{"c", 3},
+					bson.DocElem{"a", int32(1)},
+					bson.DocElem{"b", int32(2)},
+					bson.DocElem{"c", int32(3)},
 				}
 				expectedReadTwo := bson.D{
-					bson.DocElem{"a", 3},
+					bson.DocElem{"a", int32(3)},
 					bson.DocElem{"b", 4.6},
-					bson.DocElem{"c", 5},
+					bson.DocElem{"c", int32(5)},
 				}
 				fileHandle, err := os.Open("testdata/test.tsv")
 				So(err, ShouldBeNil)
