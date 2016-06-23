@@ -72,9 +72,9 @@ func TestBasicMux(t *testing.T) {
 		muxIns := map[string]*MuxIn{}
 
 		inChecksum := map[string]hash.Hash{}
-		inLength := map[string]int{}
+		inLengths := map[string]*int{}
 		outChecksum := map[string]hash.Hash{}
-		outLength := map[string]int{}
+		outLengths := map[string]*int{}
 
 		// To confirm that what we multiplex is the same as what we demultiplex, we
 		// create input and output hashes for each namespace. After we finish
@@ -87,6 +87,8 @@ func TestBasicMux(t *testing.T) {
 		errChan := make(chan error)
 		for index, dbc := range testIntents {
 			closeDbc := dbc
+			inLength := 0
+			inLengths[closeDbc.Namespace()] = &inLength
 			go func() {
 				err = muxIns[closeDbc.Namespace()].Open()
 				if err != nil {
@@ -101,7 +103,7 @@ func TestBasicMux(t *testing.T) {
 					copy(bsonBuf, bsonBytes)
 					muxIns[closeDbc.Namespace()].Write(bsonBuf)
 					inChecksum[closeDbc.Namespace()].Write(bsonBuf)
-					inLength[closeDbc.Namespace()] += len(bsonBuf)
+					inLength += len(bsonBuf)
 				}
 				err = muxIns[closeDbc.Namespace()].Close()
 				errChan <- err
@@ -130,6 +132,8 @@ func TestBasicMux(t *testing.T) {
 			errChan := make(chan error)
 			for _, dbc := range testIntents {
 				closeDbc := dbc
+				outLength := 0
+				outLengths[closeDbc.Namespace()] = &outLength
 				go func() {
 					bs := make([]byte, db.MaxBSONSize)
 					var readErr error
@@ -143,7 +147,7 @@ func TestBasicMux(t *testing.T) {
 							break
 						}
 						outChecksum[closeDbc.Namespace()].Write(bs[:length])
-						outLength[closeDbc.Namespace()] += len(bs[:length])
+						outLength += len(bs[:length])
 					}
 					if readErr == io.EOF {
 						readErr = nil
@@ -159,7 +163,7 @@ func TestBasicMux(t *testing.T) {
 					So(err, ShouldBeNil)
 				}
 				for _, dbc := range testIntents {
-					So(inLength[dbc.Namespace()], ShouldEqual, outLength[dbc.Namespace()])
+					So(*inLengths[dbc.Namespace()], ShouldEqual, *outLengths[dbc.Namespace()])
 					So(inChecksum[dbc.Namespace()].Sum([]byte{}), ShouldResemble, outChecksum[dbc.Namespace()].Sum([]byte{}))
 				}
 			})
@@ -181,10 +185,10 @@ func TestParallelMux(t *testing.T) {
 		demuxOuts := map[string]*RegularCollectionReceiver{}
 
 		inChecksum := map[string]hash.Hash{}
-		inLength := map[string]int{}
+		inLengths := map[string]*int{}
 
 		outChecksum := map[string]hash.Hash{}
-		outLength := map[string]int{}
+		outLengths := map[string]*int{}
 
 		for _, dbc := range testIntents {
 			inChecksum[dbc.Namespace()] = crc32.NewIEEE()
@@ -200,6 +204,8 @@ func TestParallelMux(t *testing.T) {
 
 		for index, dbc := range testIntents {
 			closeDbc := dbc
+			inLength := 0
+			inLengths[closeDbc.Namespace()] = &inLength
 			go func() {
 				err = muxIns[closeDbc.Namespace()].Open()
 				if err != nil {
@@ -214,7 +220,7 @@ func TestParallelMux(t *testing.T) {
 					copy(bsonBuf, bsonBytes)
 					muxIns[closeDbc.Namespace()].Write(bsonBuf)
 					inChecksum[closeDbc.Namespace()].Write(bsonBuf)
-					inLength[closeDbc.Namespace()] += len(bsonBuf)
+					inLength += len(bsonBuf)
 				}
 
 				err = muxIns[closeDbc.Namespace()].Close()
@@ -224,8 +230,10 @@ func TestParallelMux(t *testing.T) {
 
 		for _, dbc := range testIntents {
 			closeDbc := dbc
+			outLength := 0
+			outLengths[closeDbc.Namespace()] = &outLength
+			demuxOuts[closeDbc.Namespace()].Open()
 			go func() {
-				demuxOuts[closeDbc.Namespace()].Open()
 				bs := make([]byte, db.MaxBSONSize)
 				var readErr error
 				//var length int
@@ -238,7 +246,7 @@ func TestParallelMux(t *testing.T) {
 						break
 					}
 					outChecksum[closeDbc.Namespace()].Write(bs[:length])
-					outLength[closeDbc.Namespace()] += len(bs[:length])
+					outLength += len(bs[:length])
 				}
 				if readErr == io.EOF {
 					readErr = nil
@@ -262,7 +270,7 @@ func TestParallelMux(t *testing.T) {
 		So(muxErr, ShouldBeNil)
 
 		for _, dbc := range testIntents {
-			So(inLength[dbc.Namespace()], ShouldEqual, outLength[dbc.Namespace()])
+			So(*inLengths[dbc.Namespace()], ShouldEqual, *outLengths[dbc.Namespace()])
 			So(inChecksum[dbc.Namespace()].Sum([]byte{}), ShouldResemble, outChecksum[dbc.Namespace()].Sum([]byte{}))
 		}
 	})
