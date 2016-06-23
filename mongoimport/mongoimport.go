@@ -469,7 +469,20 @@ readLoop:
 		}
 	}
 
-	return filterIngestError(imp.IngestOptions.StopOnError, inserter.Flush())
+	err = inserter.Flush()
+	// TOOLS-349 correct import count for bulk operations
+	if bulkError, ok := err.(*mgo.BulkError); ok {
+		failedDocs := make(map[int]bool) // index of failures
+		for _, failure := range bulkError.Cases() {
+			failedDocs[failure.Index] = true
+		}
+		numFailures := len(failedDocs)
+		if numFailures > 0 {
+			log.Logf(log.Always, "num failures: %d", numFailures)
+			atomic.AddUint64(&imp.insertionCount, ^uint64(numFailures-1))
+		}
+	}
+	return filterIngestError(imp.IngestOptions.StopOnError, err)
 }
 
 type upserter struct {
