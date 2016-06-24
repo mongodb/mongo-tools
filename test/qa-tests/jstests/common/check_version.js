@@ -20,7 +20,7 @@ var getVersionComponents = function(version) {
   return {
     major: major,
     minor: minor,
-    patch: patch
+    patch: patch,
   };
 };
 
@@ -33,6 +33,7 @@ var getVersionComponents = function(version) {
  *    isAtLeastVersion('2.6.6', '2.7.8'); // false
  *    isAtLeastVersion('1.8.5', '2.7.8'); // false
  */
+/* exported isAtLeastVersion */
 var isAtLeastVersion = function(serverVersion, checkVersion) {
   serverVersion = getVersionComponents(serverVersion);
   checkVersion = getVersionComponents(checkVersion);

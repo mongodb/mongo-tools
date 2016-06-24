@@ -1,6 +1,5 @@
 // mongotop_stress.js; ensure that running mongotop, even when the server is
 // under heavy load, works as expected
-//
 var testName = 'mongotop_stress';
 load('jstests/top/util/mongotop_common.js');
 
@@ -11,7 +10,7 @@ load('jstests/top/util/mongotop_common.js');
     jsTest.log('Using ' + passthrough.name + ' passthrough');
     var t = topology.init(passthrough);
     var conn = t.connection();
-    db = conn.getDB('foo');
+    db = conn.getDB('foo'); // eslint-disable-line no-native-reassign
 
     // concurrently insert documents into thousands of collections
     var stressShell = '\nprint(\'starting read/write stress test\'); \n' +
@@ -26,8 +25,9 @@ load('jstests/top/util/mongotop_common.js');
     '       sleep(1);\n' +
     '   }\n';
 
-    for (var i = 0; i < 10; ++i)
-        startParallelShell(stressShell);
+    for (var i = 0; i < 10; ++i) {
+      startParallelShell(stressShell);
+    }
 
     // wait a bit for the stress to kick in
     sleep(5000);
@@ -42,10 +42,10 @@ load('jstests/top/util/mongotop_common.js');
     var shellOutput = rawMongoProgramOutput();
     jsTest.log('shell output: ' + shellOutput);
     shellOutput.split('\n').forEach(function(line) {
-        if (line.match(shellOutputRegex)) {
-            output = line;
-            jsTest.log('raw output: ' + output);
-        }
+      if (line.match(shellOutputRegex)) {
+        output = line;
+        jsTest.log('raw output: ' + output);
+      }
     });
 
     t.stop();
@@ -56,4 +56,4 @@ load('jstests/top/util/mongotop_common.js');
     runTests(standaloneTopology, passthrough);
     runTests(replicaSetTopology, passthrough);
   });
-})();
+}());

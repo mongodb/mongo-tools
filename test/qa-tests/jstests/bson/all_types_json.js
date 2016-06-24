@@ -1,8 +1,8 @@
-// This test runs bsondump on a .bson file containing non-deprecated BSON types 
+// This test runs bsondump on a .bson file containing non-deprecated BSON types
 // and makes sure their JSON type representations exist in the output.
 
-(function(){
-  var x = _runMongoProgram( "bsondump", "--type=json", "jstests/bson/testdata/all_types.bson");
+(function() {
+  var x = _runMongoProgram("bsondump", "--type=json", "jstests/bson/testdata/all_types.bson");
   assert.eq(x, 0, "bsondump should exit successfully with 0");
 
   sleep(100);
@@ -23,4 +23,4 @@
   assert.gt(results.search("null"), 0, "bson type 'null' should be present in the debug output");
   assert.gt(results.search("true"), 0, "bson type 'true' should be present in the debug output");
   assert.gt(results.search("false"), 0, "bson type 'false' should be present in the debug output");
-})();
+}());

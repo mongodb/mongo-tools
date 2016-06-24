@@ -1,8 +1,8 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+
   resetDbpath('dump');
   var targetPath = "forceTableScanDumpTest";
   var toolTest = getToolTest('forceTableScanTest');
@@ -10,7 +10,7 @@ if (typeof getToolTest === 'undefined') {
 
   // IMPORTANT: make sure global `db` object is equal to this db, because
   // startParallelShell gives you no way of overriding db object.
-  db = toolTest.db.getSiblingDB('foo');
+  db = toolTest.db.getSiblingDB('foo'); // eslint-disable-line no-native-reassign
 
   db.dropDatabase();
   assert.eq(0, db.bar.count());
@@ -55,4 +55,4 @@ if (typeof getToolTest === 'undefined') {
   assert.lt(db.bar.count(), 1000);
 
   toolTest.stop();
-})();
+}());

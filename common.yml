@@ -100,7 +100,8 @@ mongo_tools_variables:
       - name: legacy28-wt
       - name: legacy26
       - name: legacy24
-      - name: lint
+      - name: lint-go
+      - name: lint-js
       - name: qa-tests
       - name: qa-tests-unstable
       - name: qa-dump-restore-archiving
@@ -124,7 +125,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: kerberos
       - name: legacy28
-      - name: lint
       - name: qa-tests
       - name: text
       - name: util
@@ -956,7 +956,7 @@ tasks:
           chmod +x mongo*
           python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool
 
-- name: lint
+- name: lint-go
   commands:
     - command: git.get_project
       params:
@@ -973,6 +973,23 @@ tasks:
           set -o verbose
           retVal=$(. ./set_gopath.sh && go run vendor/src/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
+
+- name: lint-js
+  commands:
+    - command: git.get_project
+      params:
+        directory: src
+    - command: git.apply_patch
+      params:
+        directory: src
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -o verbose
+          /opt/node/bin/npm install eslint
+          /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
 - name: qa-tests-unstable
   depends_on:

@@ -1,6 +1,5 @@
 // mongotop_sharded.js; ensure that running mongotop against a sharded cluster
 // fails with a useful error message
-//
 var testName = 'mongotop_sharded';
 var expectedError = 'cannot run mongotop against a mongos';
 load('jstests/top/util/mongotop_common.js');
@@ -45,4 +44,4 @@ load('jstests/top/util/mongotop_common.js');
   passthroughs.forEach(function(passthrough) {
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

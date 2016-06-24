@@ -1,12 +1,11 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * Tests correct behavior when operating against a live oplog
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+
   var toolTest = getToolTest('oplogRealOplogTest');
   var commonToolArgs = getCommonToolArguments();
 
@@ -17,7 +16,7 @@ if (typeof getToolTest === 'undefined') {
   // Sleep for a long time so we can safely use --seconds to get the
   // right operations to verify that the `dropDatabase` and subsequent
   // inserts and updates get applied
-  db.test.insert({ x : 1 });
+  db.test.insert({x: 1});
 
   var LONG_SLEEP_TIME = 5000;
   sleep(LONG_SLEEP_TIME);
@@ -28,21 +27,21 @@ if (typeof getToolTest === 'undefined') {
   var tracks = ['Welcome to the Jungle', 'Sweet Child O\' Mine', 'Patience',
     'Paradise City', 'Knockin\' on Heaven\'s Door', 'Civil War'];
 
-  tracks.forEach(function(track, index) {
+  tracks.forEach(function(track) {
     db.greatest_hits.insert({
       _id: track
     });
   });
 
   tracks.forEach(function(track, index) {
-    db.greatest_hits.update({ _id: track }, { $set: { index: index } });
+    db.greatest_hits.update({_id: track}, {$set: {index: index}});
   });
 
   var args = ['oplog', '--seconds', '1',
     '--from', '127.0.0.1:' + toolTest.port].concat(commonToolArgs);
 
   if (toolTest.isSharded) {
-    // When applying ops to a sharded cluster, 
+    // When applying ops to a sharded cluster,
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when running applyOps on a sharded cluster');
 
@@ -65,11 +64,11 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(0, db.test.count(), 'mongooplog should not have restored an ' +
       'insert that happened before the --seconds cutoff');
     tracks.forEach(function(track, index) {
-      assert.eq(1, db.greatest_hits.count({ _id: track, index: index }),
+      assert.eq(1, db.greatest_hits.count({_id: track, index: index}),
         'mongooplog should have inserted a doc with _id="' + track + '" and ' +
         'updated it to have index=' + index);
     });
   }
 
   toolTest.stop();
-})();
+}());

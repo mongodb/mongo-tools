@@ -4,9 +4,9 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  if (dump_targets != "standard") {
-      print('skipping test incompatable with archiving or compression');
-      return assert(true);
+  if (dump_targets !== "standard") {
+    print('skipping test incompatable with archiving or compression');
+    return assert(true);
   }
 
   // Tests that using mongorestore on a collection with extended json types
@@ -17,15 +17,12 @@
   var toolTest = getToolTest('extended_json_metadata_restore');
   var commonToolArgs = getCommonToolArguments();
   var testDB = toolTest.db.getSiblingDB('test');
-  assert.eq(testDB.changelog.exists(), null, "collection already exists in db")
+  assert.eq(testDB.changelog.exists(), null, "collection already exists in db");
 
   // run a restore against the mongos
-  var ret = toolTest.runTool.apply(
-    toolTest,
-    ['restore'].
-    concat(getRestoreTarget('jstests/restore/testdata/dump_extended_json_options')).
-    concat(commonToolArgs)
-    );
+  var ret = toolTest.runTool.apply(toolTest, ['restore']
+      .concat(getRestoreTarget('jstests/restore/testdata/dump_extended_json_options'))
+      .concat(commonToolArgs));
   assert.eq(0, ret, "the restore does not crash");
 
   var collectionOptionsFromDB = testDB.changelog.exists();
@@ -40,6 +37,6 @@
 
   var indexes = testDB.changelog.getIndexes();
   printjson(indexes);
-  assert.eq(indexes[0].key._id, 1, "index is read properly")
+  assert.eq(indexes[0].key._id, 1, "index is read properly");
 
 }());

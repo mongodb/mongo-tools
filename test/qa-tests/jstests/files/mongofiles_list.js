@@ -1,21 +1,23 @@
-// mongofiles1.js; tests the mongofiles list option by doing the following:
-// 
+// mongofiles_list.js; tests the mongofiles list option by doing the following:
+//
 // 1. Inserts the mongod/mongo binaries using mongofiles put
 // 2. Checks that the actual md5 of the file matches what's stored in the database
 // 3. Runs the mongofiles list command to view all files stored.
-// 4. Ensures that all the files inserted and returned. 
+// 4. Ensures that all the files inserted and returned.
 // 5. Ensures that the returned list matches thae actual filesToInsert[0] and size of
 //    files inserted.
-//
 var testName = 'mongofiles_list';
 load('jstests/files/util/mongofiles_common.js');
-
 (function() {
   jsTest.log('Testing mongofiles list command');
 
   var putFile = function(passthrough, conn, file) {
     // ensure tool runs without error
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, 'put', file].concat(passthrough.args)), 0, 'put for ' + file + 'failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+        '--port', conn.port,
+        'put', file]
+        .concat(passthrough.args)),
+      0, 'put for ' + file + 'failed');
     var db = conn.getDB('test');
     var fileObj = db.fs.files.findOne({
       filename: file,
@@ -27,7 +29,7 @@ load('jstests/files/util/mongofiles_common.js');
 
   var runTests = function(topology, passthrough) {
     jsTest.log('Putting GridFS files with ' + passthrough.name + ' passthrough');
-  
+
     var inputFileRegex = /^sh.*files.*/;
     var whitespaceSplitRegex = /,?\s+/;
     var fileSizes = [];
@@ -46,7 +48,11 @@ load('jstests/files/util/mongofiles_common.js');
     clearRawMongoProgramOutput();
 
     // ensure tool runs without error
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, '--quiet', 'list'].concat(passthrough.args)), 0, 'list command failed but was expected to succeed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          '--quiet', 'list']
+          .concat(passthrough.args)),
+        0, 'list command failed but was expected to succeed');
 
     var files = rawMongoProgramOutput().split('\n');
     var index = 0;
@@ -71,7 +77,7 @@ load('jstests/files/util/mongofiles_common.js');
         index++;
       }
     });
-    assert.neq(index, 0, 'list did not return any expected files')
+    assert.neq(index, 0, 'list did not return any expected files');
     t.stop();
   };
 
@@ -81,4 +87,4 @@ load('jstests/files/util/mongofiles_common.js');
     runTests(replicaSetTopology, passthrough);
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

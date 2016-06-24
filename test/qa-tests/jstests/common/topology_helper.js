@@ -1,31 +1,67 @@
 // topology_helper.js; contains utility functions to run tests
-//
 
 // auth related variables
 var authUser = 'user';
 var authPassword = 'password';
-var authArgs = ['--authenticationDatabase', 'admin', '--authenticationMechanism', 'SCRAM-SHA-1', '-u', authUser, '-p', authPassword];
+var authArgs = [
+  '--authenticationDatabase', 'admin',
+  '--authenticationMechanism', 'SCRAM-SHA-1',
+  '-u', authUser,
+  '-p', authPassword
+];
 var keyFile = 'jstests/libs/key1';
 
 // topology startup settings
 var auth = {
   name: 'auth',
   args: authArgs,
-}
+};
 
 var plain = {
   name: 'plain',
   args: [],
-}
+};
 
+/* exported passthroughs */
 // passthroughs while running all tests
 var passthroughs = [plain, auth];
 
+/* helper functions */
 
-/*
- standalone topology
-*/
+// runAuthSetup creates a user with root role on the admin database
+var runAuthSetup = function(topology) {
+  jsTest.log('Running auth setup');
 
+  var conn = topology.connection();
+  var db = conn.getDB('test');
+
+  db.getSiblingDB('admin').createUser({
+    user: authUser,
+    pwd: authPassword,
+    roles: ['root'],
+  });
+
+  assert.eq(db.getSiblingDB('admin').auth(authUser, authPassword), 1, 'authentication failed');
+};
+
+// buildStartupArgs constructs the proper object to be passed as arguments in
+// starting mongod
+var buildStartupArgs = function(passthrough) {
+  var startupArgs = {};
+  if (passthrough.name === auth.name) {
+    startupArgs.auth = '';
+    startupArgs.keyFile = keyFile;
+  }
+  return startupArgs;
+};
+
+// requiresAuth returns a boolean indicating if the passthrough requires authentication
+var requiresAuth = function(passthrough) {
+  return passthrough.name === auth.name;
+};
+
+/* standalone topology */
+/* exported standaloneTopology */
 var standaloneTopology = {
   init: function(passthrough) {
     jsTest.log('Using standalone topology');
@@ -46,14 +82,12 @@ var standaloneTopology = {
   },
   stop: function() {
     MongoRunner.stopMongod(this.conn);
-  }
+  },
 };
 
 
-/*
- replica set topology
-*/
-
+/* replica set topology */
+/* exported replicaSetTopology */
 var replicaSetTopology = {
   init: function(passthrough) {
     jsTest.log('Using replica set topology');
@@ -87,14 +121,12 @@ var replicaSetTopology = {
   },
   stop: function() {
     this.replTest.stopSet();
-  }
+  },
 };
 
 
-/*
- sharded cluster topology
-*/
-
+/* sharded cluster topology */
+/* exported shardedClusterTopology */
 var shardedClusterTopology = {
   init: function(passthrough) {
     jsTest.log('Using sharded cluster topology');
@@ -127,43 +159,6 @@ var shardedClusterTopology = {
   },
   stop: function() {
     this.shardingTest.stop();
-  }
+  },
 };
 
-
-/*
- helper functions
-*/
-
-
-// runAuthSetup creates a user with root role on the admin database
-var runAuthSetup = function(topology) {
-  jsTest.log('Running auth setup');
-
-  var conn = topology.connection();
-  var db = conn.getDB('test');
-
-  db.getSiblingDB('admin').createUser({
-    user: authUser,
-    pwd: authPassword,
-    roles: ['root'],
-  });
-
-  assert.eq(db.getSiblingDB('admin').auth(authUser, authPassword), 1, 'authentication failed');
-};
-
-// buildStartupArgs constructs the proper object to be passed as arguments in
-// starting mongod
-var buildStartupArgs = function(passthrough) {
-  var startupArgs = {};
-  if (passthrough.name === auth.name) {
-    startupArgs.auth = '';
-    startupArgs.keyFile = keyFile;
-  }
-  return startupArgs;
-};
-
-// requiresAuth returns a boolean indicating if the passthrough requires authentication
-var requiresAuth = function(passthrough) {
-  return passthrough.name === auth.name;
-};

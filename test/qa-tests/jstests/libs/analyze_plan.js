@@ -7,21 +7,19 @@
  * returns true if the plan has a stage called 'stage'.
  */
 function planHasStage(root, stage) {
-    if (root.stage === stage) {
+  if (root.stage === stage) {
+    return true;
+  } else if ("inputStage" in root) {
+    return planHasStage(root.inputStage, stage);
+  } else if ("inputStages" in root) {
+    for (var i = 0; i < root.inputStages.length; i++) {
+      if (planHasStage(root.inputStages[i], stage)) {
         return true;
+      }
     }
-    else if ("inputStage" in root) {
-        return planHasStage(root.inputStage, stage);
-    }
-    else if ("inputStages" in root) {
-        for (var i = 0; i < root.inputStages.length; i++) {
-            if (planHasStage(root.inputStages[i], stage)) {
-                return true;
-            }
-        }
-    }
+  }
 
-    return false;
+  return false;
 }
 
 /**
@@ -31,7 +29,7 @@ function planHasStage(root, stage) {
  * returns true if the plan is index only. Otherwise returns false.
  */
 function isIndexOnly(root) {
-    return !planHasStage(root, "FETCH") && !planHasStage(root, "COLLSCAN");
+  return !planHasStage(root, "FETCH") && !planHasStage(root, "COLLSCAN");
 }
 
 /**
@@ -39,7 +37,7 @@ function isIndexOnly(root) {
  * an index scan, and false otherwise.
  */
 function isIxscan(root) {
-    return planHasStage(root, "IXSCAN");
+  return planHasStage(root, "IXSCAN");
 }
 
 /**
@@ -47,7 +45,7 @@ function isIxscan(root) {
  * the idhack fast path, and false otherwise.
  */
 function isIdhack(root) {
-    return planHasStage(root, "IDHACK");
+  return planHasStage(root, "IDHACK");
 }
 
 /**
@@ -55,26 +53,24 @@ function isIdhack(root) {
  * a collection scan, and false otherwise.
  */
 function isCollscan(root) {
-    return planHasStage(root, "COLLSCAN");
+  return planHasStage(root, "COLLSCAN");
 }
 
 /**
  * Get the number of chunk skips for the BSON exec stats tree rooted at 'root'.
  */
 function getChunkSkips(root) {
-    if (root.stage === "SHARDING_FILTER") {
-        return root.chunkSkips;
+  if (root.stage === "SHARDING_FILTER") {
+    return root.chunkSkips;
+  } else if ("inputStage" in root) {
+    return getChunkSkips(root.inputStage);
+  } else if ("inputStages" in root) {
+    var skips = 0;
+    for (var i = 0; i < root.inputStages.length; i++) {
+      skips += getChunkSkips(root.inputStages[0]);
     }
-    else if ("inputStage" in root) {
-        return getChunkSkips(root.inputStage);
-    }
-    else if ("inputStages" in root) {
-        var skips = 0;
-        for (var i = 0; i < root.inputStages.length; i++) {
-            skips += getChunkSkips(root.inputStages[0]);
-        }
-        return skips;
-    }
+    return skips;
+  }
 
-    return 0;
+  return 0;
 }

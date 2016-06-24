@@ -1,3 +1,4 @@
+/* exported getToolTest */
 var getToolTest;
 
 (function() {
@@ -5,7 +6,7 @@ var getToolTest;
 
   var TOOLS_TEST_CONFIG = {
     binVersion: '',
-    config: 'jstests/configs/kerberos.config.yml'
+    config: 'jstests/configs/kerberos.config.yml',
   };
 
   getToolTest = function(name) {
@@ -14,19 +15,19 @@ var getToolTest;
 
     db.getSiblingDB('$external').createUser({
       user: AUTH_USER,
-      roles: [{ role: '__system', db: 'admin' }]
+      roles: [{role: '__system', db: 'admin'}],
     });
 
-    db.getSiblingDB('$external').auth({ user: AUTH_USER, mechanism: 'GSSAPI', serviceName: 'mockservice', serviceHostname: 'kdc.10gen.me' });
+    db.getSiblingDB('$external').auth({user: AUTH_USER, mechanism: 'GSSAPI', serviceName: 'mockservice', serviceHostname: 'kdc.10gen.me'});
 
-    toolTest.authCommand = 'db.getSiblingDB(\'$external\').auth({ user: ' +
-      '\'' + AUTH_USER + '\', mechanism: \'GSSAPI\', ' +
-      'serviceName: \'mockservice\', serviceHostname: \'kdc.10gen.me\' });';
+    toolTest.authCommand = "db.getSiblingDB('$external').auth({ user: '"
+      + AUTH_USER + "', mechanism: 'GSSAPI', serviceName: 'mockservice', serviceHostname: 'kdc.10gen.me' });";
 
     return toolTest;
   };
-})();
+}());
 
+/* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
   return [
     '--username', 'mockuser@10GEN.ME',

@@ -1,28 +1,11 @@
 // mongofiles_search.js; ensures that the search command returns any and all
 // files that match the regex supplied
-//
 var testName = 'mongofiles_search';
 load('jstests/files/util/mongofiles_common.js');
-
 (function() {
   var conn;
 
   // Given a list of search strings and an expected result - 0 for present or 1 for
-  // not - assertHasFiles checks that the output of running mongofiles search with
-  // each of the search strings meets the expected result supplied. If exactString
-  // is not empty, it further checks that the output also matches exactString
-  var assertHasFiles = function(passthrough, searchStrings, expectedResult, exactString) {
-    // perform a couple of search commands against the GridFS collection
-    for (var i = 0; i < searchStrings.length; i++) {
-      clearRawMongoProgramOutput();
-      var queryString = searchStrings[i];
-      assert.eq(runMongoProgram.apply(this, ['mongofiles', '--quiet', '--port', conn.port, 'search', queryString].concat(passthrough.args)), 0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
-
-      var matchFound = hasMatch(rawMongoProgramOutput(), queryString, exactString);
-      assert.eq(matchFound, expectedResult, 'search failed - expected ' + expectedResult + ' got ' + matchFound);
-    }
-  };
-
   // hasMatch takes in raw mongofiles search output and a matchItem; it returns 0
   // if it finds the match item in any line of the output and 1 otherwise. If the
   // exactString argument is not empty, hasMatch further checks that the line
@@ -33,7 +16,7 @@ load('jstests/files/util/mongofiles_common.js');
     for (var i = 0; i < lines.length; i++) {
       if (lines[i].match(shellOutputRegex) && lines[i].match(matchItem)) {
         if (exactString && !lines[i].match(exactString)) {
-          continue
+          continue;
         }
         return 0;
       }
@@ -42,16 +25,39 @@ load('jstests/files/util/mongofiles_common.js');
     return 1;
   };
 
+  // not - assertHasFiles checks that the output of running mongofiles search with
+  // each of the search strings meets the expected result supplied. If exactString
+  // is not empty, it further checks that the output also matches exactString
+  var assertHasFiles = function(passthrough, searchStrings, expectedResult, exactString) {
+    // perform a couple of search commands against the GridFS collection
+    for (var i = 0; i < searchStrings.length; i++) {
+      clearRawMongoProgramOutput();
+      var queryString = searchStrings[i];
+      assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--quiet',
+          '--port', conn.port,
+          'search', queryString]
+          .concat(passthrough.args)),
+        0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
+
+      var matchFound = hasMatch(rawMongoProgramOutput(), queryString, exactString);
+      assert.eq(matchFound, expectedResult, 'search failed - expected ' + expectedResult + ' got ' + matchFound);
+    }
+  };
+
   var runTests = function(topology, passthrough) {
     jsTest.log('Testing mongofiles search command');
     var t = topology.init(passthrough);
     conn = t.connection();
-    var db = conn.getDB('test');
 
     jsTest.log('Putting files into GridFS with ' + passthrough.name + ' passthrough');
 
     for (var i = 0; i < filesToInsert.length; i++) {
-      assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, 'put', filesToInsert[i]].concat(passthrough.args)), 0, 'put failed on ' + filesToInsert[i] + ' when it should have succeeded');
+      assert.eq(runMongoProgram.apply(this, ['mongofiles',
+            '--port', conn.port,
+            'put', filesToInsert[i]]
+            .concat(passthrough.args)),
+          0, 'put failed on ' + filesToInsert[i] + ' when it should have succeeded');
     }
 
     jsTest.log('Searching files in GridFS with ' + passthrough.name + ' passthrough');
@@ -60,7 +66,7 @@ load('jstests/files/util/mongofiles_common.js');
     var searchStrings = ['files', '.txt', 'ile', '.'];
 
     // add the verbatim file names put into GridFS
-    for (var i = 0; i < filesToInsert.length; i++) {
+    for (i = 0; i < filesToInsert.length; i++) {
       searchStrings.push(filesToInsert[i]);
     }
 
@@ -72,7 +78,7 @@ load('jstests/files/util/mongofiles_common.js');
     assertHasFiles(passthrough, searchStrings, 1);
 
     // test that only the requested file is returned
-    for (var i = 0; i < filesToInsert.length; i++) {
+    for (i = 0; i < filesToInsert.length; i++) {
       var currentFile = filesToInsert[i];
       jsTest.log('Searching for file ' + currentFile + ' with ' + passthrough.name + ' passthrough');
 
@@ -81,8 +87,9 @@ load('jstests/files/util/mongofiles_common.js');
 
       // ensure no other files are returned
       assertHasFiles(passthrough,
+        // eslint-disable-next-line no-loop-func
         filesToInsert.filter(function(file) {
-          return file != currentFile
+          return file !== currentFile;
         }), 1, currentFile);
     }
 
@@ -95,4 +102,4 @@ load('jstests/files/util/mongofiles_common.js');
     runTests(replicaSetTopology, passthrough);
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

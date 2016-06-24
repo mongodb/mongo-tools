@@ -1,37 +1,37 @@
 (function() {
 
-    // Tests running mongoexport writing to stdout.
-    
-    jsTest.log('Testing exporting to stdout');
+  // Tests running mongoexport writing to stdout.
 
-    var toolTest = new ToolTest('stdout');
-    toolTest.startDB('foo');
+  jsTest.log('Testing exporting to stdout');
 
-    // the db and collection we'll use
-    var testDB = toolTest.db.getSiblingDB('test');
-    var testColl = testDB.data;
+  var toolTest = new ToolTest('stdout');
+  toolTest.startDB('foo');
 
-    // insert some data
-    for (var i = 0; i < 20; i++) {
-        testColl.insert({ _id: i });
-    }
-    // sanity check the insertion worked
-    assert.eq(20, testColl.count());
+  // the db and collection we'll use
+  var testDB = toolTest.db.getSiblingDB('test');
+  var testColl = testDB.data;
 
-    // export the data, writing to stdout
-    var ret = toolTest.runTool('export', '--db', 'test', '--collection', 'data');
-    assert.eq(0, ret);
+  // insert some data
+  for (var i = 0; i < 20; i++) {
+    testColl.insert({_id: i});
+  }
+  // sanity check the insertion worked
+  assert.eq(20, testColl.count());
 
-    // grab the raw output
-    var output = rawMongoProgramOutput();
+  // export the data, writing to stdout
+  var ret = toolTest.runTool('export', '--db', 'test', '--collection', 'data');
+  assert.eq(0, ret);
 
-    // make sure it contains the json output
-    assert.neq(-1, output.indexOf('exported 20 records'));
-    for (var i = 0; i < 20; i++) {
-        assert.neq(-1, output.indexOf('{"_id":'+i+".0"+'}'));
-    }
+  // grab the raw output
+  var output = rawMongoProgramOutput();
 
-    // success
-    toolTest.stop();
+  // make sure it contains the json output
+  assert.neq(-1, output.indexOf('exported 20 records'));
+  for (i = 0; i < 20; i++) {
+    assert.neq(-1, output.indexOf('{"_id":'+i+'.0}'));
+  }
+
+  // success
+  toolTest.stop();
 
 }());

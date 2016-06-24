@@ -1,5 +1,6 @@
 load("jstests/configs/standard_dump_targets.config.js");
 
+/* exported getToolTest */
 var getToolTest;
 
 (function() {
@@ -12,8 +13,9 @@ var getToolTest;
     toolTest.startDB();
     return toolTest;
   };
-})();
+}());
 
+/* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
   return [];
 };

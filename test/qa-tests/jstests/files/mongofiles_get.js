@@ -1,9 +1,6 @@
 // mongofiles_get.js; ensure that get command works as expected
-//
-
 var testName = 'mongofiles_get';
 load('jstests/files/util/mongofiles_common.js');
-
 (function() {
   jsTest.log('Testing mongofiles get command');
 
@@ -16,16 +13,25 @@ load('jstests/files/util/mongofiles_common.js');
     jsTest.log('Putting file with ' + passthrough.name + ' passthrough');
 
     // ensure tool runs without error
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, 'put', filesToInsert[0]].concat(passthrough.args)), 0, 'put 1 failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+        '--port', conn.port,
+        'put', filesToInsert[0]]
+        .concat(passthrough.args)),
+      0, 'put 1 failed');
 
     // ensure the file was inserted
     assert.eq(1, db.fs.files.count(), 'unexpected fs.files count 1');
-    var fileId = db.fs.files.findOne()._id
+    var fileId = db.fs.files.findOne()._id;
 
     jsTest.log('Getting file with ' + passthrough.name + ' passthrough');
 
     // ensure tool runs without error
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, '--local', getFile, 'get', filesToInsert[0]].concat(passthrough.args)), 0, 'get failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          '--local', getFile,
+          'get', filesToInsert[0]]
+          .concat(passthrough.args)),
+        0, 'get failed');
 
     // ensure the retrieved file is exactly the same as that inserted
     var actual = md5sumFile(filesToInsert[0]);
@@ -36,9 +42,14 @@ load('jstests/files/util/mongofiles_common.js');
     // ensure tool runs get_id without error
     var idAsJSON = fileId.tojson();
     if (_isWindows()) {
-        idAsJSON = '"' + idAsJSON.replace(/\"/g, '\\"') + '"';
+      idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
     }
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, '--local', getFile , 'get_id', idAsJSON].concat(passthrough.args)), 0, 'get_id failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          '--local', getFile,
+          'get_id', idAsJSON]
+          .concat(passthrough.args)),
+        0, 'get_id failed');
     expected = md5sumFile(getFile);
     assert.eq(actual, expected, 'mismatched md5 sum on _id - expected ' + expected + ' got ' + actual);
 
@@ -46,13 +57,20 @@ load('jstests/files/util/mongofiles_common.js');
     clearRawMongoProgramOutput();
 
     // test getting to stdout
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, '--local', '-', 'get', filesToInsert[0]].concat(passthrough.args)), 0, 'get stdout failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          '--local', '-',
+          'get', filesToInsert[0]]
+          .concat(passthrough.args)),
+        0, 'get stdout failed');
     var expectedContent = "this is a text file";
     var match = false;
     rawMongoProgramOutput().split('\n').forEach(function(line) {
-      if (line.match(expectedContent)) match = true;
+      if (line.match(expectedContent)) {
+        match = true;
+      }
     });
-    assert(match, "stdout get didn't match expected file content")
+    assert(match, "stdout get didn't match expected file content");
 
     t.stop();
   };
@@ -63,4 +81,4 @@ load('jstests/files/util/mongofiles_common.js');
     runTests(replicaSetTopology, passthrough);
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

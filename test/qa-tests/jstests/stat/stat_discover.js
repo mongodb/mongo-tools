@@ -1,113 +1,112 @@
 (function() {
 
-load("jstests/libs/mongostat.js");
+  load("jstests/libs/mongostat.js");
 
-baseName = "tool_discover";
+  baseName = "tool_discover";
 
-port = allocatePort();
-m = startMongod("--port", port, "--dbpath", MongoRunner.dataPath + baseName + port, "--nohttpinterface", "--bind_ip", "127.0.0.1");
+  port = allocatePort();
+  m = startMongod("--port", port, "--dbpath", MongoRunner.dataPath + baseName + port, "--nohttpinterface", "--bind_ip", "127.0.0.1");
 
-rs = new ReplSetTest({
+  rs = new ReplSetTest({ // eslint-disable-line no-native-reassign
     name: "rpls",
     nodes: 4,
     useHostName: true
-});
-replSetPorts = [port + 1, port + 2, port + 3, port + 4];
+  });
+  replSetPorts = [port + 1, port + 2, port + 3, port + 4];
 
-rs.startSet();
+  rs.startSet();
 
-rs.initiate();
+  rs.initiate();
 
-rs.awaitReplication();
+  rs.awaitReplication();
 
-rsFoo = rs.getPrimary().getDB("foo");
+  rsFoo = rs.getPrimary().getDB("foo");
 
-rsFoo.bar.insert({
+  rsFoo.bar.insert({
     a: 1
-});
+  });
 
-assert(discoverTest(replSetPorts, rs.liveNodes.master.host), "--discover against a replset master sees all members");
+  assert(discoverTest(replSetPorts, rs.liveNodes.master.host), "--discover against a replset master sees all members");
 
-assert(discoverTest(replSetPorts, rs.liveNodes.slaves[0].host), "--discover against a replset slave sees all members");
+  assert(discoverTest(replSetPorts, rs.liveNodes.slaves[0].host), "--discover against a replset slave sees all members");
 
-assert(statOutputPortCheck([ rs.liveNodes.master.port, rs.liveNodes.slaves[0].port, rs.liveNodes.slaves[1].port ], [ "mongostat", "--host", "rpls/" + rs.liveNodes.master.host + "," + rs.liveNodes.slaves[0].host + "," + rs.liveNodes.slaves[1].host, "--rowcount", 1 ]), "replicata set specifiers are correctly used");
+  assert(statOutputPortCheck([rs.liveNodes.master.port, rs.liveNodes.slaves[0].port, rs.liveNodes.slaves[1].port], ["mongostat", "--host", "rpls/" + rs.liveNodes.master.host + "," + rs.liveNodes.slaves[0].host + "," + rs.liveNodes.slaves[1].host, "--rowcount", 1]), "replicata set specifiers are correctly used");
 
-assert(discoverTest([ port ], m.host), "--discover against a stand alone-sees just the stand-alone");
+  assert(discoverTest([port], m.host), "--discover against a stand alone-sees just the stand-alone");
 
-clearRawMongoProgramOutput();
+  clearRawMongoProgramOutput();
 
-x = runMongoProgram("mongostat", "--host", m.host, "--rowcount", 7, "--noheaders");
+  x = runMongoProgram("mongostat", "--host", m.host, "--rowcount", 7, "--noheaders");
 
-foundRows = rawMongoProgramOutput().split("\n").filter(function(r) {
+  foundRows = rawMongoProgramOutput().split("\n").filter(function(r) {
     return r.match(rowRegex);
-});
+  });
 
-assert.eq(foundRows.length, 7, "--rowcount value is respected correctly");
+  assert.eq(foundRows.length, 7, "--rowcount value is respected correctly");
 
-startTime = new Date();
+  startTime = new Date();
 
-x = runMongoProgram("mongostat", "--host", m.host, "--rowcount", 3, "--noheaders", 3);
+  x = runMongoProgram("mongostat", "--host", m.host, "--rowcount", 3, "--noheaders", 3);
 
-endTime = new Date();
+  endTime = new Date();
 
-duration = Math.floor((endTime.valueOf() - startTime.valueOf()) / 1000);
+  duration = Math.floor((endTime.valueOf() - startTime.valueOf()) / 1000);
 
-assert.gte(duration, 9, "sleep time affects the total time to produce a number or results");
+  assert.gte(duration, 9, "sleep time affects the total time to produce a number or results");
 
-clearRawMongoProgramOutput();
-pid = startMongoProgramNoConnect("mongostat", "--host", rs.liveNodes.slaves[1].host, "--discover");
+  clearRawMongoProgramOutput();
+  pid = startMongoProgramNoConnect("mongostat", "--host", rs.liveNodes.slaves[1].host, "--discover");
 
-sleep(20000);
+  sleep(20000);
 
-assert(statOutputPortCheck([ rs.liveNodes.slaves[1].port ]), "specified host is seen");
+  assert(statOutputPortCheck([rs.liveNodes.slaves[1].port]), "specified host is seen");
 
-assert(statOutputPortCheck([ rs.liveNodes.slaves[0].port ]), "discovered host is seen");
+  assert(statOutputPortCheck([rs.liveNodes.slaves[0].port]), "discovered host is seen");
 
-rs.stop(rs.liveNodes.slaves[0]);
+  rs.stop(rs.liveNodes.slaves[0]);
 
-sleep(15000);
+  sleep(15000);
 
-clearRawMongoProgramOutput();
+  clearRawMongoProgramOutput();
 
-sleep(2000);
+  sleep(2000);
 
-assert(statOutputPortCheck([ rs.liveNodes.slaves[1].port ]), "after discovered host is stopped, specified host is still seen");
+  assert(statOutputPortCheck([rs.liveNodes.slaves[1].port]), "after discovered host is stopped, specified host is still seen");
 
-assert(!statOutputPortCheck([ rs.liveNodes.slaves[0].port ]), "after discovered host is stopped, it is not seen");
+  assert(!statOutputPortCheck([rs.liveNodes.slaves[0].port]), "after discovered host is stopped, it is not seen");
 
-rs.start(rs.liveNodes.slaves[0]);
+  rs.start(rs.liveNodes.slaves[0]);
 
-sleep(2000);
+  sleep(2000);
 
-clearRawMongoProgramOutput();
+  clearRawMongoProgramOutput();
 
-sleep(2000);
+  sleep(2000);
 
-assert(statOutputPortCheck([ rs.liveNodes.slaves[1].port ]), "after discovered is restarted, specified host is still seen");
+  assert(statOutputPortCheck([rs.liveNodes.slaves[1].port]), "after discovered is restarted, specified host is still seen");
 
-assert(statOutputPortCheck([ rs.liveNodes.slaves[0].port ]), "after discovered is restarted, discovered host is seen again");
+  assert(statOutputPortCheck([rs.liveNodes.slaves[0].port]), "after discovered is restarted, discovered host is seen again");
 
-rs.stop(rs.liveNodes.slaves[1]);
+  rs.stop(rs.liveNodes.slaves[1]);
 
-assert.soon( function() {
-            try {
-                conn = new Mongo(rs.liveNodes.slaves[1].host);
-                return false;
-            } catch( e ) {
-                return true;
-            }
-            return false;
-}, "mongod still available after being stopped "+ rs.liveNodes.slaves[1].host);
+  assert.soon(function() {
+    try {
+      conn = new Mongo(rs.liveNodes.slaves[1].host);
+      return false;
+    } catch (e) {
+      return true;
+    }
+  }, "mongod still available after being stopped "+ rs.liveNodes.slaves[1].host);
 
-sleep(1000);
+  sleep(1000);
 
-clearRawMongoProgramOutput();
+  clearRawMongoProgramOutput();
 
-sleep(2000)
+  sleep(2000);
 
-assert(!statOutputPortCheck([ rs.liveNodes.slaves[1].port ]), "after specified host is stopped, specified host is not seen");
+  assert(!statOutputPortCheck([rs.liveNodes.slaves[1].port]), "after specified host is stopped, specified host is not seen");
 
-assert(statOutputPortCheck([ rs.liveNodes.slaves[0].port ]), "after specified host is stopped, the discovered host is still seen");
+  assert(statOutputPortCheck([rs.liveNodes.slaves[0].port]), "after specified host is stopped, the discovered host is still seen");
 
-//TODO test discover over a comma separated list of nodes from different replica sets.
+  // TODO test discover over a comma separated list of nodes from different replica sets.
 }());

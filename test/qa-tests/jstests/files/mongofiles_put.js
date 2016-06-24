@@ -1,9 +1,7 @@
 // mongofiles_put.js; ensure that put works with very large files.
 // NOTE: this test uses mongodump to create a large file
-//
 var testName = 'mongofiles_put';
 load('jstests/files/util/mongofiles_common.js');
-
 (function() {
   jsTest.log('Testing mongofiles put command');
 
@@ -30,26 +28,41 @@ load('jstests/files/util/mongofiles_common.js');
       inserted += insertString.length;
     }
 
-    assert.writeOK(bulk.execute({w:"majority"}));
+    assert.writeOK(bulk.execute({w: "majority"}));
 
     // dumping large collection to single large file
     jsTest.log('Dumping collection to filesystem with ' + passthrough.name + ' passthrough');
 
     var dumpDir = './dumpDir';
 
-    assert.eq(runMongoProgram.apply(this, ['mongodump', '-d', dbName, '--port', conn.port, '-c', collection, '--out', dumpDir].concat(passthrough.args)), 0, 'dump failed when it should have succeeded');
+    assert.eq(runMongoProgram.apply(this, ['mongodump',
+          '-d', dbName,
+          '--port', conn.port,
+          '-c', collection,
+          '--out', dumpDir]
+          .concat(passthrough.args)),
+        0, 'dump failed when it should have succeeded');
 
     jsTest.log('Putting directory');
 
     // putting a directory should fail
-    assert.neq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, 'put', dumpDir].concat(passthrough.args)), 0, 'put succeeded when it should have failed');
+    assert.neq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'put', dumpDir]
+          .concat(passthrough.args)),
+        0, 'put succeeded when it should have failed');
 
     jsTest.log('Putting file with ' + passthrough.name + ' passthrough');
 
     var putFile = dumpDir + '/' + dbName + '/' + collection + '.bson';
 
     // ensure putting of the large file succeeds
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, '--local', putFile, 'put', testName].concat(passthrough.args)), 0, 'put failed when it should have succeeded');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          '--local', putFile,
+          'put', testName]
+          .concat(passthrough.args)),
+        0, 'put failed when it should have succeeded');
 
     // verify file metadata
     var fileObj = db.fs.files.findOne({
@@ -70,7 +83,12 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     var getFile = testName + (Math.random() + 1).toString(36).substring(7);
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, '--local', getFile, 'get', testName].concat(passthrough.args)), 0, 'get failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          '--local', getFile,
+          'get', testName]
+          .concat(passthrough.args)),
+        0, 'get failed');
 
     // ensure the retrieved file is exactly the same as that inserted
     var actual = md5sumFile(putFile);
@@ -87,4 +105,4 @@ load('jstests/files/util/mongofiles_common.js');
     runTests(replicaSetTopology, passthrough);
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

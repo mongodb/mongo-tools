@@ -1,12 +1,11 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * Tests behavior when oplog contains an operation to drop itself
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+
   var OPLOG_INSERT_CODE = 'i';
   var OPLOG_COMMAND_CODE = 'c';
   var CURRENT_OPLOG_VERSION = 2;
@@ -19,7 +18,7 @@ if (typeof getToolTest === 'undefined') {
   db.dropDatabase();
 
   // Create capped collection on foo
-  db.createCollection('rs_test', { capped: true, size: 4 });
+  db.createCollection('rs_test', {capped: true, size: 4});
 
   // Create test collection
   db.createCollection("baz");
@@ -54,7 +53,7 @@ if (typeof getToolTest === 'undefined') {
     v: CURRENT_OPLOG_VERSION,
     op: OPLOG_COMMAND_CODE,
     ns: "foo.$cmd",
-    o: { create: "baz" }
+    o: {create: "baz"},
   });
 
   // Insert another doc
@@ -73,7 +72,7 @@ if (typeof getToolTest === 'undefined') {
     '--from', '127.0.0.1:' + toolTest.port].concat(commonToolArgs);
 
   if (toolTest.isSharded) {
-    // When applying ops to a sharded cluster, 
+    // When applying ops to a sharded cluster,
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when running applyOps on a sharded cluster');
 
@@ -90,8 +89,8 @@ if (typeof getToolTest === 'undefined') {
     assert.eq(toolTest.runTool.apply(toolTest, args), 0,
       'mongooplog should succeed');
 
-    assert.eq(1, db.baz.count({ _id: 1 }), 'should have restored the document');
+    assert.eq(1, db.baz.count({_id: 1}), 'should have restored the document');
   }
 
   toolTest.stop();
-})();
+}());

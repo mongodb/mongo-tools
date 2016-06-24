@@ -2,7 +2,6 @@ if (typeof getToolTest === 'undefined') {
   load('jstests/configs/plain_28.config.js');
 }
 
-
 // Create a number of collections, then simultaneously drop them and dump them
 
 // it would be nice to verify that dump has emitted the
@@ -14,17 +13,17 @@ if (typeof getToolTest === 'undefined') {
   resetDbpath('dump');
   var toolTest = getToolTest('DumpingDroppedCollectionsTest');
   var commonToolArgs = getCommonToolArguments();
-  db = toolTest.db.getSiblingDB('foo');
+  testDB = toolTest.db.getSiblingDB('foo');
 
   // create
-  db.dropDatabase();
-  for (var i=0;i<1000;i++) {
+  testDB.dropDatabase();
+  for (var i=0; i<1000; i++) {
     print("creating bar_"+i);
-    db.getCollection("bar_"+i).insert({ x: i });
+    testDB.getCollection("bar_"+i).insert({x: i});
   }
 
   // drop
-  var insertsShell = startParallelShell(
+  startParallelShell(
     // sleep here so that we don't start dropping collections until after the dump
     // has retrieved the catalog of collections to dump
     'sleep(200); '+
@@ -33,13 +32,12 @@ if (typeof getToolTest === 'undefined') {
     '  print("dropping bar_"+i);'+
     '  db.getCollection("bar_"+i).drop(); '+
     '}'
-    );
+  );
 
-
-  // dump 
+  // dump
   var dumpArgs = ['dump'].concat(getDumpTarget()).concat(commonToolArgs);
 
-  assert(toolTest.runTool.apply(toolTest, dumpArgs) == 0, 'mongodump should not crash when dumping collections that gets dropped');
+  assert(toolTest.runTool.apply(toolTest, dumpArgs) === 0, 'mongodump should not crash when dumping collections that gets dropped');
 
   toolTest.stop();
-})();
+}());

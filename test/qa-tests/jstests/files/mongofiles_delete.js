@@ -1,9 +1,6 @@
 // mongofiles_delete.js; ensure that delete command works as expected
-//
-
 var testName = 'mongofiles_delete';
 load('jstests/files/util/mongofiles_common.js');
-
 (function() {
   jsTest.log('Testing mongofiles delete command');
 
@@ -16,9 +13,12 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     for (var i = 0; i < 10; i++) {
-      assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, 'put', filesToInsert[0]].concat(passthrough.args)), 0, 'put failed');
+      assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'put', filesToInsert[0]]
+          .concat(passthrough.args)),
+        0, 'put failed');
     }
-    var db = conn.getDB('test');
 
     // ensure all the files were written
     assert.eq(10, db.fs.files.count(), 'unexpected fs.files count');
@@ -26,7 +26,11 @@ load('jstests/files/util/mongofiles_common.js');
     jsTest.log('Deleting file');
 
     // ensure tool runs without error
-    assert.eq(runMongoProgram.apply(this, ['mongofiles', '--port', conn.port, 'delete', filesToInsert[0]].concat(passthrough.args)), 0, 'delete failed');
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'delete', filesToInsert[0]]
+          .concat(passthrough.args)),
+        0, 'delete failed');
 
     // ensure all the files were deleted
     assert.eq(0, db.fs.files.count(), 'unexpected fs.files count');
@@ -40,4 +44,4 @@ load('jstests/files/util/mongofiles_common.js');
     runTests(replicaSetTopology, passthrough);
     runTests(shardedClusterTopology, passthrough);
   });
-})();
+}());

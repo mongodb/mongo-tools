@@ -1,3 +1,4 @@
+/* exported getToolTest */
 var getToolTest;
 var AUTH_USER = 'passwordIsTaco';
 var AUTH_PASSWORD = 'Taco';
@@ -5,7 +6,7 @@ var AUTH_PASSWORD = 'Taco';
 (function() {
   var TOOLS_TEST_CONFIG = {
     binVersion: '',
-    auth: ''
+    auth: '',
   };
 
   getToolTest = function(name) {
@@ -15,18 +16,19 @@ var AUTH_PASSWORD = 'Taco';
     db.getSiblingDB('admin').createUser({
       user: AUTH_USER,
       pwd: AUTH_PASSWORD,
-      roles: ['__system']
+      roles: ['__system'],
     });
 
     db.getSiblingDB('admin').auth(AUTH_USER, AUTH_PASSWORD);
 
-    toolTest.authCommand = 'db.getSiblingDB(\'admin\').auth(\'' +
-      AUTH_USER + '\', \'' + AUTH_PASSWORD + '\');';
+    toolTest.authCommand = "db.getSiblingDB('admin').auth('" + AUTH_USER
+      + "', '" + AUTH_PASSWORD + "');";
 
     return toolTest;
   };
-})();
+}());
 
+/* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
   return [
     '--username', AUTH_USER,

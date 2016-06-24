@@ -1,8 +1,8 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/replset_28.config.js');
-}
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/replset_28.config.js');
+  }
+
   resetDbpath('dump');
   var targetPath = "oplogFlagDumpTest";
   var toolTest = getToolTest('oplogFlagTest');
@@ -10,12 +10,12 @@ if (typeof getToolTest === 'undefined') {
 
   // IMPORTANT: make sure global `db` object is equal to this db, because
   // startParallelShell gives you no way of overriding db object.
-  db = toolTest.db.getSiblingDB('foo');
+  db = toolTest.db.getSiblingDB('foo'); // eslint-disable-line no-native-reassign
 
   db.dropDatabase();
   assert.eq(0, db.bar.count());
   for (var i = 0; i < 1000; ++i) {
-    db.bar.insert({ x: i });
+    db.bar.insert({x: i});
   }
 
   // Run parallel shell that inserts every millisecond
@@ -34,9 +34,10 @@ if (typeof getToolTest === 'undefined') {
   // Crash if parallel shell hasn't started inserting yet
   assert.gt(countBeforeMongodump, 1000);
 
-  var dumpArgs = ['dump', '--oplog'].
-      concat(getDumpTarget(targetPath)).
-      concat(commonToolArgs);
+  var dumpArgs = ['dump', '--oplog']
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs);
+  var restoreArgs;
 
   if (toolTest.isReplicaSet) {
     // If we're running in a replica set, --oplog should give a snapshot by
@@ -49,9 +50,9 @@ if (typeof getToolTest === 'undefined') {
     db.dropDatabase();
     assert.eq(0, db.bar.count());
 
-    var restoreArgs = ['restore'].
-        concat(getRestoreTarget(targetPath)).
-        concat(commonToolArgs);
+    restoreArgs = ['restore']
+      .concat(getRestoreTarget(targetPath))
+      .concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
       'mongorestore should succeed');
     assert.gte(db.bar.count(), countBeforeMongodump);
@@ -67,9 +68,9 @@ if (typeof getToolTest === 'undefined') {
     db.dropDatabase();
     assert.eq(0, db.bar.count());
 
-    var restoreArgs = ['restore'].
-        concat(getRestoreTarget(targetPath)).
-        concat(commonToolArgs);
+    restoreArgs = ['restore']
+      .concat(getRestoreTarget(targetPath))
+      .concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
       'mongorestore should succeed');
     // Shouldn't have dumped any documents
@@ -77,4 +78,4 @@ if (typeof getToolTest === 'undefined') {
   }
 
   toolTest.stop();
-})();
+}());

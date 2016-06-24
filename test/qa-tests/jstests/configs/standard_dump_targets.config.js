@@ -1,30 +1,30 @@
 var getDumpTarget;
 
 (function() {
-    if (getDumpTarget==null) {
-     getDumpTarget = function(target) {
-        if (target==null) {
-            return [];
-        }
-        return ["--out="+target];
-     }
-    }
-})();
+  if (getDumpTarget === undefined) {
+    getDumpTarget = function(target) {
+      if (target === undefined) {
+        return [];
+      }
+      return ["--out="+target];
+    };
+  }
+}());
 
 var dump_targets;
 if (!dump_targets) {
-    dump_targets = "standard";
+  dump_targets = "standard";
 }
 
 var getRestoreTarget;
 
 (function() {
-    if (getRestoreTarget==null) {
-     getRestoreTarget = function(target) {
-        if (target==null) {
-            return [];
-        }
-        return ["--dir="+target];
-     }
-    }
-})();
+  if (getRestoreTarget === undefined) {
+    getRestoreTarget = function(target) {
+      if (target === undefined) {
+        return [];
+      }
+      return ["--dir="+target];
+    };
+  }
+}());

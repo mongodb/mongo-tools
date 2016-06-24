@@ -1,6 +1,5 @@
 // mongotop_validation.js; ensure that running mongotop using invalid arguments
 // fail as expected
-//
 var testName = 'mongotop_validation';
 load('jstests/top/util/mongotop_common.js');
 
@@ -17,7 +16,6 @@ load('jstests/top/util/mongotop_common.js');
 
 
     // ensure tool returns an error...
-    //
 
     // when used with an invalid port
     assert.neq(runMongoProgram.apply(this, ['mongotop', '--port', 55555].concat(passthrough.args)), 0, '--port assertion failure 1');
@@ -45,4 +43,4 @@ load('jstests/top/util/mongotop_common.js');
     runTests(standaloneTopology, passthrough);
     runTests(replicaSetTopology, passthrough);
   });
-})();
+}());

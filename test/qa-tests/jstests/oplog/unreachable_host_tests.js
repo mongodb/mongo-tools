@@ -1,13 +1,12 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * Tests behavior when the host provided in --host or in --from is unreachable
  */
-
 (function() {
-  var CURRENT_MONGOD_RELEASE = '3.0';
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+
+  // unused: var CURRENT_MONGOD_RELEASE = '3.0';
 
   var toolTest = getToolTest('oplogUnreachableHostsTest');
   var commonToolArgs = getCommonToolArguments();
@@ -18,7 +17,7 @@ if (typeof getToolTest === 'undefined') {
   assert(toolTest.runTool.apply(toolTest, args) !== 0,
     'mongooplog should fail when --from is not reachable');
   var output = rawMongoProgramOutput();
-    
+
   assert(output.indexOf(fromUnreachableError) !== -1,
     'mongooplog should output correct error when "from" is not reachable');
 
@@ -28,19 +27,19 @@ if (typeof getToolTest === 'undefined') {
   /** Overwrite so toolTest.runTool doesn't append --host */
   toolTest.runTool = function() {
     arguments[0] = 'mongo' + arguments[0];
-    return runMongoProgram.apply(null , arguments);
+    return runMongoProgram.apply(null, arguments);
   };
 
-  var args = ['oplog'].concat(commonToolArgs).concat('--host', 'doesnte.xist',
-    '--from', '127.0.0.1:' + toolTest.port);
+  args = ['oplog'].concat(commonToolArgs).concat('--host', 'doesnte.xist',
+      '--from', '127.0.0.1:' + toolTest.port);
   assert(toolTest.runTool.apply(toolTest, args) !== 0,
-    'mongooplog should fail when --host is not reachable');
+      'mongooplog should fail when --host is not reachable');
 
-  var output = rawMongoProgramOutput();
+  output = rawMongoProgramOutput();
   var hostUnreachableError = 'error connecting to destination db';
 
   assert(output.indexOf(hostUnreachableError) !== -1,
-    'mongooplog should output correct error when "host" is not reachable');
+      'mongooplog should output correct error when "host" is not reachable');
 
   toolTest.stop();
-})();
+}());

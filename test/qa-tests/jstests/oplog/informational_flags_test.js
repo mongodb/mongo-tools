@@ -1,13 +1,12 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * Tests that the informational flags --version and --help give reasonable
  * output.
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+
   var toolTest = getToolTest('oplogInformationalFlagTest');
   var commonToolArgs = getCommonToolArguments();
 
@@ -17,13 +16,13 @@ if (typeof getToolTest === 'undefined') {
       'mongooplog should succeed with ' + flag);
 
     var output = rawMongoProgramOutput();
-    
+
     assert(output.indexOf(expected) !== -1,
-      'mongooplog ' + flag + ' should produce output that contains "' +
+      'mongooplog ' + flag + " should produce output that contains '" +
       expected + "'");
   };
 
   verifyFlagOutput('--help', 'Usage:');
 
   toolTest.stop();
-})();
+}());

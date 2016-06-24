@@ -18,35 +18,35 @@ if (typeof getToolTest === 'undefined') {
   db.createRole({
     role: 'taco',
     privileges: [
-      { resource: { db: 'foo', collection: '' }, actions: ['find'] }
+      {resource: {db: 'foo', collection: ''}, actions: ['find']},
     ],
-    roles: []
+    roles: [],
   });
   db.getSiblingDB('baz').createRole({
     role: 'bacon',
     privileges: [
-      { resource: { db: 'baz', collection: '' }, actions: ['find'] }
+      {resource: {db: 'baz', collection: ''}, actions: ['find']},
     ],
-    roles: []
+    roles: [],
   });
 
   // And users with those roles
   db.createUser({
     user: 'baconator',
     pwd: 'bacon',
-    roles: [{ role: 'taco', db: 'foo' }]
+    roles: [{role: 'taco', db: 'foo'}],
   });
   db.getSiblingDB('baz').createUser({
     user: 'eggs',
     pwd: 'bacon',
-    roles: [{ role: 'bacon', db: 'baz' }]
+    roles: [{role: 'bacon', db: 'baz'}],
   });
 
   // mongodump should fail when --dumpDbUsersAndRoles is specified but
   // --db isn't
-  var dumpArgs = ['dump', '--dumpDbUsersAndRoles'].
-      concat(getDumpTarget()).
-      concat(commonToolArgs);
+  var dumpArgs = ['dump', '--dumpDbUsersAndRoles']
+      .concat(getDumpTarget())
+      .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should fail when --dumpDbUsersAndRoles is specified without ' +
     '--db');
@@ -54,24 +54,25 @@ if (typeof getToolTest === 'undefined') {
   // Running mongodump with `--db foo --dumpDbUsersAndRoles` should dump the
   // associated users
   resetDbpath('dump');
-  var dumpArgs = ['dump', '--db', 'foo', '--dumpDbUsersAndRoles'].
-    concat(getDumpTarget()).
-    concat(commonToolArgs);
+  dumpArgs = ['dump', '--db', 'foo', '--dumpDbUsersAndRoles']
+      .concat(getDumpTarget())
+      .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should succeed with `--db foo --dumpDbUsersAndRoles`');
   db.dropDatabase();
   db.getSiblingDB('baz').dropDatabase();
-  db.getSiblingDB('admin').system.users.remove({ user: 'baconator' });
-  db.getSiblingDB('admin').system.users.remove({ user: 'eggs' });
-  db.getSiblingDB('admin').system.roles.remove({ role: 'taco' });
-  db.getSiblingDB('admin').system.roles.remove({ role: 'bacon' });
+  db.getSiblingDB('admin').system.users.remove({user: 'baconator'});
+  db.getSiblingDB('admin').system.users.remove({user: 'eggs'});
+  db.getSiblingDB('admin').system.roles.remove({role: 'taco'});
+  db.getSiblingDB('admin').system.roles.remove({role: 'bacon'});
 
-  var restoreArgs = ['restore', "--db", "foo", '--restoreDbUsersAndRoles' ].
-    concat(getRestoreTarget("dump/foo")).
-    concat(commonToolArgs);
+  var restoreArgs = ['restore', "--db", "foo", '--restoreDbUsersAndRoles']
+      .concat(getRestoreTarget("dump/foo"))
+      .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');
   var c = db.getSiblingDB('admin').system.roles.find();
+  assert(!!c);
 
   // Should have restored only the user that was in the 'foo' db
   assert(!!db.getUser('baconator'));
@@ -81,4 +82,4 @@ if (typeof getToolTest === 'undefined') {
   assert(!db.getSiblingDB('baz').getRole('bacon'));
 
   toolTest.stop();
-})();
+}());

@@ -1,44 +1,44 @@
 (function() {
 
-    load("jstests/configs/standard_dump_targets.config.js");
-    // Tests that running mongorestore with --objcheck on valid bson
-    // files restores the data successfully.
-    
-    jsTest.log('Testing restoration with --objcheck');
+  load("jstests/configs/standard_dump_targets.config.js");
+  // Tests that running mongorestore with --objcheck on valid bson
+  // files restores the data successfully.
 
-    var toolTest = new ToolTest('objcheck_valid_bson');
-    toolTest.startDB('foo');
+  jsTest.log('Testing restoration with --objcheck');
 
-    // where we'll put the dump
-    var dumpTarget = 'objcheck_valid_bson_dump';
-    resetDbpath(dumpTarget);
+  var toolTest = new ToolTest('objcheck_valid_bson');
+  toolTest.startDB('foo');
 
-    // the db and collection we will use
-    var testDB = toolTest.db.getSiblingDB('test');
-    var testColl = testDB.coll;
+  // where we'll put the dump
+  var dumpTarget = 'objcheck_valid_bson_dump';
+  resetDbpath(dumpTarget);
 
-    // insert some data
-    for (var i = 0; i < 50; i++) {
-        testColl.insert({_id: i});
-    }
-    // sanity check the insert worked
-    assert.eq(50, testColl.count());
+  // the db and collection we will use
+  var testDB = toolTest.db.getSiblingDB('test');
+  var testColl = testDB.coll;
 
-    // dump the data
-    var ret = toolTest.runTool.apply(toolTest,['dump'].concat(getDumpTarget(dumpTarget)));
-    assert.eq(0, ret);
+  // insert some data
+  for (var i = 0; i < 50; i++) {
+    testColl.insert({_id: i});
+  }
+  // sanity check the insert worked
+  assert.eq(50, testColl.count());
 
-    // drop the data
-    testDB.dropDatabase();
+  // dump the data
+  var ret = toolTest.runTool.apply(toolTest, ['dump'].concat(getDumpTarget(dumpTarget)));
+  assert.eq(0, ret);
 
-    // restore the data, with --objcheck
-    ret = toolTest.runTool.apply(toolTest,['restore'].concat(getRestoreTarget(dumpTarget)));
-    assert.eq(0, ret);
+  // drop the data
+  testDB.dropDatabase();
 
-    // make sure the restore completed succesfully
-    assert.eq(50, testColl.count());
+  // restore the data, with --objcheck
+  ret = toolTest.runTool.apply(toolTest, ['restore'].concat(getRestoreTarget(dumpTarget)));
+  assert.eq(0, ret);
 
-    // success
-    toolTest.stop();
+  // make sure the restore completed succesfully
+  assert.eq(50, testColl.count());
+
+  // success
+  toolTest.stop();
 
 }());

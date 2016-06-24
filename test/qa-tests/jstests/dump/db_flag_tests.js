@@ -4,7 +4,7 @@ if (typeof getToolTest === 'undefined') {
 
 (function() {
   resetDbpath('dump');
-  var targetPath = "dbflags"
+  var targetPath = "dbflags";
   var toolTest = getToolTest('dbFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -15,16 +15,16 @@ if (typeof getToolTest === 'undefined') {
   assert.eq(0, db.getSiblingDB('baz').bar.count());
 
   // Insert into the 'foo' database
-  db.bar.insert({ x: 1 });
+  db.bar.insert({x: 1});
   // and into the 'baz' database
-  db.getSiblingDB('baz').bar.insert({ x: 2 });
+  db.getSiblingDB('baz').bar.insert({x: 2});
 
   // Running mongodump with `--db foo` should only dump the
   // 'foo' database, ignoring the 'baz' database
   resetDbpath('dump');
-  var dumpArgs = ['dump', '--db', 'foo'].
-      concat(getDumpTarget(targetPath)).
-      concat(commonToolArgs);
+  var dumpArgs = ['dump', '--db', 'foo']
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should succeed with `--db foo`');
   db.dropDatabase();
@@ -32,13 +32,13 @@ if (typeof getToolTest === 'undefined') {
   assert.eq(0, db.bar.count());
   assert.eq(0, db.getSiblingDB('baz').bar.count());
 
-  var restoreArgs = ['restore'].
-      concat(getRestoreTarget(targetPath)).
-      concat(commonToolArgs);
+  var restoreArgs = ['restore']
+    .concat(getRestoreTarget(targetPath))
+    .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');
   assert.eq(1, db.bar.count());
   assert.eq(0, db.getSiblingDB('baz').bar.count());
 
   toolTest.stop();
-})();
+}());

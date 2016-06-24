@@ -1,6 +1,5 @@
 // mongotop_json.js; ensure that running mongotop using the --json flag works as
 // expected
-//
 var testName = 'mongotop_json';
 load('jstests/top/util/mongotop_common.js');
 
@@ -17,7 +16,7 @@ load('jstests/top/util/mongotop_common.js');
 
     // ensure tool runs without error with --rowcount = 1
     assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args)), 0, 'failed 1');
-    assert(typeof JSON.parse(extractJSON(rawMongoProgramOutput())) === 'object', 'invalid JSON 1')
+    assert(typeof JSON.parse(extractJSON(rawMongoProgramOutput())) === 'object', 'invalid JSON 1');
 
     // ensure tool runs without error with --rowcount > 1
     var rowcount = 5;
@@ -31,7 +30,7 @@ load('jstests/top/util/mongotop_common.js');
     assert.eq(rowcount, outputLines.length, "expected " + rowcount + " top results but got " + outputLines.length);
 
     outputLines.forEach(function(line) {
-      assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2')
+      assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
 
     t.stop();
@@ -42,4 +41,4 @@ load('jstests/top/util/mongotop_common.js');
     runTests(standaloneTopology, passthrough);
     runTests(replicaSetTopology, passthrough);
   });
-})();
+}());

@@ -1,7 +1,3 @@
-if (typeof getToolTest === 'undefined') {
-  load('jstests/configs/plain_28.config.js');
-}
-
 /*
  * If SSL is enabled in the config, this test starts mongod with SSL off and
  * tests that we get a sensible failure. Otherwise, it runs with --ssl and
@@ -9,8 +5,11 @@ if (typeof getToolTest === 'undefined') {
  *
  * Note: this requires an SSL-enabled tool suite
  */
-
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
+
   var toolTest = getToolTest('oplogAsymmetricSSLTest');
   var commonToolArgs = getCommonToolArguments();
   var sslOpts = [
@@ -22,8 +21,8 @@ if (typeof getToolTest === 'undefined') {
     var port = 26999;
 
     // this mongod is actually started with SSL flags because of `useSSL`
-    var mongod = startMongod('--auth', '--port', port,
-      '--dbpath', MongoRunner.dataPath + 'oplogAsymmetricSSLTest2');
+    startMongod('--auth', '--port', port,
+        '--dbpath', MongoRunner.dataPath + 'oplogAsymmetricSSLTest2');
 
     var args = ['mongooplog'].concat(commonToolArgs).concat(
       '--from', '127.0.0.1:' + toolTest.port, '--host', '127.0.0.1', '--port', port);
@@ -35,7 +34,7 @@ if (typeof getToolTest === 'undefined') {
       'started with SSL');
   } else {
     // toolTest.runTool will add the underlying --host argument for the mongod started without SSL
-    var args = ['oplog'].concat(commonToolArgs).concat(sslOpts).concat(
+    args = ['oplog'].concat(commonToolArgs).concat(sslOpts).concat(
       '--from', '127.0.0.1:' + toolTest.port);
 
     // mongooplog run with SSL against a destination server not started with SSL should fail
@@ -46,5 +45,4 @@ if (typeof getToolTest === 'undefined') {
   }
 
   toolTest.stop();
-})();
-
+}());

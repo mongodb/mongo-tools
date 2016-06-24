@@ -6,17 +6,17 @@ var runWCTest = function runWCTest(progName, rs, toolTest, testWriteConcern, tes
 
   function windowsEscape(json) {
     if (_isWindows()) {
-      json = '"' + json.replace(/\"/g, '\\"') + '"';
+      json = '"' + json.replace(/"/g, '\\"') + '"';
     }
     return json;
   }
 
   // grab the two secondary nodes
-  var masterPort = rs.getPrimary().port
+  var masterPort = rs.getPrimary().port;
   var members = [];
   var ports = [];
   for (var i = 0; i < rs.nodes.length; i++) {
-    if (rs.nodes[i].port != masterPort) {
+    if (rs.nodes[i].port !== masterPort) {
       members.push(rs.nodes[i].getDB("admin"));
       ports.push(rs.nodes[i].port);
     }
@@ -55,7 +55,7 @@ var runWCTest = function runWCTest(progName, rs, toolTest, testWriteConcern, tes
   testWriteConcern(0, ['--writeConcern={w:1,wtimeout:10000}'], progName+" with w:1,timeout:10000 repl-set with one working nodes should succeed");
 
   jsTest.log(progName+" with w:3 concern and no working member and no timeout waits until member are available");
-  pid = testProgramNoConnect()
+  pid = testProgramNoConnect();
 
   sleep(2000);
 
@@ -69,4 +69,4 @@ var runWCTest = function runWCTest(progName, rs, toolTest, testWriteConcern, tes
   jsTest.log("waiting for "+progName+" to finish");
   ret = waitProgram(pid);
   assert.eq(0, ret, progName+" with w:3 should succeed once enough members start working");
-}
+};
