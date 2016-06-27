@@ -10,6 +10,11 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 )
 
+type ReaderConfig struct {
+	HumanReadable bool
+	TimeFormat    string
+}
+
 type LockUsage struct {
 	Namespace string
 	Reads     int64
@@ -28,6 +33,18 @@ func (slice lockUsages) Less(i, j int) bool {
 
 func (slice lockUsages) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
+}
+
+func formatBits(should bool, amt int64) string {
+	if should {
+		return text.FormatBits(amt)
+	}
+	return fmt.Sprintf("%v", amt)
+}
+
+func formatMegabyteAmount(should bool, amt int64) string {
+	_ = should // TODO: change behavior for non-human-readable
+	return text.FormatMegabyteAmount(amt)
 }
 
 func percentageInt64(value, outOf int64) float64 {
@@ -117,7 +134,7 @@ func IsMongos(stat *ServerStatus) bool {
 }
 
 func HasLocks(stat *ServerStatus) bool {
-	return ReadLockedDB(stat, stat) != ""
+	return ReadLockedDB(nil, stat, stat) != ""
 }
 
 func IsReplSet(stat *ServerStatus) (res bool) {
@@ -136,72 +153,78 @@ func IsWT(stat *ServerStatus) bool {
 	return getStorageEngine(stat) == "wiredTiger"
 }
 
-func ReadHost(newStat, _ *ServerStatus) string {
+func ReadHost(_ *ReaderConfig, newStat, _ *ServerStatus) string {
 	return newStat.Host
 }
 
-func ReadStorageEngine(newStat, _ *ServerStatus) string {
+func ReadStorageEngine(_ *ReaderConfig, newStat, _ *ServerStatus) string {
 	return getStorageEngine(newStat)
 }
 
-func ReadInsert(newStat, oldStat *ServerStatus) string {
+func ReadInsert(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	return diffOp(newStat, oldStat, func(o *OpcountStats) int64 {
 		return o.Insert
 	}, false)
 }
 
-func ReadQuery(newStat, oldStat *ServerStatus) string {
+func ReadQuery(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	return diffOp(newStat, oldStat, func(s *OpcountStats) int64 {
 		return s.Query
 	}, false)
 }
 
-func ReadUpdate(newStat, oldStat *ServerStatus) string {
+func ReadUpdate(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	return diffOp(newStat, oldStat, func(s *OpcountStats) int64 {
 		return s.Update
 	}, false)
 }
 
-func ReadDelete(newStat, oldStat *ServerStatus) string {
+func ReadDelete(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	return diffOp(newStat, oldStat, func(s *OpcountStats) int64 {
 		return s.Delete
 	}, false)
 }
 
-func ReadGetMore(newStat, oldStat *ServerStatus) string {
+func ReadGetMore(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
 	return fmt.Sprintf("%d", diff(newStat.Opcounters.GetMore, oldStat.Opcounters.GetMore, sampleSecs))
 }
 
-func ReadCommand(newStat, oldStat *ServerStatus) string {
+func ReadCommand(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	return diffOp(newStat, oldStat, func(s *OpcountStats) int64 {
 		return s.Command
 	}, true)
 }
 
-func ReadDirty(newStat, _ *ServerStatus) (val string) {
+func ReadDirty(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 	if newStat.WiredTiger != nil {
 		bytes := float64(newStat.WiredTiger.Cache.TrackedDirtyBytes)
 		max := float64(newStat.WiredTiger.Cache.MaxBytesConfigured)
 		if max != 0 {
-			val = fmt.Sprintf("%.3f", bytes/max)
+			val = fmt.Sprintf("%.1f", 100*bytes/max)
+			if c.HumanReadable {
+				val = val + "%"
+			}
 		}
 	}
 	return
 }
 
-func ReadUsed(newStat, _ *ServerStatus) (val string) {
+func ReadUsed(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 	if newStat.WiredTiger != nil {
 		bytes := float64(newStat.WiredTiger.Cache.CurrentCachedBytes)
 		max := float64(newStat.WiredTiger.Cache.MaxBytesConfigured)
 		if max != 0 {
-			val = fmt.Sprintf("%.3f", bytes/max)
+			val = fmt.Sprintf("%.1f", 100*bytes/max)
+			if c.HumanReadable {
+				val = val + "%"
+			}
 		}
 	}
 	return
 }
 
-func ReadFlushes(newStat, oldStat *ServerStatus) string {
+func ReadFlushes(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	var val int64
 	if newStat.WiredTiger != nil && oldStat.WiredTiger != nil {
 		val = newStat.WiredTiger.Transaction.TransCheckpoints - oldStat.WiredTiger.Transaction.TransCheckpoints
@@ -211,35 +234,38 @@ func ReadFlushes(newStat, oldStat *ServerStatus) string {
 	return fmt.Sprintf("%d", val)
 }
 
-func ReadMapped(newStat, _ *ServerStatus) (val string) {
+func ReadMapped(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 	if util.IsTruthy(newStat.Mem.Supported) && IsMongos(newStat) {
-		val = text.FormatMegabyteAmount(int64(newStat.Mem.Mapped))
+		val = formatMegabyteAmount(c.HumanReadable, newStat.Mem.Mapped)
 	}
 	return
 }
 
-func ReadVSize(newStat, _ *ServerStatus) (val string) {
+func ReadVSize(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 	if util.IsTruthy(newStat.Mem.Supported) {
-		val = text.FormatMegabyteAmount(int64(newStat.Mem.Virtual))
+		val = formatMegabyteAmount(c.HumanReadable, newStat.Mem.Virtual)
 	}
 	return
 }
 
-func ReadRes(newStat, _ *ServerStatus) (val string) {
+func ReadRes(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 	if util.IsTruthy(newStat.Mem.Supported) {
-		val = text.FormatMegabyteAmount(int64(newStat.Mem.Resident))
+		val = formatMegabyteAmount(c.HumanReadable, newStat.Mem.Resident)
 	}
 	return
 }
 
-func ReadNonMapped(newStat, _ *ServerStatus) (val string) {
+func ReadNonMapped(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 	if util.IsTruthy(newStat.Mem.Supported) && !IsMongos(newStat) {
-		val = text.FormatMegabyteAmount(int64(newStat.Mem.Virtual - newStat.Mem.Mapped))
+		val = formatMegabyteAmount(c.HumanReadable, newStat.Mem.Virtual-newStat.Mem.Mapped)
 	}
 	return
 }
 
-func ReadFaults(newStat, oldStat *ServerStatus) string {
+func ReadFaults(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
+	if !IsMMAP(newStat) {
+		return "n/a"
+	}
 	var val int64 = -1
 	if oldStat.ExtraInfo != nil && newStat.ExtraInfo != nil &&
 		oldStat.ExtraInfo.PageFaults != nil && newStat.ExtraInfo.PageFaults != nil {
@@ -249,7 +275,7 @@ func ReadFaults(newStat, oldStat *ServerStatus) string {
 	return fmt.Sprintf("%d", val)
 }
 
-func ReadLRW(newStat, oldStat *ServerStatus) (val string) {
+func ReadLRW(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {
 	if !IsMongos(newStat) && newStat.Locks != nil && oldStat.Locks != nil {
 		global, ok := oldStat.Locks["Global"]
 		if ok && global.AcquireCount != nil {
@@ -269,7 +295,7 @@ func ReadLRW(newStat, oldStat *ServerStatus) (val string) {
 	return
 }
 
-func ReadLRWT(newStat, oldStat *ServerStatus) (val string) {
+func ReadLRWT(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {
 	if !IsMongos(newStat) && newStat.Locks != nil && oldStat.Locks != nil {
 		global, ok := oldStat.Locks["Global"]
 		if ok && global.AcquireCount != nil {
@@ -289,7 +315,7 @@ func ReadLRWT(newStat, oldStat *ServerStatus) (val string) {
 	return
 }
 
-func ReadLockedDB(newStat, oldStat *ServerStatus) (val string) {
+func ReadLockedDB(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {
 	if !IsMongos(newStat) && newStat.Locks != nil && oldStat.Locks != nil {
 		global, ok := oldStat.Locks["Global"]
 		if !ok || global.AcquireCount == nil {
@@ -332,7 +358,7 @@ func ReadLockedDB(newStat, oldStat *ServerStatus) (val string) {
 	return
 }
 
-func ReadQRW(newStat, _ *ServerStatus) string {
+func ReadQRW(_ *ReaderConfig, newStat, _ *ServerStatus) string {
 	var qr int64
 	var qw int64
 	gl := newStat.GlobalLock
@@ -355,7 +381,7 @@ func ReadQRW(newStat, _ *ServerStatus) string {
 	return fmt.Sprintf("%v|%v", qr, qw)
 }
 
-func ReadARW(newStat, _ *ServerStatus) string {
+func ReadARW(_ *ReaderConfig, newStat, _ *ServerStatus) string {
 	var ar int64
 	var aw int64
 	if gl := newStat.GlobalLock; gl != nil {
@@ -370,30 +396,30 @@ func ReadARW(newStat, _ *ServerStatus) string {
 	return fmt.Sprintf("%v|%v", ar, aw)
 }
 
-func ReadNetIn(newStat, oldStat *ServerStatus) string {
+func ReadNetIn(c *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
 	val := diff(newStat.Network.BytesIn, oldStat.Network.BytesIn, sampleSecs)
-	return text.FormatBits(val)
+	return formatBits(c.HumanReadable, val)
 }
 
-func ReadNetOut(newStat, oldStat *ServerStatus) string {
+func ReadNetOut(c *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
 	val := diff(newStat.Network.BytesOut, oldStat.Network.BytesOut, sampleSecs)
-	return text.FormatBits(val)
+	return formatBits(c.HumanReadable, val)
 }
 
-func ReadConn(newStat, _ *ServerStatus) string {
+func ReadConn(_ *ReaderConfig, newStat, _ *ServerStatus) string {
 	return fmt.Sprintf("%d", newStat.Connections.Current)
 }
 
-func ReadSet(newStat, _ *ServerStatus) (name string) {
+func ReadSet(_ *ReaderConfig, newStat, _ *ServerStatus) (name string) {
 	if newStat.Repl != nil {
 		name = newStat.Repl.SetName
 	}
 	return
 }
 
-func ReadRepl(newStat, _ *ServerStatus) string {
+func ReadRepl(_ *ReaderConfig, newStat, _ *ServerStatus) string {
 	switch {
 	case newStat.Repl == nil && IsMongos(newStat):
 		return "RTR"
@@ -417,6 +443,12 @@ func ReadRepl(newStat, _ *ServerStatus) string {
 	}
 }
 
-func ReadTime(newStat, _ *ServerStatus) string {
+func ReadTime(c *ReaderConfig, newStat, _ *ServerStatus) string {
+	if c.TimeFormat != "" {
+		return newStat.SampleTime.Format(c.TimeFormat)
+	}
+	if c.HumanReadable {
+		return newStat.SampleTime.Format(time.StampMilli)
+	}
 	return newStat.SampleTime.Format(time.RFC3339)
 }

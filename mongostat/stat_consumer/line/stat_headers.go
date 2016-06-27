@@ -20,7 +20,7 @@ const (
 type StatHeader struct {
 	// ReadField produces a particular field according to the StatHeader instance.
 	// Some fields are based on a diff, so both latest ServerStatuses are taken.
-	ReadField func(newStat, oldStat *status.ServerStatus) string
+	ReadField func(c *status.ReaderConfig, newStat, oldStat *status.ServerStatus) string
 }
 
 // StatHeaders are the complete set of data metrics supported by mongostat.

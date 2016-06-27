@@ -111,7 +111,15 @@ func main() {
 		keyNames = line.DefaultKeyMap()
 	}
 
-	consumer := stat_consumer.NewStatConsumer(cliFlags, customHeaders, keyNames, formatter, os.Stdout)
+	readerConfig := &status.ReaderConfig{
+		HumanReadable: statOpts.HumanReadable,
+	}
+	if statOpts.Json {
+		readerConfig.TimeFormat = "15:04:05"
+	}
+
+	consumer := stat_consumer.NewStatConsumer(cliFlags, customHeaders,
+		keyNames, readerConfig, formatter, os.Stdout)
 	seedHosts := util.CreateConnectionAddrs(opts.Host, opts.Port)
 	var cluster mongostat.ClusterMonitor
 	if statOpts.Discover || len(seedHosts) > 1 {

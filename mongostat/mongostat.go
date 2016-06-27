@@ -167,7 +167,7 @@ func (cluster *SyncClusterMonitor) Monitor(maxRows int, done chan error, sleep t
 }
 
 // updateHostInfo updates the internal map with the given StatLine data.
-// Safe for concurrent accestatus.
+// Safe for concurrent access.
 func (cluster *AsyncClusterMonitor) updateHostInfo(stat *line.StatLine) {
 	cluster.mapLock.Lock()
 	defer cluster.mapLock.Unlock()

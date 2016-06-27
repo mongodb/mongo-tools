@@ -33,6 +33,9 @@ func TestStatLine(t *testing.T) {
 	for i, h := range line.CondHeaders {
 		defaultHeaders[i] = h.Key
 	}
+	defaultConfig := &status.ReaderConfig{
+		HumanReadable: true,
+	}
 
 	serverStatusOld := readBSONFile("test_data/server_status_old.bson", t)
 	serverStatusNew := readBSONFile("test_data/server_status_new.bson", t)
@@ -40,7 +43,7 @@ func TestStatLine(t *testing.T) {
 	serverStatusOld.ShardCursorType = nil
 
 	Convey("StatsLine should accurately calculate opcounter diffs", t, func() {
-		statsLine := line.NewStatLine(serverStatusOld, serverStatusNew, defaultHeaders)
+		statsLine := line.NewStatLine(serverStatusOld, serverStatusNew, defaultHeaders, defaultConfig)
 		So(statsLine.Fields["insert"], ShouldEqual, "10")
 		So(statsLine.Fields["query"], ShouldEqual, "5")
 		So(statsLine.Fields["update"], ShouldEqual, "7")
@@ -66,7 +69,7 @@ func TestStatLine(t *testing.T) {
 
 	serverStatusNew.SampleTime, _ = time.Parse("2006 Jan 02 15:04:05", "2015 Nov 30 4:25:33")
 	Convey("StatsLine with non-default interval should calculate average diffs", t, func() {
-		statsLine := line.NewStatLine(serverStatusOld, serverStatusNew, defaultHeaders)
+		statsLine := line.NewStatLine(serverStatusOld, serverStatusNew, defaultHeaders, defaultConfig)
 		// Opcounters and faults are averaged over sample period
 		So(statsLine.Fields["insert"], ShouldEqual, "3")
 		So(statsLine.Fields["query"], ShouldEqual, "1")

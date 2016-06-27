@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common/text"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
@@ -39,12 +37,7 @@ func (jlf *JSONLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []s
 		}
 
 		for _, key := range headerKeys {
-			if key == "time" {
-				t, _ := time.Parse(time.RFC3339, l.Fields[key])
-				lineJson[keyNames[key]] = t.Format("15:04:05")
-			} else {
-				lineJson[keyNames[key]] = l.Fields[key]
-			}
+			lineJson[keyNames[key]] = l.Fields[key]
 		}
 		jsonFormat[l.Fields["host"]] = lineJson
 	}
@@ -101,30 +94,7 @@ func (glf *GridLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []s
 
 		// Write the opcount columns (always active)
 		for _, key := range headerKeys {
-			switch key {
-			case "dirty":
-				dirty, err := strconv.ParseFloat(l.Fields["dirty"], 64)
-				if err != nil {
-					glf.Writer.WriteCell("")
-				} else {
-					glf.Writer.WriteCell(fmt.Sprintf("%.1f", dirty*100))
-				}
-			case "used":
-				used, err := strconv.ParseFloat(l.Fields["used"], 64)
-				if err != nil {
-					glf.Writer.WriteCell("")
-				} else {
-					glf.Writer.WriteCell(fmt.Sprintf("%.1f", used*100))
-				}
-			case "faults":
-				if l.Fields["storage_engine"] == "mmapv1" {
-					glf.Writer.WriteCell(fmt.Sprintf("%v", l.Fields["faults"]))
-				} else {
-					glf.Writer.WriteCell("n/a")
-				}
-			default:
-				glf.Writer.WriteCell(l.Fields[key])
-			}
+			glf.Writer.WriteCell(l.Fields[key])
 		}
 		glf.Writer.EndRow()
 	}

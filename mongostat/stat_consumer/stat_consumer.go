@@ -13,6 +13,7 @@ import (
 // and can format and write groups of StatLines.
 type StatConsumer struct {
 	formatter              LineFormatter
+	readerConfig           *status.ReaderConfig
 	oldStats               map[string]*status.ServerStatus
 	headers, customHeaders []string
 	keyNames               map[string]string
@@ -21,9 +22,10 @@ type StatConsumer struct {
 }
 
 // NewStatConsumer creates a new StatConsumer with no previous records
-func NewStatConsumer(flags int, customHeaders []string, keyNames map[string]string, formatter LineFormatter, writer io.Writer) (sc *StatConsumer) {
+func NewStatConsumer(flags int, customHeaders []string, keyNames map[string]string, readerConfig *status.ReaderConfig, formatter LineFormatter, writer io.Writer) (sc *StatConsumer) {
 	sc = &StatConsumer{
 		formatter:     formatter,
+		readerConfig:  readerConfig,
 		oldStats:      make(map[string]*status.ServerStatus),
 		customHeaders: customHeaders,
 		keyNames:      keyNames,
@@ -38,7 +40,7 @@ func (sc *StatConsumer) Update(newStat *status.ServerStatus) (l *line.StatLine, 
 	oldStat, seen := sc.oldStats[newStat.Host]
 	sc.oldStats[newStat.Host] = newStat
 	if seen {
-		l = line.NewStatLine(oldStat, newStat, sc.headers)
+		l = line.NewStatLine(oldStat, newStat, sc.headers, sc.readerConfig)
 		return
 	}
 

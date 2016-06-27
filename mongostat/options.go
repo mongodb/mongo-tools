@@ -8,16 +8,17 @@ See http://docs.mongodb.org/manual/reference/program/mongostat/ for more informa
 
 // StatOptions defines the set of options to use for configuring mongostat.
 type StatOptions struct {
-	NoHeaders  bool `long:"noheaders" description:"don't output column names"`
-	RowCount   int  `long:"rowcount" value-name:"<count>" short:"n" description:"number of stats lines to print (0 for indefinite)"`
-	Discover   bool `long:"discover" description:"discover nodes and display stats for all"`
-	Http       bool `long:"http" description:"use HTTP instead of raw db connection"`
-	All        bool `long:"all" description:"all optional fields"`
-	Json       bool `long:"json" description:"output as JSON rather than a formatted table"`
-	Deprecated bool `long:"deprecated" description:"use old key names; only valid with the json output option."`
+	HumanReadable bool `short:"h" long:"humanReadable" description:"print sizes in human readable format (e.g., 1K 234M 2G)"`
+	NoHeaders     bool `long:"noheaders" description:"don't output column names"`
+	RowCount      int  `long:"rowcount" value-name:"<count>" short:"n" description:"number of stats lines to print (0 for indefinite)"`
+	Discover      bool `long:"discover" description:"discover nodes and display stats for all"`
+	Http          bool `long:"http" description:"use HTTP instead of raw db connection"`
+	All           bool `long:"all" description:"all optional fields"`
+	Json          bool `long:"json" description:"output as JSON rather than a formatted table"`
+	Deprecated    bool `long:"deprecated" description:"use old key names; only valid with the json output option."`
 }
 
 // Name returns a human-readable group name for mongostat options.
-func (_ *StatOptions) Name() string {
+func (*StatOptions) Name() string {
 	return "stat"
 }

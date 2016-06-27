@@ -25,15 +25,15 @@ func (slice StatLines) Swap(i, j int) {
 }
 
 // NewStatLine constructs a StatLine object from two ServerStatus objects
-func NewStatLine(oldStat, newStat *status.ServerStatus, headerKeys []string) *StatLine {
+func NewStatLine(oldStat, newStat *status.ServerStatus, headerKeys []string, c *status.ReaderConfig) *StatLine {
 	line := &StatLine{
 		Fields: make(map[string]string),
 	}
 	for _, key := range headerKeys {
-		line.Fields[key] = StatHeaders[key].ReadField(newStat, oldStat)
+		line.Fields[key] = StatHeaders[key].ReadField(c, newStat, oldStat)
 	}
 	// We always need host and storage_engine, even if they aren't being displayed
-	line.Fields["host"] = StatHeaders["host"].ReadField(newStat, oldStat)
-	line.Fields["storage_engine"] = StatHeaders["storage_engine"].ReadField(newStat, oldStat)
+	line.Fields["host"] = StatHeaders["host"].ReadField(c, newStat, oldStat)
+	line.Fields["storage_engine"] = StatHeaders["storage_engine"].ReadField(c, newStat, oldStat)
 	return line
 }
