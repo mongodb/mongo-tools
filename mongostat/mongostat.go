@@ -340,6 +340,10 @@ func (mstat *MongoStat) AddNewNode(fullhost string) error {
 	mstat.nodesLock.Lock()
 	defer mstat.nodesLock.Unlock()
 
+	// Remove the 'shardXX/' prefix from the hostname, if applicable
+	pieces := strings.Split(fullhost, "/")
+	fullhost = pieces[len(pieces)-1]
+
 	if len(mstat.Nodes) == 0 {
 		mstat.startNode = fullhost
 	}

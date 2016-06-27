@@ -19,17 +19,33 @@ function statOutputPortCheck(ports) {
     ports.forEach(function(p) {
         portMap[p] = true;
     });
-    foundRows = rawMongoProgramOutput().split("\n").filter(function(r) {
+    var output = rawMongoProgramOutput();
+    // mongostat outputs a blank line between each set of stats when there are
+    // multiple hosts; we want just one chunk of stat lines
+    var lineChunks = output.split("| \n");
+    var checkDupes = false;
+    var foundChunk = lineChunks[0];
+    if (lineChunks.length > 1) {
+        checkDupes = true;
+        // With multiple hosts, use only the last complete chunk of stat lines
+        // We assume that being bounded by blank lines implies it is complete
+        foundChunk = lineChunks[lineChunks.length - 2];
+    }
+    var foundRows = foundChunk.split("\n").filter(function(r) {
         return r.match(portRegex);
     });
-    foundPorts = foundRows.map(function(r) {
+    var foundPorts = foundRows.map(function(r) {
         return r.match(portRegex)[1];
     });
     foundPorts.forEach(function(p) {
         portMap[p] = false;
     });
-    somePortsUnseen = ports.some(function(p) {
+    var somePortsUnseen = ports.some(function(p) {
         return portMap[p];
     });
-    return !somePortsUnseen;
+    var noDupes = foundPorts.every(function(p, i) {
+        return foundPorts.indexOf(p) === i;
+    });
+    return (!checkDupes || noDupes) && !somePortsUnseen;
 }
+
