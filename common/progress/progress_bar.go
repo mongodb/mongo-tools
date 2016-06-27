@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/text"
 	"io"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,28 +22,23 @@ const (
 type countProgressor struct {
 	max     int64
 	current int64
-	*sync.Mutex
 }
 
 func (c *countProgressor) Progress() (int64, int64) {
-	c.Lock()
-	defer c.Unlock()
-	return c.max, c.current
+	current := atomic.LoadInt64(&c.current)
+	return c.max, current
 }
+
 func (c *countProgressor) Inc(amount int64) {
-	c.Lock()
-	defer c.Unlock()
-	c.current += amount
+	atomic.AddInt64(&c.current, amount)
 }
 
 func (c *countProgressor) Set(amount int64) {
-	c.Lock()
-	defer c.Unlock()
-	c.current = amount
+	atomic.StoreInt64(&c.current, amount)
 }
 
 func NewCounter(max int64) *countProgressor {
-	return &countProgressor{max, 0, &sync.Mutex{}}
+	return &countProgressor{max, 0}
 }
 
 // Progressor can be implemented to allow an object to hook up to a progress.Bar.

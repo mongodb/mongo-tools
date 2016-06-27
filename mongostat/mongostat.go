@@ -112,7 +112,7 @@ type AsyncClusterMonitor struct {
 	LastStatLines map[string]*line.StatLine
 
 	// Mutex to protect access to LastStatLines
-	mapLock sync.Mutex
+	mapLock sync.RWMutex
 
 	// Creates and consumes StatLines using ServerStatuses
 	Consumer *stat_consumer.StatConsumer
@@ -177,8 +177,8 @@ func (cluster *AsyncClusterMonitor) updateHostInfo(stat *line.StatLine) {
 
 // printSnapshot formats and dumps the current state of all the stats collected.
 func (cluster *AsyncClusterMonitor) printSnapshot() {
-	cluster.mapLock.Lock()
-	defer cluster.mapLock.Unlock()
+	cluster.mapLock.RLock()
+	defer cluster.mapLock.RUnlock()
 	lines := make([]*line.StatLine, 0, len(cluster.LastStatLines))
 	for _, stat := range cluster.LastStatLines {
 		lines = append(lines, stat)

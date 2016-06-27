@@ -144,8 +144,7 @@ type Manager struct {
 	// we need different scheduling order depending on the target
 	// mongod/mongos and whether or not we are multi threading;
 	// the IntentPrioritizer interface encapsulates this.
-	prioritizer     IntentPrioritizer
-	priotitizerLock *sync.Mutex
+	prioritizer IntentPrioritizer
 
 	// special cases that should be saved but not be part of the queue.
 	// used to deal with oplog and user/roles restoration, which are
@@ -172,7 +171,6 @@ func NewIntentManager() *Manager {
 		intents:                 map[string]*Intent{},
 		specialIntents:          map[string]*Intent{},
 		intentsByDiscoveryOrder: []*Intent{},
-		priotitizerLock:         &sync.Mutex{},
 		indexIntents:            map[string]*Intent{},
 		smartPickOplog:          false,
 		oplogConflict:           false,
@@ -383,11 +381,7 @@ func (manager *Manager) IntentForNamespace(ns string) *Intent {
 // Pop returns the next available intent from the manager. If the manager is
 // empty, it returns nil. Pop is thread safe.
 func (manager *Manager) Pop() *Intent {
-	manager.priotitizerLock.Lock()
-	defer manager.priotitizerLock.Unlock()
-
-	intent := manager.prioritizer.Get()
-	return intent
+	return manager.prioritizer.Get()
 }
 
 // Peek returns a copy of a stored intent from the manager without removing
@@ -407,8 +401,6 @@ func (manager *Manager) Peek() *Intent {
 // Finish tells the prioritizer that mongorestore is done restoring
 // the given collection intent.
 func (manager *Manager) Finish(intent *Intent) {
-	manager.priotitizerLock.Lock()
-	defer manager.priotitizerLock.Unlock()
 	manager.prioritizer.Finish(intent)
 }
 

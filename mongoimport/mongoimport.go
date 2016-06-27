@@ -384,16 +384,13 @@ func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
 	// 3. There is an insertion/update error - e.g. duplicate key
 	//    error - and stopOnError is set to true
 
-	wg := &sync.WaitGroup{}
-	mt := &sync.Mutex{}
+	wg := new(sync.WaitGroup)
 	for i := 0; i < numInsertionWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			// only set the first insertion error and cause sibling goroutines to terminate immediately
 			err := imp.runInsertionWorker(readDocs)
-			mt.Lock()
-			defer mt.Unlock()
 			if err != nil && retErr == nil {
 				retErr = err
 				imp.Kill(err)

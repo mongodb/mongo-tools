@@ -3,6 +3,7 @@ package intents
 import (
 	"container/heap"
 	"sort"
+	"sync"
 )
 
 type PriorityType int
@@ -29,6 +30,7 @@ type IntentPrioritizer interface {
 // legacyPrioritizer processes the intents in the order they were read off the
 // file system, keeping with legacy mongorestore behavior.
 type legacyPrioritizer struct {
+	sync.Mutex
 	queue []*Intent
 }
 
@@ -37,12 +39,14 @@ func NewLegacyPrioritizer(intentList []*Intent) *legacyPrioritizer {
 }
 
 func (legacy *legacyPrioritizer) Get() *Intent {
-	var intent *Intent
+	legacy.Lock()
+	defer legacy.Unlock()
 
 	if len(legacy.queue) == 0 {
 		return nil
 	}
 
+	var intent *Intent
 	intent, legacy.queue = legacy.queue[0], legacy.queue[1:]
 	return intent
 }
@@ -58,6 +62,7 @@ func (legacy *legacyPrioritizer) Finish(*Intent) {
 // which is better at minimizing total runtime in parallel environments than
 // other simple orderings.
 type longestTaskFirstPrioritizer struct {
+	sync.Mutex
 	queue []*Intent
 }
 
@@ -70,12 +75,14 @@ func NewLongestTaskFirstPrioritizer(intents []*Intent) *longestTaskFirstPrioriti
 }
 
 func (ltf *longestTaskFirstPrioritizer) Get() *Intent {
-	var intent *Intent
+	ltf.Lock()
+	defer ltf.Unlock()
 
 	if len(ltf.queue) == 0 {
 		return nil
 	}
 
+	var intent *Intent
 	intent, ltf.queue = ltf.queue[0], ltf.queue[1:]
 	return intent
 }
@@ -116,6 +123,7 @@ func (s BySize) Less(i, j int) bool { return s[i].Size > s[j].Size }
 // is secondary to the multi-db scheduling laid out above, since multi-db will
 // get us bigger wins in terms of parallelism.
 type multiDatabaseLTFPrioritizer struct {
+	sync.Mutex
 	dbHeap     heap.Interface
 	counterMap map[string]*dbCounter
 }
@@ -150,6 +158,9 @@ func NewMultiDatabaseLTFPrioritizer(intents []*Intent) *multiDatabaseLTFPrioriti
 // restores for the returned intent's DB. Get is not thread safe, and depends
 // on the implementation of the intent manager to lock around it.
 func (mdb *multiDatabaseLTFPrioritizer) Get() *Intent {
+	mdb.Lock()
+	defer mdb.Unlock()
+
 	if mdb.dbHeap.Len() == 0 {
 		// we're out of things to return
 		return nil
@@ -168,6 +179,9 @@ func (mdb *multiDatabaseLTFPrioritizer) Get() *Intent {
 // database, and reshuffles the heap accordingly. Finish is  not thread safe,
 // and depends on the implementation of the intent manager to lock around it.
 func (mdb *multiDatabaseLTFPrioritizer) Finish(intent *Intent) {
+	mdb.Lock()
+	defer mdb.Unlock()
+
 	counter := mdb.counterMap[intent.DB]
 	counter.active--
 	// only fix up the heap if the counter is still in the heap

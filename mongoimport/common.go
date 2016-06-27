@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -79,31 +80,25 @@ type sizeTracker interface {
 // sizeTrackingReader implements Reader and sizeTracker by wrapping an io.Reader and keeping track
 // of the total number of bytes read from each call to Read().
 type sizeTrackingReader struct {
-	reader         io.Reader
-	bytesRead      int64
-	bytesReadMutex sync.Mutex
+	bytesRead int64
+	reader    io.Reader
 }
 
 func (str *sizeTrackingReader) Size() int64 {
-	str.bytesReadMutex.Lock()
-	bytes := str.bytesRead
-	str.bytesReadMutex.Unlock()
+	bytes := atomic.LoadInt64(&str.bytesRead)
 	return bytes
 }
 
 func (str *sizeTrackingReader) Read(p []byte) (n int, err error) {
 	n, err = str.reader.Read(p)
-	str.bytesReadMutex.Lock()
-	str.bytesRead += int64(n)
-	str.bytesReadMutex.Unlock()
+	atomic.AddInt64(&str.bytesRead, int64(n))
 	return
 }
 
 func newSizeTrackingReader(reader io.Reader) *sizeTrackingReader {
 	return &sizeTrackingReader{
-		reader:         reader,
-		bytesRead:      0,
-		bytesReadMutex: sync.Mutex{},
+		reader:    reader,
+		bytesRead: 0,
 	}
 }
 
@@ -304,9 +299,8 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		numDecoders = 1
 	}
 	var importWorkers []*importWorker
-	wg := &sync.WaitGroup{}
-	mt := &sync.Mutex{}
-	importTomb := &tomb.Tomb{}
+	wg := new(sync.WaitGroup)
+	importTomb := new(tomb.Tomb)
 	inChan := readDocs
 	outChan := outputChan
 	for i := 0; i < numDecoders; i++ {
@@ -326,8 +320,6 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 			// only set the first worker error and cause sibling goroutines
 			// to terminate immediately
 			err := iw.processDocuments(ordered)
-			mt.Lock()
-			defer mt.Unlock()
 			if err != nil && retErr == nil {
 				retErr = err
 				iw.tomb.Kill(err)
