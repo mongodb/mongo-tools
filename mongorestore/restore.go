@@ -89,8 +89,11 @@ func (restore *MongoRestore) RestoreIntents() error {
 
 // RestoreIntent attempts to restore a given intent into MongoDB.
 func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
-
-	collectionExists, err := restore.CollectionExists(intent)
+	targetDb := intent.DB
+	if restore.OutputOptions.TargetDB != "" {
+		targetDb = restore.OutputOptions.TargetDB
+	}
+	collectionExists, err := restore.CollectionExistsFromDbName(targetDb, intent)
 	if err != nil {
 		return fmt.Errorf("error reading database: %v", err)
 	}
@@ -106,7 +109,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 				log.Logf(log.Always, "cannot drop system collection %v, skipping", intent.Namespace())
 			} else {
 				log.Logf(log.Info, "dropping collection %v before restoring", intent.Namespace())
-				err = restore.DropCollection(intent)
+				err = restore.DropCollectionFromDbName(targetDb, intent)
 				if err != nil {
 					return err // no context needed
 				}
@@ -158,7 +161,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 	if !collectionExists {
 		log.Logf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
 		log.Logf(log.DebugHigh, "using collection options: %#v", options)
-		err = restore.CreateCollection(intent, options)
+		err = restore.CreateCollectionFromDbName(targetDb, intent, options)
 		if err != nil {
 			return fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)
 		}
@@ -178,8 +181,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
 		defer bsonSource.Close()
-
-		documentCount, err = restore.RestoreCollectionToDB(intent.DB, intent.C, bsonSource, intent.BSONFile, intent.Size)
+		documentCount, err = restore.RestoreCollectionToDB(targetDb, intent.C, bsonSource, intent.BSONFile, intent.Size)
 		if err != nil {
 			return fmt.Errorf("error restoring from %v: %v", intent.Location, err)
 		}

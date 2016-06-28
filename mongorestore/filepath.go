@@ -234,6 +234,9 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike, filterDB stri
 	if err != nil {
 		return fmt.Errorf("error reading root dump folder: %v", err)
 	}
+	if filterDB == "" && restore.OutputOptions != nil && restore.OutputOptions.TargetDB != "" && len(entries) > 1 {
+		return fmt.Errorf("You can use --targetDb without --db only when there is one database in archive. Please use --db option.")
+	}
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if err = util.ValidateDBName(entry.Name()); err != nil {

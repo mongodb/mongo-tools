@@ -134,8 +134,8 @@ func stripDBFromNS(ns string) string {
 	return ns
 }
 
-// CollectionExists returns true if the given intent's collection exists.
-func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, error) {
+// CollectionExists returns true if the given intent's collection exists in the targetted database.
+func (restore *MongoRestore) CollectionExistsFromDbName(dbName string, intent *intents.Intent) (bool, error) {
 	restore.knownCollectionsMutex.Lock()
 	defer restore.knownCollectionsMutex.Unlock()
 
@@ -145,7 +145,7 @@ func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, err
 	}
 
 	// first check if we haven't done listCollections for this database already
-	if restore.knownCollections[intent.DB] == nil {
+	if restore.knownCollections[dbName] == nil {
 		// if the database name isn't in the cache, grab collection
 		// names from the server
 		session, err := restore.SessionProvider.GetSession()
@@ -153,17 +153,22 @@ func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, err
 			return false, fmt.Errorf("error establishing connection: %v", err)
 		}
 		defer session.Close()
-		collections, err := session.DB(intent.DB).CollectionNames()
+		collections, err := session.DB(dbName).CollectionNames()
 		if err != nil {
 			return false, err
 		}
 		// update the cache
-		restore.knownCollections[intent.DB] = collections
+		restore.knownCollections[dbName] = collections
 	}
 
 	// now check the cache for the given collection name
-	exists := util.StringSliceContains(restore.knownCollections[intent.DB], intent.C)
+	exists := util.StringSliceContains(restore.knownCollections[dbName], intent.C)
 	return exists, nil
+}
+
+// CollectionExists returns true if the given intent's collection exists.
+func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, error) {
+	return restore.CollectionExistsFromDbName(intent.DB, intent)
 }
 
 // CreateIndexes takes in an intent and an array of index documents and
@@ -244,8 +249,8 @@ func (restore *MongoRestore) LegacyInsertIndex(intent *intents.Intent, index Ind
 }
 
 // CreateCollection creates the collection specified in the intent with the
-// given options.
-func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bson.D) error {
+// given options to the targetted database.
+func (restore *MongoRestore) CreateCollectionFromDbName(dbName string, intent *intents.Intent, options bson.D) error {
 	command := append(bson.D{{"create", intent.C}}, options...)
 
 	session, err := restore.SessionProvider.GetSession()
@@ -255,7 +260,7 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 	defer session.Close()
 
 	res := bson.M{}
-	err = session.DB(intent.DB).Run(command, &res)
+	err = session.DB(dbName).Run(command, &res)
 	if err != nil {
 		return fmt.Errorf("error running create command: %v", err)
 	}
@@ -263,6 +268,12 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 		return fmt.Errorf("create command: %v", res["errmsg"])
 	}
 	return nil
+}
+
+// CreateCollection creates the collection specified in the intent with the
+// given options.
+func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bson.D) error {
+	return restore.CreateCollectionFromDbName(intent.DB, intent, options)
 }
 
 // RestoreUsersOrRoles accepts a users intent and a roles intent, and restores
@@ -508,16 +519,20 @@ func (restore *MongoRestore) ShouldRestoreUsersAndRoles() bool {
 	return false
 }
 
-// DropCollection drops the intent's collection.
-func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
+// DropCollection drops the intent's collection from database name.
+func (restore *MongoRestore) DropCollectionFromDbName(dbName string, intent *intents.Intent) error {
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
 	defer session.Close()
-	err = session.DB(intent.DB).C(intent.C).DropCollection()
+	err = session.DB(dbName).C(intent.C).DropCollection()
 	if err != nil {
 		return fmt.Errorf("error dropping collection: %v", err)
 	}
 	return nil
+}
+// DropCollection drops the intent's collection.
+func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
+	return restore.DropCollectionFromDbName(intent.DB, intent)
 }

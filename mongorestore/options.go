@@ -41,6 +41,7 @@ type OutputOptions struct {
 	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"collection to skip over during restore (may be specified multiple times to exclude additional collections)"`
 	ExcludedCollectionPrefixes []string `long:"excludeCollectionsWithPrefix" value-name:"<collection-prefix>" description:"collections to skip over during restore that have the given prefix (may be specified multiple times to exclude additional prefixes)"`
 	BypassDocumentValidation   bool     `long:"bypassDocumentValidation" description:"bypass document validation"`
+	TargetDB                   string   `long:"targetDb" value-name:"<database-name>" optional:"true" optional-value:"" description:"Set in which db it will be restored when use --archive.  --db is not needed if you have only one db in arhive file"`
 }
 
 // Name returns a human-readable group name for output options.
