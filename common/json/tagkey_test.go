@@ -52,10 +52,6 @@ type misnamedTag struct {
 	X string `jsom:"Misnamed"`
 }
 
-type badFormatTag struct {
-	Y string `:"BadFormat"`
-}
-
 type badCodeTag struct {
 	Z string `json:" !\"#&'()*+,."`
 }
@@ -82,7 +78,6 @@ var structTagObjectKeyTests = []struct {
 	{miscPlaneTag{"いろはにほへと"}, "いろはにほへと", "色は匂へど"},
 	{emptyTag{"Pour Moi"}, "Pour Moi", "W"},
 	{misnamedTag{"Animal Kingdom"}, "Animal Kingdom", "X"},
-	{badFormatTag{"Orfevre"}, "Orfevre", "Y"},
 	{badCodeTag{"Reliable Man"}, "Reliable Man", "Z"},
 	{percentSlashTag{"brut"}, "brut", "text/html%"},
 	{punctuationTag{"Union Rags"}, "Union Rags", "!#$%&()*+-./:<=>?@[]^_{|}~"},

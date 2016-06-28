@@ -67,7 +67,7 @@ func (mux *Multiplexer) Run() {
 		EOF := !notEOF
 		if index == 0 { //Control index
 			if EOF {
-				log.Logf(log.DebugLow, "Mux finish")
+				log.Logvf(log.DebugLow, "Mux finish")
 				mux.Out.Close()
 				if completionErr != nil {
 					mux.Completed <- completionErr
@@ -84,7 +84,7 @@ func (mux *Multiplexer) Run() {
 				mux.Completed <- fmt.Errorf("non MuxIn received on Control chan") // one for the MuxIn.Open
 				return
 			}
-			log.Logf(log.DebugLow, "Mux open namespace %v", muxIn.Intent.Namespace())
+			log.Logvf(log.DebugLow, "Mux open namespace %v", muxIn.Intent.Namespace())
 			mux.selectCases = append(mux.selectCases, reflect.SelectCase{
 				Dir:  reflect.SelectRecv,
 				Chan: reflect.ValueOf(muxIn.writeChan),
@@ -107,7 +107,7 @@ func (mux *Multiplexer) Run() {
 					mux.Out = &nopCloseNopWriter{}
 					completionErr = err
 				}
-				log.Logf(log.DebugLow, "Mux close namespace %v", mux.ins[index].Intent.Namespace())
+				log.Logvf(log.DebugLow, "Mux close namespace %v", mux.ins[index].Intent.Namespace())
 				mux.currentNamespace = ""
 				mux.selectCases = append(mux.selectCases[:index], mux.selectCases[index+1:]...)
 				mux.ins = append(mux.ins[:index], mux.ins[index+1:]...)
@@ -242,7 +242,7 @@ func (muxIn *MuxIn) Pos() int64 {
 // formatEOF to occur.
 func (muxIn *MuxIn) Close() error {
 	// the mux side of this gets closed in the mux when it gets an eof on the read
-	log.Logf(log.DebugHigh, "MuxIn close %v", muxIn.Intent.Namespace())
+	log.Logvf(log.DebugHigh, "MuxIn close %v", muxIn.Intent.Namespace())
 	if bufferWrites {
 		muxIn.writeChan <- muxIn.buf
 		length := <-muxIn.writeLenChan
@@ -263,7 +263,7 @@ func (muxIn *MuxIn) Close() error {
 // Open is implemented in Mux.open, but in short, it creates chans and a select case
 // and adds the SelectCase and the MuxIn in to the Multiplexer.
 func (muxIn *MuxIn) Open() error {
-	log.Logf(log.DebugHigh, "MuxIn open %v", muxIn.Intent.Namespace())
+	log.Logvf(log.DebugHigh, "MuxIn open %v", muxIn.Intent.Namespace())
 	muxIn.writeChan = make(chan []byte)
 	muxIn.writeLenChan = make(chan int)
 	muxIn.writeCloseFinishedChan = make(chan struct{})

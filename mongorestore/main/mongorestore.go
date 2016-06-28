@@ -22,8 +22,8 @@ func main() {
 
 	extraArgs, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongorestore --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongorestore --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -40,8 +40,8 @@ func main() {
 
 	targetDir, err := getTargetDirFromArgs(extraArgs, inputOpts.Directory)
 	if err != nil {
-		log.Logf(log.Always, "%v", err)
-		log.Logf(log.Always, "try 'mongorestore --help' for more information")
+		log.Logvf(log.Always, "%v", err)
+		log.Logvf(log.Always, "try 'mongorestore --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 	targetDir = util.ToUniversalPath(targetDir)
@@ -53,7 +53,7 @@ func main() {
 
 	provider, err := db.NewSessionProvider(*opts)
 	if err != nil {
-		log.Logf(log.Always, "error connecting to host: %v", err)
+		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
 	provider.SetBypassDocumentValidation(outputOpts.BypassDocumentValidation)
@@ -69,7 +69,7 @@ func main() {
 	}
 
 	if err = restore.Restore(); err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Always, "Failed: %v", err)
 		if err == util.ErrTerminated {
 			os.Exit(util.ExitKill)
 		}
@@ -99,7 +99,7 @@ func getTargetDirFromArgs(extraArgs []string, dirFlag string) (string, error) {
 
 	case dirFlag != "":
 		// if we have no extra args and a --dir flag, use the --dir flag
-		log.Log(log.Info, "using --dir flag instead of arguments")
+		log.Logv(log.Info, "using --dir flag instead of arguments")
 		return dirFlag, nil
 
 	default:

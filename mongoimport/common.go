@@ -154,7 +154,7 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 		if val != nil {
 			hasDocumentKey = true
 		}
-		upsertDocument = append(upsertDocument, bson.DocElem{key, val})
+		upsertDocument = append(upsertDocument, bson.DocElem{Name: key, Value: val})
 	}
 	if !hasDocumentKey {
 		return nil
@@ -247,7 +247,7 @@ func filterIngestError(stopOnError bool, err error) error {
 	if stopOnError || db.IsConnectionError(err) {
 		return err
 	}
-	log.Logf(log.Always, "error inserting documents: %v", err)
+	log.Logvf(log.Always, "error inserting documents: %v", err)
 	return nil
 }
 
@@ -275,7 +275,7 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 func setNestedValue(key string, value interface{}, document *bson.D) {
 	index := strings.Index(key, ".")
 	if index == -1 {
-		*document = append(*document, bson.DocElem{key, value})
+		*document = append(*document, bson.DocElem{Name: key, Value: value})
 		return
 	}
 	keyName := key[0:index]
@@ -291,7 +291,7 @@ func setNestedValue(key string, value interface{}, document *bson.D) {
 	}
 	setNestedValue(key[index+1:], value, subDocument)
 	if !existingKey {
-		*document = append(*document, bson.DocElem{keyName, subDocument})
+		*document = append(*document, bson.DocElem{Name: keyName, Value: subDocument})
 	}
 }
 
@@ -354,7 +354,7 @@ func (coercionError) Error() string { return "coercionError" }
 // tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
 func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool) (bson.D, error) {
-	log.Logf(log.DebugHigh, "got line: %v", tokens)
+	log.Logvf(log.DebugHigh, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
 	for index, token := range tokens {
@@ -364,7 +364,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 		if index < len(colSpecs) {
 			parsedValue, err := colSpecs[index].Parser.Parse(token)
 			if err != nil {
-				log.Logf(log.DebugHigh, "parse failure in document #%d for column '%s',"+
+				log.Logvf(log.DebugHigh, "parse failure in document #%d for column '%s',"+
 					"could not parse token '%s' to type %s",
 					numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
 				switch colSpecs[index].ParseGrace {
@@ -373,7 +373,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				case pgSkipField:
 					continue
 				case pgSkipRow:
-					log.Logf(log.Always, "skipping row #%d: %v", numProcessed, tokens)
+					log.Logvf(log.Always, "skipping row #%d: %v", numProcessed, tokens)
 					return nil, coercionError{}
 				case pgStop:
 					return nil, fmt.Errorf("type coercion failure in document #%d for column '%s', "+
@@ -384,7 +384,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 			if strings.Index(colSpecs[index].Name, ".") != -1 {
 				setNestedValue(colSpecs[index].Name, parsedValue, &document)
 			} else {
-				document = append(document, bson.DocElem{colSpecs[index].Name, parsedValue})
+				document = append(document, bson.DocElem{Name: colSpecs[index].Name, Value: parsedValue})
 			}
 		} else {
 			parsedValue = autoParse(token)
@@ -393,7 +393,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v ('%v') in document #%v",
 					key, index+1, parsedValue, numProcessed)
 			}
-			document = append(document, bson.DocElem{key, parsedValue})
+			document = append(document, bson.DocElem{Name: key, Value: parsedValue})
 		}
 	}
 	return document, nil
@@ -444,9 +444,9 @@ func validateReaderFields(fields []string) error {
 		return err
 	}
 	if len(fields) == 1 {
-		log.Logf(log.Info, "using field: %v", fields[0])
+		log.Logvf(log.Info, "using field: %v", fields[0])
 	} else {
-		log.Logf(log.Info, "using fields: %v", strings.Join(fields, ","))
+		log.Logvf(log.Info, "using fields: %v", strings.Join(fields, ","))
 	}
 	return nil
 }

@@ -24,8 +24,8 @@ func main() {
 
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongofiles --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongofiles --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -51,7 +51,7 @@ func main() {
 	// create a session provider to connect to the db
 	provider, err := db.NewSessionProvider(*opts)
 	if err != nil {
-		log.Logf(log.Always, "error connecting to host: %v", err)
+		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
 	mf := mongofiles.MongoFiles{
@@ -62,14 +62,14 @@ func main() {
 	}
 
 	if err := mf.ValidateCommand(args); err != nil {
-		log.Logf(log.Always, "%v", err)
-		log.Logf(log.Always, "try 'mongofiles --help' for more information")
+		log.Logvf(log.Always, "%v", err)
+		log.Logvf(log.Always, "try 'mongofiles --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	output, err := mf.Run(true)
 	if err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Always, "Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
 	fmt.Printf("%s", output)

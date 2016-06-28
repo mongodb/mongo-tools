@@ -51,7 +51,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent) error {
 	// We keep a running list of all the indexes
 	// for the current collection as we iterate over the cursor, and include
 	// that list as the "indexes" field of the metadata document.
-	log.Logf(log.DebugHigh, "\treading indexes for `%v`", nsID)
+	log.Logvf(log.DebugHigh, "\treading indexes for `%v`", nsID)
 
 	session, err := dump.sessionProvider.GetSession()
 	if err != nil {
@@ -65,7 +65,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent) error {
 		return err
 	}
 	if indexesIter == nil {
-		log.Logf(log.Always, "the collection %v appears to have been dropped after the dump started", intent.Namespace())
+		log.Logvf(log.Always, "the collection %v appears to have been dropped after the dump started", intent.Namespace())
 		return nil
 	}
 

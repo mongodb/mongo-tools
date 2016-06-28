@@ -55,7 +55,10 @@ func GetExtendedBsonD(doc bson.D) (bson.D, error) {
 		if err != nil {
 			return nil, err
 		}
-		bsonDoc = append(bsonDoc, bson.DocElem{docElem.Name, bsonValue})
+		bsonDoc = append(bsonDoc, bson.DocElem{
+			Name:  docElem.Name,
+			Value: bsonValue,
+		})
 	}
 	return bsonDoc, nil
 }
@@ -179,8 +182,8 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				tsDoc = internalDoc
 			case bson.D:
 				tsDoc = internalDoc.Map()
-		 	default:
-					return nil, errors.New("expected $timestamp key to have internal document")
+			default:
+				return nil, errors.New("expected $timestamp key to have internal document")
 			}
 
 			if seconds, ok := tsDoc["t"]; ok {

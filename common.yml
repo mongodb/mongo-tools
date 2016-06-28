@@ -1353,7 +1353,7 @@ tasks:
         script: |
           set -o verbose
           . ./set_gopath.sh
-          go tool vet .
+          go tool vet bsondump common mongo*
 
 buildvariants:
 #######################################

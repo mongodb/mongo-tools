@@ -70,30 +70,26 @@ var (
 		},
 	}
 	expectedDocuments = []bson.D{
-		bson.D{
-			bson.DocElem{"field1", "a"},
-			bson.DocElem{"field2", "b"},
-			bson.DocElem{"field3", "c"},
-		},
-		bson.D{
-			bson.DocElem{"field4", "d"},
-			bson.DocElem{"field5", "e"},
-			bson.DocElem{"field6", "f"},
-		},
-		bson.D{
-			bson.DocElem{"field7", "d"},
-			bson.DocElem{"field8", "e"},
-			bson.DocElem{"field9", "f"},
-		},
-		bson.D{
-			bson.DocElem{"field10", "d"},
-			bson.DocElem{"field11", "e"},
-			bson.DocElem{"field12", "f"},
-		},
-		bson.D{
-			bson.DocElem{"field13", "d"},
-			bson.DocElem{"field14", "e"},
-			bson.DocElem{"field15", "f"},
+		{
+			{"field1", "a"},
+			{"field2", "b"},
+			{"field3", "c"},
+		}, {
+			{"field4", "d"},
+			{"field5", "e"},
+			{"field6", "f"},
+		}, {
+			{"field7", "d"},
+			{"field8", "e"},
+			{"field9", "f"},
+		}, {
+			{"field10", "d"},
+			{"field11", "e"},
+			{"field12", "f"},
+		}, {
+			{"field13", "d"},
+			{"field14", "e"},
+			{"field15", "f"},
 		},
 	}
 )
@@ -153,7 +149,8 @@ func TestGetUpsertValue(t *testing.T) {
 			So(getUpsertValue("a", bsonDocument), ShouldEqual, 3)
 		})
 		Convey("the value of the key should be correct for nested document fields", func() {
-			bsonDocument := bson.D{{"a", bson.D{{"b", 4}}}}
+			inner := bson.D{{"b", 4}}
+			bsonDocument := bson.D{{"a", inner}}
 			So(getUpsertValue("a.b", bsonDocument), ShouldEqual, 4)
 		})
 		Convey("the value of the key should be nil for unnested document "+
@@ -163,7 +160,8 @@ func TestGetUpsertValue(t *testing.T) {
 		})
 		Convey("the value of the key should be nil for nested document "+
 			"fields that do not exist", func() {
-			bsonDocument := bson.D{{"a", bson.D{{"b", 4}}}}
+			inner := bson.D{{"b", 4}}
+			bsonDocument := bson.D{{"a", inner}}
 			So(getUpsertValue("a.c", bsonDocument), ShouldBeNil)
 		})
 		Convey("the value of the key should be nil for nil document values", func() {
@@ -196,7 +194,8 @@ func TestConstructUpsertDocument(t *testing.T) {
 		})
 		Convey("the key/value combination in the upsert document should be "+
 			"correct for nested documents with several fields", func() {
-			bsonDocument := bson.D{{"a", bson.D{{testCollection, 4}}}, {"b", "string value"}}
+			inner := bson.D{{testCollection, 4}}
+			bsonDocument := bson.D{{"a", inner}, {"b", "string value"}}
 			upsertFields := []string{"a.c"}
 			expectedDocument := bson.D{{"a.c", 4}}
 			upsertDocument := constructUpsertDocument(upsertFields,
@@ -217,9 +216,10 @@ func TestSetNestedValue(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.UnitTestType)
 
 	Convey("Given a field, its value, and an existing BSON document...", t, func() {
+		b := bson.D{{"c", "d"}}
 		currentDocument := bson.D{
-			bson.DocElem{"a", 3},
-			bson.DocElem{"b", &bson.D{bson.DocElem{"c", "d"}}},
+			{"a", 3},
+			{"b", &b},
 		}
 		Convey("ensure top level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
@@ -231,7 +231,7 @@ func TestSetNestedValue(t *testing.T) {
 		})
 		Convey("ensure new nested top-level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
-			expectedDocument := bson.D{bson.DocElem{"b", "4"}}
+			expectedDocument := bson.D{{"b", "4"}}
 			setNestedValue("c.b", "4", testDocument)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
@@ -240,7 +240,7 @@ func TestSetNestedValue(t *testing.T) {
 		})
 		Convey("ensure existing nested level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
-			expectedDocument := bson.D{bson.DocElem{"c", "d"}, bson.DocElem{"d", 9}}
+			expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
 			setNestedValue("b.d", 9, testDocument)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
@@ -249,7 +249,7 @@ func TestSetNestedValue(t *testing.T) {
 		})
 		Convey("ensure subsequent calls update fields accordingly", func() {
 			testDocument := &currentDocument
-			expectedDocumentOne := bson.D{bson.DocElem{"c", "d"}, bson.DocElem{"d", 9}}
+			expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
 			expectedDocumentTwo := bson.DocElem{"f", 23}
 			setNestedValue("b.d", 9, testDocument)
 			newDocument := *testDocument
@@ -269,29 +269,32 @@ func TestRemoveBlankFields(t *testing.T) {
 
 	Convey("Given an unordered BSON document", t, func() {
 		Convey("the same document should be returned if there are no blanks", func() {
-			bsonDocument := bson.D{bson.DocElem{"a", 3}, bson.DocElem{"b", "hello"}}
+			bsonDocument := bson.D{{"a", 3}, {"b", "hello"}}
 			So(removeBlankFields(bsonDocument), ShouldResemble, bsonDocument)
 		})
 		Convey("a new document without blanks should be returned if there are "+
 			" blanks", func() {
+			d := bson.D{
+				{"a", ""},
+				{"b", ""},
+			}
+			e := bson.D{
+				{"a", ""},
+				{"b", 1},
+			}
 			bsonDocument := bson.D{
-				bson.DocElem{"a", 0},
-				bson.DocElem{"b", ""},
-				bson.DocElem{"c", ""},
-				bson.DocElem{"d", &bson.D{
-					bson.DocElem{"a", ""},
-					bson.DocElem{"b", ""},
-				}},
-				bson.DocElem{"e", &bson.D{
-					bson.DocElem{"a", ""},
-					bson.DocElem{"b", 1},
-				}},
+				{"a", 0},
+				{"b", ""},
+				{"c", ""},
+				{"d", &d},
+				{"e", &e},
+			}
+			inner := bson.D{
+				{"b", 1},
 			}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", 0},
-				bson.DocElem{"e", bson.D{
-					bson.DocElem{"b", 1},
-				}},
+				{"a", 0},
+				{"e", inner},
 			}
 			So(removeBlankFields(bsonDocument), ShouldResemble, expectedDocument)
 		})
@@ -311,9 +314,9 @@ func TestTokensToBSON(t *testing.T) {
 			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", "hello"},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", "hello"},
 			}
 			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
@@ -328,11 +331,11 @@ func TestTokensToBSON(t *testing.T) {
 			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", "hello"},
-				bson.DocElem{"field3", "mongodb"},
-				bson.DocElem{"field4", "user"},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", "hello"},
+				{"field3", "mongodb"},
+				{"field4", "user"},
 			}
 			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
@@ -355,12 +358,13 @@ func TestTokensToBSON(t *testing.T) {
 				{"c.a", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			tokens := []string{"1", "2", "hello"}
+			c := bson.D{
+				{"a", "hello"},
+			}
 			expectedDocument := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", bson.D{
-					bson.DocElem{"a", "hello"},
-				}},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", c},
 			}
 			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false)
 			So(err, ShouldBeNil)
@@ -400,15 +404,14 @@ func TestProcessDocuments(t *testing.T) {
 			},
 		}
 		expectedDocuments := []bson.D{
-			bson.D{
-				bson.DocElem{"field1", "a"},
-				bson.DocElem{"field2", "b"},
-				bson.DocElem{"field3", "c"},
-			},
-			bson.D{
-				bson.DocElem{"field4", "d"},
-				bson.DocElem{"field5", "e"},
-				bson.DocElem{"field6", "f"},
+			{
+				{"field1", "a"},
+				{"field2", "b"},
+				{"field3", "c"},
+			}, {
+				{"field4", "d"},
+				{"field5", "e"},
+				{"field6", "f"},
 			},
 		}
 		Convey("processDocuments should execute the expected conversion for documents, "+

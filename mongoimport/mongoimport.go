@@ -166,21 +166,21 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 
 	if imp.IngestOptions.Upsert {
 		imp.IngestOptions.MaintainInsertionOrder = true
-		log.Logf(log.Info, "using upsert fields: %v", imp.upsertFields)
+		log.Logvf(log.Info, "using upsert fields: %v", imp.upsertFields)
 	}
 
 	// set the number of decoding workers to use for imports
 	if imp.ToolOptions.NumDecodingWorkers <= 0 {
 		imp.ToolOptions.NumDecodingWorkers = imp.ToolOptions.MaxProcs
 	}
-	log.Logf(log.DebugLow, "using %v decoding workers", imp.ToolOptions.NumDecodingWorkers)
+	log.Logvf(log.DebugLow, "using %v decoding workers", imp.ToolOptions.NumDecodingWorkers)
 
 	// set the number of insertion workers to use for imports
 	if imp.IngestOptions.NumInsertionWorkers <= 0 {
 		imp.IngestOptions.NumInsertionWorkers = 1
 	}
 
-	log.Logf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
+	log.Logvf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
 
 	// if --maintainInsertionOrder is set, we can only allow 1 insertion worker
 	if imp.IngestOptions.MaintainInsertionOrder {
@@ -212,13 +212,13 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 
 	// ensure we have a valid string to use for the collection
 	if imp.ToolOptions.Collection == "" {
-		log.Logf(log.Always, "no collection specified")
+		log.Logvf(log.Always, "no collection specified")
 		fileBaseName := filepath.Base(imp.InputOptions.File)
 		lastDotIndex := strings.LastIndex(fileBaseName, ".")
 		if lastDotIndex != -1 {
 			fileBaseName = fileBaseName[0:lastDotIndex]
 		}
-		log.Logf(log.Always, "using filename '%v' as collection", fileBaseName)
+		log.Logvf(log.Always, "using filename '%v' as collection", fileBaseName)
 		imp.ToolOptions.Collection = fileBaseName
 	}
 	err = util.ValidateCollectionName(imp.ToolOptions.Collection)
@@ -241,11 +241,11 @@ func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 		if err != nil {
 			return nil, -1, err
 		}
-		log.Logf(log.Info, "filesize: %v bytes", fileStat.Size())
+		log.Logvf(log.Info, "filesize: %v bytes", fileStat.Size())
 		return file, int64(fileStat.Size()), err
 	}
 
-	log.Logf(log.Info, "reading from stdin")
+	log.Logvf(log.Info, "reading from stdin")
 
 	// Stdin has undefined max size, so return 0
 	return os.Stdin, 0, nil
@@ -317,9 +317,9 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	if imp.ToolOptions.Port != "" {
 		connURL = connURL + ":" + imp.ToolOptions.Port
 	}
-	log.Logf(log.Always, "connected to: %v", connURL)
+	log.Logvf(log.Always, "connected to: %v", connURL)
 
-	log.Logf(log.Info, "ns: %v.%v",
+	log.Logvf(log.Info, "ns: %v.%v",
 		imp.ToolOptions.Namespace.DB,
 		imp.ToolOptions.Namespace.Collection)
 
@@ -328,7 +328,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	if err != nil {
 		return 0, fmt.Errorf("error checking connected node type: %v", err)
 	}
-	log.Logf(log.Info, "connected to node type: %v", imp.nodeType)
+	log.Logvf(log.Info, "connected to node type: %v", imp.nodeType)
 
 	if err = imp.configureSession(session); err != nil {
 		return 0, fmt.Errorf("error configuring session: %v", err)
@@ -336,7 +336,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 
 	// drop the database if necessary
 	if imp.IngestOptions.Drop {
-		log.Logf(log.Always, "dropping: %v.%v",
+		log.Logvf(log.Always, "dropping: %v.%v",
 			imp.ToolOptions.DB,
 			imp.ToolOptions.Collection)
 		collection := session.DB(imp.ToolOptions.DB).
@@ -478,7 +478,7 @@ readLoop:
 		}
 		numFailures := len(failedDocs)
 		if numFailures > 0 {
-			log.Logf(log.Always, "num failures: %d", numFailures)
+			log.Logvf(log.Always, "num failures: %d", numFailures)
 			atomic.AddUint64(&imp.insertionCount, ^uint64(numFailures-1))
 		}
 	}

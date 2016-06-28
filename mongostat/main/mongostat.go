@@ -32,8 +32,8 @@ func main() {
 
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongostat --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongostat --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -42,17 +42,17 @@ func main() {
 	sleepInterval := 1
 	if len(args) > 0 {
 		if len(args) != 1 {
-			log.Logf(log.Always, "too many positional arguments: %v", args)
-			log.Logf(log.Always, "try 'mongostat --help' for more information")
+			log.Logvf(log.Always, "too many positional arguments: %v", args)
+			log.Logvf(log.Always, "try 'mongostat --help' for more information")
 			os.Exit(util.ExitBadOptions)
 		}
 		sleepInterval, err = strconv.Atoi(args[0])
 		if err != nil {
-			log.Logf(log.Always, "invalid sleep interval: %v", args[0])
+			log.Logvf(log.Always, "invalid sleep interval: %v", args[0])
 			os.Exit(util.ExitBadOptions)
 		}
 		if sleepInterval < 1 {
-			log.Logf(log.Always, "sleep interval must be at least 1 second")
+			log.Logvf(log.Always, "sleep interval must be at least 1 second")
 			os.Exit(util.ExitBadOptions)
 		}
 	}
@@ -68,12 +68,12 @@ func main() {
 	}
 
 	if opts.Auth.Username != "" && opts.Auth.Source == "" && !opts.Auth.RequiresExternalDB() {
-		log.Logf(log.Always, "--authenticationDatabase is required when authenticating against a non $external database")
+		log.Logvf(log.Always, "--authenticationDatabase is required when authenticating against a non $external database")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	if statOpts.Deprecated && !statOpts.Json {
-		log.Logf(log.Always, "--deprecated can only be used when --json is also specified")
+		log.Logvf(log.Always, "--deprecated can only be used when --json is also specified")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -153,7 +153,7 @@ func main() {
 	// kick it off
 	err = stat.Run()
 	if err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Always, "Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
 }

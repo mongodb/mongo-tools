@@ -26,8 +26,8 @@ func main() {
 
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongoimport --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongoimport --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -51,7 +51,7 @@ func main() {
 	// create a session provider to connect to the db
 	sessionProvider, err := db.NewSessionProvider(*opts)
 	if err != nil {
-		log.Logf(log.Always, "error connecting to host: %v", err)
+		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
 	sessionProvider.SetBypassDocumentValidation(ingestOpts.BypassDocumentValidation)
@@ -64,21 +64,21 @@ func main() {
 	}
 
 	if err = m.ValidateSettings(args); err != nil {
-		log.Logf(log.Always, "error validating settings: %v", err)
-		log.Logf(log.Always, "try 'mongoimport --help' for more information")
+		log.Logvf(log.Always, "error validating settings: %v", err)
+		log.Logvf(log.Always, "try 'mongoimport --help' for more information")
 		os.Exit(util.ExitError)
 	}
 
 	numDocs, err := m.ImportDocuments()
 	if !opts.Quiet {
 		if err != nil {
-			log.Logf(log.Always, "Failed: %v", err)
+			log.Logvf(log.Always, "Failed: %v", err)
 		}
 		message := fmt.Sprintf("imported 1 document")
 		if numDocs != 1 {
 			message = fmt.Sprintf("imported %v documents", numDocs)
 		}
-		log.Logf(log.Always, message)
+		log.Logvf(log.Always, message)
 	}
 	if err != nil {
 		os.Exit(util.ExitError)

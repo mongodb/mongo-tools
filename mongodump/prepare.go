@@ -336,7 +336,7 @@ func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 // puts it into the intent manager.
 func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if dump.shouldSkipCollection(colName) {
-		log.Logf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, colName)
+		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, colName)
 		return nil
 	}
 
@@ -370,13 +370,13 @@ func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 
 	dump.manager.Put(intent)
 
-	log.Logf(log.DebugLow, "enqueued collection '%v'", intent.Namespace())
+	log.Logvf(log.DebugLow, "enqueued collection '%v'", intent.Namespace())
 	return nil
 }
 
 func (dump *MongoDump) createIntentFromOptions(dbName string, ci *collectionInfo) error {
 	if dump.shouldSkipCollection(ci.Name) {
-		log.Logf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, ci.Name)
+		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, ci.Name)
 		return nil
 	}
 	intent, err := dump.NewIntent(dbName, ci.Name)
@@ -385,7 +385,7 @@ func (dump *MongoDump) createIntentFromOptions(dbName string, ci *collectionInfo
 	}
 	intent.Options = ci.Options
 	dump.manager.Put(intent)
-	log.Logf(log.DebugLow, "enqueued collection '%v'", intent.Namespace())
+	log.Logvf(log.DebugLow, "enqueued collection '%v'", intent.Namespace())
 	return nil
 }
 
@@ -436,7 +436,7 @@ func (dump *MongoDump) CreateAllIntents() error {
 	if err != nil {
 		return fmt.Errorf("error getting database names: %v", err)
 	}
-	log.Logf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
+	log.Logvf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
 	for _, dbName := range dbs {
 		if dbName == "local" {
 			// local can only be explicitly dumped

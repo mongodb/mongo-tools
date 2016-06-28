@@ -35,7 +35,7 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
 			// though first read should be fine
-			So(<-docChan, ShouldResemble, bson.D{bson.DocElem{"a", "ae"}})
+			So(<-docChan, ShouldResemble, bson.D{{"a", "ae"}})
 		})
 
 		Convey("an error should be thrown if a plain JSON file is supplied", func() {
@@ -49,14 +49,14 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 			"subsequent imports should parse correctly", func() {
 			// TODO: currently parses JSON as floats and not ints
 			expectedReadOne := bson.D{
-				bson.DocElem{"a", 1.2},
-				bson.DocElem{"b", "a"},
-				bson.DocElem{"c", 0.4},
+				{"a", 1.2},
+				{"b", "a"},
+				{"c", 0.4},
 			}
 			expectedReadTwo := bson.D{
-				bson.DocElem{"a", 2.4},
-				bson.DocElem{"b", "string"},
-				bson.DocElem{"c", 52.9},
+				{"a", 2.4},
+				{"b", "string"},
+				{"c", 52.9},
 			}
 			fileHandle, err := os.Open("testdata/test_array.json")
 			So(err, ShouldBeNil)
@@ -80,7 +80,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 		var jsonFile, fileHandle *os.File
 		Convey("string valued JSON documents should be imported properly", func() {
 			contents := `{"a": "ae"}`
-			expectedRead := bson.D{bson.DocElem{"a", "ae"}}
+			expectedRead := bson.D{{"a", "ae"}}
 			r := NewJSONInputReader(false, bytes.NewReader([]byte(contents)), 1)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
@@ -90,8 +90,8 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 		Convey("several string valued JSON documents should be imported "+
 			"properly", func() {
 			contents := `{"a": "ae"}{"b": "dc"}`
-			expectedReadOne := bson.D{bson.DocElem{"a", "ae"}}
-			expectedReadTwo := bson.D{bson.DocElem{"b", "dc"}}
+			expectedReadOne := bson.D{{"a", "ae"}}
+			expectedReadTwo := bson.D{{"b", "dc"}}
 			r := NewJSONInputReader(false, bytes.NewReader([]byte(contents)), 1)
 			docChan := make(chan bson.D, 2)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
@@ -101,7 +101,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 
 		Convey("number valued JSON documents should be imported properly", func() {
 			contents := `{"a": "ae", "b": 2.0}`
-			expectedRead := bson.D{bson.DocElem{"a", "ae"}, bson.DocElem{"b", 2.0}}
+			expectedRead := bson.D{{"a", "ae"}, {"b", 2.0}}
 			r := NewJSONInputReader(false, bytes.NewReader([]byte(contents)), 1)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
@@ -117,20 +117,18 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 		Convey("plain JSON input file sources should be parsed correctly and "+
 			"subsequent imports should parse correctly", func() {
 			expectedReads := []bson.D{
-				bson.D{
-					bson.DocElem{"a", 4},
-					bson.DocElem{"b", "string value"},
-					bson.DocElem{"c", 1},
-				},
-				bson.D{
-					bson.DocElem{"a", 5},
-					bson.DocElem{"b", "string value"},
-					bson.DocElem{"c", 2},
-				},
-				bson.D{
-					bson.DocElem{"a", 6},
-					bson.DocElem{"b", "string value"},
-					bson.DocElem{"c", 3},
+				{
+					{"a", 4},
+					{"b", "string value"},
+					{"c", 1},
+				}, {
+					{"a", 5},
+					{"b", "string value"},
+					{"c", 2},
+				}, {
+					{"a", 6},
+					{"b", "string value"},
+					{"c", 3},
 				},
 			}
 			fileHandle, err := os.Open("testdata/test_plain.json")
@@ -149,15 +147,14 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 		Convey("reading JSON that starts with a UTF-8 BOM should not error",
 			func() {
 				expectedReads := []bson.D{
-					bson.D{
-						bson.DocElem{"a", 1},
-						bson.DocElem{"b", 2},
-						bson.DocElem{"c", 3},
-					},
-					bson.D{
-						bson.DocElem{"a", 4},
-						bson.DocElem{"b", 5},
-						bson.DocElem{"c", 6},
+					{
+						{"a", 1},
+						{"b", 2},
+						{"c", 3},
+					}, {
+						{"a", 4},
+						{"b", 5},
+						{"c", 6},
 					},
 				}
 				fileHandle, err := os.Open("testdata/test_bom.json")
@@ -255,9 +252,9 @@ func TestJSONConvert(t *testing.T) {
 				index: uint64(0),
 			}
 			expectedDocument := bson.D{
-				bson.DocElem{"field1", "a"},
-				bson.DocElem{"field2", "b"},
-				bson.DocElem{"field3", "c"},
+				{"field1", "a"},
+				{"field2", "b"},
+				{"field3", "c"},
 			}
 			document, err := jsonConverter.Convert()
 			So(err, ShouldBeNil)

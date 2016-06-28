@@ -1023,7 +1023,7 @@ func (d *decodeState) bsonDInterface() bson.D {
 		}
 
 		// Read value.
-		m = append(m, bson.DocElem{key, d.valueInterface(true)})
+		m = append(m, bson.DocElem{Name: key, Value: d.valueInterface(true)})
 
 		// Next token must be , or }.
 		op = d.scanWhile(scanSkipSpace)

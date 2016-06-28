@@ -101,14 +101,14 @@ func (mt *MongoTop) Run() error {
 				return err
 			}
 
-			log.Logf(log.Always, "Error: %v\n", err)
+			log.Logvf(log.Always, "Error: %v\n", err)
 			time.Sleep(mt.Sleeptime)
 		}
 
 		// if this is the first time and the connection is successful, print
 		// the connection message
 		if !hasData && !mt.OutputOptions.Json {
-			log.Logf(log.Always, "connected to: %v\n", connURL)
+			log.Logvf(log.Always, "connected to: %v\n", connURL)
 		}
 
 		hasData = true

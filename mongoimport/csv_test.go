@@ -53,9 +53,9 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", `foo" "bar`},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", `foo" "bar`},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
@@ -70,9 +70,9 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", " 3e"},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", " 3e"},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
@@ -87,10 +87,10 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedRead := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", "2f"},
-				bson.DocElem{"c", " 3e"},
-				bson.DocElem{"field3", " may"},
+				{"a", int32(1)},
+				{"b", "2f"},
+				{"c", " 3e"},
+				{"field3", " may"},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 1)
@@ -104,13 +104,12 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b.c", new(FieldAutoParser), pgAutoCast, "auto"},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
+			b := bson.D{{"c", "2f"}}
 			expectedRead := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", bson.D{
-					bson.DocElem{"c", "2f"},
-				}},
-				bson.DocElem{"c", " 3e"},
-				bson.DocElem{"field3", " may"},
+				{"a", int32(1)},
+				{"b", b},
+				{"c", " 3e"},
+				{"field3", " may"},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 4)
@@ -154,14 +153,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedReadOne := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", int32(3)},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", int32(3)},
 			}
 			expectedReadTwo := bson.D{
-				bson.DocElem{"a", int32(4)},
-				bson.DocElem{"b", int32(5)},
-				bson.DocElem{"c", int32(6)},
+				{"a", int32(4)},
+				{"b", int32(5)},
+				{"c", int32(6)},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
 			docChan := make(chan bson.D, 2)
@@ -177,15 +176,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedReads := []bson.D{
-				bson.D{
-					bson.DocElem{"a", int32(1)},
-					bson.DocElem{"b", int32(2)},
-					bson.DocElem{"c", int32(3)},
-				},
-				bson.D{
-					bson.DocElem{"a", int32(4)},
-					bson.DocElem{"b", int32(5)},
-					bson.DocElem{"c", int32(6)},
+				{
+					{"a", int32(1)},
+					{"b", int32(2)},
+					{"c", int32(3)},
+				}, {
+					{"a", int32(4)},
+					{"b", int32(5)},
+					{"c", int32(6)},
 				},
 			}
 			fileHandle, err := os.Open("testdata/test_bom.csv")
@@ -310,14 +308,14 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
 			}
 			expectedReadOne := bson.D{
-				bson.DocElem{"a", int32(1)},
-				bson.DocElem{"b", int32(2)},
-				bson.DocElem{"c", int32(3)},
+				{"a", int32(1)},
+				{"b", int32(2)},
+				{"c", int32(3)},
 			}
 			expectedReadTwo := bson.D{
-				bson.DocElem{"a", int32(3)},
-				bson.DocElem{"b", 5.4},
-				bson.DocElem{"c", "string"},
+				{"a", int32(3)},
+				{"b", 5.4},
+				{"c", "string"},
 			}
 			fileHandle, err := os.Open("testdata/test.csv")
 			So(err, ShouldBeNil)
@@ -344,9 +342,9 @@ func TestCSVConvert(t *testing.T) {
 				index: uint64(0),
 			}
 			expectedDocument := bson.D{
-				bson.DocElem{"field1", "a"},
-				bson.DocElem{"field2", "b"},
-				bson.DocElem{"field3", "c"},
+				{"field1", "a"},
+				{"field2", "b"},
+				{"field3", "c"},
 			}
 			document, err := csvConverter.Convert()
 			So(err, ShouldBeNil)

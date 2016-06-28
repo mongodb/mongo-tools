@@ -20,8 +20,8 @@ func main() {
 
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'bsondump --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'bsondump --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -38,15 +38,15 @@ func main() {
 	log.SetVerbosity(opts.Verbosity)
 
 	if len(args) > 1 {
-		log.Logf(log.Always, "too many positional arguments: %v", args)
-		log.Logf(log.Always, "try 'bsondump --help' for more information")
+		log.Logvf(log.Always, "too many positional arguments: %v", args)
+		log.Logvf(log.Always, "try 'bsondump --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	// If the user specified a bson input file
 	if len(args) == 1 {
 		if bsonDumpOpts.BSONFileName != "" {
-			log.Logf(log.Always, "Cannot specify both a positional argument and --bsonFile")
+			log.Logvf(log.Always, "Cannot specify both a positional argument and --bsonFile")
 			os.Exit(util.ExitBadOptions)
 		}
 
@@ -60,7 +60,7 @@ func main() {
 
 	reader, err := bsonDumpOpts.GetBSONReader()
 	if err != nil {
-		log.Logf(log.Always, "Getting BSON Reader Failed: %v", err)
+		log.Logvf(log.Always, "Getting BSON Reader Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
 	dumper.BSONSource = db.NewBSONSource(reader)
@@ -68,16 +68,16 @@ func main() {
 
 	writer, err := bsonDumpOpts.GetWriter()
 	if err != nil {
-		log.Logf(log.Always, "Getting Writer Failed: %v", err)
+		log.Logvf(log.Always, "Getting Writer Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
 	dumper.Out = writer
 	defer dumper.Out.Close()
 
-	log.Logf(log.DebugLow, "running bsondump with --objcheck: %v", bsonDumpOpts.ObjCheck)
+	log.Logvf(log.DebugLow, "running bsondump with --objcheck: %v", bsonDumpOpts.ObjCheck)
 
 	if len(bsonDumpOpts.Type) != 0 && bsonDumpOpts.Type != "debug" && bsonDumpOpts.Type != "json" {
-		log.Logf(log.Always, "Unsupported output type '%v'. Must be either 'debug' or 'json'", bsonDumpOpts.Type)
+		log.Logvf(log.Always, "Unsupported output type '%v'. Must be either 'debug' or 'json'", bsonDumpOpts.Type)
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -88,9 +88,9 @@ func main() {
 		numFound, err = dumper.JSON()
 	}
 
-	log.Logf(log.Always, "%v objects found", numFound)
+	log.Logvf(log.Always, "%v objects found", numFound)
 	if err != nil {
-		log.Log(log.Always, err.Error())
+		log.Logv(log.Always, err.Error())
 		os.Exit(util.ExitError)
 	}
 }

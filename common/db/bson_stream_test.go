@@ -10,9 +10,9 @@ import (
 
 func TestBufferlessBSONSource(t *testing.T) {
 	var testValues = []bson.M{
-		{"_": bson.Binary{0x80, []byte("apples")}},
-		{"_": bson.Binary{0x80, []byte("bananas")}},
-		{"_": bson.Binary{0x80, []byte("cherries")}},
+		{"_": bson.Binary{Kind: 0x80, Data: []byte("apples")}},
+		{"_": bson.Binary{Kind: 0x80, Data: []byte("bananas")}},
+		{"_": bson.Binary{Kind: 0x80, Data: []byte("cherries")}},
 	}
 	Convey("with a buffer containing several bson documents with binary fields", t, func() {
 		writeBuf := bytes.NewBuffer(make([]byte, 0, 1024))

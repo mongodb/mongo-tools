@@ -82,7 +82,7 @@ func (exp *MongoExport) ValidateSettings() error {
 	exp.OutputOpts.Type = strings.ToLower(exp.OutputOpts.Type)
 
 	if exp.ToolOptions.HiddenOptions.CSVOutputType {
-		log.Log(log.Always, "csv flag is deprecated; please use --type=csv instead")
+		log.Logv(log.Always, "csv flag is deprecated; please use --type=csv instead")
 		exp.OutputOpts.Type = CSV
 	}
 
@@ -316,7 +316,7 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	if exp.ToolOptions.Port != "" {
 		connURL = connURL + ":" + exp.ToolOptions.Port
 	}
-	log.Logf(log.Always, "connected to: %v", connURL)
+	log.Logvf(log.Always, "connected to: %v", connURL)
 
 	// Write headers
 	err = exportOutput.WriteHeader()

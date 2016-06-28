@@ -270,13 +270,13 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, er
 // the "out" channel. If it fails, the error is stored in the NodeMonitor Err field.
 func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.ServerStatus, error) {
 	stat := &status.ServerStatus{}
-	log.Logf(log.DebugHigh, "getting session on server: %v", node.host)
+	log.Logvf(log.DebugHigh, "getting session on server: %v", node.host)
 	s, err := node.sessionProvider.GetSession()
 	if err != nil {
-		log.Logf(log.DebugLow, "got error getting session to server %v", node.host)
+		log.Logvf(log.DebugLow, "got error getting session to server %v", node.host)
 		return nil, err
 	}
-	log.Logf(log.DebugHigh, "got session on server: %v", node.host)
+	log.Logvf(log.DebugHigh, "got session on server: %v", node.host)
 
 	// The read pref for the session must be set to 'secondary' to enable using
 	// the driver with 'direct' connections, which disables the built-in
@@ -290,7 +290,7 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 
 	err = s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, stat)
 	if err != nil {
-		log.Logf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
+		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
 
@@ -307,7 +307,7 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	}
 	stat.Host = node.host
 	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
-		log.Logf(log.DebugLow, "checking config database to discover shards")
+		log.Logvf(log.DebugLow, "checking config database to discover shards")
 		shardCursor := s.DB("config").C("shards").Find(bson.M{}).Iter()
 		shard := ConfigShard{}
 		for shardCursor.Next(&shard) {
@@ -329,11 +329,11 @@ func (node *NodeMonitor) Watch(sleep time.Duration, discover chan string, cluste
 	go func() {
 		cycle := uint64(0)
 		for {
-			log.Logf(log.DebugHigh, "polling server: %v", node.host)
+			log.Logvf(log.DebugHigh, "polling server: %v", node.host)
 			stat, err := node.Poll(discover, cycle%10 == 1)
 
 			if stat != nil {
-				log.Logf(log.DebugHigh, "successfully got statline from host: %v", node.host)
+				log.Logvf(log.DebugHigh, "successfully got statline from host: %v", node.host)
 			}
 			var nodeError *status.NodeError
 			if err != nil {
@@ -368,7 +368,7 @@ func (mstat *MongoStat) AddNewNode(fullhost string) error {
 	}
 
 	if _, hasKey := mstat.Nodes[fullhost]; !hasKey {
-		log.Logf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
+		log.Logvf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
 		// Create a new node monitor for this host.
 		node, err := NewNodeMonitor(*mstat.Options, fullhost)
 		if err != nil {
@@ -389,7 +389,7 @@ func (mstat *MongoStat) Run() error {
 				newHost := <-mstat.Discovered
 				err := mstat.AddNewNode(newHost)
 				if err != nil {
-					log.Logf(log.Always, "can't add discovered node %v: %v", newHost, err)
+					log.Logvf(log.Always, "can't add discovered node %v: %v", newHost, err)
 				}
 			}
 		}()

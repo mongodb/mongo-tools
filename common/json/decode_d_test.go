@@ -70,8 +70,10 @@ func TestDecodeBsonD(t *testing.T) {
 			So(aMapSubSub["c"], ShouldEqual, 9)
 			So(len(out.B), ShouldEqual, 1)
 			// using string comparison for simplicity
-			So(fmt.Sprintf("%v", out.B), ShouldEqual,
-				fmt.Sprintf("%v", bson.D{{"a", bson.D{{"b", bson.D{{"c", 9}}}}}}))
+			c := bson.D{{Name: "c", Value: 9}}
+			b := bson.D{{Name: "b", Value: c}}
+			a := bson.D{{Name: "a", Value: b}}
+			So(fmt.Sprintf("%v", out.B), ShouldEqual, fmt.Sprintf("%v", a))
 		})
 
 		Convey("subdocuments inside arrays inside bson.D should be parsed into a bson.D", func() {

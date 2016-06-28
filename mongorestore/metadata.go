@@ -212,9 +212,9 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 	}
 
 	// if we're here, the connected server does not support the command, so we fall back
-	log.Log(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
+	log.Logv(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
 	for _, idx := range indexes {
-		log.Logf(log.Info, "\tmanually creating index %v", idx.Options["name"])
+		log.Logvf(log.Info, "\tmanually creating index %v", idx.Options["name"])
 		err = restore.LegacyInsertIndex(intent, idx)
 		if err != nil {
 			return fmt.Errorf("error creating index %v: %v", idx.Options["name"], err)
@@ -310,10 +310,13 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		if arg.intent.Size == 0 {
 			// MongoDB complains if we try and remove a non-existent collection, so we should
 			// just skip auth collections with empty .bson files to avoid gnarly logic later on.
-			log.Logf(log.Always, "%v file '%v' is empty; skipping %v restoration", arg.intentType, arg.intent.Location, arg.intentType)
+			log.Logvf(log.Always, "%v file '%v' is empty; skipping %v restoration", arg.intentType, arg.intent.Location, arg.intentType)
 		}
-		log.Logf(log.Always, "restoring %v from %v", arg.intentType, arg.intent.Location)
-		mergeArgs = append(mergeArgs, bson.DocElem{arg.mergeParamName, "admin." + arg.tempCollectionName})
+		log.Logvf(log.Always, "restoring %v from %v", arg.intentType, arg.intent.Location)
+		mergeArgs = append(mergeArgs, bson.DocElem{
+			Name:  arg.mergeParamName,
+			Value: "admin." + arg.tempCollectionName,
+		})
 
 		err := arg.intent.BSONFile.Open()
 		if err != nil {
@@ -328,14 +331,14 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			return err
 		}
 		if tempCollectionNameExists {
-			log.Logf(log.Info, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
+			log.Logvf(log.Info, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
 			err = session.DB("admin").C(arg.tempCollectionName).DropCollection()
 			if err != nil {
 				return fmt.Errorf("error dropping preexisting temporary collection %v: %v", arg.tempCollectionName, err)
 			}
 		}
 
-		log.Logf(log.DebugLow, "restoring %v to temporary collection", arg.intentType)
+		log.Logvf(log.DebugLow, "restoring %v to temporary collection", arg.intentType)
 		if _, err = restore.RestoreCollectionToDB("admin", arg.tempCollectionName, bsonSource, arg.intent.BSONFile, 0); err != nil {
 			return fmt.Errorf("error restoring %v: %v", arg.intentType, err)
 		}
@@ -345,14 +348,14 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			session, e := restore.SessionProvider.GetSession()
 			if e != nil {
 				// logging errors here because this has no way of returning that doesn't mask other errors
-				log.Logf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", arg.tempCollectionName, e)
+				log.Logvf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", arg.tempCollectionName, e)
 				return
 			}
 			defer session.Close()
-			log.Logf(log.DebugHigh, "dropping temporary collection admin.%v", arg.tempCollectionName)
+			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", arg.tempCollectionName)
 			e = session.DB("admin").C(arg.tempCollectionName).DropCollection()
 			if e != nil {
-				log.Logf(log.Info, "error dropping temporary collection admin.%v: %v", arg.tempCollectionName, e)
+				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", arg.tempCollectionName, e)
 			}
 		}()
 		userTargetDB = arg.intent.DB
@@ -377,15 +380,15 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 
 	command := bsonutil.MarshalD{}
 	command = append(command,
-		bson.DocElem{"_mergeAuthzCollections", 1})
+		bson.DocElem{Name: "_mergeAuthzCollections", Value: 1})
 	command = append(command,
 		mergeArgs...)
 	command = append(command,
-		bson.DocElem{"drop", restore.OutputOptions.Drop},
-		bson.DocElem{"writeConcern", writeConcern},
-		bson.DocElem{"db", userTargetDB})
+		bson.DocElem{Name: "drop", Value: restore.OutputOptions.Drop},
+		bson.DocElem{Name: "writeConcern", Value: writeConcern},
+		bson.DocElem{Name: "db", Value: userTargetDB})
 
-	log.Logf(log.DebugLow, "merging users/roles from temp collections")
+	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
 	res := bson.M{}
 	err = session.Run(command, &res)
 	if err != nil {
@@ -409,13 +412,13 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			// If we are using --restoreDbUsersAndRoles, we cannot guarantee an
 			// $admin.system.version collection from a 2.6 server,
 			// so we can assume up to version 3.
-			log.Logf(log.Always, "no system.version bson file found in '%v' database dump", restore.ToolOptions.DB)
-			log.Log(log.Always, "warning: assuming users and roles collections are of auth version 3")
-			log.Log(log.Always, "if users are from an earlier version of MongoDB, they may not restore properly")
+			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.ToolOptions.DB)
+			log.Logv(log.Always, "warning: assuming users and roles collections are of auth version 3")
+			log.Logv(log.Always, "if users are from an earlier version of MongoDB, they may not restore properly")
 			return 3, nil
 		}
-		log.Log(log.Info, "no system.version bson file found in dump")
-		log.Log(log.Always, "assuming users in the dump directory are from <= 2.4 (auth version 1)")
+		log.Logv(log.Info, "no system.version bson file found in dump")
+		log.Logv(log.Always, "assuming users in the dump directory are from <= 2.4 (auth version 1)")
 		return 1, nil
 	}
 
@@ -458,25 +461,25 @@ func (restore *MongoRestore) ValidateAuthVersions() error {
 	}
 	switch restore.authVersions {
 	case authVersionPair{3, 5}:
-		log.Log(log.Info,
+		log.Logv(log.Info,
 			"restoring users and roles of auth version 3 to a server of auth version 5")
 	case authVersionPair{5, 5}:
-		log.Log(log.Info,
+		log.Logv(log.Info,
 			"restoring users and roles of auth version 5 to a server of auth version 5")
 	case authVersionPair{3, 3}:
-		log.Log(log.Info,
+		log.Logv(log.Info,
 			"restoring users and roles of auth version 3 to a server of auth version 3")
 	case authVersionPair{1, 1}:
-		log.Log(log.Info,
+		log.Logv(log.Info,
 			"restoring users and roles of auth version 1 to a server of auth version 1")
 	case authVersionPair{1, 5}:
 		return fmt.Errorf("cannot restore users of auth version 1 to a server of auth version 5")
 	case authVersionPair{5, 3}:
 		return fmt.Errorf("cannot restore users of auth version 5 to a server of auth version 3")
 	case authVersionPair{1, 3}:
-		log.Log(log.Info,
+		log.Logv(log.Info,
 			"restoring users and roles of auth version 1 to a server of auth version 3")
-		log.Log(log.Always,
+		log.Logv(log.Always,
 			"users and roles will have to be updated with the authSchemaUpgrade command")
 	case authVersionPair{5, 1}:
 		fallthrough

@@ -49,7 +49,7 @@ func TestMongorestore(t *testing.T) {
 	Convey("With a test MongoRestore", t, func() {
 		provider, err := db.NewSessionProvider(*toolOptions)
 		if err != nil {
-			log.Logf(log.Always, "error connecting to host: %v", err)
+			log.Logvf(log.Always, "error connecting to host: %v", err)
 			os.Exit(util.ExitError)
 		}
 		restore := MongoRestore{

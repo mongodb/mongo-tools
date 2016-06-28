@@ -68,7 +68,7 @@ func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
 	} else if inputOptions.QueryFile != "" {
 		content, err := ioutil.ReadFile(inputOptions.QueryFile)
 		if err != nil {
-			fmt.Errorf("error reading queryFile: %v", err)
+			err = fmt.Errorf("error reading queryFile: %s", err)
 		}
 		return content, err
 	}

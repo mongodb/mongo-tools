@@ -157,7 +157,7 @@ func (mf *MongoFiles) handleGetID(gfs *mgo.GridFS) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error opening GridFS file with _id %s: %v", mf.FileName, err)
 	}
-	log.Logf(log.Always, "found file '%v' with _id %v", gFile.Name(), mf.FileName)
+	log.Logvf(log.Always, "found file '%v' with _id %v", gFile.Name(), mf.FileName)
 	defer gFile.Close()
 	if err = mf.writeFile(gFile); err != nil {
 		return "", err
@@ -204,7 +204,7 @@ func (mf *MongoFiles) writeFile(gridFile *mgo.GridFile) (err error) {
 			return fmt.Errorf("error while opening local file '%v': %v\n", localFileName, err)
 		}
 		defer localFile.Close()
-		log.Logf(log.DebugLow, "created local file '%v'", localFileName)
+		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 	}
 
 	if _, err = io.Copy(localFile, gridFile); err != nil {
@@ -236,7 +236,7 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (output string, err error) {
 			return "", fmt.Errorf("error while opening local file '%v' : %v\n", localFileName, err)
 		}
 		defer localFile.Close()
-		log.Logf(log.DebugLow, "creating GridFS file '%v' from local file '%v'", mf.FileName, localFileName)
+		log.Logvf(log.DebugLow, "creating GridFS file '%v' from local file '%v'", mf.FileName, localFileName)
 	}
 
 	gFile, err := gfs.Create(mf.FileName)
@@ -248,7 +248,7 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (output string, err error) {
 		// capture any errors that occur as this function exits and
 		// overwrite the error if earlier writes executed successfully
 		if closeErr := gFile.Close(); err == nil && closeErr != nil {
-			log.Logf(log.DebugHigh, "error occurred while closing GridFS file handler")
+			log.Logvf(log.DebugHigh, "error occurred while closing GridFS file handler")
 			err = fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, closeErr)
 		}
 	}()
@@ -262,7 +262,7 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS) (output string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, err)
 	}
-	log.Logf(log.DebugLow, "copied %v bytes to server", n)
+	log.Logvf(log.DebugLow, "copied %v bytes to server", n)
 
 	output += fmt.Sprintf("added file: %v\n", gFile.Name())
 	return output, nil
@@ -310,7 +310,7 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 		return "", fmt.Errorf("error determining type of node connected: %v", err)
 	}
 
-	log.Logf(log.DebugLow, "connected to node type: %v", nodeType)
+	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
 
 	safety, err := db.BuildWriteConcern(mf.StorageOptions.WriteConcern, nodeType)
 	if err != nil {
@@ -322,7 +322,7 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	session.SetSafe(safety)
 
 	if displayHost {
-		log.Logf(log.Always, "connected to: %v", connUrl)
+		log.Logvf(log.Always, "connected to: %v", connUrl)
 	}
 
 	// first validate the namespaces we'll be using: <db>.<prefix>.files and <db>.<prefix>.chunks
@@ -338,7 +338,7 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 
 	var output string
 
-	log.Logf(log.Info, "handling mongofiles '%v' command...", mf.Command)
+	log.Logvf(log.Info, "handling mongofiles '%v' command...", mf.Command)
 
 	switch mf.Command {
 

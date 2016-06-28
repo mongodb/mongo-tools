@@ -250,7 +250,7 @@ func ReadFaults(newStat, oldStat *ServerStatus) string {
 }
 
 func ReadLRW(newStat, oldStat *ServerStatus) (val string) {
-	if !IsMongos(newStat) && oldStat.Locks != nil && oldStat.Locks != nil {
+	if !IsMongos(newStat) && newStat.Locks != nil && oldStat.Locks != nil {
 		global, ok := oldStat.Locks["Global"]
 		if ok && global.AcquireCount != nil {
 			newColl, inNew := newStat.Locks["Collection"]
@@ -270,7 +270,7 @@ func ReadLRW(newStat, oldStat *ServerStatus) (val string) {
 }
 
 func ReadLRWT(newStat, oldStat *ServerStatus) (val string) {
-	if !IsMongos(newStat) && oldStat.Locks != nil && oldStat.Locks != nil {
+	if !IsMongos(newStat) && newStat.Locks != nil && oldStat.Locks != nil {
 		global, ok := oldStat.Locks["Global"]
 		if ok && global.AcquireCount != nil {
 			newColl, inNew := newStat.Locks["Collection"]
@@ -290,7 +290,7 @@ func ReadLRWT(newStat, oldStat *ServerStatus) (val string) {
 }
 
 func ReadLockedDB(newStat, oldStat *ServerStatus) (val string) {
-	if !IsMongos(newStat) && oldStat.Locks != nil && oldStat.Locks != nil {
+	if !IsMongos(newStat) && newStat.Locks != nil && oldStat.Locks != nil {
 		global, ok := oldStat.Locks["Global"]
 		if !ok || global.AcquireCount == nil {
 			prevLocks := parseLocks(oldStat)

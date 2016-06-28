@@ -21,11 +21,11 @@ const oplogMaxCommandSize = 1024 * 1024 * 8
 
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
-	log.Log(log.Always, "replaying oplog")
+	log.Logv(log.Always, "replaying oplog")
 	intent := restore.manager.Oplog()
 	if intent == nil {
 		// this should not be reached
-		log.Log(log.Always, "no oplog file provided, skipping oplog application")
+		log.Logv(log.Always, "no oplog file provided, skipping oplog application")
 		return nil
 	}
 	if err := intent.BSONFile.Open(); err != nil {
@@ -86,7 +86,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 			continue
 		}
 		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
-			log.Logf(
+			log.Logvf(
 				log.DebugLow,
 				"timestamp %v is not below limit of %v; ending oplog restoration",
 				entryAsOplog.Timestamp,
@@ -108,7 +108,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 		}
 	}
 
-	log.Logf(log.Info, "applied %v ops", totalOps)
+	log.Logvf(log.Info, "applied %v ops", totalOps)
 	return nil
 
 }

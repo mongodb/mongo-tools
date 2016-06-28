@@ -280,7 +280,10 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, bson.DocElem{value.Name, jsonValue})
+			out = append(out, bson.DocElem{
+				Name:  value.Name,
+				Value: jsonValue,
+			})
 		}
 		return MarshalD(out), nil
 	case MarshalD:

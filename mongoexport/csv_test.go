@@ -54,7 +54,8 @@ func TestWriteCSV(t *testing.T) {
 
 		Convey("Exported document with index into nested objects should print correctly", func() {
 			csvExporter := NewCSVExportOutput(fields, true, out)
-			csvExporter.ExportDocument(bson.D{{"z", []interface{}{"x", bson.D{{"a", "T"}, {"B", 1}}}}})
+			z := []interface{}{"x", bson.D{{"a", "T"}, {"B", 1}}}
+			csvExporter.ExportDocument(bson.D{{Name: "z", Value: z}})
 			csvExporter.WriteFooter()
 			csvExporter.Flush()
 			rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
@@ -71,11 +72,14 @@ func TestWriteCSV(t *testing.T) {
 
 func TestExtractDField(t *testing.T) {
 	Convey("With a test bson.D", t, func() {
+		b := []interface{}{"inner", bsonutil.MarshalD{{"inner2", 1}}}
+		c := bsonutil.MarshalD{{"x", 5}}
+		d := bsonutil.MarshalD{{"z", nil}}
 		testD := bsonutil.MarshalD{
 			{"a", "string"},
-			{"b", []interface{}{"inner", bsonutil.MarshalD{{"inner2", 1}}}},
-			{"c", bsonutil.MarshalD{{"x", 5}}},
-			{"d", bsonutil.MarshalD{{"z", nil}}},
+			{"b", b},
+			{"c", c},
+			{"d", d},
 		}
 
 		Convey("regular fields should be extracted by name", func() {

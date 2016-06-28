@@ -149,13 +149,13 @@ func (c JSONConverter) Convert() (bson.D, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling bytes on document #%v: %v", c.index, err)
 	}
-	log.Logf(log.DebugHigh, "got line: %v", document)
+	log.Logvf(log.DebugHigh, "got line: %v", document)
 
 	bsonD, err := bsonutil.GetExtendedBsonD(document)
 	if err != nil {
 		return nil, fmt.Errorf("error getting extended BSON for document #%v: %v", c.index, err)
 	}
-	log.Logf(log.DebugHigh, "got extended line: %#v", bsonD)
+	log.Logvf(log.DebugHigh, "got extended line: %#v", bsonD)
 	return bsonD, nil
 }
 

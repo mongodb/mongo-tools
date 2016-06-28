@@ -184,7 +184,7 @@ func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 		} else if val == "" {
 			opts.VLevel = opts.VLevel + 1 // Increment for every occurrence of flag
 		} else {
-			log.Logf(log.Always, "Invalid verbosity value given")
+			log.Logvf(log.Always, "Invalid verbosity value given")
 			os.Exit(-1)
 		}
 	}
@@ -225,7 +225,7 @@ func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 	if opts.MaxProcs <= 0 {
 		opts.MaxProcs = runtime.NumCPU()
 	}
-	log.Logf(log.Info, "Setting num cpus to %v", opts.MaxProcs)
+	log.Logvf(log.Info, "Setting num cpus to %v", opts.MaxProcs)
 	runtime.GOMAXPROCS(opts.MaxProcs)
 	return opts
 }
@@ -309,7 +309,7 @@ func (opts *HiddenOptions) parseHiddenOption(option string, arg flags.SplitArgum
 		opts.TempUsersColl = new(string)
 		value, consumeVal, err := getStringArg(arg, args)
 		if err != nil {
-			return args, fmt.Errorf("couldn't parse flag tempUsersColl: ", err)
+			return args, fmt.Errorf("couldn't parse flag tempUsersColl: %s", err)
 		}
 		*opts.TempUsersColl = value
 		if consumeVal {
@@ -321,7 +321,7 @@ func (opts *HiddenOptions) parseHiddenOption(option string, arg flags.SplitArgum
 		opts.TempRolesColl = new(string)
 		value, consumeVal, err := getStringArg(arg, args)
 		if err != nil {
-			return args, fmt.Errorf("couldn't parse flag tempRolesColl: ", err)
+			return args, fmt.Errorf("couldn't parse flag tempRolesColl: %s", err)
 		}
 		*opts.TempRolesColl = value
 		if consumeVal {

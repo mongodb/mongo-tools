@@ -58,7 +58,15 @@ func TestArraysBSONToJSON(t *testing.T) {
 		})
 
 		Convey("should work for arrays with embedded objects", func() {
-			bsonObj := []interface{}{80, bson.M{"a": int64(20), "b": bson.M{"c": bson.RegEx{"hi", "i"}}}}
+			bsonObj := []interface{}{
+				80,
+				bson.M{
+					"a": int64(20),
+					"b": bson.M{
+						"c": bson.RegEx{Pattern: "hi", Options: "i"},
+					},
+				},
+			}
 
 			__jObj, err := ConvertBSONValueToJSON(bsonObj)
 			So(err, ShouldBeNil)

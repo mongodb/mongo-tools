@@ -399,13 +399,13 @@ func (manager *Manager) AuthVersion() *Intent {
 func (manager *Manager) Finalize(pType PriorityType) {
 	switch pType {
 	case Legacy:
-		log.Log(log.DebugHigh, "finalizing intent manager with legacy prioritizer")
+		log.Logv(log.DebugHigh, "finalizing intent manager with legacy prioritizer")
 		manager.prioritizer = NewLegacyPrioritizer(manager.intentsByDiscoveryOrder)
 	case LongestTaskFirst:
-		log.Log(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
+		log.Logv(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
 		manager.prioritizer = NewLongestTaskFirstPrioritizer(manager.intentsByDiscoveryOrder)
 	case MultiDatabaseLTF:
-		log.Log(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
+		log.Logv(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
 		manager.prioritizer = NewMultiDatabaseLTFPrioritizer(manager.intentsByDiscoveryOrder)
 	default:
 		panic("cannot initialize IntentPrioritizer with unknown type")

@@ -95,13 +95,13 @@ func BuildWriteConcern(writeConcern string, nodeType NodeType) (*mgo.Safe, error
 	}
 
 	if sessionSafety == nil {
-		log.Logf(log.DebugLow, "using unacknowledged write concern")
+		log.Logvf(log.DebugLow, "using unacknowledged write concern")
 		return nil, nil
 	}
 
 	// for standalone mongods, set the default write concern to 1
 	if nodeType == Standalone {
-		log.Logf(log.DebugLow, "standalone server: setting write concern %v to 1", w)
+		log.Logvf(log.DebugLow, "standalone server: setting write concern %v to 1", w)
 		sessionSafety.W = 1
 		sessionSafety.WMode = ""
 	}
@@ -113,7 +113,7 @@ func BuildWriteConcern(writeConcern string, nodeType NodeType) (*mgo.Safe, error
 	} else {
 		writeConcernStr = sessionSafety.W
 	}
-	log.Logf(log.Info, "using write concern: %v='%v', %v=%v, %v=%v, %v=%v",
+	log.Logvf(log.Info, "using write concern: %v='%v', %v=%v, %v=%v, %v=%v",
 		w, writeConcernStr,
 		j, sessionSafety.J,
 		fSync, sessionSafety.FSync,

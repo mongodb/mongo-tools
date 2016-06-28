@@ -111,7 +111,7 @@ func (bd *BSONDump) JSON() (int, error) {
 	var result bson.Raw
 	for decodedStream.Next(&result) {
 		if err := printJSON(&result, bd.Out, bd.BSONDumpOptions.Pretty); err != nil {
-			log.Logf(log.Always, "unable to dump document %v: %v", numFound+1, err)
+			log.Logvf(log.Always, "unable to dump document %v: %v", numFound+1, err)
 
 			//if objcheck is turned on, stop now. otherwise keep on dumpin'
 			if bd.BSONDumpOptions.ObjCheck {
@@ -161,7 +161,7 @@ func (bd *BSONDump) Debug() (int, error) {
 		}
 		err := printBSON(result, 0, bd.Out)
 		if err != nil {
-			log.Logf(log.Always, "encountered error debugging BSON data: %v", err)
+			log.Logvf(log.Always, "encountered error debugging BSON data: %v", err)
 		}
 		numFound++
 	}

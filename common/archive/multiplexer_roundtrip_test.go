@@ -89,7 +89,7 @@ func TestBasicMux(t *testing.T) {
 			closeDbc := dbc
 			inLength := 0
 			inLengths[closeDbc.Namespace()] = &inLength
-			go func() {
+			go func(index int) {
 				err = muxIns[closeDbc.Namespace()].Open()
 				if err != nil {
 					errChan <- err
@@ -97,7 +97,6 @@ func TestBasicMux(t *testing.T) {
 				}
 				staticBSONBuf := make([]byte, db.MaxBSONSize)
 				for i := 0; i < 10000; i++ {
-
 					bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: closeDbc.Namespace()})
 					bsonBuf := staticBSONBuf[:len(bsonBytes)]
 					copy(bsonBuf, bsonBytes)
@@ -107,7 +106,7 @@ func TestBasicMux(t *testing.T) {
 				}
 				err = muxIns[closeDbc.Namespace()].Close()
 				errChan <- err
-			}()
+			}(index)
 		}
 		Convey("each document should be multiplexed", func() {
 			fmt.Fprintf(os.Stderr, "About to mux\n")
@@ -206,7 +205,7 @@ func TestParallelMux(t *testing.T) {
 			closeDbc := dbc
 			inLength := 0
 			inLengths[closeDbc.Namespace()] = &inLength
-			go func() {
+			go func(index int) {
 				err = muxIns[closeDbc.Namespace()].Open()
 				if err != nil {
 					writeErrChan <- nil
@@ -214,7 +213,6 @@ func TestParallelMux(t *testing.T) {
 				}
 				staticBSONBuf := make([]byte, db.MaxBSONSize)
 				for i := 0; i < 10000; i++ {
-
 					bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: closeDbc.Namespace()})
 					bsonBuf := staticBSONBuf[:len(bsonBytes)]
 					copy(bsonBuf, bsonBytes)
@@ -225,7 +223,7 @@ func TestParallelMux(t *testing.T) {
 
 				err = muxIns[closeDbc.Namespace()].Close()
 				writeErrChan <- err
-			}()
+			}(index)
 		}
 
 		for _, dbc := range testIntents {

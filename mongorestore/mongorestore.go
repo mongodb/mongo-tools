@@ -71,12 +71,12 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	// Can't use option pkg defaults for --objcheck because it's two separate flags,
 	// and we need to be able to see if they're both being used. We default to
 	// true here and then see if noobjcheck is enabled.
-	log.Log(log.DebugHigh, "checking options")
+	log.Logv(log.DebugHigh, "checking options")
 	if restore.InputOptions.Objcheck {
 		restore.objCheck = true
-		log.Log(log.DebugHigh, "\tdumping with object check enabled")
+		log.Logv(log.DebugHigh, "\tdumping with object check enabled")
 	} else {
-		log.Log(log.DebugHigh, "\tdumping with object check disabled")
+		log.Logv(log.DebugHigh, "\tdumping with object check disabled")
 	}
 
 	if restore.ToolOptions.DB == "" && restore.ToolOptions.Collection != "" {
@@ -106,7 +106,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return err
 	}
 	if restore.isMongos {
-		log.Log(log.DebugLow, "restoring to a sharded system")
+		log.Logv(log.DebugLow, "restoring to a sharded system")
 	}
 
 	if restore.InputOptions.OplogLimit != "" {
@@ -133,7 +133,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return fmt.Errorf("error determining type of connected node: %v", err)
 	}
 
-	log.Logf(log.DebugLow, "connected to node type: %v", nodeType)
+	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
 	restore.safety, err = db.BuildWriteConcern(restore.OutputOptions.WriteConcern, nodeType)
 	if err != nil {
 		return fmt.Errorf("error parsing write concern: %v", err)
@@ -185,7 +185,7 @@ func (restore *MongoRestore) Restore() error {
 	var target archive.DirLike
 	err := restore.ParseAndValidateOptions()
 	if err != nil {
-		log.Logf(log.DebugLow, "got error from options parsing: %v", err)
+		log.Logvf(log.DebugLow, "got error from options parsing: %v", err)
 		return err
 	}
 
@@ -208,9 +208,9 @@ func (restore *MongoRestore) Restore() error {
 		if err != nil {
 			return err
 		}
-		log.Logf(log.DebugLow, `archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
-		log.Logf(log.DebugLow, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
-		log.Logf(log.DebugLow, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
+		log.Logvf(log.DebugLow, `archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
+		log.Logvf(log.DebugLow, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
+		log.Logvf(log.DebugLow, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
 		target, err = restore.archive.Prelude.NewPreludeExplorer()
 		if err != nil {
 			return err
@@ -219,25 +219,25 @@ func (restore *MongoRestore) Restore() error {
 		var usedDefaultTarget bool
 		if restore.TargetDirectory == "" {
 			restore.TargetDirectory = "dump"
-			log.Log(log.Always, "using default 'dump' directory")
+			log.Logv(log.Always, "using default 'dump' directory")
 			usedDefaultTarget = true
 		}
 		target, err = newActualPath(restore.TargetDirectory)
 		if err != nil {
 			if usedDefaultTarget {
-				log.Log(log.Always, "see mongorestore --help for usage information")
+				log.Logv(log.Always, "see mongorestore --help for usage information")
 			}
 			return fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
-			log.Log(log.DebugLow, "mongorestore target is a file, not a directory")
+			log.Logv(log.DebugLow, "mongorestore target is a file, not a directory")
 			err = restore.handleBSONInsteadOfDirectory(restore.TargetDirectory)
 			if err != nil {
 				return err
 			}
 		} else {
-			log.Log(log.DebugLow, "mongorestore target is a directory, not a file")
+			log.Logv(log.DebugLow, "mongorestore target is a directory, not a file")
 		}
 	}
 	if restore.ToolOptions.Collection != "" &&
@@ -245,7 +245,7 @@ func (restore *MongoRestore) Restore() error {
 		restore.OutputOptions.NumInsertionWorkers == 1 {
 		// handle special parallelization case when we are only restoring one collection
 		// by mapping -j to insertion workers rather than parallel collections
-		log.Logf(log.DebugHigh,
+		log.Logvf(log.DebugHigh,
 			"setting number of insertions workers to number of parallel collections (%v)",
 			restore.OutputOptions.NumParallelCollections)
 		restore.OutputOptions.NumInsertionWorkers = restore.OutputOptions.NumParallelCollections
@@ -254,7 +254,7 @@ func (restore *MongoRestore) Restore() error {
 		if int(restore.archive.Prelude.Header.ConcurrentCollections) > restore.OutputOptions.NumParallelCollections {
 			restore.OutputOptions.NumParallelCollections = int(restore.archive.Prelude.Header.ConcurrentCollections)
 			restore.OutputOptions.NumInsertionWorkers = int(restore.archive.Prelude.Header.ConcurrentCollections)
-			log.Logf(log.Always,
+			log.Logvf(log.Always,
 				"setting number of parallel collections to number of parallel collections in archive (%v)",
 				restore.archive.Prelude.Header.ConcurrentCollections,
 			)
@@ -271,16 +271,16 @@ func (restore *MongoRestore) Restore() error {
 
 	switch {
 	case restore.InputOptions.Archive != "":
-		log.Logf(log.Always,
+		log.Logvf(log.Always,
 			"creating intents for archive")
 		err = restore.CreateAllIntents(target, restore.ToolOptions.DB, restore.ToolOptions.Collection)
 	case restore.ToolOptions.DB == "" && restore.ToolOptions.Collection == "":
-		log.Logf(log.Always,
+		log.Logvf(log.Always,
 			"building a list of dbs and collections to restore from %v dir",
 			target.Path())
 		err = restore.CreateAllIntents(target, "", "")
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection == "":
-		log.Logf(log.Always,
+		log.Logvf(log.Always,
 			"building a list of collections to restore from %v dir",
 			target.Path())
 		err = restore.CreateIntentsForDB(
@@ -290,13 +290,13 @@ func (restore *MongoRestore) Restore() error {
 			false,
 		)
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "" && restore.TargetDirectory == "-":
-		log.Logf(log.Always, "setting up a collection to be read from standard input")
+		log.Logvf(log.Always, "setting up a collection to be read from standard input")
 		err = restore.CreateStdinIntentForCollection(
 			restore.ToolOptions.DB,
 			restore.ToolOptions.Collection,
 		)
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "":
-		log.Logf(log.Always, "checking for collection data in %v", target.Path())
+		log.Logvf(log.Always, "checking for collection data in %v", target.Path())
 		err = restore.CreateIntentForCollection(
 			restore.ToolOptions.DB,
 			restore.ToolOptions.Collection,
@@ -352,12 +352,12 @@ func (restore *MongoRestore) Restore() error {
 				intent.IsUsers() ||
 				intent.IsRoles() ||
 				intent.IsAuthVersion() {
-				log.Logf(log.DebugLow, "special collection %v found", ns)
+				log.Logvf(log.DebugLow, "special collection %v found", ns)
 				namespaceErrorChan <- nil
 			} else {
 				// Put the ns back on the announcement chan so that the
 				// demultiplexer can start correctly
-				log.Logf(log.DebugLow, "first non special collection %v found."+
+				log.Logvf(log.DebugLow, "first non special collection %v found."+
 					" The demultiplexer will handle it and the remainder", ns)
 				namespaceChan <- ns
 				break
@@ -367,7 +367,7 @@ func (restore *MongoRestore) Restore() error {
 
 	// If restoring users and roles, make sure we validate auth versions
 	if restore.ShouldRestoreUsersAndRoles() {
-		log.Log(log.Info, "comparing auth version of the dump directory and target server")
+		log.Logv(log.Info, "comparing auth version of the dump directory and target server")
 		restore.authVersions.Dump, err = restore.GetDumpAuthVersion()
 		if err != nil {
 			return fmt.Errorf("error getting auth version from dump: %v", err)
@@ -422,7 +422,7 @@ func (restore *MongoRestore) Restore() error {
 		}
 	}
 
-	log.Log(log.Always, "done")
+	log.Logv(log.Always, "done")
 	return nil
 }
 
@@ -477,15 +477,15 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 // SIGHUP signal. It ends restore reads for all goroutines
 // as soon as any of those signals is received.
 func (restore *MongoRestore) handleSignals() {
-	log.Log(log.DebugLow, "will listen for SIGTERM and SIGINT")
+	log.Logv(log.DebugLow, "will listen for SIGTERM and SIGINT")
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	// first signal cleanly terminates restore reads
 	<-sigChan
-	log.Log(log.Always, "ending restore reads")
+	log.Logv(log.Always, "ending restore reads")
 	close(restore.termChan)
 	// second signal exits immediately
 	<-sigChan
-	log.Log(log.Always, "forcefully terminating mongorestore")
+	log.Logv(log.Always, "forcefully terminating mongorestore")
 	os.Exit(util.ExitKill)
 }

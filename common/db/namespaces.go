@@ -47,7 +47,7 @@ func buildBsonArray(iter *mgo.Iter) ([]bson.D, error) {
 func GetIndexes(coll *mgo.Collection) (*mgo.Iter, error) {
 	var cmdResult struct {
 		Cursor struct {
-			FirstBatch []bson.Raw "firstBatch"
+			FirstBatch []bson.Raw `bson:"firstBatch"`
 			NS         string
 			Id         int64
 		}
@@ -65,7 +65,7 @@ func GetIndexes(coll *mgo.Collection) (*mgo.Iter, error) {
 		ses := coll.Database.Session
 		return ses.DB(ns[0]).C(ns[1]).NewIter(ses, cmdResult.Cursor.FirstBatch, cmdResult.Cursor.Id, nil), nil
 	case IsNoCmd(err):
-		log.Logf(log.DebugLow, "No support for listIndexes command, falling back to querying system.indexes")
+		log.Logvf(log.DebugLow, "No support for listIndexes command, falling back to querying system.indexes")
 		return getIndexesPre28(coll)
 	case IsNoCollection(err):
 		return nil, nil
@@ -83,7 +83,7 @@ func getIndexesPre28(coll *mgo.Collection) (*mgo.Iter, error) {
 func GetCollections(database *mgo.Database, name string) (*mgo.Iter, bool, error) {
 	var cmdResult struct {
 		Cursor struct {
-			FirstBatch []bson.Raw "firstBatch"
+			FirstBatch []bson.Raw `bson:"firstBatch"`
 			NS         string
 			Id         int64
 		}
@@ -105,7 +105,7 @@ func GetCollections(database *mgo.Database, name string) (*mgo.Iter, bool, error
 
 		return database.Session.DB(ns[0]).C(ns[1]).NewIter(database.Session, cmdResult.Cursor.FirstBatch, cmdResult.Cursor.Id, nil), false, nil
 	case IsNoCmd(err):
-		log.Logf(log.DebugLow, "No support for listCollections command, falling back to querying system.namespaces")
+		log.Logvf(log.DebugLow, "No support for listCollections command, falling back to querying system.namespaces")
 		iter, err := getCollectionsPre28(database, name)
 		return iter, true, err
 	default:

@@ -27,8 +27,8 @@ func main() {
 
 	args, err := opts.Parse()
 	if err != nil {
-		log.Logf(log.Always, "error parsing command line options: %v", err)
-		log.Logf(log.Always, "try 'mongotop --help' for more information")
+		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "try 'mongotop --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -43,8 +43,8 @@ func main() {
 	}
 
 	if len(args) > 1 {
-		log.Logf(log.Always, "too many positional arguments")
-		log.Logf(log.Always, "try 'mongotop --help' for more information")
+		log.Logvf(log.Always, "too many positional arguments")
+		log.Logvf(log.Always, "try 'mongotop --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -52,17 +52,17 @@ func main() {
 	if len(args) > 0 {
 		sleeptime, err = strconv.Atoi(args[0])
 		if err != nil || sleeptime <= 0 {
-			log.Logf(log.Always, "invalid sleep time: %v", args[0])
+			log.Logvf(log.Always, "invalid sleep time: %v", args[0])
 			os.Exit(util.ExitBadOptions)
 		}
 	}
 	if outputOpts.RowCount < 0 {
-		log.Logf(log.Always, "invalid value for --rowcount: %v", outputOpts.RowCount)
+		log.Logvf(log.Always, "invalid value for --rowcount: %v", outputOpts.RowCount)
 		os.Exit(util.ExitBadOptions)
 	}
 
 	if opts.Auth.Username != "" && opts.Auth.Source == "" && !opts.Auth.RequiresExternalDB() {
-		log.Logf(log.Always, "--authenticationDatabase is required when authenticating against a non $external database")
+		log.Logvf(log.Always, "--authenticationDatabase is required when authenticating against a non $external database")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -74,7 +74,7 @@ func main() {
 	// create a session provider to connect to the db
 	sessionProvider, err := db.NewSessionProvider(*opts)
 	if err != nil {
-		log.Logf(log.Always, "error connecting to host: %v", err)
+		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
 
@@ -85,11 +85,11 @@ func main() {
 	// fail fast if connecting to a mongos
 	isMongos, err := sessionProvider.IsMongos()
 	if err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Always, "Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
 	if isMongos {
-		log.Logf(log.Always, "cannot run mongotop against a mongos")
+		log.Logvf(log.Always, "cannot run mongotop against a mongos")
 		os.Exit(util.ExitError)
 	}
 
@@ -103,7 +103,7 @@ func main() {
 
 	// kick it off
 	if err := top.Run(); err != nil {
-		log.Logf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Always, "Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
 }

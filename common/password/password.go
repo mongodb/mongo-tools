@@ -23,11 +23,11 @@ const (
 func Prompt() string {
 	var pass string
 	if IsTerminal() {
-		log.Log(log.DebugLow, "standard input is a terminal; reading password from terminal")
+		log.Logv(log.DebugLow, "standard input is a terminal; reading password from terminal")
 		fmt.Fprintf(os.Stderr, "Enter password:")
 		pass = GetPass()
 	} else {
-		log.Log(log.Always, "reading password from standard input")
+		log.Logv(log.Always, "reading password from standard input")
 		fmt.Fprintf(os.Stderr, "Enter password:")
 		pass = readPassFromStdin()
 	}

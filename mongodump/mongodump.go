@@ -156,7 +156,7 @@ func (dump *MongoDump) Init() error {
 
 	// warn if we are trying to dump from a secondary in a sharded cluster
 	if dump.isMongos && mode != mgo.Primary {
-		log.Logf(log.Always, db.WarningNonPrimaryMongosConnection)
+		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
 	}
 
 	dump.sessionProvider.SetReadPreference(mode)
@@ -207,7 +207,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error getting auth schema version for dumpDbUsersAndRoles: %v", err)
 		}
-		log.Logf(log.DebugLow, "using auth schema version %v", dump.authVersion)
+		log.Logvf(log.DebugLow, "using auth schema version %v", dump.authVersion)
 		if dump.authVersion < 3 {
 			return fmt.Errorf("backing up users and roles is only supported for "+
 				"deployments with auth schema versions >= 3, found: %v", dump.authVersion)
@@ -239,9 +239,9 @@ func (dump *MongoDump) Dump() (err error) {
 				} else {
 					err = fmt.Errorf("archive writer: %v", muxErr)
 				}
-				log.Logf(log.DebugLow, "%v", err)
+				log.Logvf(log.DebugLow, "%v", err)
 			} else {
-				log.Logf(log.DebugLow, "mux completed successfully")
+				log.Logvf(log.DebugLow, "mux completed successfully")
 			}
 		}()
 	}
@@ -275,7 +275,7 @@ func (dump *MongoDump) Dump() (err error) {
 
 	// verify we can use repair cursors
 	if dump.OutputOptions.Repair {
-		log.Log(log.DebugLow, "verifying that the connected server supports repairCursor")
+		log.Logv(log.DebugLow, "verifying that the connected server supports repairCursor")
 		if dump.isMongos {
 			return fmt.Errorf("cannot use --repair on mongos")
 		}
@@ -293,7 +293,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// metadata, users, roles, and versions
 
 	// TODO, either remove this debug or improve the language
-	log.Logf(log.DebugHigh, "dump phase I: metadata, indexes, users, roles, version")
+	log.Logvf(log.DebugHigh, "dump phase I: metadata, indexes, users, roles, version")
 
 	err = dump.DumpMetadata()
 	if err != nil {
@@ -308,7 +308,7 @@ func (dump *MongoDump) Dump() (err error) {
 		buildInfo, err := session.BuildInfo()
 		var serverVersion string
 		if err != nil {
-			log.Logf(log.Always, "warning, couldn't get version information from server: %v", err)
+			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
 			serverVersion = "unknown"
 		} else {
 			serverVersion = buildInfo.Version
@@ -335,9 +335,9 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 	}
 	if dump.OutputOptions.DumpDBUsersAndRoles {
-		log.Logf(log.Always, "dumping users and roles for %v", dump.ToolOptions.DB)
+		log.Logvf(log.Always, "dumping users and roles for %v", dump.ToolOptions.DB)
 		if dump.ToolOptions.DB == "admin" {
-			log.Logf(log.Always, "skipping users/roles dump, already dumped admin database")
+			log.Logvf(log.Always, "skipping users/roles dump, already dumped admin database")
 		} else {
 			err = dump.DumpUsersAndRolesForDB(dump.ToolOptions.DB)
 			if err != nil {
@@ -355,7 +355,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error finding oplog: %v", err)
 		}
-		log.Logf(log.Info, "getting most recent oplog timestamp")
+		log.Logvf(log.Info, "getting most recent oplog timestamp")
 		dump.oplogStart, err = dump.getOplogStartTime()
 		if err != nil {
 			return fmt.Errorf("error getting oplog start: %v", err)
@@ -366,7 +366,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// regular collections
 
 	// TODO, either remove this debug or improve the language
-	log.Logf(log.DebugHigh, "dump phase II: regular collections")
+	log.Logvf(log.DebugHigh, "dump phase II: regular collections")
 
 	// kick off the progress bar manager and begin dumping intents
 	dump.progressManager.Start()
@@ -382,14 +382,14 @@ func (dump *MongoDump) Dump() (err error) {
 	// oplog
 
 	// TODO, either remove this debug or improve the language
-	log.Logf(log.DebugLow, "dump phase III: the oplog")
+	log.Logvf(log.DebugLow, "dump phase III: the oplog")
 
 	// If we are capturing the oplog, we dump all oplog entries that occurred
 	// while dumping the database. Before and after dumping the oplog,
 	// we check to see if the oplog has rolled over (i.e. the most recent entry when
 	// we started still exist, so we know we haven't lost data)
 	if dump.OutputOptions.Oplog {
-		log.Logf(log.DebugLow, "checking if oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.DebugLow, "checking if oplog entry %v still exists", dump.oplogStart)
 		exists, err := dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
 			return fmt.Errorf(
@@ -398,9 +398,9 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
-		log.Logf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 
-		log.Logf(log.Always, "writing captured oplog to %v", dump.manager.Oplog().Location)
+		log.Logvf(log.Always, "writing captured oplog to %v", dump.manager.Oplog().Location)
 		err = dump.DumpOplogAfterTimestamp(dump.oplogStart)
 		if err != nil {
 			return fmt.Errorf("error dumping oplog: %v", err)
@@ -409,7 +409,7 @@ func (dump *MongoDump) Dump() (err error) {
 		// check the oplog for a rollover one last time, to avoid a race condition
 		// wherein the oplog rolls over in the time after our first check, but before
 		// we copy it.
-		log.Logf(log.DebugLow, "checking again if oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.DebugLow, "checking again if oplog entry %v still exists", dump.oplogStart)
 		exists, err = dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
 			return fmt.Errorf(
@@ -418,10 +418,10 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
-		log.Logf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 	}
 
-	log.Logf(log.DebugLow, "finishing dump")
+	log.Logvf(log.DebugLow, "finishing dump")
 
 	return err
 }
@@ -442,16 +442,16 @@ func (dump *MongoDump) DumpIntents() error {
 		dump.manager.Finalize(intents.Legacy)
 	}
 
-	log.Logf(log.Info, "dumping up to %v collections in parallel", jobs)
+	log.Logvf(log.Info, "dumping up to %v collections in parallel", jobs)
 
 	// start a goroutine for each job thread
 	for i := 0; i < jobs; i++ {
 		go func(id int) {
-			log.Logf(log.DebugHigh, "starting dump routine with id=%v", id)
+			log.Logvf(log.DebugHigh, "starting dump routine with id=%v", id)
 			for {
 				intent := dump.manager.Pop()
 				if intent == nil {
-					log.Logf(log.DebugHigh, "ending dump routine with id=%v, no more work to do", id)
+					log.Logvf(log.DebugHigh, "ending dump routine with id=%v, no more work to do", id)
 					resultChan <- nil
 					return
 				}
@@ -508,11 +508,11 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 	var dumpCount int64
 
 	if dump.OutputOptions.Out == "-" {
-		log.Logf(log.Always, "writing %v to stdout", intent.Namespace())
+		log.Logvf(log.Always, "writing %v to stdout", intent.Namespace())
 		dumpCount, err = dump.dumpQueryToWriter(findQuery, intent)
 		if err == nil {
 			// on success, print the document count
-			log.Logf(log.Always, "dumped %v %v", dumpCount, docPlural(dumpCount))
+			log.Logvf(log.Always, "dumped %v %v", dumpCount, docPlural(dumpCount))
 		}
 		return err
 	}
@@ -527,24 +527,24 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 	}
 
 	if !dump.OutputOptions.Repair {
-		log.Logf(log.Always, "writing %v to %v", intent.Namespace(), intent.Location)
+		log.Logvf(log.Always, "writing %v to %v", intent.Namespace(), intent.Location)
 		if dumpCount, err = dump.dumpQueryToWriter(findQuery, intent); err != nil {
 			return err
 		}
 	} else {
 		// handle repairs as a special case, since we cannot count them
-		log.Logf(log.Always, "writing repair of %v to %v", intent.Namespace(), intent.Location)
+		log.Logvf(log.Always, "writing repair of %v to %v", intent.Namespace(), intent.Location)
 		repairIter := session.DB(intent.DB).C(intent.C).Repair()
 		repairCounter := progress.NewCounter(1) // this counter is ignored
 		if err := dump.dumpIterToWriter(repairIter, intent.BSONFile, repairCounter); err != nil {
 			return fmt.Errorf("repair error: %v", err)
 		}
 		_, repairCount := repairCounter.Progress()
-		log.Logf(log.Always, "\trepair cursor found %v %v in %v",
+		log.Logvf(log.Always, "\trepair cursor found %v %v in %v",
 			repairCount, docPlural(repairCount), intent.Namespace())
 	}
 
-	log.Logf(log.Always, "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))
+	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))
 	return nil
 }
 
@@ -560,9 +560,9 @@ func (dump *MongoDump) dumpQueryToWriter(
 		if err != nil {
 			return int64(0), fmt.Errorf("error reading from db: %v", err)
 		}
-		log.Logf(log.DebugLow, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
+		log.Logvf(log.DebugLow, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
 	} else {
-		log.Logf(log.DebugLow, "not counting query on %v", intent.Namespace())
+		log.Logvf(log.DebugLow, "not counting query on %v", intent.Namespace())
 	}
 
 	dumpProgressor := progress.NewCounter(int64(total))
@@ -594,7 +594,7 @@ func (dump *MongoDump) dumpIterToWriter(
 		for {
 			select {
 			case <-dump.shutdownIntentsNotifier.notified:
-				log.Logf(log.DebugHigh, "terminating writes")
+				log.Logvf(log.DebugHigh, "terminating writes")
 				termErr = util.ErrTerminated
 				close(buffChan)
 				return
@@ -795,17 +795,17 @@ func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 // SIGHUP signal. It ends restore reads for all goroutines
 // as soon as any of those signals is received.
 func (dump *MongoDump) handleSignals() {
-	log.Log(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
+	log.Logv(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGPIPE)
 	// first signal cleanly terminates dump writes
 	<-sigChan
-	log.Log(log.Always, "signal received; shutting down mongodump")
+	log.Logv(log.Always, "signal received; shutting down mongodump")
 	//
 	dump.shutdownIntentsNotifier.Notify()
 	// second signal exits immediately
 	<-sigChan
-	log.Log(log.Always, "second signal received; forcefully terminating mongodump")
+	log.Logv(log.Always, "second signal received; forcefully terminating mongodump")
 	os.Exit(util.ExitKill)
 }
 
