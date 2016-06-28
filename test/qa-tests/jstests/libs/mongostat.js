@@ -9,6 +9,23 @@ var rowRegex = /^sh\d+\|\s/;
 // values to be considered a stat line and not an error message
 var portRegex = /^sh\d+\|\s+\S+:(\d+)(\s+\S+){16}/;
 
+function statRows() {
+  return rawMongoProgramOutput()
+    .split("\n")
+    .filter(function(r) {
+      return r.match(rowRegex);
+    })
+    .map(function(r) {
+      return r.replace(/^sh\d+\| /, "");
+    });
+}
+
+function statFields(row) {
+  return row.split(/\s/).filter(function(s) {
+    return s !== "";
+  });
+}
+
 function statOutputPortCheck(ports) {
   var portMap = {};
   ports.forEach(function(p) {

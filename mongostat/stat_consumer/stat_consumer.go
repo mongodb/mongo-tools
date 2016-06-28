@@ -32,6 +32,9 @@ func NewStatConsumer(flags int, customHeaders []string, keyNames map[string]stri
 		writer:        writer,
 		flags:         flags,
 	}
+	if flags == 0 {
+		sc.headers = customHeaders
+	}
 	return sc
 }
 

@@ -43,8 +43,22 @@ func formatBits(should bool, amt int64) string {
 }
 
 func formatMegabyteAmount(should bool, amt int64) string {
-	_ = should // TODO: change behavior for non-human-readable
-	return text.FormatMegabyteAmount(amt)
+	if should {
+		return text.FormatMegabyteAmount(amt)
+	}
+	return fmt.Sprintf("%v", amt*1024*1024)
+}
+
+func numberToInt64(num interface{}) (int64, bool) {
+	switch n := num.(type) {
+	case int64:
+		return n, true
+	case int32:
+		return int64(n), true
+	case int:
+		return int64(n), true
+	}
+	return 0, false
 }
 
 func percentageInt64(value, outOf int64) float64 {
@@ -454,4 +468,54 @@ func ReadTime(c *ReaderConfig, newStat, _ *ServerStatus) string {
 		return newStat.SampleTime.Format(time.StampMilli)
 	}
 	return newStat.SampleTime.Format(time.RFC3339)
+}
+
+func ReadStatField(field string, stat *ServerStatus) string {
+	val, ok := stat.Flattened[field]
+	if ok {
+		return fmt.Sprintf("%v", val)
+	}
+	return "INVALID"
+}
+
+func ReadStatDiff(field string, newStat, oldStat *ServerStatus) string {
+	new, validNew := newStat.Flattened[field]
+	old, validOld := oldStat.Flattened[field]
+	if validNew && validOld {
+		new, validNew := numberToInt64(new)
+		old, validOld := numberToInt64(old)
+		if validNew && validOld {
+			return fmt.Sprintf("%v", new-old)
+		}
+	}
+	return "INVALID"
+}
+
+func ReadStatRate(field string, newStat, oldStat *ServerStatus) string {
+	sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
+	new, validNew := newStat.Flattened[field]
+	old, validOld := oldStat.Flattened[field]
+	if validNew && validOld {
+		new, validNew := numberToInt64(new)
+		old, validOld := numberToInt64(old)
+		if validNew && validOld {
+			return fmt.Sprintf("%v", diff(new, old, sampleSecs))
+		}
+	}
+	return "INVALID"
+}
+
+var literalRE = regexp.MustCompile(`^(.*?)(\.(\w+)\(\))?$`)
+
+func InterpretField(field string, newStat, oldStat *ServerStatus) string {
+	match := literalRE.FindStringSubmatch(field)
+	if len(match) == 4 {
+		switch match[3] {
+		case "diff":
+			return ReadStatDiff(match[1], newStat, oldStat)
+		case "rate":
+			return ReadStatRate(match[1], newStat, oldStat)
+		}
+	}
+	return ReadStatField(field, newStat)
 }

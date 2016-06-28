@@ -4,6 +4,7 @@ import "time"
 
 type ServerStatus struct {
 	SampleTime         time.Time              `bson:""`
+	Flattened          map[string]interface{} `bson:""`
 	Host               string                 `bson:"host"`
 	Version            string                 `bson:"version"`
 	Process            string                 `bson:"process"`
@@ -209,4 +210,22 @@ func NewNodeError(host string, err error) *NodeError {
 		err:  err,
 		Host: host,
 	}
+}
+
+// Flatten takes a map and returns a new one where nested maps are replaced
+// by dot-delimited keys.
+func Flatten(m map[string]interface{}) map[string]interface{} {
+	o := make(map[string]interface{})
+	for k, v := range m {
+		switch child := v.(type) {
+		case map[string]interface{}:
+			nm := Flatten(child)
+			for nk, nv := range nm {
+				o[k+"."+nk] = nv
+			}
+		default:
+			o[k] = v
+		}
+	}
+	return o
 }

@@ -4,6 +4,7 @@ package main
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -17,6 +18,33 @@ import (
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
 )
+
+// optionKeyNames interprets the CLI options Columns and AppendColumns into
+// the internal keyName mapping.
+func optionKeyNames(option string) map[string]string {
+	kn := make(map[string]string)
+	columns := strings.Split(option, ",")
+	for _, column := range columns {
+		naming := strings.Split(column, "=")
+		if len(naming) == 1 {
+			kn[naming[0]] = naming[0]
+		} else {
+			kn[naming[0]] = naming[1]
+		}
+	}
+	return kn
+}
+
+// optionCustomHeaders interprets the CLI options Columns and AppendColumns
+// into a list of custom headers.
+func optionCustomHeaders(option string) (headers []string) {
+	columns := strings.Split(option, ",")
+	for _, column := range columns {
+		naming := strings.Split(column, "=")
+		headers = append(headers, naming[0])
+	}
+	return
+}
 
 func main() {
 	go signals.Handle()
@@ -77,6 +105,11 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
+	if statOpts.Columns != "" && statOpts.AppendColumns != "" {
+		log.Logf(log.Always, "-O cannot be used if -o is also specified")
+		os.Exit(util.ExitBadOptions)
+	}
+
 	// we have to check this here, otherwise the user will be prompted
 	// for a password for each discovered node
 	if opts.Auth.ShouldAskForPassword() {
@@ -94,21 +127,37 @@ func main() {
 		}
 	}
 
-	var cliFlags = line.FlagAlways
-	if statOpts.Discover {
-		cliFlags |= line.FlagDiscover
-	}
-	if statOpts.All {
-		cliFlags |= line.FlagAll
+	cliFlags := 0
+	if statOpts.Columns == "" {
+		cliFlags = line.FlagAlways
+		if statOpts.Discover {
+			cliFlags |= line.FlagDiscover
+		}
+		if statOpts.All {
+			cliFlags |= line.FlagAll
+		}
 	}
 
-	customHeaders := []string{}
+	var customHeaders []string
+	if statOpts.Columns != "" {
+		customHeaders = optionCustomHeaders(statOpts.Columns)
+	} else if statOpts.AppendColumns != "" {
+		customHeaders = optionCustomHeaders(statOpts.AppendColumns)
+	}
 
 	var keyNames map[string]string
 	if statOpts.Deprecated {
 		keyNames = line.DeprecatedKeyMap()
-	} else {
+	} else if statOpts.Columns == "" {
 		keyNames = line.DefaultKeyMap()
+	} else {
+		keyNames = optionKeyNames(statOpts.Columns)
+	}
+	if statOpts.AppendColumns != "" {
+		addKN := optionKeyNames(statOpts.AppendColumns)
+		for k, v := range addKN {
+			keyNames[k] = v
+		}
 	}
 
 	readerConfig := &status.ReaderConfig{

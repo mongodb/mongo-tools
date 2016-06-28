@@ -293,6 +293,9 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
+	statMap := make(map[string]interface{})
+	s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, statMap)
+	stat.Flattened = status.Flatten(statMap)
 
 	node.Err = nil
 	stat.SampleTime = time.Now()

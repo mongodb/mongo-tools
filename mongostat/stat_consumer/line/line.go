@@ -30,7 +30,12 @@ func NewStatLine(oldStat, newStat *status.ServerStatus, headerKeys []string, c *
 		Fields: make(map[string]string),
 	}
 	for _, key := range headerKeys {
-		line.Fields[key] = StatHeaders[key].ReadField(c, newStat, oldStat)
+		_, ok := StatHeaders[key]
+		if ok {
+			line.Fields[key] = StatHeaders[key].ReadField(c, newStat, oldStat)
+		} else {
+			line.Fields[key] = status.InterpretField(key, newStat, oldStat)
+		}
 	}
 	// We always need host and storage_engine, even if they aren't being displayed
 	line.Fields["host"] = StatHeaders["host"].ReadField(c, newStat, oldStat)
