@@ -698,6 +698,7 @@
     mongod.host = mongod.name;
     mongod.port = parseInt(mongod.commandLine.port);
     mongod.runId = runId || ObjectId();
+    mongod.dbpath = fullOptions.dbpath;
     mongod.savedOptions = MongoRunner.savedOptions[mongod.runId];
     mongod.fullOptions = fullOptions;
 
