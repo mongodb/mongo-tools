@@ -3,7 +3,8 @@ if (typeof getToolTest === 'undefined') {
 }
 
 (function() {
-  resetDbpath('dump');
+  var targetPath = 'dump_db_users_and_roles_test';
+  resetDbpath(targetPath);
   var toolTest = getToolTest('dumpDbUsersAndRolesTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -45,7 +46,7 @@ if (typeof getToolTest === 'undefined') {
   // mongodump should fail when --dumpDbUsersAndRoles is specified but
   // --db isn't
   var dumpArgs = ['dump', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget())
+      .concat(getDumpTarget(targetPath))
       .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should fail when --dumpDbUsersAndRoles is specified without ' +
@@ -53,9 +54,9 @@ if (typeof getToolTest === 'undefined') {
 
   // Running mongodump with `--db foo --dumpDbUsersAndRoles` should dump the
   // associated users
-  resetDbpath('dump');
+  resetDbpath(targetPath);
   dumpArgs = ['dump', '--db', 'foo', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget())
+      .concat(getDumpTarget(targetPath))
       .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should succeed with `--db foo --dumpDbUsersAndRoles`');
@@ -67,7 +68,7 @@ if (typeof getToolTest === 'undefined') {
   db.getSiblingDB('admin').system.roles.remove({role: 'bacon'});
 
   var restoreArgs = ['restore', "--db", "foo", '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget("dump/foo"))
+      .concat(getRestoreTarget(targetPath + "/foo"))
       .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');
