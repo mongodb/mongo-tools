@@ -6,7 +6,8 @@
   load('jstests/common/check_version.js');
 
   // skip tests requiring wiredTiger storage engine, since repair is not supported
-  resetDbpath('dump');
+  var targetPath = 'dump_repair_flag_test';
+  resetDbpath(targetPath);
   var toolTest = getToolTest('repairFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -28,7 +29,7 @@
   var dumpArgs = ['dump',
     '--db', 'foo',
     '--repair']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
 
   if (isAtLeastVersion(db.version(), '2.7.8') && !toolTest.isSharded) {
@@ -45,12 +46,12 @@
     db.dropDatabase();
 
     var restoreArgs = ['restore']
-      .concat(getRestoreTarget())
+      .concat(getRestoreTarget(targetPath))
       .concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
       'mongorestore should succeed');
     assert.eq(0, db.bar.count());
-    assert.eq(0, ls('dump/foo').length, 'dump directory should be empty, but it was not');
+    assert.eq(0, ls(targetPath + '/foo').length, 'dump directory should be empty, but it was not');
   }
 
   toolTest.stop();

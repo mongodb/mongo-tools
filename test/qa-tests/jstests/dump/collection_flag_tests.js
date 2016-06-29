@@ -3,8 +3,8 @@ if (typeof getToolTest === 'undefined') {
 }
 
 (function() {
-  resetDbpath('dump');
   var targetPath = "collFlags";
+  resetDbpath(targetPath);
   var toolTest = getToolTest('collectionFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -30,7 +30,7 @@ if (typeof getToolTest === 'undefined') {
 
   // Running mongodump with `--collection bar --db foo` should only dump
   // the 'foo' database and ignore the 'baz' database
-  resetDbpath('dump');
+  resetDbpath(targetPath);
   dumpArgs = ['dump', '--collection', 'bar', '--db', 'foo']
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);

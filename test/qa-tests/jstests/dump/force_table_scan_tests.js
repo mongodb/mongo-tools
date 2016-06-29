@@ -3,8 +3,8 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  resetDbpath('dump');
   var targetPath = "forceTableScanDumpTest";
+  resetDbpath(targetPath);
   var toolTest = getToolTest('forceTableScanTest');
   var commonToolArgs = getCommonToolArguments();
 

@@ -3,7 +3,8 @@ if (typeof getToolTest === 'undefined') {
 }
 
 (function() {
-  resetDbpath('dump');
+  var targetPath = "dump_server_ko_test";
+  resetDbpath(targetPath);
   var toolTest = getToolTest('ServerKOTest');
   var commonToolArgs = getCommonToolArguments();
 
@@ -36,7 +37,7 @@ if (typeof getToolTest === 'undefined') {
       '--db', 'foo',
       '--collection', 'bar',
       '--query', '{ $where: "sleep(25); return true;" }']
-      .concat(getDumpTarget())
+      .concat(getDumpTarget(targetPath))
       .concat(commonToolArgs);
 
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,

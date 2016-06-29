@@ -3,16 +3,19 @@
     load('jstests/configs/plain_28.config.js');
   }
 
+  var targetPath = 'dump_out_extended_json_flag_test';
   var toolTest = getToolTest('outExtendedJsonFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
 
   var runDumpRestoreWithQuery = function(query) {
-    resetDbpath('dump');
-    var dumpArgs = ['dump', '--query', query, '--db', 'foo',
-      '--collection', 'bar'].
-          concat(getDumpTarget()).
-          concat(commonToolArgs);
+    resetDbpath(targetPath);
+    var dumpArgs = ['dump',
+      '--query', query,
+      '--db', 'foo',
+      '--collection', 'bar']
+      .concat(getDumpTarget(targetPath))
+      .concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
       'mongodump should return exit status 0 when --db, --collection, and ' +
       '--query are all specified');
@@ -23,11 +26,11 @@
     assert.eq(0, db.getSiblingDB('baz').bar.count());
 
     var restoreArgs = ['restore']
-      .concat(getRestoreTarget())
+      .concat(getRestoreTarget(targetPath))
       .concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
       'mongorestore should succeed');
-    resetDbpath('dump');
+    resetDbpath(targetPath);
   };
 
   // '--query' should support extended JSON $date

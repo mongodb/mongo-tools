@@ -3,8 +3,8 @@
     load('jstests/configs/replset_28.config.js');
   }
 
-  resetDbpath('dump');
   var targetPath = "oplogFlagDumpTest";
+  resetDbpath(targetPath);
   var toolTest = getToolTest('oplogFlagTest');
   var commonToolArgs = getCommonToolArguments();
 

@@ -4,7 +4,7 @@ if (typeof getToolTest === 'undefined') {
 
 (function() {
   var targetPath = "excludeWPrefix";
-  resetDbpath('dump');
+  resetDbpath(targetPath);
   var toolTest = getToolTest('excludeCollectionsWithPrefixFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');

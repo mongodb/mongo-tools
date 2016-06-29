@@ -3,8 +3,9 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  resetDbpath('dump');
-  var toolTest = getToolTest('outFlagTest');
+  var targetPath = 'dump_query_flag_test';
+  resetDbpath(targetPath);
+  var toolTest = getToolTest('queryFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var testDB = toolTest.db.getSiblingDB('foo');
 
@@ -23,7 +24,7 @@
   var dumpArgs = ['dump',
     '--collection', 'bar',
     '--query', '"{ x: { $gt:0 } }"']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should exit with a non-zero status when --query is ' +
@@ -33,7 +34,7 @@
   dumpArgs = ['dump',
     '--collection', 'bar',
     '--queryFile', 'jstests/dump/testdata/query.json']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should exit with a non-zero status when --queryFile is ' +
@@ -43,16 +44,18 @@
   dumpArgs = ['dump',
     '--db', 'foo',
     '--query', '"{ x: { $gt:0 } }"']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should exit with a non-zero status when --query is ' +
     'specified but --collection isn\'t');
 
   // Running mongodump with '--queryFile' specified but no '--collection' should fail
-  dumpArgs = ['dump', '--db', 'foo', '--queryFile', 'jstests/dump/testdata/query.json'].
-    concat(getDumpTarget()).
-    concat(commonToolArgs);
+  dumpArgs = ['dump',
+    '--db', 'foo',
+    '--queryFile', 'jstests/dump/testdata/query.json']
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should exit with a non-zero status when --queryFile is ' +
     'specified but --collection isn\'t');
@@ -63,18 +66,18 @@
     '--collection', 'bar',
     '--db', 'foo',
     '--queryFile', 'jstests/nope']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should exit with a non-zero status when --queryFile doesn\'t exist');
 
   // Running mongodump with '--query' should only get matching documents
-  resetDbpath('dump');
+  resetDbpath(targetPath);
   dumpArgs = ['dump',
     '--query', '{ x: { $gt:0 } }',
     '--db', 'foo',
     '--collection', 'bar']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should return exit status 0 when --db, --collection, and ' +
@@ -87,7 +90,7 @@
     assert.eq(0, testDB.getSiblingDB('baz').bar.count());
 
     var restoreArgs = ['restore'].
-      concat(getRestoreTarget()).
+      concat(getRestoreTarget(targetPath)).
       concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
         'mongorestore should succeed');
@@ -98,12 +101,12 @@
   restoreTest();
 
   // Running mongodump with '--queryFile' should only get matching documents
-  resetDbpath('dump');
+  resetDbpath(targetPath);
   dumpArgs = ['dump',
     '--queryFile', 'jstests/dump/testdata/query.json',
     '--db', 'foo',
     '--collection', 'bar']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should return exit status 0 when --db, --collection, and ' +

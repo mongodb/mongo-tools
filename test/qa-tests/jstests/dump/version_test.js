@@ -3,7 +3,7 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  resetDbpath('dump');
+  var targetPath = 'dump_version_test.archive';
   var toolTest = getToolTest('versionTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -15,7 +15,7 @@
 
   var dumpArgs = ['dump',
     '--db', 'foo',
-    '--archive=foo.archive']
+    '--archive='+targetPath]
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should succeed');
@@ -25,7 +25,7 @@
   clearRawMongoProgramOutput();
 
   var restoreArgs = ['restore',
-    '--archive=foo.archive', '-vvv']
+    '--archive='+targetPath, '-vvv']
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');

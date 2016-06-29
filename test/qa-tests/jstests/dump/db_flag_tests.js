@@ -3,8 +3,8 @@ if (typeof getToolTest === 'undefined') {
 }
 
 (function() {
-  resetDbpath('dump');
   var targetPath = "dbflags";
+  resetDbpath(targetPath);
   var toolTest = getToolTest('dbFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -21,7 +21,7 @@ if (typeof getToolTest === 'undefined') {
 
   // Running mongodump with `--db foo` should only dump the
   // 'foo' database, ignoring the 'baz' database
-  resetDbpath('dump');
+  resetDbpath(targetPath);
   var dumpArgs = ['dump', '--db', 'foo']
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);

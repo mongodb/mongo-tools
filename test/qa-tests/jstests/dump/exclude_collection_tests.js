@@ -3,7 +3,8 @@ if (typeof getToolTest === 'undefined') {
 }
 
 (function() {
-  resetDbpath('dump');
+  var targetPath = 'dump_exclude_collection_flag_test';
+  resetDbpath(targetPath);
   var toolTest = getToolTest('excludeCollectionFlagTest');
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
@@ -19,7 +20,7 @@ if (typeof getToolTest === 'undefined') {
     '--db', 'foo',
     '--collection', 'baz',
     '--excludeCollection', 'baz']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should fail if both --collection and --excludeCollection ' +
@@ -27,7 +28,7 @@ if (typeof getToolTest === 'undefined') {
 
   // --excludeCollection without --db should fail
   dumpArgs = ['dump', '--excludeCollection', 'baz']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should fail if --excludeCollection is specified but not --db');
@@ -35,7 +36,7 @@ if (typeof getToolTest === 'undefined') {
   // If --db and --excludeCollection are specified, should dump all collections
   // except for the one specified in excludeCollection.
   dumpArgs = ['dump', '--db', 'foo', '--excludeCollection', 'baz']
-    .concat(getDumpTarget())
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump with --excludeCollection should succeed');
@@ -44,7 +45,7 @@ if (typeof getToolTest === 'undefined') {
   assert.eq(0, db.baz.count());
 
   var restoreArgs = ['restore']
-    .concat(getRestoreTarget())
+    .concat(getRestoreTarget(targetPath))
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');

@@ -10,7 +10,8 @@ if (typeof getToolTest === 'undefined') {
 // of the caputred output buffer
 
 (function() {
-  resetDbpath('dump');
+  var targetPath = "dump_dumping_dropped_collections_test";
+  resetDbpath(targetPath);
   var toolTest = getToolTest('DumpingDroppedCollectionsTest');
   var commonToolArgs = getCommonToolArguments();
   testDB = toolTest.db.getSiblingDB('foo');
@@ -35,7 +36,7 @@ if (typeof getToolTest === 'undefined') {
   );
 
   // dump
-  var dumpArgs = ['dump'].concat(getDumpTarget()).concat(commonToolArgs);
+  var dumpArgs = ['dump'].concat(getDumpTarget(targetPath)).concat(commonToolArgs);
 
   assert(toolTest.runTool.apply(toolTest, dumpArgs) === 0, 'mongodump should not crash when dumping collections that gets dropped');
 

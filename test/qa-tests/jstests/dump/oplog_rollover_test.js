@@ -3,7 +3,8 @@
     load('jstests/configs/replset_28.config.js');
   }
 
-  resetDbpath('dump');
+  var targetPath = 'dump_oplog_rollover_test';
+  resetDbpath(targetPath);
   var toolTest = getToolTest('oplogRolloverTest');
   var commonToolArgs = getCommonToolArguments();
 
@@ -42,8 +43,8 @@
     sleep(1000);
   }
 
-  var dumpArgs = ['dump', '--oplog'].concat(getDumpTarget())
-    .concat(getDumpTarget())
+  var dumpArgs = ['dump', '--oplog']
+    .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
 
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
