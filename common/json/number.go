@@ -3,9 +3,11 @@ package json
 import (
 	"fmt"
 	"reflect"
+
+	"gopkg.in/mgo.v2/decimal"
 )
 
-// Transition functions for recognizing NumberInt and NumberLong.
+// Transition functions for recognizing NumberInt, NumberLong, and NumberDecimal
 // Adapted from encoding/json/scanner.go.
 
 // stateUpperNu is the state after reading `Nu`.
@@ -27,7 +29,11 @@ func stateUpperNumber(s *scanner, c int) int {
 		s.step = generateState("NumberLong", []byte("ong"), stateConstructor)
 		return scanContinue
 	}
-	return s.error(c, "in literal NumberInt or NumberLong (expecting 'I' or 'L')")
+	if c == 'D' {
+		s.step = generateState("NumberDecimal", []byte("ecimal"), stateConstructor)
+		return scanContinue
+	}
+	return s.error(c, "in literal NumberInt, NumberLong, or NumberDecimal (expecting 'I', 'L', or 'D')")
 }
 
 // Decodes a NumberInt literal stored in the underlying byte data into v.
@@ -134,4 +140,70 @@ func (d *decodeState) getNumberLong() interface{} {
 		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %t", number))
 	}
 	return NumberLong(arg0)
+}
+
+// Decodes a NumberDecimal literal stored in the underlying byte data into v.
+func (d *decodeState) storeNumberDecimal(v reflect.Value) {
+	op := d.scanWhile(scanSkipSpace)
+	if op != scanBeginCtor {
+		d.error(fmt.Errorf("expected beginning of constructor"))
+	}
+
+	// Prevent d.convertNumber() from parsing the argument as a float64.
+	useNumber := d.useNumber
+	d.useNumber = true
+
+	args := d.ctorInterface()
+	if len(args) != 1 {
+		d.error(fmt.Errorf("expected 1 argument to NumberDecimal contructor, but %v received", len(args)))
+	}
+	switch kind := v.Kind(); kind {
+	case reflect.Interface:
+		var number Number
+		switch v := args[0].(type) {
+		case Number:
+			number = v
+		case string:
+			number = Number(v)
+		default:
+			d.error(fmt.Errorf("expected argument to NumberDecimal to be a number or string"))
+		}
+
+		d.useNumber = useNumber
+		dcml, _ := decimal.Parse(string(number))
+		v.Set(reflect.ValueOf(NumberDecimal(dcml)))
+	default:
+		d.error(fmt.Errorf("cannot store %v value into %v type", numberDecimalType, kind))
+	}
+}
+
+// Returns a NumberDecimal literal from the underlying byte data.
+func (d *decodeState) getNumberDecimal() interface{} {
+	op := d.scanWhile(scanSkipSpace)
+	if op != scanBeginCtor {
+		d.error(fmt.Errorf("expected beginning of constructor"))
+	}
+
+	// Prevent d.convertNumber() from parsing the argument as a float64.
+	useNumber := d.useNumber
+	d.useNumber = true
+
+	args := d.ctorInterface()
+	if err := ctorNumArgsMismatch("NumberDecimal", 1, len(args)); err != nil {
+		d.error(err)
+	}
+	var number Number
+	switch v := args[0].(type) {
+	case Number:
+		number = v
+	case string:
+		number = Number(v)
+
+	default:
+		d.error(fmt.Errorf("expected number or string for first argument of NumberDecimal constructor, got %t", v))
+	}
+
+	d.useNumber = useNumber
+	dcml, _ := decimal.Parse(string(number))
+	return NumberDecimal(dcml)
 }

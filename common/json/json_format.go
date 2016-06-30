@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"gopkg.in/mgo.v2/decimal"
 )
 
 const JSON_DATE_FORMAT = "2006-01-02T15:04:05.000Z"
@@ -102,6 +104,11 @@ func (n NumberInt) MarshalJSON() ([]byte, error) {
 
 func (n NumberLong) MarshalJSON() ([]byte, error) {
 	data := fmt.Sprintf(`{ "$numberLong": "%v" }`, int64(n))
+	return []byte(data), nil
+}
+
+func (n NumberDecimal) MarshalJSON() ([]byte, error) {
+	data := fmt.Sprintf(`{ "$numberDecimal": "%v" }`, decimal.Decimal(n))
 	return []byte(data), nil
 }
 
