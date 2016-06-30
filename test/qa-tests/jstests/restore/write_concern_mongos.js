@@ -13,7 +13,7 @@
     },
   });
   var rs = st.rs0;
-  var cfg = rs.getConfigFromPrimary();
+  var cfg = (rs.getConfigFromPrimary || rs.getReplSetConfigFromNode)();
   cfg.settings.chainingAllowed = false;
   cfg.version += 1;
   assert.commandWorked(rs.getPrimary().adminCommand({replSetReconfig: cfg}));

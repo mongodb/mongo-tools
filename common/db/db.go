@@ -45,6 +45,7 @@ const (
 	// so we can only check for this universal prefix
 	ErrReplTimeoutPrefix            = "waiting for replication timed out"
 	ErrCouldNotContactPrimaryPrefix = "could not contact primary for replica set"
+	ErrCouldNotFindPrimaryPrefix    = `could not find host matching read preference { mode: "primary"`
 	ErrUnableToTargetPrefix         = "unable to target"
 	ErrNotMaster                    = "not master"
 	ErrConnectionRefusedSuffix      = "Connection refused"
@@ -222,6 +223,7 @@ func IsConnectionError(err error) bool {
 		err.Error() == io.EOF.Error() ||
 		strings.HasPrefix(err.Error(), ErrReplTimeoutPrefix) ||
 		strings.HasPrefix(err.Error(), ErrCouldNotContactPrimaryPrefix) ||
+		strings.HasPrefix(err.Error(), ErrCouldNotFindPrimaryPrefix) ||
 		strings.HasPrefix(err.Error(), ErrUnableToTargetPrefix) ||
 		err.Error() == ErrNotMaster ||
 		strings.HasSuffix(err.Error(), ErrConnectionRefusedSuffix) {
