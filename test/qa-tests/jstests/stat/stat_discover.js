@@ -26,6 +26,14 @@
     a: 1
   });
 
+  clearRawMongoProgramOutput();
+  runMongoProgram("mongostat",
+      "--port", rs.liveNodes.master.port,
+      "--rowcount", 7,
+      "--noheaders",
+      "--discover");
+  assert(statOutputPortCheck(replSetPorts), "when only port is used, each host still only appears once");
+
   assert(discoverTest(replSetPorts, rs.liveNodes.master.host), "--discover against a replset master sees all members");
 
   assert(discoverTest(replSetPorts, rs.liveNodes.slaves[0].host), "--discover against a replset slave sees all members");

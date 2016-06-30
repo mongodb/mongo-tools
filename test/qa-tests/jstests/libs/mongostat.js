@@ -5,8 +5,9 @@ var exitCodeBadOptions = 3;
 var exitCodeStopped = 4;
 
 var rowRegex = /^sh\d+\|\s/;
-
-var portRegex = /^sh\d+\| \S+:(\d+)(\s+\S+){16}/; // I counted like 22 fields, so 16 is just a number that should indicate that we're actually looking at a stat line
+// portRegex finds the port on a line which has enough whitespace-delimited
+// values to be considered a stat line and not an error message
+var portRegex = /^sh\d+\|\s+\S+:(\d+)(\s+\S+){16}/;
 
 function statOutputPortCheck(ports) {
   var portMap = {};
