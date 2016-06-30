@@ -53,7 +53,7 @@ type ConfigShard struct {
 // NodeMonitor contains the connection pool for a single host and collects the
 // mongostat data for that host on a regular interval.
 type NodeMonitor struct {
-	host            string
+	host, alias     string
 	sessionProvider *db.SessionProvider
 
 	// Enable/Disable collection of optional fields.
@@ -291,6 +291,7 @@ func (node *NodeMonitor) Poll(discover chan string, all bool, checkShards bool, 
 			discover <- host
 		}
 	}
+	node.alias = result.Host
 	if discover != nil && statLine != nil && statLine.IsMongos && checkShards {
 		log.Logf(log.DebugLow, "checking config database to discover shards")
 		shardCursor := s.DB("config").C("shards").Find(bson.M{}).Iter()
@@ -348,16 +349,22 @@ func (mstat *MongoStat) AddNewNode(fullhost string) error {
 		mstat.startNode = fullhost
 	}
 
-	if _, hasKey := mstat.Nodes[fullhost]; !hasKey {
-		log.Logf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
-		// Create a new node monitor for this host.
-		node, err := NewNodeMonitor(*mstat.Options, fullhost, mstat.StatOptions.All)
-		if err != nil {
-			return err
-		}
-		mstat.Nodes[fullhost] = node
-		node.Watch(mstat.SleepInterval, mstat.Discovered, mstat.Cluster)
+	if _, hasKey := mstat.Nodes[fullhost]; hasKey {
+		return nil
 	}
+	for _, node := range mstat.Nodes {
+		if node.alias == fullhost {
+			return nil
+		}
+	}
+	log.Logf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
+	// Create a new node monitor for this host.
+	node, err := NewNodeMonitor(*mstat.Options, fullhost, mstat.StatOptions.All)
+	if err != nil {
+		return err
+	}
+	mstat.Nodes[fullhost] = node
+	node.Watch(mstat.SleepInterval, mstat.Discovered, mstat.Cluster)
 	return nil
 }
 
