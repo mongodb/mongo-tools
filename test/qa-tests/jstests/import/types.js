@@ -48,11 +48,25 @@
 
   printjson(postImportDoc);
 
-  docKeys = Object.keys(testDoc);
-  for (var i=0; i<docKeys.length; i++) {
-    jsTest.log("checking field " + docKeys[i]);
-    assert.eq(testDoc[docKeys[i]], postImportDoc[docKeys[i]],
-        "imported field " + docKeys[i] + " does not match original");
+  for (var docKey in testDoc) {
+    if (!testDoc.hasOwnProperty(docKey)) {
+      continue;
+    }
+    jsTest.log("checking field " + docKey);
+    if (typeof testDoc[docKey] === 'function') {
+      // SERVER-23472: As of 3.3.5, JS functions are serialized when inserted,
+      // so accept either the original function or its serialization
+      try {
+        assert.eq(testDoc[docKey], postImportDoc[docKey],
+            "function does not directly match");
+      } catch (e) {
+        assert.eq({code: String(testDoc[docKey])}, postImportDoc[docKey],
+            "serialized function does not match");
+      }
+      continue;
+    }
+    assert.eq(testDoc[docKey], postImportDoc[docKey],
+        "imported field " + docKey + " does not match original");
   }
 
   // DBPointer should turn into a DBRef with a $ref field and hte $id field being an ObjectId. It will not convert back to a DBPointer.
