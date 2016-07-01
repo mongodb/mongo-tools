@@ -1354,7 +1354,8 @@ tasks:
         working_dir: src
         script: |
           set -o verbose
-          retVal=$(. ./set_gopath.sh && go tool vet .); if [ "$retVal" = "" ]; then exit 0; else exit 1; fi;
+          . ./set_gopath.sh
+          go tool vet .
 
 buildvariants:
 #######################################
