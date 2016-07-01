@@ -204,6 +204,17 @@ func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
 		limit = exp.InputOpts.Limit
 	}
 
+	if exp.InputOpts.AssertExists {
+		collNames, err := session.DB(exp.ToolOptions.Namespace.DB).CollectionNames()
+		if err != nil {
+			return nil, session, err
+		}
+		if !util.StringSliceContains(collNames, exp.ToolOptions.Namespace.Collection) {
+			return nil, session, fmt.Errorf("collection '%s' does not exist",
+				exp.ToolOptions.Namespace.Collection)
+		}
+	}
+
 	// build the query
 	q := session.DB(exp.ToolOptions.Namespace.DB).
 		C(exp.ToolOptions.Namespace.Collection).Find(query).Sort(sortFields...).
