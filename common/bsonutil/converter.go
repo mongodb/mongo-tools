@@ -8,7 +8,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"reflect"
 	"time"
 )
 
@@ -113,7 +112,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		return bson.Undefined, nil
 
 	default:
-		return nil, fmt.Errorf("conversion of JSON type '%v' unsupported", v)
+		return nil, fmt.Errorf("conversion of JSON value '%v' of type '%T' not supported", v, v)
 	}
 }
 
@@ -241,5 +240,5 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("conversion of BSON type '%v' not supported %v", reflect.TypeOf(x), x)
+	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
 }
