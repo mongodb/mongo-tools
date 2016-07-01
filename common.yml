@@ -114,7 +114,6 @@ mongo_tools_variables:
       - name: qa-tests
       - name: text
       - name: util
-      - name: vet
     ubuntu1204_race_task_list: &ubuntu1204_race_tasks
       - name: bsonutil
       - name: db
