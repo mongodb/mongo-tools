@@ -11,6 +11,10 @@
     var ret = toolTest.runTool('export', '--db', 'test', '--collection', 'data');
     assert.eq(0, ret);
 
+    // but it should fail if --assertExists specified
+    ret = toolTest.runTool('export', '--db', 'test', '--collection', 'data', '--assertExists');
+    assert.neq(0, ret);
+
     // success
     toolTest.stop();
 
