@@ -7,17 +7,21 @@
   var dbName = "foo";
   var colName = "bar";
   var fileTarget = "wc.csv";
-  var st = new ShardingTest({shards : {
-    rs0: {
-      nodes: 3,
-      useHostName: true
+  var st = new ShardingTest({
+    shards: {
+      rs0: {
+        nodes: 3,
+        useHostName: true,
+        settings: {chainingAllowed: false},
+      },
     },
-  }});
+    mongos: 1,
+    config: 1,
+    configReplSetTestOptions: {
+      settings: {chainingAllowed: false},
+    },
+  });
   var rs = st.rs0;
-  var cfg = (rs.getConfigFromPrimary || rs.getReplSetConfigFromNode)();
-  cfg.settings.chainingAllowed = false;
-  cfg.version += 1;
-  assert.commandWorked(rs.getPrimary().adminCommand({replSetReconfig: cfg}));
   rs.awaitReplication();
   toolTest.port = st.s.port;
 
