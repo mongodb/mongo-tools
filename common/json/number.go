@@ -124,13 +124,13 @@ func (d *decodeState) getNumberLong() interface{} {
 		number = Number(v)
 
 	default:
-		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", v))
+		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", v, v))
 	}
 
 	d.useNumber = useNumber
 	arg0, err := number.Int64()
 	if err != nil {
-		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", number))
+		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", number, number))
 	}
 	return NumberLong(arg0)
 }
