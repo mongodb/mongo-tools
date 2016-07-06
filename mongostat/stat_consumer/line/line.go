@@ -6,8 +6,9 @@ import (
 
 // StatLine is a wrapper for all metrics reported by mongostat for monitored hosts
 type StatLine struct {
-	Fields map[string]string
-	Error  error
+	Fields  map[string]string
+	Error   error
+	Printed bool
 }
 
 type StatLines []*StatLine

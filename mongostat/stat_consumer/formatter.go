@@ -29,6 +29,11 @@ func (jlf *JSONLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []s
 	for _, l := range lines {
 		lineJson := make(map[string]interface{})
 
+		if l.Printed && l.Error == nil {
+			l.Error = fmt.Errorf("no data received")
+		}
+		l.Printed = true
+
 		// check for error
 		if l.Error != nil {
 			lineJson["error"] = l.Error.Error()
@@ -86,6 +91,11 @@ func (glf *GridLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []s
 	glf.Writer.EndRow()
 
 	for _, l := range lines {
+		if l.Printed && l.Error == nil {
+			l.Error = fmt.Errorf("no data received")
+		}
+		l.Printed = true
+
 		if l.Error != nil {
 			glf.Writer.WriteCell(l.Fields["host"])
 			glf.Writer.Feed(l.Error.Error())
