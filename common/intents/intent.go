@@ -4,7 +4,6 @@ package intents
 import (
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/log"

@@ -106,7 +106,7 @@ func main() {
 	}
 
 	if statOpts.Columns != "" && statOpts.AppendColumns != "" {
-		log.Logf(log.Always, "-O cannot be used if -o is also specified")
+		log.Logvf(log.Always, "-O cannot be used if -o is also specified")
 		os.Exit(util.ExitBadOptions)
 	}
 
