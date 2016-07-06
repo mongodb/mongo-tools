@@ -1,8 +1,7 @@
+// this tests that we can restore a large number of collections, resolving
+// an issue raised by TOOLS-1088
+// @tags: [requires_many_files, requires_large_ram]
 (function() {
-
-  // this tests that we can restore a large number of collections, resolving
-  // an issue raised by TOOLS-1088
-
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
@@ -11,8 +10,6 @@
   var commonToolArgs = getCommonToolArguments();
 
   var dbOne = toolTest.db.getSiblingDB('dbOne');
-  // create a test collection
-
 
   for (var i=0; i<=15000; i++) {
     collName = "Coll" + i;

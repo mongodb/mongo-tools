@@ -1369,6 +1369,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
+    resmoke_args: --excludeWithAnyTags=requires_many_files
   tasks: *osx_1010_tasks
 
 - name: osx-1010-ssl
@@ -1382,6 +1383,7 @@ buildvariants:
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
     edition: ssl
+    resmoke_args: --excludeWithAnyTags=requires_many_files
   tasks: *osx_1010_ssl_tasks
 
 #######################################
@@ -1450,7 +1452,7 @@ buildvariants:
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     resmoke_use_ssl: _ssl
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    resmoke_args: --excludeWithAnyTags=requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
+    resmoke_args: --excludeWithAnyTags=requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
@@ -1470,7 +1472,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     build_tags: -gccgoflags "-lsocket -lnsl"
-    resmoke_args: -j$(kstat cpu | sort -u | grep -c "^module")
+    resmoke_args: --excludeWithAnyTags=requires_large_ram -j$(kstat cpu | sort -u | grep -c "^module")
   tasks: *solaris_tasks
 
 #######################################
@@ -1486,6 +1488,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     extension: .exe
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
+    resmoke_args: --excludeWithAnyTags=requires_large_ram
     integration_test_args: "integration"
   tasks: *windows_32_tasks
 
@@ -1497,6 +1500,7 @@ buildvariants:
     <<: *mongo_url_windows64
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    resmoke_args: --excludeWithAnyTags=requires_large_ram
     extension: .exe
     arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
@@ -1515,6 +1519,7 @@ buildvariants:
     edition: ssl
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_args: --excludeWithAnyTags=requires_large_ram
     extension: .exe
     arch: "win32/x86_64"
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
@@ -1533,6 +1538,7 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_args: --excludeWithAnyTags=requires_large_ram
     edition: enterprise
     extension: .exe
     arch: "win32/x86_64"
@@ -1558,6 +1564,7 @@ buildvariants:
     build_tags: -tags "ssl"
     arch: "linux/x86_64"
     args: "-race"
+    resmoke_args: --excludeWithAnyTags=requires_large_ram
     integration_test_args: integration
   tasks: *ubuntu1204_race_tasks
 
