@@ -39,7 +39,6 @@ type Op interface {
 	OpCode() OpCode
 	FromReader(io.Reader) error
 	Execute(*mgo.Session) (replyContainer, error)
-	Equals(Op) bool
 	Meta() OpMetadata
 	Abbreviated(int) string
 }

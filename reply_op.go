@@ -90,10 +90,6 @@ func (op *ReplyOp) Execute(session *mgo.Session) (replyContainer, error) {
 	return replyContainer{}, nil
 }
 
-func (replyOp1 *ReplyOp) Equals(otherOp Op) bool {
-	return true
-}
-
 func stringifyReplyDocs(d []bson.Raw) string {
 	if len(d) == 0 {
 		return "[empty]"

@@ -56,14 +56,3 @@ func (op *KillCursorsOp) Execute(session *mgo.Session) (replyContainer, error) {
 
 	return replyContainer{}, nil
 }
-
-func (killCursorsOp1 *KillCursorsOp) Equals(otherOp Op) bool {
-	killCursorsOp2, ok := otherOp.(*KillCursorsOp)
-	if !ok {
-		return false
-	}
-	if len(killCursorsOp1.CursorIds) != len(killCursorsOp2.CursorIds) {
-		return false
-	}
-	return true
-}

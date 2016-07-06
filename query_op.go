@@ -3,7 +3,6 @@ package mongotape
 import (
 	"fmt"
 	"io"
-	"reflect"
 	"time"
 
 	mgo "github.com/10gen/llmgo"
@@ -173,25 +172,4 @@ func (op *QueryOp) Execute(session *mgo.Session) (replyContainer, error) {
 	replyContainer.ReplyOp = reply
 	replyContainer.Latency = after.Sub(before)
 	return replyContainer, nil
-}
-
-func (queryOp1 *QueryOp) Equals(otherOp Op) bool {
-	queryOp2, ok := otherOp.(*QueryOp)
-	if !ok {
-		return false
-	}
-	switch {
-	case queryOp1.Collection != queryOp2.Collection:
-		return false
-	case queryOp1.Skip != queryOp2.Skip:
-		return false
-	case queryOp1.Limit != queryOp2.Limit:
-		return false
-	case queryOp1.Flags != queryOp2.Flags:
-		return false
-	case !reflect.DeepEqual(queryOp1.Query, queryOp2.Query):
-		return false
-	default:
-		return true
-	}
 }

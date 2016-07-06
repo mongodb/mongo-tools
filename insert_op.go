@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -90,20 +89,4 @@ func (op *InsertOp) Execute(session *mgo.Session) (replyContainer, error) {
 	}
 
 	return replyContainer{}, nil
-}
-
-func (insertOp1 *InsertOp) Equals(otherOp Op) bool {
-	insertOp2, ok := otherOp.(*InsertOp)
-	if !ok {
-		return false
-	}
-	switch {
-	case insertOp1.Collection != insertOp2.Collection:
-		return false
-	case reflect.DeepEqual(insertOp1.Documents, insertOp2.Documents):
-		return false
-	case insertOp1.Flags != insertOp2.Flags:
-		return false
-	}
-	return true
 }

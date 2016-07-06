@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
@@ -93,20 +92,4 @@ func (op *DeleteOp) Execute(session *mgo.Session) (replyContainer, error) {
 		return replyContainer, err
 	}
 	return replyContainer, nil
-}
-
-func (deleteOp1 *DeleteOp) Equals(otherOp Op) bool {
-	deleteOp2, ok := otherOp.(*DeleteOp)
-	if !ok {
-		return false
-	}
-	switch {
-	case deleteOp1.Collection != deleteOp2.Collection:
-		return false
-	case !reflect.DeepEqual(deleteOp1.Selector, deleteOp2.Selector):
-		return false
-	case deleteOp1.Flags != deleteOp2.Flags:
-		return false
-	}
-	return true
 }

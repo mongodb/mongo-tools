@@ -200,6 +200,3 @@ func (op *CommandOp) Execute(session *mgo.Session) (replyContainer, error) {
 	return replyContainer, nil
 
 }
-func (commandOp1 *CommandOp) Equals(otherOp Op) bool {
-	return false
-}

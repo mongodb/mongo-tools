@@ -79,18 +79,3 @@ func (op *GetMoreOp) Execute(session *mgo.Session) (replyContainer, error) {
 	replyContainer.Latency = after.Sub(before)
 	return replyContainer, nil
 }
-
-func (getMoreOp1 *GetMoreOp) Equals(otherOp Op) bool {
-	getMoreOp2, ok := otherOp.(*GetMoreOp)
-	if !ok {
-		return false
-	}
-	switch {
-	case getMoreOp1.Collection != getMoreOp2.Collection:
-		return false
-	case getMoreOp1.Limit != getMoreOp2.Limit:
-		return false
-	}
-	//currently doesn't compare cursorID's, not totally sure what to do about that just yet
-	return true
-}

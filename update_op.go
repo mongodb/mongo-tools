@@ -6,7 +6,6 @@ import (
 	"github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"io"
-	"reflect"
 )
 
 // OpUpdate is used to update a document in a collection.
@@ -111,22 +110,4 @@ func (op *UpdateOp) Execute(session *mgo.Session) (replyContainer, error) {
 		return replyContainer{}, err
 	}
 	return replyContainer{}, nil
-}
-
-func (updateOp1 *UpdateOp) Equals(otherOp Op) bool {
-	updateOp2, ok := otherOp.(*UpdateOp)
-	if !ok {
-		return false
-	}
-	switch {
-	case updateOp1.Collection != updateOp2.Collection:
-		return false
-	case reflect.DeepEqual(updateOp1.Selector, updateOp2.Selector):
-		return false
-	case reflect.DeepEqual(updateOp1.Update, updateOp2.Update):
-		return false
-	case updateOp1.Flags != updateOp2.Flags:
-		return false
-	}
-	return true
 }
