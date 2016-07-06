@@ -27,6 +27,8 @@ func TestBasicProgressBar(t *testing.T) {
 
 		Convey("running it while incrementing its counter", func() {
 			pbar.Start()
+			// TODO make this test non-racy and reliable
+			time.Sleep(10 * time.Millisecond)
 			// iterate though each value 1-10, sleeping to make sure it is written
 			for localCounter := 0; localCounter < 10; localCounter++ {
 				watching.Inc(1)
