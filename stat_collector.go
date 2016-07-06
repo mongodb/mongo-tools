@@ -342,51 +342,40 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 		return
 	}
 
-	var payload bytes.Buffer
-	if stat.RequestData != nil {
-		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
-
+	getPayload := func(data interface{}, payload *bytes.Buffer, wg *sync.WaitGroup) {
+		jsonData, err := ConvertBSONValueToJSON(data)
 		if err != nil {
 			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
 		}
-		stat.RequestData = reqD
 		payload.WriteString(green("Request:"))
-		jsonBytes, err := json.Marshal(stat.RequestData)
+		jsonBytes, err := json.Marshal(jsonData)
 		if err != nil {
 			payload.WriteString(err.Error())
+		} else if dsr.truncate {
+			payload.Write(AbbreviateBytes(jsonBytes, TruncateLength))
 		} else {
-			if dsr.truncate {
-				payload.WriteString(Abbreviate(string(jsonBytes), TruncateLength))
-			} else {
-				payload.Write(jsonBytes)
-			}
-			payload.WriteString(" ")
+			payload.Write(jsonBytes)
 		}
+		payload.WriteString(" ")
+		wg.Done()
+	}
+
+	var reqBuf *bytes.Buffer
+	var resBuf *bytes.Buffer
+	wg := new(sync.WaitGroup)
+	if stat.RequestData != nil {
+		reqBuf = new(bytes.Buffer)
+		wg.Add(1)
+		go getPayload(stat.RequestData, reqBuf, wg)
 	}
 	if stat.ReplyData != nil {
-		repD, err := ConvertBSONValueToJSON(stat.ReplyData)
-		if err != nil {
-			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
-		}
-		stat.ReplyData = repD
-		stat.RequestData = repD
-		payload.WriteString(green("Reply:"))
-		jsonBytes, err := json.Marshal(stat.ReplyData)
-		if err != nil {
-			payload.WriteString(err.Error())
-		} else {
-			if dsr.truncate {
-				payload.WriteString(Abbreviate(string(jsonBytes), TruncateLength))
-			} else {
-				payload.Write(jsonBytes)
-			}
-			payload.WriteString(" ")
-		}
+		resBuf = new(bytes.Buffer)
+		wg.Add(1)
+		go getPayload(stat.ReplyData, resBuf, wg)
 	}
 
-	var output bytes.Buffer
-
-	var timestamp *time.Time = stat.Seen
+	output := new(bytes.Buffer)
+	timestamp := stat.Seen
 	if stat.PlayedAt != nil {
 		timestamp = stat.PlayedAt
 	}
@@ -409,7 +398,13 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	}
 
 	output.WriteString(" ")
-	payload.WriteTo(&output)
+	wg.Wait()
+	if reqBuf != nil {
+		output.ReadFrom(reqBuf)
+	}
+	if resBuf != nil {
+		output.ReadFrom(resBuf)
+	}
 
 	output.WriteString("\n")
 

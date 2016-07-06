@@ -1,6 +1,7 @@
 package mongotape
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -51,6 +52,20 @@ func GetCursorId(replyContainer replyContainer) (int64, error) {
 		}
 	}
 	return doc.Cursor.Id, nil
+}
+
+// AbbreviateBytes returns a reduced byte array of the given one if it's
+// longer than maxLen by showing only a prefix and suffix of size windowLen
+// with an ellipsis in the middle.
+func AbbreviateBytes(data []byte, maxLen int) []byte {
+	if len(data) <= maxLen {
+		return data
+	}
+	windowLen := (maxLen - 3) / 2
+	o := bytes.NewBuffer(data[0:windowLen])
+	o.WriteString("...")
+	o.Write(data[len(data)-windowLen:])
+	return o.Bytes()
 }
 
 // Abbreviate returns a reduced copy of the given string if it's longer than maxLen by
