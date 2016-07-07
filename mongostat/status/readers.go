@@ -2,8 +2,8 @@ package status
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/text"
@@ -129,8 +129,11 @@ func getStorageEngine(stat *ServerStatus) string {
 	return val
 }
 
+// mongosProcessRE matches mongos not followed by any slashes before next whitespace
+var mongosProcessRE = regexp.MustCompile(`^.*\bmongos\b[^\\\/]*(\s.*)?$`)
+
 func IsMongos(stat *ServerStatus) bool {
-	return stat.ShardCursorType != nil || strings.HasPrefix(stat.Process, "mongos")
+	return stat.ShardCursorType != nil || mongosProcessRE.MatchString(stat.Process)
 }
 
 func HasLocks(stat *ServerStatus) bool {

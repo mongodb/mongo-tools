@@ -95,3 +95,28 @@ func TestStatLine(t *testing.T) {
 		So(statsLine.Fields["conn"], ShouldEqual, "5")
 	})
 }
+
+func TestIsMongos(t *testing.T) {
+	testutil.VerifyTestType(t, testutil.UnitTestType)
+
+	runCheck := func(process string) bool {
+		return status.IsMongos(&status.ServerStatus{
+			Process: process,
+		})
+	}
+
+	Convey("should accept reasonable process names", t, func() {
+		So(runCheck("/mongos-prod.exe"), ShouldBeTrue)
+		So(runCheck("/mongos.exe"), ShouldBeTrue)
+		So(runCheck("mongos"), ShouldBeTrue)
+		So(runCheck("mongodb/bin/mongos"), ShouldBeTrue)
+		So(runCheck(`C:\data\mci\48de1dc1ec3c2be5dcd6a53739578de4\src\mongos.exe`), ShouldBeTrue)
+	})
+	Convey("should accept reasonable process names", t, func() {
+		So(runCheck("mongosx/mongod"), ShouldBeFalse)
+		So(runCheck("mongostat"), ShouldBeFalse)
+		So(runCheck("mongos_stuff/mongod"), ShouldBeFalse)
+		So(runCheck("mongos.stuff/mongod"), ShouldBeFalse)
+		So(runCheck("mongodb/bin/mongod"), ShouldBeFalse)
+	})
+}
