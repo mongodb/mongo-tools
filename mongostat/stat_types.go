@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/text"
 	"github.com/mongodb/mongo-tools/common/util"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 )
 
-const (
-	MongosProcess = "mongos"
-)
+// mongosProcessRE matches mongos not followed by any slashes before next whitespace
+var mongosProcessRE = regexp.MustCompile(`^.*\bmongos\b[^\\\/]*(\s.*)?$`)
 
 // Flags to determine cases when to activate/deactivate columns for output.
 const (
@@ -464,7 +464,7 @@ func (jlf *JSONLineFormatter) FormatLines(lines []StatLine, index int, discover 
 		lineJson["flushes"] = fmt.Sprintf("%v", line.Flushes)
 		lineJson["qr|qw"] = fmt.Sprintf("%v|%v", line.QueuedReaders, line.QueuedWriters)
 		lineJson["ar|aw"] = fmt.Sprintf("%v|%v", line.ActiveReaders, line.ActiveWriters)
-				
+
 		// add mmapv1-specific fields
 		if lineFlags&MMAPOnly > 0 {
 			mappedVal := ""      // empty for mongos
@@ -785,7 +785,7 @@ func NewStatLine(oldStat, newStat ServerStatus, key string, all bool, sampleSecs
 
 	returnVal.Time = newStat.SampleTime
 	returnVal.IsMongos =
-		(newStat.ShardCursorType != nil || strings.HasPrefix(newStat.Process, MongosProcess))
+		(newStat.ShardCursorType != nil || mongosProcessRE.MatchString(newStat.Process))
 
 	if util.IsTruthy(oldStat.Mem.Supported) {
 		if !returnVal.IsMongos {
