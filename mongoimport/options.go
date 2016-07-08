@@ -66,6 +66,11 @@ type IngestOptions struct {
 
 	// Indicates that the server should bypass document validation on import.
 	BypassDocumentValidation bool `long:"bypassDocumentValidation" description:"bypass document validation"`
+
+	// Specifies the number of threads to use in processing data read from the input source
+	NumDecodingWorkers int `long:"numDecodingWorkers" default:"0" hidden:"true"`
+
+	BulkBufferSize int `long:"batchSize" default:"1000" hidden:"true"`
 }
 
 // Name returns a description of the IngestOptions struct.

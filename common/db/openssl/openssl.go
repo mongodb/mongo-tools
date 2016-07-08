@@ -46,10 +46,7 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 		return conn, err
 	}
 
-	timeout := time.Duration(options.DefaultDialTimeoutSeconds) * time.Second
-	if opts.HiddenOptions != nil && opts.HiddenOptions.DialTimeoutSeconds != nil {
-		timeout = time.Duration(*opts.HiddenOptions.DialTimeoutSeconds) * time.Second
-	}
+	timeout := time.Duration(opts.Timeout) * time.Second
 
 	// set up the dial info
 	self.dialInfo = &mgo.DialInfo{

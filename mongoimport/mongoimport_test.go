@@ -52,6 +52,7 @@ func checkOnlyHasDocuments(sessionProvider db.SessionProvider, expectedDocuments
 // getBasicToolOptions returns a test helper to instantiate the session provider
 // for calls to StreamDocument
 func getBasicToolOptions() *options.ToolOptions {
+	general := &options.General{}
 	ssl := testutil.GetSSLOptions()
 	auth := testutil.GetAuthOptions()
 	namespace := &options.Namespace{
@@ -63,11 +64,11 @@ func getBasicToolOptions() *options.ToolOptions {
 		Port: db.DefaultTestPort,
 	}
 	return &options.ToolOptions{
-		SSL:           &ssl,
-		Namespace:     namespace,
-		Connection:    connection,
-		HiddenOptions: &options.HiddenOptions{},
-		Auth:          &auth,
+		General:    general,
+		SSL:        &ssl,
+		Namespace:  namespace,
+		Connection: connection,
+		Auth:       &auth,
 	}
 }
 

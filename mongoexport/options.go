@@ -22,6 +22,9 @@ type OutputFormatOptions struct {
 	// Type selects the type of output to export as (json or csv).
 	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"the output format, either json or csv (defaults to 'json')"`
 
+	// Deprecated: allow legacy --csv option in place of --type=csv
+	CSVOutputType bool `long:"csv" default:"false" hidden:"true"`
+
 	// OutputFile specifies an output file path.
 	OutputFile string `long:"out" value-name:"<filename>" short:"o" description:"output file; if not specified, stdout is used"`
 

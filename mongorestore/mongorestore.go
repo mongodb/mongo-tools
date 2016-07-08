@@ -37,9 +37,6 @@ type MongoRestore struct {
 
 	TargetDirectory string
 
-	tempUsersCol string
-	tempRolesCol string
-
 	// other internal state
 	manager         *intents.Manager
 	safety          *mgo.Safe
@@ -144,18 +141,6 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	restore.safety, err = db.BuildWriteConcern(restore.OutputOptions.WriteConcern, nodeType)
 	if err != nil {
 		return fmt.Errorf("error parsing write concern: %v", err)
-	}
-
-	// handle the hidden auth collection flags
-	if restore.ToolOptions.HiddenOptions.TempUsersColl == nil {
-		restore.tempUsersCol = "tempusers"
-	} else {
-		restore.tempUsersCol = *restore.ToolOptions.HiddenOptions.TempUsersColl
-	}
-	if restore.ToolOptions.HiddenOptions.TempRolesColl == nil {
-		restore.tempRolesCol = "temproles"
-	} else {
-		restore.tempRolesCol = *restore.ToolOptions.HiddenOptions.TempRolesColl
 	}
 
 	// deprecations with --nsInclude --nsExclude

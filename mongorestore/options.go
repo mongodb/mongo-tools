@@ -40,6 +40,9 @@ type OutputOptions struct {
 	NumInsertionWorkers      int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection (1 by default)" default:"1" default-mask:"-"`
 	StopOnError              bool   `long:"stopOnError" description:"stop restoring if an error is encountered on insert (off by default)"`
 	BypassDocumentValidation bool   `long:"bypassDocumentValidation" description:"bypass document validation"`
+	TempUsersColl            string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
+	TempRolesColl            string `long:"tempRolesColl" default:"temproles" hidden:"true"`
+	BulkBufferSize           int    `long:"batchSize" default:"1000" hidden:"true"`
 }
 
 // Name returns a human-readable group name for output options.

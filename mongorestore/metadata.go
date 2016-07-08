@@ -288,10 +288,10 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 	userTargetDB := ""
 
 	if users != nil {
-		args = append(args, loopArg{users, "users", "tempUsersCollection", restore.tempUsersCol})
+		args = append(args, loopArg{users, "users", "tempUsersCollection", restore.OutputOptions.TempUsersColl})
 	}
 	if roles != nil {
-		args = append(args, loopArg{roles, "roles", "tempRolesCollection", restore.tempRolesCol})
+		args = append(args, loopArg{roles, "roles", "tempRolesCollection", restore.OutputOptions.TempRolesColl})
 	}
 
 	session, err := restore.SessionProvider.GetSession()

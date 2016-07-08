@@ -252,7 +252,11 @@ func (cluster *AsyncClusterMonitor) Monitor(maxRows int, done chan error, sleep 
 func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, error) {
 	optsCopy := opts
 	host, port := parseHostPort(fullHost)
-	optsCopy.Connection = &options.Connection{Host: host, Port: port}
+	optsCopy.Connection = &options.Connection{
+		Host:    host,
+		Port:    port,
+		Timeout: opts.Timeout,
+	}
 	optsCopy.Direct = true
 	sessionProvider, err := db.NewSessionProvider(optsCopy)
 	if err != nil {

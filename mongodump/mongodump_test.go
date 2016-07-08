@@ -46,12 +46,11 @@ func simpleMongoDumpInstance() *MongoDump {
 		Port: testPort,
 	}
 	toolOptions := &options.ToolOptions{
-		SSL:           &ssl,
-		Namespace:     namespace,
-		Connection:    connection,
-		Auth:          &auth,
-		HiddenOptions: &options.HiddenOptions{},
-		Verbosity:     &options.Verbosity{},
+		SSL:        &ssl,
+		Namespace:  namespace,
+		Connection: connection,
+		Auth:       &auth,
+		Verbosity:  &options.Verbosity{},
 	}
 	outputOptions := &OutputOptions{
 		NumParallelCollections: 1,

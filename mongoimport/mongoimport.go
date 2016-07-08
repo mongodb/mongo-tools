@@ -170,10 +170,10 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 	}
 
 	// set the number of decoding workers to use for imports
-	if imp.ToolOptions.NumDecodingWorkers <= 0 {
-		imp.ToolOptions.NumDecodingWorkers = imp.ToolOptions.MaxProcs
+	if imp.IngestOptions.NumDecodingWorkers <= 0 {
+		imp.IngestOptions.NumDecodingWorkers = imp.ToolOptions.MaxProcs
 	}
-	log.Logvf(log.DebugLow, "using %v decoding workers", imp.ToolOptions.NumDecodingWorkers)
+	log.Logvf(log.DebugLow, "using %v decoding workers", imp.IngestOptions.NumDecodingWorkers)
 
 	// set the number of insertion workers to use for imports
 	if imp.IngestOptions.NumInsertionWorkers <= 0 {
@@ -188,8 +188,8 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 	}
 
 	// get the number of documents per batch
-	if imp.ToolOptions.BulkBufferSize <= 0 || imp.ToolOptions.BulkBufferSize > 1000 {
-		imp.ToolOptions.BulkBufferSize = 1000
+	if imp.IngestOptions.BulkBufferSize <= 0 || imp.IngestOptions.BulkBufferSize > 1000 {
+		imp.IngestOptions.BulkBufferSize = 1000
 	}
 
 	// ensure no more than one positional argument is supplied
@@ -443,7 +443,7 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	if imp.IngestOptions.Upsert {
 		inserter = imp.newUpserter(collection)
 	} else {
-		inserter = db.NewBufferedBulkInserter(collection, imp.ToolOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
+		inserter = db.NewBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
 		if !imp.IngestOptions.MaintainInsertionOrder {
 			inserter.(*db.BufferedBulkInserter).Unordered()
 		}
@@ -567,9 +567,9 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
 	if imp.InputOptions.Type == CSV {
-		return NewCSVInputReader(colSpecs, in, out, imp.ToolOptions.NumDecodingWorkers, ignoreBlanks), nil
+		return NewCSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
 	} else if imp.InputOptions.Type == TSV {
-		return NewTSVInputReader(colSpecs, in, out, imp.ToolOptions.NumDecodingWorkers, ignoreBlanks), nil
+		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
 	}
-	return NewJSONInputReader(imp.InputOptions.JSONArray, in, imp.ToolOptions.NumDecodingWorkers), nil
+	return NewJSONInputReader(imp.InputOptions.JSONArray, in, imp.IngestOptions.NumDecodingWorkers), nil
 }

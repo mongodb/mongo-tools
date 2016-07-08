@@ -14,8 +14,6 @@ import (
 	"strings"
 )
 
-const DefaultDialTimeoutSeconds = 3
-
 // Gitspec that the tool was built with. Needs to be set using -ldflags
 var (
 	VersionStr = "not-built-with-ldflags"
@@ -40,7 +38,6 @@ type ToolOptions struct {
 	*Auth
 	*Kerberos
 	*Namespace
-	*HiddenOptions
 
 	// Force direct connection to the server and disable the
 	// drivers automatic repl set discovery logic.
@@ -56,21 +53,6 @@ type ToolOptions struct {
 	parser *flags.Parser
 }
 
-type HiddenOptions struct {
-	MaxProcs       int
-	BulkBufferSize int
-
-	// Specifies the number of threads to use in processing data read from the input source
-	NumDecodingWorkers int
-
-	// Deprecated flag for csv writing in mongoexport
-	CSVOutputType bool
-
-	TempUsersColl      *string
-	TempRolesColl      *string
-	DialTimeoutSeconds *int
-}
-
 type Namespace struct {
 	// Specified database and collection
 	DB         string `short:"d" long:"db" value-name:"<database-name>" description:"database to use"`
@@ -81,6 +63,8 @@ type Namespace struct {
 type General struct {
 	Help    bool `long:"help" description:"print usage"`
 	Version bool `long:"version" description:"print the tool version and exit"`
+
+	MaxProcs int `long:"numThreads" default:"0" hidden:"true"`
 }
 
 // Struct holding verbosity-related options
@@ -102,6 +86,8 @@ func (v Verbosity) IsQuiet() bool {
 type Connection struct {
 	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
 	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
+
+	Timeout int `long:"dialTimeout" default:"3" hidden:"true" description:"dial timeout in seconds"`
 }
 
 // Struct holding ssl-related options
@@ -151,24 +137,17 @@ func parseVal(val string) int {
 
 // Ask for a new instance of tool options
 func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
-	var timeout = DefaultDialTimeoutSeconds
-	hiddenOpts := &HiddenOptions{
-		BulkBufferSize:     1000,
-		DialTimeoutSeconds: &timeout,
-	}
-
 	opts := &ToolOptions{
 		AppName:    appName,
 		VersionStr: VersionStr,
 
-		General:       &General{},
-		Verbosity:     &Verbosity{},
-		Connection:    &Connection{},
-		SSL:           &SSL{},
-		Auth:          &Auth{},
-		Namespace:     &Namespace{},
-		HiddenOptions: hiddenOpts,
-		Kerberos:      &Kerberos{},
+		General:    &General{},
+		Verbosity:  &Verbosity{},
+		Connection: &Connection{},
+		SSL:        &SSL{},
+		Auth:       &Auth{},
+		Namespace:  &Namespace{},
+		Kerberos:   &Kerberos{},
 		parser: flags.NewNamedParser(
 			fmt.Sprintf("%v %v", appName, usageStr), flags.None),
 	}
@@ -189,7 +168,7 @@ func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 		}
 	}
 
-	opts.parser.UnknownOptionHandler = hiddenOpts.parseHiddenOption
+	opts.parser.UnknownOptionHandler = opts.handleUnknownOption
 
 	if _, err := opts.parser.AddGroup("general options", "", opts.General); err != nil {
 		panic(fmt.Errorf("couldn't register general options: %v", err))
@@ -295,66 +274,13 @@ func (o *ToolOptions) Parse() ([]string, error) {
 	return o.parser.Parse()
 }
 
-func (opts *HiddenOptions) parseHiddenOption(option string, arg flags.SplitArgument, args []string) ([]string, error) {
+func (opts *ToolOptions) handleUnknownOption(option string, arg flags.SplitArgument, args []string) ([]string, error) {
 	if option == "dbpath" || option == "directoryperdb" || option == "journal" {
 		return args, fmt.Errorf("--dbpath and related flags are not supported in 3.0 tools.\n" +
 			"See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information")
 	}
 
-	if option == "csv" {
-		opts.CSVOutputType = true
-		return args, nil
-	}
-	if option == "tempUsersColl" {
-		opts.TempUsersColl = new(string)
-		value, consumeVal, err := getStringArg(arg, args)
-		if err != nil {
-			return args, fmt.Errorf("couldn't parse flag tempUsersColl: %s", err)
-		}
-		*opts.TempUsersColl = value
-		if consumeVal {
-			return args[1:], nil
-		}
-		return args, nil
-	}
-	if option == "tempRolesColl" {
-		opts.TempRolesColl = new(string)
-		value, consumeVal, err := getStringArg(arg, args)
-		if err != nil {
-			return args, fmt.Errorf("couldn't parse flag tempRolesColl: %s", err)
-		}
-		*opts.TempRolesColl = value
-		if consumeVal {
-			return args[1:], nil
-		}
-		return args, nil
-	}
-
-	var err error
-	optionValue, consumeVal, err := getIntArg(arg, args)
-	switch option {
-	case "numThreads":
-		opts.MaxProcs = optionValue
-	case "batchSize":
-		opts.BulkBufferSize = optionValue
-	case "numDecodingWorkers":
-		opts.NumDecodingWorkers = optionValue
-	case "dialTimeout":
-		if optionValue >= 0 {
-			opts.DialTimeoutSeconds = &optionValue
-		} else {
-			return args, fmt.Errorf("invalid negative value for --dialTimeout")
-		}
-	default:
-		return args, fmt.Errorf(`unknown option "%v"`, option)
-	}
-	if err != nil {
-		return args, fmt.Errorf(`error parsing value for "%v": %v`, option, err)
-	}
-	if consumeVal {
-		return args[1:], nil
-	}
-	return args, nil
+	return args, fmt.Errorf(`unknown option "%v"`, option)
 }
 
 // getIntArg returns 3 args: the parsed int value, a bool set to true if a value

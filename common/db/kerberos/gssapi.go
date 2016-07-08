@@ -26,10 +26,7 @@ func (self *KerberosDBConnector) Configure(opts options.ToolOptions) error {
 	// create the addresses to be used to connect
 	connectionAddrs := util.CreateConnectionAddrs(opts.Host, opts.Port)
 
-	timeout := time.Duration(options.DefaultDialTimeoutSeconds) * time.Second
-	if opts.HiddenOptions != nil && opts.HiddenOptions.DialTimeoutSeconds != nil {
-		timeout = time.Duration(*opts.HiddenOptions.DialTimeoutSeconds) * time.Second
-	}
+	timeout := time.Duration(opts.Timeout) * time.Second
 
 	// set up the dial info
 	self.dialInfo = &mgo.DialInfo{

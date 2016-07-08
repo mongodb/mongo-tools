@@ -35,9 +35,8 @@ func TestMongorestore(t *testing.T) {
 			Host: testServer,
 			Port: testPort,
 		},
-		Auth:          &auth,
-		SSL:           &ssl,
-		HiddenOptions: &options.HiddenOptions{},
+		Auth: &auth,
+		SSL:  &ssl,
 	}
 	inputOptions := &InputOptions{}
 	outputOptions := &OutputOptions{

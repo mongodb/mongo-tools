@@ -266,7 +266,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 			coll := collection.With(s)
 			bulk := db.NewBufferedBulkInserter(
-				coll, restore.ToolOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
+				coll, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
 			for rawDoc := range docChan {
 				if restore.objCheck {
 					err := bson.Unmarshal(rawDoc.Data, &bson.D{})
