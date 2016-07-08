@@ -73,8 +73,8 @@ func TestMongorestore(t *testing.T) {
 
 		Convey("and an target of '-' restores from standard input", func() {
 			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
-			toolOptions.Namespace.Collection = "c1"
-			toolOptions.Namespace.DB = "db1"
+			restore.NSOptions.Collection = "c1"
+			restore.NSOptions.DB = "db1"
 			So(err, ShouldBeNil)
 			restore.stdin = bsonFile
 			restore.TargetDirectory = "-"
