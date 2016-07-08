@@ -99,6 +99,7 @@ mongo_tools_variables:
       - name: log
       - name: progress
       - name: qa-tests
+      - name: qa-tests-15k
       - name: qa-tests-unstable
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
@@ -113,6 +114,7 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy28
       - name: qa-tests
+      - name: qa-tests-15k
       - name: qa-tests-unstable
     ubuntu1204_enterprise_task_list: &ubuntu1204_enterprise_tasks
       - name: bsonutil
@@ -127,6 +129,7 @@ mongo_tools_variables:
       - name: log
       - name: progress
       - name: qa-tests
+      - name: qa-tests-15k
       - name: text
       - name: util
     ubuntu1204_race_task_list: &ubuntu1204_race_tasks
@@ -1076,6 +1079,40 @@ tasks:
           chmod 400 jstests/libs/key*
           PATH=$PATH:/data/multiversion python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 top oplog dump files restore stat bson export import ssl unstable --buildlogger-url https://logkeeper.mongodb.org
 
+
+- name: qa-tests-15k
+  depends_on:
+  - name: dist
+  commands:
+    - command: git.get_project
+      params:
+        directory: src
+    - command: git.apply_patch
+      params:
+        directory: src
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_url: "${mongo32_url}"
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src
+        script: |
+          set -e
+          mv ./mongodb/mongod${extension} .
+          mv ./mongodb/mongo${extension} .
+          mv test/qa-tests/* .
+          chmod +x mongo*
+          chmod 400 jstests/libs/key*
+          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 restore-15k --buildlogger-url https://logkeeper.mongodb.org
 
 - name: qa-tests
   depends_on:

@@ -919,6 +919,7 @@ def report():
 
 suiteGlobalConfig = {   "files": ("files/*.js", False),
                         "restore": ("restore/*.js", False),
+                        "restore-15k": ("restore-15k/*.js", False),
                         "stat": ("stat/*.js", False),
                         "top": ("top/*.js", False),
                         "bson": ("bson/*.js", False),
