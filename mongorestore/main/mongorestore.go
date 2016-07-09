@@ -30,6 +30,10 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
+	// Allow the db connector to fall back onto the current database when no
+	// auth database is given; the standard -d/-c options go into nsOpts now
+	opts.Namespace = &options.Namespace{DB: nsOpts.DB}
+
 	// print help or version info, if specified
 	if opts.PrintHelp(false) {
 		return
