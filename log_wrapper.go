@@ -32,8 +32,9 @@ func init() {
 		toolDebugLogger = &logWrapper{logger, 0}
 	}
 }
-func (lw *logWrapper) setVerbosity(verbose []bool) {
-	lw.verbosity = len(verbose)
+
+func (lw *logWrapper) setVerbosity(verbosity int) {
+	lw.verbosity = verbosity
 }
 
 func (lw *logWrapper) Logf(minVerb int, format string, a ...interface{}) {
