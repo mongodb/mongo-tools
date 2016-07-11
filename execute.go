@@ -53,7 +53,7 @@ func NewExecutionContext(statColl *StatCollector) *ExecutionContext {
 // The index is based on the src/dest of the recordedOp which should be the op
 // that this ReplyOp is a reply to.
 func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.SrcEndpoint, recordedOp.DstEndpoint, recordedOp.Header.RequestID, recordedOp.Generation)
+	key := cacheKey(recordedOp, false)
 	toolDebugLogger.Logf(DebugHigh, "Adding live reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromWire)
 }
@@ -63,7 +63,7 @@ func (context *ExecutionContext) AddFromWire(reply *mgo.ReplyOp, recordedOp *Rec
 // The index is based on the reversed src/dest of the recordedOp which should
 // the RecordedOp that this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply *mgo.ReplyOp, recordedOp *RecordedOp) {
-	key := fmt.Sprintf("%v:%v:%d:%v", recordedOp.DstEndpoint, recordedOp.SrcEndpoint, recordedOp.Header.ResponseTo, recordedOp.Generation)
+	key := cacheKey(recordedOp, true)
 	toolDebugLogger.Logf(DebugHigh, "Adding recorded reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromFile)
 }

@@ -44,3 +44,8 @@ func (o *orderedOps) Pop() interface{} {
 func (o *orderedOps) Push(op interface{}) {
 	*o = append(*o, op.(RecordedOp))
 }
+
+type opKey struct {
+	src, dst string
+	id       int32
+}

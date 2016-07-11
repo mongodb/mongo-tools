@@ -27,13 +27,15 @@ type UnresolvedOpInfo struct {
 // AddUnresolved takes an operation that is supposed to receive a reply and keeps it around so that its latency can be calculated
 // using the incoming reply.
 func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, requestStat *OpStat) {
-	key := fmt.Sprintf("%v:%v:%d", op.SrcEndpoint, op.DstEndpoint, op.Header.RequestID)
-	unresolvedOp := UnresolvedOpInfo{
+	gen.UnresolvedOps[opKey{
+		src: op.SrcEndpoint,
+		dst: op.DstEndpoint,
+		id:  op.Header.RequestID,
+	}] = UnresolvedOpInfo{
 		Stat:     requestStat,
 		Op:       op,
 		ParsedOp: parsedOp,
 	}
-	gen.UnresolvedOps[key] = unresolvedOp
 }
 
 // ResolveOp generates an OpStat from the pairing of a request with its reply. When running in paired mode
@@ -46,7 +48,11 @@ func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, re
 func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, parsedReply *ReplyOp, replyStat *OpStat) *OpStat {
 	var result *OpStat = &OpStat{}
 
-	key := fmt.Sprintf("%v:%v:%d", recordedReply.DstEndpoint, recordedReply.SrcEndpoint, recordedReply.Header.ResponseTo)
+	key := opKey{
+		src: recordedReply.DstEndpoint,
+		dst: recordedReply.SrcEndpoint,
+		id:  recordedReply.Header.ResponseTo,
+	}
 	originalOpInfo, foundOriginal := gen.UnresolvedOps[key]
 	if !foundOriginal {
 		return replyStat

@@ -122,6 +122,21 @@ func ReadDocument(r io.Reader) ([]byte, error) {
 	return doc, nil
 }
 
+func cacheKey(op *RecordedOp, response bool) string {
+	var src, dst string
+	var id int32
+	if !response {
+		src = op.SrcEndpoint
+		dst = op.DstEndpoint
+		id = op.Header.RequestID
+	} else {
+		src = op.DstEndpoint
+		dst = op.SrcEndpoint
+		id = op.Header.ResponseTo
+	}
+	return fmt.Sprintf("%v:%v:%d:%v", src, dst, id, op.Generation)
+}
+
 // readCStringFromReader reads a null turminated string from an io.Reader.
 func readCStringFromReader(r io.Reader) ([]byte, error) {
 	var b []byte

@@ -133,7 +133,7 @@ func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (
 	} else {
 		statGen = &RegularStatGenerator{
 			PairedMode:    isPairedMode,
-			UnresolvedOps: make(map[string]UnresolvedOpInfo, 1024),
+			UnresolvedOps: make(map[opKey]UnresolvedOpInfo, 1024),
 		}
 	}
 
@@ -438,7 +438,7 @@ type ComparativeStatGenerator struct {
 
 type RegularStatGenerator struct {
 	PairedMode    bool
-	UnresolvedOps map[string]UnresolvedOpInfo
+	UnresolvedOps map[opKey]UnresolvedOpInfo
 }
 
 func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) *OpStat {
