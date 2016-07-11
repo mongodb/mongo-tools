@@ -56,6 +56,7 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 	h := NewPacketHandler(pcapHandle)
 	h.Verbose = userInfoLogger.isInVerbosity(DebugLow)
 
+	toolDebugLogger.Logf(Info, "Created packet buffer size %d", cfg.PacketBufSize)
 	m := NewMongoOpStream(cfg.PacketBufSize)
 	return &packetHandlerContext{h, m, pcapHandle}, nil
 }
@@ -88,6 +89,10 @@ func (record *RecordCommand) ValidateParams(args []string) error {
 		return fmt.Errorf("unknown argument: %s", args[0])
 	case record.PcapFile != "" && record.NetworkInterface != "":
 		return fmt.Errorf("must only specify an interface or a pcap file")
+	}
+	if record.OpStreamSettings.PacketBufSize == 0 {
+		// default heap size
+		record.OpStreamSettings.PacketBufSize = 1000
 	}
 	return nil
 }

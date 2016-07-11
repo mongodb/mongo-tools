@@ -159,5 +159,15 @@ func (monitor *MonitorCommand) ValidateParams(args []string) error {
 	case numInputTypes > 1:
 		return fmt.Errorf("must not specify more than one input")
 	}
+
+	if monitor.OpStreamSettings.PacketBufSize == 0 {
+		// default heap size
+		if monitor.OpStreamSettings.NetworkInterface != "" {
+			monitor.OpStreamSettings.PacketBufSize = 1
+		} else {
+			monitor.OpStreamSettings.PacketBufSize = 1000
+		}
+	}
+
 	return nil
 }
