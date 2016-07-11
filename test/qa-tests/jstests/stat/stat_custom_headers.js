@@ -1,13 +1,11 @@
 (function() {
-
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
   load("jstests/libs/mongostat.js");
 
-  baseName = "stat_custom_headers";
-
-  var port;
-  port = allocatePort();
-  startMongod("--nohttpinterface", "--bind_ip", "127.0.0.1",
-      "--port", port, "--dbpath", MongoRunner.dataPath + baseName + port);
+  var toolTest = getToolTest("stat_custom_headers");
+  var port = toolTest.port;
 
   var x, rows;
   x = runMongoProgram("mongostat", "--port", port,
@@ -80,4 +78,6 @@
       "mem.bits didn't yield valid output (should be one of 32 or 64, was '"
       +fields[2]+"')");
   clearRawMongoProgramOutput();
+
+  toolTest.stop();
 }());

@@ -1,31 +1,24 @@
 (function() {
-
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
   load("jstests/libs/mongostat.js");
 
-  port = allocatePorts(1);
-
-  baseName = "stat_header";
-
-  m = startMongod("--port", port[0], "--dbpath", MongoRunner.dataPath + baseName + port[0], "--nohttpinterface", "--bind_ip", "127.0.0.1");
+  var toolTest = getToolTest('stat_header');
 
   clearRawMongoProgramOutput();
+  x = runMongoProgram("mongostat", "--port", toolTest.port, "--rowcount", 1);
+  var match = rawMongoProgramOutput().split("\n").some(function(i) {
+    return i.match(/^sh\d+\| insert/);
+  });
+  assert(match, "normally a header appears");
 
-  x = runMongoProgram("mongostat", "--port", port[0], "--rowcount", 1);
-
+  clearRawMongoProgramOutput();
+  x = runMongoProgram("mongostat", "--port", toolTest.port, "--rowcount", 1, "--noheaders");
   match = rawMongoProgramOutput().split("\n").some(function(i) {
     return i.match(/^sh\d+\| insert/);
   });
+  assert(!match, "--noheaders suppress the header");
 
-  assert.eq(true, match, "normally a header appears");
-
-  clearRawMongoProgramOutput();
-
-  x = runMongoProgram("mongostat", "--port", port[0], "--rowcount", 1, "--noheaders");
-
-  match = rawMongoProgramOutput().split("\n").some(function(i) {
-    return i.match(/^sh.....\| insert/);
-  });
-
-  assert.eq(false, match, "--noheaders suppress the header");
-
+  toolTest.stop();
 }());
