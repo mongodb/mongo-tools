@@ -132,9 +132,13 @@ func main() {
 		cliFlags = line.FlagAlways
 		if statOpts.Discover {
 			cliFlags |= line.FlagDiscover
+			cliFlags |= line.FlagHosts
 		}
 		if statOpts.All {
 			cliFlags |= line.FlagAll
+		}
+		if strings.Contains(opts.Host, ",") {
+			cliFlags |= line.FlagHosts
 		}
 	}
 

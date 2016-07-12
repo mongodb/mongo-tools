@@ -7,6 +7,7 @@ import (
 // Flags to determine cases when to activate/deactivate columns for output.
 const (
 	FlagAlways   = 1 << iota // always activate the column
+	FlagHosts                // only active if we may have multiple hosts
 	FlagDiscover             // only active when mongostat is in discover mode
 	FlagRepl                 // only active if one of the nodes being monitored is in a replset
 	FlagLocks                // only active if node is capable of calculating lock info
@@ -87,7 +88,7 @@ var (
 		Key  string
 		Flag int
 	}{
-		{"host", FlagDiscover},
+		{"host", FlagHosts},
 		{"insert", FlagAlways},
 		{"query", FlagAlways},
 		{"update", FlagAlways},

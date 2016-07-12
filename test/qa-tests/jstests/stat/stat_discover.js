@@ -38,7 +38,11 @@
 
   assert(discoverTest(replSetPorts, rs.liveNodes.slaves[0].host), "--discover against a replset slave sees all members");
 
-  assert(statOutputPortCheck([rs.liveNodes.master.port, rs.liveNodes.slaves[0].port, rs.liveNodes.slaves[1].port], ["mongostat", "--host", "rpls/" + rs.liveNodes.master.host + "," + rs.liveNodes.slaves[0].host + "," + rs.liveNodes.slaves[1].host, "--rowcount", 1]), "replicata set specifiers are correctly used");
+  clearRawMongoProgramOutput();
+  runMongoProgram("mongostat",
+    "--host", "rpls/" + rs.liveNodes.master.host + "," + rs.liveNodes.slaves[0].host + "," + rs.liveNodes.slaves[1].host,
+    "--rowcount", 7);
+  assert(statOutputPortCheck([rs.liveNodes.master.port, rs.liveNodes.slaves[0].port, rs.liveNodes.slaves[1].port]), "replica set specifiers are correctly used");
 
   assert(discoverTest([port], m.host), "--discover against a stand alone-sees just the stand-alone");
 
