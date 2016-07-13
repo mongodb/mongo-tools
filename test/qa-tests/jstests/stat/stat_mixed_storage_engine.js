@@ -1,3 +1,4 @@
+// @tags: [requires_mmap_available]
 (function() {
 
   if (TestData && TestData.storageEngine === 'wiredTiger') {

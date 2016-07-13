@@ -10,62 +10,6 @@ disable_cleanup: true
 
 mongo_tools_variables:
 
-## Common download URLs (merge in as hashes)
-  mongo_download_urls:
-    osx_1010: &mongo_url_osx1010
-      mongo_os: "osx"
-      mongo_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-latest.tgz"
-      mongo32_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.2.8.tgz"
-      mongo30_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.0.7.tgz"
-      mongo26_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.6.5.tgz"
-      mongo24_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.4.12.tgz"
-    solaris: &mongo_url_solaris
-      mongo_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-latest.tgz"
-      mongo32_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.2.8.tgz"
-      mongo30_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.0.7.tgz"
-      mongo26_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-2.6.5.tgz"
-      mongo24_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-2.4.12.tgz"
-    linux_64_bit: &mongo_url_ubuntu1204
-      mongo_os: "ubuntu1204"
-      mongo_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-latest.tgz"
-      mongo32_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-3.2.8.tgz"
-      mongo30_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-3.0.7.tgz"
-      mongo26_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-2.6.5.tgz"
-      mongo24_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-subscription-ubuntu1204-2.4.12.tgz"
-    linux_64_bit_enterprise: &mongo_url_ubuntu1204_enterprise
-      mongo_os: "ubuntu1204"
-      mongo_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-latest.tgz"
-      mongo32_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-3.2.8.tgz"
-      mongo30_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-3.0.7.tgz"
-      mongo26_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-2.6.5.tgz"
-      mongo24_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-subscription-ubuntu1204-2.4.12.tgz"
-    linux_ppc64le_bit_enterprise: &mongo_url_rhel71_ppc64le_enterprise
-      mongo_os: "rhel71"
-      mongo_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-latest.tgz"
-      mongo32_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.2.8.tgz"
-      mongo30_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
-      mongo26_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
-      mongo24_url: "http://downloads.10gen.com/linux/mongodb-linux-ppc64le-enterprise-rhel71-3.3.4.tgz"
-    windows_32_bit: &mongo_url_windows32
-      mongo_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-latest.zip"
-      mongo32_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-3.2.8.zip"
-      mongo30_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-3.0.7.zip"
-      mongo26_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-2.6.5.zip"
-      mongo24_url: "https://fastdl.mongodb.org/win32/mongodb-win32-i386-2.4.12.zip"
-    windows_64_bit: &mongo_url_windows64
-      mongo_os: "windows-64"
-      mongo_url: "https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-latest.zip"
-      mongo32_url: "https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.8.zip"
-      mongo30_url: "https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.0.7.zip"
-      mongo26_url: "https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-2.6.5.zip"
-      mongo24_url: "https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-2.4.12.zip"
-    windows_64_bit_enterprise: &mongo_url_windows64_enterprise
-      mongo_os: "windows-64"
-      mongo_url: "http://downloads.10gen.com/win32/mongodb-win32-x86_64-enterprise-windows-64-latest.zip"
-      mongo32_url: "http://downloads.10gen.com/win32/mongodb-win32-x86_64-enterprise-windows-64-3.2.8.zip"
-      mongo30_url: "http://downloads.10gen.com/win32/mongodb-win32-x86_64-enterprise-windows-64-3.0.7.zip"
-      mongo26_url: "http://downloads.10gen.com/win32/mongodb-win32-x86_64-enterprise-windows-64-2.6.5.zip"
-
 ## List of tests to run on each buildvariant
   mongo_tools_task_lists:
     osx_1010_task_list: &osx_1010_tasks
@@ -98,8 +42,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy28
       - name: legacy28-wt
-      - name: legacy26
-      - name: legacy24
       - name: lint-go
       - name: lint-js
       - name: qa-tests
@@ -125,6 +67,8 @@ mongo_tools_variables:
       - name: integration-auth
       - name: kerberos
       - name: legacy28
+      - name: legacy26
+      - name: legacy24
       - name: qa-tests
       - name: text
       - name: util
@@ -266,10 +210,13 @@ functions:
       working_dir: src
       script: |
         set -o verbose
+        mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
+        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=${mongo_version})
+        echo "Using download URL: $dlurl"
         rm -rf mongodb
         mkdir mongodb
         cd mongodb
-        curl -s ${mongo_url} --output mongodb.tgz
+        curl -s $dlurl --output mongodb.tgz
         ${decompress} mongodb.tgz
         chmod +x ./mongodb-*/bin/*
         mv ./mongodb-*/bin/* .
@@ -280,10 +227,13 @@ functions:
       working_dir: src
       script: |
         set -o verbose
+        mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
+        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=${mongo_version})
+        echo "Using download URL: $dlurl"
         rm -rf temp
         mkdir temp
         cd temp
-        curl -s ${mongo_url} --output mongodb.tgz
+        curl -s $dlurl --output mongodb.tgz
         ${decompress} mongodb.tgz
         chmod +x ./mongodb-*/bin/*
         mv ./mongodb-*/bin/mongo${extension} ../mongodb/
@@ -612,7 +562,7 @@ tasks:
             value: "-test.types=db"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "setup integration test"
@@ -712,7 +662,7 @@ tasks:
             value: "-test.types=${integration_test_args}"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
@@ -741,7 +691,7 @@ tasks:
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
@@ -777,7 +727,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo30_url}"
+        mongo_version: "3.0"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -824,7 +774,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo30_url}"
+        mongo_version: "3.0"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -871,7 +821,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo26_url}"
+        mongo_version: "2.6"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -918,10 +868,10 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo24_url}"
+        mongo_version: "2.4"
     - func: "download & copy shell"
       vars:
-        mongo_url: "${mongo26_url}"
+        mongo_version: "2.6"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -1003,7 +953,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo_url}"
+        mongo_version: "latest"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -1065,7 +1015,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -1126,7 +1076,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "fetch tool"
       vars:
         tool: mongodump
@@ -1165,7 +1115,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "fetch tool"
       vars:
         tool: mongodump
@@ -1204,7 +1154,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_url: "${mongo32_url}"
+        mongo_version: "3.2"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -1364,9 +1314,9 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
-    <<: *mongo_url_osx1010
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "osx"
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
     resmoke_args: --excludeWithAnyTags=requires_many_files
@@ -1377,9 +1327,10 @@ buildvariants:
   run_on:
   - osx-1010
   expansions:
-    <<: *mongo_url_osx1010
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    mongo_os: "osx"
+    mongo_target: "osx-ssl"
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
     edition: ssl
@@ -1395,9 +1346,10 @@ buildvariants:
   run_on:
   - ubuntu1204-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "ubuntu1204"
+    mongo_edition: "targeted"
     build_tags: -tags "ssl"
     arch: "linux/x86_64"
     integration_test_args: integration
@@ -1409,9 +1361,10 @@ buildvariants:
   run_on:
   - ubuntu1204-test
   expansions:
-    <<: *mongo_url_ubuntu1204_enterprise
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    mongo_os: "ubuntu1204"
+    mongo_edition: "enterprise"
     build_tags: -tags "ssl"
     edition: ssl
     arch: "linux/x86_64"
@@ -1426,9 +1379,10 @@ buildvariants:
   run_on:
   - ubuntu1204-test
   expansions:
-    <<: *mongo_url_ubuntu1204_enterprise
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "ubuntu1204"
+    mongo_edition: "enterprise"
     build_tags: -tags "ssl sasl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
@@ -1444,15 +1398,16 @@ buildvariants:
   run_on:
   - rhel71-power8-test
   expansions:
-    <<: *mongo_url_rhel71_ppc64le_enterprise
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "rhel71"
+    mongo_edition: "enterprise"
     # RHEL 7.1 PPC64LE machines kerberos setup does not work for mongo-tools
     #build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)" -tags 'sasl ssl'
     build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
     resmoke_use_ssl: _ssl
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    resmoke_args: --excludeWithAnyTags=requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
+    resmoke_args: --excludeWithAnyTags=requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
@@ -1467,9 +1422,9 @@ buildvariants:
   run_on:
   - solaris
   expansions:
-    <<: *mongo_url_solaris
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "sunos5"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     build_tags: -gccgoflags "-lsocket -lnsl"
     resmoke_args: --excludeWithAnyTags=requires_large_ram -j$(kstat cpu | sort -u | grep -c "^module")
@@ -1483,9 +1438,9 @@ buildvariants:
   run_on:
   - windows-32
   expansions:
-    <<: *mongo_url_windows32
     <<: *mongod_win32_startup_args
     <<: *mongo_default_startup_args
+    mongo_target: "windows_i686"
     extension: .exe
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     resmoke_args: --excludeWithAnyTags=requires_large_ram
@@ -1497,9 +1452,10 @@ buildvariants:
   run_on:
   - windows-64-vs2013-test
   expansions:
-    <<: *mongo_url_windows64
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "windows-64"
+    mongo_target: "windows_x86_64-2008plus"
     resmoke_args: --excludeWithAnyTags=requires_large_ram
     extension: .exe
     arch: "win32/x86_64"
@@ -1512,9 +1468,10 @@ buildvariants:
   run_on:
   - windows-64-vs2013-compile
   expansions:
-    <<: *mongo_url_windows64_enterprise
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    mongo_os: "windows-64"
+    mongo_target: "windows_x86_64-2008plus-ssl"
     build_tags: -tags "ssl"
     edition: ssl
     smoke_use_ssl: --use-ssl
@@ -1532,9 +1489,11 @@ buildvariants:
   run_on:
   - windows-64-vs2013-compile
   expansions:
-    <<: *mongo_url_windows64_enterprise
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "windows-64"
+    mongo_edition: "enterprise"
+    mongo_target: "windows"
     build_tags: -tags "sasl ssl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
@@ -1558,9 +1517,10 @@ buildvariants:
   run_on:
   - ubuntu1204-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
+    mongo_os: "ubuntu1204"
+    mongo_edition: "enterprise"
     build_tags: -tags "ssl"
     arch: "linux/x86_64"
     args: "-race"
@@ -1577,9 +1537,7 @@ buildvariants:
   run_on:
   - suse11-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
 
@@ -1588,9 +1546,7 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
 
@@ -1599,10 +1555,8 @@ buildvariants:
   run_on:
   - rhel55
   expansions:
-    <<: *mongo_url_ubuntu1204
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
 
@@ -1611,10 +1565,8 @@ buildvariants:
   run_on:
   - rhel62-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
 
@@ -1623,10 +1575,8 @@ buildvariants:
   run_on:
   - rhel70
   expansions:
-    <<: *mongo_url_ubuntu1204
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
 
@@ -1635,9 +1585,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
 
@@ -1646,9 +1594,7 @@ buildvariants:
   run_on:
   - debian71-test
   expansions:
-    <<: *mongo_url_ubuntu1204
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
     build_tags: -tags "sasl ssl"
-    arch: "linux/x86_64"
   tasks:
   - name: dist
