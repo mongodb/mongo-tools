@@ -25,7 +25,12 @@ func (NilPos) Pos() int64 {
 
 type collectionInfo struct {
 	Name    string  `bson:"name"`
+	Type    string  `bson:"type"`
 	Options *bson.D `bson:"options"`
+}
+
+func (ci *collectionInfo) IsView() bool {
+	return ci.Type == "view"
 }
 
 // writeFlusher wraps an io.Writer and adds a Flush function.
@@ -379,9 +384,22 @@ func (dump *MongoDump) createIntentFromOptions(dbName string, ci *collectionInfo
 		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, ci.Name)
 		return nil
 	}
+
+	if dump.OutputOptions.ViewsAsCollections && !ci.IsView() {
+		log.Logvf(log.DebugLow, "skipping dump of %v.%v because it is not a view", dbName, ci.Name)
+		return nil
+	}
+
 	intent, err := dump.NewIntent(dbName, ci.Name)
 	if err != nil {
 		return err
+	}
+	if dump.OutputOptions.ViewsAsCollections {
+		log.Logvf(log.DebugLow, "not dumping metadata for %v.%v because it is a view", dbName, ci.Name)
+		intent.MetadataFile = nil
+	} else if ci.IsView() {
+		log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
+		intent.BSONFile = nil
 	}
 	intent.Options = ci.Options
 	dump.manager.Put(intent)
@@ -407,6 +425,10 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 
 	collInfo := &collectionInfo{}
 	for colsIter.Next(collInfo) {
+		// ignore <db>.system.views; view metadata is dumped separately
+		if collInfo.Name == "system.views" {
+			continue
+		}
 		// Skip over indexes since they are also listed in system.namespaces in 2.6 or earlier
 		if strings.Contains(collInfo.Name, "$") && !strings.Contains(collInfo.Name, ".oplog.$") {
 			continue

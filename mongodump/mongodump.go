@@ -455,10 +455,12 @@ func (dump *MongoDump) DumpIntents() error {
 					resultChan <- nil
 					return
 				}
-				err := dump.DumpIntent(intent)
-				if err != nil {
-					resultChan <- err
-					return
+				if intent.BSONFile != nil {
+					err := dump.DumpIntent(intent)
+					if err != nil {
+						resultChan <- err
+						return
+					}
 				}
 				dump.manager.Finish(intent)
 			}
@@ -497,12 +499,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 	switch {
 	case len(dump.query) > 0:
 		findQuery = session.DB(intent.DB).C(intent.C).Find(dump.query)
+	case dump.OutputOptions.ViewsAsCollections:
+		// views have an implied aggregation which does not support snapshot
+		fallthrough
 	case dump.InputOptions.TableScan:
 		// ---forceTablesScan runs the query without snapshot enabled
 		findQuery = session.DB(intent.DB).C(intent.C).Find(nil)
 	default:
 		findQuery = session.DB(intent.DB).C(intent.C).Find(nil).Snapshot()
-
 	}
 
 	var dumpCount int64
