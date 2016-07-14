@@ -178,6 +178,39 @@ mongo_tools_variables:
       mongo_args: "--port 33333 --ssl --sslCAFile ./common/db/openssl/testdata/ca.pem --sslPEMKeyFile ./common/db/openssl/testdata/server.pem --sslAllowInvalidCertificates"
 
 functions:
+  "run legacy tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        mv ./mongodb/mongod${extension} .
+        mv ./mongodb/mongo${extension} .
+        mv ${test_path}/* .
+        chmod +x mongo*
+        python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} ${smoke_args} tool
+
+  "run qa-tests":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        set -o verbose
+        set -e
+        mv ./mongodb/mongod${extension} .
+        mv ./mongodb/mongo${extension} .
+        mv ./mongodb/mongos${extension} .
+        mv test/qa-tests/* .
+        chmod +x mongo*
+        if [ -f bsondump ]; then
+          chmod +x bsondump
+        fi
+        rm -rf /data/install /data/multiversion
+        python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
+        chmod 400 jstests/libs/key*
+
+        PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
 
   "build tool":
     command: shell.exec
@@ -209,34 +242,22 @@ functions:
     params:
       working_dir: src
       script: |
-        set -o verbose
+        set -x
         mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
         dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=${mongo_version})
-        echo "Using download URL: $dlurl"
-        rm -rf mongodb
+        filename=$(echo $dlurl | sed -e "s_.*/__")
         mkdir mongodb
         cd mongodb
-        curl -s $dlurl --output mongodb.tgz
-        ${decompress} mongodb.tgz
+        curl -s $dlurl --output $filename
+        ${decompress} $filename
+        rm $filename
         chmod +x ./mongodb-*/bin/*
-        mv ./mongodb-*/bin/* .
-
-  "download & copy shell":
-    command: shell.exec
-    params:
-      working_dir: src
-      script: |
-        set -o verbose
-        mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
-        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=${mongo_version})
-        echo "Using download URL: $dlurl"
-        rm -rf temp
-        mkdir temp
-        cd temp
-        curl -s $dlurl --output mongodb.tgz
-        ${decompress} mongodb.tgz
-        chmod +x ./mongodb-*/bin/*
-        mv ./mongodb-*/bin/mongo${extension} ../mongodb/
+        if [ "${only_shell}" ]; then
+          mv -f ./mongodb-*/bin/mongo${extension} .
+        else
+          mv -f ./mongodb-*/bin/* .
+        fi
+        rm -rf ./mongodb-*
 
   "fetch tool" :
     command: s3.get
@@ -749,16 +770,10 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongofiles
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv test/legacy28/* .
-          chmod +x mongo*
-          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 tool
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy28"
+        smoke_args: "--authMechanism SCRAM-SHA-1"
 
 - name: legacy28-wt
   depends_on:
@@ -796,16 +811,10 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongofiles
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv test/legacy28/* .
-          chmod +x mongo*
-          python buildscripts/smoke.py ${smoke_use_ssl} --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} --authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger tool
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy28"
+        smoke_args: "--authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger"
 
 - name: legacy26
   depends_on:
@@ -843,16 +852,10 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongofiles
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv test/legacy26/* .
-          chmod +x mongo*
-          python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy26"
+        smoke_use_ssl: ""
 
 - name: legacy24
   depends_on:
@@ -869,9 +872,10 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "2.4"
-    - func: "download & copy shell"
+    - func: "download mongod"
       vars:
         mongo_version: "2.6"
+        only_shell: true
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -893,16 +897,10 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongofiles
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv test/legacy24/* .
-          chmod +x mongo*
-          python buildscripts/smoke.py --nopreallocj --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} tool
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy24"
+        smoke_use_ssl: ""
 
 - name: lint-go
   commands:
@@ -981,25 +979,9 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: bsondump
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          set -e
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv ./mongodb/mongos${extension} .
-          mv test/qa-tests/* .
-          chmod +x mongo*
-          chmod +x bsondump*
-          rm -rf /data/install /data/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
-          chmod 400 jstests/libs/key*
-
-          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=core${resmoke_use_ssl} --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
-
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_ssl}"
 
 - name: qa-tests
   depends_on:
@@ -1043,24 +1025,9 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: bsondump
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          set -e
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv ./mongodb/mongos${extension} .
-          mv test/qa-tests/* .
-          chmod +x mongo*
-          chmod +x bsondump*
-          rm -rf /data/install /data/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
-          chmod 400 jstests/libs/key*
-
-          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=core${resmoke_use_ssl}  --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_ssl}"
 
 - name: qa-dump-restore-archiving
   depends_on:
@@ -1083,23 +1050,9 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongorestore
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          set -e
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv ./mongodb/mongos${extension} .
-          mv test/qa-tests/* .
-          chmod +x mongo*
-          rm -rf /data/install /data/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
-          chmod 400 jstests/libs/key*
-
-          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=restore_archive --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "restore_archive"
 
 - name: qa-dump-restore-gzip
   depends_on:
@@ -1122,23 +1075,9 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongorestore
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          set -e
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv ./mongodb/mongos${extension} .
-          mv test/qa-tests/* .
-          chmod +x mongo*
-          rm -rf /data/install /data/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
-          chmod 400 jstests/libs/key*
-
-          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=restore_gzip --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "restore_gzip"
 
 - name: qa-tests-wt
   depends_on:
@@ -1182,23 +1121,10 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: bsondump
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src
-        script: |
-          set -o verbose
-          mv ./mongodb/mongod${extension} .
-          mv ./mongodb/mongo${extension} .
-          mv ./mongodb/mongos${extension} .
-          mv test/qa-tests/* .
-          chmod +x mongo*
-          chmod +x bsondump*
-          rm -rf /data/install /data/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
-          chmod 400 jstests/libs/key*
-
-          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=core --continueOnFailure --log=buildlogger --reportFile=report.json --storageEngine=wiredTiger ${resmoke_args}
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core"
+        resmoke_args: "--storageEngine=wiredTiger ${resmoke_args}"
 
 - name: text
   commands:
@@ -1476,7 +1402,8 @@ buildvariants:
     edition: ssl
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
-    resmoke_args: --excludeWithAnyTags=requires_large_ram
+    resmoke_args: --excludeWithAnyTags=requires_large_ram,requires_mongo_24
+    multiversion_override: "2.6"
     extension: .exe
     arch: "win32/x86_64"
     library_path: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:/cygdrive/c/sasl/:$PATH"
@@ -1497,7 +1424,8 @@ buildvariants:
     build_tags: -tags "sasl ssl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
-    resmoke_args: --excludeWithAnyTags=requires_large_ram
+    resmoke_args: --excludeWithAnyTags=requires_large_ram,requires_mongo_24
+    multiversion_override: "2.6"
     edition: enterprise
     extension: .exe
     arch: "win32/x86_64"
