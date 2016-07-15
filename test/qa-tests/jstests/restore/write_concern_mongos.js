@@ -31,7 +31,7 @@
   rs.awaitReplication();
 
   // dump the data that we'll
-  var dumpTarget = 'write_concern_dump';
+  var dumpTarget = 'write_concern_mongos_dump';
   resetDbpath(dumpTarget);
   var ret = toolTest.runTool.apply(toolTest, ['dump', '-d', 'dbOne']
       .concat(getDumpTarget(dumpTarget))

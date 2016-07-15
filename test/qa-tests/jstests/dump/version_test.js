@@ -2,6 +2,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var targetPath = 'dump_version_test.archive';
   var toolTest = getToolTest('versionTest');
@@ -31,7 +33,10 @@
     'mongorestore should succeed');
 
   var out = rawMongoProgramOutput();
-
+  assert.lte.soon(3, function() {
+    out = rawMongoProgramOutput();
+    return (out.match(/archive \w+ version/g) || []).length;
+  }, "should see at least three version string in the output");
   assert(/archive format version "\S+"/.test(out), "format version found");
   assert(/archive server version "\S+"/.test(out), "server version found");
   assert(/archive tool version "\S+"/.test(out), "tool version found");

@@ -5,6 +5,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   // unused: var CURRENT_MONGOD_RELEASE = '3.0';
 
@@ -16,9 +18,8 @@
     'doesnte.xist:27999');
   assert(toolTest.runTool.apply(toolTest, args) !== 0,
     'mongooplog should fail when --from is not reachable');
-  var output = rawMongoProgramOutput();
 
-  assert(output.indexOf(fromUnreachableError) !== -1,
+  assert.strContains.soon(fromUnreachableError, rawMongoProgramOutput,
     'mongooplog should output correct error when "from" is not reachable');
 
   // Clear output

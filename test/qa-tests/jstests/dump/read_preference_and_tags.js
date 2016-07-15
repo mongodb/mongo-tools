@@ -1,5 +1,4 @@
 (function() {
-
   jsTest.log('Testing that dump utilizes read preferences and tags');
   var toolTest = new ToolTest('dump_preference_and_tags');
 
@@ -35,7 +34,6 @@
   rs.reconfig(conf);
 
   runMongoProgram('mongodump', '--host', "replset/"+primary.host, '--readPreference={mode:"nearest", tags:{use:"secondary1"}}');
-  jsTest.log("rawMongoProgramOutput "+ rawMongoProgramOutput());
 
   replset1.nodes.forEach(function(node) {
     var count = node.getDB('foo').system.profile.find().count();

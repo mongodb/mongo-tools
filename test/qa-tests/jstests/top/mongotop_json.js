@@ -1,10 +1,11 @@
 // mongotop_json.js; ensure that running mongotop using the --json flag works as
 // expected
 var testName = 'mongotop_json';
-load('jstests/top/util/mongotop_common.js');
-
 (function() {
   jsTest.log('Testing mongotop --json option');
+  load('jstests/top/util/mongotop_common.js');
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var runTests = function(topology, passthrough) {
     jsTest.log('Using ' + passthrough.name + ' passthrough');
@@ -21,13 +22,15 @@ load('jstests/top/util/mongotop_common.js');
     // ensure tool runs without error with --rowcount > 1
     var rowcount = 5;
     clearRawMongoProgramOutput();
-    assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args)), 0, 'failed 2');
-    var shellOutput = rawMongoProgramOutput();
-    var outputLines = shellOutput.split('\n').filter(function(line) {
-      return line.match(shellOutputRegex);
-    });
-
-    assert.eq(rowcount, outputLines.length, "expected " + rowcount + " top results but got " + outputLines.length);
+    var pid = startMongoProgramNoConnect.apply(this, ['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
+    assert.eq(waitProgram(pid), 0, 'failed 2');
+    var outputLines;
+    assert.eq.soon(rowcount, function() {
+      outputLines = rawMongoProgramOutput().split('\n').filter(function(line) {
+        return line.indexOf('sh'+pid+'| ') !== -1;
+      });
+      return outputLines.length;
+    }, "expected " + rowcount + " top results");
 
     outputLines.forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');

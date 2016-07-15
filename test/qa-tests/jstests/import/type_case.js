@@ -1,10 +1,9 @@
 (function() {
-
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
-
-  // Tests running mongoimport with bad command line options.
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   jsTest.log('Testing running import with bad command line options');
 
@@ -91,11 +90,9 @@
       "-f", "a,b,c");
   assert.eq(ret, 0);
 
-  sleep(1000);
-
-  print(db1.c.getDB().getSiblingDB("test").test);
-  assert.eq(db1.c.getDB().getSiblingDB("test").test.count(), 11);
-  db1.c.getDB().getSiblingDB("test").test.drop();
+  var testDb = db1.c.getDB().getSiblingDB("test");
+  assert.eq.soon(11, testDb.test.count.bind(testDb.test), "test.test should have 11 records");
+  testDb.test.drop();
 
   toolTest.stop();
 }());

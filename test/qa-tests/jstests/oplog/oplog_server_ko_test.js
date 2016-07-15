@@ -2,6 +2,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var toolTest = getToolTest('OplogServerKOTest');
   var commonToolArgs = getCommonToolArguments();
@@ -42,9 +44,8 @@
   assert(toolTest.runTool.apply(toolTest, args) !== 0,
     'mongooplog should crash gracefully when remote server dies');
 
-  var output = rawMongoProgramOutput();
   var expected = 'error communicating with server';
-  assert(output.indexOf(expected) !== -1,
+  assert.strContains.soon(expected, rawMongoProgramOutput,
     'Should output sensible error message when host server dies');
 
   toolTest.stop();

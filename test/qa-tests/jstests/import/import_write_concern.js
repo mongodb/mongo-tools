@@ -10,15 +10,13 @@
     name: name,
     nodes: 3,
     useHostName: true,
+    settings: {chainingAllowed: false},
   });
 
   var commonToolArgs = getCommonToolArguments();
   var fileTarget = "wc.csv";
-  rs.startSet({});
-  var cfg = rs.getReplSetConfig();
-  cfg.settings = {};
-  cfg.settings.chainingAllowed = false;
-  rs.initiate(cfg);
+  rs.startSet();
+  rs.initiate();
   rs.awaitReplication();
   toolTest.port = rs.getPrimary().port;
 

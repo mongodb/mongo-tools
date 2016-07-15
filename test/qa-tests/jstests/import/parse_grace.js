@@ -2,6 +2,9 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   var expectedDocs = [{
     a: "foo",
     b: 12,
@@ -39,8 +42,10 @@
   };
 
   var reset = function(coll) {
-    coll.drop();
-    assert.eq(coll.count(), 0);
+    assert.eq.soon(0, function() {
+      coll.drop();
+      return coll.count();
+    }, "collection should be empty after drop");
   };
 
   var toolTest = getToolTest("import_fields");

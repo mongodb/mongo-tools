@@ -28,8 +28,6 @@
     "--outFile", exportTarget);
   assert.eq(ret, 0, "bsondump should exit successfully with 0");
 
-  sleep(100);
-
   // Import the data into the destination collection to check correctness.
   ret = toolTest.runTool.apply(toolTest, ['import',
       '--file', exportTarget,
@@ -54,8 +52,6 @@
     "--outFile", exportTarget,
     "jstests/bson/testdata/sample.bson");
   assert.eq(ret, 0, "bsondump should exit successfully with 0");
-
-  sleep(100);
 
   // Import the data into the destination collection to check correctness.
   ret = toolTest.runTool.apply(toolTest, ['import',

@@ -1,8 +1,10 @@
 // mongofiles_get.js; ensure that get command works as expected
 var testName = 'mongofiles_get';
-load('jstests/files/util/mongofiles_common.js');
 (function() {
   jsTest.log('Testing mongofiles get command');
+  load('jstests/files/util/mongofiles_common.js');
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var runTests = function(topology, passthrough) {
     var t = topology.init(passthrough);
@@ -64,13 +66,8 @@ load('jstests/files/util/mongofiles_common.js');
           .concat(passthrough.args)),
         0, 'get stdout failed');
     var expectedContent = "this is a text file";
-    var match = false;
-    rawMongoProgramOutput().split('\n').forEach(function(line) {
-      if (line.match(expectedContent)) {
-        match = true;
-      }
-    });
-    assert(match, "stdout get didn't match expected file content");
+    assert.strContains.soon(expectedContent, rawMongoProgramOutput,
+        "stdout get didn't match expected file content");
 
     t.stop();
   };

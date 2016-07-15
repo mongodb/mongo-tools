@@ -6,18 +6,15 @@
   var toolTest = new ToolTest('write_concern', null);
   var commonToolArgs = getCommonToolArguments();
 
-  // eslint-disable-next-line no-native-reassign
-  rs = new ReplSetTest({
+  var rs = new ReplSetTest({
     name: "rpls",
     nodes: 3,
-    useHostName: true
+    useHostName: true,
+    settings: {chainingAllowed: false},
   });
 
   rs.startSet();
-  var cfg = rs.getReplSetConfig();
-  cfg.settings = {};
-  cfg.settings.chainingAllowed = false;
-  rs.initiate(cfg);
+  rs.initiate();
   rs.awaitReplication();
   toolTest.port = rs.getPrimary().port;
   var dbOne = rs.nodes[0].getDB("dbOne");

@@ -4,6 +4,8 @@
     return;
   }
   load("jstests/libs/mongostat.js");
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var mmap_options = {storageEngine: "mmapv1"};
   var wt_options = {storageEngine: "wiredTiger"};
@@ -24,7 +26,7 @@
 
   clearRawMongoProgramOutput();
   runMongoProgram("mongostat", "--host", replTest.nodes[0].host, "--rowcount", 7, "--discover");
-  assert(rawMongoProgramOutput().match(/used flushes mapped/), "mongostat against mixed storage engine replset has fields corresponding to both engines");
+  assert.strContains.soon("used flushes mapped", rawMongoProgramOutput, "against replset has fields for both engines");
 
   replTest.stopSet();
 
@@ -37,7 +39,7 @@
 
   clearRawMongoProgramOutput();
   runMongoProgram("mongostat", "--host", st._mongos[0].host, "--rowcount", 7, "--discover");
-  assert(rawMongoProgramOutput().match(/used flushes mapped/), "mongostat against a heterogenous storage engine sharded cluster sees all hosts");
+  assert.strContains.soon("used flushes mapped", rawMongoProgramOutput, "against sharded cluster has fields for both engines");
 
   st.stop();
 }());

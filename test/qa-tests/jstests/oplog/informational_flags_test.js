@@ -6,6 +6,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var toolTest = getToolTest('oplogInformationalFlagTest');
   var commonToolArgs = getCommonToolArguments();
@@ -15,9 +17,7 @@
     assert.eq(toolTest.runTool.apply(toolTest, args), 0,
       'mongooplog should succeed with ' + flag);
 
-    var output = rawMongoProgramOutput();
-
-    assert(output.indexOf(expected) !== -1,
+    assert.strContains.soon(expected, rawMongoProgramOutput,
       'mongooplog ' + flag + " should produce output that contains '" +
       expected + "'");
   };

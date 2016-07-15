@@ -2,6 +2,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/replset_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var targetPath = "oplogFlagDumpTest";
   resetDbpath(targetPath);
@@ -18,21 +20,16 @@
     db.bar.insert({x: i});
   }
 
-  // Run parallel shell that inserts every millisecond
+  // Run parallel shell to rapidly insert documents
   var insertsShell = startParallelShell(
     'print(\'starting insert\'); ' +
     (toolTest.authCommand || '') +
     'for (var i = 1001; i < 10000; ++i) { ' +
     '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); ' +
-    '  sleep(1); ' +
     '}');
 
-  // Give some time for inserts to actually start before dumping
-  sleep(1000);
-
+  assert.lt.soon(1000, db.bar.count.bind(db.bar), 'should have more documents');
   var countBeforeMongodump = db.bar.count();
-  // Crash if parallel shell hasn't started inserting yet
-  assert.gt(countBeforeMongodump, 1000);
 
   var dumpArgs = ['dump', '--oplog']
     .concat(getDumpTarget(targetPath))

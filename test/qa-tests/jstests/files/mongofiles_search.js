@@ -1,8 +1,11 @@
 // mongofiles_search.js; ensures that the search command returns any and all
 // files that match the regex supplied
 var testName = 'mongofiles_search';
-load('jstests/files/util/mongofiles_common.js');
 (function() {
+  load('jstests/files/util/mongofiles_common.js');
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   var conn;
 
   // Given a list of search strings and an expected result - 0 for present or 1 for
@@ -25,7 +28,7 @@ load('jstests/files/util/mongofiles_common.js');
     return 1;
   };
 
-  // not - assertHasFiles checks that the output of running mongofiles search with
+  // note - assertHasFiles checks that the output of running mongofiles search with
   // each of the search strings meets the expected result supplied. If exactString
   // is not empty, it further checks that the output also matches exactString
   var assertHasFiles = function(passthrough, searchStrings, expectedResult, exactString) {
@@ -40,8 +43,10 @@ load('jstests/files/util/mongofiles_common.js');
           .concat(passthrough.args)),
         0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
 
-      var matchFound = hasMatch(rawMongoProgramOutput(), queryString, exactString);
-      assert.eq(matchFound, expectedResult, 'search failed - expected ' + expectedResult + ' got ' + matchFound);
+      // eslint-disable-next-line no-loop-func
+      assert.eq.soon(expectedResult, function() {
+        return hasMatch(rawMongoProgramOutput(), queryString, exactString);
+      }, 'search failed: expected "' + queryString + '" to be ' + (expectedResult ? 'found' : 'missing'));
     }
   };
 

@@ -1,15 +1,17 @@
 // mongotop_sharded.js; ensure that running mongotop against a sharded cluster
 // fails with a useful error message
 var testName = 'mongotop_sharded';
-var expectedError = 'cannot run mongotop against a mongos';
-load('jstests/top/util/mongotop_common.js');
-
 (function() {
   jsTest.log('Testing mongotop against sharded cluster');
+  load('jstests/top/util/mongotop_common.js');
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
-  var verifyOutput = function(shellOutput) {
+  var expectedError = 'cannot run mongotop against a mongos';
+  var verifyOutput = function(getOutput) {
+    assert.strContains.soon(expectedError, getOutput, 'error message must appear at least once');
+    var shellOutput = getOutput();
     jsTest.log('shell output: ' + shellOutput);
-    assert(shellOutput.match(expectedError), 'error message must appear at least once');
     shellOutput.split('\n').forEach(function(line) {
       // check the displayed error message
       assert.neq(line.match(shellOutputRegex), null, 'must only have shell output lines');
@@ -22,13 +24,14 @@ load('jstests/top/util/mongotop_common.js');
     var pid = startMongoProgramNoConnect.apply(this, args);
     var exitCode = waitProgram(pid);
     var prefix = 'sh'+pid+'| ';
-    var output = rawMongoProgramOutput();
-    output = output.split('\n').filter(function(line) {
-      return line.indexOf(prefix) === 0;
-    }).join('\n');
+    var getOutput = function() {
+      return rawMongoProgramOutput().split('\n').filter(function(line) {
+        return line.indexOf(prefix) === 0;
+      }).join('\n');
+    };
     return {
       exitCode: exitCode,
-      output: output,
+      getOutput: getOutput,
     };
   };
 
@@ -46,11 +49,11 @@ load('jstests/top/util/mongotop_common.js');
     // anything that runs against the mongos server should fail
     var result = executeProgram(['mongotop', '--port', conn.port].concat(passthrough.args));
     assert.neq(result.exitCode, 0, 'expected failure against a mongos');
-    verifyOutput(result.output);
+    verifyOutput(result.getOutput);
 
     result = executeProgram(['mongotop', '--port', conn.port, '2'].concat(passthrough.args));
     assert.neq(result.exitCode, 0, 'expected failure against a mongos');
-    verifyOutput(result.output);
+    verifyOutput(result.getOutput);
 
     t.stop();
   };

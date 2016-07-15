@@ -6,7 +6,7 @@
   var toolTest = new ToolTest(name, null);
   var dbName = "foo";
   var colName = "bar";
-  var fileTarget = "wc.csv";
+  var fileTarget = "wc_mongos.csv";
   var st = new ShardingTest({
     shards: {
       rs0: {

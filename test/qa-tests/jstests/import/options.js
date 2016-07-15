@@ -1,8 +1,9 @@
 (function() {
-
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   jsTest.log('Testing running import with bad command line options');
 
@@ -37,11 +38,9 @@
       "-c", "test");
   assert.eq(ret, 0);
 
-  sleep(1000);
-
-  print(db1.c.getDB().getSiblingDB("test").test);
-  assert.eq(db1.c.getDB().getSiblingDB("test").test.count(), 2);
-  db1.c.getDB().getSiblingDB("test").test.drop();
+  var testDb = db1.c.getDB().getSiblingDB("test");
+  assert.eq.soon(2, testDb.test.count.bind(testDb.test), "test.test should have 2 records");
+  testDb.test.drop();
 
   var testScenarios = [
       {args: [],

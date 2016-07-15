@@ -6,6 +6,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var OPLOG_INSERT_CODE = 'i';
   var OPLOG_COMMAND_CODE = 'c';
@@ -139,10 +141,9 @@
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when running applyOps on a sharded cluster');
 
-    var output = rawMongoProgramOutput();
     var expectedError =
       'error applying ops: applyOps not allowed through mongos';
-    assert(output.indexOf(expectedError) !== -1,
+    assert.strContains.soon(expectedError, rawMongoProgramOutput,
       'mongooplog crash should output the correct error message');
 
     assert.eq(0, db.bar.count({}),

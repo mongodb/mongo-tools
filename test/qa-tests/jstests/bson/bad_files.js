@@ -1,7 +1,9 @@
 // This test makes sure that certain invalid BSON succeeds or fails
 // with both JSON and debug output types AND --objcheck
-
 (function() {
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   var x = _runMongoProgram("bsondump", "--objcheck", "jstests/bson/testdata/random_bytes.bson");
   assert.neq(x, 0, "bsondump should exit with an error when given random bytes");
   x = _runMongoProgram("bsondump", "--objcheck", "jstests/bson/testdata/bad_cstring.bson");
@@ -33,7 +35,7 @@
   clearRawMongoProgramOutput();
   x = _runMongoProgram("bsondump", "jstests/bson/testdata/bad_cstring.bson");
   assert.eq(x, 0, "bsondump should not exit with an error when given a non-terminated cstring without --objcheck");
-  var results = rawMongoProgramOutput();
-  assert.gt(results.search("corrupted"), 0, "one of the documents should have been labelled as corrupted");
+  assert.strContains.soon("corrupted", rawMongoProgramOutput,
+      "one of the documents should have been labelled as corrupted");
 
 }());

@@ -6,6 +6,8 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   var toolTest = getToolTest('oplogDeprecatedFlagTest');
   var commonToolArgs = getCommonToolArguments();
@@ -17,10 +19,8 @@
     assert(toolTest.runTool.apply(toolTest, args) !== 0,
       'mongooplog should fail when --dbpath specified');
 
-    var output = rawMongoProgramOutput();
-
-    assert(output.indexOf(expectedError) !== -1,
-      'mongooplog should output the correct error message');
+    assert.strContains.soon(expectedError, rawMongoProgramOutput,
+        'mongooplog should output the correct error message');
   };
 
   verifyFlagFails('--dbpath');
