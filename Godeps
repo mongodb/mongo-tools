@@ -1,10 +1,7 @@
-github.com/10gen/llmgo				master
-github.com/google/gopacket			1b0b78901cdd351ecfc68bf1a2adafcd2ff30220
+github.com/10gen/llmgo                          master
+github.com/google/gopacket                      1b0b78901cdd351ecfc68bf1a2adafcd2ff30220
 github.com/jessevdk/go-flags                    4047bd797dd935ae2b557a79cc43f223066c9659
 github.com/mongodb/mongo-tools/common           3e1a7b5036d86c68ece6848854b858e93414f1cc
-gopkg.in/mgo.v2					22287bab4379e1fbf6002fb4eb769888f3fb224c
+gopkg.in/mgo.v2                                 22287bab4379e1fbf6002fb4eb769888f3fb224c
 github.com/patrickmn/go-cache                   1881a9bccb818787f68c52bfba648c6cf34c34fa
-github.com/fatih/color                          533cd7fd8a85905f67a1753afb4deddc85ea174f
-github.com/mattn/go-colorable                   e8a10ddc7d2a7fe255f6fd7f501070a4cb62c183
-github.com/mattn/go-isatty                      56b76bdf51f7708750eac80fa38b952bb9f32639
-
+github.com/10gen/escaper                        9977ea5f8d64d10ce964aecc04d82bc14fa031ea

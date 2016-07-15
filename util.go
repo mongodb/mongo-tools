@@ -5,12 +5,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"reflect"
+	"strings"
+	"time"
+
 	mgo "github.com/10gen/llmgo"
 	bson "github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/json"
-	"io"
-	"reflect"
-	"time"
 )
 
 var (
@@ -405,4 +407,43 @@ func (b *PreciseTime) SetBSON(raw bson.Raw) error {
 	t := time.Unix(decoder.Sec+internalToUnix, int64(decoder.Nsec))
 	b.Time = t.UTC()
 	return nil
+}
+
+// bufferWaiter is a channel-like structure which only recieves a buffer
+// from its channel once on the first Get() call, then yields the same
+// buffer upon subsequent Get() calls.
+type bufferWaiter struct {
+	ch  <-chan *bytes.Buffer
+	buf *bytes.Buffer
+	rcv bool
+}
+
+func newBufferWaiter(ch <-chan *bytes.Buffer) *bufferWaiter {
+	return &bufferWaiter{ch: ch}
+}
+
+func (b *bufferWaiter) Get() *bytes.Buffer {
+	if !b.rcv {
+		b.buf = <-b.ch
+		b.rcv = true
+	}
+	return b.buf
+}
+
+func getDotField(m map[string]interface{}, key string) (v interface{}, ok bool) {
+	s := strings.SplitN(key, ".", 2)
+	if len(s) == 0 {
+		ok = false
+		return
+	}
+	v, ok = m[s[0]]
+	if !ok || len(s) == 1 {
+		return
+	}
+	// more depth required
+	nm, ok := v.(map[string]interface{})
+	if !ok {
+		return
+	}
+	return getDotField(nm, s[1])
 }
