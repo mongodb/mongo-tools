@@ -25,9 +25,6 @@ func (op *OpMsg) Execute(session *mgo.Session) (*ReplyOp, error) {
 	return nil, nil
 }
 
-func (op *OpMsg) Equals(otherOp Op) bool {
-	return true
-}
 func (op *OpMsg) Abbreviated(chars int) string {
 	return ""
 }

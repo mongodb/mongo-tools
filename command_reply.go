@@ -133,12 +133,7 @@ func (op *CommandReplyOp) FromReader(r io.Reader) error {
 }
 
 // Execute logs a warning and returns nil because OP_COMMANDREPLY cannot yet be handled fully by mongotape.
-
 func (op *CommandReplyOp) Execute(session *mgo.Session) (replyContainer, error) {
 	userInfoLogger.Log(Always, "Skipping unimplemented op: OP_COMMANDREPLY")
 	return replyContainer{}, nil
-}
-
-func (commandReplyOp1 *CommandReplyOp) Equals(otherOp Op) bool {
-	return false
 }
