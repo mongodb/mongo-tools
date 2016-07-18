@@ -29,6 +29,7 @@ func NewProgressBarManager(w io.Writer, waitTime time.Duration) *Manager {
 		waitTime: waitTime,
 		writer:   w,
 		barsLock: &sync.Mutex{},
+		stopChan: make(chan struct{}),
 	}
 }
 
@@ -110,8 +111,6 @@ func (manager *Manager) Start() {
 	if manager.writer == nil {
 		panic("Cannot use a progress.Manager with an unset Writer")
 	}
-	// we make the stop channel here so that we can stop and restart a manager
-	manager.stopChan = make(chan struct{})
 	go manager.start()
 }
 
@@ -135,5 +134,5 @@ func (manager *Manager) start() {
 // Stop ends the main manager goroutine, stopping the manager's bars
 // from being rendered.
 func (manager *Manager) Stop() {
-	close(manager.stopChan)
+	manager.stopChan <- struct{}{}
 }

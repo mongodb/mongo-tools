@@ -5,12 +5,36 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
+type safeBuffer struct {
+	sync.Mutex
+	bytes.Buffer
+}
+
+func (b *safeBuffer) Write(p []byte) (n int, err error) {
+	b.Lock()
+	defer b.Unlock()
+	return b.Buffer.Write(p)
+}
+
+func (b *safeBuffer) String() string {
+	b.Lock()
+	defer b.Unlock()
+	return b.Buffer.String()
+}
+
+func (b *safeBuffer) Reset() {
+	b.Lock()
+	defer b.Unlock()
+	b.Buffer.Reset()
+}
+
 func TestManagerAttachAndDetach(t *testing.T) {
-	writeBuffer := &bytes.Buffer{}
+	writeBuffer := new(safeBuffer)
 	var manager *Manager
 
 	Convey("With an empty progress.Manager", t, func() {
@@ -101,10 +125,8 @@ func TestManagerAttachAndDetach(t *testing.T) {
 	})
 }
 
-// This test has some race stuff in it, but it's very unlikely the timing
-// will result in issues here.
 func TestManagerStartAndStop(t *testing.T) {
-	writeBuffer := &bytes.Buffer{}
+	writeBuffer := new(safeBuffer)
 	var manager *Manager
 
 	Convey("With a progress.Manager with a waitTime of 10 ms and one bar", t, func() {
