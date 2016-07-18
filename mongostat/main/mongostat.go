@@ -101,12 +101,17 @@ func main() {
 	}
 
 	if statOpts.Deprecated && !statOpts.Json {
-		log.Logvf(log.Always, "--deprecated can only be used when --json is also specified")
+		log.Logvf(log.Always, "--useDeprecatedJsonKeys can only be used when --json is also specified")
 		os.Exit(util.ExitBadOptions)
 	}
 
 	if statOpts.Columns != "" && statOpts.AppendColumns != "" {
 		log.Logvf(log.Always, "-O cannot be used if -o is also specified")
+		os.Exit(util.ExitBadOptions)
+	}
+
+	if statOpts.HumanReadable != "true" && statOpts.HumanReadable != "false" {
+		log.Logvf(log.Always, "--humanReadable must be set to either 'true' or 'false'")
 		os.Exit(util.ExitBadOptions)
 	}
 
@@ -165,7 +170,7 @@ func main() {
 	}
 
 	readerConfig := &status.ReaderConfig{
-		HumanReadable: statOpts.HumanReadable,
+		HumanReadable: statOpts.HumanReadable == "true",
 	}
 	if statOpts.Json {
 		readerConfig.TimeFormat = "15:04:05"
