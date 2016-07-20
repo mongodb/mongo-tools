@@ -213,12 +213,25 @@ func (o *ToolOptions) PrintHelp(force bool) bool {
 	return o.Help
 }
 
+type versionInfo struct {
+	key, value string
+}
+
+var versionInfos []versionInfo
+
 // Print the tool version to stdout.  Returns whether or not the version flag
 // is specified.
 func (o *ToolOptions) PrintVersion() bool {
 	if o.Version {
 		fmt.Printf("%v version: %v\n", o.AppName, o.VersionStr)
 		fmt.Printf("git version: %v\n", Gitspec)
+		fmt.Printf("Go version: %v\n", runtime.Version())
+		fmt.Printf("   os: %v\n", runtime.GOOS)
+		fmt.Printf("   arch: %v\n", runtime.GOARCH)
+		fmt.Printf("   compiler: %v\n", runtime.Compiler)
+		for _, info := range versionInfos {
+			fmt.Printf("%s: %s\n", info.key, info.value)
+		}
 	}
 	return o.Version
 }
