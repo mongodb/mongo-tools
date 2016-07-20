@@ -73,7 +73,9 @@ func (sc *StatConsumer) Update(newStat *status.ServerStatus) (l *line.StatLine, 
 }
 
 // FormatLines consumes StatLines, formats them, and sends them to its writer
-func (sc *StatConsumer) FormatLines(lines []*line.StatLine) {
+// It returns true if the formatter should no longer receive data
+func (sc *StatConsumer) FormatLines(lines []*line.StatLine) bool {
 	str := sc.formatter.FormatLines(lines, sc.headers, sc.keyNames)
 	fmt.Fprintf(sc.writer, "%s", str)
+	return sc.formatter.IsFinished()
 }

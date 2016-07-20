@@ -11,7 +11,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/password"
 	"github.com/mongodb/mongo-tools/common/signals"
-	"github.com/mongodb/mongo-tools/common/text"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongostat"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
@@ -101,6 +100,11 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
+	if statOpts.Interactive && statOpts.Json {
+		log.Logvf(log.Always, "cannot use output formats --json and --interactive together")
+		os.Exit(util.ExitBadOptions)
+	}
+
 	if statOpts.Deprecated && !statOpts.Json {
 		log.Logvf(log.Always, "--useDeprecatedJsonKeys can only be used when --json is also specified")
 		os.Exit(util.ExitBadOptions)
@@ -124,13 +128,11 @@ func main() {
 
 	var formatter stat_consumer.LineFormatter
 	if statOpts.Json {
-		formatter = &stat_consumer.JSONLineFormatter{}
+		formatter = stat_consumer.NewJSONLineFormatter(statOpts.RowCount)
+	} else if statOpts.Interactive {
+		formatter = stat_consumer.NewInteractiveLineFormatter(!statOpts.NoHeaders)
 	} else {
-		formatter = &stat_consumer.GridLineFormatter{
-			IncludeHeader:  !statOpts.NoHeaders,
-			HeaderInterval: 10,
-			Writer:         &text.GridWriter{ColumnPadding: 1},
-		}
+		formatter = stat_consumer.NewGridLineFormatter(statOpts.RowCount, !statOpts.NoHeaders)
 	}
 
 	cliFlags := 0
