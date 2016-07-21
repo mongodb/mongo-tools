@@ -259,7 +259,7 @@ func Play(context *ExecutionContext,
 		}
 
 		var connectionString string
-		if op.OpCode() == OpCodeReply {
+		if op.OpCode() == OpCodeReply || op.OpCode() == OpCodeCommandReply {
 			connectionString = op.ReversedConnectionString()
 		} else {
 			connectionString = op.ConnectionString()
