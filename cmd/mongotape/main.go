@@ -7,6 +7,12 @@ import (
 	"os"
 )
 
+const (
+	ExitError    = 1
+	ExitNonFatal = 3
+	// Go reserves exit code 2 for its own use
+)
+
 func main() {
 	opts := mongotape.Options{}
 	var parser = flags.NewParser(&opts, flags.Default)
@@ -19,6 +25,11 @@ func main() {
 
 	_, err := parser.Parse()
 	if err != nil {
-		os.Exit(1)
+		switch err.(type) {
+		case mongotape.ErrPacketsDropped:
+			os.Exit(ExitNonFatal)
+		default:
+			os.Exit(ExitError)
+		}
 	}
 }

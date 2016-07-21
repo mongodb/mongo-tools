@@ -19,6 +19,14 @@ type RecordCommand struct {
 	PlaybackFile string `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
 }
 
+type ErrPacketsDropped struct {
+	Count int
+}
+
+func (e ErrPacketsDropped) Error() string {
+	return fmt.Sprintf("completed with %d packets dropped", e.Count)
+}
+
 type packetHandlerContext struct {
 	packetHandler *PacketHandler
 	mongoOpStream *MongoOpStream
@@ -160,6 +168,9 @@ func Record(ctx *packetHandlerContext,
 		toolDebugLogger.Logf(Info, "PCAP stats: %#v", stats)
 	}
 
-	return <-ch
-
+	err = <-ch
+	if err == nil && stats.PacketsDropped != 0 {
+		err = ErrPacketsDropped{stats.PacketsDropped}
+	}
+	return err
 }
