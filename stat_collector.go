@@ -454,6 +454,7 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 		Command:       opMeta.Command,
 		ConnectionNum: op.PlayedConnectionNum,
 		Seen:          &op.Seen.Time,
+		RequestId:     op.Header.RequestID,
 	}
 	var playAtHasVal bool
 	if op.PlayAt != nil && !op.PlayAt.IsZero() {
