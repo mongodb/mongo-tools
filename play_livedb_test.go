@@ -240,6 +240,114 @@ func TestOpInsertLiveDB(t *testing.T) {
 	}
 }
 
+//TestUpdateOpLiveDB tests the functionality of mongotape replaying an update against a live database
+//Generates 20 recorded inserts and an update and passes them to the main execution of mongotape and queries the database
+//to verify they were completed. It then checks its BufferedStatCollector to ensure the update matches what we expected.
+func TestUpdateOpLiveDB(t *testing.T) {
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+
+	numInserts := 20
+	insertName := "LiveDB update test"
+	generator := newRecordedOpGenerator()
+	nameSpace := fmt.Sprintf("%s.%s", testDB, testCollection)
+	flags := uint32(1<<1 | 1)
+
+	update := mgo.UpdateOp{
+		Collection: nameSpace,
+		Selector:   bson.D{{"docNum", bson.D{{"$lte", 9.0}}}},
+		Update:     bson.D{{"$set", bson.D{{"updated", true}}}},
+		Flags:      flags,
+		Multi:      true,
+		Upsert:     true,
+	}
+
+	go func() {
+		defer close(generator.opChan)
+		//generate numInserts RecordedOps
+		t.Logf("Generating %d inserts\n", numInserts)
+		err := generator.generateInsertHelper(insertName, 0, numInserts)
+		if err != nil {
+			t.Error(err)
+		}
+		recordedUpdate, err := generator.fetchRecordedOpsFromConn(&update)
+		if err != nil {
+			t.Error(err)
+		}
+		generator.pushDriverRequestOps(recordedUpdate)
+
+		t.Log("Generating getLastError")
+		err = generator.generateGetLastError()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	statCollector, _ := newStatCollector(testCollectorOpts, true, true)
+	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
+	context := NewExecutionContext(statCollector)
+
+	//run Mongotape's Play loop with the stubbed objects
+	t.Logf("Beginning Mongotape playback of generated traffic against host: %v\n", currentTestUrl)
+	err := Play(context, generator.opChan, testSpeed, currentTestUrl, 1, 10)
+	if err != nil {
+		t.Errorf("Error Playing traffic: %v\n", err)
+	}
+	t.Log("Completed Mongotape playback of generated traffic")
+
+	//prepare a query for the database
+	session, err := mgo.Dial(currentTestUrl)
+	if err != nil {
+		t.Errorf("Error connecting to test server: %v", err)
+	}
+
+	coll := session.DB(testDB).C(testCollection)
+
+	iter := coll.Find(bson.D{}).Sort("docNum").Iter()
+	ind := 0
+	result := struct {
+		DocumentNumber int    `bson:"docNum"`
+		Name           string `bson:"name"`
+		Updated        bool   `bson:"updated"`
+	}{}
+
+	//iterate over the results of the query and ensure they match expected documents
+	t.Log("Querying database to ensure insert occured successfully")
+	for iter.Next(&result) {
+		t.Logf("Query result: %#v\n", result)
+		if result.DocumentNumber != ind {
+			t.Errorf("Inserted document number did not match expected document number. Found: %v -- Expected: %v", result.DocumentNumber, ind)
+		}
+		if result.Name != insertName {
+			t.Errorf("Inserted document name did not match expected name. Found %v -- Expected: %v", result.Name, "LiveDB update test")
+		}
+		if result.DocumentNumber <= 9 {
+			if result.Updated != true {
+				t.Errorf("Document with number %v was supposed to be updated but wasn't", result.DocumentNumber)
+			}
+		}
+		ind++
+	}
+	if err := iter.Close(); err != nil {
+		t.Error(err)
+	}
+
+	//iterate over the operations found by the BufferedStatCollector
+	t.Log("Examining collected stats to ensure they match expected")
+
+	stat := statRec.Buffer[numInserts]
+	t.Logf("Stat result: %#v\n", stat)
+	//All commands should be inserts into mongotape.test
+	if stat.OpType != "update" ||
+		stat.Ns != "mongotape.test" {
+		t.Errorf("Expected to see an update to mongotape.test, but instead saw %v, %v\n", stat.OpType, stat.Ns)
+	}
+	if err := teardownDB(); err != nil {
+		t.Error(err)
+	}
+}
+
 //TestQueryOpLiveDB tests the functionality of some basic queries through mongotape.
 //It generates inserts and queries and sends them to the main execution of mongotape.
 //TestQueryOp then examines a BufferedStatCollector to ensure the queries executed as expected
