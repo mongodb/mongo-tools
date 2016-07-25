@@ -204,6 +204,9 @@ func (dump *MongoDump) Dump() (err error) {
 	if dump.OutputOptions.DumpDBUsersAndRoles {
 		// first make sure this is possible with the connected database
 		dump.authVersion, err = auth.GetAuthVersion(dump.sessionProvider)
+		if err == nil {
+			err = auth.VerifySystemAuthVersion(dump.sessionProvider)
+		}
 		if err != nil {
 			return fmt.Errorf("error getting auth schema version for dumpDbUsersAndRoles: %v", err)
 		}

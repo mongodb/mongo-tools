@@ -8,6 +8,13 @@ if (typeof getToolTest === 'undefined') {
   var commonToolArgs = getCommonToolArguments();
   var db = toolTest.db.getSiblingDB('foo');
 
+  // Dump with no users
+  var dumpArgs = ['dump', '--db', 'foo', '--dumpDbUsersAndRoles']
+      .concat(getDumpTarget())
+      .concat(commonToolArgs);
+  assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 1,
+    'mongodump should fail with --dumpDbUsersAndRoles and no users');
+
   db.dropDatabase();
   assert.eq(0, db.bar.count());
 
