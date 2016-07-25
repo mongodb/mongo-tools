@@ -44,3 +44,20 @@ func GetAuthVersion(commander db.CommandRunner) (int, error) {
 	}
 	return version, nil
 }
+
+// VerifySystemAuthVersion returns an error if authentication is not set up for
+// the given server.
+func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		return fmt.Errorf("error getting session from server: %v", err)
+	}
+	defer session.Close()
+	versionEntries := session.DB("admin").C("system.version")
+	if count, err := versionEntries.Count(); err != nil {
+		return fmt.Errorf("error checking pressence of auth version: %v", err)
+	} else if count == 0 {
+		return fmt.Errorf("found no auth version")
+	}
+	return nil
+}
