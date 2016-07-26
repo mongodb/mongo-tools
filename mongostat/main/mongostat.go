@@ -52,6 +52,7 @@ func main() {
 		"mongostat",
 		mongostat.Usage,
 		options.EnabledOptions{Connection: true, Auth: true, Namespace: false})
+	opts.UseReadOnlyHostDescription()
 
 	// add mongostat-specific options
 	statOpts := &mongostat.StatOptions{}

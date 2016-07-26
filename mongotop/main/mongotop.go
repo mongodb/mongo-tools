@@ -18,6 +18,7 @@ func main() {
 	// initialize command-line opts
 	opts := options.New("mongotop", mongotop.Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
+	opts.UseReadOnlyHostDescription()
 
 	// add mongotop-specific options
 	outputOpts := &mongotop.Output{}

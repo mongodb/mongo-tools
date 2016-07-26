@@ -209,6 +209,18 @@ func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
 	return opts
 }
 
+// UseReadOnlyHostDescription changes the help description of the --host arg to
+// not mention the shard/host:port format used in the data-mutating tools
+func (o *ToolOptions) UseReadOnlyHostDescription() {
+	for _, group := range o.parser.Groups() {
+		if group.ShortDescription == "connection options" {
+			hostOpt := group.FindOptionByLongName("host")
+			hostOpt.Description = "mongodb host(s) to connect to (use commas to delimit hosts)"
+			break
+		}
+	}
+}
+
 // Print the usage message for the tool to stdout.  Returns whether or not the
 // help flag is specified.
 func (o *ToolOptions) PrintHelp(force bool) bool {
