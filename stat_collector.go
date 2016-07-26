@@ -19,7 +19,7 @@ import (
 const TruncateLength = 350
 
 type StatOptions struct {
-	JSON       bool   `long:"json" description:"Output operation data in JSON format"`
+	Collect    string `long:"collect" description:"Stat collection format; 'format' option uses the --format string" choice:"json" choice:"format" choice:"none"`
 	Buffered   bool   `hidden:"yes"`
 	Report     string `long:"report" description:"Write report on execution to given output path"`
 	NoTruncate bool   `long:"no-truncate" description:"Disable truncation of large payload data in log output"`
@@ -35,10 +35,11 @@ type StatCollector struct {
 	statStream chan *OpStat
 	StatGenerator
 	StatRecorder
+	noop bool
 }
 
 func (statColl *StatCollector) Close() error {
-	if statColl.statStream == nil {
+	if statColl.noop || statColl.statStream == nil {
 		return nil
 	}
 	statColl.StatGenerator.Finalize(statColl.statStream)
@@ -48,6 +49,13 @@ func (statColl *StatCollector) Close() error {
 }
 
 func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (*StatCollector, error) {
+	if opts.Buffered {
+		opts.Collect = "buffered"
+	}
+	if opts.Collect == "none" {
+		return &StatCollector{noop: true}, nil
+	}
+
 	var statGen StatGenerator
 	if isComparative {
 		statGen = &ComparativeStatGenerator{}
@@ -74,16 +82,16 @@ func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (
 	}
 
 	var statRec StatRecorder
-	switch {
-	case opts.JSON:
+	switch opts.Collect {
+	case "json":
 		statRec = &JSONStatRecorder{
 			out: o,
 		}
-	case opts.Buffered:
+	case "buffered":
 		statRec = &BufferedStatRecorder{
 			Buffer: []OpStat{},
 		}
-	default:
+	case "format":
 		statRec = &TerminalStatRecorder{
 			out:      o,
 			truncate: !opts.NoTruncate,
@@ -184,6 +192,9 @@ func shouldCollectOp(op Op) bool {
 // Collect formats the operation statistics as specified by the contained StatGenerator and writes it to
 // some form of storage as specified by the contained StatRecorder
 func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply replyContainer, msg string) {
+	if statColl.noop {
+		return
+	}
 	statColl.Do(func() {
 		statColl.statStream = make(chan *OpStat, 1024)
 		statColl.done = make(chan struct{})
