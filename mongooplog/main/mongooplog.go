@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	go signals.Handle()
+	signals.Handle()
 
 	// initialize command line options
 	opts := options.New("mongooplog", mongooplog.Usage,

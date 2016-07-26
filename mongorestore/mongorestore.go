@@ -7,10 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sync"
-	"syscall"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
@@ -462,7 +460,6 @@ func (restore *MongoRestore) Restore() error {
 	}
 
 	restore.termChan = make(chan struct{})
-	go restore.handleSignals()
 
 	if err := restore.RestoreIntents(); err != nil {
 		return err
@@ -485,6 +482,7 @@ func (restore *MongoRestore) Restore() error {
 	}
 
 	log.Logv(log.Always, "done")
+
 	return nil
 }
 
@@ -535,19 +533,8 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 	return rc, nil
 }
 
-// handleSignals listens for either SIGTERM, SIGINT or the
-// SIGHUP signal. It ends restore reads for all goroutines
-// as soon as any of those signals is received.
-func (restore *MongoRestore) handleSignals() {
-	log.Logv(log.DebugLow, "will listen for SIGTERM and SIGINT")
-	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-	// first signal cleanly terminates restore reads
-	<-sigChan
-	log.Logv(log.Always, "ending restore reads")
-	close(restore.termChan)
-	// second signal exits immediately
-	<-sigChan
-	log.Logv(log.Always, "forcefully terminating mongorestore")
-	os.Exit(util.ExitKill)
+func (restore *MongoRestore) HandleInterrupt() {
+	if restore.termChan != nil {
+		close(restore.termChan)
+	}
 }

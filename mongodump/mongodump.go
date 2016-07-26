@@ -2,8 +2,6 @@
 package mongodump
 
 import (
-	"compress/gzip"
-	"fmt"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -16,12 +14,13 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -175,7 +174,6 @@ func (dump *MongoDump) Init() error {
 
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
-
 	dump.shutdownIntentsNotifier = newNotifier()
 
 	if dump.InputOptions.HasQuery() {
@@ -374,8 +372,6 @@ func (dump *MongoDump) Dump() (err error) {
 	// kick off the progress bar manager and begin dumping intents
 	dump.progressManager.Start()
 	defer dump.progressManager.Stop()
-
-	go dump.handleSignals()
 
 	if err := dump.DumpIntents(); err != nil {
 		return err
@@ -794,26 +790,14 @@ func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 	return out, nil
 }
 
-// handleSignals listens for either SIGTERM, SIGINT or the
-// SIGHUP signal. It ends restore reads for all goroutines
-// as soon as any of those signals is received.
-func (dump *MongoDump) handleSignals() {
-	log.Logv(log.DebugLow, "will listen for SIGTERM, SIGINT and SIGHUP")
-	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, syscall.SIGPIPE)
-	// first signal cleanly terminates dump writes
-	<-sigChan
-	log.Logv(log.Always, "signal received; shutting down mongodump")
-	//
-	dump.shutdownIntentsNotifier.Notify()
-	// second signal exits immediately
-	<-sigChan
-	log.Logv(log.Always, "second signal received; forcefully terminating mongodump")
-	os.Exit(util.ExitKill)
-}
-
 // docPlural returns "document" or "documents" depending on the
 // count of documents passed in.
 func docPlural(count int64) string {
 	return util.Pluralize(int(count), "document", "documents")
+}
+
+func (dump *MongoDump) HandleInterrupt() {
+	if dump.shutdownIntentsNotifier != nil {
+		dump.shutdownIntentsNotifier.Notify()
+	}
 }

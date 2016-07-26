@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	go signals.Handle()
+	signals.Handle()
 	// initialize command-line opts
 	opts := options.New("mongofiles", mongofiles.Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
 

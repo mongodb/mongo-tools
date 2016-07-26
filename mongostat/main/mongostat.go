@@ -47,7 +47,7 @@ func optionCustomHeaders(option string) (headers []string) {
 }
 
 func main() {
-	go signals.Handle()
+	signals.Handle()
 	// initialize command-line opts
 	opts := options.New(
 		"mongostat",
