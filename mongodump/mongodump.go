@@ -174,6 +174,8 @@ func (dump *MongoDump) Init() error {
 
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
+	defer dump.sessionProvider.Close()
+
 	dump.shutdownIntentsNotifier = newNotifier()
 
 	if dump.InputOptions.HasQuery() {
@@ -306,6 +308,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return err
 		}
+		defer session.Close()
 		buildInfo, err := session.BuildInfo()
 		var serverVersion string
 		if err != nil {

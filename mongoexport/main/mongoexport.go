@@ -54,6 +54,7 @@ func main() {
 	opts.ReplicaSetName = setName
 
 	provider, err := db.NewSessionProvider(*opts)
+	defer provider.Close()
 
 	// temporarily allow secondary reads for the isMongos check
 	provider.SetReadPreference(mgo.Nearest)

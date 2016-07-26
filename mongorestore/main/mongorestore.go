@@ -60,6 +60,7 @@ func main() {
 	opts.ReplicaSetName = setName
 
 	provider, err := db.NewSessionProvider(*opts)
+	defer provider.Close()
 	if err != nil {
 		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
