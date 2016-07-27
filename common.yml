@@ -207,7 +207,9 @@ functions:
           chmod +x bsondump
         fi
         rm -rf /data/install /data/multiversion
-        python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
+        if [ "${multiversion_override}" != "skip" ]; then
+          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
+        fi
         chmod 400 jstests/libs/key*
 
         PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args}
@@ -1334,6 +1336,7 @@ buildvariants:
     resmoke_use_ssl: _ssl
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     resmoke_args: --excludeWithAnyTags=requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
+    multiversion_override: "skip"
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
