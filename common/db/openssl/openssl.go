@@ -6,11 +6,11 @@ import (
 	"net"
 	"time"
 
-	"gopkg.in/mgo.v2"
-
+	"github.com/mongodb/mongo-tools/common/db/kerberos"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/spacemonkeygo/openssl"
+	"gopkg.in/mgo.v2"
 )
 
 // For connecting to the database over ssl
@@ -24,7 +24,6 @@ type SSLDBConnector struct {
 // connection string, and sets up the correct function to dial the server
 // based on the ssl options passed in.
 func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
-
 	// create the addresses to be used to connect
 	connectionAddrs := util.CreateConnectionAddrs(opts.Host, opts.Port)
 
@@ -63,7 +62,7 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 		Source:         opts.GetAuthenticationDatabase(),
 		Mechanism:      opts.Auth.Mechanism,
 	}
-
+	kerberos.AddKerberosOpts(opts, self.dialInfo)
 	return nil
 
 }
