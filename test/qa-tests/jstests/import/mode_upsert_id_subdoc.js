@@ -1,9 +1,9 @@
 (function() {
   // This test creates a collection with a subdocument _id field. We export the collection,
-  // replace the existing documents with a pre-made dataset and --upsert, then overwrite
-  // that with the original data, again with --upsert. This verifies that import and export
-  // do not change the order of _id fields.
-  jsTest.log('Testing running import with --upsert and _id subdocuments');
+  // replace the existing documents with a pre-made dataset and --mode=upsert, then overwrite
+  // that with the original data, again with --mode=upsert. This verifies that import and
+  // export do not change the order of _id fields.
+  jsTest.log('Testing running import with --mode=upsert and _id subdocuments');
 
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
@@ -47,7 +47,7 @@
   jsTest.log('Upserting pre-made documents with subdocument _ids.');
   ret = toolTest.runTool.apply(toolTest, ["import",
       "--file", "jstests/import/testdata/upsert3.json",
-      "--upsert",
+      "--mode=upsert",
       "--db", db.getName(),
       "--collection", db.c.getName()]
     .concat(commonToolArgs));
@@ -66,7 +66,7 @@
   jsTest.log('Upserting original exported documents with subdocument _ids.');
   ret = toolTest.runTool.apply(toolTest, ["import",
       "--file", toolTest.extFile,
-      "--upsert",
+      "--mode=upsert",
       "--db", db.getName(),
       "--collection", db.c.getName()]
     .concat(commonToolArgs));
