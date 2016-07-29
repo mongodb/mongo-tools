@@ -4,13 +4,20 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/signals"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
+)
+
+const (
+	progressBarLength   = 24
+	progressBarWaitTime = time.Second * 3
 )
 
 func main() {
@@ -69,6 +76,12 @@ func main() {
 
 	// disable TCP timeouts for restore jobs
 	provider.SetFlags(db.DisableSocketTimeout)
+
+	// start up the progress bar manager
+	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, true)
+	progressManager.Start()
+	defer progressManager.Stop()
+
 	restore := mongorestore.MongoRestore{
 		ToolOptions:     opts,
 		OutputOptions:   outputOpts,
@@ -76,6 +89,7 @@ func main() {
 		NSOptions:       nsOpts,
 		TargetDirectory: targetDir,
 		SessionProvider: provider,
+		ProgressManager: progressManager,
 	}
 
 	finishedChan := signals.HandleWithInterrupt(restore.HandleInterrupt)

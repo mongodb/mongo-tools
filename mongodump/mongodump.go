@@ -21,14 +21,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 )
 
-const (
-	progressBarLength   = 24
-	progressBarWaitTime = time.Second * 3
-	defaultPermissions  = 0755
-)
+const defaultPermissions = 0755
 
 // MongoDump is a container for the user-specified options and
 // internal state used for running mongodump.
@@ -37,6 +32,8 @@ type MongoDump struct {
 	ToolOptions   *options.ToolOptions
 	InputOptions  *InputOptions
 	OutputOptions *OutputOptions
+
+	ProgressManager progress.Manager
 
 	// useful internals that we don't directly expose as options
 	sessionProvider *db.SessionProvider
@@ -47,7 +44,6 @@ type MongoDump struct {
 	isMongos        bool
 	authVersion     int
 	archive         *archive.Writer
-	progressManager *progress.Manager
 	// shutdownIntentsNotifier is provided to the multiplexer
 	// as well as the signal handler, and allows them to notify
 	// the intent dumpers that they should shutdown
@@ -168,7 +164,6 @@ func (dump *MongoDump) Init() error {
 	}
 
 	dump.manager = intents.NewIntentManager()
-	dump.progressManager = progress.NewProgressBarManager(log.Writer(0), progressBarWaitTime)
 	return nil
 }
 
@@ -372,10 +367,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// TODO, either remove this debug or improve the language
 	log.Logvf(log.DebugHigh, "dump phase II: regular collections")
 
-	// kick off the progress bar manager and begin dumping intents
-	dump.progressManager.Start()
-	defer dump.progressManager.Stop()
-
+	// begin dumping intents
 	if err := dump.DumpIntents(); err != nil {
 		return err
 	}
@@ -568,13 +560,10 @@ func (dump *MongoDump) dumpQueryToWriter(
 	}
 
 	dumpProgressor := progress.NewCounter(int64(total))
-	bar := &progress.Bar{
-		Name:      intent.Namespace(),
-		Watching:  dumpProgressor,
-		BarLength: progressBarLength,
+	if dump.ProgressManager != nil {
+		dump.ProgressManager.Attach(intent.Namespace(), dumpProgressor)
+		defer dump.ProgressManager.Detach(intent.Namespace())
 	}
-	dump.progressManager.Attach(bar)
-	defer dump.progressManager.Detach(bar)
 
 	err = dump.dumpIterToWriter(query.Iter(), intent.BSONFile, dumpProgressor)
 	_, dumpCount := dumpProgressor.Progress()

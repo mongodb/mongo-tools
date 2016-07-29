@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -46,16 +45,10 @@ func (restore *MongoRestore) RestoreOplog() error {
 	var entrySize, bufferedBytes int
 
 	oplogProgressor := progress.NewCounter(intent.BSONSize)
-	bar := progress.Bar{
-		Name:      "oplog",
-		Watching:  oplogProgressor,
-		WaitTime:  3 * time.Second,
-		Writer:    log.Writer(0),
-		BarLength: progressBarLength,
-		IsBytes:   true,
+	if restore.ProgressManager != nil {
+		restore.ProgressManager.Attach("oplog", oplogProgressor)
+		defer restore.ProgressManager.Detach("oplog")
 	}
-	bar.Start()
-	defer bar.Stop()
 
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
