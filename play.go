@@ -133,17 +133,17 @@ func NewPlaybackFileReader(filename string, gzip bool) (*PlaybackFileReader, err
 func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
 	buf, err := ReadDocument(file)
 	if err != nil {
-		if err == io.EOF {
-			return nil, io.EOF
+		if err != io.EOF {
+			err = fmt.Errorf("ReadDocument Error: %v", err)
 		}
-		return nil, fmt.Errorf("ReadDocument Error: %v", err)
+		return nil, err
 	}
-	doc := &RecordedOp{}
+	doc := new(RecordedOp)
 	err = bson.Unmarshal(buf, doc)
-
 	if err != nil {
 		return nil, fmt.Errorf("Unmarshal RecordedOp Error: %v\n", err)
 	}
+
 	return doc, nil
 }
 

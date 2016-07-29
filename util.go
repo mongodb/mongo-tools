@@ -63,32 +63,25 @@ func CopyMessage(w io.Writer, r io.Reader) error {
 
 // ReadDocument read an entire BSON document. This document can be used with
 // bson.Unmarshal.
-func ReadDocument(r io.Reader) ([]byte, error) {
-	var sizeRaw [4]byte
-	if _, err := io.ReadFull(r, sizeRaw[:]); err != nil {
-		return nil, err
+func ReadDocument(r io.Reader) (doc []byte, err error) {
+	sizeRaw := make([]byte, 4)
+	if _, err = io.ReadFull(r, sizeRaw); err != nil {
+		return
 	}
 
-	size := getInt32(sizeRaw[:], 0)
-	if size < 5 {
-		return nil, ErrInvalidSize
+	size := getInt32(sizeRaw, 0)
+	if size < 5 || size > maximumDocumentSize {
+		err = ErrInvalidSize
+		return
 	}
-	if size > maximumDocumentSize {
-		return nil, ErrInvalidSize
-	}
-	doc := make([]byte, size)
-	if size == 0 {
-		return doc, nil
-	}
+	doc = make([]byte, size)
 	if size < 4 {
-		return doc, nil
+		return
 	}
-	SetInt32(doc, 0, size)
+	copy(doc, sizeRaw)
 
-	if _, err := io.ReadFull(r, doc[4:]); err != nil {
-		return doc, err
-	}
-	return doc, nil
+	_, err = io.ReadFull(r, doc[4:])
+	return
 }
 
 func getCommandName(rawOp *RawOp) (string, error) {

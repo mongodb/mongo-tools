@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	mgo "github.com/10gen/llmgo"
 )
 
 // RawOp may be exactly the same as OpUnknown.
@@ -59,6 +61,15 @@ func (op *RawOp) ShortReplyFromReader(r io.Reader) error {
 	return err
 }
 func (rawOp *RawOp) Parse() (Op, error) {
+	if rawOp.Header.OpCode == OpCodeCompressed {
+		newMsg, err := mgo.DecompressMessage(rawOp.Body)
+		if err != nil {
+			return nil, err
+		}
+		rawOp.Header.FromWire(newMsg)
+		rawOp.Body = newMsg
+	}
+
 	var parsedOp Op
 	switch rawOp.Header.OpCode {
 	case OpCodeQuery:
@@ -97,4 +108,5 @@ func (rawOp *RawOp) Parse() (Op, error) {
 		}
 	}
 	return parsedOp, nil
+
 }

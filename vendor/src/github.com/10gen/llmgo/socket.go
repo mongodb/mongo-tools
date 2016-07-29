@@ -27,12 +27,30 @@
 package mgo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"github.com/10gen/llmgo/bson"
+	"io"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/10gen/llmgo/bson"
+)
+
+const (
+	opInvalid      = 0
+	opReply        = 1
+	dbMsg          = 1000
+	dbUpdate       = 2001
+	dbInsert       = 2002
+	dbQuery        = 2004
+	dbGetMore      = 2005
+	dbDelete       = 2006
+	dbKillCursors  = 2007
+	dbCommand      = 2010
+	dbCommandReply = 2011
+	dbCompressed   = 2012
 )
 
 type replyFunc func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs)
@@ -469,7 +487,7 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 		switch op := op.(type) {
 
 		case *UpdateOp:
-			buf = addHeader(buf, 2001)
+			buf = addHeader(buf, dbUpdate)
 			buf = addInt32(buf, 0) // Reserved
 			buf = addCString(buf, op.Collection)
 			buf = addInt32(buf, int32(op.Flags))
@@ -485,7 +503,7 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			}
 
 		case *InsertOp:
-			buf = addHeader(buf, 2002)
+			buf = addHeader(buf, dbInsert)
 			buf = addInt32(buf, int32(op.Flags))
 			buf = addCString(buf, op.Collection)
 			for _, doc := range op.Documents {
@@ -497,7 +515,7 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			}
 
 		case *QueryOp:
-			buf = addHeader(buf, 2004)
+			buf = addHeader(buf, dbQuery)
 			buf = addInt32(buf, int32(op.Flags))
 			buf = addCString(buf, op.Collection)
 			buf = addInt32(buf, op.Skip)
@@ -515,7 +533,7 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			replyFunc = op.replyFunc
 
 		case *GetMoreOp:
-			buf = addHeader(buf, 2005)
+			buf = addHeader(buf, dbGetMore)
 			buf = addInt32(buf, 0) // Reserved
 			buf = addCString(buf, op.Collection)
 			buf = addInt32(buf, op.Limit)
@@ -523,14 +541,14 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			replyFunc = op.replyFunc
 
 		case *ReplyOp:
-			buf = addHeader(buf, 1)
+			buf = addHeader(buf, opReply)
 			buf = addInt32(buf, int32(op.Flags))
 			buf = addInt64(buf, op.CursorId)
 			buf = addInt32(buf, op.FirstDoc)
 			buf = addInt32(buf, op.ReplyDocs)
 
 		case *DeleteOp:
-			buf = addHeader(buf, 2006)
+			buf = addHeader(buf, dbDelete)
 			buf = addInt32(buf, 0) // Reserved
 			buf = addCString(buf, op.Collection)
 			buf = addInt32(buf, int32(op.Flags))
@@ -541,14 +559,14 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			}
 
 		case *KillCursorsOp:
-			buf = addHeader(buf, 2007)
+			buf = addHeader(buf, dbKillCursors)
 			buf = addInt32(buf, 0) // Reserved
 			buf = addInt32(buf, int32(len(op.CursorIds)))
 			for _, cursorId := range op.CursorIds {
 				buf = addInt64(buf, cursorId)
 			}
 		case *CommandOp:
-			buf = addHeader(buf, 2010)
+			buf = addHeader(buf, dbCommand)
 			buf = addCString(buf, op.Database)
 			buf = addCString(buf, op.CommandName)
 			buf, err = addBSON(buf, op.CommandArgs)
@@ -568,7 +586,7 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 			}
 			replyFunc = op.replyFunc
 		case *CommandReplyOp:
-			buf = addHeader(buf, 2011)
+			buf = addHeader(buf, dbCommandReply)
 			buf, err = addBSON(buf, op.CommandReply)
 			if err != nil {
 				return err
@@ -645,27 +663,16 @@ func (socket *MongoSocket) Query(ops ...interface{}) (err error) {
 	return err
 }
 
-func fill(r net.Conn, b []byte) error {
-	l := len(b)
-	n, err := r.Read(b)
-	for n != l && err == nil {
-		var ni int
-		ni, err = r.Read(b[n:])
-		n += ni
-	}
-	return err
-}
-
 // Estimated minimum cost per socket: 1 goroutine + memory for the largest
 // document ever seen.
 func (socket *MongoSocket) readLoop() {
 	headerBuf := make([]byte, 16)        // 16 from header
 	opReplyFieldsBuf := make([]byte, 20) // 20 from OP_REPLY fixed fields
-	sizeBuf := make([]byte, 4)
-	conn := socket.Conn // No locking, conn never changes.
 	for {
+		var r io.Reader = socket.Conn
+
 		// XXX Handle timeouts, , etc
-		err := fill(conn, headerBuf)
+		_, err := io.ReadFull(r, headerBuf)
 		if err != nil {
 			socket.kill(err, true)
 			return
@@ -675,11 +682,33 @@ func (socket *MongoSocket) readLoop() {
 		responseTo := getInt32(headerBuf, 8)
 		opCode := getInt32(headerBuf, 12)
 
+		if opCode == dbCompressed {
+			buf := bytes.NewBuffer(headerBuf)
+			io.CopyN(buf, r, int64(totalLen-16))
+			msg, err := DecompressMessage(buf.Bytes())
+			if err != nil {
+				socket.kill(err, true)
+				return
+			}
+			r = bytes.NewBuffer(msg)
+
+			_, err = io.ReadFull(r, headerBuf)
+			if err != nil {
+				socket.kill(err, true)
+				return
+			}
+			opCode = getInt32(headerBuf, 12)
+			if opCode == dbCompressed {
+				err = fmt.Errorf("cannot recursively decompress messages")
+				socket.kill(err, true)
+				return
+			}
+		}
+
 		// Don't use socket.server.Addr here.  socket is not
 		// locked and socket.server may go away.
 		debugf("Socket %p to %s: got reply (%d bytes)", socket, socket.addr, totalLen)
 
-		_ = totalLen
 		socket.Lock()
 		replyFunc, ok := socket.replyFuncs[uint32(responseTo)]
 		if ok {
@@ -688,8 +717,8 @@ func (socket *MongoSocket) readLoop() {
 		socket.Unlock()
 
 		switch opCode {
-		case 1:
-			err := fill(conn, opReplyFieldsBuf)
+		case opReply:
+			_, err := io.ReadFull(r, opReplyFieldsBuf)
 			if err != nil {
 				socket.kill(err, true)
 				return
@@ -710,7 +739,7 @@ func (socket *MongoSocket) readLoop() {
 				replyFunc(nil, &rfl, nil)
 			} else {
 				for i := 0; i != int(reply.ReplyDocs); i++ {
-					b, err := readDocument(socket, sizeBuf)
+					b, err := readDocument(r)
 					if err != nil {
 						if replyFunc != nil {
 							replyFunc(err, &replyFuncLegacyArgs{docNum: -1}, nil)
@@ -723,37 +752,37 @@ func (socket *MongoSocket) readLoop() {
 						rfl := replyFuncLegacyArgs{
 							op:      &reply,
 							docNum:  i,
-							docData: *b,
+							docData: b,
 						}
 						replyFunc(nil, &rfl, nil)
 					}
 					// XXX Do bound checking against totalLen.
 				}
 			}
-		case 2011:
-			commandReplyAsSlice, err := readDocument(socket, sizeBuf)
+		case dbCommandReply:
+			commandReplyAsSlice, err := readDocument(r)
 			if err != nil {
 				socket.kill(err, true)
 				return
 			}
-			metadataAsSlice, err := readDocument(socket, sizeBuf)
+			metadataAsSlice, err := readDocument(r)
 			if err != nil {
 				socket.kill(err, true)
 				return
 			}
 			rfc := replyFuncCommandArgs{
 				op:           &CommandReplyOp{},
-				metadata:     *metadataAsSlice,
-				commandReply: *commandReplyAsSlice,
+				metadata:     metadataAsSlice,
+				commandReply: commandReplyAsSlice,
 			}
-			lengthRead := len(*commandReplyAsSlice) + len(*metadataAsSlice)
+			lengthRead := len(commandReplyAsSlice) + len(metadataAsSlice)
 			if replyFunc != nil && lengthRead+16 >= int(totalLen) {
 				replyFunc(nil, nil, &rfc)
 			}
 
 			docLen := 0
 			for lengthRead+docLen < int(totalLen)-16 {
-				documentBuf, err := readDocument(socket, sizeBuf)
+				documentBuf, err := readDocument(r)
 				if err != nil {
 					rfc.bytesLeft = 0
 					if replyFunc != nil {
@@ -762,11 +791,11 @@ func (socket *MongoSocket) readLoop() {
 					socket.kill(err, true)
 					return
 				}
-				rfc.outputDoc = *documentBuf
+				rfc.outputDoc = documentBuf
 				if replyFunc != nil {
 					replyFunc(nil, nil, &rfc)
 				}
-				docLen += len(*documentBuf)
+				docLen += len(documentBuf)
 			}
 		default:
 			socket.kill(errors.New("opcode != 1 or 2011, corrupted data?"), true)
@@ -786,31 +815,30 @@ func (socket *MongoSocket) readLoop() {
 	}
 }
 
-func readDocument(socket *MongoSocket, sizeBuf []byte) (*[]byte, error) {
-	conn := socket.Conn
-	err := fill(conn, sizeBuf)
+func readDocument(r io.Reader) (docBuf []byte, err error) {
+	sizeBuf := make([]byte, 4)
+	_, err = io.ReadFull(r, sizeBuf)
 	if err != nil {
-		return nil, err
+		return
 	}
-	documentBuf := make([]byte, int(getInt32(sizeBuf, 0)))
+	size := getInt32(sizeBuf, 0)
+	docBuf = make([]byte, int(size))
 
-	// copy(b, s) in an efficient way.
-	documentBuf[0] = sizeBuf[0]
-	documentBuf[1] = sizeBuf[1]
-	documentBuf[2] = sizeBuf[2]
-	documentBuf[3] = sizeBuf[3]
+	copy(docBuf, sizeBuf)
 
-	err = fill(conn, documentBuf[4:])
+	_, err = io.ReadFull(r, docBuf[4:])
 	if err != nil {
-		return nil, err
+		return
 	}
 	if globalDebug && globalLogger != nil {
 		m := bson.M{}
-		if err := bson.Unmarshal(documentBuf, m); err == nil {
-			debugf("Socket %p to %s: received document: %#v", socket, socket.addr, m)
+		if err := bson.Unmarshal(docBuf, m); err == nil {
+			if conn, ok := r.(net.Conn); ok {
+				debugf("Socket with addr '%s' received document: %#v", conn.RemoteAddr(), m)
+			}
 		}
 	}
-	return &documentBuf, nil
+	return
 }
 
 var emptyHeader = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}

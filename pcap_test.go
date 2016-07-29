@@ -47,7 +47,24 @@ func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
+}
 
+func TestWireCompression(t *testing.T) {
+	pcapFname := "compressed.pcap"
+	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
+		opsSeen := len(statRecorder.Buffer)
+		if opsSeen != 24 {
+			t.Errorf("Didn't seen the correct number of ops, expected 24 but saw %v", opsSeen)
+		}
+		coll := session.DB(testDB).C(testCollection)
+		num, _ := coll.Count()
+
+		if num != 1 {
+			t.Error("Didn't find the expected single documents in the database")
+		}
+
+	}
+	pcapTestHelper(t, pcapFname, true, verifier)
 }
 
 func TestSingleChannelGetMoreLiveDB(t *testing.T) {

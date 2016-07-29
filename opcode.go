@@ -51,4 +51,5 @@ const (
 	OpCodeKillCursors  = OpCode(2007)
 	OpCodeCommand      = OpCode(2010)
 	OpCodeCommandReply = OpCode(2011)
+	OpCodeCompressed   = OpCode(2012)
 )
