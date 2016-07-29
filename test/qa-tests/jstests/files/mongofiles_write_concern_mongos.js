@@ -29,9 +29,9 @@
     ret = toolTest.runTool.apply(toolTest, ['files',
         '-vvvvv',
         '-d', 'dbOne']
-        .concat(writeConcern)
-        .concat(commonToolArgs)
-        .concat(['put', 'jstests/files/testdata/files1.txt']));
+      .concat(writeConcern)
+      .concat(commonToolArgs)
+      .concat(['put', 'jstests/files/testdata/files1.txt']));
     assert.eq(exitCode, ret, name);
     dbOne.dropDatabase();
   }
@@ -41,8 +41,8 @@
         '-d', 'dbOne',
         '--writeConcern={w:3}',
         '--host', st.s.host]
-        .concat(commonToolArgs)
-        .concat(['put', 'jstests/files/testdata/files1.txt']));
+      .concat(commonToolArgs)
+      .concat(['put', 'jstests/files/testdata/files1.txt']));
   }
 
   // drop the database so it's empty

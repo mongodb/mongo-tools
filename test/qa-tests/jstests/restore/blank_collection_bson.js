@@ -22,8 +22,8 @@
   var ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'test',
       '--collection', 'blank']
-      .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank.bson'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(0, toolTest.db.getSiblingDB('test').blank.count());
 
@@ -32,8 +32,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'test',
       '--collection', 'blank']
-      .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank_metadata.bson'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank_metadata.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(0, toolTest.db.getSiblingDB('test').blank.count());
 

@@ -40,8 +40,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the collections
@@ -54,8 +54,8 @@
 
   // restore the data, with --noIndexRestore
   ret = toolTest.runTool.apply(toolTest, ['restore', '--noIndexRestore']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the data was restored fully, and only the _id

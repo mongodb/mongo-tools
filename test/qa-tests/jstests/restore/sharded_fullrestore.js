@@ -21,14 +21,14 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-            .concat(getDumpTarget(targetPath))
-            .concat(commonToolArgs));
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs));
   assert.eq(ret, 0, "dump of full sharded system should have succeeded");
 
   // a full restore should fail
   ret = toolTest.runTool.apply(toolTest, ['restore']
-            .concat(getRestoreTarget(targetPath))
-            .concat(commonToolArgs));
+    .concat(getRestoreTarget(targetPath))
+    .concat(commonToolArgs));
   assert.neq(ret, 0, "restore of full sharded system should have failed");
 
   // delete the config dir
@@ -36,8 +36,8 @@
 
   // *now* the restore should succeed
   ret = toolTest.runTool.apply(toolTest, ['restore']
-            .concat(getRestoreTarget(targetPath))
-            .concat(commonToolArgs));
+    .concat(getRestoreTarget(targetPath))
+    .concat(commonToolArgs));
   assert.eq(ret, 0, "restore of sharded system without config db should have succeeded");
 
 }());

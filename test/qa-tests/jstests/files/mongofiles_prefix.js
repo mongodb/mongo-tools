@@ -16,7 +16,7 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put 1 failed');
 
     // ensure the default collection name prefix was used
@@ -30,7 +30,7 @@ load('jstests/files/util/mongofiles_common.js');
           '--port', conn.port,
           '--prefix', testName,
           'put', filesToInsert[0]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'put 2 failed');
 
     // ensure the supplied collection name prefix was used

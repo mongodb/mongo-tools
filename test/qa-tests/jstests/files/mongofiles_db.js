@@ -17,14 +17,14 @@ load('jstests/files/util/mongofiles_common.js');
         '--port', conn.port,
         '--host', 'localhost',
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put 1 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--db', 'otherdb',
         '--port', conn.port,
         '--host', 'localhost',
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put 2 failed');
 
     // ensure the files were inserted into the right db
@@ -36,14 +36,14 @@ load('jstests/files/util/mongofiles_common.js');
           '--port', conn.port,
           '--host', 'localhost',
           'put', filesToInsert[0]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'put 3 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
           '-d', 'otherdb',
           '--port', conn.port,
           '--host', 'localhost',
           'put', filesToInsert[0]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'put 4 failed');
 
     // ensure the file was inserted into the right db

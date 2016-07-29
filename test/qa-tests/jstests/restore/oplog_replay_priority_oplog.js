@@ -27,7 +27,7 @@
       '--oplogReplay',
       '--oplogFile', 'jstests/restore/testdata/extra_oplog.bson',
       restoreTarget]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, "restore operation failed");
 
   // Extra oplog has 5 entries as explained in oplog_replay_and_limit.js

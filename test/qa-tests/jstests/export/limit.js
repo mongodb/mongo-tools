@@ -33,7 +33,7 @@
       '--collection', 'data',
       '--sort', '{a:1}',
       '--limit', '20']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the database
@@ -44,7 +44,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'data']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the limit was applied to the export

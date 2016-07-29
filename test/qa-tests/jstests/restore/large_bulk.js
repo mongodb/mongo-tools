@@ -31,8 +31,8 @@
   var dumpTarget = 'large_bulk_dump';
   resetDbpath(dumpTarget);
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the database so it's empty
@@ -42,8 +42,8 @@
   // 32 records are well under the 1k batch size
   // so this should test wether the physcial size limit is respected
   ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, "restore to empty DB should have returned successfully");
 
   // success

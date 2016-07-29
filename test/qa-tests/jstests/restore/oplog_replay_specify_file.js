@@ -39,7 +39,7 @@
       '--db', 'test_oplog',
       '-c', 'foo',
       '--out', dumpTarget]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, "dump operation failed");
 
   // Dump original data.
@@ -57,7 +57,7 @@
       '--oplogReplay',
       '--oplogFile', dumpTarget + '/test_oplog/foo.bson',
       dumpTarget]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, "restore operation failed");
 
   assert.eq(oplogSize, testRestoreColl.count(),

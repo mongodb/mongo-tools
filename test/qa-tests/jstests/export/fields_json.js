@@ -33,7 +33,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -42,7 +42,7 @@
       '--db', 'test',
       '--collection', 'dest',
       '--type', 'json']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure only the specified field was exported
@@ -61,7 +61,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--fields', 'a,b,c']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -70,7 +70,7 @@
       '--db', 'test',
       '--collection', 'dest',
       '--type', 'json']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure everything was exported

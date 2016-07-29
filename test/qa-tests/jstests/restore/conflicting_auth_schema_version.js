@@ -105,7 +105,7 @@
       '--password', 'password',
       '--port', toolTest.port,
       '--stopOnError']
-        .concat(getRestoreTarget(dumpTarget));
+      .concat(getRestoreTarget(dumpTarget));
 
     ret = runMongoProgram.apply(this, args);
 

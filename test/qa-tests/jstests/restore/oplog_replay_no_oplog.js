@@ -10,7 +10,7 @@
 
   // run the restore, with a dump directory that has no oplog.bson file
   var ret = toolTest.runTool.apply(toolTest, ['restore', '--oplogReplay']
-      .concat(getRestoreTarget('restore/testdata/dump_empty')));
+    .concat(getRestoreTarget('restore/testdata/dump_empty')));
   assert.neq(0, ret);
 
   // success

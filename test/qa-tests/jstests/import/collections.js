@@ -21,7 +21,7 @@
       "--out", toolTest.extFile,
       "-d", toolTest.baseName,
       "-c", db1.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   db1.c.drop();
   assert.eq(0, db1.c.count(), "after drop", "-d", toolTest.baseName, "-c", "foo");
@@ -38,14 +38,14 @@
 
   toolTest.runTool.apply(toolTest, ["import",
       "--file", "foo.blah.json"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").foo.blah.count(), 2,
       "importing file named after collection should insert to correct namespace");
   db1.c.getDB().getSiblingDB("test").foo.blah.drop();
 
   toolTest.runTool.apply(toolTest, ["import",
       "--file", "foo.blah.json.backup"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").foo.blah.json.count(), 2,
       "importing file with extra extension should still assume correct namespace");
   db1.c.getDB().getSiblingDB("test").foo.blah.json.drop();
@@ -53,14 +53,14 @@
   toolTest.runTool.apply(toolTest, ["import",
       "--file", "foo.blah.json",
       "--collection", "testcoll1"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").testcoll1.count(), 2,
       "importing --file with --collection should use correct collection name");
   db1.c.getDB().getSiblingDB("test").testcoll1.drop();
 
   toolTest.runTool.apply(toolTest, ["import",
       "foo.blah.json"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").foo.blah.count(), 2,
       "should be allowed to specify file as positional arg");
   db1.c.getDB().getSiblingDB("test").foo.blah.drop();
@@ -68,7 +68,7 @@
   toolTest.runTool.apply(toolTest, ["import",
       "foo.blah.json",
       "--db", "testdb2"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("testdb2").foo.blah.count(), 2,
       "should use database specified by --db");
   db1.c.getDB().getSiblingDB("testdb2").foo.blah.drop();

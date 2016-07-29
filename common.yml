@@ -934,7 +934,7 @@ tasks:
         working_dir: src
         script: |
           set -o verbose
-          /opt/node/bin/npm install eslint
+          /opt/node/bin/npm install eslint@3.2
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
 - name: qa-tests-unstable

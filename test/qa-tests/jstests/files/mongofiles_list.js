@@ -18,7 +18,7 @@ var testName = 'mongofiles_list';
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', file]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put for ' + file + 'failed');
     var db = conn.getDB('test');
     var fileObj = db.fs.files.findOne({
@@ -53,7 +53,7 @@ var testName = 'mongofiles_list';
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
           '--port', conn.port,
           '--quiet', 'list']
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'list command failed but was expected to succeed');
 
     jsTest.log('Verifying list output');

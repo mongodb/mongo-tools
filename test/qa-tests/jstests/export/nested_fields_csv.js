@@ -35,7 +35,7 @@
       '--collection', 'source',
       '--csv',
       '--fields', 'a,b.d.e,x.y']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data
@@ -45,7 +45,7 @@
       '--collection', 'dest',
       '--type', 'csv',
       '--headerline']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure that the non-specified fields were ignored, and the

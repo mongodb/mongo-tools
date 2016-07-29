@@ -14,7 +14,7 @@
   var ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'dbOne',
       '--collection', 'malformed_metadata']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_with_malformed/dbOne/malformed_metadata.bson')));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_malformed/dbOne/malformed_metadata.bson')));
   assert.neq(0, ret);
 
   toolTest.stop();

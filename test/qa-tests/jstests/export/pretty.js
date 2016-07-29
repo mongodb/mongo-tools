@@ -21,7 +21,7 @@
       '--collection', 'source',
       '--pretty',
       '--jsonArray']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   parsed = JSON.parse(cat('pretty.json'));
   assert.eq(parsed[0].a, 1);

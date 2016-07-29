@@ -55,7 +55,7 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump', '--db', 'test', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(dumpTarget)));
+    .concat(getDumpTarget(dumpTarget)));
   assert.eq(0, ret);
 
   // drop the database, users, and roles
@@ -78,7 +78,7 @@
   // restore the data, specifying --restoreDBUsersAndRoles. it should fail
   // since the auth version is too new
   ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test', '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget(dumpTarget+'/test')));
+    .concat(getRestoreTarget(dumpTarget+'/test')));
   assert.neq(0, ret);
 
   // success
@@ -125,7 +125,7 @@
 
   // dump the data
   ret = toolTest.runTool.apply(toolTest, ['dump', '--db', 'test', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(dumpTarget)));
+    .concat(getDumpTarget(dumpTarget)));
   assert.eq(0, ret);
 
   // drop the database, users, and roles
@@ -148,7 +148,7 @@
   // restore the data, specifying --restoreDBUsersAndRoles. it should fail
   // since the auth version is too new
   ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test', '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget(dumpTarget+'/test')));
+    .concat(getRestoreTarget(dumpTarget+'/test')));
   assert.neq(0, ret);
 
   // success

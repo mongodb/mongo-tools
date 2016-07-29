@@ -34,8 +34,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop and replace the data
@@ -66,8 +66,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore', '--drop',
       '--db', 'source',
       '--collection', 'coll1']
-      .concat(getRestoreTarget(dumpTarget+'/source/coll1.bson'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget+'/source/coll1.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure that the dumped data replaced the old data in only

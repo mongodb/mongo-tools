@@ -34,8 +34,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop all the data, and replace it with different data
@@ -54,8 +54,8 @@
   // restore with --drop. the current data in all collections should
   // be removed and replaced with the dumped data
   ret = toolTest.runTool.apply(toolTest, ['restore', '--drop']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the dumped data was restored, and the old data

@@ -16,7 +16,7 @@ load('jstests/files/util/mongofiles_common.js');
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
           '--port', conn.port,
           'put', filesToInsert[0]]
-          .concat(passthrough.args)),
+        .concat(passthrough.args)),
         0, 'put failed');
     }
 
@@ -29,7 +29,7 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
           '--port', conn.port,
           'delete', filesToInsert[0]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'delete failed');
 
     // ensure all the files were deleted

@@ -11,8 +11,8 @@ if (typeof getToolTest === 'undefined') {
 
   // Dump with no users
   var dumpArgs = ['dump', '--db', 'foo', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(targetPath))
-      .concat(commonToolArgs);
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 1,
     'mongodump should fail with --dumpDbUsersAndRoles and no users');
 
@@ -53,8 +53,8 @@ if (typeof getToolTest === 'undefined') {
   // mongodump should fail when --dumpDbUsersAndRoles is specified but
   // --db isn't
   dumpArgs = ['dump', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(targetPath))
-      .concat(commonToolArgs);
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should fail when --dumpDbUsersAndRoles is specified without ' +
     '--db');
@@ -63,8 +63,8 @@ if (typeof getToolTest === 'undefined') {
   // associated users
   resetDbpath(targetPath);
   dumpArgs = ['dump', '--db', 'foo', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(targetPath))
-      .concat(commonToolArgs);
+    .concat(getDumpTarget(targetPath))
+    .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
     'mongodump should succeed with `--db foo --dumpDbUsersAndRoles`');
   db.dropDatabase();
@@ -75,8 +75,8 @@ if (typeof getToolTest === 'undefined') {
   db.getSiblingDB('admin').system.roles.remove({role: 'bacon'});
 
   restoreArgs = ['restore', "--db", "foo", '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget(targetPath + "/foo"))
-      .concat(commonToolArgs);
+    .concat(getRestoreTarget(targetPath + "/foo"))
+    .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');
   var c = db.getSiblingDB('admin').system.roles.find();

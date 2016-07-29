@@ -19,8 +19,8 @@
   // run the restore with the blank db directory. it should succeed, but
   // insert nothing.
   var ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test']
-            .concat(getRestoreTarget('jstests/restore/testdata/blankdb'))
-            .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/blankdb'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // success

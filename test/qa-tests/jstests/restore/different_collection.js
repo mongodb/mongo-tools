@@ -42,8 +42,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'source',
       '--collection', destCollName]
-      .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson')
-        .concat(commonToolArgs)));
+    .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the data was restored correctly
@@ -58,8 +58,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'dest',
       '--collection', sourceCollName]
-      .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson')
-        .concat(commonToolArgs)));
+    .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the data was restored correctly
@@ -73,8 +73,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'dest',
       '--collection', destCollName]
-      .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the data was restored correctly

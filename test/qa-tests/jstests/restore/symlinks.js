@@ -27,8 +27,8 @@
   var notADir = toolTest.db.getSiblingDB('not_a_dir');
 
   // restore the data
-  var ret = toolTest.runTool.apply(toolTest, ['restore'].
-            concat(getRestoreTarget('jstests/restore/testdata/dump_with_soft_links')));
+  var ret = toolTest.runTool.apply(toolTest, ['restore']
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_soft_links')));
   assert.eq(0, ret);
 
   // make sure the data was restored properly

@@ -33,8 +33,8 @@
   // restore the data, without --oplogReplay. _ids 0-9, which appear in the
   // collection's bson file, should be restored.
   var ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog')
-        .concat(commonToolArgs)));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(10, testColl.count());
   for (var i = 0; i < 10; i++) {
@@ -48,8 +48,8 @@
   // in the oplog.bson file, should be inserted as well.
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--oplogReplay']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(15, testColl.count());
   for (i = 0; i < 15; i++) {
@@ -64,8 +64,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--oplogReplay',
       '--oplogLimit', '1416342266:0']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(14, testColl.count());
   for (i = 0; i < 14; i++) {

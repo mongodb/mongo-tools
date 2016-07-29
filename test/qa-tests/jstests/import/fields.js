@@ -33,7 +33,7 @@
         "--db", format + "testdb",
         "--collection", format + "testcoll",
         "--headerline"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
 
     checkCollectionContents(c);
     reset(c);
@@ -45,7 +45,7 @@
         "--db", format + "testdb",
         "--collection", format + "testcoll",
         "--fields", "a,b,c.xyz,d.hij.lkm"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     checkCollectionContents(c);
     reset(c);
 
@@ -56,7 +56,7 @@
         "--db", format + "testdb",
         "--collection", format + "testcoll",
         "--fieldFile", "jstests/import/testdata/fieldfile"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     checkCollectionContents(c);
     // check that without --ignoreBlanks, the empty field is just blank string
     assert.eq(c.findOne({a: "bob"}).b, "");
@@ -70,7 +70,7 @@
         "--collection", format + "testcoll",
         "--fieldFile", "jstests/import/testdata/fieldfile",
         "--ignoreBlanks"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.eq(c.findOne({a: "bob"}).b, undefined);
     reset(c);
 
@@ -81,7 +81,7 @@
         "--type=" + format,
         "--db", format + "testdb",
         "--collection", format + "testcoll"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.neq(ret, 0);
     reset(c);
 
@@ -95,7 +95,7 @@
       "--db", c2.getDB().toString(),
       "--collection", c2.getName(),
       "--fieldFile", "jstests/import/testdata/fieldfile"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   var importedDoc = c2.findOne({"a": "one"});
   assert.eq(importedDoc.field4, "extra1");

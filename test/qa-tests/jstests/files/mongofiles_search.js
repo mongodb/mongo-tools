@@ -40,7 +40,7 @@ var testName = 'mongofiles_search';
           '--quiet',
           '--port', conn.port,
           'search', queryString]
-          .concat(passthrough.args)),
+        .concat(passthrough.args)),
         0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
 
       // eslint-disable-next-line no-loop-func
@@ -61,7 +61,7 @@ var testName = 'mongofiles_search';
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
             '--port', conn.port,
             'put', filesToInsert[i]]
-            .concat(passthrough.args)),
+        .concat(passthrough.args)),
           0, 'put failed on ' + filesToInsert[i] + ' when it should have succeeded');
     }
 

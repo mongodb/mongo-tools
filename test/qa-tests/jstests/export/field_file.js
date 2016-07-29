@@ -33,7 +33,7 @@
       '--collection', 'source',
       '--type=csv',
       '--fieldFile', 'jstests/export/testdata/simple_field_file']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
 
@@ -44,7 +44,7 @@
       '--collection', 'dest',
       '--type=csv',
       '--fields', 'a,b,c']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
 

@@ -81,7 +81,8 @@
 
     // dump the data
     var args = ['mongodump' + (dumpVersion ? ('-'+dumpVersion) : ''),
-            '--port', toolTest.port].concat(getDumpTarget(dumpTarget));
+      '--port', toolTest.port]
+      .concat(getDumpTarget(dumpTarget));
     var ret = runMongoProgram.apply(this, args);
     assert.eq(0, ret);
 
@@ -99,8 +100,8 @@
 
     // do a full restore
     args = ['mongorestore' + (restoreVersion ? ('-'+restoreVersion) : ''),
-            '--port', toolTest.port].
-            concat(getRestoreTarget(dumpTarget));
+      '--port', toolTest.port]
+      .concat(getRestoreTarget(dumpTarget));
     ret = runMongoProgram.apply(this, args);
     assert.eq(0, ret);
 

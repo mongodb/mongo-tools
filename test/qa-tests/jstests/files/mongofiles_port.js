@@ -16,7 +16,7 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put 1 failed');
 
     // ensure the file was inserted
@@ -28,12 +28,12 @@ load('jstests/files/util/mongofiles_common.js');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
           '--port', '12345',
           'put', filesToInsert[0]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'expected mongofiles to fail but it succeeded 1');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
           '--port', 'random',
           'put', filesToInsert[0]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'expected mongofiles to fail but it succeeded 2');
 
     // ensure the file was not inserted

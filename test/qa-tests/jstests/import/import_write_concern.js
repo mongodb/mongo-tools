@@ -28,8 +28,8 @@
         '--file', fileTarget,
         '-d', dbName,
         '-c', colName]
-        .concat(writeConcern)
-        .concat(commonToolArgs));
+      .concat(writeConcern)
+      .concat(commonToolArgs));
     assert.eq(exitCode, ret, name);
     db.dropDatabase();
   }
@@ -39,7 +39,7 @@
         '--writeConcern={w:3}',
         '--host', rs.getPrimary().host,
         '--file', fileTarget]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
   }
 
   // create a test collection
@@ -54,7 +54,7 @@
       '--out', fileTarget,
       '-d', dbName,
       '-c', colName]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the database so it's empty

@@ -14,7 +14,7 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         '--version']
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, '--version failed');
 
     t.stop();

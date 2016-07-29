@@ -32,7 +32,7 @@
       '--out', exportTarget,
       '--db', 'test',
       '--collection', 'data']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the database
@@ -43,7 +43,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'data']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the data is correct

@@ -42,7 +42,9 @@
   // --batchSize is necessary because config servers don't allow
   // batch writes, so if you've dumped the config DB you should
   // be careful to set this.
-  var restoreArgs = ['restore', '--batchSize', '1', '--drop']
+  var restoreArgs = ['restore',
+    '--batchSize', '1',
+    '--drop']
     .concat(getRestoreTarget(targetPath))
     .concat(commonToolArgs);
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,

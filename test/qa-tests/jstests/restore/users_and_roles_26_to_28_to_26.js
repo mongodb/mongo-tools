@@ -54,7 +54,7 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump', '--db', 'test', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(dumpTarget)));
+    .concat(getDumpTarget(dumpTarget)));
   assert.eq(0, ret);
 
   // drop the database, users, and roles
@@ -73,8 +73,8 @@
   testDB = toolTest.db.getSiblingDB('test');
 
   // restore the data, specifying --restoreDBUsersAndRoles
-  ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test', '--restoreDbUsersAndRoles'].
-            concat(getRestoreTarget(dumpTarget+'/test')));
+  ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test', '--restoreDbUsersAndRoles']
+    .concat(getRestoreTarget(dumpTarget+'/test')));
   assert.eq(0, ret);
 
   // make sure the data was restored
@@ -95,8 +95,8 @@
   assert.eq('roleOne', roles[0].role);
 
   // dump the data again, to a slightly different target
-  ret = toolTest.runTool.apply(toolTest, ['dump', '--db', 'test', '--dumpDbUsersAndRoles'].
-            concat(getDumpTarget(dumpTarget+'_second')));
+  ret = toolTest.runTool.apply(toolTest, ['dump', '--db', 'test', '--dumpDbUsersAndRoles']
+    .concat(getDumpTarget(dumpTarget+'_second')));
   assert.eq(0, ret);
 
   // drop the database, users, and roles
@@ -117,7 +117,7 @@
 
   // restore the data, specifying --restoreDBUsersAndRoles
   ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test', '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget(dumpTarget+'_second/test')));
+    .concat(getRestoreTarget(dumpTarget+'_second/test')));
   assert.eq(0, ret);
 
   // make sure the data was restored

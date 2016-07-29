@@ -19,7 +19,7 @@ load('jstests/files/util/mongofiles_common.js');
         '--port', conn.port,
         '-t', contentType,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 1');
 
     var fileObj = db.fs.files.findOne({
@@ -40,7 +40,7 @@ load('jstests/files/util/mongofiles_common.js');
           '--port', conn.port,
           '--type', '',
           'put', filesToInsert[1]]
-          .concat(passthrough.args)),
+      .concat(passthrough.args)),
         0, 'put failed unexpectedly');
 
     if (!_isWindows()) {

@@ -41,7 +41,7 @@
       '--db', 'local',
       '-c', 'oplog.rs',
       '--out', dumpTarget]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, "dump operation failed");
 
   // Dump original data.
@@ -58,7 +58,7 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--oplogReplay',
       dumpTarget]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, "restore operation failed");
 
   assert.eq(oplogSize, testRestoreColl.count(),

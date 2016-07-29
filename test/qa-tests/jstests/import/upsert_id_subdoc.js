@@ -37,7 +37,7 @@
       "-o", toolTest.extFile,
       "--db", db.getName(),
       "--collection", db.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(ret, 0, "export should succeed");
 
   jsTest.log('Upserting pre-made documents with subdocument _ids.');
@@ -46,7 +46,7 @@
       "--upsert",
       "--db", db.getName(),
       "--collection", db.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(ret, 0, "import should succeed");
   assert.eq(db.c.count(), 2000,
       "count should be the same before and after import");
@@ -65,7 +65,7 @@
       "--upsert",
       "--db", db.getName(),
       "--collection", db.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(ret, 0, "import should succeed");
   assert.eq(db.c.count(), 2000,
       "count should be the same before and after import");

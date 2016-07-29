@@ -38,7 +38,7 @@
       '--out', exportTarget,
       '--db', 'test',
       '--collection', 'data']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // grab the query from the profiling collection
@@ -57,7 +57,7 @@
       '--db', 'test',
       '--collection', 'data',
       '--forceTableScan']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // grab the queries again
@@ -76,7 +76,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'data']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure that the export with --forceTableScan exported the correct data
@@ -95,7 +95,7 @@
       '--db', 'test',
       '--collection', 'data',
       '--sort', '{_id:1}']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // grab the queries again

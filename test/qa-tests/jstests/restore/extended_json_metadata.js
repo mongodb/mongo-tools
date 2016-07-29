@@ -21,8 +21,8 @@
 
   // run a restore against the mongos
   var ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_extended_json_options'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_extended_json_options'))
+    .concat(commonToolArgs));
   assert.eq(0, ret, "the restore does not crash");
 
   var collectionOptionsFromDB = testDB.changelog.exists();

@@ -19,7 +19,7 @@
       "--db", db.getName(),
       "--collection", db.c.getName(),
       "--stopOnError"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   assert.neq(ret, 0,
       "duplicate key with --stopOnError should return nonzero exit code");
@@ -31,7 +31,7 @@
       "jstests/import/testdata/dupes.json",
       "--db", db.getName(),
       "--collection", db.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(ret, 0,
       "duplicate key without --stopOnError should return zero exit code");
   assert.docEq(db.c.findOne({_id: 1234}), {_id: 1234, b: "000000", c: 222});

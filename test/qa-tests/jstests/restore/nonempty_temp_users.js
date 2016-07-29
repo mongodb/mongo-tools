@@ -26,7 +26,7 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget)));
+    .concat(getDumpTarget(dumpTarget)));
   assert.neq(1, ret);
 
   // clear out the user
@@ -37,7 +37,7 @@
 
   // restore the data. It should succeed
   ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget(dumpTarget)));
+    .concat(getRestoreTarget(dumpTarget)));
   assert.neq(1, ret);
 
   // success

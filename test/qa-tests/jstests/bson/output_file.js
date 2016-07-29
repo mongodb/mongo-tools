@@ -34,7 +34,7 @@
       '--db', 'test',
       '--collection', 'bsondump',
       '--type', 'json']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // Make sure everything was dumped.
@@ -59,7 +59,7 @@
       '--db', 'test',
       '--collection', 'bsondump',
       '--type', 'json']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // Make sure everything was dumped.

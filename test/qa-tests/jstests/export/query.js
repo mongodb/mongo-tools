@@ -34,7 +34,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--query', '{a:3}']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -42,7 +42,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the export was blank
@@ -57,7 +57,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--query', "{a:1, c:'1'}"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -65,7 +65,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the query was applied correctly
@@ -82,7 +82,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--queryFile', "jstests/export/testdata/query.json"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -90,7 +90,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the query was applied correctly
@@ -108,7 +108,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--query', "{a:2, 'x.c':'2'}"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -116,7 +116,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the query was applied correctly
@@ -133,7 +133,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--query', "{}"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -141,7 +141,7 @@
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the query was applied correctly
@@ -160,13 +160,13 @@
       '--db', 'test',
       '--collection', 'source',
       '--query', '{x:{$gt:Date(1418305949498), $lt:Date(1418305979498)}, y:{$gt:{$date:1418478749498}, $lt:{$date:1418478769498}}}']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret); assert.eq(1, destColl.count());
 
   // TOOLS-530 add support for ISODate and string formatting for query flag
@@ -182,13 +182,13 @@
       '--db', 'test',
       '--collection', 'source',
       '--query', '{x:{$gt:ISODate("2014-12-11T13:52:39.3Z"), $lt:ISODate("2014-12-11T13:52:39.5Z")}}']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
       '--file', exportTarget,
       '--db', 'test',
       '--collection', 'dest']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(1, destColl.count());
 

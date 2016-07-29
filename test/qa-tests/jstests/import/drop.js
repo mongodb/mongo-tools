@@ -23,7 +23,7 @@
       "--collection", db.c.getName(),
       "--headerline",
       "--drop"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   // test csv file contains 3 docs and collection should have been dropped, so the doc we inserted
   // should be gone and only the docs from the test file should be in the collection.
@@ -40,7 +40,7 @@
       "--collection", db.c.getName(),
       "--headerline",
       "--drop"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(ret, 0);
   assert.eq(db.c.count(), 3);
 

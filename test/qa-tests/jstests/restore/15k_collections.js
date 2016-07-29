@@ -20,8 +20,8 @@
   var dumpTarget = '15k_collections_dump';
   resetDbpath(dumpTarget);
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the database so it's empty
@@ -29,8 +29,8 @@
 
   // restore it
   ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, "restore to empty DB should have returned successfully");
 
   // success

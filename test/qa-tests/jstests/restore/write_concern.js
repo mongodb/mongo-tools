@@ -29,16 +29,16 @@
   var dumpTarget = 'write_concern_dump';
   resetDbpath(dumpTarget);
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   function writeConcernTestFunc(exitCode, writeConcern, name) {
     jsTest.log(name);
     var ret = toolTest.runTool.apply(toolTest, ['restore']
-        .concat(writeConcern)
-        .concat(getRestoreTarget(dumpTarget))
-        .concat(commonToolArgs));
+      .concat(writeConcern)
+      .concat(getRestoreTarget(dumpTarget))
+      .concat(commonToolArgs));
     assert.eq(exitCode, ret, name);
     dbOne.dropDatabase();
   }
@@ -46,8 +46,8 @@
   function noConnectTest() {
     return startMongoProgramNoConnect.apply(null, ['mongorestore',
         '--writeConcern={w:3}', '--host', rs.getPrimary().host]
-        .concat(getRestoreTarget(dumpTarget))
-        .concat(commonToolArgs));
+      .concat(getRestoreTarget(dumpTarget))
+      .concat(commonToolArgs));
   }
 
   // drop the database so it's empty

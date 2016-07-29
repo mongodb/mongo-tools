@@ -39,8 +39,8 @@
   assert.eq(1000, testDB.bar.count(), 'all documents should be inserted');
 
   var ret = toolTest.runTool.apply(toolTest, ['dump', '-v']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'dumping should run successfully');
 
   testDB.dropDatabase();
@@ -48,8 +48,8 @@
 
   // sanity check that we can restore the data without validation
   ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   assert.eq(1000, testDB.bar.count(), 'after the restore, all documents should be seen');
@@ -67,8 +67,8 @@
 
   // restore the 1000 records of which only 500 are valid
   ret = toolTest.runTool.apply(toolTest, ['restore', '-v']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'restoring against a collection with validation on should still succeed');
 
   assert.eq(500, testDB.bar.count(), 'only the valid documents should be restored');
@@ -90,8 +90,8 @@
 
   // restore the 1000 records again with bypassDocumentValidation turned on
   ret = toolTest.runTool.apply(toolTest, ['restore', '--bypassDocumentValidation']
-                .concat(getRestoreTarget(dumpTarget))
-                .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'restoring documents should work with bypass document validation set');
   assert.eq(1000, testDB.bar.count(),
               'all documents should be restored with bypass document validation set');
@@ -116,8 +116,8 @@
 
   // restore the 1000 records again
   ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(1000, testDB.bar.count());
 
@@ -126,8 +126,8 @@
 
   // re-dump everything, this time dumping the validation rules themselves
   ret = toolTest.runTool.apply(toolTest, ['dump', '-v']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'the dump should run successfully');
 
   // clear out the database, including the validation rules
@@ -144,8 +144,8 @@
 
   // restore the 1000 records again
   ret = toolTest.runTool.apply(toolTest, ['restore']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'restoring rules and some invalid documents should run successfully');
   assert.eq(500, testDB.bar.count(),
               'restoring the validation rules and documents should only restore valid documents');
@@ -170,8 +170,8 @@
 
   // restore the 1000 records again with bypassDocumentValidation turned on
   ret = toolTest.runTool.apply(toolTest, ['restore', '--bypassDocumentValidation']
-      .concat(getRestoreTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'restoring documents should work with bypass document validation set');
   assert.eq(1000, testDB.bar.count(),
       'all documents should be restored with bypass document validation set');

@@ -37,13 +37,13 @@
       "--out", toolTest.extFile,
       "-d", toolTest.baseName,
       "-c", db1.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   toolTest.runTool.apply(toolTest, ["import",
       "--file", toolTest.extFile,
       "--db", "imported",
       "--collection", "testcoll2"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   var postImportDoc = db1.c.getDB().getSiblingDB("imported").testcoll2.findOne();
 
   printjson(postImportDoc);
@@ -89,13 +89,13 @@
       "--out", toolTest.extFile,
       "-d", toolTest.baseName,
       "-c", db1.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   toolTest.runTool.apply(toolTest, ["import",
       "--file", toolTest.extFile,
       "--db", "imported",
       "--collection", "testcoll3"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   postImportDoc = db1.c.getDB().getSiblingDB("imported").testcoll3.findOne();
 
   printjson(postImportDoc);

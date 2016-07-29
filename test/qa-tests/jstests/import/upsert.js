@@ -24,7 +24,7 @@
       "--upsertFields", "a,c",
       "--db", db.getName(),
       "--collection", db.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   var doc1 = db.c.findOne({a: 1234});
   delete doc1["_id"];
@@ -50,7 +50,7 @@
       "--upsert",
       "--db", db.getName(),
       "--collection", db.c.getName()]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
 
   // check that the upsert got applied
   assert.eq(ret, 0);

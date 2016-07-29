@@ -37,7 +37,7 @@
         '--db', 'test_oplog',
         '-c', 'oplog',
         '--out', dumpTarget]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.eq(0, ret, "dump operation failed " + debugString);
 
     // create the test.op collection
@@ -48,7 +48,7 @@
     // trick restore into replaying the "oplog" we forged above
     ret = toolTest.runTool.apply(toolTest, ['restore',
         '--oplogReplay', dumpTarget+'/test_oplog']
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.eq(0, ret, "restore operation failed " + debugString);
     assert.eq(oplogSize, testRestoreColl.count(),
           "all oplog entries should be inserted " + debugString);

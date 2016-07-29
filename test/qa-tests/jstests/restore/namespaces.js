@@ -21,9 +21,9 @@
 
   function performRestoreWithArgs(...args) {
     return toolTest.runTool.apply(toolTest, ['restore']
-        .concat(args)
-        .concat(getRestoreTarget(dumpTarget))
-        .concat(commonToolArgs));
+      .concat(args)
+      .concat(getRestoreTarget(dumpTarget))
+      .concat(commonToolArgs));
   }
 
   function addTestDataTo(db, colls) {
@@ -70,8 +70,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // Get rid of the source databases

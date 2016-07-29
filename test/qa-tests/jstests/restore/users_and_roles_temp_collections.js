@@ -47,8 +47,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump', '--db', 'test', '--dumpDbUsersAndRoles']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the database, users, and roles
@@ -63,8 +63,8 @@
 
   // try to restore the data
   ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'test', '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget(dumpTarget+'/test'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget+'/test'))
+    .concat(commonToolArgs));
 
   // we should succeed with default temp collections
   assert.eq(0, ret);
@@ -75,8 +75,8 @@
       '--tempUsersColl', 'tempU',
       '--tempRolesColl', 'tempR',
       '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget(dumpTarget+'/test'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget+'/test'))
+    .concat(commonToolArgs));
 
   // we should succeed with new temp collections
   assert.eq(0, ret);

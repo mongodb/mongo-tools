@@ -51,7 +51,7 @@
       '--file', importFile,
       '--db', 'imported',
       '--collection', 'types']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   jsTest.log("Imported", importFile);

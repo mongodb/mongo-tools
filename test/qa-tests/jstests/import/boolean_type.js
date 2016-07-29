@@ -42,7 +42,7 @@
       '--file', 'jstests/import/testdata/boolean.json',
       '--db', 'imported',
       '--collection', 'testcollbool']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(ret, 0);
 
   // Confirm that mongoimport imports the testDocs identically to how the shell interprets them.

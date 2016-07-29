@@ -53,7 +53,7 @@
         "--collection", format + "testcoll",
         "--columnsHaveTypes",
         "--headerline"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
 
     checkCollectionContents(c);
     reset(c);
@@ -66,7 +66,7 @@
         "--collection", format + "testcoll",
         "--columnsHaveTypes",
         "--fields", header]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     checkCollectionContents(c);
     reset(c);
 
@@ -78,7 +78,7 @@
         "--collection", format + "testcoll",
         "--columnsHaveTypes",
         "--fieldFile", "jstests/import/testdata/typedfieldfile"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     checkCollectionContents(c);
     reset(c);
 
@@ -90,7 +90,7 @@
         "--db", format + "testdb",
         "--collection", format + "testcoll",
         "--columnsHaveTypes"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.neq(ret, 0);
     reset(c);
 
@@ -102,7 +102,7 @@
         "--collection", format + "testcoll",
         "--columnsHaveTypes",
         "--fieldFile", "jstests/import/testdata/typedfieldfile"]
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
 
     var importedDoc = c.findOne({"a": "one"});
     assert.eq(importedDoc.field5, "extra1");

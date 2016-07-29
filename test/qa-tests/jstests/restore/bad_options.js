@@ -13,39 +13,39 @@
   // run restore with both --objcheck and --noobjcheck specified
   var ret = toolTest.runTool.apply(toolTest, ['restore',
       '--objcheck', '--noobjcheck']
-      .concat(getRestoreTarget('restore/testdata/dump_empty')));
+    .concat(getRestoreTarget('restore/testdata/dump_empty')));
   assert.neq(0, ret);
 
   // run restore with --oplogLimit with a bad timestamp
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--oplogReplay', '--oplogLimit',
       'xxx']
-      .concat(getRestoreTarget('restore/testdata/dump_with_oplog')));
+    .concat(getRestoreTarget('restore/testdata/dump_with_oplog')));
   assert.neq(0, ret);
 
   // run restore with a negative --w value
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--w', '-1']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_empty')));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_empty')));
   assert.neq(0, ret);
 
   // run restore with an invalid db name
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'billy.crystal']
-      .concat(getRestoreTarget('jstests/restore/testdata/blankdb')));
+    .concat(getRestoreTarget('jstests/restore/testdata/blankdb')));
   assert.neq(0, ret);
 
   // run restore with an invalid collection name
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'test',
       '--collection', '$money']
-      .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank.bson')));
+    .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank.bson')));
   assert.neq(0, ret);
 
   // run restore with an invalid verbosity value
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '-v', 'torvalds']
-      .concat(getRestoreTarget('restore/testdata/dump_empty')));
+    .concat(getRestoreTarget('restore/testdata/dump_empty')));
   assert.neq(0, ret);
 
   // success

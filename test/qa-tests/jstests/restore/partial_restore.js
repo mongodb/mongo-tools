@@ -36,8 +36,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the databases
@@ -46,8 +46,8 @@
 
   // restore a single db
   ret = toolTest.runTool.apply(toolTest, ['restore', '--db', 'dbOne']
-      .concat(getRestoreTarget(dumpTarget+'/dbOne'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget+'/dbOne'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the restore worked, and nothing else but that db was restored
@@ -62,8 +62,8 @@
   ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'dbOne',
       '--collection', 'collTwo']
-      .concat(getRestoreTarget(dumpTarget+'/dbOne/collTwo.bson'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget(dumpTarget+'/dbOne/collTwo.bson'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the restore worked, and nothing else but that collection was restored

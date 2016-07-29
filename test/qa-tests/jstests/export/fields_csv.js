@@ -34,7 +34,7 @@
       '--collection', 'source',
       '--csv',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
     // import the data into the destination collection
@@ -44,7 +44,7 @@
       '--collection', 'dest',
       '--type', 'csv',
       '--fields', 'a,b,c']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure only the specified field was exported
@@ -64,7 +64,7 @@
       '--collection', 'source',
       '--csv',
       '--fields', 'a,b,c']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
@@ -74,7 +74,7 @@
       '--collection', 'dest',
       '--type', 'csv',
       '--fields', 'a,b,c']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure everything was exported
@@ -138,7 +138,7 @@
         '--db', 'test',
         '--collection', 'source',
         '--csv']
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.eq(0, ret);
     output = cat(exportTarget);
     jsTest.log("Fields Test " + (i + 1) + ": \n" + output);
@@ -160,7 +160,7 @@
         '--db', 'test',
         '--collection', 'source',
         '--csv']
-        .concat(commonToolArgs));
+      .concat(commonToolArgs));
     assert.eq(0, ret);
     output = cat(exportTarget);
     jsTest.log("Fields + Query Test " + (i + 1) + ": \n" + output);

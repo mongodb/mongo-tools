@@ -32,7 +32,7 @@
       '--collection', 'source',
       '--type="foobar"',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(3, ret);
 
   // create a dump file using a lowercase csv type
@@ -42,7 +42,7 @@
       '--collection', 'source',
       '--type="csv"',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   var csvmd5 = md5sumFile(exportTarget + ".csv");
 
@@ -53,7 +53,7 @@
       '--collection', 'source',
       '--type="CSV"',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   var CSVmd5 = md5sumFile(exportTarget + ".CSV");
   // the files for the uppercase and lowercase types should match
   assert.eq(csvmd5, CSVmd5);
@@ -65,7 +65,7 @@
       '--collection', 'source',
       '--type="cSv"',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   var cSvmd5 = md5sumFile(exportTarget + ".cSv");
   // the files for the uppercase and lowercase types should match
   assert.eq(csvmd5, cSvmd5);
@@ -79,7 +79,7 @@
       '--collection', 'source',
       '--type="json"',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   var jsonmd5 = md5sumFile(exportTarget + ".json");
 
@@ -90,7 +90,7 @@
       '--collection', 'source',
       '--type="JSON"',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   var JSONmd5 = md5sumFile(exportTarget + ".JSON");
 
@@ -100,7 +100,7 @@
       '--db', 'test',
       '--collection', 'source',
       '--fields', 'a']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
   var blankmd5 = md5sumFile(exportTarget + ".blank");
   assert.eq(JSONmd5, jsonmd5);

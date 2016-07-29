@@ -15,14 +15,14 @@ load('jstests/files/util/mongofiles_common.js');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
         '--invalid', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'invalid-option: mongofiles succeeded when it should have failed');
 
     // run with invalid command
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'invalid', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'invalid-command: mongofiles succeeded when it should have failed');
 
     t.stop();

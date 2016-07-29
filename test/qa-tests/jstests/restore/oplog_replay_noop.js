@@ -23,8 +23,8 @@
 
   // restore the data, with --oplogReplay
   var ret = toolTest.runTool.apply(toolTest, ['restore', '--oplogReplay']
-      .concat(getRestoreTarget('jstests/restore/testdata/dump_with_noop_in_oplog'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_noop_in_oplog'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the document appearing in the oplog, which shows up

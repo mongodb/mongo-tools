@@ -35,27 +35,27 @@ var extendedAssert;
   };
 
   ['eq', 'neq', 'contains', 'gt', 'lt', 'gte', 'lte', 'strContains']
-  .forEach(function (name) {
-    var assertFunc = extendedAssert[name];
-    var newAssertFunc = assertFunc.bind(this);
-    newAssertFunc.soon = function(expected, actualFunc, msg, timeout, interval) {
-      try {
-        doassert = muteable_doassert;
-        extendedAssert.soon(function() {
-          try {
-            assertFunc(expected, actualFunc(), EX_ASSERT_DONT_PRINT);
-            return true;
-          } catch (e) {
-            return false;
-          }
-        }, EX_ASSERT_DONT_PRINT, timeout, interval);
-        doassert = builtin_doassert;
-      } catch (e) {
-        doassert = builtin_doassert;
+    .forEach(function (name) {
+      var assertFunc = extendedAssert[name];
+      var newAssertFunc = assertFunc.bind(this);
+      newAssertFunc.soon = function(expected, actualFunc, msg, timeout, interval) {
+        try {
+          doassert = muteable_doassert;
+          extendedAssert.soon(function() {
+            try {
+              assertFunc(expected, actualFunc(), EX_ASSERT_DONT_PRINT);
+              return true;
+            } catch (e) {
+              return false;
+            }
+          }, EX_ASSERT_DONT_PRINT, timeout, interval);
+          doassert = builtin_doassert;
+        } catch (e) {
+          doassert = builtin_doassert;
         // Make it fail
-        assertFunc(expected, actualFunc(), msg);
-      }
-    };
-    extendedAssert[name] = newAssertFunc;
-  });
+          assertFunc(expected, actualFunc(), msg);
+        }
+      };
+      extendedAssert[name] = newAssertFunc;
+    });
 }());

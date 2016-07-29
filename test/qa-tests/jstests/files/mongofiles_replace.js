@@ -17,17 +17,17 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 1');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 2');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 3');
 
     // ensure that it is never overwritten
@@ -42,7 +42,7 @@ load('jstests/files/util/mongofiles_common.js');
         '--port', conn.port,
         '--replace',
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 4');
 
     assert.eq(db.fs.files.count(), 1, 'expected 1 file inserted but got ' + db.fs.files.count());
@@ -51,18 +51,18 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[1]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 5');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[2]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 6');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         '--replace',
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+      .concat(passthrough.args)),
       0, 'put failed when it should have succeeded 7');
 
     assert.eq(db.fs.files.count(), 3, 'expected 3 files inserted but got ' + db.fs.files.count());

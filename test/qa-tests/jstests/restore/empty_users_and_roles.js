@@ -23,8 +23,8 @@
   var ret = toolTest.runTool.apply(toolTest, ['restore',
       '--db', 'test',
       '--restoreDbUsersAndRoles']
-      .concat(getRestoreTarget('jstests/restore/testdata/blankdb'))
-      .concat(commonToolArgs));
+    .concat(getRestoreTarget('jstests/restore/testdata/blankdb'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // success

@@ -38,7 +38,7 @@
       '--out', toolTest.extFile,
       '-d', 'test',
       '-c', 'bar']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'export should run successfully');
 
   testDB.dropDatabase();
@@ -50,7 +50,7 @@
       '--file', toolTest.extFile,
       '--db', 'test',
       '-c', 'bar']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   assert.eq(1000, testDB.bar.count(),
@@ -73,7 +73,7 @@
       '--file', toolTest.extFile,
       '--db', 'test',
       '-c', 'bar']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret,
       'import against a collection with validation on still succeeds');
 
@@ -100,7 +100,7 @@
       '--db', 'test',
       '-c', 'bar',
       '--bypassDocumentValidation']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret,
       'importing documents should work with bypass document validation set');
   assert.eq(1000, testDB.bar.count(),
