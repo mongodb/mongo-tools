@@ -169,7 +169,7 @@ func Record(ctx *packetHandlerContext,
 	}
 
 	err = <-ch
-	if err == nil && stats.PacketsDropped != 0 {
+	if err == nil && stats != nil && stats.PacketsDropped != 0 {
 		err = ErrPacketsDropped{stats.PacketsDropped}
 	}
 	return err
