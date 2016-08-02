@@ -19,7 +19,7 @@ import (
 const TruncateLength = 350
 
 type StatOptions struct {
-	Collect    string `long:"collect" description:"Stat collection format; 'format' option uses the --format string" choice:"json" choice:"format" choice:"none"`
+	Collect    string `long:"collect" description:"Stat collection format; 'format' option uses the --format string" choice:"json" choice:"format" choice:"none" default:"format"`
 	Buffered   bool   `hidden:"yes"`
 	Report     string `long:"report" description:"Write report on execution to given output path"`
 	NoTruncate bool   `long:"no-truncate" description:"Disable truncation of large payload data in log output"`

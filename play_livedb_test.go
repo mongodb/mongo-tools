@@ -27,7 +27,7 @@ var currentTestUrl string
 var authTestServerMode bool
 var isMongosTestServer bool
 var testCollectorOpts StatOptions = StatOptions{
-	JSON:     false,
+	Collect:  "format",
 	Buffered: true,
 }
 
