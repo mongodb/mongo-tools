@@ -47,7 +47,6 @@ func optionCustomHeaders(option string) (headers []string) {
 }
 
 func main() {
-	signals.Handle()
 	// initialize command-line opts
 	opts := options.New(
 		"mongostat",
@@ -66,6 +65,7 @@ func main() {
 	}
 
 	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	sleepInterval := 1
 	if len(args) > 0 {

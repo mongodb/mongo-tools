@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-	signals.Handle()
 	// initialize command-line opts
 	opts := options.New("mongoimport", mongoimport.Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true})
@@ -32,6 +31,7 @@ func main() {
 	}
 
 	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	// print help, if specified
 	if opts.PrintHelp(false) {

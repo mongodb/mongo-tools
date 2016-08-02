@@ -15,8 +15,6 @@ import (
 )
 
 func main() {
-	signals.Handle()
-
 	// initialize command-line opts
 	opts := options.New("mongotop", mongotop.Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
@@ -41,6 +39,9 @@ func main() {
 	if opts.PrintVersion() {
 		return
 	}
+
+	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	if len(args) > 1 {
 		log.Logvf(log.Always, "too many positional arguments")

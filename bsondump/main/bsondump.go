@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-	go signals.Handle()
 	// initialize command-line opts
 	opts := options.New("bsondump", bsondump.Usage, options.EnabledOptions{})
 	bsonDumpOpts := &bsondump.BSONDumpOptions{}
@@ -36,6 +35,7 @@ func main() {
 	}
 
 	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	if len(args) > 1 {
 		log.Logvf(log.Always, "too many positional arguments: %v", args)

@@ -12,8 +12,6 @@ import (
 )
 
 func main() {
-	signals.Handle()
-
 	// initialize command line options
 	opts := options.New("mongooplog", mongooplog.Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
@@ -50,6 +48,7 @@ func main() {
 
 	// init logger
 	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	// connect directly, unless a replica set name is explicitly specified
 	_, setName := util.ParseConnectionString(opts.Host)

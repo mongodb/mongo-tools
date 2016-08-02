@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	signals.Handle()
 	// initialize command-line opts
 	opts := options.New("mongofiles", mongofiles.Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
 
@@ -39,6 +38,7 @@ func main() {
 		return
 	}
 	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
 
 	// add the specified database to the namespace options struct
 	opts.Namespace.DB = storageOpts.DB
