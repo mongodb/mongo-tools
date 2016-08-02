@@ -126,6 +126,11 @@ func (e *Escaper) Expand(in string) string {
 		arg.b = new(bytes.Buffer)
 		arg.m = m
 	}
+	// edge conditions after full string has been read
+	if arg.on {
+		s := arg.b.String()
+		b.WriteString(arg.m.fa(s))
+	}
 	return b.String()
 }
 

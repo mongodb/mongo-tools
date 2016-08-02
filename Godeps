@@ -4,4 +4,4 @@ github.com/jessevdk/go-flags                    4047bd797dd935ae2b557a79cc43f223
 github.com/mongodb/mongo-tools/common           3e1a7b5036d86c68ece6848854b858e93414f1cc
 gopkg.in/mgo.v2                                 22287bab4379e1fbf6002fb4eb769888f3fb224c
 github.com/patrickmn/go-cache                   1881a9bccb818787f68c52bfba648c6cf34c34fa
-github.com/10gen/escaper                        9977ea5f8d64d10ce964aecc04d82bc14fa031ea
+github.com/10gen/escaper                        17fe61c658dcbdcbf246c783f4f7dc97efde3a8b

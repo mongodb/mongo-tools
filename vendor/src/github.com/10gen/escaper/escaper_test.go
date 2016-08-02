@@ -94,3 +94,19 @@ func TestEmptyArgument(t *testing.T) {
 		t.Logf("success: %s", output)
 	}
 }
+
+func TestEdge(t *testing.T) {
+	format := "foo%a"
+	expected := "foobar"
+	esc := New()
+	esc.RegisterArg('a', func(_ string) string {
+		return "bar"
+	})
+	output := esc.Expand(format)
+	if output != expected {
+		t.Errorf("expected %s, got %s", expected, output)
+		t.Fail()
+	} else {
+		t.Logf("success: %s", output)
+	}
+}
