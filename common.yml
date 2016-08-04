@@ -240,7 +240,7 @@ functions:
         sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
 
         . ./set_gopath.sh
-        ${gorootvars} go build ${args} ${build_tags} -o bin/${tool} ${tool}/main/${tool}.go
+        ${gorootvars} go build ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
   "download mongod":
@@ -322,7 +322,7 @@ functions:
         export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
         export basedir=`pwd`
         cd ${package}
-        go test ${coverage_args} ${args} ${build_tags} -test.v > unit.suite
+        go test ${coverage_args} ${args} -tags "${build_tags}" -test.v > unit.suite
         export exitcode=$?
         cat unit.suite
         cp unit.suite $basedir/.
@@ -362,14 +362,14 @@ functions:
         . ./set_gopath.sh
 
         # run unit tests under common package
-        for i in "common/bsonutil" "common/json" "common/archive" "common/log" "common/options" "common/progress" "common/text"; do
+        for i in "common/bsonutil" "common/json" "common/archive" "common/failpoint" "common/log" "common/options" "common/progress" "common/text"; do
             cd $i
             COMMON_SUBPKG=$(basename $i)
             COVERAGE_ARGS=""
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$COMMON_SUBPKG.out"
             fi;
-            ${library_path} go test $COVERAGE_ARGS ${args} ${build_tags} -test.v > $COMMON_SUBPKG.suite
+            ${library_path} go test $COVERAGE_ARGS ${args} -tags "failpoints ${build_tags}" -test.v > $COMMON_SUBPKG.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -386,7 +386,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            ${library_path} go test $COVERAGE_ARGS ${args} ${build_tags} -test.v > $i.suite
+            ${library_path} go test $COVERAGE_ARGS ${args} -tags "${build_tags}" -test.v > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -424,7 +424,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            ${library_path} go test $COVERAGE_ARGS -test.v ${args} ${build_tags} > $i.suite
+            ${library_path} go test $COVERAGE_ARGS -test.v ${args} -tags "${build_tags}" > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -598,7 +598,7 @@ tasks:
           - key: "package"
             value: "common/db"
           - key: "args"
-            value: "-test.types=db"
+            value: "${args} -test.types=db"
     - func: "download mongod"
       vars:
         mongo_version: "3.2"
@@ -698,7 +698,7 @@ tasks:
       params:
         updates:
           - key: "args"
-            value: "-test.types=${integration_test_args}"
+            value: "${args} -test.types=${integration_test_args}"
     - func: "download mongod"
       vars:
         mongo_version: "3.2"
@@ -719,7 +719,7 @@ tasks:
       params:
         updates:
           - key: "args"
-            value: "-test.types=${integration_test_args},auth"
+            value: "${args} -test.types=${integration_test_args},auth"
           - key: "mongod_args"
             concat: " --auth"
           - key: "auth_username"
@@ -748,7 +748,7 @@ tasks:
       params:
         updates:
           - key: "args"
-            value: "-test.types=kerberos"
+            value: "${args} -test.types=kerberos"
     - func: "setup integration test"
     - func: "run tool integration tests"
 
@@ -1262,7 +1262,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "osx"
     arch: "osx/x86_64"
-    build_tags: -tags "ssl"
+    build_tags: "ssl"
     resmoke_args: --excludeWithAnyTags=requires_many_files
   tasks: *osx_1010_tasks
 
@@ -1276,7 +1276,7 @@ buildvariants:
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     arch: "osx/x86_64"
-    build_tags: -tags "ssl"
+    build_tags: "ssl"
     edition: ssl
     resmoke_args: --excludeWithAnyTags=requires_many_files
   tasks: *osx_1010_ssl_tasks
@@ -1294,7 +1294,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1204"
     mongo_edition: "targeted"
-    build_tags: -tags "ssl"
+    build_tags: "ssl"
     arch: "linux/x86_64"
     integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
@@ -1309,7 +1309,7 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     mongo_os: "ubuntu1204"
     mongo_edition: "enterprise"
-    build_tags: -tags "ssl"
+    build_tags: "ssl"
     edition: ssl
     arch: "linux/x86_64"
     smoke_use_ssl: --use-ssl
@@ -1327,7 +1327,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1204"
     mongo_edition: "enterprise"
-    build_tags: -tags "ssl sasl"
+    build_tags: "ssl sasl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     arch: "linux/x86_64"
@@ -1347,8 +1347,9 @@ buildvariants:
     mongo_os: "rhel71"
     mongo_edition: "enterprise"
     # RHEL 7.1 PPC64LE machines kerberos setup does not work for mongo-tools
-    #build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)" -tags 'sasl ssl'
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags 'ssl'
+    #args: ... libsasl2; build_tags "sasl ssl"
+    args: -gccgoflags "$(pkg-config --libs --cflags libssl)"
+    build_tags: 'ssl'
     resmoke_use_ssl: _ssl
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     resmoke_args: --excludeWithAnyTags=requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 4
@@ -1371,7 +1372,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "sunos5"
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    build_tags: -gccgoflags "-lsocket -lnsl"
+    args: -gccgoflags "-lsocket -lnsl"
     resmoke_args: --excludeWithAnyTags=requires_large_ram -j$(kstat cpu | sort -u | grep -c "^module")
   tasks: *solaris_tasks
 
@@ -1417,7 +1418,7 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     mongo_os: "windows-64"
     mongo_target: "windows_x86_64-2008plus-ssl"
-    build_tags: -tags "ssl"
+    build_tags: "ssl"
     edition: ssl
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
@@ -1440,7 +1441,7 @@ buildvariants:
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     resmoke_args: --excludeWithAnyTags=requires_large_ram,requires_mongo_24
@@ -1468,7 +1469,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1204"
     mongo_edition: "enterprise"
-    build_tags: -tags "ssl"
+    build_tags: "ssl"
     arch: "linux/x86_64"
     args: "-race"
     resmoke_args: --excludeWithAnyTags=requires_large_ram
@@ -1484,7 +1485,7 @@ buildvariants:
   run_on:
   - suse11-test
   expansions:
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist
 
@@ -1493,7 +1494,7 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist
 
@@ -1503,7 +1504,8 @@ buildvariants:
   - rhel55-test
   expansions:
     gorootvars: PATH=/opt/mongodbtoolchain/v2/bin:$PATH
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags "sasl ssl"
+    args: -gccgoflags "$(pkg-config --libs --cflags libssl)"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist
 
@@ -1513,7 +1515,7 @@ buildvariants:
   - rhel62-test
   expansions:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist
 
@@ -1523,7 +1525,7 @@ buildvariants:
   - rhel70
   expansions:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist
 
@@ -1532,7 +1534,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist
 
@@ -1542,6 +1544,6 @@ buildvariants:
   - debian71-test
   expansions:
     gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    build_tags: -tags "sasl ssl"
+    build_tags: "sasl ssl"
   tasks:
   - name: dist

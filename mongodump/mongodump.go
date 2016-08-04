@@ -6,6 +6,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/auth"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -21,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 const defaultPermissions = 0755
@@ -359,6 +361,10 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error getting oplog start: %v", err)
 		}
+	}
+
+	if failpoint.Enabled(failpoint.PauseBeforeDumping) {
+		time.Sleep(15 * time.Second)
 	}
 
 	// IO Phase II
