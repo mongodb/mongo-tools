@@ -158,6 +158,7 @@ tasks:
     vars:
       tool: mongotape
   - func: "build tool"
+
 - name: sanity_check
   depends_on:
   - name: build
@@ -173,9 +174,9 @@ tasks:
       working_dir: src
       script: |
         set -e
-        PATH=$PATH:`pwd`/../mongodb
-        echo "Running sanity check"
         chmod +x mongotape
+        PATH=$PATH:`pwd`:`pwd`/../mongodb
+        echo "Running sanity check"
         ./sanity_check.sh -p ${mongod_port}
 
 - name: go_test
