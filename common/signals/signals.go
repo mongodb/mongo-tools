@@ -32,18 +32,18 @@ func handleSignals(finalizer func(), finishedChan chan struct{}) {
 	defer signal.Stop(sigChan)
 	if finalizer != nil {
 		select {
-		case <-sigChan:
+		case sig := <-sigChan:
 			// first signal use finalizer to terminate cleanly
-			log.Logv(log.Always, "signal received; attempting to shut down")
+			log.Logvf(log.Always, "signal '%s' received; attempting to shut down", sig)
 			finalizer()
 		case <-finishedChan:
 			return
 		}
 	}
 	select {
-	case <-sigChan:
+	case sig := <-sigChan:
 		// second signal exits immediately
-		log.Logv(log.Always, "signal received; forcefully terminating")
+		log.Logvf(log.Always, "signal '%s' received; forcefully terminating", sig)
 		os.Exit(util.ExitKill)
 	case <-finishedChan:
 		return
