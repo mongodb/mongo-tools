@@ -130,7 +130,7 @@ sleep 1
 mongo --port=$PORT mongotape_test --eval "db.dropDatabase()" >/dev/null 2>&1
 
 log "starting TCPDUMP"
-tcpdump -i "$INTERFACE" port "$PORT" -w tmp.pcap &
+sudo tcpdump -i "$INTERFACE" port "$PORT" -w tmp.pcap &
 TCPDUMPPID=$!
 sleep 1 # make sure it actually starts capturing
 
@@ -154,7 +154,7 @@ END=`date`
 log "finished WORKLOAD"
 
 log "stopping TCPDUMP"
-( sleep 1 ; kill $TCPDUMPPID) &
+( sleep 1 ; sudo kill $TCPDUMPPID) &
 wait $TCPDUMPPID
 
 check_integrity

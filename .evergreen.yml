@@ -46,6 +46,15 @@ functions:
         local_file: src/testPcap/${pcapFname}
         remote_file: build/mongotape/${pcapFname}
 
+  "fetch ftdc" :
+  - command: shell.exec
+    type: test
+    params:
+      working_dir: src
+      script: |
+        . ./set_gopath.sh
+        go get github.com/10gen/ftdc-utils/cmd/ftdc
+
   "start mongod" :
     - command: shell.exec
       params:
@@ -276,6 +285,27 @@ tasks:
         filename: repltest
         additional_args: --run "LiveDB"
 
+- name: replay_test
+  depends_on:
+  - name: build
+  commands:
+  - func: "fetch source"
+  - func: "fetch tool"
+    vars:
+      tool: mongotape
+  - func: "fetch mongodb"
+  - func: "fetch ftdc"
+  - command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        set -e
+        . ./set_gopath.sh
+        PATH=$PATH:`pwd`:`pwd`/vendor/bin:`pwd`/../mongodb
+        chmod +x mongotape
+        echo "Running replay test"
+        ./replay_test.sh --verbose --explicit
+
 buildvariants:
 - name: ubuntu
   display_name: Ubuntu
@@ -291,3 +321,4 @@ buildvariants:
   - name: auth_test
   - name: sharded_test
   - name: repl_test
+  - name: replay_test
