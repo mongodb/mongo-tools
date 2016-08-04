@@ -28,13 +28,19 @@
   assert.eq(x, 0, "bsondump should exit with success when given verbosity");
 
   clearRawMongoProgramOutput();
-  x = _runMongoProgram("bsondump", "--quiet", sampleFilepath);
-  assert.eq(x, 0, "bsondump should exit with success when given --quiet");
+  var pid = _startMongoProgram("bsondump", "--quiet", sampleFilepath);
+  assert.eq(waitProgram(pid), 0, "bsondump should exit with success when given --quiet");
   assert.strContains.soon("I am a string", rawMongoProgramOutput,
       "found docs should still be printed when --quiet is used");
-  var results = rawMongoProgramOutput();
-  assert.eq(-1, results.indexOf("found"),
-      "only the found docs should be printed when --quiet is used");
+  assert.eq.soon(-1, function() {
+    return rawMongoProgramOutput()
+      .split("\n")
+      .filter(function(line) {
+        return line.indexOf("sh"+pid+"| ") === 0;
+      })
+      .join("\n")
+      .indexOf("found");
+  }, "only the found docs should be printed when --quiet is used");
 
   clearRawMongoProgramOutput();
   x = _runMongoProgram("bsondump", "--help");
