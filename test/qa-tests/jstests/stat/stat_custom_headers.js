@@ -3,6 +3,8 @@
     load('jstests/configs/plain_28.config.js');
   }
   load("jstests/libs/mongostat.js");
+  load("jstests/libs/extended_assert.js");
+  var assert = extendedAssert;
 
   var toolTest = getToolTest("stat_custom_headers");
   var port = toolTest.port;
@@ -17,8 +19,10 @@
   x = runMongoProgram("mongostat", "--port", port,
       "-o", "host,conn,time", "-n", 4, "--humanReadable=false");
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  rows = statRows();
-  assert.eq(rows.length, 5, "expected 5 rows in mongostat output");
+  assert.eq.soon(5, function() {
+    rows = statRows();
+    return rows.length;
+  }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
       "first row doesn't match 'host conn time'");
   assert.eq(statFields(rows[1]).length, 3,
@@ -29,8 +33,10 @@
   x = runMongoProgram("mongostat", "--port", port,
       "-o", "host,conn,time", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  rows = statRows();
-  assert.eq(rows.length, 5, "expected 5 rows in mongostat output");
+  assert.eq.soon(5, function() {
+    rows = statRows();
+    return rows.length;
+  }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
       "first row doesn't match 'host conn time'");
   assert.eq(statFields(rows[1]).length, 5,
@@ -51,8 +57,10 @@
   x = runMongoProgram("mongostat", "--port", port,
       "-o", "host=H,conn=C,time=MYTiME", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  rows = statRows();
-  assert.eq(rows.length, 5, "expected 5 rows in mongostat output");
+  assert.eq.soon(5, function() {
+    rows = statRows();
+    return rows.length;
+  }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "H,C,MYTiME",
       "first row doesn't match 'H C MYTiME'");
   assert.eq(statFields(rows[1]).length, 5,
@@ -63,8 +71,10 @@
   x = runMongoProgram("mongostat", "--port", port,
       "-o", "host,conn,mem.bits", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  rows = statRows();
-  assert.eq(rows.length, 5, "expected 5 rows in mongostat output");
+  assert.eq.soon(5, function() {
+    rows = statRows();
+    return rows.length;
+  }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,mem.bits",
       "first row doesn't match 'host time mem.bits'");
   fields = statFields(rows[1]);
@@ -79,8 +89,10 @@
   x = runMongoProgram("mongostat", "--port", port,
       "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  rows = statRows();
-  assert.eq(rows.length, 5, "expected 5 rows in mongostat output");
+  assert.eq.soon(5, function() {
+    rows = statRows();
+    return rows.length;
+  }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,MYCoNN,BiTs",
       "first row doesn't match 'host MYTiME BiTs'");
   fields = statFields(rows[1]);
