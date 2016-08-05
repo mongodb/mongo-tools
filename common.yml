@@ -210,8 +210,12 @@ functions:
         if [ '${library_path}' != '' ]; then
             export ${library_path}
         fi
+        sed -i.bak "s/built-without-version-string/$(git describe)/" common/options/options.go
+        sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
+
         . ./set_gopath.sh
-        go build -ldflags "-X github.com/mongodb/mongo-tools/common/options.Gitspec `git rev-parse HEAD` -X github.com/mongodb/mongo-tools/common/options.VersionStr $(git describe)" ${args} ${build_tags} -o bin/${tool} ${tool}/main/${tool}.go
+        go build ${args} ${build_tags} -o bin/${tool} ${tool}/main/${tool}.go
+        ./bin/${tool} --version
 
   "download mongod":
     command: shell.exec
