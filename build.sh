@@ -10,6 +10,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 cd $SCRIPT_DIR
 
+sed -i.bak "s/built-without-version-string/$(git describe)/" common/options/options.go
+sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
+
 # remove stale packages
 rm -rf vendor/pkg
 
@@ -17,7 +20,7 @@ rm -rf vendor/pkg
 mkdir -p bin
 
 for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop mongooplog; do
-	echo "Building ${i}..."
-  	# Build the tool, using -ldflags to link in the current gitspec
-        go build -o "bin/$i" -ldflags "-X github.com/mongodb/mongo-tools/common/options.Gitspec=`git rev-parse HEAD` -X github.com/mongodb/mongo-tools/common/options.VersionStr=$(git describe)" -tags "$tags" "$i/main/$i.go"
+        echo "Building ${i}..."
+        go build -o "bin/$i" -tags "$tags" "$i/main/$i.go"
+        ./bin/$i --version
 done
