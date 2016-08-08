@@ -909,6 +909,10 @@ runMongoProgram = function() {
                     );
     }
 
+    if (progName !== "bsondump" && args.indexOf("--dialTimeout") === -1) {
+      args.push("--dialTimeout", "30");
+    }
+
     if ( jsTestOptions().useSSL ) {
         args.push("--ssl", "--sslPEMKeyFile", "jstests/libs/server.pem", "--sslCAFile", "jstests/libs/ca.pem", "--sslAllowInvalidHostnames");
     }
