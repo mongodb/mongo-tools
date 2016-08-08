@@ -4,7 +4,6 @@ var testName = 'mongotop_sharded';
 (function() {
   jsTest.log('Testing mongotop against sharded cluster');
   load('jstests/top/util/mongotop_common.js');
-  load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
 
   var expectedError = 'cannot run mongotop against a mongos';
@@ -14,25 +13,8 @@ var testName = 'mongotop_sharded';
     jsTest.log('shell output: ' + shellOutput);
     shellOutput.split('\n').forEach(function(line) {
       // check the displayed error message
-      assert.neq(line.match(shellOutputRegex), null, 'must only have shell output lines');
       assert.neq(line.match(expectedError), null, 'unexpeced error message');
     });
-  };
-
-  var executeProgram = function(args) {
-    clearRawMongoProgramOutput();
-    var pid = startMongoProgramNoConnect.apply(this, args);
-    var exitCode = waitProgram(pid);
-    var prefix = 'sh'+pid+'| ';
-    var getOutput = function() {
-      return rawMongoProgramOutput().split('\n').filter(function(line) {
-        return line.indexOf(prefix) === 0;
-      }).join('\n');
-    };
-    return {
-      exitCode: exitCode,
-      getOutput: getOutput,
-    };
   };
 
   var runTests = function(topology, passthrough) {

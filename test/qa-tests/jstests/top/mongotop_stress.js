@@ -38,16 +38,6 @@ load('jstests/top/util/mongotop_common.js');
     clearRawMongoProgramOutput();
     assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args)), 0, 'failed 1');
 
-    var output = '';
-    var shellOutput = rawMongoProgramOutput();
-    jsTest.log('shell output: ' + shellOutput);
-    shellOutput.split('\n').forEach(function(line) {
-      if (line.match(shellOutputRegex)) {
-        output = line;
-        jsTest.log('raw output: ' + output);
-      }
-    });
-
     t.stop();
   };
 

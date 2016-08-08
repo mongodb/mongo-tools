@@ -5,6 +5,7 @@ load('jstests/top/util/mongotop_common.js');
 
 (function() {
   jsTest.log('Testing mongotop\'s reporting fidelity');
+  var assert = extendedAssert;
   var read = 'read';
   var write = 'write';
 
@@ -28,19 +29,13 @@ load('jstests/top/util/mongotop_common.js');
 
     // ensure tool runs without error
     clearRawMongoProgramOutput();
-    assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args)), 0, 'failed 1');
-    var output = '';
-    var shellOutput = rawMongoProgramOutput();
-    jsTest.log('shell output: ' + shellOutput);
-    shellOutput.split('\n').forEach(function(line) {
-      if (line.match(shellOutputRegex)) {
-        output = line;
-        jsTest.log('raw output: ' + output);
-      }
-    });
-
-    var parsedOutput = JSON.parse(extractJSON(output));
-    assert(typeof parsedOutput === 'object', 'invalid JSON 1');
+    var ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args));
+    assert.eq(ret.exitCode, 0, 'failed 1');
+    var parsedOutput;
+    assert.eq.soon('object', function() {
+      parsedOutput = JSON.parse(extractJSON(ret.getOutput()));
+      return typeof parsedOutput;
+    }, 'invalid JSON 1');
 
     // ensure only the active namespaces reports a non-zero value
     for (var namespace in parsedOutput.totals) {
