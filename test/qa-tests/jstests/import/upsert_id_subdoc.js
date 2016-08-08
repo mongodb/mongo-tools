@@ -17,18 +17,22 @@
   db.dropDatabase();
 
   // create a set of documents with a subdocument _id
-  var i, j;
-  for (i = 0; i < 100; i++) {
-    for (j = 0; j < 20; j++) {
-      db.c.insert({
-        _id: {
-          a: i,
-          b: [0, 1, 2, {c: j, d: "foo"}],
-          e: "bar",
-        },
-        x: "string",
-      });
+  var h, i, j;
+  for (h = 0; h < 2; h++) {
+    var data = [];
+    for (i = h * 50; i < (h+1) * 50; i++) {
+      for (j = 0; j < 20; j++) {
+        data.push({
+          _id: {
+            a: i,
+            b: [0, 1, 2, {c: j, d: "foo"}],
+            e: "bar",
+          },
+          x: "string",
+        });
+      }
     }
+    db.c.insertMany(data);
   }
   assert.eq(db.c.count(), 2000);
 

@@ -15,9 +15,11 @@ if (typeof getToolTest === 'undefined') {
   db.dropDatabase();
   assert.eq(0, db.bar.count());
 
+  var data = [];
   for (var i = 0; i < 1000; ++i) {
-    db.bar.insert({x: i});
+    data.push({x: i});
   }
+  db.bar.insertMany(data);
 
   // Run parallel shell that waits for mongodump to start and then
   // brings the server down.
