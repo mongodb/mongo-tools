@@ -57,6 +57,13 @@ func main() {
 	statOpts := &mongostat.StatOptions{}
 	opts.AddOptions(statOpts)
 
+	interactiveOption := opts.FindOptionByLongName("interactive")
+	if _, available := stat_consumer.FormatterConstructors["interactive"]; !available {
+		// make --interactive inaccessible
+		interactiveOption.LongName = ""
+		interactiveOption.ShortName = 0
+	}
+
 	args, err := opts.Parse()
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
@@ -126,14 +133,15 @@ func main() {
 		opts.Auth.Password = password.Prompt()
 	}
 
-	var formatter stat_consumer.LineFormatter
+	var factory stat_consumer.FormatterConstructor
 	if statOpts.Json {
-		formatter = stat_consumer.NewJSONLineFormatter(statOpts.RowCount)
+		factory = stat_consumer.FormatterConstructors["json"]
 	} else if statOpts.Interactive {
-		formatter = stat_consumer.NewInteractiveLineFormatter(!statOpts.NoHeaders)
+		factory = stat_consumer.FormatterConstructors["interactive"]
 	} else {
-		formatter = stat_consumer.NewGridLineFormatter(statOpts.RowCount, !statOpts.NoHeaders)
+		factory = stat_consumer.FormatterConstructors[""]
 	}
+	formatter := factory(statOpts.RowCount, !statOpts.NoHeaders)
 
 	cliFlags := 0
 	if statOpts.Columns == "" {
