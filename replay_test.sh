@@ -6,6 +6,7 @@ INTERFACE=lo
 KEEP=false
 DBPATH=/data/mongotape
 SILENT="--silent"
+EXPLICIT=
 VERBOSE=
 DEBUG=
 WORKLOADS=()
@@ -22,7 +23,9 @@ while test $# -gt 0; do
 
 -a, --assert JS-BOOL     condition for assertion after workload (used with -w);
                          can be specified in multiplicity
-    --dbpath             path for mongod
+    --dbpath             path for mongod, can be cleared by program
+                         (defaults to $DBPATH)
+-e, --explicit           show comparison scores for all individual metrics
 -i, --interface NI       network interface (defaults to $INTERFACE)
 -k, --keep               keep temp files
 -p, --port PORT          use port PORT (defaults to $PORT)
@@ -37,6 +40,10 @@ while test $# -gt 0; do
       shift
       ASSERTIONS+=("$1")
       shift
+      ;;
+    -e|--explicit)
+      shift
+      EXPLICIT="--explicit"
       ;;
     -i|--interface)
       shift
@@ -77,7 +84,7 @@ done
 
 if [ ${#WORKLOADS[@]} -eq 0 ]; then
   # default workload/assert
-  WORKLOADS=( "$SCRIPT_DIR/testPcap/crud.js" )
+  WORKLOADS=( "$SCRIPT_DIR/testWorkloads/crud.js" )
   MONGOASSERT=( 'db.bench.count() === 15000' )
 elif [ ${#ASSERTIONS[@]} -eq 0 ]; then
   log "must specify BOTH -a/--assert AND -w/--workload"
@@ -122,10 +129,10 @@ check_integrity() {
 sleep 1
 mongo --port=$PORT mongotape_test --eval "db.dropDatabase()" >/dev/null 2>&1
 
-log "starting mongotape RECORD"
-mongotape record $SILENT $VERBOSE $DEBUG -i=$INTERFACE -p=tmp.playback >/dev/null &
-TAPEPID=$!
-sleep 1 # make sure it actually starts recording
+log "starting TCPDUMP"
+tcpdump -i "$INTERFACE" port "$PORT" -w tmp.pcap &
+TCPDUMPPID=$!
+sleep 1 # make sure it actually starts capturing
 
 log "starting WORKLOAD"
 START=`date`
@@ -135,7 +142,7 @@ WorkerPIDs=()
 for ((i = 0; i < ${#WORKLOADS[@]}; i++))
 do
   script="${WORKLOADS[$i]}"
-  mongo --port=$PORT mongotape_test "$script" >/dev/null &
+  mongo --port=$PORT --quiet mongotape_test "$script" >/dev/null &
   WorkerPIDs+=("$!")
 done
 # join
@@ -146,14 +153,9 @@ sleep 1
 END=`date`
 log "finished WORKLOAD"
 
-log "stopping mongotape RECORD"
-( sleep 1 ; kill $TAPEPID) &
-wait $TAPEPID
-TAPECODE=$?
-if [ "$TAPECODE" != 0 ]; then
-  log "mongotape failed with code $TAPECODE"
-  exit 1
-fi
+log "stopping TCPDUMP"
+( sleep 1 ; kill $TCPDUMPPID) &
+wait $TCPDUMPPID
 
 check_integrity
 
@@ -161,12 +163,20 @@ check_integrity
 mongo --port=$PORT mongotape_test --eval "db.dropDatabase()" >/dev/null 2>&1
 sleep 1 # mongotape play should certainly happen after the drop
 
+log "running mongotape RECORD"
+mongotape record $SILENT $VERBOSE $DEBUG -f=tmp.pcap -p=tmp.playback >/dev/null
+TAPECODE=$?
+if [ "$TAPECODE" != 0 ]; then
+  log "mongotape failed with code $TAPECODE"
+  exit 1
+fi
+
 log # newline to separate replay
 
 log "starting mongotape PLAY"
 REPLAY_START=`date`
 sleep 1
-mongotape play $SILENT $VERBOSE $DEBUG --host "localhost:$PORT" -p=tmp.playback >/dev/null
+mongotape play $SILENT $VERBOSE $DEBUG --host "localhost:$PORT" -p=tmp.playback --report tmp.report >/dev/null
 sleep 1
 REPLAY_END=`date`
 log "finished mongotape PLAY"
@@ -188,18 +198,25 @@ if $KEEP; then
   ftdc decode -ms $DBPATH/diagnostic.data/* --start="$START" --end="$END" --out="tmp.base.json"
   ftdc decode -ms $DBPATH/diagnostic.data/* --start="$REPLAY_START" --end="$REPLAY_END" --out="tmp.play.json"
 fi
+
+log "base time START: $START"
+log "base time END:   $END"
+log "replay time START: $REPLAY_START"
+log "replay time END:   $REPLAY_END"
+
 log -n "base:   "
 ftdc stats $DBPATH/diagnostic.data/* --start="$START" --end="$END" --out="tmp.base.stat.json"
 log -n "replay: "
 ftdc stats $DBPATH/diagnostic.data/* --start="$REPLAY_START" --end="$REPLAY_END" --out="tmp.play.stat.json"
 
 set +e
-ftdc compare tmp.base.stat.json tmp.play.stat.json
+ftdc compare $EXPLICIT tmp.base.stat.json tmp.play.stat.json
 CODE=$?
 
 if [ ! $KEEP ]; then
   rm tmp.playback
   rm tmp.base.stat.json
   rm tmp.play.stat.json
+  rm tmp.report
 fi
 exit $CODE
