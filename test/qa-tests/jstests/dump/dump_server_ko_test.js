@@ -43,13 +43,13 @@ if (typeof getToolTest === 'undefined') {
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
     'mongodump should crash gracefully when remote server dies');
 
-  var output = rawMongoProgramOutput();
   var possibleErrors = [
     'error reading from db',
     'error reading collection',
     'connection closed',
   ];
   assert.soon(function() {
+    var output = rawMongoProgramOutput();
     return possibleErrors
       .map(output.indexOf, output)
       .some(function(index) {
