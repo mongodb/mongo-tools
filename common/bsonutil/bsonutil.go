@@ -208,6 +208,15 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			return bson.MongoTimestamp(int64(ts.Seconds)<<32 | int64(ts.Increment)), nil
 		}
 
+		if jsonValue, ok := doc["$numberDecimal"]; ok {
+			switch v := jsonValue.(type) {
+			case string:
+				return bson.ParseDecimal128(v)
+			default:
+				return nil, errors.New("expected $numberDecimal field to have string value")
+			}
+		}
+
 		if _, ok := doc["$undefined"]; ok {
 			return bson.Undefined, nil
 		}

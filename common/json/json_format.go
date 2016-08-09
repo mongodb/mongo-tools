@@ -17,6 +17,11 @@ func (b BinData) MarshalJSON() ([]byte, error) {
 	return []byte(data), nil
 }
 
+func (d128 Decimal128) MarshalJSON() ([]byte, error) {
+	s := d128.Decimal128.String()
+	return []byte(fmt.Sprintf(`{ "$numberDecimal" : "%s" }`, s)), nil
+}
+
 func (js JavaScript) MarshalJSON() ([]byte, error) {
 	data := []byte(fmt.Sprintf(`{ "$code": %q`, js.Code))
 

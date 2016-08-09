@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/mongoimport/dateconv"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // columnType defines different types for columns that can be parsed distinctly
@@ -28,6 +29,7 @@ const (
 	ctDouble
 	ctInt32
 	ctInt64
+	ctDecimal
 	ctString
 )
 
@@ -38,6 +40,7 @@ var (
 		"binary":      ctBinary,
 		"boolean":     ctBoolean,
 		"date":        ctDate,
+		"decimal":     ctDecimal,
 		"date_go":     ctDateGo,
 		"date_ms":     ctDateMS,
 		"date_oracle": ctDateOracle,
@@ -175,6 +178,8 @@ func NewFieldParser(t columnType, arg string) (parser FieldParser, err error) {
 		parser = new(FieldInt32Parser)
 	case ctInt64:
 		parser = new(FieldInt64Parser)
+	case ctDecimal:
+		parser = new(FieldDecimalParser)
 	case ctString:
 		parser = new(FieldStringParser)
 	default: // ctAuto
@@ -264,6 +269,12 @@ type FieldInt64Parser struct{}
 
 func (ip *FieldInt64Parser) Parse(in string) (interface{}, error) {
 	return strconv.ParseInt(in, 10, 64)
+}
+
+type FieldDecimalParser struct{}
+
+func (ip *FieldDecimalParser) Parse(in string) (interface{}, error) {
+	return bson.ParseDecimal128(in)
 }
 
 type FieldStringParser struct{}

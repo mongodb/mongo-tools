@@ -1,13 +1,13 @@
 package mongoimport
 
 import (
-	"testing"
-	"time"
-
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
+	"testing"
+	"time"
 )
 
 func init() {
@@ -361,6 +361,28 @@ func TestFieldParsers(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			_, err = p.Parse("80-")
 			So(err, ShouldNotBeNil)
+		})
+	})
+
+	Convey("Using FieldDecimalParser", t, func() {
+		var p, _ = NewFieldParser(ctDecimal, "")
+		var err error
+
+		Convey("parses valid decimal values correctly", func() {
+			for _, ts := range []string{"12235.2355", "42", "0", "-124", "-124.55"} {
+				testVal, err := bson.ParseDecimal128(ts)
+				So(err, ShouldBeNil)
+				parsedValue, err := p.Parse(ts)
+				So(err, ShouldBeNil)
+
+				So(testVal, ShouldResemble, parsedValue.(bson.Decimal128))
+			}
+		})
+		Convey("does not parse invalid decimal values", func() {
+			for _, ts := range []string{"", "1-2", "abcd"} {
+				_, err = p.Parse(ts)
+				So(err, ShouldNotBeNil)
+			}
 		})
 	})
 

@@ -48,6 +48,10 @@ type NumberLong int64
 // Represents a signed 64-bit float.
 type NumberFloat float64
 
+type Decimal128 struct {
+	bson.Decimal128
+}
+
 // Represents a regular expression.
 type RegExp struct {
 	Pattern string
