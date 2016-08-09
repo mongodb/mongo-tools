@@ -10,8 +10,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 cd $SCRIPT_DIR
 
-sed -i.bak "s/built-without-version-string/$(git describe)/" common/options/options.go
-sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
+sed -i.bak -e "s/built-without-version-string/$(git describe)/" \
+           -e "s/built-without-git-spec/$(git rev-parse HEAD)/" \
+           common/options/options.go
 
 # remove stale packages
 rm -rf vendor/pkg
@@ -24,3 +25,5 @@ for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mong
         go build -o "bin/$i" -tags "$tags" "$i/main/$i.go"
         ./bin/$i --version
 done
+
+mv -f common/options/options.go.bak common/options/options.go
