@@ -10,15 +10,16 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
+// PlayCommand stores settings for the mongotape 'play' subcommand
 type PlayCommand struct {
 	GlobalOpts *Options `no-flag:"true"`
 	StatOptions
 	PlaybackFile string  `description:"path to the playback file to play from" short:"p" long:"playback-file" required:"yes"`
 	Speed        float64 `description:"multiplier for playback speed (1.0 = real-time, .5 = half-speed, 3.0 = triple-speed, etc.)" long:"speed" default:"1.0"`
-	Url          string  `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
+	URL          string  `short:"h" long:"host" description:"Location of the host to play back against" default:"mongodb://localhost:27017"`
 	Repeat       int     `long:"repeat" description:"Number of times to play the playback file" default:"1"`
 	QueueTime    int     `long:"queueTime" description:"don't queue ops much further in the future than this number of seconds" default:"15"`
-	NoPreprocess bool    `long:"no-preprocess" description:"don't preprocess the input file to premap data such as mongo cursorIds"`
+	NoPreprocess bool    `long:"no-preprocess" description:"don't preprocess the input file to premap data such as mongo cursorIDs"`
 	Gzip         bool    `long:"gzip" description:"decompress gzipped input"`
 }
 
@@ -47,7 +48,7 @@ func NewOpChanFromFile(file *PlaybackFileReader, repeat int) (<-chan *RecordedOp
 					return fmt.Errorf("PlaybackFile Seek: %v", err)
 				}
 
-				var order int64 = 0
+				var order int64
 				for {
 					recordedOp, err := file.NextRecordedOp()
 					if err != nil {
@@ -63,10 +64,11 @@ func NewOpChanFromFile(file *PlaybackFileReader, repeat int) (<-chan *RecordedOp
 					recordedOp.Seen.Time = recordedOp.Seen.Add(loopDelta)
 					recordedOp.Generation = generation
 					recordedOp.Order = order
-					// We want to suppress EOF's unless you're in the last generation
-					// because all of the ops for one connection across different generations
-					// get executed in the same session. We don't want to close the session
-					// until the connection closes in the last generation.
+					// We want to suppress EOF's unless you're in the last
+					// generation because all of the ops for one connection
+					// across different generations get executed in the same
+					// session. We don't want to close the session until the
+					// connection closes in the last generation.
 					if !recordedOp.EOF || generation == repeat-1 {
 						ch <- recordedOp
 					}
@@ -83,11 +85,13 @@ func NewOpChanFromFile(file *PlaybackFileReader, repeat int) (<-chan *RecordedOp
 	return ch, e
 }
 
+// GzipReadSeeker wraps an io.ReadSeeker for gzip reading
 type GzipReadSeeker struct {
 	readSeeker io.ReadSeeker
 	*gzip.Reader
 }
 
+// NewGzipReadSeeker initializes a new GzipReadSeeker
 func NewGzipReadSeeker(rs io.ReadSeeker) (*GzipReadSeeker, error) {
 	gzipReader, err := gzip.NewReader(rs)
 	if err != nil {
@@ -96,6 +100,8 @@ func NewGzipReadSeeker(rs io.ReadSeeker) (*GzipReadSeeker, error) {
 	return &GzipReadSeeker{rs, gzipReader}, nil
 }
 
+// Seek sets the offset for the next Read, and can only seek to the
+// beginning of the file.
 func (g *GzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	if whence != 0 || offset != 0 {
 		return 0, fmt.Errorf("GzipReadSeeker can only seek to beginning of file")
@@ -108,10 +114,13 @@ func (g *GzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
+// PlaybackFileReader stores the necessary information for a playback source,
+// which is just an io.ReadCloser.
 type PlaybackFileReader struct {
 	io.ReadSeeker
 }
 
+// NewPlaybackFileReader initializes a new PlaybackFileReader
 func NewPlaybackFileReader(filename string, gzip bool) (*PlaybackFileReader, error) {
 	var readSeeker io.ReadSeeker
 
@@ -130,6 +139,8 @@ func NewPlaybackFileReader(filename string, gzip bool) (*PlaybackFileReader, err
 	return &PlaybackFileReader{readSeeker}, nil
 }
 
+// NextRecordedOp iterates through the PlaybackFileReader to yield the next
+// RecordedOp. It returns io.EOF when successfully complete.
 func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
 	buf, err := ReadDocument(file)
 	if err != nil {
@@ -147,6 +158,7 @@ func (file *PlaybackFileReader) NextRecordedOp() (*RecordedOp, error) {
 	return doc, nil
 }
 
+// ValidateParams validates the settings described in the PlayCommand struct.
 func (play *PlayCommand) ValidateParams(args []string) error {
 	switch {
 	case len(args) > 0:
@@ -159,6 +171,7 @@ func (play *PlayCommand) ValidateParams(args []string) error {
 	return nil
 }
 
+// Execute runs the program for the 'play' subcommand
 func (play *PlayCommand) Execute(args []string) error {
 	err := play.ValidateParams(args)
 	if err != nil {
@@ -200,12 +213,12 @@ func (play *PlayCommand) Execute(args []string) error {
 		if err != nil {
 			return err
 		}
-		context.CursorIdMap = preprocessMap
+		context.CursorIDMap = preprocessMap
 	}
 
 	opChan, errChan = NewOpChanFromFile(playbackFileReader, play.Repeat)
 
-	if err := Play(context, opChan, play.Speed, play.Url, play.Repeat, play.QueueTime); err != nil {
+	if err := Play(context, opChan, play.Speed, play.URL, play.Repeat, play.QueueTime); err != nil {
 		userInfoLogger.Logf(Always, "Play: %v\n", err)
 	}
 
@@ -217,6 +230,8 @@ func (play *PlayCommand) Execute(args []string) error {
 	return nil
 }
 
+// Play is responsible for playing ops from a RecordedOp channel to the
+// given url.
 func Play(context *ExecutionContext,
 	opChan <-chan *RecordedOp,
 	speed float64,
@@ -226,7 +241,7 @@ func Play(context *ExecutionContext,
 
 	sessionChans := make(map[string]chan<- *RecordedOp)
 	var playbackStartTime, recordingStartTime time.Time
-	var connectionId int64
+	var connectionID int64
 	var opCounter int
 	for op := range opChan {
 		opCounter++
@@ -238,8 +253,9 @@ func Play(context *ExecutionContext,
 			playbackStartTime = time.Now()
 		}
 
-		// opDelta is the difference in time between when the file's recording began and
-		// and when this particular op is played. For the first operation in the playback, it's 0.
+		// opDelta is the difference in time between when the file's recording
+		// began and and when this particular op is played. For the first
+		// operation in the playback, it's 0.
 		opDelta := op.Seen.Sub(recordingStartTime)
 
 		// Adjust the opDelta for playback by dividing it by playback speed setting;
@@ -247,12 +263,13 @@ func Play(context *ExecutionContext,
 		scaledDelta := float64(opDelta) / (speed)
 		op.PlayAt = &PreciseTime{playbackStartTime.Add(time.Duration(int64(scaledDelta)))}
 
-		// Every queueGranularity ops make sure that we're no more then QueueTime seconds ahead
-		// Which should mean that the maximum that we're ever ahead
-		// is QueueTime seconds of ops + queueGranularity more ops.
-		// This is so that when we're at QueueTime ahead in the playback file we don't
-		// sleep after every read, and generally read and queue queueGranularity number
-		// of ops at a time and then sleep until the last read op is QueueTime ahead.
+		// Every queueGranularity ops make sure that we're no more then
+		// QueueTime seconds ahead Which should mean that the maximum that we're
+		// ever ahead is QueueTime seconds of ops + queueGranularity more ops.
+		// This is so that when we're at QueueTime ahead in the playback file we
+		// don't sleep after every read, and generally read and queue
+		// queueGranularity number of ops at a time and then sleep until the
+		// last read op is QueueTime ahead.
 		if opCounter%queueGranularity == 0 {
 			toolDebugLogger.Logf(DebugHigh, "Waiting to prevent excess buffering with opCounter: %v", opCounter)
 			time.Sleep(op.PlayAt.Add(time.Duration(-queueTime) * time.Second).Sub(time.Now()))
@@ -266,8 +283,8 @@ func Play(context *ExecutionContext,
 		}
 		sessionChan, ok := sessionChans[connectionString]
 		if !ok {
-			connectionId += 1
-			sessionChan = context.newExecutionSession(url, op.PlayAt.Time, connectionId)
+			connectionID++
+			sessionChan = context.newExecutionSession(url, op.PlayAt.Time, connectionID)
 			sessionChans[connectionString] = sessionChan
 		}
 		if op.EOF {
@@ -287,7 +304,7 @@ func Play(context *ExecutionContext,
 	context.SessionChansWaitGroup.Wait()
 
 	context.StatCollector.Close()
-	toolDebugLogger.Logf(Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionId)
+	toolDebugLogger.Logf(Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionID)
 	if repeat > 1 {
 		toolDebugLogger.Logf(Always, "%v ops per generation for %v generations", opCounter/repeat, repeat)
 	}

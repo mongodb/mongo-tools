@@ -10,6 +10,7 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 )
 
+// PacketHandler wraps pcap.Handle to maintain other useful information.
 type PacketHandler struct {
 	Verbose    bool
 	pcap       *pcap.Handle
@@ -17,6 +18,7 @@ type PacketHandler struct {
 	stop       chan struct{}
 }
 
+// NewPacketHandler initializes a new PacketHandler
 func NewPacketHandler(pcapHandle *pcap.Handle) *PacketHandler {
 	return &PacketHandler{
 		pcap: pcapHandle,
@@ -24,15 +26,19 @@ func NewPacketHandler(pcapHandle *pcap.Handle) *PacketHandler {
 	}
 }
 
+// StreamHandler is an io.Closer for a tcpassembly.StreamFactory
 type StreamHandler interface {
 	tcpassembly.StreamFactory
 	io.Closer
 }
 
+// SetFirstSeener is an interface for anything which maintains the appropriate
+// 'first seen' information.
 type SetFirstSeener interface {
 	SetFirstSeen(t time.Time)
 }
 
+// Close stops the packetHandler
 func (p *PacketHandler) Close() {
 	p.stop <- struct{}{}
 }
@@ -44,6 +50,7 @@ func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *Assembler) {
 	}
 }
 
+// Handle reads the pcap file into assembled packets for the streamHandler
 func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) error {
 	count := int64(0)
 	start := time.Now()

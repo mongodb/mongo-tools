@@ -9,14 +9,14 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-// OpDelete is used to remove one or more documents from a collection.
+// DeleteOp is used to remove one or more documents from a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-delete
-
 type DeleteOp struct {
 	Header MsgHeader
 	mgo.DeleteOp
 }
 
+// Meta returns metadata about the operation, useful for analysis of traffic.
 func (op *DeleteOp) Meta() OpMetadata {
 	return OpMetadata{
 		"Delete",
@@ -43,6 +43,8 @@ func (op *DeleteOp) getOpBodyString() (string, error) {
 	return string(selectorAsJSON), nil
 }
 
+// Abbreviated returns a serialization of the DeleteOp, abbreviated so it
+// doesn't exceed the given number of characters.
 func (op *DeleteOp) Abbreviated(chars int) string {
 	body, err := op.getOpBodyString()
 	if err != nil {
@@ -51,10 +53,13 @@ func (op *DeleteOp) Abbreviated(chars int) string {
 	return fmt.Sprintf("DeleteOp %v %v", op.Collection, Abbreviate(body, chars))
 }
 
+// OpCode returns the OpCode for DeleteOp.
 func (op *DeleteOp) OpCode() OpCode {
 	return OpCodeDelete
 }
 
+// FromReader extracts data from a serialized DeleteOp into its concrete
+// structure.
 func (op *DeleteOp) FromReader(r io.Reader) error {
 	var b [4]byte
 	_, err := io.ReadFull(r, b[:]) //skip ZERO
@@ -85,6 +90,8 @@ func (op *DeleteOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute performs the DeleteOp on a given session, yielding the reply when
+// successful (and an error otherwise).
 func (op *DeleteOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.DeleteOp); err != nil {

@@ -3,7 +3,6 @@ package mongotape
 import "fmt"
 
 // OpCode allow identifying the type of operation:
-//
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#request-opcodes
 type OpCode int32
 

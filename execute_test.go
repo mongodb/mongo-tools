@@ -13,7 +13,8 @@ func TestCompleteReply(t *testing.T) {
 
 	log.SetVerbosity(&options.Verbosity{[]bool{true, true, true, true, true}, false})
 
-	// AddFromWire takes a recorded request and a live reply to the re-execution of that reply
+	// AddFromWire takes a recorded request and a live reply to the re-execution
+	// of that reply
 	reply1 := &ReplyOp{}
 	reply1.ReplyOp = mgo.ReplyOp{
 		CursorId: 2500,
@@ -52,11 +53,11 @@ func TestCompleteReply(t *testing.T) {
 	}
 	context.handleCompletedReplies()
 
-	cursorIdLookup, ok := context.CursorIdMap.GetCursor(1500, -1)
+	cursorIDLookup, ok := context.CursorIDMap.GetCursor(1500, -1)
 	if !ok {
-		t.Error("can't find cursorId in map")
+		t.Error("can't find cursorID in map")
 	}
-	if cursorIdLookup != 2500 {
-		t.Errorf("looked up cursorId is wrong: %v, should be 2500", cursorIdLookup)
+	if cursorIDLookup != 2500 {
+		t.Errorf("looked up cursorID is wrong: %v, should be 2500", cursorIDLookup)
 	}
 }

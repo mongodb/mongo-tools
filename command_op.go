@@ -10,24 +10,28 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-// CommandOp is a struct for parsing OP_COMMAND as defined here: https://github.com/mongodb/mongo/blob/master/src/mongo/rpc/command_request.h.
+// CommandOp is a struct for parsing OP_COMMAND as defined here:
+// https://github.com/mongodb/mongo/blob/master/src/mongo/rpc/command_request.h.
 type CommandOp struct {
 	Header MsgHeader
 	mgo.CommandOp
 }
 
-// CommandGetMore is a struct representing a special case of an OP_COMMAND which has commandName 'getmore'.
-// It implements the cursorsRewriteable interface and has fields for caching the found cursors so that multiple
-// calls to these methods do not incur the overhead of searching the underlying bson for the cursorId.
+// CommandGetMore is a struct representing a special case of an OP_COMMAND which
+// has commandName 'getmore'.  It implements the cursorsRewriteable interface
+// and has fields for caching the found cursors so that multiple calls to these
+// methods do not incur the overhead of searching the underlying bson for the
+// cursorID.
 type CommandGetMore struct {
 	CommandOp
 	cachedCursor *int64
 }
 
-// getCursorIds is an implementation of the cursorsRewriteable interface method. It
-// returns an array of the cursors contained in the CommandGetMore, which is only ever
-// one cursor. It may return an error if unmarshalling the command's bson fails.
-func (gmCommand *CommandGetMore) getCursorIds() ([]int64, error) {
+// getCursorIDs is an implementation of the cursorsRewriteable interface method.
+// It returns an array of the cursors contained in the CommandGetMore, which is
+// only ever one cursor. It may return an error if unmarshalling the command's
+// bson fails.
+func (gmCommand *CommandGetMore) getCursorIDs() ([]int64, error) {
 	if gmCommand.cachedCursor != nil {
 		return []int64{*gmCommand.cachedCursor}, nil
 	}
@@ -37,11 +41,11 @@ func (gmCommand *CommandGetMore) getCursorIds() ([]int64, error) {
 	case *bson.D:
 		for _, bsonDoc := range *t {
 			if bsonDoc.Name == "getMore" {
-				getmoreId, ok := bsonDoc.Value.(int64)
+				getmoreID, ok := bsonDoc.Value.(int64)
 				if !ok {
-					return []int64{}, fmt.Errorf("cursorId is not int64")
+					return []int64{}, fmt.Errorf("cursorID is not int64")
 				}
-				gmCommand.cachedCursor = &getmoreId
+				gmCommand.cachedCursor = &getmoreID
 				break
 			}
 		}
@@ -62,20 +66,21 @@ func (gmCommand *CommandGetMore) getCursorIds() ([]int64, error) {
 	return []int64{*gmCommand.cachedCursor}, err
 }
 
-// setCursorIds is an implementation of the cusorsRewriteable interface method. It
-// takes an array of of cursors that will function as the new cursors for this operation.
-// If there are more than one cursorIds in the array, it errors, as it only ever expects one.
-// It may also error if unmarshalling the underlying bson fails.
-func (gmCommand *CommandGetMore) setCursorIds(newCursorIds []int64) error {
-	var newCursorId int64
+// setCursorIDs is an implementation of the cusorsRewriteable interface method.
+// It takes an array of of cursors that will function as the new cursors for
+// this operation.  If there are more than one cursorIDs in the array, it
+// errors, as it only ever expects one.  It may also error if unmarshalling the
+// underlying bson fails.
+func (gmCommand *CommandGetMore) setCursorIDs(newCursorIDs []int64) error {
+	var newCursorID int64
 
-	if len(newCursorIds) > 1 {
-		return fmt.Errorf("rewriting getmore command cursorIds requires 1 id, received: %d", len(newCursorIds))
+	if len(newCursorIDs) > 1 {
+		return fmt.Errorf("rewriting getmore command cursorIDs requires 1 id, received: %d", len(newCursorIDs))
 	}
-	if len(newCursorIds) < 1 {
-		newCursorId = 0
+	if len(newCursorIDs) < 1 {
+		newCursorID = 0
 	} else {
-		newCursorId = newCursorIds[0]
+		newCursorID = newCursorIDs[0]
 	}
 	var doc bson.D
 	switch t := gmCommand.CommandArgs.(type) {
@@ -93,11 +98,11 @@ func (gmCommand *CommandGetMore) setCursorIds(newCursorIds []int64) error {
 	// loop over the keys of the bson.D and the set the correct one
 	for i, bsonDoc := range doc {
 		if bsonDoc.Name == "getMore" {
-			doc[i].Value = newCursorId
+			doc[i].Value = newCursorID
 			break
 		}
 	}
-	gmCommand.cachedCursor = &newCursorId
+	gmCommand.cachedCursor = &newCursorID
 	gmCommand.CommandArgs = &doc
 	return nil
 }
@@ -123,6 +128,8 @@ func (op *CommandOp) Meta() OpMetadata {
 	}
 }
 
+// Abbreviated returns a serialization of the OpCommand, abbreviated so it
+// doesn't exceed the given number of characters.
 func (op *CommandOp) Abbreviated(chars int) string {
 	commandArgsString, metadataString, inputDocsString, err := op.getOpBodyString()
 	if err != nil {
@@ -132,6 +139,7 @@ func (op *CommandOp) Abbreviated(chars int) string {
 		Abbreviate(metadataString, chars), Abbreviate(inputDocsString, chars))
 }
 
+// OpCode returns the OpCode for a CommandOp.
 func (op *CommandOp) OpCode() OpCode {
 	return OpCodeCommand
 }
@@ -142,7 +150,7 @@ func (op *CommandOp) getOpBodyString() (string, string, string, error) {
 		return "", "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 
-	commandArgsAsJson, err := json.Marshal(commandArgsDoc)
+	commandArgsAsJSON, err := json.Marshal(commandArgsDoc)
 	if err != nil {
 		return "", "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
@@ -152,7 +160,7 @@ func (op *CommandOp) getOpBodyString() (string, string, string, error) {
 		return "", "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 
-	metadataAsJson, err := json.Marshal(metadataDocs)
+	metadataAsJSON, err := json.Marshal(metadataDocs)
 	if err != nil {
 		return "", "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
@@ -165,15 +173,17 @@ func (op *CommandOp) getOpBodyString() (string, string, string, error) {
 			return "", "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 		}
 
-		inputDocsAsJson, err := json.Marshal(inputDocs)
+		inputDocsAsJSON, err := json.Marshal(inputDocs)
 		if err != nil {
 			return "", "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 		}
-		inputDocsString = string(inputDocsAsJson)
+		inputDocsString = string(inputDocsAsJSON)
 	}
-	return string(commandArgsAsJson), string(metadataAsJson), inputDocsString, nil
+	return string(commandArgsAsJSON), string(metadataAsJSON), inputDocsString, nil
 }
 
+// FromReader extracts data from a serialized OpCommand into its concrete
+// structure.
 func (op *CommandOp) FromReader(r io.Reader) error {
 	database, err := readCStringFromReader(r)
 	if err != nil {
@@ -224,6 +234,8 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute performs the CommandOp on a given session, yielding the reply when
+// successful (and an error otherwise).
 func (op *CommandOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 

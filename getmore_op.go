@@ -9,53 +9,60 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-// OpGetMore is used to query the database for documents in a collection.
+// GetMoreOp is used to query the database for documents in a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-get-more
 type GetMoreOp struct {
 	Header MsgHeader
 	mgo.GetMoreOp
 }
 
+// OpCode returns the OpCode for a GetMoreOp.
 func (op *GetMoreOp) OpCode() OpCode {
 	return OpCodeGetMore
 }
 
+// Meta returns metadata about the GetMoreOp, useful for analysis of traffic.
 func (op *GetMoreOp) Meta() OpMetadata {
 	return OpMetadata{"getmore", op.Collection, "", op.CursorId}
 }
 
 func (op *GetMoreOp) String() string {
-	return fmt.Sprintf("GetMore ns:%v limit:%v cursorId:%v", op.Collection, op.Limit, op.CursorId)
+	return fmt.Sprintf("GetMore ns:%v limit:%v cursorID:%v", op.Collection, op.Limit, op.CursorId)
 }
+
+// Abbreviated returns a serialization of the GetMoreOp, abbreviated so it
+// doesn't exceed the given number of characters.
 func (op *GetMoreOp) Abbreviated(chars int) string {
 	return fmt.Sprintf("%v", op)
 }
 
-// getCursorIds implements the cursorsRewriteable interface method. It
-// returns an array with one element, containing the cursorId from this getmore.
-func (op *GetMoreOp) getCursorIds() ([]int64, error) {
+// getCursorIDs implements the cursorsRewriteable interface method. It returns
+// an array with one element, containing the cursorID from this getmore.
+func (op *GetMoreOp) getCursorIDs() ([]int64, error) {
 	return []int64{op.CursorId}, nil
 }
 
-// setCursorIds implements the cursorsRewriteable interface method. It
-// takes an array of cursorIds to replace the current cursor with. If this
-// array is longer than 1, it returns an error because getmores can only
-// have - and therefore rewrite - one cursor.
-func (op *GetMoreOp) setCursorIds(newCursorIds []int64) error {
-	var newCursorId int64
+// setCursorIDs implements the cursorsRewriteable interface method. It takes an
+// array of cursorIDs to replace the current cursor with. If this array is
+// longer than 1, it returns an error because getmores can only have - and
+// therefore rewrite - one cursor.
+func (op *GetMoreOp) setCursorIDs(newCursorIDs []int64) error {
+	var newCursorID int64
 
-	if len(newCursorIds) > 1 {
-		return fmt.Errorf("rewriting getmore command cursorIds requires 1 id, received: %d", len(newCursorIds))
+	if len(newCursorIDs) > 1 {
+		return fmt.Errorf("rewriting getmore command cursorIDs requires 1 id, received: %d", len(newCursorIDs))
 	}
-	if len(newCursorIds) < 1 {
-		newCursorId = 0
+	if len(newCursorIDs) < 1 {
+		newCursorID = 0
 	} else {
-		newCursorId = newCursorIds[0]
+		newCursorID = newCursorIDs[0]
 	}
-	op.GetMoreOp.CursorId = newCursorId
+	op.GetMoreOp.CursorId = newCursorID
 	return nil
 }
 
+// FromReader extracts data from a serialized GetMoreOp into its concrete
+// structure.
 func (op *GetMoreOp) FromReader(r io.Reader) error {
 	var b [12]byte
 	if _, err := io.ReadFull(r, b[:4]); err != nil {
@@ -74,6 +81,8 @@ func (op *GetMoreOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute performs the GetMoreOp on a given session, yielding the reply when
+// successful (and an error otherwise).
 func (op *GetMoreOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 	before := time.Now()

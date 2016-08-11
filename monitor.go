@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// MonitorCommand stores settings for the mongotape 'monitor' subcommand
 type MonitorCommand struct {
 	GlobalOpts *Options `no-flag:"true"`
 	StatOptions
@@ -18,19 +19,21 @@ type MonitorCommand struct {
 	PlaybackFile string `short:"p" description:"path to playback file to read from" long:"playback-file"`
 }
 
+// UnresolvedOpInfo holds information about an op
 type UnresolvedOpInfo struct {
 	Stat     *OpStat
 	ParsedOp Op
 	Op       *RecordedOp
 }
 
-// AddUnresolved takes an operation that is supposed to receive a reply and keeps it around so that its latency can be calculated
-// using the incoming reply.
+// AddUnresolvedOp takes an operation that is supposed to receive a reply and
+// keeps it around so that its latency can be calculated using the incoming
+// reply.
 func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, requestStat *OpStat) {
 	gen.UnresolvedOps[opKey{
 		driverEndpoint: op.SrcEndpoint,
 		serverEndpoint: op.DstEndpoint,
-		opId:           op.Header.RequestID,
+		opID:           op.Header.RequestID,
 	}] = UnresolvedOpInfo{
 		Stat:     requestStat,
 		Op:       op,
@@ -38,20 +41,23 @@ func (gen *RegularStatGenerator) AddUnresolvedOp(op *RecordedOp, parsedOp Op, re
 	}
 }
 
-// ResolveOp generates an OpStat from the pairing of a request with its reply. When running in paired mode
-// ResolveOp returns an OpStat which contains the payload from both the request and the reply. Otherwise, it returns
-// an OpStat with just the data from the reply along with the latency between the request and the reply.
+// ResolveOp generates an OpStat from the pairing of a request with its reply.
+// When running in paired mode ResolveOp returns an OpStat which contains the
+// payload from both the request and the reply. Otherwise, it returns an OpStat
+// with just the data from the reply along with the latency between the request
+// and the reply.
 //
-// recordedReply is the just received reply in the form of a RecordedOp, which contains additional metadata.
-// parsedReply is the same reply, parsed so that the payload of the op can be accesssed.
-// replyStat is the OpStat created by the GenerateOpStat function, containing computed metadata about the reply.
+// recordedReply is the just received reply in the form of a RecordedOp, which
+// contains additional metadata.  parsedReply is the same reply, parsed so that
+// the payload of the op can be accesssed.  replyStat is the OpStat created by
+// the GenerateOpStat function, containing computed metadata about the reply.
 func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, reply Replyable, replyStat *OpStat) *OpStat {
 	result := &OpStat{}
 
 	key := opKey{
 		driverEndpoint: recordedReply.DstEndpoint,
 		serverEndpoint: recordedReply.SrcEndpoint,
-		opId:           recordedReply.Header.ResponseTo,
+		opID:           recordedReply.Header.ResponseTo,
 	}
 	originalOpInfo, foundOriginal := gen.UnresolvedOps[key]
 	if !foundOriginal {
@@ -59,14 +65,15 @@ func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, reply Repl
 	}
 
 	if gen.PairedMode {
-		// When in paired mode, the result of 'resolving' is a complete request reply pair.
-		// therefore, 'result' is set to be the original OpStat generated for the request
-		// and the reply data is added in in either case
+		// When in paired mode, the result of 'resolving' is a complete request
+		// reply pair.  therefore, 'result' is set to be the original OpStat
+		// generated for the request and the reply data is added in in either
+		// case
 		result = originalOpInfo.Stat
 	} else {
-		// When in unpaired mode, the result of 'resolving' is data about the reply,
-		// along with its latency. Therefore, 'result' is set to be the reply and data
-		// about the original op is largely ignored.
+		// When in unpaired mode, the result of 'resolving' is data about the
+		// reply, along with its latency. Therefore, 'result' is set to be the
+		// reply and data about the original op is largely ignored.
 		result = replyStat
 	}
 	result.Errors = reply.getErrors()
@@ -78,6 +85,7 @@ func (gen *RegularStatGenerator) ResolveOp(recordedReply *RecordedOp, reply Repl
 	return result
 }
 
+// Execute runs the program for the 'monitor' subcommand
 func (monitor *MonitorCommand) Execute(args []string) error {
 	monitor.GlobalOpts.SetLogging()
 	monitor.ValidateParams(args)
@@ -102,11 +110,12 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 		go func() {
 			defer close(e)
 			if err := ctx.packetHandler.Handle(ctx.mongoOpStream, -1); err != nil {
-				e <- fmt.Errorf("monitor: error handling packet stream:", err)
+				e <- fmt.Errorf("monitor: error handling packet stream: %s", err)
 			}
 		}()
-		// When a signal is received to kill the process, stop the packet handler so we
-		// gracefully flush all ops being processed before exiting.
+		// When a signal is received to kill the process, stop the packet
+		// handler so we gracefully flush all ops being processed before
+		// exiting.
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 		go func() {
@@ -136,6 +145,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 	return nil
 }
 
+// ValidateParams validates the settings described in the MonitorCommand struct.
 func (monitor *MonitorCommand) ValidateParams(args []string) error {
 	numInputTypes := 0
 

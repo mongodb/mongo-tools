@@ -187,13 +187,13 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 		if err != nil {
 			t.Errorf("error seeking playbackfile: %v", err)
 		}
-		context.CursorIdMap = preprocessMap
+		context.CursorIDMap = preprocessMap
 	}
 
 	opChan, errChan := NewOpChanFromFile(playbackReader, 1)
 
 	t.Log("Reading ops from playback file")
-	err = Play(context, opChan, testSpeed, currentTestUrl, 1, 30)
+	err = Play(context, opChan, testSpeed, currentTestURL, 1, 30)
 	if err != nil {
 		t.Errorf("error playing back recorded file: %v\n", err)
 	}
@@ -202,7 +202,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 		t.Errorf("error reading ops from file: %v\n", err)
 	}
 	//prepare a query for the database
-	session, err := mgo.Dial(currentTestUrl)
+	session, err := mgo.Dial(currentTestURL)
 	if err != nil {
 		t.Errorf("Error connecting to test server: %v", err)
 	}

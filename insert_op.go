@@ -9,18 +9,19 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-// OpInsert is used to insert one or more documents into a collection.
+// InsertOp is used to insert one or more documents into a collection.
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-insert
-
 type InsertOp struct {
 	Header MsgHeader
 	mgo.InsertOp
 }
 
+// Meta returns metadata about the InsertOp, useful for analysis of traffic.
 func (op *InsertOp) Meta() OpMetadata {
 	return OpMetadata{"insert", op.Collection, "", op.Documents}
 }
 
+// OpCode returns the OpCode for the InsertOp.
 func (op *InsertOp) OpCode() OpCode {
 	return OpCodeInsert
 }
@@ -46,6 +47,8 @@ func (op *InsertOp) getOpBodyString() (string, error) {
 	return fmt.Sprintf("%v", docs), nil
 }
 
+// Abbreviated returns a serialization of the InsertOp, abbreviated so it
+// doesn't exceed the given number of characters.
 func (op *InsertOp) Abbreviated(chars int) string {
 	body, err := op.getOpBodyString()
 	if err != nil {
@@ -54,6 +57,8 @@ func (op *InsertOp) Abbreviated(chars int) string {
 	return fmt.Sprintf("InsertOp %v %v", op.Collection, Abbreviate(body, chars))
 }
 
+// FromReader extracts data from a serialized InsertOp into its concrete
+// structure.
 func (op *InsertOp) FromReader(r io.Reader) error {
 	var b [4]byte
 	_, err := io.ReadFull(r, b[:])
@@ -82,6 +87,8 @@ func (op *InsertOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute performs the InsertOp on a given session, yielding the reply when
+// successful (and an error otherwise).
 func (op *InsertOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 	if err := mgo.ExecOpWithoutReply(session, &op.InsertOp); err != nil {

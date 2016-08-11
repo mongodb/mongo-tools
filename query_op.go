@@ -18,6 +18,7 @@ type QueryOp struct {
 	mgo.QueryOp
 }
 
+// Meta returns metadata about the QueryOp, useful for analysis of traffic.
 func (op *QueryOp) Meta() OpMetadata {
 	opType, commandType := extractOpType(op.Query)
 	if !strings.HasSuffix(op.Collection, "$cmd") {
@@ -88,6 +89,8 @@ func (op *QueryOp) getOpBodyString() (string, error) {
 	return string(asJSON), nil
 }
 
+// Abbreviated returns a serialization of the QueryOp, abbreviated so it
+// doesn't exceed the given number of characters.
 func (op *QueryOp) Abbreviated(chars int) string {
 	body, err := op.getOpBodyString()
 	if err != nil {
@@ -96,10 +99,13 @@ func (op *QueryOp) Abbreviated(chars int) string {
 	return fmt.Sprintf("OpQuery %v %v", op.Collection, Abbreviate(body, chars))
 }
 
+// OpCode returns the OpCode for a QueryOp.
 func (op *QueryOp) OpCode() OpCode {
 	return OpCodeQuery
 }
 
+// FromReader extracts data from a serialized QueryOp into its concrete
+// structure.
 func (op *QueryOp) FromReader(r io.Reader) error {
 	var b [8]byte
 	if _, err := io.ReadFull(r, b[:4]); err != nil {
@@ -144,6 +150,8 @@ func (op *QueryOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute performs the QueryOp on a given session, yielding the reply when
+// successful (and an error otherwise).
 func (op *QueryOp) Execute(session *mgo.Session) (Replyable, error) {
 	session.SetSocketTimeout(0)
 	before := time.Now()

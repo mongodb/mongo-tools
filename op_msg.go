@@ -14,18 +14,22 @@ type OpMsg struct {
 	Message string
 }
 
+// OpCode returns the OpCode for the OpMsg.
 func (op *OpMsg) OpCode() OpCode {
 	return OpCodeMessage
 }
 
+// FromReader does nothing for an OpMsg
 func (op *OpMsg) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute does nothing for an OpMsg
 func (op *OpMsg) Execute(session *mgo.Session) (*ReplyOp, error) {
 	return nil, nil
 }
 
+// Abbreviated does nothing for an OpMsg
 func (op *OpMsg) Abbreviated(chars int) string {
 	return ""
 }

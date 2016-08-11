@@ -54,10 +54,10 @@ func (s Sequence) Add(t int) Sequence {
 type Reassembly struct {
 	// Bytes is the next set of bytes in the stream.  May be empty.
 	Bytes []byte
-	// Skip is set to non-zero if bytes were skipped between this and the
-	// last Reassembly.  If this is the first packet in a connection and we
-	// didn't see the start, we have no idea how many bytes we skipped, so
-	// we set it to -1.  Otherwise, it's set to the number of bytes skipped.
+	// Skip is set to non-zero if bytes were skipped between this and the last
+	// Reassembly.  If this is the first packet in a connection and we didn't
+	// see the start, we have no idea how many bytes we skipped, so we set it to
+	// -1.  Otherwise, it's set to the number of bytes skipped.
 	Skip int
 	// Start is set if this set of bytes has a TCP SYN accompanying it.
 	Start bool
@@ -71,8 +71,8 @@ const pageBytes = 1900
 
 // page is used to store TCP data we're not ready for yet (out-of-order
 // packets).  Unused pages are stored in and returned from a pageCache, which
-// avoids memory allocation.  Used pages are stored in a doubly-linked list in
-// a connection.
+// avoids memory allocation.  Used pages are stored in a doubly-linked list in a
+// connection.
 type page struct {
 	tcpassembly.Reassembly
 	seq        Sequence
@@ -107,7 +107,7 @@ func (c *pageCache) grow() {
 	pages := make([]page, c.pcSize)
 	c.pages = append(c.pages, pages)
 	c.size += c.pcSize
-	for i, _ := range pages {
+	for i := range pages {
 		c.free = append(c.free, &pages[i])
 	}
 	if *memLog {
@@ -143,32 +143,33 @@ func (c *pageCache) replace(p *page) {
 	c.free = append(c.free, p)
 }
 
-// Stream is implemented by the caller to handle incoming reassembled
-// TCP data.  Callers create a StreamFactory, then StreamPool uses
-// it to create a new Stream for every TCP stream.
+// Stream is implemented by the caller to handle incoming reassembled TCP data.
+// Callers create a StreamFactory, then StreamPool uses it to create a new
+// Stream for every TCP stream.
 //
 // assembly will, in order:
 //    1) Create the stream via StreamFactory.New
-//    2) Call Reassembled 0 or more times, passing in reassembled TCP data in order
-//    3) Call ReassemblyComplete one time, after which the stream is dereferenced by assembly.
+//    2) Call Reassembled 0 or more times, passing in reassembled TCP data in
+//    	 order
+//    3) Call ReassemblyComplete one time, after which the stream is
+//       dereferenced by assembly.
 type Stream interface {
-	// Reassembled is called zero or more times.  assembly guarantees
-	// that the set of all Reassembly objects passed in during all
-	// calls are presented in the order they appear in the TCP stream.
-	// Reassembly objects are reused after each Reassembled call,
-	// so it's important to copy anything you need out of them
-	// (specifically out of Reassembly.Bytes) that you need to stay
+	// Reassembled is called zero or more times. Assembly guarantees that the
+	// set of all Reassembly objects passed in during all calls are presented in
+	// the order they appear in the TCP stream. Reassembly objects are reused
+	// after each Reassembled call, so it's important to copy anything you need
+	// out of them (specifically out of Reassembly.Bytes) that you need to stay
 	// around after you return from the Reassembled call.
 	Reassembled([]Reassembly)
-	// ReassemblyComplete is called when assembly decides there is
-	// no more data for this Stream, either because a FIN or RST packet
-	// was seen, or because the stream has timed out without any new
-	// packet data (due to a call to FlushOlderThan).
+	// ReassemblyComplete is called when assembly decides there is no more data
+	// for this Stream, either because a FIN or RST packet was seen, or because
+	// the stream has timed out without any new packet data (due to a call to
+	// FlushOlderThan).
 	ReassemblyComplete()
 }
 
-// StreamFactory is used by assembly to create a new stream for each
-// new TCP session.
+// StreamFactory is used by assembly to create a new stream for each new TCP
+// session.
 type StreamFactory interface {
 	// New should return a new stream for the given TCP key.
 	New(netFlow, tcpFlow gopacket.Flow) tcpassembly.Stream
@@ -184,9 +185,9 @@ func (p *StreamPool) connections() []*connection {
 	return conns
 }
 
-// FlushOlderThan finds any streams waiting for packets older than
-// the given time, and pushes through the data they have (IE: tells
-// them to stop waiting and skip the data they're waiting for).
+// FlushOlderThan finds any streams waiting for packets older than the given
+// time, and pushes through the data they have (IE: tells them to stop waiting
+// and skip the data they're waiting for).
 //
 // Each Stream maintains a list of zero or more sets of bytes it has received
 // out-of-order.  For example, if it has processed up through sequence number
@@ -200,9 +201,9 @@ func (p *StreamPool) connections() []*connection {
 // otherwise it will wait until the next FlushOlderThan to see if bytes [25-30)
 // come in.
 //
-// If it pushes all bytes (or there were no sets of bytes to begin with)
-// AND the connection has not received any bytes since the passed-in time,
-// the connection will be closed.
+// If it pushes all bytes (or there were no sets of bytes to begin with) AND the
+// connection has not received any bytes since the passed-in time, the
+// connection will be closed.
 //
 // Returns the number of connections flushed, and of those, the number closed
 // because of the flush.
@@ -263,8 +264,8 @@ func (k *key) String() string {
 
 // StreamPool stores all streams created by Assemblers, allowing multiple
 // assemblers to work together on stream processing while enforcing the fact
-// that a single stream receives its data serially.  It is safe
-// for concurrency, usable by multiple Assemblers at once.
+// that a single stream receives its data serially. It is safe for concurrency,
+// usable by multiple Assemblers at once.
 //
 // StreamPool handles the creation and storage of Stream objects used by one or
 // more Assembler objects.  When a new TCP stream is found by an Assembler, it
@@ -290,7 +291,7 @@ type StreamPool struct {
 func (p *StreamPool) grow() {
 	conns := make([]connection, p.nextAlloc)
 	p.all = append(p.all, conns)
-	for i, _ := range conns {
+	for i := range conns {
 		p.free = append(p.free, &conns[i])
 	}
 	if *memLog {
@@ -299,7 +300,7 @@ func (p *StreamPool) grow() {
 	p.nextAlloc *= 2
 }
 
-// NewStreamPool creates a new connection pool.  Streams will
+// NewStreamPool creates a new connection pool. Streams will
 // be created as necessary using the passed-in StreamFactory.
 func NewStreamPool(factory StreamFactory) *StreamPool {
 	return &StreamPool{
@@ -312,7 +313,7 @@ func NewStreamPool(factory StreamFactory) *StreamPool {
 
 const assemblerReturnValueInitialSize = 16
 
-// NewAssembler creates a new assembler.  Pass in the StreamPool
+// NewAssembler creates a new assembler. Pass in the StreamPool
 // to use, may be shared across assemblers.
 //
 // This sets some sane defaults for the assembler options,
@@ -351,14 +352,14 @@ type connection struct {
 	mu                sync.Mutex
 }
 
-func (c *connection) reset(k key, s tcpassembly.Stream, ts time.Time) {
-	c.key = k
-	c.pages = 0
-	c.first, c.last = nil, nil
-	c.nextSeq = invalidSequence
-	c.created = ts
-	c.stream = s
-	c.closed = false
+func (conn *connection) reset(k key, s tcpassembly.Stream, ts time.Time) {
+	conn.key = k
+	conn.pages = 0
+	conn.first, conn.last = nil, nil
+	conn.nextSeq = invalidSequence
+	conn.created = ts
+	conn.stream = s
+	conn.closed = false
 }
 
 // AssemblerOptions controls the behavior of each assembler.  Modify the
@@ -366,13 +367,13 @@ func (c *connection) reset(k key, s tcpassembly.Stream, ts time.Time) {
 type AssemblerOptions struct {
 	// MaxBufferedPagesTotal is an upper limit on the total number of pages to
 	// buffer while waiting for out-of-order packets.  Once this limit is
-	// reached, the assembler will degrade to flushing every connection it
-	// gets a packet for.  If <= 0, this is ignored.
+	// reached, the assembler will degrade to flushing every connection it gets
+	// a packet for.  If <= 0, this is ignored.
 	MaxBufferedPagesTotal int
 	// MaxBufferedPagesPerConnection is an upper limit on the number of pages
 	// buffered for a single connection.  Should this limit be reached for a
-	// particular connection, the smallest sequence number will be flushed, along
-	// with any contiguous data.  If <= 0, this is ignored.
+	// particular connection, the smallest sequence number will be flushed,
+	// along with any contiguous data.  If <= 0, this is ignored.
 	MaxBufferedPagesPerConnection int
 }
 
@@ -392,21 +393,21 @@ type AssemblerOptions struct {
 //
 // Assemblers locks connections, but each connection has an individual lock, and
 // rarely will two Assemblers be looking at the same connection.  Assemblers
-// lock the StreamPool when looking up connections, but they use Reader
-// locks initially, and only force a write lock if they need to create a new
+// lock the StreamPool when looking up connections, but they use Reader locks
+// initially, and only force a write lock if they need to create a new
 // connection or close one down.  These happen much less frequently than
 // individual packet handling.
 //
 // Each assembler runs in its own goroutine, and the only state shared between
-// goroutines is through the StreamPool.  Thus all internal Assembler state
-// can be handled without any locking.
+// goroutines is through the StreamPool.  Thus all internal Assembler state can
+// be handled without any locking.
 //
 // NOTE:  If you can guarantee that packets going to a set of Assemblers will
 // contain information on different connections per Assembler (for example,
 // they're already hashed by PF_RING hashing or some other hashing mechanism),
-// then we recommend you use a seperate StreamPool per Assembler, thus
-// avoiding all lock contention.  Only when different Assemblers could receive
-// packets for the same Stream should a StreamPool be shared between them.
+// then we recommend you use a seperate StreamPool per Assembler, thus avoiding
+// all lock contention.  Only when different Assemblers could receive packets
+// for the same Stream should a StreamPool be shared between them.
 //
 // Avoids Memory Copying
 //
@@ -433,8 +434,8 @@ type AssemblerOptions struct {
 //
 // TODO:  The page caches used by an Assembler will grow to the size necessary
 // to handle a workload, and currently will never shrink.  This means that
-// traffic spikes can result in large memory usage which isn't garbage
-// collected when typical traffic levels return.
+// traffic spikes can result in large memory usage which isn't garbage collected
+// when typical traffic levels return.
 type Assembler struct {
 	AssemblerOptions
 	ret      []tcpassembly.Reassembly
@@ -489,10 +490,10 @@ func (a *Assembler) Assemble(netFlow gopacket.Flow, t *layers.TCP) {
 // AssembleWithTimestamp reassembles the given TCP packet into its appropriate
 // stream.
 //
-// The timestamp passed in must be the timestamp the packet was seen.
-// For packets read off the wire, time.Now() should be fine.  For packets read
-// from PCAP files, CaptureInfo.Timestamp should be passed in.  This timestamp
-// will affect which streams are flushed by a call to FlushOlderThan.
+// The timestamp passed in must be the timestamp the packet was seen. For
+// packets read off the wire, time.Now() should be fine. For packets read from
+// PCAP files, CaptureInfo.Timestamp should be passed in. This timestamp will
+// affect which streams are flushed by a call to FlushOlderThan.
 //
 // Each Assemble call results in, in order:
 //
@@ -508,10 +509,10 @@ func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, 
 	a.ret = a.ret[:0]
 	key := key{netFlow, t.TransportFlow()}
 	var conn *connection
-	// This for loop handles a race condition where a connection will close, lock
-	// the connection pool, and remove itself, but before it locked the connection
-	// pool it's returned to another Assemble statement.  This should loop 0-1
-	// times for the VAST majority of cases.
+	// This for loop handles a race condition where a connection will close,
+	// lock the connection pool, and remove itself, but before it locked the
+	// connection pool it's returned to another Assemble statement.  This should
+	// loop 0-1 times for the VAST majority of cases.
 	for {
 		conn = a.connPool.getConnection(
 			key, !t.SYN && len(t.LayerPayload()) == 0, timestamp)
@@ -536,10 +537,10 @@ func (a *Assembler) AssembleWithTimestamp(netFlow gopacket.Flow, t *layers.TCP, 
 		// Handling the first packet we've seen on the stream.
 		skip := 0
 		if !t.SYN {
-			// don't add 1 since we're just going to assume the sequence number without the SYN packet.
-			// stream was picked up somewhere in the middle, so indicate that we don't know
-			// how many packets came before it.
-			//conn.nextSeq = seq.Add(len(bytes))
+			// don't add 1 since we're just going to assume the sequence number
+			// without the SYN packet.
+			// stream was picked up somewhere in the middle, so indicate that we
+			// don't know how many packets came before it.
 			conn.nextSeq = seq.Add(len(bytes))
 			skip = -1
 		} else {
@@ -677,7 +678,7 @@ func (a *Assembler) insertIntoConn(t *layers.TCP, conn *connection, ts time.Time
 	if conn.first != nil && conn.first.seq == conn.nextSeq {
 		panic("wtf")
 	}
-	p, p2, numPages := a.pagesFromTcp(t, ts)
+	p, p2, numPages := a.pagesFromTCP(t, ts)
 	prev, current := conn.traverseConn(Sequence(t.Seq))
 	conn.pushBetween(prev, current, p, p2)
 	conn.pages += numPages
@@ -690,12 +691,12 @@ func (a *Assembler) insertIntoConn(t *layers.TCP, conn *connection, ts time.Time
 	}
 }
 
-// pagesFromTcp creates a page (or set of pages) from a TCP packet.  Note that
+// pagesFromTCP creates a page (or set of pages) from a TCP packet.  Note that
 // it should NEVER receive a SYN packet, as it doesn't handle sequences
 // correctly.
 //
 // It returns the first and last page in its doubly-linked list of new pages.
-func (a *Assembler) pagesFromTcp(t *layers.TCP, ts time.Time) (p, p2 *page, numPages int) {
+func (a *Assembler) pagesFromTCP(t *layers.TCP, ts time.Time) (p, p2 *page, numPages int) {
 	first := a.pc.next(ts)
 	current := first
 	numPages++
@@ -741,11 +742,4 @@ func (a *Assembler) addNextFromConn(conn *connection) {
 		conn.first.prev = nil
 	}
 	conn.pages--
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

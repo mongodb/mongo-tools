@@ -11,10 +11,12 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-// TruncateLength is the maximum number of characters allowed for long substrings when constructing
-// log output lines.
+// TruncateLength is the maximum number of characters allowed for long
+// substrings when constructing log output lines.
 const TruncateLength = 350
 
+// StatOptions stores settings for the mongotape subcommands which have stat
+// output
 type StatOptions struct {
 	Collect    string `long:"collect" description:"Stat collection format; 'format' option uses the --format string" choice:"json" choice:"format" choice:"none" default:"format"`
 	Buffered   bool   `hidden:"yes"`
@@ -24,8 +26,10 @@ type StatOptions struct {
 	NoColors   bool   `long:"no-colors" description:"Remove colors from the default format"`
 }
 
-// StatCollector is a struct that handles generation and recording of statistics about operations mongotape performs.
-// It contains a StatGenerator and a StatRecorder that allow for differing implementations of the generating and recording functions
+// StatCollector is a struct that handles generation and recording of statistics
+// about operations mongotape performs. It contains a StatGenerator and a
+// StatRecorder that allow for differing implementations of the generating and
+// recording functions
 type StatCollector struct {
 	sync.Once
 	done       chan struct{}
@@ -35,6 +39,7 @@ type StatCollector struct {
 	noop bool
 }
 
+// Close implements the basic close method, stopping stat collection.
 func (statColl *StatCollector) Close() error {
 	if statColl.statStream == nil {
 		return nil
@@ -102,7 +107,8 @@ func newStatCollector(opts StatOptions, isPairedMode bool, isComparative bool) (
 	}, nil
 }
 
-// StatGenerator is an interface that specifies how to accept operation information to be recorded
+// StatGenerator is an interface that specifies how to accept operation
+// information to be recorded
 type StatGenerator interface {
 	GenerateOpStat(op *RecordedOp, replayedOp Op, reply Replyable, msg string) *OpStat
 	Finalize(chan *OpStat)
@@ -115,7 +121,8 @@ type StatRecorder interface {
 }
 
 // FindValueByKey returns the value of keyName in document.
-// The second return arg is a bool which is true if and only if the key was present in the doc.
+// The second return arg is a bool which is true if and only if the key was
+// present in the doc.
 func FindValueByKey(keyName string, document *bson.D) (interface{}, bool) {
 	for _, key := range *document {
 		if key.Name == keyName {
@@ -152,27 +159,36 @@ func (statColl *StatCollector) Collect(op *RecordedOp, replayedOp Op, reply Repl
 	}
 }
 
+// JSONStatRecorder records stats in JSON output
 type JSONStatRecorder struct {
 	out io.WriteCloser
 }
 
+// TerminalStatRecorder records stats for terminal output
 type TerminalStatRecorder struct {
 	out      io.WriteCloser
 	truncate bool
 	format   string
 }
 
-// BufferedStatRecorder implements the StatRecorder interface using an in-memory slice of OpStats.
-// This allows for the statistics on operations executed by mongotape to be reviewed by a program directly following execution.
-// BufferedStatCollector's main purpose is for asserting correct execution of ops for testing
+// BufferedStatRecorder implements the StatRecorder interface using an in-memory
+// slice of OpStats. This allows for the statistics on operations executed by
+// mongotape to be reviewed by a program directly following execution.
+//
+// BufferedStatCollector's main purpose is for asserting correct execution of
+// ops for testing
 type BufferedStatRecorder struct {
-	// Buffer is a slice of OpStats that is appended to every time the Collect function makes a record
-	// It stores an in-order series of OpStats that store information about the commands mongotape ran as a result
-	// of reading a playback file
+	// Buffer is a slice of OpStats that is appended to every time the Collect
+	// function makes a record It stores an in-order series of OpStats that
+	// store information about the commands mongotape ran as a result of reading
+	// a playback file
 	Buffer []OpStat
 }
+
+// NopRecorder implements the StatRecorder interface but doesn't do anything
 type NopRecorder struct{}
 
+// RecordStat records the stat using the JSONStatRecorder
 func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 	if stat == nil {
 		// TODO log warning.
@@ -212,10 +228,12 @@ func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 	}
 }
 
+// RecordStat records the stat into a buffer
 func (bsr *BufferedStatRecorder) RecordStat(stat *OpStat) {
 	bsr.Buffer = append(bsr.Buffer, *stat)
 }
 
+// RecordStat records the stat into the terminal
 func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	if stat == nil {
 		// TODO log warning.
@@ -260,32 +278,42 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 	}
 }
 
+// RecordStat doesn't do anything for the NopRecorder
 func (nr *NopRecorder) RecordStat(stat *OpStat) {
 }
 
+// Close closes the JSONStatRecorder
 func (jsr *JSONStatRecorder) Close() error {
 	return jsr.out.Close()
 }
 
+// Close closes the BufferedStatRecorder
 func (bsr *BufferedStatRecorder) Close() error {
 	return nil
 }
 
-func (nc *NopRecorder) Close() error {
+// Close closes the NopRecorder (i.e. does nothing)
+func (nr *NopRecorder) Close() error {
 	return nil
 }
+
+// Close closes the TerminalStatRecorder
 func (dsr *TerminalStatRecorder) Close() error {
 	return dsr.out.Close()
 }
 
+// ComparativeStatGenerator implements a basic StatGenerator
 type ComparativeStatGenerator struct {
 }
 
+// RegularStatGenerator implements a StatGenerator which maintains which ops are
+// unresolved, and is capable of handling PairedMode
 type RegularStatGenerator struct {
 	PairedMode    bool
 	UnresolvedOps map[opKey]UnresolvedOpInfo
 }
 
+// GenerateOpStat creates an OpStat using the ComparativeStatGenerator
 func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp Op, reply Replyable, msg string) *OpStat {
 	if replayedOp == nil || op == nil {
 		return nil
@@ -299,7 +327,7 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 		Command:       opMeta.Command,
 		ConnectionNum: op.PlayedConnectionNum,
 		Seen:          &op.Seen.Time,
-		RequestId:     op.Header.RequestID,
+		RequestID:     op.Header.RequestID,
 	}
 	var playAtHasVal bool
 	if op.PlayAt != nil && !op.PlayAt.IsZero() {
@@ -329,6 +357,7 @@ func (gen *ComparativeStatGenerator) GenerateOpStat(op *RecordedOp, replayedOp O
 	return stat
 }
 
+// GenerateOpStat creates an OpStat using the RegularStatGenerator
 func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp Op, reply Replyable, msg string) *OpStat {
 	if recordedOp == nil || parsedOp == nil {
 		// TODO log a warning
@@ -349,7 +378,7 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 	switch recordedOp.Header.OpCode {
 	case OpCodeQuery, OpCodeGetMore, OpCodeCommand:
 		stat.RequestData = meta.Data
-		stat.RequestId = recordedOp.Header.RequestID
+		stat.RequestID = recordedOp.Header.RequestID
 		gen.AddUnresolvedOp(recordedOp, parsedOp, stat)
 		// In 'PairedMode', the stat is not considered completed at this point.
 		// We save the op as 'unresolved' and return nil. When the reply is seen
@@ -359,7 +388,7 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 			return nil
 		}
 	case OpCodeReply, OpCodeCommandReply:
-		stat.RequestId = recordedOp.Header.ResponseTo
+		stat.RequestID = recordedOp.Header.ResponseTo
 		stat.ReplyData = meta.Data
 		switch t := parsedOp.(type) {
 		case *CommandReplyOp:
@@ -373,8 +402,12 @@ func (gen *RegularStatGenerator) GenerateOpStat(recordedOp *RecordedOp, parsedOp
 	return stat
 }
 
+// Finalize concludes any final stats that still need to be yielded by the
+// ComparativeStatGenerator
 func (gen *ComparativeStatGenerator) Finalize(statStream chan *OpStat) {}
 
+// Finalize concludes any final stats that still need to be yielded by the
+// RegularStatGenerator
 func (gen *RegularStatGenerator) Finalize(statStream chan *OpStat) {
 	for key, unresolved := range gen.UnresolvedOps {
 		if gen.PairedMode {

@@ -7,8 +7,9 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-//TestCommandsAgainstAuthedDBWhenAuthed tests some basic commands against a database that requires authenticaiton
-//when the driver has proper authentication credentials
+// TestCommandsAgainstAuthedDBWhenAuthed tests some basic commands against a
+// database that requires authenticaiton when the driver has proper
+// authentication credentials
 func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 	if !authTestServerMode {
 		t.Skipf("Skipping auth test with non-auth DB")
@@ -70,9 +71,10 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 
 }
 
-//TestCommandsAgainstAuthedDBWhenNotAuthed tests some basic commands against a database that requires authentication
-//when the driver does not have proper authenticaiton. It generates a series of inserts and ensures that the docs they are attempting
-//to insert are not later found in the database
+// TestCommandsAgainstAuthedDBWhenNotAuthed tests some basic commands against a
+// database that requires authentication when the driver does not have proper
+// authenticaiton. It generates a series of inserts and ensures that the docs
+// they are attempting to insert are not later found in the database
 func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 	if !authTestServerMode {
 		t.Skipf("Skipping auth test with non-auth DB")

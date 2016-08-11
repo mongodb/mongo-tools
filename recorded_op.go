@@ -1,5 +1,6 @@
 package mongotape
 
+// RecordedOp stores an op in addition to record/playback -related metadata
 type RecordedOp struct {
 	RawOp
 	Seen                *PreciseTime
@@ -14,9 +15,13 @@ type RecordedOp struct {
 	Order               int64
 }
 
+// ConnectionString gives a serialized representation of the endpoints
 func (op *RecordedOp) ConnectionString() string {
 	return op.SrcEndpoint + "->" + op.DstEndpoint
 }
+
+// ReversedConnectionString gives a serialized representation of the endpoints,
+// in reversed order
 func (op *RecordedOp) ReversedConnectionString() string {
 	return op.DstEndpoint + "->" + op.SrcEndpoint
 }
@@ -48,5 +53,5 @@ func (o *orderedOps) Push(op interface{}) {
 
 type opKey struct {
 	driverEndpoint, serverEndpoint string
-	opId                           int32
+	opID                           int32
 }

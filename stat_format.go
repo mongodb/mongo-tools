@@ -68,10 +68,10 @@ type OpStat struct {
 	// Seen is the time that this operation was originally seen.
 	Seen *time.Time `json:"seen,omitempty"`
 
-	// RequestId is the Id of the mongodb operation as taken from the header.
-	// The RequestId for a request operation is the same as the ResponseId for
+	// RequestID is the ID of the mongodb operation as taken from the header.
+	// The RequestID for a request operation is the same as the ResponseID for
 	// the corresponding reply, so this field will be the same for request/reply pairs.
-	RequestId int32 `json:"request_id, omitempty"`
+	RequestID int32 `json:"request_id, omitempty"`
 }
 
 // jsonGet retrieves serialized json req/res via the channel-like arg;
@@ -132,7 +132,7 @@ func (stat *OpStat) escaper(req, res <-chan *bytes.Buffer) *escaper.Escaper {
 	esc.Register('T', stat.getOpType)
 	esc.Register('c', stat.getCommand)
 	esc.Register('o', stat.getConnectionNum)
-	esc.Register('i', stat.getRequestId)
+	esc.Register('i', stat.getRequestID)
 	esc.RegisterArg('t', stat.getTime)
 	esc.RegisterArg('q', jsonGet(wReq))
 	esc.RegisterArg('r', jsonGet(wRes))
@@ -153,8 +153,8 @@ func (stat *OpStat) getNs() string {
 func (stat *OpStat) getConnectionNum() string {
 	return fmt.Sprintf("%d", stat.ConnectionNum)
 }
-func (stat *OpStat) getRequestId() string {
-	return fmt.Sprintf("%d", stat.RequestId)
+func (stat *OpStat) getRequestID() string {
+	return fmt.Sprintf("%d", stat.RequestID)
 }
 func (stat *OpStat) getTime(layout string) string {
 	if layout == "" {

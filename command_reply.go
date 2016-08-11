@@ -10,18 +10,21 @@ import (
 	"github.com/10gen/llmgo/bson"
 )
 
-// CommandReplyOp is a struct for parsing OP_COMMANDREPLY as defined here: https://github.com/mongodb/mongo/blob/master/src/mongo/rpc/command_reply.h.
-// Although this file parses the wire protocol message into a more useable struct, it does not currently provide functionality to execute
-// the operation, as it is not implemented fully in llmgo.
+// CommandReplyOp is a struct for parsing OP_COMMANDREPLY as defined here:
+// https://github.com/mongodb/mongo/blob/master/src/mongo/rpc/command_reply.h.
+// Although this file parses the wire protocol message into a more useable
+// struct, it does not currently provide functionality to execute the operation,
+// as it is not implemented fully in llmgo.
 type CommandReplyOp struct {
 	Header MsgHeader
 	mgo.CommandReplyOp
 	Docs         []bson.Raw
 	Latency      time.Duration
 	cursorCached bool
-	cursorId     int64
+	cursorID     int64
 }
 
+// OpCode returns the OpCode for a CommandReplyOp.
 func (op *CommandReplyOp) OpCode() OpCode {
 	return OpCodeCommandReply
 }
@@ -48,6 +51,8 @@ func (op *CommandReplyOp) String() string {
 	return fmt.Sprintf("CommandReply %v %v %v", commandReplyString, metadataString, outputDocsString)
 }
 
+// Abbreviated returns a serialization of the OpCommand, abbreviated so it
+// doesn't exceed the given number of characters.
 func (op *CommandReplyOp) Abbreviated(chars int) string {
 	commandReplyString, metadataString, outputDocsString, err := op.getOpBodyString()
 	if err != nil {
@@ -57,18 +62,18 @@ func (op *CommandReplyOp) Abbreviated(chars int) string {
 		Abbreviate(metadataString, chars), Abbreviate(outputDocsString, chars))
 }
 
-// getCursorId implements the Replyable interface method of the same name.
-// It returns the cursorId associated with this CommandReplyOp. It returns an
-// error if there is an issue unmarshalling the underlying bson. getCursorId also
-// caches in the CommandReplyOp struct so that multiple calls to this function do
-// not incur the cost of unmarshalling the bson.
-func (op *CommandReplyOp) getCursorId() (int64, error) {
+// getCursorID implements the Replyable interface method of the same name. It
+// returns the cursorID associated with this CommandReplyOp. It returns an error
+// if there is an issue unmarshalling the underlying bson. getCursorID also
+// caches in the CommandReplyOp struct so that multiple calls to this function
+// do not incur the cost of unmarshalling the bson.
+func (op *CommandReplyOp) getCursorID() (int64, error) {
 	if op.cursorCached {
-		return op.cursorId, nil
+		return op.cursorID, nil
 	}
 	doc := &struct {
 		Cursor struct {
-			Id int64 `bson:"id"`
+			ID int64 `bson:"id"`
 		} `bson: "cursor"`
 	}{}
 	replyArgs := op.CommandReply.(*bson.Raw)
@@ -78,8 +83,8 @@ func (op *CommandReplyOp) getCursorId() (int64, error) {
 		return 0, fmt.Errorf("failed to unmarshal bson.Raw into struct: %v", err)
 	}
 	op.cursorCached = true
-	op.cursorId = doc.Cursor.Id
-	return op.cursorId, nil
+	op.cursorID = doc.Cursor.ID
+	return op.cursorID, nil
 }
 
 func (op *CommandReplyOp) getOpBodyString() (string, string, string, error) {
@@ -88,7 +93,7 @@ func (op *CommandReplyOp) getOpBodyString() (string, string, string, error) {
 		return "", "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 
-	commandReplyAsJson, err := json.Marshal(commandReplyDoc)
+	commandReplyAsJSON, err := json.Marshal(commandReplyDoc)
 	if err != nil {
 		return "", "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
@@ -98,7 +103,7 @@ func (op *CommandReplyOp) getOpBodyString() (string, string, string, error) {
 		return "", "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 	}
 
-	metadataAsJson, err := json.Marshal(metadataDocs)
+	metadataAsJSON, err := json.Marshal(metadataDocs)
 	if err != nil {
 		return "", "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 	}
@@ -111,15 +116,17 @@ func (op *CommandReplyOp) getOpBodyString() (string, string, string, error) {
 			return "", "", "", fmt.Errorf("ConvertBSONValueToJSON err: %#v - %v", op, err)
 		}
 
-		outputDocsAsJson, err := json.Marshal(outputDocs)
+		outputDocsAsJSON, err := json.Marshal(outputDocs)
 		if err != nil {
 			return "", "", "", fmt.Errorf("json marshal err: %#v - %v", op, err)
 		}
-		outputDocsString = string(outputDocsAsJson)
+		outputDocsString = string(outputDocsAsJSON)
 	}
-	return string(commandReplyAsJson), string(metadataAsJson), outputDocsString, nil
+	return string(commandReplyAsJSON), string(metadataAsJSON), outputDocsString, nil
 }
 
+// FromReader extracts data from a serialized CommandReplyOp into its
+// concrete structure.
 func (op *CommandReplyOp) FromReader(r io.Reader) error {
 	commandReplyAsSlice, err := ReadDocument(r)
 	if err != nil {
@@ -157,8 +164,8 @@ func (op *CommandReplyOp) FromReader(r io.Reader) error {
 	return nil
 }
 
-// Execute logs a warning and returns nil because OP_COMMANDREPLY cannot yet be handled fully by mongotape.
-
+// Execute logs a warning and returns nil because OP_COMMANDREPLY cannot yet be
+// handled fully by mongotape.
 func (op *CommandReplyOp) Execute(session *mgo.Session) (Replyable, error) {
 	userInfoLogger.Log(Always, "Skipping unimplemented op: OP_COMMANDREPLY")
 	return nil, nil

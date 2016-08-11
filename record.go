@@ -12,6 +12,7 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
+// RecordCommand stores settings for the mongotape 'record' subcommand
 type RecordCommand struct {
 	GlobalOpts *Options `no-flag:"true"`
 	OpStreamSettings
@@ -19,6 +20,7 @@ type RecordCommand struct {
 	PlaybackFile string `short:"p" description:"path to playback file to record to" long:"playback-file" required:"yes"`
 }
 
+// ErrPacketsDropped means that some packets were dropped
 type ErrPacketsDropped struct {
 	Count int
 }
@@ -69,11 +71,14 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 	return &packetHandlerContext{h, m, pcapHandle}, nil
 }
 
+// PlaybackWriter stores the necessary information for a playback destination,
+// which is an io.WriteCloser and its location.
 type PlaybackWriter struct {
 	io.WriteCloser
 	fname string
 }
 
+// NewPlaybackWriter initializes a new PlaybackWriter
 func NewPlaybackWriter(playbackFileName string, isGzipWriter bool) (*PlaybackWriter, error) {
 	pbWriter := &PlaybackWriter{
 		fname: playbackFileName,
@@ -91,6 +96,7 @@ func NewPlaybackWriter(playbackFileName string, isGzipWriter bool) (*PlaybackWri
 	return pbWriter, nil
 }
 
+// ValidateParams validates the settings described in the RecordCommand struct.
 func (record *RecordCommand) ValidateParams(args []string) error {
 	switch {
 	case len(args) > 0:
@@ -105,6 +111,7 @@ func (record *RecordCommand) ValidateParams(args []string) error {
 	return nil
 }
 
+// Execute runs the program for the 'record' subcommand
 func (record *RecordCommand) Execute(args []string) error {
 	err := record.ValidateParams(args)
 	if err != nil {
@@ -117,8 +124,8 @@ func (record *RecordCommand) Execute(args []string) error {
 		return err
 	}
 
-	// When a signal is received to kill the process, stop the packet handler so we
-	// gracefully flush all ops being processed before exiting.
+	// When a signal is received to kill the process, stop the packet handler so
+	// we gracefully flush all ops being processed before exiting.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {
@@ -136,6 +143,7 @@ func (record *RecordCommand) Execute(args []string) error {
 
 }
 
+// Record writes pcap data into a playback file
 func Record(ctx *packetHandlerContext,
 	playbackWriter *PlaybackWriter) error {
 
@@ -158,7 +166,7 @@ func Record(ctx *packetHandlerContext,
 	}()
 
 	if err := ctx.packetHandler.Handle(ctx.mongoOpStream, -1); err != nil {
-		fmt.Errorf("record: error handling packet stream:", err)
+		return fmt.Errorf("record: error handling packet stream: %s", err)
 	}
 
 	stats, err := ctx.pcapHandle.Stats()

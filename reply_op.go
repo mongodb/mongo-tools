@@ -20,40 +20,46 @@ type ReplyOp struct {
 	cursorCached bool
 }
 
+// Meta returns metadata about the ReplyOp, useful for analysis of traffic.
 func (op *ReplyOp) Meta() OpMetadata {
 	var resultDocs interface{} = op.Docs
 
-	// If the reply only contains a single doc, just use that doc instead of also including the array
-	// containing it.
+	// If the reply only contains a single doc, just use that doc instead of
+	// also including the array containing it.
 	if len(op.Docs) == 1 {
 		resultDocs = op.Docs[0]
 	}
 	return OpMetadata{"reply", "", "", resultDocs}
 }
 
-func (opr *ReplyOp) String() string {
-	if opr == nil {
+func (op *ReplyOp) String() string {
+	if op == nil {
 		return "Reply NIL"
 	}
 	return fmt.Sprintf("ReplyOp reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
-		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
-		stringifyReplyDocs(opr.Docs),
-	)
-}
-func (opr *ReplyOp) Abbreviated(chars int) string {
-	if opr == nil {
-		return "Reply NIL"
-	}
-	return fmt.Sprintf("ReplyOp reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
-		opr.Flags, opr.CursorId, opr.FirstDoc, opr.ReplyDocs,
-		Abbreviate(stringifyReplyDocs(opr.Docs), chars),
+		op.Flags, op.CursorId, op.FirstDoc, op.ReplyDocs,
+		stringifyReplyDocs(op.Docs),
 	)
 }
 
+// Abbreviated returns a serialization of the ReplyOp, abbreviated so it doesn't
+// exceed the given number of characters.
+func (op *ReplyOp) Abbreviated(chars int) string {
+	if op == nil {
+		return "Reply NIL"
+	}
+	return fmt.Sprintf("ReplyOp reply:[flags:%v, cursorid:%v, first:%v ndocs:%v] docs:%v",
+		op.Flags, op.CursorId, op.FirstDoc, op.ReplyDocs,
+		Abbreviate(stringifyReplyDocs(op.Docs), chars),
+	)
+}
+
+// OpCode returns the OpCode for a ReplyOp.
 func (op *ReplyOp) OpCode() OpCode {
 	return OpCodeReply
 }
 
+// FromReader extracts data from a serialized ReplyOp into its concrete structure.
 func (op *ReplyOp) FromReader(r io.Reader) error {
 	var b [20]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {
@@ -90,6 +96,8 @@ func (op *ReplyOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+// Execute performs the ReplyOp on a given session, yielding the reply when
+// successful (and an error otherwise).
 func (op *ReplyOp) Execute(session *mgo.Session) (Replyable, error) {
 	return nil, nil
 }
@@ -109,49 +117,49 @@ func stringifyReplyDocs(d []bson.Raw) string {
 	return string(asJSON)
 }
 
-// getCursorId implements the Replyable interface method. It
-// returns the cursorId stored in this reply. It returns an error
-// if there is an issue unmarshaling the underlying bson. It caches
-// the cursorId in the ReplyOp struct so that subsequent calls to this
-// function do not incur cost of unmarshalling the bson each time.
-func (opr *ReplyOp) getCursorId() (int64, error) {
-	if opr.CursorId != 0 || opr.cursorCached {
-		return opr.CursorId, nil
+// getCursorID implements the Replyable interface method. It returns the
+// cursorID stored in this reply. It returns an error if there is an issue
+// unmarshaling the underlying bson. It caches the cursorID in the ReplyOp
+// struct so that subsequent calls to this function do not incur cost of
+// unmarshalling the bson each time.
+func (op *ReplyOp) getCursorID() (int64, error) {
+	if op.CursorId != 0 || op.cursorCached {
+		return op.CursorId, nil
 	}
-	opr.cursorCached = true
-	if len(opr.Docs) != 1 {
+	op.cursorCached = true
+	if len(op.Docs) != 1 {
 		return 0, nil
 	}
 	doc := &struct {
 		Cursor struct {
-			Id int64 `bson:"id"`
+			ID int64 `bson:"id"`
 		} `bson: "cursor"`
 	}{}
-	err := opr.Docs[0].Unmarshal(&doc)
+	err := op.Docs[0].Unmarshal(&doc)
 	if err != nil {
 		// can happen if there's corrupt bson in the doc.
 		return 0, fmt.Errorf("failed to unmarshal raw into bson.M: %v", err)
 	}
-	opr.CursorId = doc.Cursor.Id
+	op.CursorId = doc.Cursor.ID
 
-	return opr.CursorId, nil
+	return op.CursorId, nil
 }
 
-func (opr *ReplyOp) getLatencyMicros() int64 {
-	return int64(opr.Latency / (time.Microsecond))
+func (op *ReplyOp) getLatencyMicros() int64 {
+	return int64(op.Latency / (time.Microsecond))
 }
 
-func (opr *ReplyOp) getNumReturned() int {
-	return len(opr.Docs)
+func (op *ReplyOp) getNumReturned() int {
+	return len(op.Docs)
 }
 
-func (opr *ReplyOp) getErrors() []error {
-	if len(opr.Docs) == 0 {
+func (op *ReplyOp) getErrors() []error {
+	if len(op.Docs) == 0 {
 		return nil
 	}
 
 	firstDoc := bson.D{}
-	err := opr.Docs[0].Unmarshal(&firstDoc)
+	err := op.Docs[0].Unmarshal(&firstDoc)
 	if err != nil {
 		panic("failed to unmarshal Raw into bson.D")
 	}

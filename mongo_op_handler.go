@@ -10,6 +10,8 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 )
 
+// OpStreamSettings stores settings for any command which may listen to an
+// opstream.
 type OpStreamSettings struct {
 	PcapFile         string `short:"f" description:"path to the pcap file to be read"`
 	PacketBufSize    int    `short:"b" description:"Size of heap used to merge separate streams together"`
@@ -32,8 +34,8 @@ type stream struct {
 // Reassembled receives the new slice of reassembled data and forwards it to the
 // MongoOpStream->streamOps goroutine for which turns them in to protocol
 // messages.
-// Since the tcpassembler reuses the tcpreassembly.Reassembled buffers, we
-// wait for streamOps to signal us that it's done with them before returning.
+// Since the tcpassembler reuses the tcpreassembly.Reassembled buffers, we wait
+// for streamOps to signal us that it's done with them before returning.
 func (stream *stream) Reassembled(reassembly []tcpassembly.Reassembly) {
 	stream.reassembled <- reassembly
 	<-stream.done
@@ -110,6 +112,7 @@ type bidiKey struct {
 	net, transport gopacket.Flow
 }
 
+// MongoOpStream is the opstream which yields RecordedOps
 type MongoOpStream struct {
 	Ops chan *RecordedOp
 
@@ -121,6 +124,7 @@ type MongoOpStream struct {
 	connectionNumber  int64
 }
 
+// NewMongoOpStream initializes a new MongoOpStream
 func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 	h := make(orderedOps, 0, heapBufSize)
 	os := &MongoOpStream{
@@ -132,7 +136,7 @@ func NewMongoOpStream(heapBufSize int) *MongoOpStream {
 	}
 	heap.Init(os.opHeap)
 	go func() {
-		var counter int64 = 0
+		var counter int64
 		for {
 			os.connectionCounter <- counter
 			counter++
@@ -150,13 +154,12 @@ func (os *MongoOpStream) New(netFlow, tcpFlow gopacket.Flow) tcpassembly.Stream 
 		atomic.AddInt32(&bidi.openStreamCount, 1)
 		delete(os.bidiMap, key)
 		return bidi.streams[1]
-	} else {
-		bidi := newBidi(netFlow, tcpFlow, os, <-os.connectionCounter)
-		os.bidiMap[rkey] = bidi
-		atomic.AddInt32(&bidi.openStreamCount, 1)
-		go bidi.streamOps()
-		return bidi.streams[0]
 	}
+	bidi := newBidi(netFlow, tcpFlow, os, <-os.connectionCounter)
+	os.bidiMap[rkey] = bidi
+	atomic.AddInt32(&bidi.openStreamCount, 1)
+	go bidi.streamOps()
+	return bidi.streams[0]
 }
 
 // Close is called by the tcpassembly to indicate that all of the packets
@@ -167,33 +170,32 @@ func (os *MongoOpStream) Close() error {
 	return nil
 }
 
-// All of this SetFirstSeen/FirstSeen/SetFirstseer stuff
-// can go away ( from here and from packet_handler.go )
-// it's a cruft and was how someone was trying to get around
-// the fact that using the tcpassembly.tcpreader library
-// throws away all of the metadata about the stream.
+// SetFirstSeen sets the time for the first message on the MongoOpStream.
+// All of this SetFirstSeen/FirstSeen/SetFirstseer stuff can go away ( from here
+// and from packet_handler.go ) it's a cruft and was how someone was trying to
+// get around the fact that using the tcpassembly.tcpreader library throws away
+// all of the metadata about the stream.
 func (os *MongoOpStream) SetFirstSeen(t time.Time) {
 	os.FirstSeen = t
 }
 
-// handleOps runs all of the ops read from the
-// unorderedOps through a heapsort and then runs
-// them out on the Ops channel.
+// handleOps runs all of the ops read from the unorderedOps through a heapsort
+// and then runs them out on the Ops channel.
 func (os *MongoOpStream) handleOps() {
 	defer close(os.Ops)
-	var counter int64 = 0
+	var counter int64
 	for op := range os.unorderedOps {
 		heap.Push(os.opHeap, op)
 		if len(*os.opHeap) == cap(*os.opHeap) {
 			nextOp := heap.Pop(os.opHeap).(RecordedOp)
-			counter += 1
+			counter++
 			nextOp.Order = counter
 			os.Ops <- &nextOp
 		}
 	}
 	for len(*os.opHeap) > 0 {
 		nextOp := heap.Pop(os.opHeap).(RecordedOp)
-		counter += 1
+		counter++
 		nextOp.Order = counter
 		os.Ops <- &nextOp
 	}
@@ -226,9 +228,10 @@ func (bidi *bidi) handleStreamStateBeforeMessage(stream *stream) {
 		}
 		bidi.sawStart = true
 	}
-	// TODO deal with the situation that the first packet doesn't contain a whole MessageHeader
-	// of an otherwise valid protocol message.
-	// The following code erroneously assumes that all packets will have at least 16 bytes of data
+	// TODO deal with the situation that the first packet doesn't contain a
+	// whole MessageHeader of an otherwise valid protocol message.  The
+	// following code erroneously assumes that all packets will have at least 16
+	// bytes of data
 	if len(stream.reassembly.Bytes) < 16 {
 		stream.state = streamStateOutOfSync
 		stream.reassembly.Bytes = stream.reassembly.Bytes[:0]
@@ -236,9 +239,9 @@ func (bidi *bidi) handleStreamStateBeforeMessage(stream *stream) {
 	}
 	stream.op.Header.FromWire(stream.reassembly.Bytes)
 	if !stream.op.Header.LooksReal() {
-		// When we're here and stream.reassembly.Start is true
-		// we may be able to know that we're actually not looking at mongodb traffic
-		// and that this whole stream should be discarded.
+		// When we're here and stream.reassembly.Start is true we may be able to
+		// know that we're actually not looking at mongodb traffic and that this
+		// whole stream should be discarded.
 		bidi.logf(DebugLow, "not a good header %#v", stream.op.Header)
 		bidi.logf(Info, "Expected to, but didn't see a valid protocol message")
 		stream.state = streamStateOutOfSync
@@ -267,7 +270,7 @@ func (bidi *bidi) handleStreamStateInMessage(stream *stream) {
 	}
 	stream.reassembly.Bytes = stream.reassembly.Bytes[copySize:]
 	if len(stream.op.Body) == int(stream.op.Header.MessageLength) {
-		//TODO maybe remember if we were recently in streamStateOutOfSync,
+		// TODO maybe remember if we were recently in streamStateOutOfSync,
 		// and if so, parse the raw op here.
 
 		bidi.opStream.unorderedOps <- RecordedOp{
@@ -324,7 +327,8 @@ func (bidi *bidi) streamOps() {
 		stream := bidi.streams[reassembliesStream]
 
 		for _, stream.reassembly = range reassemblies {
-			// Skip > 0 means that we've missed something, and we have incomplete packets in hand.
+			// Skip > 0 means that we've missed something, and we have
+			// incomplete packets in hand.
 			if stream.reassembly.Skip > 0 {
 				// TODO, we may want to do more state specific reporting here.
 				stream.state = streamStateOutOfSync
@@ -333,9 +337,9 @@ func (bidi *bidi) streamOps() {
 				bidi.logf(Info, "Connection %v state '%v': ignoring incomplete packet (skip: %v)", bidi.connectionNumber, stream.state, stream.reassembly.Skip)
 				continue
 			}
-			// Skip < 0 means that we're picking up a stream mid-stream, and we don't really know the
-			// state of what's in hand;
-			// we need to synchronize.
+			// Skip < 0 means that we're picking up a stream mid-stream, and we
+			// don't really know the state of what's in hand, we need to
+			// synchronize.
 			if stream.reassembly.Skip < 0 {
 				bidi.logf(Info, "Connection %v state '%v': capture started in the middle of stream", bidi.connectionNumber, stream.state)
 				stream.state = streamStateOutOfSync

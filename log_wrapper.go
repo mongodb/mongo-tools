@@ -6,9 +6,13 @@ import (
 )
 
 const (
+	// Always denotes that a log be performed without needing any verbosity
 	Always = iota
+	// Info denotes that a log be performed with verbosity level 1 (-v)
 	Info
+	// DebugLow denotes that a log be performed with verbosity level 2 (-vv)
 	DebugLow
+	// DebugHigh denotes that a log be performed with verbosity level 3 (-vvv)
 	DebugHigh
 )
 

@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	// ErrInvalidSize means the size of the BSON document is invalid
 	ErrInvalidSize = errors.New("got invalid document size")
 )
 
@@ -37,9 +38,9 @@ func AbbreviateBytes(data []byte, maxLen int) []byte {
 	return o.Bytes()
 }
 
-// Abbreviate returns a reduced copy of the given string if it's longer than maxLen by
-// showing only a prefix and suffix of size
-// windowLen with an ellipsis in the middle.
+// Abbreviate returns a reduced copy of the given string if it's longer than
+// maxLen by showing only a prefix and suffix of size windowLen with an ellipsis
+// in the middle.
 func Abbreviate(data string, maxLen int) string {
 	if len(data) <= maxLen {
 		return data
@@ -179,8 +180,8 @@ func readCString(b []byte) string {
 	return ""
 }
 
-//retrieves a 32 bit into from the given byte array whose first byte is in position pos
-//Taken from gopkg.in/mgo.v2/socket.go
+// retrieves a 32 bit into from the given byte array whose first byte is in position pos
+// Taken from gopkg.in/mgo.v2/socket.go
 func getInt32(b []byte, pos int) int32 {
 	return (int32(b[pos+0])) |
 		(int32(b[pos+1]) << 8) |
@@ -188,8 +189,8 @@ func getInt32(b []byte, pos int) int32 {
 		(int32(b[pos+3]) << 24)
 }
 
-//sets 32 bit int into the given byte array at position post
-//Taken from gopkg.in/mgo.v2/socket.go
+// SetInt32 sets the 32-bit int into the given byte array at position post
+// Taken from gopkg.in/mgo.v2/socket.go
 func SetInt32(b []byte, pos int, i int32) {
 	b[pos] = byte(i)
 	b[pos+1] = byte(i >> 8)
@@ -197,8 +198,8 @@ func SetInt32(b []byte, pos int, i int32) {
 	b[pos+3] = byte(i >> 24)
 }
 
-//retrieves a 64 bit into from the given byte array whose first byte is in position pos
-//Taken from gopkg.in/mgo.v2/socket.go
+// retrieves a 64 bit into from the given byte array whose first byte is in position pos
+// Taken from gopkg.in/mgo.v2/socket.go
 func getInt64(b []byte, pos int) int64 {
 	return (int64(b[pos+0])) |
 		(int64(b[pos+1]) << 8) |
@@ -221,8 +222,8 @@ func convertKeys(v bson.M) (bson.M, error) {
 	return v, nil
 }
 
-//sets 64 bit int into the given byte array at position post
-//Taken from gopkg.in/mgo.v2/socket.go
+// SetInt64 sets the 64-bit int into the given byte array at position post
+// Taken from gopkg.in/mgo.v2/socket.go
 func SetInt64(b []byte, pos int, i int64) {
 	b[pos] = byte(i)
 	b[pos+1] = byte(i >> 8)
@@ -234,9 +235,9 @@ func SetInt64(b []byte, pos int, i int64) {
 	b[pos+7] = byte(i >> 56)
 }
 
-// ConvertBSONValueToJSON walks through a document or an array and
-// converts any BSON value to its corresponding extended JSON type.
-// It returns the converted JSON document and any error encountered.
+// ConvertBSONValueToJSON walks through a document or an array and converts any
+// BSON value to its corresponding extended JSON type. It returns the converted
+// JSON document and any error encountered.
 func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
@@ -384,6 +385,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("conversion of BSON type '%v' not supported %v", reflect.TypeOf(x), x)
 }
 
+// PreciseTime wraps a time.Time with addition useful methods
 type PreciseTime struct {
 	time.Time
 }
@@ -394,9 +396,9 @@ type preciseTimeDecoder struct {
 }
 
 const (
-	// Time.Unix() returns the number of seconds from the unix epoch
-	// but time's underlying struct stores 'sec' as the number of seconds
-	// elapsed since January 1, year 1 00:00:00 UTC
+	// Time.Unix() returns the number of seconds from the unix epoch but time's
+	// underlying struct stores 'sec' as the number of seconds elapsed since
+	// January 1, year 1 00:00:00 UTC
 	// This calculation allows for conversion between the internal representation
 	// and the UTC representation
 	unixToInternal int64 = (1969*365 + 1969/4 - 1969/100 + 1969/400) * 86400
@@ -404,6 +406,7 @@ const (
 	internalToUnix int64 = -unixToInternal
 )
 
+// GetBSON encodes the time into BSON
 func (b *PreciseTime) GetBSON() (interface{}, error) {
 	result := preciseTimeDecoder{
 		Sec:  b.Unix() + unixToInternal,
@@ -413,6 +416,7 @@ func (b *PreciseTime) GetBSON() (interface{}, error) {
 
 }
 
+// SetBSON decodes the BSON into a time
 func (b *PreciseTime) SetBSON(raw bson.Raw) error {
 	decoder := preciseTimeDecoder{}
 	bsonErr := raw.Unmarshal(&decoder)
@@ -462,4 +466,11 @@ func getDotField(m map[string]interface{}, key string) (v interface{}, ok bool) 
 		return
 	}
 	return getDotField(nm, s[1])
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

@@ -9,28 +9,35 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+// ReplyPair contains both a live reply and a recorded reply when fully
+// occupied.
 type ReplyPair struct {
 	ops [2]Replyable
 }
 
 const (
+	// ReplyFromWire is the ReplyPair index for live replies.
 	ReplyFromWire = 0
+	// ReplyFromFile is the ReplyPair index for recorded replies.
 	ReplyFromFile = 1
 )
 
+// ExecutionContext maintains information for a mongotape execution.
 type ExecutionContext struct {
 	// IncompleteReplies holds half complete ReplyPairs, which contains either a
 	// live reply or a recorded reply when one arrives before the other.
 	IncompleteReplies *cache.Cache
 
-	// CompleteReplies contains ReplyPairs that have been competed by the arrival
-	// of the missing half of.
+	// CompleteReplies contains ReplyPairs that have been competed by the
+	// arrival of the missing half of.
 	CompleteReplies map[string]*ReplyPair
 
-	// CursorIdMap contains the mapping between recorded cursorIds and live cursorIds
-	CursorIdMap cursorManager
+	// CursorIDMap contains the mapping between recorded cursorIDs and live
+	// cursorIDs
+	CursorIDMap cursorManager
 
-	// lock synchronizes access to all of the caches and maps in the ExecutionContext
+	// lock synchronizes access to all of the caches and maps in the
+	// ExecutionContext
 	sync.Mutex
 
 	SessionChansWaitGroup sync.WaitGroup
@@ -38,21 +45,22 @@ type ExecutionContext struct {
 	*StatCollector
 }
 
+// NewExecutionContext initializes a new ExecutionContext.
 func NewExecutionContext(statColl *StatCollector) *ExecutionContext {
 	return &ExecutionContext{
 		IncompleteReplies: cache.New(60*time.Second, 60*time.Second),
 		CompleteReplies:   map[string]*ReplyPair{},
-		CursorIdMap:       newCursorCache(),
+		CursorIDMap:       newCursorCache(),
 		StatCollector:     statColl,
 	}
 }
 
-// AddFromWire adds a from-wire reply to its IncompleteReplies ReplyPair
-// and moves that ReplyPair to CompleteReplies if it's complete.
-// The index is based on the src/dest of the recordedOp which should be the op
-// that this ReplyOp is a reply to.
+// AddFromWire adds a from-wire reply to its IncompleteReplies ReplyPair and
+// moves that ReplyPair to CompleteReplies if it's complete.  The index is based
+// on the src/dest of the recordedOp which should be the op that this ReplyOp is
+// a reply to.
 func (context *ExecutionContext) AddFromWire(reply Replyable, recordedOp *RecordedOp) {
-	if cursorId, _ := reply.getCursorId(); cursorId == 0 {
+	if cursorID, _ := reply.getCursorID(); cursorID == 0 {
 		return
 	}
 	key := cacheKey(recordedOp, false)
@@ -60,10 +68,10 @@ func (context *ExecutionContext) AddFromWire(reply Replyable, recordedOp *Record
 	context.completeReply(key, reply, ReplyFromWire)
 }
 
-// AddFromFile adds a from-file reply to its IncompleteReplies ReplyPair
-// and moves that ReplyPair to CompleteReplies if it's complete.
-// The index is based on the reversed src/dest of the recordedOp which should
-// the RecordedOp that this ReplyOp was unmarshaled out of.
+// AddFromFile adds a from-file reply to its IncompleteReplies ReplyPair and
+// moves that ReplyPair to CompleteReplies if it's complete.  The index is based
+// on the reversed src/dest of the recordedOp which should the RecordedOp that
+// this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply Replyable, recordedOp *RecordedOp) {
 	key := cacheKey(recordedOp, true)
 	toolDebugLogger.Logf(DebugHigh, "Adding recorded reply with key %v", key)
@@ -88,21 +96,21 @@ func (context *ExecutionContext) completeReply(key string, reply Replyable, opSo
 }
 
 func (context *ExecutionContext) rewriteCursors(rewriteable cursorsRewriteable, connectionNum int64) (bool, error) {
-	cursorIds, err := rewriteable.getCursorIds()
+	cursorIDs, err := rewriteable.getCursorIDs()
 
 	index := 0
-	for _, cursorId := range cursorIds {
-		userInfoLogger.Logf(DebugLow, "Rewriting cursorId : %v", cursorId)
-		liveCursorId, ok := context.CursorIdMap.GetCursor(cursorId, connectionNum)
+	for _, cursorID := range cursorIDs {
+		userInfoLogger.Logf(DebugLow, "Rewriting cursorID : %v", cursorID)
+		liveCursorID, ok := context.CursorIDMap.GetCursor(cursorID, connectionNum)
 		if ok {
-			cursorIds[index] = liveCursorId
+			cursorIDs[index] = liveCursorID
 			index++
 		} else {
-			userInfoLogger.Logf(DebugLow, "Missing mapped cursorId for raw cursorId : %v", cursorId)
+			userInfoLogger.Logf(DebugLow, "Missing mapped cursorID for raw cursorID : %v", cursorID)
 		}
 	}
-	newCursors := cursorIds[0:index]
-	err = rewriteable.setCursorIds(newCursors)
+	newCursors := cursorIDs[0:index]
+	err = rewriteable.setCursorIDs(newCursors)
 	if err != nil {
 		return false, err
 	}
@@ -113,16 +121,16 @@ func (context *ExecutionContext) handleCompletedReplies() error {
 	context.Lock()
 	for key, rp := range context.CompleteReplies {
 		userInfoLogger.Logf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
-		cursorFromFile, err := rp.ops[ReplyFromFile].getCursorId()
+		cursorFromFile, err := rp.ops[ReplyFromFile].getCursorID()
 		if err != nil {
 			return err
 		}
-		cursorFromWire, err := rp.ops[ReplyFromWire].getCursorId()
+		cursorFromWire, err := rp.ops[ReplyFromWire].getCursorID()
 		if err != nil {
 			return err
 		}
 		if cursorFromFile != 0 {
-			context.CursorIdMap.SetCursor(cursorFromFile, cursorFromWire)
+			context.CursorIDMap.SetCursor(cursorFromFile, cursorFromWire)
 		}
 
 		delete(context.CompleteReplies, key)
@@ -188,6 +196,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 	return ch
 }
 
+// Execute plays a particular command on an mgo session.
 func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, Replyable, error) {
 	opToExec, err := op.RawOp.Parse()
 	var reply Replyable
@@ -223,7 +232,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		reply, err = opToExec.Execute(session)
 
 		if err != nil {
-			context.CursorIdMap.MarkFailed(op)
+			context.CursorIDMap.MarkFailed(op)
 			return opToExec, reply, fmt.Errorf("error executing op: %v", err)
 		}
 		if reply != nil {
