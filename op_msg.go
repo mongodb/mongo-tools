@@ -1,8 +1,9 @@
 package mongotape
 
 import (
-	"github.com/10gen/llmgo"
 	"io"
+
+	"github.com/10gen/llmgo"
 )
 
 // OpMsg sends a diagnostic message to the database. The database sends back a fixed response.

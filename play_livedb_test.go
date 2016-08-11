@@ -2,12 +2,13 @@ package mongotape
 
 import (
 	"fmt"
-	mgo "github.com/10gen/llmgo"
-	"github.com/10gen/llmgo/bson"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	mgo "github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 )
 
 const (

@@ -2,10 +2,11 @@ package mongotape
 
 import (
 	"fmt"
-	mgo "github.com/10gen/llmgo"
-	"github.com/10gen/llmgo/bson"
 	"io"
 	"time"
+
+	mgo "github.com/10gen/llmgo"
+	"github.com/10gen/llmgo/bson"
 )
 
 // OpGetMore is used to query the database for documents in a collection.

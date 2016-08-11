@@ -1,12 +1,12 @@
 package mongotape
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"reflect"
 )
 
 type testDoc struct {

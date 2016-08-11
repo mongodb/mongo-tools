@@ -2,14 +2,14 @@ package mongotape
 
 import (
 	"compress/gzip"
+	"fmt"
+	"io"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
-	"io"
-	"os/signal"
-
-	"fmt"
-	"os"
-	"syscall"
 )
 
 type RecordCommand struct {

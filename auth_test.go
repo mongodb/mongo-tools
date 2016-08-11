@@ -1,9 +1,10 @@
 package mongotape
 
 import (
+	"testing"
+
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"testing"
 )
 
 //TestCommandsAgainstAuthedDBWhenAuthed tests some basic commands against a database that requires authenticaiton

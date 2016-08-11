@@ -3,12 +3,12 @@ package mongotape
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
 	"github.com/mongodb/mongo-tools/common/json"
-	"strings"
 )
 
 // QueryOp is used to query the database for documents in a collection.

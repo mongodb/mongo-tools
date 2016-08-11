@@ -3,9 +3,10 @@ package mongotape
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
-	"io"
 )
 
 // OpUpdate is used to update a document in a collection.
