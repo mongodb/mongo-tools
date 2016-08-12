@@ -1488,10 +1488,10 @@ buildvariants:
 - name: rhel55
   display_name: RHEL 5.5 SSL
   run_on:
-  - rhel55
+  - rhel55-test
   expansions:
-    gorootvars: GOROOT=/opt/go PATH="/opt/go/bin:$PATH"
-    build_tags: -tags "sasl ssl"
+    gorootvars: PATH=/opt/mongodbtoolchain/v2/bin:$PATH
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl)" -tags "sasl ssl"
   tasks:
   - name: dist
 
