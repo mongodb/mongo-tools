@@ -16,6 +16,39 @@ functions:
         . ./set_gopath.sh
         go build ${args} -o bin/${tool} cmd/${tool}/main.go
 
+  "upload archive" :
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/${filename}
+      remote_file: mongotape/archive/${build_id}/${filename}
+      bucket: mciuploads
+      permissions: public-read
+      content_type: application/gzip
+      display_name: ${filename}
+
+  "create timeseries" :
+    command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        git clone git@github.com:10gen/support-tools
+        sudo pip install argparse python-dateutil pytz
+        python support-tools/timeseries/timeseries.py /data/mongotape/diagnostic.data --html timeseries.html
+
+  "upload timeseries" :
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: src/timeseries.html
+      remote_file: mongotape/timeseries/${build_id}/timeseries.html
+      bucket: mciuploads
+      permissions: public-read
+      content_type: text/html
+      display_name: timeseries.html
+
   "upload tool" :
     command: s3.put
     params:
@@ -304,7 +337,17 @@ tasks:
         PATH=$PATH:`pwd`:`pwd`/vendor/bin:`pwd`/../mongodb
         chmod +x mongotape
         echo "Running replay test"
-        ./replay_test.sh --verbose --explicit
+        ./replay_test.sh --verbose --explicit --keep
+  - command: shell.exec
+    params:
+      working_dir: src
+      script: |
+        tar czf replay.tar.gz tmp.*
+  - func: "upload archive"
+    vars:
+      filename: replay.tar.gz
+  - func: "create timeseries"
+  - func: "upload timeseries"
 
 buildvariants:
 - name: ubuntu
