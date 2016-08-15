@@ -58,8 +58,9 @@ func (op *CommandReplyOp) Abbreviated(chars int) string {
 	if err != nil {
 		return fmt.Sprintf("%v", err)
 	}
-	return fmt.Sprintf("CommandReply %v %v", Abbreviate(commandReplyString, chars),
-		Abbreviate(metadataString, chars), Abbreviate(outputDocsString, chars))
+	return fmt.Sprintf("CommandReply replay:%v metadata:%v outputdocs:%v",
+		Abbreviate(commandReplyString, chars), Abbreviate(metadataString, chars),
+		Abbreviate(outputDocsString, chars))
 }
 
 // getCursorID implements the Replyable interface method of the same name. It
@@ -74,7 +75,7 @@ func (op *CommandReplyOp) getCursorID() (int64, error) {
 	doc := &struct {
 		Cursor struct {
 			ID int64 `bson:"id"`
-		} `bson: "cursor"`
+		} `bson:"cursor"`
 	}{}
 	replyArgs := op.CommandReply.(*bson.Raw)
 	err := replyArgs.Unmarshal(doc)
@@ -167,7 +168,7 @@ func (op *CommandReplyOp) FromReader(r io.Reader) error {
 // Execute logs a warning and returns nil because OP_COMMANDREPLY cannot yet be
 // handled fully by mongotape.
 func (op *CommandReplyOp) Execute(session *mgo.Session) (Replyable, error) {
-	userInfoLogger.Log(Always, "Skipping unimplemented op: OP_COMMANDREPLY")
+	userInfoLogger.Logv(Always, "Skipping unimplemented op: OP_COMMANDREPLY")
 	return nil, nil
 }
 

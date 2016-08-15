@@ -55,7 +55,7 @@ func TestFetchingCursorFromPreprocessManager(t *testing.T) {
 		t.Error("Can't find cursor in map")
 	}
 	if cursor != wireCursor {
-		t.Error("Cursor ID incorrect. Expected:%v -- Found: %v", wireCursor, cursor)
+		t.Errorf("Cursor ID incorrect. Expected:%v -- Found: %v", wireCursor, cursor)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestPreprocessingFileWithOpCommand(t *testing.T) {
 		return
 	}
 	if cursorInfo.numUsesLeft != 1 {
-		t.Error("Incorrect number of uses left for cursor %v. Should be: %d ---- Found: %d",
+		t.Errorf("Incorrect number of uses left for cursor %v. Should be: %d ---- Found: %d",
 			testCursorID, 1, cursorInfo.numUsesLeft)
 	}
 }
@@ -142,7 +142,7 @@ func TestPreprocessingFile(t *testing.T) {
 		t.Errorf("Cursor %v was supposed to be mapped, but wasn't", testCursorID)
 	}
 	if cursorInfo.numUsesLeft != 1 {
-		t.Error("Incorrect number of uses left for cursor %v. Should be: %d ---- Found: %d",
+		t.Errorf("Incorrect number of uses left for cursor %v. Should be: %d ---- Found: %d",
 			testCursorID, 1, cursorInfo.numUsesLeft)
 	}
 }
@@ -263,7 +263,7 @@ func TestSkipOutOfOrderCursor(t *testing.T) {
 		t.Errorf("Cursor %v was supposed to be skipped ", testCursorID)
 	}
 	if remappedCursor != 0 {
-		t.Error("Incorrect cursor value for cursor: %v. Should be: %d ---- Found: %d",
+		t.Errorf("Incorrect cursor value for cursor: %v. Should be: %d ---- Found: %d",
 			testCursorID, 0, remappedCursor)
 	}
 }

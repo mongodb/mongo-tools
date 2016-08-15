@@ -199,31 +199,31 @@ func (jsr *JSONStatRecorder) RecordStat(stat *OpStat) {
 	if stat.RequestData != nil {
 		reqD, err := ConvertBSONValueToJSON(stat.RequestData)
 		if err != nil {
-			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+			toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		}
 		stat.RequestData = reqD
 	}
 	if stat.ReplyData != nil {
 		repD, err := ConvertBSONValueToJSON(stat.ReplyData)
 		if err != nil {
-			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+			toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		}
 		stat.ReplyData = repD
 	}
 
 	jsonBytes, err := json.Marshal(stat)
 	if err != nil {
-		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+		toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		return
 	}
 	_, err = jsr.out.Write(jsonBytes)
 	if err != nil {
-		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+		toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		return
 	}
 	_, err = jsr.out.Write([]byte("\n"))
 	if err != nil {
-		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+		toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		return
 	}
 }
@@ -248,7 +248,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 		payload := new(bytes.Buffer)
 		jsonData, err := ConvertBSONValueToJSON(data)
 		if err != nil {
-			toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+			toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		}
 		jsonBytes, err := json.Marshal(jsonData)
 		if err != nil {
@@ -273,7 +273,7 @@ func (dsr *TerminalStatRecorder) RecordStat(stat *OpStat) {
 
 	_, err := output.WriteTo(dsr.out)
 	if err != nil {
-		toolDebugLogger.Logf(Always, "error recording stat: %v", err)
+		toolDebugLogger.Logvf(Always, "error recording stat: %v", err)
 		return
 	}
 }

@@ -55,7 +55,7 @@ func CopyMessage(w io.Writer, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	if err := h.WriteTo(w); err != nil {
+	if _, err := h.WriteTo(w); err != nil {
 		return err
 	}
 	_, err = io.CopyN(w, r, int64(h.MessageLength-MsgHeaderLen))

@@ -57,16 +57,17 @@ func (m *MsgHeader) FromWire(b []byte) {
 }
 
 // WriteTo writes the MsgHeader into a writer.
-func (m *MsgHeader) WriteTo(w io.Writer) error {
+func (m *MsgHeader) WriteTo(w io.Writer) (int64, error) {
 	b := m.ToWire()
-	n, err := w.Write(b)
+	c, err := w.Write(b)
+	n := int64(c)
 	if err != nil {
-		return err
+		return n, err
 	}
-	if n != len(b) {
-		return fmt.Errorf("attempted to write %d but wrote %d", len(b), n)
+	if c != len(b) {
+		return n, fmt.Errorf("attempted to write %d but wrote %d", len(b), n)
 	}
-	return nil
+	return n, nil
 }
 
 var goodOpCode = map[int32]bool{

@@ -261,10 +261,14 @@ func TestUpdateOpLiveDB(t *testing.T) {
 	nameSpace := fmt.Sprintf("%s.%s", testDB, testCollection)
 	flags := uint32(1<<1 | 1)
 
-	update := mgo.UpdateOp{
+	docNum := bson.D{{"$lte", 9.0}}
+	selector := bson.D{{"docNum", docNum}}
+	change := bson.D{{"updated", true}}
+	update := bson.D{{"$set", change}}
+	updateOp := mgo.UpdateOp{
 		Collection: nameSpace,
-		Selector:   bson.D{{"docNum", bson.D{{"$lte", 9.0}}}},
-		Update:     bson.D{{"$set", bson.D{{"updated", true}}}},
+		Selector:   selector,
+		Update:     update,
 		Flags:      flags,
 		Multi:      true,
 		Upsert:     true,
@@ -278,7 +282,7 @@ func TestUpdateOpLiveDB(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		recordedUpdate, err := generator.fetchRecordedOpsFromConn(&update)
+		recordedUpdate, err := generator.fetchRecordedOpsFromConn(&updateOp)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1029,9 +1033,10 @@ func (generator *recordedOpGenerator) generateInsert(docs []interface{}) error {
 }
 
 func (generator *recordedOpGenerator) generateGetLastError() error {
+	query := bson.D{{"getLastError", 1}}
 	getLastError := mgo.QueryOp{
 		Collection: "admin.$cmd",
-		Query:      bson.D{{Name: "getLastError", Value: 1}},
+		Query:      query,
 		Limit:      -1,
 		Flags:      0,
 	}
@@ -1185,7 +1190,7 @@ func (generator *recordedOpGenerator) generateCommandReply(responseTo int32, cur
 	commandReply := &struct {
 		Cursor struct {
 			ID int64 `bson:"id"`
-		} `bson: "cursor"`
+		} `bson:"cursor"`
 	}{}
 	commandReply.Cursor.ID = cursorID
 

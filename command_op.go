@@ -135,7 +135,8 @@ func (op *CommandOp) Abbreviated(chars int) string {
 	if err != nil {
 		return fmt.Sprintf("%v", err)
 	}
-	return fmt.Sprintf("OpCommand %v %v", op.Database, Abbreviate(commandArgsString, chars),
+	return fmt.Sprintf("OpCommand db:%v args:%v metadata:%v inputdocs:%v",
+		op.Database, Abbreviate(commandArgsString, chars),
 		Abbreviate(metadataString, chars), Abbreviate(inputDocsString, chars))
 }
 

@@ -41,7 +41,7 @@ func (lw *logWrapper) setVerbosity(verbosity int) {
 	lw.verbosity = verbosity
 }
 
-func (lw *logWrapper) Logf(minVerb int, format string, a ...interface{}) {
+func (lw *logWrapper) Logvf(minVerb int, format string, a ...interface{}) {
 	if minVerb < 0 {
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}
@@ -51,7 +51,7 @@ func (lw *logWrapper) Logf(minVerb int, format string, a ...interface{}) {
 	}
 }
 
-func (lw *logWrapper) Log(minVerb int, msg string) {
+func (lw *logWrapper) Logv(minVerb int, msg string) {
 	if minVerb < 0 {
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}

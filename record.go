@@ -66,7 +66,7 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 	h := NewPacketHandler(pcapHandle)
 	h.Verbose = userInfoLogger.isInVerbosity(DebugLow)
 
-	toolDebugLogger.Logf(Info, "Created packet buffer size %d", cfg.PacketBufSize)
+	toolDebugLogger.Logvf(Info, "Created packet buffer size %d", cfg.PacketBufSize)
 	m := NewMongoOpStream(cfg.PacketBufSize)
 	return &packetHandlerContext{h, m, pcapHandle}, nil
 }
@@ -83,7 +83,7 @@ func NewPlaybackWriter(playbackFileName string, isGzipWriter bool) (*PlaybackWri
 	pbWriter := &PlaybackWriter{
 		fname: playbackFileName,
 	}
-	toolDebugLogger.Logf(DebugLow, "Opening playback file %v", playbackFileName)
+	toolDebugLogger.Logvf(DebugLow, "Opening playback file %v", playbackFileName)
 	file, err := os.Create(pbWriter.fname)
 	if err != nil {
 		return nil, fmt.Errorf("error opening playback file to write to: %v", err)
@@ -131,7 +131,7 @@ func (record *RecordCommand) Execute(args []string) error {
 	go func() {
 		// Block until a signal is received.
 		s := <-sigChan
-		toolDebugLogger.Logf(Info, "Got signal %v, closing PCAP handle", s)
+		toolDebugLogger.Logvf(Info, "Got signal %v, closing PCAP handle", s)
 		ctx.packetHandler.Close()
 	}()
 	playbackWriter, err := NewPlaybackWriter(record.PlaybackFile, record.Gzip)
@@ -171,9 +171,9 @@ func Record(ctx *packetHandlerContext,
 
 	stats, err := ctx.pcapHandle.Stats()
 	if err != nil {
-		toolDebugLogger.Logf(Always, "Warning: got err %v getting pcap handle stats", err)
+		toolDebugLogger.Logvf(Always, "Warning: got err %v getting pcap handle stats", err)
 	} else {
-		toolDebugLogger.Logf(Info, "PCAP stats: %#v", stats)
+		toolDebugLogger.Logvf(Info, "PCAP stats: %#v", stats)
 	}
 
 	err = <-ch

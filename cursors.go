@@ -44,7 +44,7 @@ func newCursorCache() *cursorCache {
 func (c *cursorCache) GetCursor(fileCursorID int64, connectionNum int64) (int64, bool) {
 	value, ok := c.Get(strconv.FormatInt(fileCursorID, 10))
 	if !ok {
-		userInfoLogger.Logf(Always, "Missing mapped cursorID for raw cursorID : %v in GetMoreOp", fileCursorID)
+		userInfoLogger.Logvf(Always, "Missing mapped cursorID for raw cursorID : %v in GetMoreOp", fileCursorID)
 		return 0, false
 	}
 	return value.(int64), true
@@ -155,7 +155,7 @@ func (p *preprocessCursorManager) MarkFailed(failedOp *RecordedOp) {
 // that cursorID is also seen. It adds these such cursorIDs to the map and
 // tracks how many uses they have had as well.
 func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorManager, error) {
-	userInfoLogger.Logf(Always, "Preprocessing file")
+	userInfoLogger.Logvf(Always, "Preprocessing file")
 
 	result := preprocessCursorManager{
 		cursorInfos: make(map[int64]*preprocessCursorInfo),
@@ -231,7 +231,7 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 
 		}
 	}
-	userInfoLogger.Logf(Always, "Preprocess complete")
+	userInfoLogger.Logvf(Always, "Preprocess complete")
 	return &result, nil
 
 }
@@ -263,7 +263,7 @@ func (p *preprocessCursorManager) GetCursor(fileCursorID int64, connectionNum in
 			// the channels are not closed, and this the same connection we are
 			// supposed to be waiting on the reply for therefore, the traffic
 			// was read out of order at some point, so we should not block
-			toolDebugLogger.Logf(DebugLow, "Skipping cursor rewrite of op on same connection with connection number: %v and cursorID: %v", connectionNum, fileCursorID)
+			toolDebugLogger.Logvf(DebugLow, "Skipping cursor rewrite of op on same connection with connection number: %v and cursorID: %v", connectionNum, fileCursorID)
 			return 0, false
 		}
 		// otherwise, the channel is not closed, but we are not waiting on a

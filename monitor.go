@@ -121,7 +121,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 		go func() {
 			// Block until a signal is received.
 			s := <-sigChan
-			toolDebugLogger.Logf(Info, "Got signal %v, closing PCAP handle", s)
+			toolDebugLogger.Logvf(Info, "Got signal %v, closing PCAP handle", s)
 			ctx.packetHandler.Close()
 		}()
 	}
@@ -140,7 +140,7 @@ func (monitor *MonitorCommand) Execute(args []string) error {
 	}
 	err = <-errChan
 	if err != nil && err != io.EOF {
-		userInfoLogger.Logf(Always, "OpChan: %v", err)
+		userInfoLogger.Logvf(Always, "OpChan: %v", err)
 	}
 	return nil
 }

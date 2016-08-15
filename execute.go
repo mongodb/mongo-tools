@@ -64,7 +64,7 @@ func (context *ExecutionContext) AddFromWire(reply Replyable, recordedOp *Record
 		return
 	}
 	key := cacheKey(recordedOp, false)
-	toolDebugLogger.Logf(DebugHigh, "Adding live reply with key %v", key)
+	toolDebugLogger.Logvf(DebugHigh, "Adding live reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromWire)
 }
 
@@ -74,7 +74,7 @@ func (context *ExecutionContext) AddFromWire(reply Replyable, recordedOp *Record
 // this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply Replyable, recordedOp *RecordedOp) {
 	key := cacheKey(recordedOp, true)
-	toolDebugLogger.Logf(DebugHigh, "Adding recorded reply with key %v", key)
+	toolDebugLogger.Logvf(DebugHigh, "Adding recorded reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromFile)
 }
 
@@ -100,13 +100,13 @@ func (context *ExecutionContext) rewriteCursors(rewriteable cursorsRewriteable, 
 
 	index := 0
 	for _, cursorID := range cursorIDs {
-		userInfoLogger.Logf(DebugLow, "Rewriting cursorID : %v", cursorID)
+		userInfoLogger.Logvf(DebugLow, "Rewriting cursorID : %v", cursorID)
 		liveCursorID, ok := context.CursorIDMap.GetCursor(cursorID, connectionNum)
 		if ok {
 			cursorIDs[index] = liveCursorID
 			index++
 		} else {
-			userInfoLogger.Logf(DebugLow, "Missing mapped cursorID for raw cursorID : %v", cursorID)
+			userInfoLogger.Logvf(DebugLow, "Missing mapped cursorID for raw cursorID : %v", cursorID)
 		}
 	}
 	newCursors := cursorIDs[0:index]
@@ -120,7 +120,7 @@ func (context *ExecutionContext) rewriteCursors(rewriteable cursorsRewriteable, 
 func (context *ExecutionContext) handleCompletedReplies() error {
 	context.Lock()
 	for key, rp := range context.CompleteReplies {
-		userInfoLogger.Logf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
+		userInfoLogger.Logvf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
 		cursorFromFile, err := rp.ops[ReplyFromFile].getCursorID()
 		if err != nil {
 			return err
@@ -151,10 +151,10 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 		time.Sleep(start.Add(-5 * time.Second).Sub(now)) // Sleep until five seconds before the start time
 		session, err := mgo.Dial(url)
 		if err == nil {
-			userInfoLogger.Logf(Info, "(Connection %v) New connection CREATED.", connectionNum)
+			userInfoLogger.Logvf(Info, "(Connection %v) New connection CREATED.", connectionNum)
 			connected = true
 		} else {
-			userInfoLogger.Logf(Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
+			userInfoLogger.Logvf(Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
 		}
 		for recordedOp := range ch {
 			var parsedOp Op
@@ -171,26 +171,26 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
 				}
-				userInfoLogger.Logf(DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
+				userInfoLogger.Logvf(DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
 				session.SetSocketTimeout(0)
 				parsedOp, reply, err = context.Execute(recordedOp, session)
 				if err != nil {
-					toolDebugLogger.Logf(Always, "context.Execute error: %v", err)
+					toolDebugLogger.Logvf(Always, "context.Execute error: %v", err)
 				}
 			} else {
 				parsedOp, err = recordedOp.Parse()
 				if err != nil {
-					toolDebugLogger.Logf(Always, "Execution Session error: %v", err)
+					toolDebugLogger.Logvf(Always, "Execution Session error: %v", err)
 				}
 
 				msg = fmt.Sprintf("Skipped on non-connected session (Connection %v)", connectionNum)
-				toolDebugLogger.Log(Always, msg)
+				toolDebugLogger.Logv(Always, msg)
 			}
 			if shouldCollectOp(parsedOp) {
 				context.Collect(recordedOp, parsedOp, reply, msg)
 			}
 		}
-		userInfoLogger.Logf(Info, "(Connection %v) Connection ENDED.", connectionNum)
+		userInfoLogger.Logvf(Info, "(Connection %v) Connection ENDED.", connectionNum)
 		context.SessionChansWaitGroup.Done()
 	}()
 	return ch
@@ -205,7 +205,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 		return nil, nil, fmt.Errorf("ParseOpRawError: %v", err)
 	}
 	if opToExec == nil {
-		toolDebugLogger.Logf(Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
+		toolDebugLogger.Logvf(Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
 		return nil, nil, nil
 	}
 	if recordedReply, ok := opToExec.(*ReplyOp); ok {

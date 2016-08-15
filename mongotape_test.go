@@ -198,7 +198,8 @@ func TestOpUpdate(t *testing.T) {
 	op := UpdateOp{}
 	selector := bson.D{{"test", 1}}
 	op.Selector = selector
-	update := bson.D{{"$set", bson.D{{"updated", true}}}}
+	change := bson.D{{"updated", true}}
+	update := bson.D{{"$set", change}}
 	op.Update = update
 	op.Collection = "mongotape_test.test"
 	op.Flags = 12345
@@ -236,7 +237,8 @@ func TestCommandOp(t *testing.T) {
 	op.CommandName = "query"
 	metadata := bson.D{{"metadata", 1}}
 	op.Metadata = metadata
-	commandArgs := bson.D{{"$set", bson.D{{"updated", true}}}}
+	change := bson.D{{"updated", true}}
+	commandArgs := bson.D{{"$set", change}}
 	op.CommandArgs = commandArgs
 	inputDocs := []interface{}{}
 	for i := 0; i < 5; i++ {
@@ -460,7 +462,7 @@ func TestOpCommandReplyGetCursorID(t *testing.T) {
 	doc := &struct {
 		Cursor struct {
 			ID int64 `bson:"id"`
-		} `bson: "cursor"`
+		} `bson:"cursor"`
 	}{}
 	doc.Cursor.ID = testCursorID
 	asByte, err := bson.Marshal(doc)
@@ -495,7 +497,7 @@ func TestLegacyOpReplyGetCursorID(t *testing.T) {
 	doc := &struct {
 		Cursor struct {
 			ID int64 `bson:"id"`
-		} `bson: "cursor"`
+		} `bson:"cursor"`
 	}{}
 	doc.Cursor.ID = testCursorID
 	asByte, err := bson.Marshal(doc)

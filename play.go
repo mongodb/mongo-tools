@@ -41,7 +41,7 @@ func NewOpChanFromFile(file *PlaybackFileReader, repeat int) (<-chan *RecordedOp
 		defer close(e)
 		e <- func() error {
 			defer close(ch)
-			toolDebugLogger.Log(Info, "Beginning tapefile read")
+			toolDebugLogger.Logv(Info, "Beginning tapefile read")
 			for generation := 0; generation < repeat; generation++ {
 				_, err := file.Seek(0, 0)
 				if err != nil {
@@ -74,7 +74,7 @@ func NewOpChanFromFile(file *PlaybackFileReader, repeat int) (<-chan *RecordedOp
 					}
 					order++
 				}
-				toolDebugLogger.Logf(DebugHigh, "generation: %v", generation)
+				toolDebugLogger.Logvf(DebugHigh, "generation: %v", generation)
 				loopDelta += last.Sub(first)
 				first = time.Time{}
 				continue
@@ -183,7 +183,7 @@ func (play *PlayCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	userInfoLogger.Logf(Always, "Doing playback at %.2fx speed", play.Speed)
+	userInfoLogger.Logvf(Always, "Doing playback at %.2fx speed", play.Speed)
 
 	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile, play.Gzip)
 	if err != nil {
@@ -219,13 +219,13 @@ func (play *PlayCommand) Execute(args []string) error {
 	opChan, errChan = NewOpChanFromFile(playbackFileReader, play.Repeat)
 
 	if err := Play(context, opChan, play.Speed, play.URL, play.Repeat, play.QueueTime); err != nil {
-		userInfoLogger.Logf(Always, "Play: %v\n", err)
+		userInfoLogger.Logvf(Always, "Play: %v\n", err)
 	}
 
 	//handle the error from the errchan
 	err = <-errChan
 	if err != nil && err != io.EOF {
-		userInfoLogger.Logf(Always, "OpChan: %v", err)
+		userInfoLogger.Logvf(Always, "OpChan: %v", err)
 	}
 	return nil
 }
@@ -271,7 +271,7 @@ func Play(context *ExecutionContext,
 		// queueGranularity number of ops at a time and then sleep until the
 		// last read op is QueueTime ahead.
 		if opCounter%queueGranularity == 0 {
-			toolDebugLogger.Logf(DebugHigh, "Waiting to prevent excess buffering with opCounter: %v", opCounter)
+			toolDebugLogger.Logvf(DebugHigh, "Waiting to prevent excess buffering with opCounter: %v", opCounter)
 			time.Sleep(op.PlayAt.Add(time.Duration(-queueTime) * time.Second).Sub(time.Now()))
 		}
 
@@ -288,7 +288,7 @@ func Play(context *ExecutionContext,
 			sessionChans[connectionString] = sessionChan
 		}
 		if op.EOF {
-			userInfoLogger.Log(DebugLow, "EOF Seen in playback")
+			userInfoLogger.Logv(DebugLow, "EOF Seen in playback")
 			close(sessionChan)
 			delete(sessionChans, connectionString)
 		} else {
@@ -300,13 +300,13 @@ func Play(context *ExecutionContext,
 		close(sessionChan)
 		delete(sessionChans, connectionString)
 	}
-	toolDebugLogger.Logf(Info, "Waiting for sessions to finish")
+	toolDebugLogger.Logvf(Info, "Waiting for sessions to finish")
 	context.SessionChansWaitGroup.Wait()
 
 	context.StatCollector.Close()
-	toolDebugLogger.Logf(Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionID)
+	toolDebugLogger.Logvf(Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionID)
 	if repeat > 1 {
-		toolDebugLogger.Logf(Always, "%v ops per generation for %v generations", opCounter/repeat, repeat)
+		toolDebugLogger.Logvf(Always, "%v ops per generation for %v generations", opCounter/repeat, repeat)
 	}
 	return nil
 }

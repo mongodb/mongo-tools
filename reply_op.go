@@ -133,7 +133,7 @@ func (op *ReplyOp) getCursorID() (int64, error) {
 	doc := &struct {
 		Cursor struct {
 			ID int64 `bson:"id"`
-		} `bson: "cursor"`
+		} `bson:"cursor"`
 	}{}
 	err := op.Docs[0].Unmarshal(&doc)
 	if err != nil {

@@ -45,7 +45,7 @@ func (p *PacketHandler) Close() {
 
 func bookkeep(pktCount uint, pkt gopacket.Packet, assembler *Assembler) {
 	if pkt != nil {
-		userInfoLogger.Logf(DebugLow, "processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
+		userInfoLogger.Logvf(DebugLow, "processed packet %7.v with timestamp %v", pktCount, pkt.Metadata().Timestamp.Format(time.RFC3339))
 		assembler.FlushOlderThan(pkt.Metadata().CaptureInfo.Timestamp.Add(time.Minute * -5))
 	}
 }
@@ -55,16 +55,16 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 	count := int64(0)
 	start := time.Now()
 	if p.Verbose && numToHandle > 0 {
-		userInfoLogger.Logf(Always, "Processing", numToHandle, "packets")
+		userInfoLogger.Logvf(Always, "Processing", numToHandle, "packets")
 	}
 	source := gopacket.NewPacketSource(p.pcap, p.pcap.LinkType())
 	streamPool := NewStreamPool(streamHandler)
 	assembler := NewAssembler(streamPool)
 	defer func() {
 		if userInfoLogger.isInVerbosity(DebugLow) {
-			userInfoLogger.Log(DebugLow, "flushing assembler.")
-			userInfoLogger.Logf(DebugLow, "num flushed/closed: %v", assembler.FlushAll())
-			userInfoLogger.Log(DebugLow, "closing stream handler.")
+			userInfoLogger.Logv(DebugLow, "flushing assembler.")
+			userInfoLogger.Logvf(DebugLow, "num flushed/closed: %v", assembler.FlushAll())
+			userInfoLogger.Logv(DebugLow, "closing stream handler.")
 		} else {
 			assembler.FlushAll()
 		}
@@ -72,9 +72,9 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 	}()
 	defer func() {
 		if userInfoLogger.isInVerbosity(DebugLow) {
-			userInfoLogger.Logf(DebugLow, "Dropped %v packets out of %v", p.numDropped, count)
+			userInfoLogger.Logvf(DebugLow, "Dropped %v packets out of %v", p.numDropped, count)
 			runTime := float64(time.Now().Sub(start)) / float64(time.Second)
-			userInfoLogger.Logf(DebugLow, "Processed %v packets per second", float64(count-p.numDropped)/runTime)
+			userInfoLogger.Logvf(DebugLow, "Processed %v packets per second", float64(count-p.numDropped)/runTime)
 		}
 	}()
 	ticker := time.Tick(time.Second * 1)
@@ -85,11 +85,11 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 		case pkt = <-source.Packets():
 			pktCount++
 			if pkt == nil { // end of pcap file
-				userInfoLogger.Log(DebugLow, "Reached end of stream")
+				userInfoLogger.Logv(DebugLow, "Reached end of stream")
 				return nil
 			}
 			if tcpLayer := pkt.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-				userInfoLogger.Log(DebugHigh, "Assembling TCP layer")
+				userInfoLogger.Logv(DebugHigh, "Assembling TCP layer")
 				assembler.AssembleWithTimestamp(
 					pkt.TransportLayer().TransportFlow(),
 					tcpLayer.(*layers.TCP),
@@ -102,7 +102,7 @@ func (p *PacketHandler) Handle(streamHandler StreamHandler, numToHandle int) err
 			}
 			count++
 			if numToHandle > 0 && count >= int64(numToHandle) {
-				userInfoLogger.Log(DebugLow, "Count exceeds requested packets, returning.")
+				userInfoLogger.Logv(DebugLow, "Count exceeds requested packets, returning.")
 				break
 			}
 			select {
