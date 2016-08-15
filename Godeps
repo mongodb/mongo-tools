@@ -1,4 +1,4 @@
-gopkg.in/mgo.v2                         e30de8ac9ae3b30df7065f766c71f88bba7d4e49
+gopkg.in/mgo.v2                         1e52f6152a9b262873f831bb5a94bcd29ef38c38    github.com/10gen/openssl
 gopkg.in/tomb.v2                        14b3d72120e8d10ea6e6b7f87f7175734b1faab8	github.com/go-tomb/tomb
 github.com/jacobsa/oglematchers         3ecefc49db07722beca986d9bb71ddd026b133f0
 github.com/smartystreets/goconvey       995f5b2e021c69b8b028ba6d0b05c1dd500783db
