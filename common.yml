@@ -570,6 +570,18 @@ post:
         rm -rf /data/db/*
         exit 0
 
+timeout:
+  - command: shell.exec
+    params:
+      silent: true
+      script: |
+        # don't attempt to abort on any distro which has a special way of
+        # killing everything (i.e. using taskkill on Windows)
+        if [ "${killall_mci}" = ""]; then
+          # send SIGABRT to print a stacktrace for any hung tool
+          pkill -ABRT -x bsondump mongodump mongoexport mongofiles mongoimport mongooplog mongorestore mongostat mongotop
+        fi
+
 
 tasks:
 - name: db
