@@ -49,9 +49,7 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests-wt
-      - name: text
       - name: unit
-      - name: util
       - name: vet
     ubuntu1204_ssl_task_list: &ubuntu1204_ssl_tasks
       - name: dist
@@ -70,8 +68,6 @@ mongo_tools_variables:
       - name: legacy26
       - name: legacy24
       - name: qa-tests
-      - name: text
-      - name: util
     ubuntu1204_race_task_list: &ubuntu1204_race_tasks
       - name: db
       - name: dist
@@ -83,9 +79,7 @@ mongo_tools_variables:
       - name: legacy24
       - name: qa-tests
       - name: qa-tests-wt
-      - name: text
       - name: unit
-      - name: util
     windows_32_task_list: &windows_32_tasks
       - name: db
         distros:
@@ -157,8 +151,6 @@ mongo_tools_variables:
       - name: qa-tests
       - name: qa-tests-unstable
       - name: qa-tests-wt
-      - name: text
-      - name: util
     rhel72_enterprise_task_list: &rhel72_enterprise_tasks
       - name: db
       - name: dist
@@ -169,8 +161,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-gzip
       - name: qa-tests-unstable
       - name: qa-tests-wt
-      - name: text
-      - name: util
 
 
 ## Common mongodb arguments
@@ -375,9 +365,9 @@ functions:
         . ./set_gopath.sh
 
         # run unit tests under common package
-        for i in "common/bsonutil" "common/json" "common/archive" "common/failpoint" "common/log" "common/options" "common/progress" "common/text"; do
-            cd $i
-            COMMON_SUBPKG=$(basename $i)
+        for i in archive bsonutil failpoint intents json log options progress text util; do
+            cd common/$i
+            COMMON_SUBPKG=$i
             COVERAGE_ARGS=""
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$COMMON_SUBPKG.out"
@@ -1157,21 +1147,6 @@ tasks:
         resmoke_suite: "core"
         resmoke_args: "--storageEngine=wiredTiger ${resmoke_args}"
 
-- name: text
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
-    - command: expansions.update
-      params:
-        updates:
-          - key: "package"
-            value: "common/text"
-    - func: "run unit test"
-
 - name: unit
   commands:
     - command: expansions.update
@@ -1229,21 +1204,6 @@ tasks:
             value: "mongorestore"
     - func: "upload html coverage"
     - func: "upload text coverage"
-
-- name: util
-  commands:
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
-    - command: expansions.update
-      params:
-        updates:
-          - key: "package"
-            value: "common/util"
-    - func: "run unit test"
 
 - name: vet
   commands:
