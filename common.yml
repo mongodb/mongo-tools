@@ -159,6 +159,18 @@ mongo_tools_variables:
       - name: qa-tests-wt
       - name: text
       - name: util
+    rhel72_enterprise_task_list: &rhel72_enterprise_tasks
+      - name: db
+      - name: dist
+      - name: integration
+      - name: integration-auth
+      - name: kerberos
+      - name: qa-dump-restore-archiving
+      - name: qa-dump-restore-gzip
+      - name: qa-tests-unstable
+      - name: qa-tests-wt
+      - name: text
+      - name: util
 
 
 ## Common mongodb arguments
@@ -250,7 +262,8 @@ functions:
       script: |
         set -x
         mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
-        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=${mongo_version})
+        mongoversion=$(if [ "${mongo_version_always_use_latest}" ]; then echo "latest"; else echo "${mongo_version}"; fi)
+        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion)
         filename=$(echo $dlurl | sed -e "s_.*/__")
         mkdir mongodb
         cd mongodb
@@ -1359,6 +1372,27 @@ buildvariants:
     run_kinit: true
     integration_test_args: integration
   tasks: *rhel71_enterprise_tasks
+
+- name: rhel72-s390x-enterprise
+  display_name: Linux s390x RHEL 7.2 Enterprise
+  run_on:
+  - rhel72-zseries-test
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "rhel72"
+    mongo_edition: "enterprise"
+    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)" -tags 'sasl ssl'
+    resmoke_use_ssl: _ssl
+    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
+    resmoke_args: --excludeWithAnyTags=requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 2
+    multiversion_override: "skip"
+    mongo_version_always_use_latest: true
+    arch: "linux/s390x"
+    edition: enterprise
+    run_kinit: true
+    integration_test_args: integration
+  tasks: *rhel72_enterprise_tasks
 
 #######################################
 #         Solaris Buildvariant        #
