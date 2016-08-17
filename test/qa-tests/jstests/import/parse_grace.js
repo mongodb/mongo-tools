@@ -57,6 +57,7 @@
   // parseGrace=fail should cause a failure
   var ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/parse_grace.csv",
+    "--writeConcern", "{w: 1, j: 1, fsync: 1}",
     "--type", "csv",
     "--db", "testdb",
     "--collection", "testcoll",
@@ -71,6 +72,7 @@
   // with an un-coercable field
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/parse_grace.csv",
+    "--writeConcern", "{w: 1, j: 1, fsync: 1}",
     "--type", "csv",
     "--db", "testdb",
     "--collection", "testcoll",
@@ -87,6 +89,7 @@
   // of the row
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/parse_grace.csv",
+    "--writeConcern", "{w: 1, j: 1, fsync: 1}",
     "--type", "csv",
     "--db", "testdb",
     "--collection", "testcoll",
@@ -103,6 +106,7 @@
   // parseGrace=autoCast should import the un-coercable field
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/parse_grace.csv",
+    "--writeConcern", "{w: 1, j: 1, fsync: 1}",
     "--type", "csv",
     "--db", "testdb",
     "--collection", "testcoll",
