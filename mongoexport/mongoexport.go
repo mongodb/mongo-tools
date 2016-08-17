@@ -71,11 +71,15 @@ func (exp *MongoExport) ValidateSettings() error {
 	if exp.ToolOptions.Namespace.DB == "" {
 		exp.ToolOptions.Namespace.DB = "test"
 	}
+	err := util.ValidateDBName(exp.ToolOptions.Namespace.DB)
+	if err != nil {
+		return err
+	}
 
 	if exp.ToolOptions.Namespace.Collection == "" {
 		return fmt.Errorf("must specify a collection")
 	}
-	if err := util.ValidateCollectionName(exp.ToolOptions.Namespace.Collection); err != nil {
+	if err = util.ValidateCollectionGrammar(exp.ToolOptions.Namespace.Collection); err != nil {
 		return err
 	}
 
