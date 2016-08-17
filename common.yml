@@ -1382,7 +1382,8 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "rhel72"
     mongo_edition: "enterprise"
-    build_tags: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)" -tags 'sasl ssl'
+    args: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)"
+    build_tags: "sasl ssl"
     resmoke_use_ssl: _ssl
     library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
     resmoke_args: --excludeWithAnyTags=requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30 -j 2
