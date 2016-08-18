@@ -38,11 +38,10 @@ func (restore *MongoRestore) RestoreOplog() error {
 	bsonSource := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(intent.BSONFile))
 	defer bsonSource.Close()
 
-	entryArray := make([]interface{}, 0, 1024)
 	rawOplogEntry := &bson.Raw{}
 
 	var totalOps int64
-	var entrySize, bufferedBytes int
+	var entrySize int
 
 	oplogProgressor := progress.NewCounter(intent.BSONSize)
 	bar := progress.Bar{
@@ -62,19 +61,8 @@ func (restore *MongoRestore) RestoreOplog() error {
 	}
 	defer session.Close()
 
-	// To restore the oplog, we iterate over the oplog entries,
-	// filling up a buffer. Once the buffer reaches max document size,
-	// apply the current buffered ops and reset the buffer.
 	for bsonSource.Next(rawOplogEntry) {
 		entrySize = len(rawOplogEntry.Data)
-		if bufferedBytes+entrySize > oplogMaxCommandSize {
-			err = restore.ApplyOps(session, entryArray)
-			if err != nil {
-				return fmt.Errorf("error applying oplog: %v", err)
-			}
-			entryArray = make([]interface{}, 0, 1024)
-			bufferedBytes = 0
-		}
 
 		entryAsOplog := db.Oplog{}
 		err = bson.Unmarshal(rawOplogEntry.Data, &entryAsOplog)
@@ -96,13 +84,8 @@ func (restore *MongoRestore) RestoreOplog() error {
 		}
 
 		totalOps++
-		bufferedBytes += entrySize
 		oplogProgressor.Inc(int64(entrySize))
-		entryArray = append(entryArray, entryAsOplog)
-	}
-	// finally, flush the remaining entries
-	if len(entryArray) > 0 {
-		err = restore.ApplyOps(session, entryArray)
+		err = restore.ApplyOps(session, []interface{}{entryAsOplog})
 		if err != nil {
 			return fmt.Errorf("error applying oplog: %v", err)
 		}
