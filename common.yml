@@ -581,8 +581,9 @@ timeout:
         # don't attempt to abort on any distro which has a special way of
         # killing everything (i.e. using taskkill on Windows)
         if [ "${killall_mci}" = "" ]; then
+          all_tools="bsondump mongodump mongoexport mongofiles mongoimport mongooplog mongorestore mongostat mongotop"
           # send SIGABRT to print a stacktrace for any hung tool
-          pkill -ABRT -x bsondump mongodump mongoexport mongofiles mongoimport mongooplog mongorestore mongostat mongotop
+          pkill -ABRT "^($(echo -n $all_tools | tr ' ' '|'))\$"
         fi
 
 
