@@ -9,13 +9,15 @@
   var primary = replset1.getPrimary();
   var secondaries = replset1.getSecondaries();
 
+  // rs functions actually operate on db
+  db = primary.getDB('foo'); // eslint-disable-line no-native-reassign
+
+  db.bar.insertOne({}, {writeConcern: {w: 3}});
+
   secondaries.forEach(function(secondary) {
     secondary.getDB('foo').setProfilingLevel(2);
   });
   primary.getDB('foo').setProfilingLevel(2);
-
-  // rs functions actually operate on db
-  db = primary.getDB('foo'); // eslint-disable-line no-native-reassign
 
   var conf = rs.conf();
 

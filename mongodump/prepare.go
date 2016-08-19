@@ -428,8 +428,9 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 
 	collInfo := &collectionInfo{}
 	for colsIter.Next(collInfo) {
-		// ignore <db>.system.views; view metadata is dumped separately
-		if collInfo.Name == "system.views" {
+		// ignore <db>.system.* except for admin
+		if dbName != "admin" && strings.HasPrefix(collInfo.Name, "system.") {
+			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
 			continue
 		}
 		// Skip over indexes since they are also listed in system.namespaces in 2.6 or earlier
