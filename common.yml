@@ -262,7 +262,7 @@ functions:
         set -x
         mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
         mongoversion=$(if [ "${mongo_version_always_use_latest}" ]; then echo "latest"; else echo "${mongo_version}"; fi)
-        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion)
+        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion --arch=${mongo_arch|x86_64})
         filename=$(echo $dlurl | sed -e "s_.*/__")
         mkdir mongodb
         cd mongodb
@@ -1329,6 +1329,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "rhel71"
     mongo_edition: "enterprise"
+    mongo_arch: "ppc64le"
     # RHEL 7.1 PPC64LE machines kerberos setup does not work for mongo-tools
     #args: ... libsasl2; build_tags "sasl ssl"
     args: -gccgoflags "$(pkg-config --libs --cflags libssl)"
@@ -1352,6 +1353,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "rhel72"
     mongo_edition: "enterprise"
+    mongo_arch: "s390x"
     args: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)"
     build_tags: "sasl ssl"
     resmoke_use_ssl: _ssl
@@ -1374,6 +1376,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "targeted"
+    mongo_arch: "arm64"
     args: -gccgoflags "$(pkg-config --libs --cflags libcrypto libssl)"
     build_tags: "ssl"
     resmoke_use_ssl: _ssl
@@ -1413,6 +1416,7 @@ buildvariants:
     <<: *mongod_win32_startup_args
     <<: *mongo_default_startup_args
     mongo_target: "windows_i686"
+    mongo_arch: "i386"
     extension: .exe
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     resmoke_args: --excludeWithAnyTags=requires_large_ram
