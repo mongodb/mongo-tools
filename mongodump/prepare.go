@@ -399,7 +399,10 @@ func (dump *MongoDump) createIntentFromOptions(dbName string, ci *collectionInfo
 		intent.MetadataFile = nil
 	} else if ci.IsView() {
 		log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
-		intent.BSONFile = nil
+		// only write a bson file if using archive
+		if dump.OutputOptions.Archive == "" {
+			intent.BSONFile = nil
+		}
 	}
 	intent.Options = ci.Options
 	dump.manager.Put(intent)

@@ -557,6 +557,10 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent) error {
 // dumped, and any errors that occured.
 func (dump *MongoDump) dumpQueryToWriter(
 	query *mgo.Query, intent *intents.Intent) (int64, error) {
+	// don't dump any data for views being dumped as views
+	if intent.IsView() && !dump.OutputOptions.ViewsAsCollections {
+		return 0, nil
+	}
 	var total int
 	var err error
 	if len(dump.query) == 0 {
