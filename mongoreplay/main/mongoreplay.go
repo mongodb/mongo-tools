@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	ExitOk       = 0
 	ExitError    = 1
 	ExitNonFatal = 3
 	// Go reserves exit code 2 for its own use
@@ -24,6 +25,11 @@ func main() {
 		&mongoreplay.MonitorCommand{GlobalOpts: &opts})
 
 	_, err := parser.Parse()
+
+	if opts.PrintVersion() {
+		os.Exit(ExitOk)
+	}
+
 	if err != nil {
 		switch err.(type) {
 		case mongoreplay.ErrPacketsDropped:
