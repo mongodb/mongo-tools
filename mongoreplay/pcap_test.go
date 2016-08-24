@@ -21,7 +21,7 @@ func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 
 	pcapFname := "op_command_2inserts.pcap"
 
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
+	var verifier = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
 		t.Log("Verifying that the correct number of getmores were seen")
 		coll := session.DB(testDB).C(testCollection)
 		iter := coll.Find(bson.D{}).Sort("op_command_test").Iter()
@@ -51,7 +51,7 @@ func TestOpCommandFromPcapFileLiveDB(t *testing.T) {
 
 func TestWireCompression(t *testing.T) {
 	pcapFname := "compressed.pcap"
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
+	var verifier = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
 		opsSeen := len(statRecorder.Buffer)
 		if opsSeen != 24 {
 			t.Errorf("Didn't seen the correct number of ops, expected 24 but saw %v", opsSeen)
@@ -69,7 +69,7 @@ func TestWireCompression(t *testing.T) {
 
 func TestSingleChannelGetMoreLiveDB(t *testing.T) {
 	pcapFname := "getmore_single_channel.pcap"
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
+	var verifier = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
 		getMoresSeen := 0
 		for _, val := range statRecorder.Buffer {
 			if val.OpType == "getmore" {
@@ -96,7 +96,7 @@ func TestSingleChannelGetMoreLiveDB(t *testing.T) {
 func TestMultiChannelGetMoreLiveDB(t *testing.T) {
 
 	pcapFname := "getmore_multi_channel.pcap"
-	var verifier verifyFunc = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
+	var verifier = func(t *testing.T, session *mgo.Session, statRecorder *BufferedStatRecorder, cursorMap *preprocessCursorManager) {
 		aggregationsSeen := 0
 		getMoresSeen := 0
 		for _, val := range statRecorder.Buffer {
