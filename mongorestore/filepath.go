@@ -384,6 +384,10 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, filterCollection stri
 				log.Logf(log.Info, "found collection %v bson to restore", intent.Namespace())
 				restore.manager.Put(intent)
 			case MetadataFileType:
+				if collection == "system.profile" {
+					log.Logvf(log.DebugLow, "skipping restore of system.profile metadata")
+					continue
+				}
 				usesMetadataFiles = true
 				intent := &intents.Intent{
 					DB: db,
