@@ -437,11 +437,11 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			}
 			return 0, fmt.Errorf("can't unmarshal system.version curentVersion as an int")
 		}
-		log.Logvf(log.DebugLow, "system.version document is not an authSchema %v", versionDoc["_id"])
+		log.Logf(log.DebugLow, "system.version document is not an authSchema %v", versionDoc["_id"])
 	}
 	err = bsonSource.Err()
 	if err != nil {
-		log.Logvf(log.Info, "can't unmarshal system.version document: %v", err)
+		log.Logf(log.Info, "can't unmarshal system.version document: %v", err)
 	}
 	return 0, fmt.Errorf("system.version bson file does not have authSchema document")
 }
