@@ -136,7 +136,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db, dir string) error {
 				restore.manager.Put(intent)
 			case MetadataFileType:
 				if collection == "system.profile" {
-					log.Logvf(log.DebugLow, "skipping restore of system.profile metadata")
+					log.Logf(log.DebugLow, "skipping restore of system.profile metadata")
 					continue
 				}
 				usesMetadataFiles = true
