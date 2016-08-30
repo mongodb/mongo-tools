@@ -238,6 +238,9 @@ func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
 		exp.InputOpts.ForceTableScan != true && exp.InputOpts.Sort == "" {
 		flags = flags | db.Snapshot
 	}
+	if exp.InputOpts.NoCursorTimeout == true {
+		flags = flags | db.NoCursorTimeout
+	}
 
 	session, err := exp.SessionProvider.GetSession()
 	if err != nil {

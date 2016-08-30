@@ -12,6 +12,7 @@ const (
 	Snapshot = 1 << iota
 	LogReplay
 	Prefetch
+	NoCursorTimeout
 )
 
 type NodeType string
@@ -205,6 +206,9 @@ func ApplyFlags(q *mgo.Query, session *mgo.Session, flags int) *mgo.Query {
 	}
 	if flags&Prefetch > 0 {
 		session.SetPrefetch(1.0)
+	}
+	if flags&NoCursorTimeout > 0 {
+		session.SetCursorTimeout(0)
 	}
 	return q
 }
