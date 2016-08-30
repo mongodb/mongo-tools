@@ -151,15 +151,15 @@ func TestPreprocessingFile(t *testing.T) {
 // block execution on a call to GetCursor if the corresponding live cursorID has
 // not been found to a cursorID that was mapped during preprocessing.
 func TestBlockOnUnresolvedCursor(t *testing.T) {
-	lock := sync.RWMutex{}
 	fileCursor := int64(1234)
 	liveCursor := int64(4567)
 
 	// Prepopulate a preprocessCursorManager with a details about a cursor
 	cursorManager := &preprocessCursorManager{
 		cursorInfos: make(map[int64]*preprocessCursorInfo),
-		RWMutex:     lock,
+		RWMutex:     sync.RWMutex{},
 	}
+	lock := &cursorManager.RWMutex
 	cursorManager.cursorInfos[fileCursor] = &preprocessCursorInfo{
 		successChan: make(chan struct{}),
 		numUsesLeft: 1,
@@ -174,12 +174,12 @@ func TestBlockOnUnresolvedCursor(t *testing.T) {
 			t.Error("Cursor map returned result before live cursor was mapped")
 		}
 		// Retrieve cursorInfo from map
-		lock.RLock()
+		*lock.RLock()
 		cursorInfo, ok := cursorManager.cursorInfos[fileCursor]
 		if !ok {
 			t.Errorf("Cursor %v was supposed to be mapped, but wasn't", testCursorID)
 		}
-		lock.RUnlock()
+		*lock.RUnlock()
 
 		t.Log("Verifying that successChan not closed before cursor was set")
 		// Verify that its successChan is not closed, which indicates that
@@ -314,7 +314,7 @@ func TestSkipOnMarkFailed(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	lock := preprocessManager.RWMutex
+	lock := &preprocessManager.RWMutex
 
 	var retrievedCursor int64 = -1
 	var ok bool
@@ -323,12 +323,12 @@ func TestSkipOnMarkFailed(t *testing.T) {
 		if retrievedCursor != -1 {
 			t.Error("Cursor map returned result before cursor was marked as failed")
 		}
-		lock.RLock()
+		*lock.RLock()
 		cursorInfo, ok := preprocessManager.cursorInfos[testCursorID]
 		if !ok {
 			t.Errorf("Cursor %v was supposed to be mapped, but wasn't", testCursorID)
 		}
-		lock.RUnlock()
+		*lock.RUnlock()
 
 		t.Log("Checking that successChan and failChan are still open before marking op as failed")
 		select {
