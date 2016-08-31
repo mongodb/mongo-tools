@@ -118,11 +118,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
-)
-
-var (
-	sslMutexes []sync.Mutex
 )
 
 func init() {
