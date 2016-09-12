@@ -1067,6 +1067,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
+        resmoke_args: "--excludeWithAnyTags=requires_unstable ${resmoke_args}"
 
 - name: native-cert-ssl
   depends_on:
@@ -1153,6 +1154,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_archive"
+        resmoke_args: "--excludeWithAnyTags=requires_unstable ${resmoke_args}"
 
 - name: qa-dump-restore-gzip
   depends_on:
@@ -1178,6 +1180,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_gzip"
+        resmoke_args: "--excludeWithAnyTags=requires_unstable ${resmoke_args}"
 
 - name: qa-tests-wt
   depends_on:
@@ -1224,7 +1227,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core"
-        resmoke_args: "--storageEngine=wiredTiger ${resmoke_args}"
+        resmoke_args: "--excludeWithAnyTags=requires_unstable --storageEngine=wiredTiger ${resmoke_args}"
 
 - name: unit
   commands:

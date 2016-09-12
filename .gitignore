@@ -24,3 +24,4 @@ vendor/pkg
 .idea
 
 tags
+node_modules
