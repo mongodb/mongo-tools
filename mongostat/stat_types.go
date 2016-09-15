@@ -827,7 +827,7 @@ func NewStatLine(oldStat, newStat ServerStatus, key string, all bool, sampleSecs
 		oldStat.ExtraInfo.PageFaults != nil && newStat.ExtraInfo.PageFaults != nil {
 		returnVal.Faults = diff(*(newStat.ExtraInfo.PageFaults), *(oldStat.ExtraInfo.PageFaults), sampleSecs)
 	}
-	if !returnVal.IsMongos && oldStat.Locks != nil && oldStat.Locks != nil {
+	if !returnVal.IsMongos && oldStat.Locks != nil && newStat.Locks != nil {
 		globalCheck, hasGlobal := oldStat.Locks["Global"]
 		if hasGlobal && globalCheck.AcquireCount != nil {
 			// This appears to be a 3.0+ server so the data in these fields do *not* refer to
@@ -835,8 +835,9 @@ func NewStatLine(oldStat, newStat ServerStatus, key string, all bool, sampleSecs
 			returnVal.HighestLocked = nil
 
 			// Check if it's a 3.0+ MMAP server so we can still compute collection locks
-			collectionCheck, hasCollection := oldStat.Locks["Collection"]
-			if hasCollection && collectionCheck.AcquireWaitCount != nil {
+			oldCollectionCheck, oldHasCollection := oldStat.Locks["Collection"]
+			newCollectionCheck, newHasCollection := newStat.Locks["Collection"]
+			if newHasCollection && newCollectionCheck.AcquireWaitCount != nil && oldHasCollection && oldCollectionCheck.AcquireWaitCount != nil {
 				readWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Read - oldStat.Locks["Collection"].AcquireWaitCount.Read
 				readTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Read - oldStat.Locks["Collection"].AcquireCount.Read
 				writeWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Write - oldStat.Locks["Collection"].AcquireWaitCount.Write
