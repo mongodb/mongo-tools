@@ -17,6 +17,12 @@ const (
 func main() {
 	opts := mongoreplay.Options{}
 	var parser = flags.NewParser(&opts, flags.Default)
+
+	parser.Parse()
+	if opts.PrintVersion() {
+		os.Exit(ExitOk)
+	}
+
 	parser.AddCommand("play", "Play captured traffic against a mongodb instance", "",
 		&mongoreplay.PlayCommand{GlobalOpts: &opts})
 	parser.AddCommand("record", "Convert network traffic into mongodb queries", "",
@@ -25,10 +31,6 @@ func main() {
 		&mongoreplay.MonitorCommand{GlobalOpts: &opts})
 
 	_, err := parser.Parse()
-
-	if opts.PrintVersion() {
-		os.Exit(ExitOk)
-	}
 
 	if err != nil {
 		switch err.(type) {
