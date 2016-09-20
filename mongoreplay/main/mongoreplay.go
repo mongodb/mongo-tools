@@ -16,21 +16,35 @@ const (
 
 func main() {
 	opts := mongoreplay.Options{}
+
 	var parser = flags.NewParser(&opts, flags.Default)
 
+	_, err := parser.AddCommand("play", "Play captured traffic against a mongodb instance", "",
+		&mongoreplay.PlayCommand{GlobalOpts: &opts})
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = parser.AddCommand("record", "Convert network traffic into mongodb queries", "",
+		&mongoreplay.RecordCommand{GlobalOpts: &opts})
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = parser.AddCommand("monitor", "Inspect live or pre-recorded mongodb traffic", "",
+		&mongoreplay.MonitorCommand{GlobalOpts: &opts})
+	if err != nil {
+		panic(err)
+	}
+
+	parser.Options = flags.IgnoreUnknown
 	parser.Parse()
 	if opts.PrintVersion() {
 		os.Exit(ExitOk)
 	}
 
-	parser.AddCommand("play", "Play captured traffic against a mongodb instance", "",
-		&mongoreplay.PlayCommand{GlobalOpts: &opts})
-	parser.AddCommand("record", "Convert network traffic into mongodb queries", "",
-		&mongoreplay.RecordCommand{GlobalOpts: &opts})
-	parser.AddCommand("monitor", "Inspect live or pre-recorded mongodb traffic", "",
-		&mongoreplay.MonitorCommand{GlobalOpts: &opts})
-
-	_, err := parser.Parse()
+	parser.Options = flags.Default
+	_, err = parser.Parse()
 
 	if err != nil {
 		switch err.(type) {
