@@ -30,7 +30,7 @@ if (typeof getToolTest === 'undefined') {
       'without auth!');
   }
     // On sharded and standalone, kill the server
-  startParallelShell(
+  var koShell = startParallelShell(
       'sleep(1000); ' +
       (toolTest.authCommand || '') +
       'db.getSiblingDB(\'admin\').shutdownServer({ force: true });');
@@ -58,6 +58,9 @@ if (typeof getToolTest === 'undefined') {
         return index !== -1;
       });
   }, 'mongodump crash should output one of the correct error messages');
+
+  // Swallow the exit code for the shell per SERVER-25777.
+  koShell();
 
   toolTest.stop();
 }());
