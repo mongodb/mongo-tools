@@ -225,13 +225,14 @@ functions:
         if [ -f bsondump ]; then
           chmod +x bsondump
         fi
-        rm -rf /data/install /data/multiversion
+        rm -rf /data/mci/install /data/mci/multiversion
+        mkdir -p /data/mci/install /data/mci/multiversion
         if [ "${multiversion_override}" != "skip" ]; then
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
         fi
         chmod 400 jstests/libs/key*
 
-        PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+        PATH=$PATH:/data/mci/multiversion python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
   "build tool":
     command: shell.exec
@@ -588,6 +589,8 @@ post:
     params:
       script: |
         rm -rf /data/db/*
+        rm -rf /data/mci/multiversion
+        rm -rf /data/mci/install
         exit 0
 
 timeout:
@@ -1125,11 +1128,12 @@ tasks:
           mv test/qa-tests/* .
           chmod +x mongo*
           chmod +x bsondump*
-          rm -rf /data/install /data/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/install /data/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
+          rm -rf /data/mci/install /data/mci/multiversion
+          mkdir -p /data/mci/install /data/mci/multiversion
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
 
-          PATH=$PATH:/data/multiversion python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+          PATH=$PATH:/data/mci/multiversion python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
 - name: qa-dump-restore-archiving
   depends_on:
