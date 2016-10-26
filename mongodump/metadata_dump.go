@@ -102,7 +102,8 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 		}
 	}()
 
-	var f io.Writer = intent.MetadataFile
+	var f io.Writer
+	f = intent.MetadataFile
 	if buffer != nil {
 		buffer.Reset(f)
 		f = buffer

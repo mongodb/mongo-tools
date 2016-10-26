@@ -607,7 +607,8 @@ func (dump *MongoDump) dumpQueryToIntent(
 		}
 	}()
 
-	var f io.Writer = intent.BSONFile
+	var f io.Writer
+	f = intent.BSONFile
 	if buffer != nil {
 		buffer.Reset(f)
 		f = buffer
