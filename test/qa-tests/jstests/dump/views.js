@@ -65,14 +65,14 @@
 
   var ret;
 
-  ret = toolTest.runTool.apply(toolTest, ['dump','-vvvvv']
+  ret = toolTest.runTool.apply(toolTest, ['dump']
       .concat(getDumpTarget(dumpTarget))
       .concat(commonToolArgs));
   assert.eq(0, ret, 'dump should succeed');
 
   db.dropDatabase();
 
-  ret = toolTest.runTool.apply(toolTest, ['restore','-vvvvv']
+  ret = toolTest.runTool.apply(toolTest, ['restore']
       .concat(getRestoreTarget(dumpTarget))
       .concat(commonToolArgs));
   assert.eq(0, ret, 'restore should succeed');
@@ -84,7 +84,7 @@
     assert.eq(4, db.citiesCA.count(), 'should have 4 cities in California view');
   }
 
-  ret = toolTest.runTool.apply(toolTest, ['restore', '--drop','-vvvvv']
+  ret = toolTest.runTool.apply(toolTest, ['restore', '--drop']
       .concat(getRestoreTarget(dumpTarget))
       .concat(commonToolArgs));
   assert.eq(0, ret, 'restore --drop should succeed');
@@ -98,14 +98,14 @@
 
   resetDbpath(dumpTarget);
 
-  ret = toolTest.runTool.apply(toolTest, ['dump', '--viewsAsCollections','-vvvvv']
+  ret = toolTest.runTool.apply(toolTest, ['dump', '--viewsAsCollections']
       .concat(getDumpTarget(dumpTarget))
       .concat(commonToolArgs));
   assert.eq(0, ret, 'dump --viewsAsCollections should succeed');
 
   db.dropDatabase();
 
-  ret = toolTest.runTool.apply(toolTest, ['restore','-vvvvv']
+  ret = toolTest.runTool.apply(toolTest, ['restore']
       .concat(getRestoreTarget(dumpTarget))
       .concat(commonToolArgs));
   assert.eq(0, ret, 'restore should succeed');
