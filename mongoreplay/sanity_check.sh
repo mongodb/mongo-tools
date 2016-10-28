@@ -56,6 +56,11 @@ assert.gt(profile_results.size(), 0);"
 
 mongo --port=$PORT mongoplay_test --eval "var query_results = db.sanity_check.find({'test_success':1});
 assert.gt(query_results.size(), 0);" 
+
+# test that files are correctly gziped ( TOOLS-1503 )
+mongoreplay record -f $PCAPFILE -p ${OUTFILE} --gzip
+gunzip -t ${OUTFILE}
+
 echo "Success!"
 
 if [ "$STARTMONGO" = true ]; then

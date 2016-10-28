@@ -777,23 +777,6 @@ func (*nopCloseWriter) Close() error {
 	return nil
 }
 
-// wrappedWriteCloser implements io.WriteCloser. It wraps up two WriteClosers. The Write method
-// of the io.WriteCloser is implemented by the embedded io.WriteCloser
-type wrappedWriteCloser struct {
-	io.WriteCloser
-	inner io.WriteCloser
-}
-
-// Close is part of the io.WriteCloser interface. Close closes both the embedded io.WriteCloser as
-// well as the inner io.WriteCloser
-func (wwc *wrappedWriteCloser) Close() error {
-	err := wwc.WriteCloser.Close()
-	if err != nil {
-		return err
-	}
-	return wwc.inner.Close()
-}
-
 func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 	if dump.OutputOptions.Archive == "-" {
 		out = &nopCloseWriter{dump.stdout}
@@ -817,10 +800,7 @@ func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 		}
 	}
 	if dump.OutputOptions.Gzip {
-		return &wrappedWriteCloser{
-			WriteCloser: gzip.NewWriter(out),
-			inner:       out,
-		}, nil
+		return &util.WrappedWriteCloser{gzip.NewWriter(out), out}, nil
 	}
 	return out, nil
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/10gen/llmgo/bson"
 	"github.com/google/gopacket/pcap"
+	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // RecordCommand stores settings for the mongoreplay 'record' subcommand
@@ -90,7 +91,7 @@ func NewPlaybackWriter(playbackFileName string, isGzipWriter bool) (*PlaybackWri
 		return nil, fmt.Errorf("error opening playback file to write to: %v", err)
 	}
 	if isGzipWriter {
-		pbWriter.WriteCloser = gzip.NewWriter(file)
+		pbWriter.WriteCloser = &util.WrappedWriteCloser{gzip.NewWriter(file), file}
 	} else {
 		pbWriter.WriteCloser = file
 	}
@@ -136,6 +137,7 @@ func (record *RecordCommand) Execute(args []string) error {
 		ctx.packetHandler.Close()
 	}()
 	playbackWriter, err := NewPlaybackWriter(record.PlaybackFile, record.Gzip)
+	defer playbackWriter.Close()
 	if err != nil {
 		return err
 	}
