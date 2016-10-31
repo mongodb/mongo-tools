@@ -820,6 +820,8 @@ timeout:
           all_tools="bsondump mongodump mongoexport mongofiles mongoimport mongooplog mongorestore mongostat mongotop"
           # send SIGABRT to print a stacktrace for any hung tool
           pkill -ABRT "^($(echo -n $all_tools | tr ' ' '|'))\$"
+          # git the processes a second or two to dump their stacks
+          sleep 10
         fi
 
 
