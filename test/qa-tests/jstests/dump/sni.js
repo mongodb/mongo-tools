@@ -10,7 +10,7 @@
     return;
   }
 
-  var port = 26999;
+  var port = allocatePort();
   var m = startMongod('-v', '--port', port, '--dbpath', MongoRunner.dataPath + 'sni_dump');
 
   var dumpTarget = 'sni_dump';
