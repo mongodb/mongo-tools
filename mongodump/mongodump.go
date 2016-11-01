@@ -576,6 +576,19 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 // dumped, and any errors that occured.
 func (dump *MongoDump) dumpQueryToIntent(
 	query *mgo.Query, intent *intents.Intent, buffer resettableOutputBuffer) (dumpCount int64, err error) {
+
+	// restore of views from archives require an empty collection as the trigger to create the view
+	// so, we open here before the early return if IsView so that we write an empty collection to the archive
+	err = intent.BSONFile.Open()
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		closeErr := intent.BSONFile.Close()
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), closeErr)
+		}
+	}()
 	// don't dump any data for views being dumped as views
 	if intent.IsView() && !dump.OutputOptions.ViewsAsCollections {
 		return 0, nil
@@ -596,16 +609,6 @@ func (dump *MongoDump) dumpQueryToIntent(
 		dump.ProgressManager.Attach(intent.Namespace(), dumpProgressor)
 		defer dump.ProgressManager.Detach(intent.Namespace())
 	}
-	err = intent.BSONFile.Open()
-	if err != nil {
-		return 0, err
-	}
-	defer func() {
-		closeErr := intent.BSONFile.Close()
-		if err == nil && closeErr != nil {
-			err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), closeErr)
-		}
-	}()
 
 	var f io.Writer
 	f = intent.BSONFile
