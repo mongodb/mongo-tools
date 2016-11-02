@@ -624,7 +624,7 @@ func (dump *MongoDump) dumpQueryToIntent(
 	}
 
 	err = dump.dumpIterToWriter(query.Iter(), f, dumpProgressor)
-	_, dumpCount = dumpProgressor.Progress()
+	dumpCount, _ = dumpProgressor.Progress()
 	if err != nil {
 		err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), err)
 	}
