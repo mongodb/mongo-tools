@@ -186,23 +186,35 @@ func Record(ctx *packetHandlerContext,
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
+		var fail error
 		for op := range ctx.mongoOpStream.Ops {
+			// since we don't currently have a way to shutdown packetHandler.Handle()
+			// continue to read from ctx.mongoOpStream.Ops even after a faltal error
+			if fail != nil {
+				toolDebugLogger.Logvf(DebugHigh, "not recording op because of record error %v", fail)
+				continue
+			}
 			if (op.Header.OpCode == OpCodeReply || op.Header.OpCode == OpCodeCommandReply) &&
 				!noShortenReply {
-				op.ShortenReply()
+				err := op.ShortenReply()
+				if err != nil {
+					userInfoLogger.Logvf(DebugLow, "stream %v problem shortening reply: %v", op.SeenConnectionNum, err)
+					continue
+				}
 			}
 			bsonBytes, err := bson.Marshal(op)
 			if err != nil {
-				ch <- fmt.Errorf("error marshaling message: %v", err)
-				return
+				userInfoLogger.Logvf(DebugLow, "stream %v error marshaling message: %v", op.SeenConnectionNum, err)
+				continue
 			}
 			_, err = playbackWriter.Write(bsonBytes)
 			if err != nil {
-				ch <- fmt.Errorf("error writing message: %v", err)
-				return
+				fail = fmt.Errorf("error writing message: %v", err)
+				userInfoLogger.Logvf(Always, "%v", e)
+				continue
 			}
 		}
-		ch <- nil
+		ch <- fail
 	}()
 
 	if err := ctx.packetHandler.Handle(ctx.mongoOpStream, -1); err != nil {
