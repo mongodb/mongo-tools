@@ -57,7 +57,7 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 			return nil, fmt.Errorf("error creating a pcap handle: %v", err)
 		}
 
-		err = inactive.SetSnapLen(32*1024*1024)
+		err = inactive.SetSnapLen(32 * 1024 * 1024)
 		if err != nil {
 			return nil, fmt.Errorf("error setting snaplen on pcap handle: %v", err)
 		}
@@ -140,7 +140,7 @@ func (record *RecordCommand) ValidateParams(args []string) error {
 	}
 	if record.OpStreamSettings.CaptureBufSize == 0 {
 		// default capture buffer size to 2 MiB (same as libpcap)
-		record.OpStreamSettings.CaptureBufSize = 2*1024
+		record.OpStreamSettings.CaptureBufSize = 2 * 1024
 	}
 	return nil
 }
@@ -210,7 +210,7 @@ func Record(ctx *packetHandlerContext,
 			_, err = playbackWriter.Write(bsonBytes)
 			if err != nil {
 				fail = fmt.Errorf("error writing message: %v", err)
-				userInfoLogger.Logvf(Always, "%v", e)
+				userInfoLogger.Logvf(Always, "%v", err)
 				continue
 			}
 		}
