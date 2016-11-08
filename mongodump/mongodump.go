@@ -348,7 +348,7 @@ func (dump *MongoDump) Dump() (err error) {
 			} else {
 				err = dump.DumpUsersAndRolesForDB(dump.ToolOptions.DB)
 				if err != nil {
-					return fmt.Errorf("error dumping users and roles for db: %v", err)
+					return fmt.Errorf("error dumping users and roles: %v", err)
 				}
 			}
 		}
