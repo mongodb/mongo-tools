@@ -6,8 +6,9 @@ import (
 	"io"
 
 	mgo "github.com/10gen/llmgo"
-	"github.com/mongodb/mongo-tools/common/db"
 )
+
+const maxBSONSize = 16 * 1024 * 1024 // 16MB - maximum BSON document size
 
 // RawOp may be exactly the same as OpUnknown.
 type RawOp struct {
@@ -67,7 +68,7 @@ func (op *RawOp) ShortenReply() error {
 			return nil
 		}
 		firstDocSize := getInt32(op.Body, 20+MsgHeaderLen)
-		if 20+MsgHeaderLen+int(firstDocSize) > len(op.Body) || firstDocSize > db.MaxBSONSize {
+		if 20+MsgHeaderLen+int(firstDocSize) > len(op.Body) || firstDocSize > maxBSONSize {
 			return fmt.Errorf("the size of the first document is greater then the size of the message")
 		}
 		op.Body = op.Body[0:(20 + MsgHeaderLen + firstDocSize)]
