@@ -57,7 +57,7 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 		// This is safe; calling `Activate()` steals the underlying ptr.
 		defer inactive.CleanUp()
 
-		err = inactive.SetSnapLen(32 * 1024 * 1024)
+		err = inactive.SetSnapLen(64 * 1024)
 		if err != nil {
 			return nil, fmt.Errorf("error setting snaplen on pcap handle: %v", err)
 		}
