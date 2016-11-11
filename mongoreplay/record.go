@@ -51,11 +51,11 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 		}
 	} else if len(cfg.NetworkInterface) > 0 {
 		inactive, err := pcap.NewInactiveHandle(cfg.NetworkInterface)
-		// This is safe; calling `Activate()` steals the underlying ptr.
-		defer inactive.CleanUp()
 		if err != nil {
 			return nil, fmt.Errorf("error creating a pcap handle: %v", err)
 		}
+		// This is safe; calling `Activate()` steals the underlying ptr.
+		defer inactive.CleanUp()
 
 		err = inactive.SetSnapLen(32 * 1024 * 1024)
 		if err != nil {
