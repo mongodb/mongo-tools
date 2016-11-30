@@ -45,15 +45,16 @@ func (*OutputFormatOptions) Name() string {
 
 // InputOptions defines the set of options to use in retrieving data from the server.
 type InputOptions struct {
-	Query          string `long:"query" value-name:"<json>" short:"q" description:"query filter, as a JSON string, e.g., '{x:{$gt:1}}'"`
-	QueryFile      string `long:"queryFile" value-name:"<filename>" description:"path to a file containing a query filter (JSON)"`
-	SlaveOk        bool   `long:"slaveOk" short:"k" description:"allow secondary reads if available (default true)" default:"false" default-mask:"-"`
-	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference name or a preference json object"`
-	ForceTableScan bool   `long:"forceTableScan" description:"force a table scan (do not use $snapshot)"`
-	Skip           int    `long:"skip" value-name:"<count>" description:"number of documents to skip"`
-	Limit          int    `long:"limit" value-name:"<count>" description:"limit the number of documents to export"`
-	Sort           string `long:"sort" value-name:"<json>" description:"sort order, as a JSON string, e.g. '{x:1}'"`
-	AssertExists   bool   `long:"assertExists" default:"false" description:"if specified, export fails if the collection does not exist"`
+	Query           string `long:"query" value-name:"<json>" short:"q" description:"query filter, as a JSON string, e.g., '{x:{$gt:1}}'"`
+	QueryFile       string `long:"queryFile" value-name:"<filename>" description:"path to a file containing a query filter (JSON)"`
+	SlaveOk         bool   `long:"slaveOk" short:"k" description:"allow secondary reads if available (default true)" default:"false" default-mask:"-"`
+	ReadPreference  string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference name or a preference json object"`
+	ForceTableScan  bool   `long:"forceTableScan" description:"force a table scan (do not use $snapshot)"`
+	Skip            int    `long:"skip" value-name:"<count>" description:"number of documents to skip"`
+	Limit           int    `long:"limit" value-name:"<count>" description:"limit the number of documents to export"`
+	Sort            string `long:"sort" value-name:"<json>" description:"sort order, as a JSON string, e.g. '{x:1}'"`
+	AssertExists    bool   `long:"assertExists" default:"false" description:"if specified, export fails if the collection does not exist"`
+	NoCursorTimeout bool   `long:"noCursorTimeout" default:"false" description:"if specified, prevents the server from timing out idle cursors"`
 }
 
 // Name returns a human-readable group name for input options.
