@@ -169,10 +169,10 @@ func (record *RecordCommand) Execute(args []string) error {
 		ctx.packetHandler.Close()
 	}()
 	playbackWriter, err := NewPlaybackWriter(record.PlaybackFile, record.Gzip)
-	defer playbackWriter.Close()
 	if err != nil {
 		return err
 	}
+	defer playbackWriter.Close()
 
 	return Record(ctx, playbackWriter, record.FullReplies)
 
