@@ -68,6 +68,7 @@ func main() {
 		log.Logf(log.Always, "error connecting to destination host: %v", err)
 		os.Exit(util.ExitError)
 	}
+	defer sessionProviderTo.Close()
 
 	// create a session provider for the source server
 	opts.Connection.Host = sourceOpts.From
@@ -77,6 +78,7 @@ func main() {
 		log.Logf(log.Always, "error connecting to source host: %v", err)
 		os.Exit(util.ExitError)
 	}
+	defer sessionProviderFrom.Close()
 
 	// initialize mongooplog
 	oplog := mongooplog.MongoOplog{
