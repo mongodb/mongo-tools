@@ -361,5 +361,18 @@ func (bidi *bidi) streamOps() {
 		// inform the tcpassembly that we've finished with the reassemblies.
 		stream.done <- nil
 	}
+	var lastOpTimeStamp time.Time
+	if bidi.streams[0].opTimeStamp.After(bidi.streams[1].opTimeStamp) {
+		lastOpTimeStamp = bidi.streams[0].opTimeStamp
+	} else {
+		lastOpTimeStamp = bidi.streams[1].opTimeStamp
+	}
+	if !lastOpTimeStamp.IsZero() {
+		bidi.opStream.unorderedOps <- RecordedOp{
+			Seen:              &PreciseTime{lastOpTimeStamp.Add(time.Nanosecond)},
+			SeenConnectionNum: bidi.connectionNumber,
+			EOF:               true,
+		}
+	}
 	bidi.logvf(Info, "Connection %v: finishing", bidi.connectionNumber)
 }
