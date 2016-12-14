@@ -56,7 +56,6 @@ func main() {
 		log.Logf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
-	defer provider.Close()
 	provider.SetBypassDocumentValidation(outputOpts.BypassDocumentValidation)
 
 	// disable TCP timeouts for restore jobs

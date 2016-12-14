@@ -54,7 +54,6 @@ func main() {
 		log.Logf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
-	defer provider.Close()
 	mf := mongofiles.MongoFiles{
 		ToolOptions:     opts,
 		StorageOptions:  storageOpts,
