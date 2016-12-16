@@ -1247,8 +1247,8 @@ func TestUnmarshalSyntax(t *testing.T) {
 // Issue 4660
 type unexportedFields struct {
 	Name string
-	m    map[string]interface{} `json:"-"`
-	m2   map[string]interface{} `json:"abcd"`
+	m    map[string]interface{}
+	m2   map[string]interface{}
 }
 
 func TestUnmarshalUnexported(t *testing.T) {

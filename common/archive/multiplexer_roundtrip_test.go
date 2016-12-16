@@ -75,6 +75,7 @@ func TestBasicMux(t *testing.T) {
 		errChan := make(chan error)
 		for index, dbc := range testIntents {
 			closeDbc := dbc
+			closeIndex := index
 			go func() {
 				err = muxIns[closeDbc.Namespace()].Open()
 				if err != nil {
@@ -84,7 +85,7 @@ func TestBasicMux(t *testing.T) {
 				staticBSONBuf := make([]byte, db.MaxBSONSize)
 				for i := 0; i < 10000; i++ {
 
-					bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: closeDbc.Namespace()})
+					bsonBytes, _ := bson.Marshal(testDoc{Bar: closeIndex * i, Baz: closeDbc.Namespace()})
 					bsonBuf := staticBSONBuf[:len(bsonBytes)]
 					copy(bsonBuf, bsonBytes)
 					muxIns[closeDbc.Namespace()].Write(bsonBuf)
@@ -188,6 +189,7 @@ func TestParallelMux(t *testing.T) {
 
 		for index, dbc := range testIntents {
 			closeDbc := dbc
+			closeIndex := index
 			go func() {
 				err = muxIns[closeDbc.Namespace()].Open()
 				if err != nil {
@@ -197,7 +199,7 @@ func TestParallelMux(t *testing.T) {
 				staticBSONBuf := make([]byte, db.MaxBSONSize)
 				for i := 0; i < 10000; i++ {
 
-					bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: closeDbc.Namespace()})
+					bsonBytes, _ := bson.Marshal(testDoc{Bar: closeIndex * i, Baz: closeDbc.Namespace()})
 					bsonBuf := staticBSONBuf[:len(bsonBytes)]
 					copy(bsonBuf, bsonBytes)
 					muxIns[closeDbc.Namespace()].Write(bsonBuf)

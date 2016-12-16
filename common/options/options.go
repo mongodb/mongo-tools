@@ -322,7 +322,7 @@ func (opts *HiddenOptions) parseHiddenOption(option string, arg flags.SplitArgum
 		opts.TempUsersColl = new(string)
 		value, consumeVal, err := getStringArg(arg, args)
 		if err != nil {
-			return args, fmt.Errorf("couldn't parse flag tempUsersColl: ", err)
+			return args, fmt.Errorf("couldn't parse flag tempUsersColl: %v", err)
 		}
 		*opts.TempUsersColl = value
 		if consumeVal {
@@ -334,7 +334,7 @@ func (opts *HiddenOptions) parseHiddenOption(option string, arg flags.SplitArgum
 		opts.TempRolesColl = new(string)
 		value, consumeVal, err := getStringArg(arg, args)
 		if err != nil {
-			return args, fmt.Errorf("couldn't parse flag tempRolesColl: ", err)
+			return args, fmt.Errorf("couldn't parse flag tempRolesColl: %v", err)
 		}
 		*opts.TempRolesColl = value
 		if consumeVal {

@@ -47,7 +47,7 @@ func buildBsonArray(iter *mgo.Iter) ([]bson.D, error) {
 func GetIndexes(coll *mgo.Collection) (*mgo.Iter, error) {
 	var cmdResult struct {
 		Cursor struct {
-			FirstBatch []bson.Raw "firstBatch"
+			FirstBatch []bson.Raw `bson:"firstBatch"`
 			NS         string
 			Id         int64
 		}
@@ -83,7 +83,7 @@ func getIndexesPre28(coll *mgo.Collection) (*mgo.Iter, error) {
 func GetCollections(database *mgo.Database, name string) (*mgo.Iter, bool, error) {
 	var cmdResult struct {
 		Cursor struct {
-			FirstBatch []bson.Raw "firstBatch"
+			FirstBatch []bson.Raw `bson:"firstBatch"`
 			NS         string
 			Id         int64
 		}

@@ -84,7 +84,6 @@ func (restore *MongoRestore) RestoreIntents() error {
 		}
 		restore.manager.Finish(intent)
 	}
-	return nil
 }
 
 // RestoreIntent attempts to restore a given intent into MongoDB.

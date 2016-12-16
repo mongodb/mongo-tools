@@ -53,7 +53,7 @@ type misnamedTag struct {
 }
 
 type badFormatTag struct {
-	Y string `:"BadFormat"`
+	Y string
 }
 
 type badCodeTag struct {
