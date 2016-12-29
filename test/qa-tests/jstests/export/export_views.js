@@ -62,13 +62,13 @@
 
   var ret;
 
-  ret = toolTest.runTool.apply(toolTest, ['export', '-o', exportTarget, '-d', dbName, '-c' , 'citiesCA']
+  ret = toolTest.runTool.apply(toolTest, ['export', '-o', exportTarget, '-d', dbName, '-c', 'citiesCA']
       .concat(commonToolArgs));
   assert.eq(0, ret, 'export should succeed');
 
   db.dropDatabase();
 
-  ret = toolTest.runTool.apply(toolTest, ['import', exportTarget, '-d', dbName, '-c' , 'CACities']
+  ret = toolTest.runTool.apply(toolTest, ['import', exportTarget, '-d', dbName, '-c', 'CACities']
       .concat(commonToolArgs));
   assert.eq(0, ret, 'export should succeed');
 
