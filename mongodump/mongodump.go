@@ -42,14 +42,15 @@ type MongoDump struct {
 	ProgressManager progress.Manager
 
 	// useful internals that we don't directly expose as options
-	SessionProvider *db.SessionProvider
-	manager         *intents.Manager
-	query           bson.M
-	oplogCollection string
-	oplogStart      bson.MongoTimestamp
-	isMongos        bool
-	authVersion     int
-	archive         *archive.Writer
+	SessionProvider      *db.SessionProvider
+	sessionProviderClose bool
+	manager              *intents.Manager
+	query                bson.M
+	oplogCollection      string
+	oplogStart           bson.MongoTimestamp
+	isMongos             bool
+	authVersion          int
+	archive              *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
 	// as well as the signal handler, and allows them to notify
 	// the intent dumpers that they should shutdown
@@ -127,6 +128,7 @@ func (dump *MongoDump) Init() error {
 		if err != nil {
 			return fmt.Errorf("can't create session: %v", err)
 		}
+		dump.sessionProviderClose = true
 	}
 
 	// temporarily allow secondary reads for the isMongos check
@@ -178,7 +180,9 @@ func (dump *MongoDump) Init() error {
 
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
-	defer dump.SessionProvider.Close()
+	if dump.sessionProviderClose == true {
+		defer dump.SessionProvider.Close()
+	}
 
 	dump.shutdownIntentsNotifier = newNotifier()
 
