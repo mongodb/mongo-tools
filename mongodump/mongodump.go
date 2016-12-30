@@ -122,9 +122,11 @@ func (dump *MongoDump) Init() error {
 	if dump.OutputWriter == nil {
 		dump.OutputWriter = os.Stdout
 	}
-	dump.SessionProvider, err = db.NewSessionProvider(*dump.ToolOptions)
-	if err != nil {
-		return fmt.Errorf("can't create session: %v", err)
+	if dump.SessionProvider == nil {
+		dump.SessionProvider, err = db.NewSessionProvider(*dump.ToolOptions)
+		if err != nil {
+			return fmt.Errorf("can't create session: %v", err)
+		}
 	}
 
 	// temporarily allow secondary reads for the isMongos check
