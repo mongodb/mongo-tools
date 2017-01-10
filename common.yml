@@ -1897,6 +1897,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "windows-64"
     mongo_target: "windows_x86_64-2008plus"
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     excludes: requires_large_ram
     extension: .exe
     arch: "win32/x86_64"
@@ -1917,6 +1918,7 @@ buildvariants:
     edition: ssl
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     excludes: requires_large_ram,requires_mongo_24
     multiversion_override: "2.6"
     extension: .exe
@@ -1938,6 +1940,7 @@ buildvariants:
     mongo_target: "windows"
     build_tags: "sasl ssl"
     smoke_use_ssl: --use-ssl
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
     excludes: requires_large_ram,requires_mongo_24
     multiversion_override: "2.6"
