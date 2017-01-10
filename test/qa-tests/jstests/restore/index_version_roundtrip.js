@@ -1,3 +1,4 @@
+// @tags: [requires_mongo_34](
 (function() {
 
   if (typeof getToolTest === 'undefined') {

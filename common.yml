@@ -21,8 +21,11 @@ mongo_tools_variables:
       - name: legacy26
       - name: legacy24
       - name: qa-tests
-      - name: qa-dump-restore-archiving
+      - name: qa-tests-3.2
       - name: qa-dump-restore-gzip
+      - name: qa-dump-restore-gzip-3.2
+      - name: qa-dump-restore-archiving
+      - name: qa-dump-restore-archiving-3.2
       - name: unit
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -54,9 +57,12 @@ mongo_tools_variables:
       - name: lint-go
       - name: lint-js
       - name: qa-tests
+      - name: qa-tests-3.2
       - name: qa-tests-unstable
-      - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
+      - name: qa-dump-restore-gzip-3.2
+      - name: qa-dump-restore-archiving
+      - name: qa-dump-restore-archiving-3.2
       - name: qa-tests-wt
       - name: unit
       - name: vet
@@ -146,12 +152,22 @@ mongo_tools_variables:
       - name: qa-tests
         distros:
         - windows-64-vs2013-test
+      - name: qa-tests-3.2
+        distros:
+        - windows-64-vs2013-test
       - name: qa-dump-restore-archiving
+        distros:
+        - windows-64-vs2013-test
+      - name: qa-dump-restore-archiving-3.2
         distros:
         - windows-64-vs2013-test
       - name: qa-dump-restore-gzip
         distros:
         - windows-64-vs2013-test
+      - name: qa-dump-restore-gzip-3.2
+        distros:
+        - windows-64-vs2013-test
+      - name: qa-tests-unstable
       - name: unit
     windows_64_ssl_task_list: &windows_64_ssl_tasks
       - name: dist
@@ -1226,6 +1242,48 @@ tasks:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_unstable,${excludes}"
 
+- name: qa-tests-3.2
+  depends_on:
+  - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.2"
+    - func: "fetch tool"
+      vars:
+        tool: mongoimport
+    - func: "fetch tool"
+      vars:
+        tool: mongoexport
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "fetch tool"
+      vars:
+        tool: mongostat
+    - func: "fetch tool"
+      vars:
+        tool: mongotop
+    - func: "fetch tool"
+      vars:
+        tool: mongooplog
+    - func: "fetch tool"
+      vars:
+        tool: mongofiles
+    - func: "fetch tool"
+      vars:
+        tool: bsondump
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_ssl}"
+        excludes: "requires_unstable,requires_mongo_34,${excludes}"
+
 - name: native-cert-ssl
   depends_on:
   - name: dist
@@ -1300,6 +1358,27 @@ tasks:
         resmoke_suite: "restore_archive"
         excludes: "requires_unstable,${excludes}"
 
+- name: qa-dump-restore-archiving-3.2
+  depends_on:
+  - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.2"
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "restore_archive"
+        excludes: "requires_unstable,requires_mongo_34,${excludes}"
+
 - name: qa-dump-restore-gzip
   depends_on:
   - name: dist
@@ -1320,6 +1399,27 @@ tasks:
       vars:
         resmoke_suite: "restore_gzip"
         excludes: "requires_unstable,${excludes}"
+
+- name: qa-dump-restore-gzip-3.2
+  depends_on:
+  - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.2"
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "restore_gzip"
+        excludes: "requires_unstable,requires_mongo_34,${excludes}"
 
 - name: qa-tests-wt
   depends_on:
