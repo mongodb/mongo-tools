@@ -523,6 +523,12 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, quoted bool) {
 		//e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
 	}
 	b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))
+        //Checks situation when float equals to int and prints zero signs after point
+        //This guarantee that json to bson conversion will be done correctly
+        //For example 1.0 should remain 1.0
+        if math.Floor(f) == f {
+            b = strconv.AppendFloat(e.scratch[:0], f, 'f', 1, int(bits))
+        }
 	if quoted {
 		e.WriteByte('"')
 	}
