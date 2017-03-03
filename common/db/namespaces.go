@@ -16,11 +16,11 @@ func IsNoCmd(err error) bool {
 	return ok && strings.HasPrefix(e.Message, "no such cmd:")
 }
 
-// IsNoCollection returns true if err indicates a query resulted in a "no collection" error
-// otherwise, returns false.
-func IsNoCollection(err error) bool {
+// IsNoNamespace returns true if err indicates a query resulted in a
+// "NamespaceNotFound" error otherwise, returns false.
+func IsNoNamespace(err error) bool {
 	e, ok := err.(*mgo.QueryError)
-	return ok && e.Message == "no collection"
+	return ok && e.Code == 26
 }
 
 // buildBsonArray takes a cursor iterator and returns an array of
@@ -67,7 +67,7 @@ func GetIndexes(coll *mgo.Collection) (*mgo.Iter, error) {
 	case IsNoCmd(err):
 		log.Logvf(log.DebugLow, "No support for listIndexes command, falling back to querying system.indexes")
 		return getIndexesPre28(coll)
-	case IsNoCollection(err):
+	case IsNoNamespace(err):
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("error running `listIndexes`. Collection: `%v` Err: %v", coll.FullName, err)
