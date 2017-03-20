@@ -15,9 +15,8 @@ import (
 
 // For connecting to the database over ssl
 type SSLDBConnector struct {
-	dialInfo  *mgo.DialInfo
-	dialError error
-	ctx       *openssl.Ctx
+	dialInfo *mgo.DialInfo
+	ctx      *openssl.Ctx
 }
 
 // Configure the connector to connect to the server over ssl. Parses the
@@ -41,7 +40,6 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 	// create the dialer func that will be used to connect
 	dialer := func(addr *mgo.ServerAddr) (net.Conn, error) {
 		conn, err := openssl.Dial("tcp", addr.String(), self.ctx, flags)
-		self.dialError = err
 		if err != nil {
 			return nil, err
 		}
@@ -74,11 +72,7 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 
 // Dial the server.
 func (self *SSLDBConnector) GetNewSession() (*mgo.Session, error) {
-	session, err := mgo.DialWithInfo(self.dialInfo)
-	if err != nil && self.dialError != nil {
-		return nil, fmt.Errorf("%v, openssl error: %v", err, self.dialError)
-	}
-	return session, err
+	return mgo.DialWithInfo(self.dialInfo)
 }
 
 // To be handed to mgo.DialInfo for connecting to the server.
