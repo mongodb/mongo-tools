@@ -386,13 +386,18 @@ func (restore *MongoRestore) Restore() error {
 		return nil
 	}
 
+	demuxFinished := make(chan interface{})
+	var demuxErr error
 	if restore.InputOptions.Archive != "" {
 		namespaceChan := make(chan string, 1)
 		namespaceErrorChan := make(chan error)
 		restore.archive.Demux.NamespaceChan = namespaceChan
 		restore.archive.Demux.NamespaceErrorChan = namespaceErrorChan
 
-		go restore.archive.Demux.Run()
+		go func() {
+			demuxErr = restore.archive.Demux.Run()
+			close(demuxFinished)
+		}()
 		// consume the new namespace announcement from the demux for all of the special collections
 		// that get cached when being read out of the archive.
 		// The first regular collection found gets pushed back on to the namespaceChan
@@ -482,6 +487,12 @@ func (restore *MongoRestore) Restore() error {
 	}
 
 	log.Logv(log.Always, "done")
+
+	if restore.InputOptions.Archive != "" {
+		log.Logv(log.Always, "waiting for demuxFinished")
+		<-demuxFinished
+		return demuxErr
+	}
 
 	return nil
 }
