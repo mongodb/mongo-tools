@@ -105,6 +105,9 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		}
 	}
 	if colHeader.EOF {
+		if rcr, ok := demux.outs[demux.currentNamespace].(*RegularCollectionReceiver); ok {
+			rcr.err = io.EOF
+		}
 		demux.outs[demux.currentNamespace].Close()
 		length := int64(demux.lengths[demux.currentNamespace])
 		crcUInt64, ok := demux.outs[demux.currentNamespace].Sum64()
@@ -137,18 +140,23 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 // End is part of the ParserConsumer interface and receives the end of archive notification.
 func (demux *Demultiplexer) End() error {
 	log.Logvf(log.DebugHigh, "demux End")
+	var err error
 	if len(demux.outs) != 0 {
 		openNss := []string{}
 		for ns := range demux.outs {
 			openNss = append(openNss, ns)
+			if rcr, ok := demux.outs[ns].(*RegularCollectionReceiver); ok {
+				rcr.err = newError("archive io error")
+			}
+			demux.outs[ns].Close()
 		}
-		return newError(fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss))
+		err = newError(fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss))
 	}
-
 	if demux.NamespaceChan != nil {
 		close(demux.NamespaceChan)
+		demux.NamespaceChan = nil
 	}
-	return nil
+	return err
 }
 
 // BodyBSON is part of the ParserConsumer interface and receives BSON bodies from the parser.
@@ -196,6 +204,7 @@ type RegularCollectionReceiver struct {
 	hash             hash.Hash64
 	closeOnce        sync.Once
 	openOnce         sync.Once
+	err              error
 }
 
 func (receiver *RegularCollectionReceiver) Sum64() (uint64, bool) {
@@ -219,7 +228,7 @@ func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 	wLen, ok := <-receiver.readLenChan
 	if !ok {
 		close(receiver.readBufChan)
-		return 0, io.EOF
+		return 0, receiver.err
 	}
 	if wLen > db.MaxBSONSize {
 		return 0, fmt.Errorf("incomming buffer size is too big %v", wLen)
