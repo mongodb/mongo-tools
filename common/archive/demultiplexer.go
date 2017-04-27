@@ -23,6 +23,12 @@ type DemuxOut interface {
 	Sum64() (uint64, bool)
 }
 
+const (
+	NamespaceUnopened = iota
+	NamespaceOpened
+	NamespaceClosed
+)
+
 // Demultiplexer implements Parser.
 type Demultiplexer struct {
 	In io.Reader
@@ -33,6 +39,20 @@ type Demultiplexer struct {
 	buf                [db.MaxBSONSize]byte
 	NamespaceChan      chan string
 	NamespaceErrorChan chan error
+	NamespaceStatus    map[string]int
+}
+
+func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader) *Demultiplexer {
+	demux := &Demultiplexer{
+		NamespaceStatus: make(map[string]int),
+		In:              in,
+	}
+	for _, cm := range namespaceMetadatas {
+		ns := cm.Database + "." + cm.Collection
+		demux.NamespaceStatus[ns] = NamespaceUnopened
+
+	}
+	return demux
 }
 
 // Run creates and runs a parser with the Demultiplexer as a consumer
@@ -42,6 +62,7 @@ func (demux *Demultiplexer) Run() error {
 	if len(demux.outs) > 0 {
 		log.Logvf(log.Always, "demux finishing when there are still outs (%v)", len(demux.outs))
 	}
+
 	log.Logvf(log.DebugLow, "demux finishing (err:%v)", err)
 	return err
 }
@@ -89,6 +110,10 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 	}
 	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 	if _, ok := demux.outs[demux.currentNamespace]; !ok {
+		if demux.NamespaceStatus[demux.currentNamespace] != NamespaceUnopened {
+			return newError("namespace header for already opened namespace")
+		}
+		demux.NamespaceStatus[demux.currentNamespace] = NamespaceOpened
 		if demux.NamespaceChan != nil {
 			demux.NamespaceChan <- demux.currentNamespace
 			err := <-demux.NamespaceErrorChan
@@ -109,6 +134,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 			rcr.err = io.EOF
 		}
 		demux.outs[demux.currentNamespace].Close()
+		demux.NamespaceStatus[demux.currentNamespace] = NamespaceClosed
 		length := int64(demux.lengths[demux.currentNamespace])
 		crcUInt64, ok := demux.outs[demux.currentNamespace].Sum64()
 		if ok {
@@ -151,11 +177,18 @@ func (demux *Demultiplexer) End() error {
 			demux.outs[ns].Close()
 		}
 		err = newError(fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss))
+	} else {
+		for ns, status := range demux.NamespaceStatus {
+			if status != NamespaceClosed {
+				err = newError(fmt.Sprintf("archive finished before all collections were seen (%v)", ns))
+			}
+		}
 	}
+
 	if demux.NamespaceChan != nil {
 		close(demux.NamespaceChan)
-		demux.NamespaceChan = nil
 	}
+
 	return err
 }
 
