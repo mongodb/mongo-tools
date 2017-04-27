@@ -248,13 +248,15 @@ func (restore *MongoRestore) Restore() error {
 	}
 
 	if restore.InputOptions.Archive != "" {
-		archiveReader, err := restore.getArchiveReader()
-		if err != nil {
-			return err
-		}
-		restore.archive = &archive.Reader{
-			In:      archiveReader,
-			Prelude: &archive.Prelude{},
+		if restore.archive == nil {
+			archiveReader, err := restore.getArchiveReader()
+			if err != nil {
+				return err
+			}
+			restore.archive = &archive.Reader{
+				In:      archiveReader,
+				Prelude: &archive.Prelude{},
+			}
 		}
 		err = restore.archive.Prelude.Read(restore.archive.In)
 		if err != nil {
@@ -316,9 +318,7 @@ func (restore *MongoRestore) Restore() error {
 	// Create the demux before intent creation, because muted archive intents need
 	// to register themselves with the demux directly
 	if restore.InputOptions.Archive != "" {
-		restore.archive.Demux = &archive.Demultiplexer{
-			In: restore.archive.In,
-		}
+		restore.archive.Demux = archive.CreateDemux(restore.archive.Prelude.NamespaceMetadatas, restore.archive.In)
 	}
 
 	switch {
@@ -486,10 +486,9 @@ func (restore *MongoRestore) Restore() error {
 		}
 	}
 
-	log.Logv(log.Always, "done")
+	defer log.Logv(log.Always, "done")
 
 	if restore.InputOptions.Archive != "" {
-		log.Logv(log.Always, "waiting for demuxFinished")
 		<-demuxFinished
 		return demuxErr
 	}
