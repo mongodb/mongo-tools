@@ -4,6 +4,7 @@ package openssl
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/db/kerberos"
@@ -15,8 +16,10 @@ import (
 
 // For connecting to the database over ssl
 type SSLDBConnector struct {
-	dialInfo *mgo.DialInfo
-	ctx      *openssl.Ctx
+	dialInfo       *mgo.DialInfo
+	dialErrorMutex sync.Mutex
+	dialError      error
+	ctx            *openssl.Ctx
 }
 
 // Configure the connector to connect to the server over ssl. Parses the
@@ -40,6 +43,9 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 	// create the dialer func that will be used to connect
 	dialer := func(addr *mgo.ServerAddr) (net.Conn, error) {
 		conn, err := openssl.Dial("tcp", addr.String(), self.ctx, flags)
+		self.dialErrorMutex.Lock()
+		self.dialError = err
+		self.dialErrorMutex.Unlock()
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +78,15 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 
 // Dial the server.
 func (self *SSLDBConnector) GetNewSession() (*mgo.Session, error) {
-	return mgo.DialWithInfo(self.dialInfo)
+	session, err := mgo.DialWithInfo(self.dialInfo)
+	if err != nil {
+		self.dialErrorMutex.Lock()
+		defer self.dialErrorMutex.Unlock()
+		if self.dialError != nil {
+			return nil, fmt.Errorf("%v, openssl error: %v", err, self.dialError)
+		}
+	}
+	return session, err
 }
 
 // To be handed to mgo.DialInfo for connecting to the server.
