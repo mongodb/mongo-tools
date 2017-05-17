@@ -181,6 +181,12 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 					"namespace is too long (max size is 127 bytes)", fullIndexName)
 		}
 
+		// default is to build indexes in the background 
+		// unless we specifically want to follow the dump metadata
+		if !restore.OutputOptions.AllowForegroundIndexBuild {
+			index.Options["background"] = true
+		}
+
 		// remove the index version, forcing an update,
 		// unless we specifically want to keep it
 		if !restore.OutputOptions.KeepIndexVersion {

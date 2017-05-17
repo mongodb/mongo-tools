@@ -29,20 +29,21 @@ func (*InputOptions) Name() string {
 
 // OutputOptions defines the set of options for restoring dump data.
 type OutputOptions struct {
-	Drop                     bool   `long:"drop" description:"drop each collection before import"`
-	DryRun                   bool   `long:"dryRun" description:"view summary without importing anything. recommended with verbosity"`
-	WriteConcern             string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to 'majority')"`
-	NoIndexRestore           bool   `long:"noIndexRestore" description:"don't restore indexes"`
-	NoOptionsRestore         bool   `long:"noOptionsRestore" description:"don't restore collection options"`
-	KeepIndexVersion         bool   `long:"keepIndexVersion" description:"don't update index version"`
-	MaintainInsertionOrder   bool   `long:"maintainInsertionOrder" description:"preserve order of documents during restoration"`
-	NumParallelCollections   int    `long:"numParallelCollections" short:"j" description:"number of collections to restore in parallel (4 by default)" default:"4" default-mask:"-"`
-	NumInsertionWorkers      int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection (1 by default)" default:"1" default-mask:"-"`
-	StopOnError              bool   `long:"stopOnError" description:"stop restoring if an error is encountered on insert (off by default)"`
-	BypassDocumentValidation bool   `long:"bypassDocumentValidation" description:"bypass document validation"`
-	TempUsersColl            string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
-	TempRolesColl            string `long:"tempRolesColl" default:"temproles" hidden:"true"`
-	BulkBufferSize           int    `long:"batchSize" default:"1000" hidden:"true"`
+	Drop                      bool   `long:"drop" description:"drop each collection before import"`
+	DryRun                    bool   `long:"dryRun" description:"view summary without importing anything. recommended with verbosity"`
+	WriteConcern              string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to 'majority')"`
+	NoIndexRestore            bool   `long:"noIndexRestore" description:"don't restore indexes"`
+	AllowForegroundIndexBuild bool   `long:"allowForegroundIndexBuild" description:"build indexes in foreground if specified in metadata"`
+	NoOptionsRestore          bool   `long:"noOptionsRestore" description:"don't restore collection options"`
+	KeepIndexVersion          bool   `long:"keepIndexVersion" description:"don't update index version"`
+	MaintainInsertionOrder    bool   `long:"maintainInsertionOrder" description:"preserve order of documents during restoration"`
+	NumParallelCollections    int    `long:"numParallelCollections" short:"j" description:"number of collections to restore in parallel (4 by default)" default:"4" default-mask:"-"`
+	NumInsertionWorkers       int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection (1 by default)" default:"1" default-mask:"-"`
+	StopOnError               bool   `long:"stopOnError" description:"stop restoring if an error is encountered on insert (off by default)"`
+	BypassDocumentValidation  bool   `long:"bypassDocumentValidation" description:"bypass document validation"`
+	TempUsersColl             string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
+	TempRolesColl             string `long:"tempRolesColl" default:"temproles" hidden:"true"`
+	BulkBufferSize            int    `long:"batchSize" default:"1000" hidden:"true"`
 }
 
 // Name returns a human-readable group name for output options.
