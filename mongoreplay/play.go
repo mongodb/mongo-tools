@@ -240,7 +240,7 @@ func Play(context *ExecutionContext,
 	repeat int,
 	queueTime int) error {
 
-	sessionChans := make(map[int]chan<- *RecordedOp)
+	sessionChans := make(map[int64]chan<- *RecordedOp)
 	var playbackStartTime, recordingStartTime time.Time
 	var connectionID int64
 	var opCounter int
@@ -288,7 +288,6 @@ func Play(context *ExecutionContext,
 			delete(sessionChans, op.SeenConnectionNum)
 		} else {
 			sessionChan <- op
-
 		}
 	}
 	for connectionNum, sessionChan := range sessionChans {
