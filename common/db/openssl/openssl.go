@@ -40,7 +40,15 @@ func (self *SSLDBConnector) Configure(opts options.ToolOptions) error {
 	dialer := func(addr *mgo.ServerAddr) (net.Conn, error) {
 		conn, err := openssl.Dial("tcp", addr.String(), self.ctx, flags)
 		self.dialError = err
-		return conn, err
+		if err != nil {
+			return nil, err
+		}
+		// enable TCP keepalive
+		err = util.EnableTCPKeepAlive(conn.UnderlyingConn(), time.Duration(opts.TCPKeepAliveSeconds)*time.Second)
+		if err != nil {
+			return nil, err
+		}
+		return conn, nil
 	}
 
 	timeout := time.Duration(opts.Timeout) * time.Second
