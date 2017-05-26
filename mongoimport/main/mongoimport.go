@@ -16,12 +16,13 @@ import (
 func main() {
 	// initialize command-line opts
 	opts := options.New("mongoimport", mongoimport.Usage,
-		options.EnabledOptions{Auth: true, Connection: true, Namespace: true})
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 
 	inputOpts := &mongoimport.InputOptions{}
 	opts.AddOptions(inputOpts)
 	ingestOpts := &mongoimport.IngestOptions{}
 	opts.AddOptions(ingestOpts)
+	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
 
 	args, err := opts.Parse()
 	if err != nil {
@@ -43,10 +44,8 @@ func main() {
 		return
 	}
 
-	// connect directly, unless a replica set name is explicitly specified
-	_, setName := util.ParseConnectionString(opts.Host)
-	opts.Direct = (setName == "")
-	opts.ReplicaSetName = setName
+	// verify uri options and log them
+	opts.URI.LogUnsupportedOptions()
 
 	// create a session provider to connect to the db
 	sessionProvider, err := db.NewSessionProvider(*opts)

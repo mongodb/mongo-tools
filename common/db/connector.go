@@ -28,10 +28,8 @@ type VanillaDBConnector struct {
 // connection string and then sets up the dial information using the default
 // dial timeout.
 func (self *VanillaDBConnector) Configure(opts options.ToolOptions) error {
-	// create the addresses to be used to connect
-	connectionAddrs := util.CreateConnectionAddrs(opts.Host, opts.Port)
-
 	timeout := time.Duration(opts.Timeout) * time.Second
+
 	// create the dialer func that will be used to connect
 	dialer := func(addr *mgo.ServerAddr) (net.Conn, error) {
 		conn, err := net.DialTimeout("tcp", addr.String(), timeout)
@@ -48,17 +46,25 @@ func (self *VanillaDBConnector) Configure(opts options.ToolOptions) error {
 
 	// set up the dial info
 	self.dialInfo = &mgo.DialInfo{
-		Addrs:          connectionAddrs,
-		Timeout:        timeout,
 		Direct:         opts.Direct,
 		ReplicaSetName: opts.ReplicaSetName,
-		DialServer:     dialer,
 		Username:       opts.Auth.Username,
 		Password:       opts.Auth.Password,
 		Source:         opts.GetAuthenticationDatabase(),
 		Mechanism:      opts.Auth.Mechanism,
+		DialServer:     dialer,
+		Timeout:        timeout,
 	}
+
+	// create or fetch the addresses to be used to connect
+	if opts.URI != nil && opts.URI.ConnectionString != "" {
+		self.dialInfo.Addrs = opts.URI.GetConnectionAddrs()
+	} else {
+		self.dialInfo.Addrs = util.CreateConnectionAddrs(opts.Host, opts.Port)
+	}
+
 	kerberos.AddKerberosOpts(opts, self.dialInfo)
+
 	return nil
 }
 
