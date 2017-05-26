@@ -63,12 +63,14 @@ func getBasicToolOptions() *options.ToolOptions {
 		Host: "localhost",
 		Port: db.DefaultTestPort,
 	}
+
 	return &options.ToolOptions{
 		General:    general,
 		SSL:        &ssl,
 		Namespace:  namespace,
 		Connection: connection,
 		Auth:       &auth,
+		URI:        &options.URI{},
 	}
 }
 

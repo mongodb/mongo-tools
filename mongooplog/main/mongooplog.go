@@ -14,7 +14,7 @@ import (
 func main() {
 	// initialize command line options
 	opts := options.New("mongooplog", mongooplog.Usage,
-		options.EnabledOptions{Auth: true, Connection: true, Namespace: false})
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
 
 	// add the mongooplog-specific options
 	sourceOpts := &mongooplog.SourceOptions{}
@@ -50,10 +50,8 @@ func main() {
 	log.SetVerbosity(opts.Verbosity)
 	signals.Handle()
 
-	// connect directly, unless a replica set name is explicitly specified
-	_, setName := util.ParseConnectionString(opts.Host)
-	opts.Direct = (setName == "")
-	opts.ReplicaSetName = setName
+	// verify uri options and log them
+	opts.URI.LogUnsupportedOptions()
 
 	// validate the mongooplog options
 	if sourceOpts.From == "" {
