@@ -75,30 +75,26 @@ func TestGetIndexes(t *testing.T) {
 		}
 		provider, err := NewSessionProvider(opts)
 		So(err, ShouldBeNil)
-		defer provider.Close()
 		session, err := provider.GetSession()
 		So(err, ShouldBeNil)
-		defer session.Close()
 
 		existing := session.DB("exists").C("collection")
 		missing := session.DB("exists").C("missing")
 		missingDB := session.DB("missingDB").C("missingCollection")
-		defer existing.Database.DropDatabase()
 
-		Convey("setting up test cases", t, func() {
-			err := existing.Database.DropDatabase()
-			So(err, ShouldBeNil)
-			err = existing.Create(&mgo.CollectionInfo{})
-			So(err, ShouldBeNil)
-			err = missingDB.Database.DropDatabase()
-			So(err, ShouldBeNil)
-		})
+		err = existing.Database.DropDatabase()
+		So(err, ShouldBeNil)
+		err = existing.Create(&mgo.CollectionInfo{})
+		So(err, ShouldBeNil)
+		err = missingDB.Database.DropDatabase()
+		So(err, ShouldBeNil)
 
-		Convey("When GetIndexes is called on", t, func() {
+		Convey("When GetIndexes is called on", func() {
 			Convey("an existing collection there should be no error", func() {
 				indexesIter, err := GetIndexes(existing)
 				So(err, ShouldBeNil)
 				Convey("and indexes should be returned", func() {
+					So(indexesIter, ShouldNotBeNil)
 					var indexes []mgo.Index
 					err := indexesIter.All(&indexes)
 					So(err, ShouldBeNil)
@@ -121,6 +117,12 @@ func TestGetIndexes(t *testing.T) {
 					So(indexesIter, ShouldBeNil)
 				})
 			})
+		})
+
+		Reset(func() {
+			existing.Database.DropDatabase()
+			session.Close()
+			provider.Close()
 		})
 	})
 }
