@@ -16,13 +16,6 @@ func IsNoCmd(err error) bool {
 	return ok && strings.HasPrefix(e.Message, "no such cmd:")
 }
 
-// IsNoCollection returns true if err indicates a query resulted in a "no collection" error
-// otherwise, returns false.
-func IsNoCollection(err error) bool {
-	e, ok := err.(*mgo.QueryError)
-	return ok && e.Message == "no collection"
-}
-
 // IsNoNamespace returns true if err indicates a query resulted in a
 // "NamespaceNotFound" error otherwise, returns false.
 func IsNoNamespace(err error) bool {
