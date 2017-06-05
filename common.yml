@@ -1234,7 +1234,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "latest"
+        mongo_version: "3.4"
     - func: "fetch tool"
       vars:
         tool: mongoimport
