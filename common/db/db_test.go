@@ -29,6 +29,10 @@ func TestNewSessionProvider(t *testing.T) {
 			So(reflect.TypeOf(provider.connector), ShouldEqual,
 				reflect.TypeOf(&VanillaDBConnector{}))
 
+			Convey("and should be closeable", func() {
+				provider.Close()
+			})
+
 		})
 
 		Convey("the master session should be successfully "+
