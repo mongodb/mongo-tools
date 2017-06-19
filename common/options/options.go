@@ -88,7 +88,7 @@ type General struct {
 	Help    bool `long:"help" description:"print usage"`
 	Version bool `long:"version" description:"print the tool version and exit"`
 
-	MaxProcs   int    `long:"numThreads" default:"0" hidden:"true"`
+	MaxProcs   int    `long:"numThreads" hidden:"true"`
 	Failpoints string `long:"failpoints" hidden:"true"`
 }
 
@@ -411,8 +411,8 @@ func (o *ToolOptions) AddOptions(opts ExtraOptions) {
 
 // Parse the command line args.  Returns any extra args not accounted for by
 // parsing, as well as an error if the parsing returns an error.
-func (o *ToolOptions) Parse() ([]string, error) {
-	args, err := o.parser.Parse()
+func (o *ToolOptions) ParseArgs(args []string) ([]string, error) {
+	args, err := o.parser.ParseArgs(args)
 	if err != nil {
 		return []string{}, err
 	}
