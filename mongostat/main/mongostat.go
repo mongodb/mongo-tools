@@ -64,7 +64,7 @@ func main() {
 		interactiveOption.ShortName = 0
 	}
 
-	args, err := opts.Parse()
+	args, err := opts.ParseArgs(os.Args[1:])
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
 		log.Logvf(log.Always, "try 'mongostat --help' for more information")

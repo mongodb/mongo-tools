@@ -23,7 +23,7 @@ func main() {
 	opts.AddOptions(inputOpts)
 	opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
 
-	args, err := opts.Parse()
+	args, err := opts.ParseArgs(os.Args[1:])
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
 		log.Logvf(log.Always, "try 'mongofiles --help' for more information")

@@ -4,6 +4,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/connstring"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"runtime"
 	"testing"
 	"time"
 )
@@ -360,4 +361,19 @@ func TestParseAndSetOptions(t *testing.T) {
 			}
 		})
 	})
+}
+
+// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115
+func TestHiddenOptionsDefaults(t *testing.T) {
+	Convey("With a ToolOptions parsed", t, func() {
+		enabled := EnabledOptions{Connection: true}
+		opts := New("", "", enabled)
+		_, err := opts.parser.ParseArgs([]string{})
+		So(err, ShouldBeNil)
+		Convey("hidden options should have expected values", func() {
+			So(opts.MaxProcs, ShouldEqual, runtime.NumCPU())
+			So(opts.Timeout, ShouldEqual, 3)
+		})
+	})
+
 }
