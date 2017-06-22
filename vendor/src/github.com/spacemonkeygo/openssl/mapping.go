@@ -16,9 +16,49 @@
 
 package openssl
 
-// #cgo linux pkg-config: openssl
-// #cgo windows CFLAGS: -DWIN32_LEAN_AND_MEAN
-// #cgo windows LDFLAGS: -lcrypt32
-// #cgo darwin CFLAGS: -Wno-deprecated-declarations
-// #cgo darwin LDFLAGS: -lssl -lcrypto -framework CoreFoundation -framework Foundation -framework Security
+import (
+	"sync"
+	"unsafe"
+)
+
+// #include <stdlib.h>
 import "C"
+
+type mapping struct {
+	lock   sync.Mutex
+	values map[token]unsafe.Pointer
+}
+
+func newMapping() *mapping {
+	return &mapping{
+		values: make(map[token]unsafe.Pointer),
+	}
+}
+
+type token unsafe.Pointer
+
+func (m *mapping) Add(x unsafe.Pointer) token {
+	res := token(C.malloc(1))
+
+	m.lock.Lock()
+	m.values[res] = x
+	m.lock.Unlock()
+
+	return res
+}
+
+func (m *mapping) Get(x token) unsafe.Pointer {
+	m.lock.Lock()
+	res := m.values[x]
+	m.lock.Unlock()
+
+	return res
+}
+
+func (m *mapping) Del(x token) {
+	m.lock.Lock()
+	delete(m.values, x)
+	m.lock.Unlock()
+
+	C.free(unsafe.Pointer(x))
+}
