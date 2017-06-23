@@ -23,7 +23,6 @@ import (
 type LogLevel int32
 
 const (
-	Trace    LogLevel = 5
 	Debug    LogLevel = 10
 	Info     LogLevel = 20
 	Notice   LogLevel = 30
@@ -51,8 +50,6 @@ func (l LogLevel) String() string {
 		return "INFO"
 	case Debug:
 		return "DEBUG"
-	case Trace:
-		return "TRACE"
 	default:
 		return "UNSET"
 	}
@@ -73,8 +70,6 @@ func (l LogLevel) Name() string {
 		return "info"
 	case Debug:
 		return "debug"
-	case Trace:
-		return "trace"
 	default:
 		return "unset"
 	}
@@ -102,9 +97,6 @@ func (l LogLevel) Match() LogLevel {
 	if l >= Debug {
 		return Debug
 	}
-	if l >= Trace {
-		return Trace
-	}
 	return 0
 }
 
@@ -125,8 +117,6 @@ func LevelFromString(str string) (LogLevel, error) {
 		return Info, nil
 	case "debug":
 		return Debug, nil
-	case "trace":
-		return Trace, nil
 	}
 	val, err := strconv.ParseInt(str, 10, 32)
 	if err == nil {
