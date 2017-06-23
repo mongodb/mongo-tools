@@ -56,6 +56,8 @@ func (o *SyslogOutput) Output(level LogLevel, message []byte) {
 			o.w.Info(string(msg))
 		case Debug:
 			fallthrough
+		case Trace:
+			fallthrough
 		default:
 			o.w.Debug(string(msg))
 		}

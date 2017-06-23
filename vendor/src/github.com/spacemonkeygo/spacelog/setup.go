@@ -23,7 +23,6 @@ import (
 	"os/signal"
 	"regexp"
 	"strings"
-	"syscall"
 	"text/template"
 )
 
@@ -158,7 +157,7 @@ func Setup(procname string, config SetupConfig) error {
 	if config.HupRotate {
 		if hh, ok := textout.(HupHandlingTextOutput); ok {
 			sigchan := make(chan os.Signal)
-			signal.Notify(sigchan, syscall.SIGHUP)
+			signal.Notify(sigchan, sigHUP)
 			go func() {
 				for _ = range sigchan {
 					hh.OnHup()

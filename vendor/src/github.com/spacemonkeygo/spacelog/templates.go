@@ -30,7 +30,7 @@ func ColorizeLevel(level LogLevel) string {
 		return TermColors{}.Magenta()
 	case Notice:
 		return TermColors{}.Yellow()
-	case Info, Debug:
+	case Info, Debug, Trace:
 		return TermColors{}.Green()
 	}
 	return ""

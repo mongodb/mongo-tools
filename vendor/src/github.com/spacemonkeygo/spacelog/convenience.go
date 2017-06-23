@@ -19,6 +19,36 @@ import (
 	"io"
 )
 
+// Trace logs a collection of values if the logger's level is trace or even
+// more permissive.
+func (l *Logger) Trace(v ...interface{}) {
+	if l.getLevel() <= Trace {
+		l.getHandler().Log(l.name, Trace, fmt.Sprint(v...), 1)
+	}
+}
+
+// Tracef logs a format string with values if the logger's level is trace or
+// even more permissive.
+func (l *Logger) Tracef(format string, v ...interface{}) {
+	if l.getLevel() <= Trace {
+		l.getHandler().Log(l.name, Trace, fmt.Sprintf(format, v...), 1)
+	}
+}
+
+// Tracee logs an error value if the error is not nil and the logger's level
+// is trace or even more permissive.
+func (l *Logger) Tracee(err error) {
+	if l.getLevel() <= Trace && err != nil {
+		l.getHandler().Log(l.name, Trace, err.Error(), 1)
+	}
+}
+
+// TraceEnabled returns true if the logger's level is trace or even more
+// permissive.
+func (l *Logger) TraceEnabled() bool {
+	return l.getLevel() <= Trace
+}
+
 // Debug logs a collection of values if the logger's level is debug or even
 // more permissive.
 func (l *Logger) Debug(v ...interface{}) {
