@@ -8,6 +8,7 @@ Possible commands include:
 	list      - list all files; 'filename' is an optional prefix which listed filenames must begin with
 	search    - search all files; 'filename' is a substring which listed filenames must contain
 	put       - add a file with filename 'filename'
+	put_id    - add a file with filename 'filename' and a given '_id'
 	get       - get a file with filename 'filename'
 	get_id    - get a file with the given '_id'
 	delete    - delete all files with filename 'filename'
