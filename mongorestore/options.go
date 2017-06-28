@@ -33,7 +33,8 @@ type OutputOptions struct {
 	DryRun                    bool   `long:"dryRun" description:"view summary without importing anything. recommended with verbosity"`
 	WriteConcern              string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to 'majority')"`
 	NoIndexRestore            bool   `long:"noIndexRestore" description:"don't restore indexes"`
-	AllowForegroundIndexBuild bool   `long:"allowForegroundIndexBuild" description:"build indexes in foreground if specified in metadata"`
+	AllowForegroundIndexBuild bool   `long:"allowForegroundIndexBuild" description:"only build indexes in foreground if specified in metadata"`
+	ForceForegroundIndexBuild bool   `long:"forceForegroundIndexBuild" description:"force build all indexes in foreground"`
 	NoOptionsRestore          bool   `long:"noOptionsRestore" description:"don't restore collection options"`
 	KeepIndexVersion          bool   `long:"keepIndexVersion" description:"don't update index version"`
 	MaintainInsertionOrder    bool   `long:"maintainInsertionOrder" description:"preserve order of documents during restoration"`
