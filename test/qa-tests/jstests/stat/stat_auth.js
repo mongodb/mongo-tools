@@ -5,7 +5,6 @@
     "--auth",
     "--port", port,
     "--dbpath", MongoRunner.dataPath+"stat_auth"+port,
-    "--nohttpinterface",
     "--bind_ip", "127.0.0.1");
 
   var db = m.getDB("admin");

@@ -33,7 +33,6 @@ MongodRunner.prototype.start = function(reuseData) {
   args.push(
       "--port", this.port_,
       "--dbpath", this.dbpath_,
-      "--nohttpinterface",
       "--noprealloc",
       "--smallfiles");
   if (!this.options_.no_bind) {
@@ -77,7 +76,6 @@ ToolTest.prototype.startDB = function(coll) {
   var options = {
     port: this.port,
     dbpath: this.dbpath,
-    nohttpinterface: "",
     noprealloc: "",
     smallfiles: "",
     bind_ip: "127.0.0.1",
@@ -176,8 +174,7 @@ ReplTest.prototype.getOptions = function(master, extra, putBinaryFirst, norepl) 
   if (putBinaryFirst) {
     a.push("mongod");
   }
-  a.push("--nohttpinterface",
-      "--noprealloc",
+  a.push("--noprealloc",
       "--bind_ip", "127.0.0.1",
       "--smallfiles",
       "--port", this.getPort(master),
