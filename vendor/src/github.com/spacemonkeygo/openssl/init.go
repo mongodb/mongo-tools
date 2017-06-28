@@ -94,17 +94,16 @@ package openssl
 #include <openssl/engine.h>
 
 extern int Goopenssl_init_locks();
-extern unsigned long Goopenssl_thread_id_callback();
 extern void Goopenssl_thread_locking_callback(int, int, const char*, int);
 
 static int Goopenssl_init_threadsafety() {
-	// Set up OPENSSL thread safety callbacks.
-	// TOOLS-1694 added setting of thread id callback for compatibility with openssl 0.9.8
+	// Set up OPENSSL thread safety callbacks.  We only set the locking
+	// callback because the default id callback implementation is good
+	// enough for us.
 	int rc = Goopenssl_init_locks();
 	if (rc == 0) {
 		CRYPTO_set_locking_callback(Goopenssl_thread_locking_callback);
 	}
-	CRYPTO_set_id_callback(Goopenssl_thread_id_callback);
 	return rc;
 }
 
@@ -119,10 +118,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+)
+
+var (
+	sslMutexes []sync.Mutex
 )
 
 func init() {
-	C.ERR_load_crypto_strings()
 	C.OPENSSL_config(nil)
 	C.ENGINE_load_builtin_engines()
 	C.SSL_load_error_strings()

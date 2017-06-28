@@ -99,8 +99,6 @@ func cbioNew(b *C.BIO) C.int {
 	return 1
 }
 
-var writeBioMapping = newMapping()
-
 type writeBio struct {
 	data_mtx        sync.Mutex
 	op_mtx          sync.Mutex
@@ -109,7 +107,7 @@ type writeBio struct {
 }
 
 func loadWritePtr(b *C.BIO) *writeBio {
-	return (*writeBio)(writeBioMapping.Get(token(b.ptr)))
+	return (*writeBio)(unsafe.Pointer(b.ptr))
 }
 
 func bioClearRetryFlags(b *C.BIO) {
@@ -197,19 +195,15 @@ func (b *writeBio) WriteTo(w io.Writer) (rv int64, err error) {
 
 func (self *writeBio) Disconnect(b *C.BIO) {
 	if loadWritePtr(b) == self {
-		writeBioMapping.Del(token(b.ptr))
 		b.ptr = nil
 	}
 }
 
 func (b *writeBio) MakeCBIO() *C.BIO {
 	rv := C.BIO_new(C.BIO_s_writeBio())
-	token := writeBioMapping.Add(unsafe.Pointer(b))
-	rv.ptr = unsafe.Pointer(token)
+	rv.ptr = unsafe.Pointer(b)
 	return rv
 }
-
-var readBioMapping = newMapping()
 
 type readBio struct {
 	data_mtx        sync.Mutex
@@ -220,7 +214,7 @@ type readBio struct {
 }
 
 func loadReadPtr(b *C.BIO) *readBio {
-	return (*readBio)(readBioMapping.Get(token(b.ptr)))
+	return (*readBio)(unsafe.Pointer(b.ptr))
 }
 
 //export readBioRead
@@ -317,14 +311,12 @@ func (b *readBio) ReadFromOnce(r io.Reader) (n int, err error) {
 
 func (b *readBio) MakeCBIO() *C.BIO {
 	rv := C.BIO_new(C.BIO_s_readBio())
-	token := readBioMapping.Add(unsafe.Pointer(b))
-	rv.ptr = unsafe.Pointer(token)
+	rv.ptr = unsafe.Pointer(b)
 	return rv
 }
 
 func (self *readBio) Disconnect(b *C.BIO) {
 	if loadReadPtr(b) == self {
-		readBioMapping.Del(token(b.ptr))
 		b.ptr = nil
 	}
 }
