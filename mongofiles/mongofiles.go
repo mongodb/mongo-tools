@@ -118,6 +118,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		return fmt.Errorf("--prefix can not be blank")
 	}
 
+	mf.Command = args[0]
 	return nil
 }
 

@@ -245,8 +245,8 @@ func TestValidArguments(t *testing.T) {
 			}
 		})
 
-		Convey("put_id should error out when more than 2 positional argument provided", func() {
-			args := []string{"put_id", "arg1", "arg2"}
+		Convey("put_id should error out when more than 3 positional argument provided", func() {
+			args := []string{"put_id", "arg1", "arg2", "arg3"}
 			err := mf.ValidateCommand(args)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEqual, "too many positional arguments")
@@ -256,7 +256,7 @@ func TestValidArguments(t *testing.T) {
 			args := []string{"put_id", "arg1"}
 			err := mf.ValidateCommand(args)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "%v' argument(s) missing")
+			So(err.Error(), ShouldEqual, fmt.Sprintf("'%v' argument(s) missing", "put_id"))
 		})
 
 		Convey("It should not error out when list command isn't given an argument", func() {
