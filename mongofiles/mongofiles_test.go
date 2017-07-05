@@ -118,7 +118,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, Id string) (*Mong
 	return &mongofiles, nil
 }
 
-func fileContentsCompare(file1, file2 *os.File, expectedBytesLength int) (bool, error) {
+func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 	file1Stat, err := file1.Stat()
 	if err != nil {
 		return false, err
@@ -133,18 +133,18 @@ func fileContentsCompare(file1, file2 *os.File, expectedBytesLength int) (bool, 
 	file2Size := file2Stat.Size()
 
 	if file1Size != file2Size {
+		t.Log("file sizes not the same")
 		return false, nil
 	}
 
-	file1ContentsBytes := make([]byte, file1Size)
-	file2ContentsBytes := make([]byte, file2Size)
-
-	numBytesRead, err := file1.Read(file1ContentsBytes)
-	So(err, ShouldBeNil)
-	So(numBytesRead, ShouldEqual, expectedBytesLength)
-	numBytesRead, err = file2.Read(file2ContentsBytes)
-	So(err, ShouldBeNil)
-	So(numBytesRead, ShouldEqual, expectedBytesLength)
+	file1ContentsBytes, err := ioutil.ReadAll(file1)
+	if err != nil {
+		return false, err
+	}
+	file2ContentsBytes, err := ioutil.ReadAll(file2)
+	if err != nil {
+		return false, err
+	}
 
 	isContentSame := bytes.Compare(file1ContentsBytes, file2ContentsBytes) == 0
 	return isContentSame, nil
@@ -476,7 +476,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 						defer loremIpsumOrig.Close()
 						defer loremIpsumCopy.Close()
-						isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, 287613)
+						isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
 						So(err, ShouldBeNil)
 						So(isContentSame, ShouldBeTrue)
 					})
@@ -589,11 +589,7 @@ func runPutIdTestCase(idToTest string, t *testing.T) {
 	defer loremIpsumOrig.Close()
 	defer loremIpsumCopy.Close()
 
-	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, 287613)
+	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
 	So(err, ShouldBeNil)
 	So(isContentSame, ShouldBeTrue)
-
-	err = os.Remove("lorem_ipsum_copy.txt")
-	So(err, ShouldBeNil)
-	So(tearDownGridFSTestData(), ShouldBeNil)
 }
