@@ -2,12 +2,22 @@ package db
 
 import (
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"strings"
+
 	"github.com/mongodb/mongo-tools/common/log"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
+
+type CollectionInfo struct {
+	Name    string  `bson:"name"`
+	Type    string  `bson:"type"`
+	Options *bson.D `bson:"options"`
+}
+
+func (ci *CollectionInfo) IsView() bool {
+	return ci.Type == "view"
+}
 
 // IsNoCmd reeturns true if err indicates a query command is not supported,
 // otherwise, returns false.
@@ -124,7 +134,7 @@ func getCollectionsPre28(database *mgo.Database, name string) (*mgo.Iter, error)
 	return iter, nil
 }
 
-func GetCollectionOptions(coll *mgo.Collection) (*bson.D, error) {
+func GetCollectionInfo(coll *mgo.Collection) (*CollectionInfo, error) {
 	iter, useFullName, err := GetCollections(coll.Database, coll.Name)
 	if err != nil {
 		return nil, err
@@ -134,33 +144,14 @@ func GetCollectionOptions(coll *mgo.Collection) (*bson.D, error) {
 	if useFullName {
 		comparisonName = coll.FullName
 	}
-	collInfo := &bson.D{}
+	collInfo := &CollectionInfo{}
 	for iter.Next(collInfo) {
-		name, err := bsonutil.FindValueByKey("name", collInfo)
-		if err != nil {
-			collInfo = nil
-			continue
-		}
-		if nameStr, ok := name.(string); ok {
-			if nameStr == comparisonName {
-				// we've found the collection we're looking for
-				break
-			}
-		} else {
-			collInfo = nil
-			continue
+		if collInfo.Name == comparisonName {
+			break
 		}
 	}
-
-	if collInfo != nil {
-		optsInterface, _ := bsonutil.FindValueByKey("options", collInfo)
-		if optsInterface != nil {
-			optsD, ok := optsInterface.(bson.D)
-			if !ok {
-				return nil, fmt.Errorf("Cannot unmarshal collection options for collection %v.%v", coll.Database, coll.Name)
-			}
-			return &optsD, nil
-		}
+	if err := iter.Err(); err != nil {
+		return nil, err
 	}
-	return nil, iter.Err()
+	return collInfo, nil
 }

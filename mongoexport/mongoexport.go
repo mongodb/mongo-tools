@@ -240,22 +240,15 @@ func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
 	collection := session.DB(exp.ToolOptions.Namespace.DB).C(exp.ToolOptions.Namespace.Collection)
 
 	// figure out if we're exporting a view
-	isView := false
-	opts, err := db.GetCollectionOptions(collection)
+	collInfo, err := db.GetCollectionInfo(collection)
 	if err != nil {
 		return nil, nil, err
-	}
-	if opts != nil {
-		viewOn, _ := bsonutil.FindValueByKey("viewOn", opts)
-		if viewOn != nil {
-			isView = true
-		}
 	}
 
 	flags := 0
 	// don't snapshot if we've been asked not to,
 	// or if we cannot because  we are querying, sorting, or if the collection is a view
-	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" && !isView {
+	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" && !collInfo.IsView() {
 		flags = flags | db.Snapshot
 	}
 
