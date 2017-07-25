@@ -174,6 +174,7 @@ func makeFieldSelector(fields string) bson.M {
 // It always returns Limit if there is a limit, assuming that in general
 // limits will less then the total possible.
 // If there is a query and no limit then it returns 0, because it's too expensive to count the query.
+// If the collection is a view then it returns 0, because it is too expensive to count the view.
 // Otherwise it returns the count minus the skip
 func (exp *MongoExport) getCount() (c int, err error) {
 	session, err := exp.SessionProvider.GetSession()
@@ -187,7 +188,17 @@ func (exp *MongoExport) getCount() (c int, err error) {
 	if exp.InputOpts != nil && exp.InputOpts.Query != "" {
 		return 0, nil
 	}
-	q := session.DB(exp.ToolOptions.Namespace.DB).C(exp.ToolOptions.Namespace.Collection).Find(nil)
+	mgoCollection := session.DB(exp.ToolOptions.Namespace.DB).C(exp.ToolOptions.Namespace.Collection)
+
+	collInfo, err := db.GetCollectionInfo(mgoCollection)
+	if err != nil {
+		return 0, err
+	}
+	if collInfo.IsView() {
+		return 0, nil
+	}
+
+	q := mgoCollection.Find(nil)
 	c, err = q.Count()
 	if err != nil {
 		return 0, err
