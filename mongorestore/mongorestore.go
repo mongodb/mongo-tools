@@ -215,6 +215,11 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return fmt.Errorf("invalid renames: %v", err)
 	}
 
+	if restore.OutputOptions.AllowForegroundIndexBuild && restore.OutputOptions.ForceForegroundIndexBuild {
+		return fmt.Errorf(
+			"--forceForegroundIndexBuild is not allowed when --allowForegroundIndexBuild is specified")
+	}
+
 	if restore.OutputOptions.NumInsertionWorkers < 0 {
 		return fmt.Errorf(
 			"cannot specify a negative number of insertion workers per collection")
