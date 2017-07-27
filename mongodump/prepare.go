@@ -348,14 +348,11 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 			continue
 		}
 		if fullName {
-			namespacePrefix := dbName + "."
-			// if the collection info came from querying system.indexes (2.6 or earlier) then the
-			// "name" we get includes the db name as well, so we must remove it
-			if strings.HasPrefix(collInfo.Name, namespacePrefix) {
-				collInfo.Name = collInfo.Name[len(namespacePrefix):]
-			} else {
-				return fmt.Errorf("namespace '%v' format is invalid - expected to start with '%v'", collInfo.Name, namespacePrefix)
+			collName, err := db.StripDBFromNamespace(collInfo.Name, dbName)
+			if err != nil {
+				return err
 			}
+			collInfo.Name = collName
 		}
 		if dump.shouldSkipCollection(collInfo.Name) {
 			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)

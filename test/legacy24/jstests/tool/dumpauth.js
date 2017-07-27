@@ -4,20 +4,20 @@ port = allocatePorts( 1 )[ 0 ];
 baseName = "tool_dumpauth";
 
 m = startMongod( "--auth", "--port", port, "--dbpath", "/data/db/" + baseName, "--nohttpinterface", "--bind_ip", "127.0.0.1" );
-db = m.getDB( "admin" );
+adminDB = m.getDB( "admin" );
 
-t = db[ baseName ];
-t.drop();
+t = m.getDB( baseName );
+t.dropDatabase();
 
 for(var i = 0; i < 100; i++) {
   t["testcol"].save({ "x": i });
 }
 
-users = db.getCollection( "system.users" );
+users = adminDB.getCollection( "system.users" );
 
-db.addUser( "testuser" , "testuser" );
+adminDB.addUser( "testuser" , "testuser" );
 
-assert( db.auth( "testuser" , "testuser" ) , "auth failed" );
+assert( adminDB.auth( "testuser" , "testuser" ) , "auth failed" );
 
 x = runMongoProgram( "mongodump",
                      "--db", baseName,

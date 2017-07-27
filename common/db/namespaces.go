@@ -144,9 +144,17 @@ func GetCollectionInfo(coll *mgo.Collection) (*CollectionInfo, error) {
 	if useFullName {
 		comparisonName = coll.FullName
 	}
+
 	collInfo := &CollectionInfo{}
 	for iter.Next(collInfo) {
 		if collInfo.Name == comparisonName {
+			if useFullName {
+				collName, err := StripDBFromNamespace(collInfo.Name, coll.Database.Name)
+				if err != nil {
+					return nil, err
+				}
+				collInfo.Name = collName
+			}
 			break
 		}
 	}
@@ -154,4 +162,15 @@ func GetCollectionInfo(coll *mgo.Collection) (*CollectionInfo, error) {
 		return nil, err
 	}
 	return collInfo, nil
+}
+
+func StripDBFromNamespace(namespace string, dbName string) (string, error) {
+	namespacePrefix := dbName + "."
+	// if the collection info came from querying system.indexes (2.6 or earlier) then the
+	// "name" we get includes the db name as well, so we must remove it
+	if strings.HasPrefix(namespace, namespacePrefix) {
+		return namespace[len(namespacePrefix):], nil
+	} else {
+		return "", fmt.Errorf("namespace '%v' format is invalid - expected to start with '%v'", namespace, namespacePrefix)
+	}
 }
