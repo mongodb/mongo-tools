@@ -170,7 +170,6 @@ func StripDBFromNamespace(namespace string, dbName string) (string, error) {
 	// "name" we get includes the db name as well, so we must remove it
 	if strings.HasPrefix(namespace, namespacePrefix) {
 		return namespace[len(namespacePrefix):], nil
-	} else {
-		return "", fmt.Errorf("namespace '%v' format is invalid - expected to start with '%v'", namespace, namespacePrefix)
 	}
+	return "", fmt.Errorf("namespace '%v' format is invalid - expected to start with '%v'", namespace, namespacePrefix)
 }
