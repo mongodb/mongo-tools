@@ -38,7 +38,7 @@ var (
 	BuiltWithGSSAPI bool
 )
 
-const IncompatibleArgsErrorFormat = "illegal argument combination: cannot specfy %s and --uri"
+const IncompatibleArgsErrorFormat = "illegal argument combination: cannot specify %s and --uri"
 
 // Struct encompassing all of the options that are reused across tools: "help",
 // "version", verbosity settings, ssl settings, etc.
