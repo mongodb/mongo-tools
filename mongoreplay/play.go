@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	mgo "github.com/10gen/llmgo"
 )
 
 // PlayCommand stores settings for the mongoreplay 'play' subcommand
@@ -60,7 +62,13 @@ func (play *PlayCommand) Execute(args []string) error {
 		return err
 	}
 
-	context := NewExecutionContext(statColl, &ExecutionOptions{fullSpeed: play.FullSpeed,
+	session, err := mgo.Dial(play.URL)
+	if err != nil {
+		return err
+	}
+	session.SetSocketTimeout(0)
+
+	context := NewExecutionContext(statColl, session, &ExecutionOptions{fullSpeed: play.FullSpeed,
 		driverOpsFiltered: playbackFileReader.metadata.DriverOpsFiltered})
 
 	var opChan <-chan *RecordedOp
@@ -89,7 +97,7 @@ func (play *PlayCommand) Execute(args []string) error {
 
 	opChan, errChan = playbackFileReader.OpChan(play.Repeat)
 
-	if err := Play(context, opChan, play.Speed, play.URL, play.Repeat, play.QueueTime); err != nil {
+	if err := Play(context, opChan, play.Speed, play.Repeat, play.QueueTime); err != nil {
 		userInfoLogger.Logvf(Always, "Play: %v\n", err)
 	}
 
@@ -101,16 +109,14 @@ func (play *PlayCommand) Execute(args []string) error {
 	return nil
 }
 
-// Play is responsible for playing ops from a RecordedOp channel to the
-// given url.
+// Play is responsible for playing ops from a RecordedOp channel to the session.
 func Play(context *ExecutionContext,
 	opChan <-chan *RecordedOp,
 	speed float64,
-	url string,
 	repeat int,
 	queueTime int) error {
 
-	sessionChans := make(map[int64]chan<- *RecordedOp)
+	connectionChans := make(map[int64]chan<- *RecordedOp)
 	var playbackStartTime, recordingStartTime time.Time
 	var connectionID int64
 	var opCounter int
@@ -148,26 +154,26 @@ func Play(context *ExecutionContext,
 			}
 		}
 
-		sessionChan, ok := sessionChans[op.SeenConnectionNum]
+		connectionChan, ok := connectionChans[op.SeenConnectionNum]
 		if !ok {
 			connectionID++
-			sessionChan = context.newExecutionSession(url, op.PlayAt.Time, connectionID)
-			sessionChans[op.SeenConnectionNum] = sessionChan
+			connectionChan = context.newExecutionConnection(op.PlayAt.Time, connectionID)
+			connectionChans[op.SeenConnectionNum] = connectionChan
 		}
 		if op.EOF {
 			userInfoLogger.Logv(DebugLow, "EOF Seen in playback")
-			close(sessionChan)
-			delete(sessionChans, op.SeenConnectionNum)
+			close(connectionChan)
+			delete(connectionChans, op.SeenConnectionNum)
 		} else {
-			sessionChan <- op
+			connectionChan <- op
 		}
 	}
-	for connectionNum, sessionChan := range sessionChans {
-		close(sessionChan)
-		delete(sessionChans, connectionNum)
+	for connectionNum, connectionChan := range connectionChans {
+		close(connectionChan)
+		delete(connectionChans, connectionNum)
 	}
-	toolDebugLogger.Logvf(Info, "Waiting for sessions to finish")
-	context.SessionChansWaitGroup.Wait()
+	toolDebugLogger.Logvf(Info, "Waiting for connections to finish")
+	context.ConnectionChansWaitGroup.Wait()
 
 	context.StatCollector.Close()
 	toolDebugLogger.Logvf(Always, "%v ops played back in %v seconds over %v connections", opCounter, time.Now().Sub(playbackStartTime), connectionID)

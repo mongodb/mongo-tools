@@ -211,7 +211,11 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector, &ExecutionOptions{})
+	replaySession, err := mgo.Dial(currentTestURL)
+	if err != nil {
+		t.Errorf("Error connecting to test server: %v", err)
+	}
+	context := NewExecutionContext(statCollector, replaySession, &ExecutionOptions{})
 
 	var preprocessMap preprocessCursorManager
 	if preprocess {
@@ -237,7 +241,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 	opChan, errChan := playbackReader.OpChan(1)
 
 	t.Log("Reading ops from playback file")
-	err = Play(context, opChan, testSpeed, currentTestURL, 1, 30)
+	err = Play(context, opChan, testSpeed, 1, 30)
 	if err != nil {
 		t.Errorf("error playing back recorded file: %v\n", err)
 	}

@@ -40,7 +40,7 @@ type ExecutionContext struct {
 	// ExecutionContext
 	sync.Mutex
 
-	SessionChansWaitGroup sync.WaitGroup
+	ConnectionChansWaitGroup sync.WaitGroup
 
 	*StatCollector
 
@@ -50,6 +50,8 @@ type ExecutionContext struct {
 	fullSpeed bool
 
 	driverOpsFiltered bool
+
+	session *mgo.Session
 }
 
 // ExecutionOptions holds the additional configuration options needed to completely
@@ -60,7 +62,7 @@ type ExecutionOptions struct {
 }
 
 // NewExecutionContext initializes a new ExecutionContext.
-func NewExecutionContext(statColl *StatCollector, options *ExecutionOptions) *ExecutionContext {
+func NewExecutionContext(statColl *StatCollector, session *mgo.Session, options *ExecutionOptions) *ExecutionContext {
 	return &ExecutionContext{
 		IncompleteReplies: cache.New(60*time.Second, 60*time.Second),
 		CompleteReplies:   map[string]*ReplyPair{},
@@ -68,6 +70,7 @@ func NewExecutionContext(statColl *StatCollector, options *ExecutionOptions) *Ex
 		StatCollector:     statColl,
 		fullSpeed:         options.fullSpeed,
 		driverOpsFiltered: options.driverOpsFiltered,
+		session:           session,
 	}
 }
 
@@ -156,23 +159,19 @@ func (context *ExecutionContext) handleCompletedReplies() error {
 	return nil
 }
 
-func (context *ExecutionContext) newExecutionSession(url string, start time.Time, connectionNum int64) chan<- *RecordedOp {
-
+func (context *ExecutionContext) newExecutionConnection(start time.Time, connectionNum int64) chan<- *RecordedOp {
 	ch := make(chan *RecordedOp, 10000)
+	context.ConnectionChansWaitGroup.Add(1)
 
-	context.SessionChansWaitGroup.Add(1)
 	go func() {
 		now := time.Now()
 		var connected bool
 		time.Sleep(start.Add(-5 * time.Second).Sub(now)) // Sleep until five seconds before the start time
-		session, err := mgo.Dial(url)
-		if !context.fullSpeed {
-			time.Sleep(start.Add(-5 * time.Millisecond).Sub(now)) // Sleep until five seconds before the start time
-		}
+		socket, err := context.session.AcquireSocketDirect()
 		if err == nil {
 			userInfoLogger.Logvf(Info, "(Connection %v) New connection CREATED.", connectionNum)
 			connected = true
-			defer session.Close()
+			defer socket.Close()
 		} else {
 			userInfoLogger.Logvf(Info, "(Connection %v) New Connection FAILED: %v", connectionNum, err)
 		}
@@ -193,18 +192,17 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 					}
 				}
 				userInfoLogger.Logvf(DebugHigh, "(Connection %v) op %v", connectionNum, recordedOp.String())
-				session.SetSocketTimeout(0)
-				parsedOp, reply, err = context.Execute(recordedOp, session)
+				parsedOp, reply, err = context.Execute(recordedOp, socket)
 				if err != nil {
 					toolDebugLogger.Logvf(Always, "context.Execute error: %v", err)
 				}
 			} else {
 				parsedOp, err = recordedOp.Parse()
 				if err != nil {
-					toolDebugLogger.Logvf(Always, "Execution Session error: %v", err)
+					toolDebugLogger.Logvf(Always, "Execution Connection error: %v", err)
 				}
 
-				msg = fmt.Sprintf("Skipped on non-connected session (Connection %v)", connectionNum)
+				msg = fmt.Sprintf("Skipped on non-connected socket (Connection %v)", connectionNum)
 				toolDebugLogger.Logv(Always, msg)
 			}
 			if shouldCollectOp(parsedOp, context.driverOpsFiltered) {
@@ -212,13 +210,13 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 			}
 		}
 		userInfoLogger.Logvf(Info, "(Connection %v) Connection ENDED.", connectionNum)
-		context.SessionChansWaitGroup.Done()
+		context.ConnectionChansWaitGroup.Done()
 	}()
 	return ch
 }
 
-// Execute plays a particular command on an mgo session.
-func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (Op, Replyable, error) {
+// Execute plays a particular command on an mgo socket.
+func (context *ExecutionContext) Execute(op *RecordedOp, socket *mgo.MongoSocket) (Op, Replyable, error) {
 	opToExec, err := op.RawOp.Parse()
 	var reply Replyable
 
@@ -250,7 +248,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 
 		op.PlayedAt = &PreciseTime{time.Now()}
 
-		reply, err = opToExec.Execute(session)
+		reply, err = opToExec.Execute(socket)
 
 		if err != nil {
 			context.CursorIDMap.MarkFailed(op)
@@ -263,6 +261,5 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 
 	}
 	context.handleCompletedReplies()
-
 	return opToExec, reply, nil
 }
