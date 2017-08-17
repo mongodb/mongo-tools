@@ -182,7 +182,7 @@ func TestOpInsertLiveDB(t *testing.T) {
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -298,7 +298,7 @@ func TestUpdateOpLiveDB(t *testing.T) {
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -401,7 +401,7 @@ func TestQueryOpLiveDB(t *testing.T) {
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -489,7 +489,7 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -590,7 +590,7 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -711,7 +711,7 @@ func TestOpKillCursorsLiveDB(t *testing.T) {
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -777,7 +777,7 @@ func TestCommandOpInsertLiveDB(t *testing.T) {
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -877,7 +877,7 @@ func TestCommandOpFindLiveDB(t *testing.T) {
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
@@ -969,7 +969,7 @@ func TestCommandOpGetMoreLiveDB(t *testing.T) {
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	// run mongoreplay's Play loop with the stubbed objects
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)

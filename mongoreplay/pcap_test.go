@@ -211,7 +211,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 
 	var preprocessMap preprocessCursorManager
 	if preprocess {

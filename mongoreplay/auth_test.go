@@ -30,7 +30,8 @@ func TestCommandsAgainstAuthedDBWhenAuthed(t *testing.T) {
 		}
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
-	context := NewExecutionContext(statCollector)
+
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", urlAuth)
 	err := Play(context, generator.opChan, testSpeed, urlAuth, 1, 10)
 	if err != nil {
@@ -95,7 +96,7 @@ func TestCommandsAgainstAuthedDBWhenNotAuthed(t *testing.T) {
 		}
 	}()
 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
-	context := NewExecutionContext(statCollector)
+	context := NewExecutionContext(statCollector, &ExecutionOptions{})
 	err := Play(context, generator.opChan, testSpeed, urlNonAuth, 1, 10)
 	if err != nil {
 		t.Error(err)

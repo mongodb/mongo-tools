@@ -22,6 +22,7 @@ type PlayCommand struct {
 	NoPreprocess bool    `long:"no-preprocess" description:"don't preprocess the input file to premap data such as mongo cursorIDs"`
 	Gzip         bool    `long:"gzip" description:"decompress gzipped input"`
 	Collect      string  `long:"collect" description:"Stat collection format; 'format' option uses the --format string" choice:"json" choice:"format" choice:"none" default:"none"`
+	FullSpeed    bool    `long:"fullSpeed" description:"run the playback as fast as possible"`
 }
 
 const queueGranularity = 1000
@@ -184,14 +185,19 @@ func (play *PlayCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	userInfoLogger.Logvf(Always, "Doing playback at %.2fx speed", play.Speed)
+
+	if play.FullSpeed {
+		userInfoLogger.Logvf(Always, "Doing playback at full speed")
+	} else {
+		userInfoLogger.Logvf(Always, "Doing playback at %.2fx speed", play.Speed)
+	}
 
 	playbackFileReader, err := NewPlaybackFileReader(play.PlaybackFile, play.Gzip)
 	if err != nil {
 		return err
 	}
 
-	context := NewExecutionContext(statColl)
+	context := NewExecutionContext(statColl, &ExecutionOptions{fullSpeed: play.FullSpeed})
 
 	var opChan <-chan *RecordedOp
 	var errChan <-chan error
@@ -271,9 +277,11 @@ func Play(context *ExecutionContext,
 		// don't sleep after every read, and generally read and queue
 		// queueGranularity number of ops at a time and then sleep until the
 		// last read op is QueueTime ahead.
-		if opCounter%queueGranularity == 0 {
-			toolDebugLogger.Logvf(DebugHigh, "Waiting to prevent excess buffering with opCounter: %v", opCounter)
-			time.Sleep(op.PlayAt.Add(time.Duration(-queueTime) * time.Second).Sub(time.Now()))
+		if !context.fullSpeed {
+			if opCounter%queueGranularity == 0 {
+				toolDebugLogger.Logvf(DebugHigh, "Waiting to prevent excess buffering with opCounter: %v", opCounter)
+				time.Sleep(op.PlayAt.Add(time.Duration(-queueTime) * time.Second).Sub(time.Now()))
+			}
 		}
 
 		sessionChan, ok := sessionChans[op.SeenConnectionNum]

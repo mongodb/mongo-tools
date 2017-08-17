@@ -43,15 +43,27 @@ type ExecutionContext struct {
 	SessionChansWaitGroup sync.WaitGroup
 
 	*StatCollector
+
+	// fullSpeed is a control to indicate whether the tool will sleep to synchronize
+	// the playback of operations or if it will play back all operations as fast
+	// as possible.
+	fullSpeed bool
+}
+
+// ExecutionOptions holds the additional configuration options needed to completely
+// create an execution session.
+type ExecutionOptions struct {
+	fullSpeed bool
 }
 
 // NewExecutionContext initializes a new ExecutionContext.
-func NewExecutionContext(statColl *StatCollector) *ExecutionContext {
+func NewExecutionContext(statColl *StatCollector, options *ExecutionOptions) *ExecutionContext {
 	return &ExecutionContext{
 		IncompleteReplies: cache.New(60*time.Second, 60*time.Second),
 		CompleteReplies:   map[string]*ReplyPair{},
 		CursorIDMap:       newCursorCache(),
 		StatCollector:     statColl,
+		fullSpeed:         options.fullSpeed,
 	}
 }
 
@@ -150,6 +162,9 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 		var connected bool
 		time.Sleep(start.Add(-5 * time.Second).Sub(now)) // Sleep until five seconds before the start time
 		session, err := mgo.Dial(url)
+		if !context.fullSpeed {
+			time.Sleep(start.Add(-5 * time.Millisecond).Sub(now)) // Sleep until five seconds before the start time
+		}
 		if err == nil {
 			userInfoLogger.Logvf(Info, "(Connection %v) New connection CREATED.", connectionNum)
 			connected = true
@@ -167,7 +182,8 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				// This allows it to be used for downstream reporting of stats.
 				recordedOp.PlayedConnectionNum = connectionNum
 				t := time.Now()
-				if recordedOp.RawOp.Header.OpCode != OpCodeReply {
+
+				if !context.fullSpeed && recordedOp.RawOp.Header.OpCode != OpCodeReply {
 					if t.Before(recordedOp.PlayAt.Time) {
 						time.Sleep(recordedOp.PlayAt.Sub(t))
 					}
