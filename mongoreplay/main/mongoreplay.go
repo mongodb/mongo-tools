@@ -49,6 +49,12 @@ func main() {
 		panic(err)
 	}
 
+	_, err = parser.AddCommand("filter", "Filter playback file", "",
+		&mongoreplay.FilterCommand{GlobalOpts: &opts})
+	if err != nil {
+		panic(err)
+	}
+
 	_, err = parser.Parse()
 
 	if err != nil {

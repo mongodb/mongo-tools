@@ -175,7 +175,7 @@ func playbackFileFromPcap(pcapFname, playbackFname string) error {
 		return fmt.Errorf("couldn't open opstream: %v", err)
 	}
 
-	playbackWriter, err := NewPlaybackWriter(playbackFname, false)
+	playbackWriter, err := NewPlaybackFileWriter(playbackFname, false, false)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 
 	var preprocessMap preprocessCursorManager
 	if preprocess {
-		opChan, errChan := NewOpChanFromFile(playbackReader, 1)
+		opChan, errChan := playbackReader.OpChan(1)
 		preprocessMap, err := newPreprocessCursorManager(opChan)
 
 		if err != nil {
@@ -234,7 +234,7 @@ func pcapTestHelper(t *testing.T, pcapFname string, preprocess bool, verifier ve
 		context.CursorIDMap = preprocessMap
 	}
 
-	opChan, errChan := NewOpChanFromFile(playbackReader, 1)
+	opChan, errChan := playbackReader.OpChan(1)
 
 	t.Log("Reading ops from playback file")
 	err = Play(context, opChan, testSpeed, currentTestURL, 1, 30)

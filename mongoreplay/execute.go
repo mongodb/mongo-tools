@@ -48,12 +48,15 @@ type ExecutionContext struct {
 	// the playback of operations or if it will play back all operations as fast
 	// as possible.
 	fullSpeed bool
+
+	driverOpsFiltered bool
 }
 
 // ExecutionOptions holds the additional configuration options needed to completely
 // create an execution session.
 type ExecutionOptions struct {
-	fullSpeed bool
+	fullSpeed         bool
+	driverOpsFiltered bool
 }
 
 // NewExecutionContext initializes a new ExecutionContext.
@@ -64,6 +67,7 @@ func NewExecutionContext(statColl *StatCollector, options *ExecutionOptions) *Ex
 		CursorIDMap:       newCursorCache(),
 		StatCollector:     statColl,
 		fullSpeed:         options.fullSpeed,
+		driverOpsFiltered: options.driverOpsFiltered,
 	}
 }
 
@@ -203,7 +207,7 @@ func (context *ExecutionContext) newExecutionSession(url string, start time.Time
 				msg = fmt.Sprintf("Skipped on non-connected session (Connection %v)", connectionNum)
 				toolDebugLogger.Logv(Always, msg)
 			}
-			if shouldCollectOp(parsedOp) {
+			if shouldCollectOp(parsedOp, context.driverOpsFiltered) {
 				context.Collect(recordedOp, parsedOp, reply, msg)
 			}
 		}
@@ -230,7 +234,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, session *mgo.Session) (
 	} else if recordedCommandReply, ok := opToExec.(*CommandReplyOp); ok {
 		context.AddFromFile(recordedCommandReply, op)
 	} else {
-		if IsDriverOp(opToExec) {
+		if !context.driverOpsFiltered && IsDriverOp(opToExec) {
 			return opToExec, nil, nil
 		}
 
