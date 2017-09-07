@@ -35,14 +35,6 @@ mongo_tools_variables:
       - name: dist
       - name: qa-tests
       - name: native-cert-ssl
-    solaris_task_list: &solaris_tasks
-      - name: db
-      - name: dist
-      - name: integration
-      - name: integration-auth
-      - name: legacy28
-      - name: legacy26
-      - name: legacy24
     ubuntu1204_task_list: &ubuntu1204_tasks
       - name: db
       - name: dist
@@ -1764,23 +1756,6 @@ buildvariants:
     edition: ssl
     integration_test_args: integration
   tasks: *ubuntu1604_ssl_tasks
-
-#######################################
-#         Solaris Buildvariant        #
-#######################################
-- name: solaris
-  display_name: Solaris 64-bit
-  run_on:
-  - solaris
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "sunos5"
-    gorootvars: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    args: -gccgoflags "-lsocket -lnsl"
-    excludes: requires_large_ram
-    resmoke_args: -j$(kstat cpu | sort -u | grep -c "^module")
-  tasks: *solaris_tasks
 
 #######################################
 #        Windows Buildvariants        #
