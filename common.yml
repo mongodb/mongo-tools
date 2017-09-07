@@ -11,7 +11,7 @@ mongo_tools_variables:
 
 ## List of tests to run on each buildvariant
   mongo_tools_task_lists:
-    osx_1010_task_list: &osx_1010_tasks
+    mac_1012_task_list: &macos_1012_tasks
       - name: db
       - name: dist
       - name: integration
@@ -34,7 +34,7 @@ mongo_tools_variables:
 #      - name: replay-sharded_test
 #      - name: replay-repl_test
 #      - name: replay-replay_test
-    osx_1010_ssl_task_list: &osx_1010_ssl_tasks
+    macos_1012_ssl_task_list: &macos_1012_ssl_tasks
       - name: dist
       - name: qa-tests
       - name: native-cert-ssl
@@ -1701,12 +1701,12 @@ tasks:
 
 buildvariants:
 #######################################
-#           OSX Buildvariant          #
+#           macOS Buildvariant        #
 #######################################
-- name: osx-1010
-  display_name: OSX 10.10 64-bit
+- name: macOS-1012
+  display_name: macOS 10.12 64-bit
   run_on:
-  - osx-1010
+  - macos-1012
   expansions:
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
@@ -1714,12 +1714,13 @@ buildvariants:
     arch: "osx/x86_64"
     build_tags: "ssl"
     excludes: requires_many_files
-  tasks: *osx_1010_tasks
+    gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
+  tasks: *macos_1012_tasks
 
-- name: osx-1010-ssl
-  display_name: OSX 10.10 64-bit SSL
+- name: macOS-1012-ssl
+  display_name: macOS 10.12 64-bit SSL
   run_on:
-  - osx-1010
+  - macos-1012
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
@@ -1729,7 +1730,8 @@ buildvariants:
     build_tags: "ssl"
     edition: ssl
     excludes: requires_many_files
-  tasks: *osx_1010_ssl_tasks
+    gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
+  tasks: *macos_1012_ssl_tasks
 
 #######################################
 #          Ubuntu Buildvariants       #
