@@ -530,19 +530,6 @@ functions:
       display_name: ${tool}
 
 pre:
-  - command: expansions.fetch
-    params:
-      keys:
-        - local_key: "aws_key"
-          remote_key: "project_aws_key"
-        - local_key: "aws_secret"
-          remote_key: "project_aws_secret"
-        - local_key: "slave"
-          remote_key: "slave"
-        - local_key: "passwd"
-          remote_key: "passwd"
-        - local_key: "kerberos_password"
-          remote_key: "kerberos_password"
   - command: shell.exec
     params:
       silent: true
