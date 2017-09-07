@@ -9,7 +9,7 @@ mongo_tools_variables:
 
 ## Common download URLs (merge in as hashes)
   mongo_download_urls:
-    osx_1010: &mongo_url_osx1010
+    macos_1012: &mongo_url_macos1012
       mongo_os: "osx"
       mongo_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-latest.tgz"
       mongo30_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.0.2.tgz"
@@ -46,7 +46,7 @@ mongo_tools_variables:
 
 ## List of tests to run on each buildvariant
   mongo_tools_task_lists:
-    osx_1010_task_list: &osx_1010_tasks
+    mac_1012_task_list: &macos_1012_tasks
       - name: db
       - name: dist
       - name: integration
@@ -56,7 +56,7 @@ mongo_tools_variables:
       - name: legacy24
       - name: qa-tests
       - name: unit
-    osx_1010_ssl_task_list: &osx_1010_ssl_tasks
+    macos_1012_ssl_task_list: &macos_1012_ssl_tasks
       - name: dist
       - name: qa-tests
     ubuntu1204_task_list: &ubuntu1204_tasks
@@ -200,7 +200,7 @@ functions:
         sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
 
         . ./set_gopath.sh
-        go build ${args} ${build_tags} -o bin/${tool} ${tool}/main/${tool}.go
+        ${gorootvars} go build ${args} ${build_tags} -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
   "download mongod":
@@ -286,7 +286,7 @@ functions:
         export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
         export basedir=`pwd`
         cd ${package}
-        go test ${coverage_args} ${args} ${build_tags} -test.v > unit.suite 
+        ${gorootvars} go test ${coverage_args} ${args} ${build_tags} -test.v > unit.suite
         export exitcode=$?
         cat unit.suite
         cp unit.suite $basedir/.
@@ -333,7 +333,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            ${library_path} go test $COVERAGE_ARGS ${args} ${build_tags} -test.v > $i.suite
+            ${library_path} ${gorootvars} go test $COVERAGE_ARGS ${args} ${build_tags} -test.v > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -375,7 +375,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            ${library_path} go test $COVERAGE_ARGS -test.v ${args} ${build_tags} > $i.suite
+            ${library_path} ${gorootvars} go test $COVERAGE_ARGS -test.v ${args} ${build_tags} > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -1153,30 +1153,32 @@ tasks:
 
 buildvariants:
 #######################################
-#           OSX Buildvariant          #
+#           macOS Buildvariant        #
 #######################################
-- name: osx-1010
-  display_name: OSX 10.10 64-bit
+- name: macOS-1012
+  display_name: macOS 10.12 64-bit
   run_on:
-  - osx-1010
+  - macos-1012
   expansions:
-    <<: *mongo_url_osx1010
+    <<: *mongo_url_macos1012
     <<: *mongodb_default_startup_args
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
-  tasks: *osx_1010_tasks
+    gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
+  tasks: *macos_1012_tasks
 
-- name: osx-1010-ssl
-  display_name: OSX 10.10 64-bit SSL
+- name: macOS-1012-ssl
+  display_name: macOS 10.12 64-bit SSL
   run_on:
-  - osx-1010
+  - macos-1012
   expansions:
-    <<: *mongo_url_osx1010
+    <<: *mongo_url_macos1012
     <<: *mongodb_ssl_startup_args
     arch: "osx/x86_64"
     build_tags: -tags "ssl"
     edition: ssl
-  tasks: *osx_1010_ssl_tasks
+    gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
+  tasks: *macos_1012_ssl_tasks
 
 #######################################
 #          Ubuntu Buildvariants       #
