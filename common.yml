@@ -18,12 +18,6 @@ mongo_tools_variables:
       mongo30_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-3.0.7.tgz"
       mongo26_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.6.5.tgz"
       mongo24_url: "https://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.4.12.tgz"
-    solaris: &mongo_url_solaris
-      mongo_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-latest.tgz"
-      mongo32_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.2.8.tgz"
-      mongo30_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-3.0.7.tgz"
-      mongo26_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-2.6.5.tgz"
-      mongo24_url: "https://fastdl.mongodb.org/sunos5/mongodb-sunos5-x86_64-2.4.12.tgz"
     linux_64_bit: &mongo_url_ubuntu1204
       mongo_os: "ubuntu1204"
       mongo_url: "http://downloads.10gen.com/linux/mongodb-linux-x86_64-enterprise-ubuntu1204-latest.tgz"
@@ -75,14 +69,6 @@ mongo_tools_variables:
     osx_1010_ssl_task_list: &osx_1010_ssl_tasks
       - name: dist
       - name: qa-tests
-    solaris_task_list: &solaris_tasks
-      - name: db
-      - name: dist
-      - name: integration
-      - name: integration-auth
-      - name: legacy28
-      - name: legacy26
-      - name: legacy24
     ubuntu1204_task_list: &ubuntu1204_tasks
       - name: bsonutil
       - name: db
@@ -1489,21 +1475,6 @@ buildvariants:
     run_kinit: true
     integration_test_args: integration
   tasks: *ubuntu1204_enterprise_tasks
-
-#######################################
-#         Solaris Buildvariant        #
-#######################################
-- name: solaris
-  display_name: Solaris 64-bit
-  run_on:
-  - solaris
-  expansions:
-    <<: *mongo_url_solaris
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    library_path: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    build_tags: -gccgoflags "-lsocket -lnsl"
-  tasks: *solaris_tasks
 
 #######################################
 #        Windows Buildvariants        #
