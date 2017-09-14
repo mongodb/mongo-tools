@@ -136,7 +136,7 @@ func (context *ExecutionContext) rewriteCursors(rewriteable cursorsRewriteable, 
 func (context *ExecutionContext) handleCompletedReplies() error {
 	context.Lock()
 	for key, rp := range context.CompleteReplies {
-		userInfoLogger.Logvf(DebugHigh, "Completed reply: %#v, %#v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
+		userInfoLogger.Logvf(DebugHigh, "Completed reply: %v, %v", rp.ops[ReplyFromFile], rp.ops[ReplyFromWire])
 		cursorFromFile, err := rp.ops[ReplyFromFile].getCursorID()
 		if err != nil {
 			return err
