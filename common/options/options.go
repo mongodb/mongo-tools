@@ -18,8 +18,8 @@ const DefaultDialTimeoutSeconds = 3
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
 var (
-	VersionStr = "built-without-version-string"
-	Gitspec    = "built-without-git-spec"
+	VersionStr = "r3.2.16-6-g7cee8241"
+	Gitspec    = "7cee8241769b232497891cabe79a3e0c3bf831a5"
 )
 
 // Struct encompassing all of the options that are reused across tools: "help",

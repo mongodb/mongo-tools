@@ -34,8 +34,8 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 
 }
 
-// getOplogStartTime returns the most recent oplog entry
-func (dump *MongoDump) getOplogStartTime() (bson.MongoTimestamp, error) {
+// getOplogCurrentTime returns the most recent oplog entry
+func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
 
 	err := dump.sessionProvider.FindOne("local", dump.oplogCollection, 0, nil, []string{"-$natural"}, &mostRecentOplogEntry, 0)
@@ -65,9 +65,9 @@ func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, 
 	return true, nil
 }
 
-// DumpOplogAfterTimestamp takes a timestamp and writer and dumps all oplog entries after
-// the given timestamp to the writer. Returns any errors that occur.
-func (dump *MongoDump) DumpOplogAfterTimestamp(ts bson.MongoTimestamp) error {
+// DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
+// entries between the given timestamp to the writer. Returns any errors that occur.
+func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp) error {
 	session, err := dump.sessionProvider.GetSession()
 	if err != nil {
 		return err
@@ -80,7 +80,10 @@ func (dump *MongoDump) DumpOplogAfterTimestamp(ts bson.MongoTimestamp) error {
 	}
 	defer intent.BSONFile.Close()
 	session.SetPrefetch(1.0) // mimic exhaust cursor
-	queryObj := bson.M{"ts": bson.M{"$gt": ts}}
+	queryObj := bson.M{"$and": []bson.M{
+		bson.M{"ts": bson.M{"$gte": start}},
+		bson.M{"ts": bson.M{"$lte": end}},
+	}}
 	oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
 	oplogCount, err := dump.dumpQueryToWriter(oplogQuery, dump.manager.Oplog())
 	if err == nil {
