@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
@@ -57,6 +58,13 @@ func main() {
 	// verify uri options and log them
 	opts.URI.LogUnsupportedOptions()
 
+	provider, err := db.NewSessionProvider(*opts)
+	if err != nil {
+		log.Logvf(log.Always, "can't create session: %v", err)
+		os.Exit(util.ExitError)
+	}
+	defer provider.Close()
+
 	// kick off the progress bar manager
 	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, false)
 	progressManager.Start()
@@ -66,6 +74,7 @@ func main() {
 		ToolOptions:     opts,
 		OutputOptions:   outputOpts,
 		InputOptions:    inputOpts,
+		SessionProvider: provider,
 		ProgressManager: progressManager,
 	}
 

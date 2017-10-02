@@ -123,13 +123,6 @@ func (dump *MongoDump) Init() error {
 	if dump.OutputWriter == nil {
 		dump.OutputWriter = os.Stdout
 	}
-	if dump.SessionProvider == nil {
-		dump.SessionProvider, err = db.NewSessionProvider(*dump.ToolOptions)
-		if err != nil {
-			return fmt.Errorf("can't create session: %v", err)
-		}
-		dump.sessionProviderClose = true
-	}
 
 	// temporarily allow secondary reads for the isMongos check
 	dump.SessionProvider.SetReadPreference(mgo.Nearest)
@@ -180,10 +173,6 @@ func (dump *MongoDump) Init() error {
 
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
-	if dump.sessionProviderClose == true {
-		defer dump.SessionProvider.Close()
-	}
-
 	dump.shutdownIntentsNotifier = newNotifier()
 
 	if dump.InputOptions.HasQuery() {
