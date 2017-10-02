@@ -6,13 +6,12 @@ command_type: system
 
 # run the same task in the previous revision if the current task fails
 stepback: true
-disable_cleanup: true
 
 mongo_tools_variables:
 
 ## List of tests to run on each buildvariant
   mongo_tools_task_lists:
-    osx_1010_task_list: &osx_1010_tasks
+    mac_1012_task_list: &macos_1012_tasks
       - name: db
       - name: dist
       - name: integration
@@ -21,8 +20,11 @@ mongo_tools_variables:
       - name: legacy26
       - name: legacy24
       - name: qa-tests
-      - name: qa-dump-restore-archiving
+      - name: qa-tests-3.2
       - name: qa-dump-restore-gzip
+      - name: qa-dump-restore-gzip-3.2
+      - name: qa-dump-restore-archiving
+      - name: qa-dump-restore-archiving-3.2
       - name: unit
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -32,18 +34,10 @@ mongo_tools_variables:
 #      - name: replay-sharded_test
 #      - name: replay-repl_test
 #      - name: replay-replay_test
-    osx_1010_ssl_task_list: &osx_1010_ssl_tasks
+    macos_1012_ssl_task_list: &macos_1012_ssl_tasks
       - name: dist
       - name: qa-tests
       - name: native-cert-ssl
-    solaris_task_list: &solaris_tasks
-      - name: db
-      - name: dist
-      - name: integration
-      - name: integration-auth
-      - name: legacy28
-      - name: legacy26
-      - name: legacy24
     ubuntu1204_task_list: &ubuntu1204_tasks
       - name: db
       - name: dist
@@ -54,9 +48,12 @@ mongo_tools_variables:
       - name: lint-go
       - name: lint-js
       - name: qa-tests
+      - name: qa-tests-3.2
       - name: qa-tests-unstable
-      - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
+      - name: qa-dump-restore-gzip-3.2
+      - name: qa-dump-restore-archiving
+      - name: qa-dump-restore-archiving-3.2
       - name: qa-tests-wt
       - name: unit
       - name: vet
@@ -146,12 +143,22 @@ mongo_tools_variables:
       - name: qa-tests
         distros:
         - windows-64-vs2013-test
+      - name: qa-tests-3.2
+        distros:
+        - windows-64-vs2013-test
       - name: qa-dump-restore-archiving
+        distros:
+        - windows-64-vs2013-test
+      - name: qa-dump-restore-archiving-3.2
         distros:
         - windows-64-vs2013-test
       - name: qa-dump-restore-gzip
         distros:
         - windows-64-vs2013-test
+      - name: qa-dump-restore-gzip-3.2
+        distros:
+        - windows-64-vs2013-test
+      - name: qa-tests-unstable
       - name: unit
     windows_64_ssl_task_list: &windows_64_ssl_tasks
       - name: dist
@@ -1226,6 +1233,48 @@ tasks:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_unstable,${excludes}"
 
+- name: qa-tests-3.2
+  depends_on:
+  - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.2"
+    - func: "fetch tool"
+      vars:
+        tool: mongoimport
+    - func: "fetch tool"
+      vars:
+        tool: mongoexport
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "fetch tool"
+      vars:
+        tool: mongostat
+    - func: "fetch tool"
+      vars:
+        tool: mongotop
+    - func: "fetch tool"
+      vars:
+        tool: mongooplog
+    - func: "fetch tool"
+      vars:
+        tool: mongofiles
+    - func: "fetch tool"
+      vars:
+        tool: bsondump
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_ssl}"
+        excludes: "requires_unstable,requires_mongo_34,${excludes}"
+
 - name: native-cert-ssl
   depends_on:
   - name: dist
@@ -1300,6 +1349,27 @@ tasks:
         resmoke_suite: "restore_archive"
         excludes: "requires_unstable,${excludes}"
 
+- name: qa-dump-restore-archiving-3.2
+  depends_on:
+  - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.2"
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "restore_archive"
+        excludes: "requires_unstable,requires_mongo_34,${excludes}"
+
 - name: qa-dump-restore-gzip
   depends_on:
   - name: dist
@@ -1320,6 +1390,27 @@ tasks:
       vars:
         resmoke_suite: "restore_gzip"
         excludes: "requires_unstable,${excludes}"
+
+- name: qa-dump-restore-gzip-3.2
+  depends_on:
+  - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.2"
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "restore_gzip"
+        excludes: "requires_unstable,requires_mongo_34,${excludes}"
 
 - name: qa-tests-wt
   depends_on:
@@ -1610,12 +1701,12 @@ tasks:
 
 buildvariants:
 #######################################
-#           OSX Buildvariant          #
+#           macOS Buildvariant        #
 #######################################
-- name: osx-1010
-  display_name: OSX 10.10 64-bit
+- name: macOS-1012
+  display_name: macOS 10.12 64-bit
   run_on:
-  - osx-1010
+  - macos-1012
   expansions:
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
@@ -1623,12 +1714,13 @@ buildvariants:
     arch: "osx/x86_64"
     build_tags: "ssl"
     excludes: requires_many_files
-  tasks: *osx_1010_tasks
+    gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
+  tasks: *macos_1012_tasks
 
-- name: osx-1010-ssl
-  display_name: OSX 10.10 64-bit SSL
+- name: macOS-1012-ssl
+  display_name: macOS 10.12 64-bit SSL
   run_on:
-  - osx-1010
+  - macos-1012
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
@@ -1638,7 +1730,8 @@ buildvariants:
     build_tags: "ssl"
     edition: ssl
     excludes: requires_many_files
-  tasks: *osx_1010_ssl_tasks
+    gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
+  tasks: *macos_1012_ssl_tasks
 
 #######################################
 #          Ubuntu Buildvariants       #
@@ -1738,7 +1831,6 @@ buildvariants:
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     multiversion_override: "skip"
-    mongo_version_always_use_latest: true
     arch: "linux/s390x"
     edition: enterprise
     run_kinit: true
@@ -1762,28 +1854,10 @@ buildvariants:
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     multiversion_override: "skip"
-    mongo_version_always_use_latest: true
     arch: "linux/arm64"
     edition: ssl
     integration_test_args: integration
   tasks: *ubuntu1604_ssl_tasks
-
-#######################################
-#         Solaris Buildvariant        #
-#######################################
-- name: solaris
-  display_name: Solaris 64-bit
-  run_on:
-  - solaris
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "sunos5"
-    gorootvars: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
-    args: -gccgoflags "-lsocket -lnsl"
-    excludes: requires_large_ram
-    resmoke_args: -j$(kstat cpu | sort -u | grep -c "^module")
-  tasks: *solaris_tasks
 
 #######################################
 #        Windows Buildvariants        #
@@ -1797,6 +1871,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "windows-64"
     mongo_target: "windows_x86_64-2008plus"
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     excludes: requires_large_ram
     extension: .exe
     arch: "win32/x86_64"
@@ -1817,6 +1892,7 @@ buildvariants:
     edition: ssl
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     excludes: requires_large_ram,requires_mongo_24
     multiversion_override: "2.6"
     extension: .exe
@@ -1838,6 +1914,7 @@ buildvariants:
     mongo_target: "windows"
     build_tags: "sasl ssl"
     smoke_use_ssl: --use-ssl
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
     excludes: requires_large_ram,requires_mongo_24
     multiversion_override: "2.6"
