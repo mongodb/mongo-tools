@@ -20,7 +20,7 @@ type OutputFormatOptions struct {
 	FieldFile string `long:"fieldFile" value-name:"<filename>" description:"file with field names - 1 per line"`
 
 	// Type selects the type of output to export as (json or csv).
-	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"the output format, either json or csv (defaults to 'json')"`
+	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"the output format, either json or csv"`
 
 	// Deprecated: allow legacy --csv option in place of --type=csv
 	CSVOutputType bool `long:"csv" default:"false" hidden:"true"`
@@ -47,7 +47,7 @@ func (*OutputFormatOptions) Name() string {
 type InputOptions struct {
 	Query          string `long:"query" value-name:"<json>" short:"q" description:"query filter, as a JSON string, e.g., '{x:{$gt:1}}'"`
 	QueryFile      string `long:"queryFile" value-name:"<filename>" description:"path to a file containing a query filter (JSON)"`
-	SlaveOk        bool   `long:"slaveOk" short:"k" description:"allow secondary reads if available (default true)" default:"false" default-mask:"-"`
+	SlaveOk        bool   `long:"slaveOk" short:"k" description:"allow secondary reads if available" default:"false" default-mask:"-"`
 	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference name or a preference json object"`
 	ForceTableScan bool   `long:"forceTableScan" description:"force a table scan (do not use $snapshot)"`
 	Skip           int    `long:"skip" value-name:"<count>" description:"number of documents to skip"`
