@@ -41,34 +41,11 @@ func (gmCommand *CommandGetMore) getCursorIDs() ([]int64, error) {
 	if gmCommand.cachedCursor != nil {
 		return []int64{*gmCommand.cachedCursor}, nil
 	}
-
-	var err error
-	switch t := gmCommand.CommandArgs.(type) {
-	case *bson.D:
-		for _, bsonDoc := range *t {
-			if bsonDoc.Name == "getMore" {
-				getmoreID, ok := bsonDoc.Value.(int64)
-				if !ok {
-					return []int64{}, fmt.Errorf("cursorID is not int64")
-				}
-				gmCommand.cachedCursor = &getmoreID
-				break
-			}
-		}
-	case *bson.Raw:
-		doc := &struct {
-			GetMore int64 `bson:"getMore"`
-		}{}
-		err = t.Unmarshal(doc)
-		if err != nil {
-			return []int64{}, fmt.Errorf("failed to unmarshal bson.Raw into struct: %v", err)
-		}
-
-		gmCommand.cachedCursor = &doc.GetMore
-	default:
-		panic("not a *bson.D or *bson.Raw")
+	cursorID, err := getGetMoreCursorID(gmCommand.CommandArgs)
+	if err != nil {
+		return []int64{}, err
 	}
-
+	gmCommand.cachedCursor = &cursorID
 	return []int64{*gmCommand.cachedCursor}, err
 }
 
@@ -78,38 +55,12 @@ func (gmCommand *CommandGetMore) getCursorIDs() ([]int64, error) {
 // errors, as it only ever expects one.  It may also error if unmarshalling the
 // underlying bson fails.
 func (gmCommand *CommandGetMore) setCursorIDs(newCursorIDs []int64) error {
-	var newCursorID int64
-
-	if len(newCursorIDs) > 1 {
-		return fmt.Errorf("rewriting getmore command cursorIDs requires 1 id, received: %d", len(newCursorIDs))
+	newDoc, newCursorID, err := setCursorID(gmCommand.CommandArgs, newCursorIDs)
+	if err != nil {
+		return err
 	}
-	if len(newCursorIDs) < 1 {
-		newCursorID = 0
-	} else {
-		newCursorID = newCursorIDs[0]
-	}
-	var doc bson.D
-	switch t := gmCommand.CommandArgs.(type) {
-	case *bson.D:
-		doc = *t
-	case *bson.Raw:
-		err := t.Unmarshal(&doc)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal bson.Raw into struct: %v", err)
-		}
-	default:
-		panic("not a *bson.D or *bson.Raw")
-	}
-
-	// loop over the keys of the bson.D and the set the correct one
-	for i, bsonDoc := range doc {
-		if bsonDoc.Name == "getMore" {
-			doc[i].Value = newCursorID
-			break
-		}
-	}
+	gmCommand.CommandArgs = &newDoc
 	gmCommand.cachedCursor = &newCursorID
-	gmCommand.CommandArgs = &doc
 	return nil
 }
 
@@ -273,22 +224,12 @@ func (op *CommandOp) Execute(socket *mgo.MongoSocket) (Replyable, error) {
 		return nil, err
 	}
 	commandReplyOp.CommandReply = commandReplyAsRaw
-	doc := &struct {
-		Cursor struct {
-			FirstBatch []bson.Raw `bson:"firstBatch"`
-			NextBatch  []bson.Raw `bson:"nextBatch"`
-		} `bson:"cursor"`
-	}{}
-	err = commandReplyAsRaw.Unmarshal(&doc)
+
+	cursorDocs, err := getCursorDocs(commandReplyAsRaw)
 	if err != nil {
 		return nil, err
 	}
-
-	if doc.Cursor.FirstBatch != nil {
-		commandReplyOp.Docs = doc.Cursor.FirstBatch
-	} else if doc.Cursor.NextBatch != nil {
-		commandReplyOp.Docs = doc.Cursor.NextBatch
-	}
+	commandReplyOp.Docs = cursorDocs
 
 	for _, d := range replyData {
 		dataDoc := &bson.Raw{}

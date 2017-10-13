@@ -46,7 +46,6 @@ func (c OpCode) String() string {
 // http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#request-opcodes
 const (
 	OpCodeReply        = OpCode(1)
-	OpCodeMessage      = OpCode(1000)
 	OpCodeUpdate       = OpCode(2001)
 	OpCodeInsert       = OpCode(2002)
 	OpCodeReserved     = OpCode(2003)
@@ -57,4 +56,5 @@ const (
 	OpCodeCommand      = OpCode(2010)
 	OpCodeCommandReply = OpCode(2011)
 	OpCodeCompressed   = OpCode(2012)
+	OpCodeMessage      = OpCode(2013)
 )

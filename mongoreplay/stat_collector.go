@@ -145,14 +145,13 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, bool) {
 }
 
 func shouldCollectOp(op Op, driverOpsFiltered bool) bool {
-	_, isReplyOp := op.(*ReplyOp)
-	_, isCommandReplyOp := op.(*CommandReplyOp)
+	_, isReplyable := op.(Replyable)
 
 	var isDriverOp bool
 	if !driverOpsFiltered {
 		isDriverOp = IsDriverOp(op)
 	}
-	return !isReplyOp && !isCommandReplyOp && !isDriverOp
+	return !isReplyable && !isDriverOp
 }
 
 // Collect formats the operation statistics as specified by the contained StatGenerator and writes it to

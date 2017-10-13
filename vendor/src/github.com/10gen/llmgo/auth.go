@@ -101,7 +101,7 @@ func (socket *MongoSocket) resetNonce() {
 	op.Query = &getNonceCmd{GetNonce: 1}
 	op.Collection = "admin.$cmd"
 	op.Limit = -1
-	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs, rfm *replyFuncMsgArgs) {
 		if err != nil {
 			socket.kill(errors.New("getNonce: "+err.Error()), true)
 			return
@@ -364,7 +364,7 @@ func (socket *MongoSocket) loginRun(db string, query, result interface{}, f func
 	op.Query = query
 	op.Collection = db + ".$cmd"
 	op.Limit = -1
-	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+	op.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs, rfm *replyFuncMsgArgs) {
 		defer mutex.Unlock()
 
 		if err != nil {

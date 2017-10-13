@@ -626,10 +626,13 @@ func (db *Database) Run(cmd interface{}, result interface{}) error {
 	return err
 }
 
-func ExecOpWithReply(socket *MongoSocket, op OpWithReply) (m []byte, c []byte, data [][]byte, reply interface{}, err error) {
+//returns metadata, bodydata, an array of reply documents, a reply, and an error
+func ExecOpWithReply(socket *MongoSocket, op OpWithReply) ([]byte, []byte, [][]byte, interface{}, error) {
 	var wait sync.Mutex
+	var reply interface{}
+	var err error
 	var metaData []byte
-	var commandData []byte
+	var bodyData []byte
 	var replyData [][]byte
 	var replyErr error
 
@@ -637,11 +640,14 @@ func ExecOpWithReply(socket *MongoSocket, op OpWithReply) (m []byte, c []byte, d
 
 	var docCount int32
 
-	replyFunc := func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
-		debugf("replyFunc %v %#v %#v", err, rfl, rfc)
-		replyErr = err
+	replyFunc := func(err error, rfl *replyFuncLegacyArgs,
+		rfc *replyFuncCommandArgs,
+		rfm *replyFuncMsgArgs) {
 
-		if rfl != nil { // Here, we have a regular reply and need to handle its fields
+		debugf("replyFunc %v %#v %#v %#v", err, rfl, rfc, rfm)
+		replyErr = err
+		switch {
+		case rfl != nil: // Here, we have a regular reply and need to handle its fields
 			reply = rfl.op
 			if err != nil || rfl.op.ReplyDocs == 0 {
 				wait.Unlock()
@@ -652,23 +658,27 @@ func ExecOpWithReply(socket *MongoSocket, op OpWithReply) (m []byte, c []byte, d
 					wait.Unlock()
 				}
 			}
-		} else if rfc != nil {
+		case rfc != nil: // We have a command reply and it's fields need to be handled
 			reply = rfc.op
 			if err == nil {
 				if metaData == nil {
 					metaData = rfc.metadata
 				}
-				if commandData == nil {
-					commandData = rfc.commandReply
+				if bodyData == nil {
+					bodyData = rfc.commandReply
 				}
 				if rfc.bytesLeft != 0 {
 					replyData = append(replyData, rfc.outputDoc)
 				} else {
 					wait.Unlock()
 				}
-			} else {
-				wait.Unlock()
 			}
+		case rfm != nil: // We have received an OpMsg and it's fields need to be received
+			reply = rfm.op
+			bodyData = rfm.sectionsData
+			wait.Unlock()
+		default:
+			wait.Unlock()
 		}
 
 	}
@@ -680,7 +690,7 @@ func ExecOpWithReply(socket *MongoSocket, op OpWithReply) (m []byte, c []byte, d
 	}
 
 	wait.Lock()
-	return metaData, commandData, replyData, reply, replyErr
+	return metaData, bodyData, replyData, reply, replyErr
 }
 
 func ExecOpWithoutReply(socket *MongoSocket, op interface{}) error {
@@ -4255,7 +4265,10 @@ func (s *Session) unsetSocket() {
 }
 
 func (iter *Iter) replyFunc() replyFunc {
-	return func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+	return func(err error,
+		rfl *replyFuncLegacyArgs,
+		rfc *replyFuncCommandArgs,
+		rfm *replyFuncMsgArgs) {
 		replyOp := rfl.op
 		iter.m.Lock()
 		iter.docsToReceive--
@@ -4417,7 +4430,10 @@ func (c *Collection) writeOpQuery(socket *MongoSocket, safeOp *QueryOp, op inter
 	mutex.Lock()
 	query := *safeOp // Copy the data.
 	query.Collection = c.Database.Name + ".$cmd"
-	query.replyFunc = func(err error, rfl *replyFuncLegacyArgs, rfc *replyFuncCommandArgs) {
+	query.replyFunc = func(err error,
+		rfl *replyFuncLegacyArgs,
+		rfc *replyFuncCommandArgs,
+		rfm *replyFuncMsgArgs) {
 		replyData = rfl.docData
 		replyErr = err
 		mutex.Unlock()

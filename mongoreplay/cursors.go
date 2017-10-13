@@ -173,12 +173,14 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 	// Loop over all the ops found in the file
 	for op := range opChan {
 
+		opCode := op.RawOp.Header.OpCode
 		// If they don't produce a cursor, skip them
-		if op.RawOp.Header.OpCode != OpCodeGetMore && op.RawOp.Header.OpCode != OpCodeKillCursors &&
-			op.RawOp.Header.OpCode != OpCodeReply && op.RawOp.Header.OpCode != OpCodeCommandReply && op.RawOp.Header.OpCode != OpCodeCommand {
+		if opCode != OpCodeGetMore && opCode != OpCodeKillCursors &&
+			opCode != OpCodeReply && opCode != OpCodeCommandReply &&
+			opCode != OpCodeCommand && opCode != OpCodeMessage {
 			continue
 		}
-		if op.RawOp.Header.OpCode == OpCodeCommand {
+		if opCode == OpCodeCommand {
 			commandName, err := getCommandName(&op.RawOp)
 			if err != nil {
 				userInfoLogger.Logvf(DebugLow, "preprocessing op no command name: %v", err)
@@ -225,7 +227,10 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 				continue
 			}
 			cursorsSeen.trackReplied(cursorID, op)
-
+		default:
+			// In this case, parsing the op revealed it to not be a replyable
+			// or able to be rewritten
+			continue
 		}
 	}
 
@@ -238,7 +243,6 @@ func newPreprocessCursorManager(opChan <-chan *RecordedOp) (*preprocessCursorMan
 				replyConn:   counter.replyConn,
 			}
 			result.opToCursors[counter.opOriginKey] = cursorID
-
 		}
 	}
 	userInfoLogger.Logvf(Always, "Preprocess complete")

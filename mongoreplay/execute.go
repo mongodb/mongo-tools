@@ -98,6 +98,9 @@ func (context *ExecutionContext) AddFromWire(reply Replyable, recordedOp *Record
 // on the reversed src/dest of the recordedOp which should the RecordedOp that
 // this ReplyOp was unmarshaled out of.
 func (context *ExecutionContext) AddFromFile(reply Replyable, recordedOp *RecordedOp) {
+	if cursorID, _ := reply.getCursorID(); cursorID == 0 {
+		return
+	}
 	key := cacheKey(recordedOp, true)
 	toolDebugLogger.Logvf(DebugHigh, "Adding recorded reply with key %v", key)
 	context.completeReply(key, reply, ReplyFromFile)
@@ -233,15 +236,17 @@ func (context *ExecutionContext) Execute(op *RecordedOp, socket *mgo.MongoSocket
 		toolDebugLogger.Logvf(Always, "Skipping incomplete op: %v", op.RawOp.Header.OpCode)
 		return nil, nil, nil
 	}
-	if recordedReply, ok := opToExec.(*ReplyOp); ok {
-		context.AddFromFile(recordedReply, op)
-	} else if recordedCommandReply, ok := opToExec.(*CommandReplyOp); ok {
-		context.AddFromFile(recordedCommandReply, op)
-	} else {
+	switch replyable := opToExec.(type) {
+	case *ReplyOp:
+		context.AddFromFile(replyable, op)
+	case *CommandReplyOp:
+		context.AddFromFile(replyable, op)
+	case *MsgOpReply:
+		context.AddFromFile(replyable, op)
+	default:
 		if !context.driverOpsFiltered && IsDriverOp(opToExec) {
 			return opToExec, nil, nil
 		}
-
 		if rewriteable, ok1 := opToExec.(cursorsRewriteable); ok1 {
 			ok2, err := context.rewriteCursors(rewriteable, op.SeenConnectionNum)
 			if err != nil {
@@ -267,9 +272,7 @@ func (context *ExecutionContext) Execute(op *RecordedOp, socket *mgo.MongoSocket
 		}
 		if reply != nil {
 			context.AddFromWire(reply, op)
-
 		}
-
 	}
 	context.handleCompletedReplies()
 	return opToExec, reply, nil

@@ -123,7 +123,7 @@ func TestPreprocessingFile(t *testing.T) {
 	generator := newRecordedOpGenerator()
 	var err error
 
-	err = generator.generateReply(requestID, testCursorID, 0)
+	err = generator.generateReply(requestID, testCursorID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -235,7 +235,7 @@ func TestSkipOutOfOrderCursor(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = generator.generateReply(requestID, testCursorID, 0)
+	err = generator.generateReply(requestID, testCursorID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,7 +288,7 @@ func TestSkipOnMarkFailed(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = generator.generateReply(requestID, testCursorID, 0)
+	err = generator.generateReply(requestID, testCursorID)
 	if err != nil {
 		t.Error(err)
 	}
