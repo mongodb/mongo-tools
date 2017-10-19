@@ -105,7 +105,8 @@ func NewPlaybackFileWriter(playbackFileName string, driverOpsFiltered, isGzipWri
 		return nil, fmt.Errorf("error opening playback file to write to: %v", err)
 	}
 
-	var wc io.WriteCloser = file
+	var wc io.WriteCloser
+	wc = file
 
 	if isGzipWriter {
 		wc = &util.WrappedWriteCloser{gzip.NewWriter(file), file}

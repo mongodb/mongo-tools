@@ -41,8 +41,9 @@ type metaDataMapIndex struct {
 
 // IndexDocument holds information about a collection's index.
 type IndexDocument struct {
-	Options bson.M `bson:",inline"`
-	Key     bson.D `bson:"key"`
+	Options                 bson.M `bson:",inline"`
+	Key                     bson.D `bson:"key"`
+	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
 }
 
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable
@@ -68,8 +69,9 @@ func (restore *MongoRestore) MetadataFromJSON(jsonBytes []byte) (bson.D, []Index
 		return nil, nil, fmt.Errorf("error unmarshalling metadata as map: %v", err)
 	}
 	for i := range meta.Indexes {
-		// remove "key" from the map so we can decode it properly later
+		// remove "key", and "partialFilterExpression" from the map so we can decode them properly later
 		delete(metaAsMap.Indexes[i], "key")
+		delete(metaAsMap.Indexes[i], "partialFilterExpression")
 
 		// parse extra index fields
 		meta.Indexes[i].Options = metaAsMap.Indexes[i]
@@ -81,7 +83,14 @@ func (restore *MongoRestore) MetadataFromJSON(jsonBytes []byte) (bson.D, []Index
 		for pos, field := range meta.Indexes[i].Key {
 			meta.Indexes[i].Key[pos].Value, err = bsonutil.ParseJSONValue(field.Value)
 			if err != nil {
-				return nil, nil, fmt.Errorf("extended json in '%v' field: %v", field.Name, err)
+				return nil, nil, fmt.Errorf("extended json in 'key.%v' field: %v", field.Name, err)
+			}
+		}
+		// parse the values of the index keys, so we can support extended json
+		for pos, field := range meta.Indexes[i].PartialFilterExpression {
+			meta.Indexes[i].PartialFilterExpression[pos].Value, err = bsonutil.ParseJSONValue(field.Value)
+			if err != nil {
+				return nil, nil, fmt.Errorf("extended json in 'partialFilterExpression.%v' field: %v", field.Name, err)
 			}
 		}
 	}
