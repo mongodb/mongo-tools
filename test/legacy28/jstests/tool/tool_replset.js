@@ -8,10 +8,6 @@
  * 6. Export a collection.
  * 7. Drop the collection.
  * 8. Import the collection.
- * 9. Add data to the oplog.rs collection.
- * 10. Ensure that the document doesn't exist yet.
- * 11. Now play the mongooplog tool.
- * 12. Make sure that the oplog was played
 */
 
 // Load utility methods for replica set tests
@@ -65,22 +61,6 @@ runMongoProgram("mongoimport", "--host", replSetConnString, "--file", extFile,
 
 var x = master.getDB("foo").getCollection("bar").count();
 assert.eq(x, 100, "mongoimport should have successfully imported the collection");
-
-// Test with mongooplog
-var doc = { _id : 5, x : 17 };
-master.getDB("local").oplog.rs.insert({ ts : new Timestamp(), "op" : "i", "ns" : "foo.bar",
-                                         "o" : doc, "v" : NumberInt(2) });
-
-assert.eq(100, master.getDB("foo").getCollection("bar").count(), "count before running mongooplog " +
-		  "was not 100 as expected");
-
-runMongoProgram("mongooplog" , "--from", "127.0.0.1:" + replTest.ports[0],
-                               "--host", replSetConnString);
-
-print("running mongooplog to replay the oplog")
-
-assert.eq(101, master.getDB("foo").getCollection("bar").count(), "count after running mongooplog " +
-		  "was not 101 as expected")
 
 print("all tests successful, stopping replica set")
 
