@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
@@ -20,7 +21,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const insertBufferFactor = 16
+const insertBufferFactor = 3
 
 // RestoreIntents iterates through all of the intents stored in the IntentManager, and restores them.
 func (restore *MongoRestore) RestoreIntents() error {
@@ -223,6 +224,11 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 	return nil
 }
 
+type chunk struct {
+	documents  [1000]bson.Raw
+	nbToInsert int
+}
+
 // RestoreCollectionToDB pipes the given BSON data into the database.
 // Returns the number of documents restored and any errors that occured.
 func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
@@ -238,6 +244,21 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 	collection := session.DB(dbName).C(colName)
 
+	var pool = sync.Pool{
+		New: func() interface{} {
+			var documents [1000]bson.Raw
+			for i := range documents {
+				documents[i] = bson.Raw{
+					Kind: byte(0x03),
+					Data: make([]byte, 20),
+				}
+			}
+			return &chunk{
+				documents: documents,
+			}
+		},
+	}
+
 	documentCount := int64(0)
 	watchProgressor := progress.NewCounter(fileSize)
 	if restore.ProgressManager != nil {
@@ -251,12 +272,16 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		maxInsertWorkers = 1
 	}
 
-	docChan := make(chan bson.Raw, insertBufferFactor)
+	docChan := make(chan *chunk, insertBufferFactor)
 	resultChan := make(chan error, maxInsertWorkers)
 
 	// stream documents for this collection on docChan
 	go func() {
+
+		count := 0
+		docs := pool.Get().(*chunk)
 		doc := bson.Raw{}
+
 		for bsonSource.Next(&doc) {
 			select {
 			case <-restore.termChan:
@@ -265,11 +290,28 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				close(docChan)
 				return
 			default:
-				rawBytes := make([]byte, len(doc.Data))
-				copy(rawBytes, doc.Data)
-				docChan <- bson.Raw{Data: rawBytes}
-				documentCount++
+				if count == 1000 {
+					docs.nbToInsert = 1000
+					docChan <- docs
+					count = 0
+					documentCount += 1000
+					docs = pool.Get().(*chunk)
+				}
+				if len(doc.Data) > len(docs.documents[count].Data) {
+					for i := len(docs.documents[count].Data); i < len(doc.Data); i++ {
+						docs.documents[count].Data = append(docs.documents[count].Data, byte(0))
+					}
+				} else {
+					docs.documents[count].Data = docs.documents[count].Data[0:len(doc.Data)]
+				}
+				copy(docs.documents[count].Data, doc.Data)
+				count++
 			}
+		}
+		if count > 0 {
+			docs.nbToInsert = count
+			docChan <- docs
+			documentCount += int64(docs.nbToInsert)
 		}
 		close(docChan)
 	}()
@@ -287,22 +329,36 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				coll, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
 			for rawDoc := range docChan {
 				if restore.objCheck {
-					err := bson.Unmarshal(rawDoc.Data, &bson.D{})
-					if err != nil {
-						resultChan <- fmt.Errorf("invalid object: %v", err)
-						return
+					for j := 0; j < rawDoc.nbToInsert; j++ {
+						err := bson.Unmarshal(rawDoc.documents[j].Data, &bson.D{})
+						if err != nil {
+							resultChan <- fmt.Errorf("invalid object: %v", err)
+							return
+						}
 					}
 				}
-				if err := bulk.Insert(rawDoc); err != nil {
-					if db.IsConnectionError(err) || restore.OutputOptions.StopOnError {
-						// Propagate this error, since it's either a fatal connection error
-						// or the user has turned on --stopOnError
-						resultChan <- err
-					} else {
-						// Otherwise just log the error but don't propagate it.
+				for j := 0; j < rawDoc.nbToInsert; j++ {
+					if err := bulk.Insert(rawDoc.documents[j]); err != nil {
+						if db.IsConnectionError(err) || restore.OutputOptions.StopOnError {
+							// Propagate this error, since it's either a fatal connection error
+							// or the user has turned on --stopOnError
+							resultChan <- err
+						} else {
+							// Otherwise just log the error but don't propagate it.
+							log.Logvf(log.Always, "error: %v", err)
+						}
+					}
+				}
+				err := bulk.Flush()
+				if err != nil {
+					if !db.IsConnectionError(err) && !restore.OutputOptions.StopOnError {
+						// Suppress this error since it's not a severe connection error and
+						// the user has not specified --stopOnError
 						log.Logvf(log.Always, "error: %v", err)
+						err = nil
 					}
 				}
+				pool.Put(rawDoc)
 				watchProgressor.Set(file.Pos())
 			}
 			err := bulk.Flush()
