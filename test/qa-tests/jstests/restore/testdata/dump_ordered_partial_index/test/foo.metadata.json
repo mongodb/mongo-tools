@@ -2,16 +2,16 @@
     {"v":2,"key":{"_id":1},"name":"_id_","ns":"test.foo"},
     {"v":2,"key":{"a":1.0},"name":"apfe","ns":"test.foo","partialFilterExpression":
         {
-            "a0":{"$gt":{"$numberDecimal":"0.0"}},
-            "a1":{"$gt":{"$numberDecimal":"0.0"}},
-            "a2":{"$gt":{"$numberDecimal":"0.0"}},
-            "a3":{"$gt":{"$numberDecimal":"0.0"}},
-            "a4":{"$gt":{"$numberDecimal":"0.0"}},
-            "a5":{"$gt":{"$numberDecimal":"0.0"}},
-            "a6":{"$gt":{"$numberDecimal":"0.0"}},
-            "a7":{"$gt":{"$numberDecimal":"0.0"}},
-            "a8":{"$gt":{"$numberDecimal":"0.0"}},
-            "a9":{"$gt":{"$numberDecimal":"0.0"}}
+            "a0":{"$gt":0},
+            "a1":{"$gt":0},
+            "a2":{"$gt":0},
+            "a3":{"$gt":0},
+            "a4":{"$gt":0},
+            "a5":{"$gt":0},
+            "a6":{"$gt":0},
+            "a7":{"$gt":0},
+            "a8":{"$gt":0},
+            "a9":{"$gt":0}
         }
     }
 ]}
