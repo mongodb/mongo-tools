@@ -76,6 +76,13 @@ type Replyable interface {
 	getErrors() []error
 }
 
+// Preprocessable presents a way that for additional data processing to be done
+// on an operation before execution. Future iterations may include options that
+// allow differential preprocessing of operations depending on desired results.
+type Preprocessable interface {
+	Preprocess()
+}
+
 // ErrUnknownOpcode is an error that represents an unrecognized opcode.
 type ErrUnknownOpcode int
 

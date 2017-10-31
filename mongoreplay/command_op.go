@@ -235,6 +235,10 @@ func (op *CommandOp) FromReader(r io.Reader) error {
 	return nil
 }
 
+func (op *CommandOp) Preprocess() {
+	op.CommandOp.Metadata = nil
+}
+
 // Execute performs the CommandOp on a given session, yielding the reply when
 // successful (and an error otherwise).
 func (op *CommandOp) Execute(socket *mgo.MongoSocket) (Replyable, error) {

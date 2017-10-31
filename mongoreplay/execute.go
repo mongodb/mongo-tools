@@ -245,6 +245,11 @@ func (context *ExecutionContext) Execute(op *RecordedOp, socket *mgo.MongoSocket
 				return opToExec, nil, nil
 			}
 		}
+		// check if the op has a function to preprocess its data given the current
+		// set of options
+		if op, ok := opToExec.(Preprocessable); ok {
+			op.Preprocess()
+		}
 
 		op.PlayedAt = &PreciseTime{time.Now()}
 
