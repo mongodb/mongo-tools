@@ -72,6 +72,32 @@ func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, 
 	return true, nil
 }
 
+func oplogDocumentFilter(in []byte) ([]byte, error) {
+	var rawD bson.RawD
+	err := bson.Unmarshal(in, &rawD)
+	if err != nil {
+		return nil, err
+	}
+	for i := range rawD {
+		if rawD[i].Name == "o" {
+			var rawO bson.RawD
+			err = bson.Unmarshal(rawD[i].Value.Data, &rawO)
+			for j := range rawO {
+				if rawO[j].Name == "renameCollection" {
+					return nil, fmt.Errorf("cannot dump with oplog while renames occur")
+				}
+			}
+		}
+	}
+	for i := range rawD {
+		if rawD[i].Name == "ui" {
+			rawD = append(rawD[:i], rawD[i+1:]...)
+			break
+		}
+	}
+	return bson.Marshal(rawD)
+}
+
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
 // entries between the given timestamp to the writer. Returns any errors that occur.
 func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp) error {
@@ -86,7 +112,7 @@ func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp
 		bson.M{"ts": bson.M{"$lte": end}},
 	}}
 	oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
-	oplogCount, err := dump.dumpQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer())
+	oplogCount, err := dump.dumpFilteredQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentFilter)
 	if err == nil {
 		log.Logvf(log.Always, "\tdumped %v oplog %v",
 			oplogCount, util.Pluralize(int(oplogCount), "entry", "entries"))
