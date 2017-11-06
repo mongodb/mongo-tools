@@ -28,15 +28,17 @@
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
 
-  for (var i = 0; i < 200000; ++i) {
+  db.bar1.insert(bigObj);
+
+  for (var i = 0; i < 2000; ++i) {
     db.bar0.insert(bigObj);
   }
 
   var pid = startMongoProgramNoConnect.apply(null, dumpArgs);
 
-  for (var j = 0; i < 200; ++i) {
-    db.getCollection("bar"+j).insert(bigObj);
+  for (var j = 1; j < 10; ++j) {
     db.getCollection("bar"+j).renameCollection("bar"+(j+1));
+    sleep(100);
   }
 
   assert(waitProgram(pid) !== 0,
