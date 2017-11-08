@@ -550,6 +550,10 @@
       runId: String(opts.runId),
     });
 
+    if (!opts.bind_ip) {
+      opts.bind_ip = "0.0.0.0";
+    }
+
     return opts;
   };
 
