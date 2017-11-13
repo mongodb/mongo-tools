@@ -68,9 +68,9 @@ class MultiVersionDownloaderBase :
             temp_dir = tempfile.mkdtemp()
             temp_file = tempfile.mktemp(suffix=".tgz")
 
-            data = urllib2.urlopen(url)
-
             print "Downloading data for version %s (%s) from %s..." % (version, full_version, url)
+
+            data = urllib2.urlopen(url)
 
             with open(temp_file, 'wb') as f:
                 f.write(data.read())
