@@ -18,7 +18,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy28
       - name: legacy26
-      - name: legacy24
       - name: qa-tests
       - name: qa-tests-3.2
       - name: qa-dump-restore-gzip
@@ -80,7 +79,6 @@ mongo_tools_variables:
       - name: kerberos
       - name: legacy28
       - name: legacy26
-      - name: legacy24
       - name: qa-tests
       - name: native-cert-ssl
       - name: replay-dist
@@ -98,7 +96,6 @@ mongo_tools_variables:
       - name: legacy28
       - name: legacy28-wt
       - name: legacy26
-      - name: legacy24
       - name: qa-tests
       - name: qa-tests-wt
       - name: unit
@@ -122,9 +119,6 @@ mongo_tools_variables:
       - name: legacy26
         distros:
         - windows-64-vs2013-test
-      - name: legacy24
-        distros:
-        - windows-64-vs2013-test
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: db
@@ -135,9 +129,6 @@ mongo_tools_variables:
         distros:
         - windows-64-vs2013-test
       - name: legacy26
-        distros:
-        - windows-64-vs2013-test
-      - name: legacy24
         distros:
         - windows-64-vs2013-test
       - name: qa-tests
@@ -283,7 +274,7 @@ functions:
         rm -rf /data/mci/install /data/mci/multiversion
         mkdir -p /data/mci/install /data/mci/multiversion
         if [ "${multiversion_override}" != "skip" ]; then
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|2.6} --latest ${smoke_use_ssl} --os="${mongo_os}"
         fi
         chmod 400 jstests/libs/key*
 
@@ -1065,43 +1056,6 @@ tasks:
         test_path: "test/legacy26"
         smoke_use_ssl: ""
 
-- name: legacy24
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "2.4"
-    - func: "download mongod"
-      vars:
-        mongo_version: "2.6"
-        only_shell: true
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "run legacy tests"
-      vars:
-        test_path: "test/legacy24"
-        smoke_use_ssl: ""
-
 - name: lint-go
   commands:
     - func: "fetch source"
@@ -1293,7 +1247,7 @@ tasks:
           mv ../../bin/* .
           rm -rf /data/mci/install /data/mci/multiversion
           mkdir -p /data/mci/install /data/mci/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} "2.6" "2.4" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} "2.6" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
           PATH=$PATH:/data/mci/multiversion python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
