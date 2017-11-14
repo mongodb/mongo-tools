@@ -22,6 +22,7 @@ import (
 type Metadata struct {
 	Options interface{}   `json:"options,omitempty"`
 	Indexes []interface{} `json:"indexes"`
+	UUID    string        `json:"uuid,omitempty"`
 }
 
 // IndexDocumentFromDB is used internally to preserve key ordering.
@@ -50,6 +51,10 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	} else {
 		meta.Options = nil
 	}
+
+	// If a collection has a UUID, it was gathered while building the list of
+	// intents.  Otherwise, it will be the empty string.
+	meta.UUID = intent.UUID
 
 	// Second, we read the collection's index information by either calling
 	// listIndexes (pre-2.7 systems) or querying system.indexes.

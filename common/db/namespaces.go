@@ -7,6 +7,7 @@
 package db
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -19,10 +20,28 @@ type CollectionInfo struct {
 	Name    string  `bson:"name"`
 	Type    string  `bson:"type"`
 	Options *bson.D `bson:"options"`
+	Info    *bson.D `bson:"info"`
 }
 
 func (ci *CollectionInfo) IsView() bool {
 	return ci.Type == "view"
+}
+
+func (ci *CollectionInfo) GetUUID() string {
+	if ci.Info == nil {
+		return ""
+	}
+	for _, v := range *ci.Info {
+		if v.Name == "uuid" {
+			switch x := v.Value.(type) {
+			case bson.Binary:
+				if x.Kind == 4 {
+					return hex.EncodeToString(x.Data)
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // IsNoCmd reeturns true if err indicates a query command is not supported,

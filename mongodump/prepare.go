@@ -292,6 +292,11 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		Options: ci.Options,
 	}
 
+	// If UUID is available, populate the intent with it
+	if uuid := ci.GetUUID(); uuid != "" {
+		intent.UUID = uuid
+	}
+
 	// Setup output location
 	if dump.OutputOptions.Out == "-" { // regular standard output
 		intent.BSONFile = &stdoutFile{Writer: dump.OutputWriter}

@@ -61,6 +61,9 @@ type Intent struct {
 	// Collection options
 	Options *bson.D
 
+	// UUID (for MongoDB 3.6+) as a big-endian hex string
+	UUID string
+
 	// File/collection size, for some prioritizer implementations.
 	// Units don't matter as long as they are consistent for a given use case.
 	Size int64

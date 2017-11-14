@@ -580,10 +580,15 @@ func TestMongoDumpMetaData(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		session, err := getBareSession()
+		So(session, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+
+		err = setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
+
 			md := simpleMongoDumpInstance()
 			md.OutputOptions.Out = "dump"
 			err = md.Init()
@@ -614,6 +619,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 					So(len(metaFiles), ShouldBeGreaterThan, 0)
 
 					oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
+					defer oneMetaFile.Close()
 					So(err, ShouldBeNil)
 					contents, err := ioutil.ReadAll(oneMetaFile)
 					var jsonResult map[string]interface{}
@@ -623,8 +629,20 @@ func TestMongoDumpMetaData(t *testing.T) {
 					Convey("and contains an 'indexes' key", func() {
 						_, ok := jsonResult["indexes"]
 						So(ok, ShouldBeTrue)
-						So(oneMetaFile.Close(), ShouldBeNil)
 					})
+
+					fcv := testutil.GetFCV(session)
+					cmp, err := testutil.CompareFCV(fcv, "3.6")
+					So(err, ShouldBeNil)
+					if cmp >= 0 {
+						Convey("and on FCV 3.6+, contains a 'uuid' key", func() {
+							uuid, ok := jsonResult["uuid"]
+							So(ok, ShouldBeTrue)
+							checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
+							So(checkUUID.MatchString(uuid.(string)), ShouldBeTrue)
+							So(err, ShouldBeNil)
+						})
+					}
 
 				})
 
