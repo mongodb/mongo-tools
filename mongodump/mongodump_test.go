@@ -43,22 +43,35 @@ const (
 )
 
 func simpleMongoDumpInstance() *MongoDump {
-	ssl := testutil.GetSSLOptions()
-	auth := testutil.GetAuthOptions()
-	namespace := &options.Namespace{
-		DB: testDB,
+	var toolOptions *options.ToolOptions
+
+	// get ToolOptions from URI or defaults
+	if uri := os.Getenv("MONGOD"); uri != "" {
+		fakeArgs := []string{"--uri=" + uri}
+		toolOptions = options.New("mongodump", "", options.EnabledOptions{URI: true})
+		toolOptions.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
+		_, err := toolOptions.ParseArgs(fakeArgs)
+		if err != nil {
+			panic("Could not parse MONGOD environment variable")
+		}
+	} else {
+		ssl := testutil.GetSSLOptions()
+		auth := testutil.GetAuthOptions()
+		connection := &options.Connection{
+			Host: testServer,
+			Port: testPort,
+		}
+		toolOptions = &options.ToolOptions{
+			SSL:        &ssl,
+			Connection: connection,
+			Auth:       &auth,
+			Verbosity:  &options.Verbosity{},
+		}
 	}
-	connection := &options.Connection{
-		Host: testServer,
-		Port: testPort,
-	}
-	toolOptions := &options.ToolOptions{
-		SSL:        &ssl,
-		Namespace:  namespace,
-		Connection: connection,
-		Auth:       &auth,
-		Verbosity:  &options.Verbosity{},
-	}
+
+	// Limit ToolOptions to test database
+	toolOptions.Namespace = &options.Namespace{DB: testDB}
+
 	outputOptions := &OutputOptions{
 		NumParallelCollections: 1,
 	}
@@ -74,6 +87,13 @@ func simpleMongoDumpInstance() *MongoDump {
 }
 
 func getBareSession() (*mgo.Session, error) {
+	if uri := os.Getenv("MONGOD"); uri != "" {
+		session, err := mgo.Dial(uri)
+		if err != nil {
+			return nil, err
+		}
+		return session, nil
+	}
 	ssl := testutil.GetSSLOptions()
 	auth := testutil.GetAuthOptions()
 	sessionProvider, err := db.NewSessionProvider(options.ToolOptions{
