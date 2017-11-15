@@ -79,3 +79,12 @@ func dottedStringToSlice(s string) ([]int, error) {
 	}
 	return parts, nil
 }
+
+func IsReplicaSet(s *mgo.Session) bool {
+	db := s.DB("admin")
+	var result bson.M
+	cmd := bson.M{"isMaster": 1}
+	db.Run(cmd, &result)
+	_, ok := result["setName"]
+	return ok
+}

@@ -89,12 +89,6 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 			}
 		}
 	}
-	for i := range rawD {
-		if rawD[i].Name == "ui" {
-			rawD = append(rawD[:i], rawD[i+1:]...)
-			break
-		}
-	}
 	return bson.Marshal(rawD)
 }
 

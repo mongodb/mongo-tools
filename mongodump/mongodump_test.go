@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -139,6 +140,39 @@ func countMetaDataFiles(dir string) (int, error) {
 	return len(matchingFiles), nil
 }
 
+// returns count of oplog entries with 'ui' field
+func countOplogUI(iter *db.DecodedBSONSource) int {
+	var count int
+	var doc bson.M
+	for iter.Next(&doc) {
+		count += countOpsWithUI(doc)
+	}
+	return count
+}
+
+func countOpsWithUI(doc bson.M) int {
+	var count int
+	switch doc["op"] {
+	case "i", "u", "d":
+		if _, ok := doc["ui"]; ok {
+			count++
+		}
+	case "c":
+		if _, ok := doc["ui"]; ok {
+			count++
+		} else if v, ok := doc["o"]; ok {
+			opts, _ := v.(bson.M)
+			if applyOps, ok := opts["applyOps"]; ok {
+				list := applyOps.([]bson.M)
+				for _, v := range list {
+					count += countOpsWithUI(v)
+				}
+			}
+		}
+	}
+	return count
+}
+
 // returns filenames that match the given pattern
 func getMatchingFiles(dir, pattern string) ([]string, error) {
 	fileInfos, err := ioutil.ReadDir(dir)
@@ -230,6 +264,54 @@ func setUpMongoDumpTestData() error {
 	}
 
 	return nil
+}
+
+// backgroundInsert inserts into random collections until provided done
+// channel is closed.  The function closes the ready channel to signal that
+// background insertion has started.  When the done channel is closed, the
+// function returns.  Any errors are passed back on the errs channel.
+func backgroundInsert(ready, done chan struct{}, errs chan error) {
+	defer close(errs)
+	session, err := getBareSession()
+	if err != nil {
+		errs <- err
+		close(ready)
+		return
+	}
+	defer session.Close()
+
+	colls := make([]*mgo.Collection, len(testCollectionNames))
+	for i, v := range testCollectionNames {
+		colls[i] = session.DB(testDB).C(v)
+	}
+
+	var n int
+
+	// Insert a doc to ensure the DB is actually ready for inserts
+	// and not pausing while a dropDatabase is processing.
+	err = colls[0].Insert(bson.M{"n": n})
+	if err != nil {
+		errs <- err
+		close(ready)
+		return
+	}
+	close(ready)
+	n++
+
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			coll := colls[rand.Intn(len(colls))]
+			err := coll.Insert(bson.M{"n": n})
+			if err != nil {
+				errs <- err
+				return
+			}
+			n++
+		}
+	}
 }
 
 func tearDownMongoDumpTestData() error {
@@ -654,6 +736,91 @@ func TestMongoDumpMetaData(t *testing.T) {
 		})
 
 		Reset(func() {
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+		})
+
+	})
+}
+
+func TestMongoDumpOplog(t *testing.T) {
+	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	session, err := getBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	if !testutil.IsReplicaSet(session) {
+		t.SkipNow()
+	}
+	log.SetWriter(ioutil.Discard)
+
+	Convey("With a MongoDump instance", t, func() {
+
+		Convey("testing that the dumped directory contains an oplog", func() {
+
+			// Start with clean filesystem
+			path, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpOplogFile := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
+
+			err = os.RemoveAll(dumpDir)
+			So(err, ShouldBeNil)
+			So(fileDirExists(dumpDir), ShouldBeFalse)
+
+			// Start with clean database
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+
+			// Prepare mongodump with options
+			md := simpleMongoDumpInstance()
+			md.OutputOptions.Oplog = true
+			md.ToolOptions.Namespace = &options.Namespace{}
+			err = md.Init()
+			So(err, ShouldBeNil)
+
+			// Start inserting docs in the background so the oplog has data
+			ready := make(chan struct{})
+			done := make(chan struct{})
+			errs := make(chan error, 1)
+			go backgroundInsert(ready, done, errs)
+			<-ready
+
+			// Run mongodump
+			err = md.Dump()
+			So(err, ShouldBeNil)
+
+			// Stop background insertion
+			close(done)
+			err = <-errs
+			So(err, ShouldBeNil)
+
+			// Check for and read the oplog file
+			So(fileDirExists(dumpDir), ShouldBeTrue)
+			So(fileDirExists(dumpOplogFile), ShouldBeTrue)
+
+			oplogFile, err := os.Open(dumpOplogFile)
+			defer oplogFile.Close()
+			So(err, ShouldBeNil)
+
+			rdr := db.NewBSONSource(oplogFile)
+			iter := db.NewDecodedBSONSource(rdr)
+
+			fcv := testutil.GetFCV(session)
+			cmp, err := testutil.CompareFCV(fcv, "3.6")
+			So(err, ShouldBeNil)
+
+			withUI := countOplogUI(iter)
+
+			if cmp >= 0 {
+				// for FCV 3.6+, should have 'ui' field in oplog entries
+				So(withUI, ShouldBeGreaterThan, 0)
+			} else {
+				// for FCV <3.6, should no have 'ui' field in oplog entries
+				So(withUI, ShouldEqual, 0)
+			}
+
+			// Cleanup
+			So(os.RemoveAll(dumpDir), ShouldBeNil)
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
 		})
 
