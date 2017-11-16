@@ -839,7 +839,7 @@ tasks:
             value: "${args} -test.types=db"
     - func: "download mongod"
       vars:
-        mongo_version: "3.5.12"
+        mongo_version: "latest"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "setup integration test"
@@ -916,7 +916,7 @@ tasks:
             value: "${args} -test.types=${integration_test_args}"
     - func: "download mongod"
       vars:
-        mongo_version: "3.5.12"
+        mongo_version: "latest"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
@@ -940,7 +940,7 @@ tasks:
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
       vars:
-        mongo_version: "3.5.12"
+        mongo_version: "latest"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
@@ -1456,7 +1456,7 @@ tasks:
       tool: mongoreplay
   - func: "download mongod"
     vars:
-      mongo_version: "3.5.12"
+      mongo_version: "latest"
   - func: "start mongod"
   - func: "wait for mongod to be ready"
   - command: shell.exec
@@ -1486,7 +1486,7 @@ tasks:
       pcapFname: getmore_single_channel.pcap
   - func: "download mongod"
     vars:
-      mongo_version: "3.5.12"
+      mongo_version: "latest"
   - func: "start mongod"
   - func: "wait for mongod to be ready"
   - func: "run go_test"
@@ -1511,7 +1511,7 @@ tasks:
       pcapFname: getmore_single_channel.pcap
   - func: "download mongod"
     vars:
-      mongo_version: "3.5.12"
+      mongo_version: "latest"
   - func: "create sharded_cluster"
   - func: "run go_test"
     vars:
@@ -1535,7 +1535,7 @@ tasks:
       pcapFname: getmore_single_channel.pcap
   - func: "download mongod"
     vars:
-      mongo_version: "3.5.12"
+      mongo_version: "latest"
   - func: "start mongod"
     vars:
         additional_args: --auth
@@ -1565,7 +1565,7 @@ tasks:
       pcapFname: getmore_single_channel.pcap
   - func: "download mongod"
     vars:
-      mongo_version: "3.5.12"
+      mongo_version: "latest"
   - func: "create repl_set"
     vars:
         mongod_port: ${mongod_port}
@@ -1585,7 +1585,7 @@ tasks:
       tool: mongoreplay
   - func: "download mongod"
     vars:
-      mongo_version: "3.5.12"
+      mongo_version: "latest"
   - func: "fetch ftdc"
   - command: shell.exec
     params:
