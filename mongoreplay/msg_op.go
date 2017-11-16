@@ -300,7 +300,7 @@ func readSection(r io.Reader) (mgo.MsgSection, int, error) {
 	if err != nil {
 		return mgo.MsgSection{}, 0, err
 	}
-	offset += 1
+	offset++
 
 	// 2 cases
 	// Case 1: Either we have a payload that just contains a bson document (payload == 0)
@@ -455,9 +455,8 @@ func fetchPayload0Data(sections []mgo.MsgSection) (*bson.Raw, int, error) {
 			payload0DataRaw, ok := section.Data.(*bson.Raw)
 			if ok {
 				return payload0DataRaw, sectionIx, nil
-			} else {
-				return nil, 0, fmt.Errorf("data from payload of type 0 was wrong type")
 			}
+			return nil, 0, fmt.Errorf("data from payload of type 0 was wrong type")
 		}
 	}
 	return nil, 0, fmt.Errorf("payload 0 not found")
