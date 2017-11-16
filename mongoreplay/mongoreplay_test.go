@@ -383,7 +383,7 @@ func TestOpMsg(t *testing.T) {
 
 	for _, testCase := range testCases {
 		generator := newRecordedOpGenerator()
-		t.Logf("case: %#s\n", testCase.name)
+		t.Logf("case: %#v\n", testCase.name)
 		result, err := generator.fetchRecordedOpsFromConn(&testCase.inputOp)
 		if err != nil {
 			t.Error(err)
