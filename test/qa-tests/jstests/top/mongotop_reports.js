@@ -44,9 +44,10 @@ load('jstests/top/util/mongotop_common.js');
       }
       var isAuthActivity = namespace.indexOf('.system.') !== -1;
       var isReplActivity = namespace.indexOf('local.') !== -1;
+      var isConfigActivity = namespace.indexOf('config.') !== -1;
 
       // authentication and replication activity should be ignored
-      if (isAuthActivity || isReplActivity) {
+      if (isAuthActivity || isReplActivity || isConfigActivity) {
         continue;
       }
 
