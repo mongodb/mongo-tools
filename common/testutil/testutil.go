@@ -8,12 +8,65 @@
 package testutil
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/options"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+// GetBareSession returns an mgo.Session from the environment or
+// from a default host and port.
+func GetBareSession() (*mgo.Session, error) {
+	sessionProvider, _, err := GetBareSessionProvider()
+	if err != nil {
+		return nil, err
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		return nil, err
+	}
+	return session, nil
+}
+
+// GetBareSessionProvider returns a session provider from the environment or
+// from a default host and port.
+func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error) {
+	var toolOptions *options.ToolOptions
+
+	// get ToolOptions from URI or defaults
+	if uri := os.Getenv("MONGOD"); uri != "" {
+		fakeArgs := []string{"--uri=" + uri}
+		toolOptions = options.New("mongodump", "", options.EnabledOptions{URI: true})
+		toolOptions.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
+		_, err := toolOptions.ParseArgs(fakeArgs)
+		if err != nil {
+			panic("Could not parse MONGOD environment variable")
+		}
+	} else {
+		ssl := GetSSLOptions()
+		auth := GetAuthOptions()
+		connection := &options.Connection{
+			Host: "localhost",
+			Port: db.DefaultTestPort,
+		}
+		toolOptions = &options.ToolOptions{
+			SSL:        &ssl,
+			Connection: connection,
+			Auth:       &auth,
+			Verbosity:  &options.Verbosity{},
+			URI:        &options.URI{},
+		}
+	}
+	sessionProvider, err := db.NewSessionProvider(*toolOptions)
+	if err != nil {
+		return nil, nil, err
+	}
+	return sessionProvider, toolOptions, nil
+}
 
 // GetFCV returns the featureCompatibilityVersion string for an mgo Session
 // or the empty string if it can't be found.

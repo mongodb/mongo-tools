@@ -9,7 +9,6 @@ package mongorestore
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -22,18 +21,13 @@ const ExistsDB = "restore_collection_exists"
 func TestCollectionExists(t *testing.T) {
 
 	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	_, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
 
 	Convey("With a test mongorestore", t, func() {
-		ssl := testutil.GetSSLOptions()
-		auth := testutil.GetAuthOptions()
-		sessionProvider, err := db.NewSessionProvider(commonOpts.ToolOptions{
-			Connection: &commonOpts.Connection{
-				Host: "localhost",
-				Port: db.DefaultTestPort,
-			},
-			Auth: &auth,
-			SSL:  &ssl,
-		})
+		sessionProvider, _, err := testutil.GetBareSessionProvider()
 		So(err, ShouldBeNil)
 
 		restore := &MongoRestore{

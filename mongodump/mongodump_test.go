@@ -35,8 +35,6 @@ var (
 	// temp database used for restoring a DB
 	testRestoreDB       = "temp_mongodump_restore_test_db"
 	testCollectionNames = []string{"coll1", "coll2", "coll3"}
-	testServer          = "localhost"
-	testPort            = db.DefaultTestPort
 )
 
 const (
@@ -59,8 +57,8 @@ func simpleMongoDumpInstance() *MongoDump {
 		ssl := testutil.GetSSLOptions()
 		auth := testutil.GetAuthOptions()
 		connection := &options.Connection{
-			Host: testServer,
-			Port: testPort,
+			Host: "localhost",
+			Port: db.DefaultTestPort,
 		}
 		toolOptions = &options.ToolOptions{
 			SSL:        &ssl,
@@ -85,34 +83,6 @@ func simpleMongoDumpInstance() *MongoDump {
 		InputOptions:  inputOptions,
 		OutputOptions: outputOptions,
 	}
-}
-
-func getBareSession() (*mgo.Session, error) {
-	if uri := os.Getenv("MONGOD"); uri != "" {
-		session, err := mgo.Dial(uri)
-		if err != nil {
-			return nil, err
-		}
-		return session, nil
-	}
-	ssl := testutil.GetSSLOptions()
-	auth := testutil.GetAuthOptions()
-	sessionProvider, err := db.NewSessionProvider(options.ToolOptions{
-		Connection: &options.Connection{
-			Host: testServer,
-			Port: testPort,
-		},
-		Auth: &auth,
-		SSL:  &ssl,
-	})
-	if err != nil {
-		return nil, err
-	}
-	session, err := sessionProvider.GetSession()
-	if err != nil {
-		return nil, err
-	}
-	return session, nil
 }
 
 // returns the number of .bson files in a directory
@@ -201,7 +171,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 		return fmt.Errorf("error finding '%v' on local FS", dir)
 	}
 
-	session, err := getBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
@@ -246,7 +216,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 }
 
 func setUpMongoDumpTestData() error {
-	session, err := getBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
@@ -272,7 +242,7 @@ func setUpMongoDumpTestData() error {
 // function returns.  Any errors are passed back on the errs channel.
 func backgroundInsert(ready, done chan struct{}, errs chan error) {
 	defer close(errs)
-	session, err := getBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		errs <- err
 		close(ready)
@@ -315,7 +285,7 @@ func backgroundInsert(ready, done chan struct{}, errs chan error) {
 }
 
 func tearDownMongoDumpTestData() error {
-	session, err := getBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
@@ -480,7 +450,7 @@ func TestMongoDumpBSON(t *testing.T) {
 					err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
 					So(err, ShouldBeNil)
 
-					session, err := getBareSession()
+					session, err := testutil.GetBareSession()
 					So(err, ShouldBeNil)
 
 					countColls, err := countNonIndexBSONFiles(dumpDBDir)
@@ -611,7 +581,7 @@ func TestMongoDumpBSON(t *testing.T) {
 		})
 
 		Convey("testing that using MongoDump WITH a query dumps a subset of documents in a database and/or collection", func() {
-			session, err := getBareSession()
+			session, err := testutil.GetBareSession()
 			So(err, ShouldBeNil)
 			md := simpleMongoDumpInstance()
 
@@ -662,7 +632,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		session, err := getBareSession()
+		session, err := testutil.GetBareSession()
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
@@ -744,7 +714,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 
 func TestMongoDumpOplog(t *testing.T) {
 	testutil.VerifyTestType(t, testutil.IntegrationTestType)
-	session, err := getBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
 	}
