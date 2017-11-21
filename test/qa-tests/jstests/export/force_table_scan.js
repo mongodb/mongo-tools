@@ -48,7 +48,11 @@
 
   // there should only be one query so far, and it should have snapshot set
   assert.eq(1, queries.length);
-  assert.eq(true, queries[0].query.$snapshot || queries[0].query.snapshot);
+  if (queries[0].command != null) {
+    assert.eq(true, queries[0].command.snapshot);
+  } else {
+    assert.eq(true, queries[0].query.$snapshot || queries[0].query.snapshot);
+  }
 
   // remove the export file
   removeFile(exportTarget);
@@ -68,7 +72,11 @@
   // there should be two queries, and the second one should not
   // have snapshot set
   assert.eq(2, queries.length);
-  assert(!queries[1].query['$snapshot']);
+  if (queries[1].command != null) {
+    assert.eq(true, !queries[1].command.snapshot);
+  } else {
+    assert(!queries[1].query['$snapshot']);
+  }
 
   // wipe the collection
   testColl.remove({});
@@ -105,7 +113,12 @@
 
   // there should be 3 queries, and the last one should not have snapshot set
   assert.eq(3, queries.length);
-  assert(!queries[2].query.$snapshot);
+  if (queries[2].command != null) {
+    assert.eq(true, !queries[2].command.snapshot);
+  } else {
+    assert(!queries[2].query['$snapshot']);
+  }
+
 
   // success
   toolTest.stop();
