@@ -78,6 +78,19 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var nsD struct {
+		NS string `bson:"ns"`
+	}
+	err = bson.Unmarshal(in, &nsD)
+	if err != nil {
+		return nil, err
+	}
+
+	if nsD.NS == "admin.system.version" {
+		return nil, fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
+	}
+
 	for i := range rawD {
 		if rawD[i].Name == "o" {
 			var rawO bson.RawD
