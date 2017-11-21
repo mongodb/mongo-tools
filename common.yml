@@ -1606,6 +1606,7 @@ buildvariants:
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
     mongo_os: "osx"
+    mongo_target: "osx-ssl"
     arch: "osx/x86_64"
     excludes: requires_many_files
     gorootvars: CGO_CPPFLAGS=-I/opt/mongodbtoolchain/v2/include CGO_CFLAGS=-mmacosx-version-min=10.10 CGO_LDFLAGS=-mmacosx-version-min=10.10
