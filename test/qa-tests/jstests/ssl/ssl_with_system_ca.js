@@ -11,7 +11,7 @@
             "certutil.exe", "-addstore", "-user", "-f", "CA", "jstests\\libs\\trusted-ca.pem");
   }
 
-  var testWithCerts = function(serverPem, clientPem) {
+  var testWithCerts = function(serverPem) {
     jsTest.log(`Testing with SSL certs $ {
             serverPem
         }`);
@@ -22,7 +22,7 @@
         // Should not be able to authenticate with x509.
         // Authenticate call will return 1 on success, 0 on error.
     var argv =
-            ['./mongodump', '-v', '--ssl', '--port', conn.port, "--sslPEMKeyFile", "jstests/libs/" + clientPem];
+            ['./mongodump', '-v', '--ssl', '--port', conn.port];
     if (HOST_TYPE === "linux") {
             // On Linux we override the default path to the system CA store to point to our
             // "trusted" CA. On Windows, this CA will have been added to the user's trusted CA list
