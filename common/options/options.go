@@ -500,6 +500,10 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	opts.ReplicaSetName = cs.ReplicaSet
 
 	if cs.UseSSL && !BuiltWithSSL {
+		if cs.UsingSRV {
+			return fmt.Errorf("SSL enabled by default when using SRV but tool not built with SSL: " +
+				"SSL must be explicitly disabled with ssl=false in the connection string")
+		}
 		return fmt.Errorf("cannot use ssl: tool not built with SSL support")
 	}
 	opts.SSL.UseSSL = cs.UseSSL

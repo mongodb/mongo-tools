@@ -110,11 +110,46 @@ func TestParseAndSetOptions(t *testing.T) {
 				ShouldError:  true,
 			},
 			{
+				Name: "not built with ssl using SRV",
+				CS: connstring.ConnString{
+					UseSSL:   true,
+					UsingSRV: true,
+				},
+				WithSSL:      false,
+				OptsIn:       New("", "", enabledURIOnly),
+				OptsExpected: New("", "", enabledURIOnly),
+				ShouldError:  true,
+			},
+			{
 				Name: "built with ssl",
 				CS: connstring.ConnString{
 					UseSSL: true,
 				},
-				WithSSL: true, OptsIn: New("", "", enabledURIOnly),
+				WithSSL: true,
+				OptsIn:  New("", "", enabledURIOnly),
+				OptsExpected: &ToolOptions{
+					General:    &General{},
+					Verbosity:  &Verbosity{},
+					Connection: &Connection{},
+					URI:        &URI{},
+					SSL: &SSL{
+						UseSSL: true,
+					},
+					Auth:           &Auth{},
+					Namespace:      &Namespace{},
+					Kerberos:       &Kerberos{},
+					enabledOptions: enabledURIOnly,
+				},
+				ShouldError: false,
+			},
+			{
+				Name: "built with ssl using SRV",
+				CS: connstring.ConnString{
+					UseSSL:   true,
+					UsingSRV: true,
+				},
+				WithSSL: true,
+				OptsIn:  New("", "", enabledURIOnly),
 				OptsExpected: &ToolOptions{
 					General:    &General{},
 					Verbosity:  &Verbosity{},
