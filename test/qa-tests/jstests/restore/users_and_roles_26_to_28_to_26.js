@@ -16,6 +16,7 @@
         ' restoring a 2.6 dump to a 2.8 mongod, then back to a 2.6 mongod');
 
   var toolTest = new ToolTest('users_and_roles_26_to_28_to_26', {binVersion: '2.6'});
+  resetDbpath(toolTest.dbpath);
   toolTest.startDB('foo');
 
   // where we'll put the dump
@@ -69,6 +70,7 @@
   toolTest.m = null;
   toolTest.db = null;
   delete toolTest.options.binVersion;
+  resetDbpath(toolTest.dbpath);
   toolTest.startDB('foo');
 
   // refresh the db reference
@@ -112,6 +114,7 @@
   toolTest.db = null;
   toolTest.options = toolTest.options || {};
   toolTest.options.binVersion = '2.6';
+  resetDbpath(toolTest.dbpath);
   toolTest.startDB('foo');
 
   // refresh the db reference
