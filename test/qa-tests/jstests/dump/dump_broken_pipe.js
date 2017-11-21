@@ -35,12 +35,14 @@
   var ret = runProgram('bash', '-c', dumpArgs.concat('|', ddArgs).join(' '));
   assert.eq(0, ret, "bash execution should succeed");
 
-  ddArgs = ['dd', 'count=100', 'bs=1', 'of=/dev/null'];
-  ret = runProgram('bash', '-c', dumpArgs.concat('|', ddArgs).join(' '));
-  assert.neq(0, ret, "bash execution should fail");
-  assert.soon(function() {
-    return rawMongoProgramOutput().search(/broken pipe|The pipe is being closed/);
-  }, 'should print an error message');
+  // TODO: TOOLS-1883 Following tests are flaky
+  //
+  // ddArgs = ['dd', 'count=100', 'bs=1', 'of=/dev/null'];
+  // ret = runProgram('bash', '-c', dumpArgs.concat('|', ddArgs).join(' '));
+  // assert.neq(0, ret, "bash execution should fail");
+  // assert.soon(function() {
+  //   return rawMongoProgramOutput().search(/broken pipe|The pipe is being closed/);
+  // }, 'should print an error message');
 
   testDb.dropDatabase();
   toolTest.stop();
