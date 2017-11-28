@@ -38,8 +38,8 @@
   var pid = startMongoProgramNoConnect.apply(null, dumpArgs);
 
   var adminDB = toolTest.db.getSiblingDB('admin');
-  r = adminDB.getCollection("system.version").insert({'dummy':true});
-  assert.eq(r.nInserted, 1, 'insert into system.version: ' + r)
+  r = adminDB.getCollection("system.version").insert({'dummy': true});
+  assert.eq(r.nInserted, 1, 'insert into system.version: ' + r);
 
   assert(waitProgram(pid) !== 0,
     'mongodump --oplog during admin.system.version change should fail');

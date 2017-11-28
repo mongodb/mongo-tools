@@ -510,7 +510,7 @@ func validateSRVResult(recordFromSRV, inputHostName string) error {
 	return nil
 }
 
-var allowedTXTOptions map[string]struct{} = map[string]struct{}{
+var allowedTXTOptions = map[string]struct{}{
 	"authsource": struct{}{},
 	"replicaset": struct{}{},
 }
