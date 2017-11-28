@@ -53,7 +53,15 @@
   assert.eq(replDB.system.profile.find({
     ns: "test.a",
     op: "query",
-    $or: [{"command.$snapshot": true}, {"command.snapshot": true}]
+    $or: [
+      // 3.6+ schema
+      {"command.$snapshot": true},
+      {"command.snapshot": true},
+
+      // 3.4 and previous schema
+      {"query.$snapshot": true},
+      {"query.snapshot": true},
+    ]
   }).count(), 1);
   printjson(replDB.system.profile.find(profQuery).toArray());
   // make sure the secondaries saw 0 queries
