@@ -1,6 +1,6 @@
 (function() {
   if (typeof getToolTest === 'undefined') {
-    load('jstests/configs/replset_28.config.js');
+    load('jstests/configs/replset_single_28.config.js');
   }
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
