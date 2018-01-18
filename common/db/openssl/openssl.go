@@ -6,10 +6,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/10gen/openssl"
 	"github.com/mongodb/mongo-tools/common/db/kerberos"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
-	"github.com/spacemonkeygo/openssl"
 	"gopkg.in/mgo.v2"
 )
 
