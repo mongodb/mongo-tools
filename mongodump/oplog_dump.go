@@ -8,6 +8,7 @@ package mongodump
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -119,10 +120,37 @@ func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp
 		bson.M{"ts": bson.M{"$lte": end}},
 	}}
 	oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
-	oplogCount, err := dump.dumpFilteredQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentFilter)
+	oplogCount, err := dump.dumpFilteredQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentFilter, false)
 	if err == nil {
 		log.Logvf(log.Always, "\tdumped %v oplog %v",
 			oplogCount, util.Pluralize(int(oplogCount), "entry", "entries"))
 	}
+	return err
+}
+
+func (dump *MongoDump) DumpOplogIncremental() error {
+	session, err := dump.SessionProvider.GetSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	session.SetPrefetch(1.0) // mimic exhaust cursor
+
+	for {
+		time.Sleep(10 * time.Second)
+		dump.oplogEnd, err = dump.getCurrentOplogTime()
+		queryObj := bson.M{"$and": []bson.M{
+			bson.M{"ts": bson.M{"$gte": dump.oplogStart}},
+			bson.M{"ts": bson.M{"$lte": dump.oplogEnd}},
+		}}
+		oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
+		oplogCount, err := dump.dumpFilteredQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentFilter, true)
+		if err == nil {
+			log.Logvf(log.Always, "\tdumped %v oplog %v",
+				oplogCount, util.Pluralize(int(oplogCount), "entry", "entries"))
+		}
+	}
+
 	return err
 }

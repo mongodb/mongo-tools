@@ -98,6 +98,8 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("cannot specify a collection when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.Oplog && dump.ToolOptions.Namespace.DB != "":
 		return fmt.Errorf("--oplog mode only supported on full dumps")
+	case dump.OutputOptions.OplogDaemon && !dump.OutputOptions.Oplog:
+		return fmt.Errorf("--daemon mode is allowed only when set --oplog mode")
 	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.Collection != "":
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.Collection != "":
@@ -439,6 +441,13 @@ func (dump *MongoDump) Dump() (err error) {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
+		if dump.OutputOptions.OplogDaemon {
+			resultChan := make(chan error, 0)
+			go func() {
+				resultChan <- dump.DumpOplogIncremental()
+			}()
+			err = <-resultChan
+		}
 	}
 
 	log.Logvf(log.DebugLow, "finishing dump")
@@ -603,7 +612,7 @@ func copyDocumentFilter(in []byte) ([]byte, error) {
 // dumped, and any errors that occured.
 func (dump *MongoDump) dumpQueryToIntent(
 	query *mgo.Query, intent *intents.Intent, buffer resettableOutputBuffer) (dumpCount int64, err error) {
-	return dump.dumpFilteredQueryToIntent(query, intent, buffer, copyDocumentFilter)
+	return dump.dumpFilteredQueryToIntent(query, intent, buffer, copyDocumentFilter, false)
 }
 
 // dumpFilterQueryToIntent takes an mgo Query, its intent, a writer, and a document filter, performs the query,
@@ -611,14 +620,23 @@ func (dump *MongoDump) dumpQueryToIntent(
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occured.
 func (dump *MongoDump) dumpFilteredQueryToIntent(
-	query *mgo.Query, intent *intents.Intent, buffer resettableOutputBuffer, filter documentFilter) (dumpCount int64, err error) {
+	query *mgo.Query, intent *intents.Intent, buffer resettableOutputBuffer, filter documentFilter, incremental bool) (dumpCount int64, err error) {
 
 	// restore of views from archives require an empty collection as the trigger to create the view
 	// so, we open here before the early return if IsView so that we write an empty collection to the archive
-	err = intent.BSONFile.Open()
-	if err != nil {
-		return 0, err
+	if incremental == true {
+		file, _ := os.OpenFile(dump.outputPath("oplog.bson", ""), os.O_WRONLY|os.O_APPEND, 0667)
+		if err != nil {
+			return 0, err
+		}
+		intent.BSONFile = &realBSONFile{WriteCloser: file, dump.outputPath("oplog.bson", "")}
+	} else {
+		err = intent.BSONFile.Open()
+		if err != nil {
+			return 0, err
+		}
 	}
+
 	defer func() {
 		closeErr := intent.BSONFile.Close()
 		if err == nil && closeErr != nil {
@@ -659,7 +677,7 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 		}()
 	}
 
-	err = dump.dumpFilteredIterToWriter(query.Iter(), f, dumpProgressor, filter)
+	err = dump.dumpFilteredIterToWriter(query.Iter(), f, dumpProgressor, filter, incremental)
 	dumpCount, _ = dumpProgressor.Progress()
 	if err != nil {
 		err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), err)
@@ -671,13 +689,13 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 // a counter, and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpIterToWriter(
 	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable) error {
-	return dump.dumpFilteredIterToWriter(iter, writer, progressCount, copyDocumentFilter)
+	return dump.dumpFilteredIterToWriter(iter, writer, progressCount, copyDocumentFilter, false)
 }
 
 // dumpFilteredIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and fiters and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpFilteredIterToWriter(
-	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable, filter documentFilter) error {
+	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable, filter documentFilter, incremental bool) error {
 	var termErr error
 
 	// We run the result iteration in its own goroutine,
@@ -713,6 +731,8 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 
 	// while there are still results in the database,
 	// grab results from the goroutine and write them to filesystem
+	lastOplogEntry := db.Oplog{}
+	var lastentry []byte
 	for {
 		buff, alive := <-buffChan
 		if !alive {
@@ -721,12 +741,21 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 			}
 			break
 		}
+		lastentry = buff
 		_, err := writer.Write(buff)
 		if err != nil {
 			return fmt.Errorf("error writing to file: %v", err)
 		}
 		progressCount.Inc(1)
 	}
+	err := bson.Unmarshal(lastentry, &lastOplogEntry)
+	if err != nil {
+		return err
+	}
+	if incremental {
+		dump.oplogStart = lastOplogEntry.Timestamp
+	}
+
 	return termErr
 }
 
