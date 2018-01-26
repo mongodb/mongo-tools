@@ -1,5 +1,3 @@
-// +build !darwin
-
 package openssl_test
 
 import (
@@ -9,6 +7,10 @@ import (
 )
 
 func TestSetFIPSMode(t *testing.T) {
+	if !openssl.FIPSModeDefined() {
+		t.Skip()
+	}
+
 	if openssl.FIPSMode() {
 		t.Fatal("Expected FIPS mode to be disabled, but was enabled")
 	}

@@ -1852,7 +1852,7 @@ buildvariants:
   run_on:
   - suse11-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl ssl openssl_pre_1.0"
   tasks:
   - name: dist
 

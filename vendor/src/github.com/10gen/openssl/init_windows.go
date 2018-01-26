@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Space Monkey, Inc.
+// Copyright (C) 2017. See AUTHORS.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ package openssl
 
 CRITICAL_SECTION* goopenssl_locks;
 
-int Goopenssl_init_locks() {
+int go_init_locks() {
 	int rc = 0;
 	int nlock;
 	int i;
@@ -48,7 +48,7 @@ int Goopenssl_init_locks() {
 	return 0;
 }
 
-void Goopenssl_thread_locking_callback(int mode, int n, const char *file,
+void go_thread_locking_callback(int mode, int n, const char *file,
 	int line) {
 	if (mode & CRYPTO_LOCK) {
 		EnterCriticalSection(&goopenssl_locks[n]);
@@ -57,7 +57,7 @@ void Goopenssl_thread_locking_callback(int mode, int n, const char *file,
 	}
 }
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-unsigned long Goopenssl_thread_id_callback() {
+unsigned long go_thread_id_callback() {
 	return (unsigned long) GetCurrentThreadId();
 }
 #endif

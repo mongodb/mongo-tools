@@ -12,13 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !openssl_static
+// +build !openssl_pre_1.0
 
 package openssl
 
-// #cgo linux darwin pkg-config: openssl
-// #cgo CFLAGS: -Wno-deprecated-declarations
-// #cgo windows CFLAGS: -DWIN32_LEAN_AND_MEAN
-// #cgo windows LDFLAGS: -lcrypt32
-// #cgo darwin LDFLAGS: -framework CoreFoundation -framework Foundation -framework Security
-import "C"
+import (
+	"bytes"
+	"testing"
+)
+
+func TestECDH(t *testing.T) {
+	t.Parallel()
+
+	myKey, err := GenerateECKey(Prime256v1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	peerKey, err := GenerateECKey(Prime256v1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mySecret, err := DeriveSharedSecret(myKey, peerKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	theirSecret, err := DeriveSharedSecret(peerKey, myKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bytes.Compare(mySecret, theirSecret) != 0 {
+		t.Fatal("shared secrets are different")
+	}
+}
