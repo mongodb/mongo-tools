@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // +build ssl
-// +build !darwin
 
 package openssl
 
@@ -16,7 +15,11 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 )
 
-func init() { sslInitializationFunctions = append(sslInitializationFunctions, SetUpFIPSMode) }
+func init() {
+	if openssl.FIPSModeDefined() {
+		sslInitializationFunctions = append(sslInitializationFunctions, SetUpFIPSMode)
+	}
+}
 
 func SetUpFIPSMode(opts options.ToolOptions) error {
 	if err := openssl.FIPSModeSet(opts.SSLFipsMode); err != nil {
