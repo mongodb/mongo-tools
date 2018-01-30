@@ -16,8 +16,9 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy28
-      - name: legacy26
+      - name: legacy30
+#      No SSL on 2.6 for osx
+#      - name: legacy26
       - name: qa-tests
       - name: qa-tests-3.2
       - name: qa-tests-3.4
@@ -43,8 +44,7 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy28
-      - name: legacy28-wt
+      - name: legacy30
       - name: lint-go
       - name: lint-js
       - name: qa-tests
@@ -68,7 +68,7 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy28
+      - name: legacy30
       - name: qa-tests
       - name: qa-tests-unstable
       - name: native-cert-ssl
@@ -78,7 +78,7 @@ mongo_tools_variables:
       - name: integration
       - name: integration-auth
       - name: kerberos
-      - name: legacy28
+      - name: legacy30
       - name: legacy26
       - name: qa-tests
       - name: native-cert-ssl
@@ -94,8 +94,7 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy28
-      - name: legacy28-wt
+      - name: legacy30
       - name: legacy26
       - name: qa-tests
       - name: unit
@@ -111,7 +110,7 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy28
+      - name: legacy30
         distros:
         - windows-64-vs2013-test
       - name: qa-tests
@@ -141,7 +140,7 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy28
+      - name: legacy30
       - name: qa-tests
       - name: native-cert-ssl
     windows_64_enterprise_task_list: &windows_64_enterprise_tasks
@@ -150,7 +149,7 @@ mongo_tools_variables:
       - name: integration
       - name: integration-auth
       - name: kerberos
-      - name: legacy28
+      - name: legacy30
         distros:
         - windows-64-vs2013-test
       - name: qa-tests
@@ -940,7 +939,7 @@ tasks:
     - func: "setup integration test"
     - func: "run tool integration tests"
 
-- name: legacy28
+- name: legacy30
   depends_on:
   - name: dist
   commands:
@@ -970,41 +969,8 @@ tasks:
         tool: mongofiles
     - func: "run legacy tests"
       vars:
-        test_path: "test/legacy28"
+        test_path: "test/legacy30"
         smoke_args: "--authMechanism SCRAM-SHA-1"
-
-- name: legacy28-wt
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "3.0"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "run legacy tests"
-      vars:
-        test_path: "test/legacy28"
-        smoke_args: "--authMechanism SCRAM-SHA-1 --storageEngine=wiredTiger"
 
 - name: legacy26
   depends_on:
