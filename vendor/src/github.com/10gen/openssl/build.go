@@ -18,7 +18,7 @@ package openssl
 
 // #cgo linux darwin pkg-config: openssl
 // #cgo CFLAGS: -Wno-deprecated-declarations
-// #cgo windows CFLAGS: -DWIN32_LEAN_AND_MEAN
-// #cgo windows LDFLAGS: -lcrypt32
+// #cgo windows CFLAGS: -DWIN32_LEAN_AND_MEAN -I"c:/openssl/include"
+// #cgo windows LDFLAGS: -lssleay32 -llibeay32 -lcrypt32 -L "c:/openssl/bin"
 // #cgo darwin LDFLAGS: -framework CoreFoundation -framework Foundation -framework Security
 import "C"
