@@ -287,6 +287,8 @@ functions:
         sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
 
         . ./set_gopath.sh
+        ${gorootvars} go version
+        ${gorootvars} env | grep ^GO
         ${gorootvars} go build ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
@@ -1860,6 +1862,52 @@ buildvariants:
     build_tags: "sasl ssl"
     resmoke_use_ssl: _ssl
     gorootvars: PATH="/opt/mongodbtoolchain/v2/bin/:$PATH"
+    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    multiversion_override: "skip"
+    arch: "linux/s390x"
+    edition: enterprise
+    run_kinit: true
+    integration_test_args: integration
+  tasks: *rhel72_enterprise_tasks
+
+- name: rhel72-s390x-enterprise-go1.7
+  display_name: ZAP s390x RHEL 7.2 Enterprise (Go 1.7)
+  run_on:
+  - rhel72-zseries-test
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "rhel72"
+    mongo_edition: "enterprise"
+    mongo_arch: "s390x"
+    args: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)"
+    build_tags: "sasl ssl"
+    resmoke_use_ssl: _ssl
+    gorootvars: 'PATH="/opt/go1.7/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.7/go CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
+    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    multiversion_override: "skip"
+    arch: "linux/s390x"
+    edition: enterprise
+    run_kinit: true
+    integration_test_args: integration
+  tasks: *rhel72_enterprise_tasks
+
+- name: rhel72-s390x-enterprise-go1.8
+  display_name: ZAP s390x RHEL 7.2 Enterprise (Go 1.8)
+  run_on:
+  - rhel72-zseries-test
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "rhel72"
+    mongo_edition: "enterprise"
+    mongo_arch: "s390x"
+    args: -gccgoflags "$(pkg-config --libs --cflags libssl libsasl2)"
+    build_tags: "sasl ssl"
+    resmoke_use_ssl: _ssl
+    gorootvars: 'PATH="/opt/go1.8/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.8/go CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     multiversion_override: "skip"
