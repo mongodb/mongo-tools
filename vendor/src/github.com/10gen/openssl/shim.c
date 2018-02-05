@@ -322,18 +322,16 @@ int X_shim_init() {
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
-	//
-	// Set up OPENSSL thread safety callbacks.  We only set the locking
-	// callback because the default id callback implementation is good
-	// enough for us.
+
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
+	// Set up OPENSSL thread safety callbacks.
 	rc = go_init_locks();
 	if (rc != 0) {
 		return rc;
 	}
 	CRYPTO_set_locking_callback(go_thread_locking_callback);
-
 	CRYPTO_set_id_callback(go_thread_id_callback);
-
+#endif
 	rc = x_bio_init_methods();
 	if (rc != 0) {
 		return rc;
@@ -720,18 +718,18 @@ X509 *X_sk_X509_value(STACK_OF(X509)* sk, int i) {
    return sk_X509_value(sk, i);
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10000000L
-int X_FIPS_mode(void) {
-    return 0;
-}
-int X_FIPS_mode_set(int r) {
-    return 0;
-}
-#else
+#ifdef OPENSSL_FIPS
 int X_FIPS_mode(void) {
     return FIPS_mode();
 }
 int X_FIPS_mode_set(int r) {
     return FIPS_mode_set(r);
+}
+#else
+int X_FIPS_mode(void) {
+    return 0;
+}
+int X_FIPS_mode_set(int r) {
+    return 0;
 }
 #endif

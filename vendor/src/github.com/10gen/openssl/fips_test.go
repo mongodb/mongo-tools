@@ -8,7 +8,7 @@ import (
 
 func TestSetFIPSMode(t *testing.T) {
 	if !openssl.FIPSModeDefined() {
-		t.Skip()
+		t.Skip("OPENSSL_FIPS not defined in headers")
 	}
 
 	if openssl.FIPSMode() {
