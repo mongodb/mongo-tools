@@ -32,6 +32,17 @@ static int go_write_bio_puts(BIO *b, const char *str) {
 }
 
 /*
+ * Functions to convey openssl feature defines at runtime
+ */
+int X_OPENSSL_NO_ECDH() {
+#ifdef OPENSSL_NO_ECDH
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+/*
  ************************************************
  * v1.1.X and later implementation
  ************************************************
@@ -464,10 +475,6 @@ long X_SSL_CTX_add_extra_chain_cert(SSL_CTX* ctx, X509 *cert) {
 	return SSL_CTX_add_extra_chain_cert(ctx, cert);
 }
 
-long X_SSL_CTX_set_tmp_ecdh(SSL_CTX* ctx, EC_KEY *key) {
-	return SSL_CTX_set_tmp_ecdh(ctx, key);
-}
-
 long X_SSL_CTX_set_tlsext_servername_callback(
 		SSL_CTX* ctx, int (*cb)(SSL *con, int *ad, void *args)) {
 	return SSL_CTX_set_tlsext_servername_callback(ctx, cb);
@@ -671,9 +678,15 @@ const EVP_CIPHER *X_EVP_CIPHER_CTX_cipher(EVP_CIPHER_CTX *ctx) {
 }
 
 #if OPENSSL_VERSION_NUMBER >  0x10000000L
+#ifndef OPENSSL_NO_EC
 int X_EVP_PKEY_CTX_set_ec_paramgen_curve_nid(EVP_PKEY_CTX *ctx, int nid) {
 	return EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
 }
+#else
+int X_EVP_PKEY_CTX_set_ec_paramgen_curve_nid(EVP_PKEY_CTX *ctx, int nid) {
+	return -2; // not supported
+}
+#endif
 #endif
 
 // END HERE
