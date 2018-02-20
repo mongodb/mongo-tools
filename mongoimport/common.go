@@ -279,6 +279,7 @@ func setNestedValue(key string, value interface{}, document *bson.D) {
 		*document = append(*document, bson.DocElem{Name: key, Value: value})
 		return
 	}
+
 	keyName := key[0:index]
 	subDocument := &bson.D{}
 	elem, err := bsonutil.FindValueByKey(keyName, document)
@@ -287,12 +288,91 @@ func setNestedValue(key string, value interface{}, document *bson.D) {
 	}
 	var existingKey bool
 	if elem != nil {
-		subDocument = elem.(*bson.D)
+		switch elem.(type) {
+		case *bson.D:
+			subDocument = elem.(*bson.D)
+		case []interface{}:
+			subDocument = &bson.D{{Name: keyName, Value: elem}}
+		}
 		existingKey = true
 	}
-	setNestedValue(key[index+1:], value, subDocument)
+
+	var finalValue interface{}
+	finalValue = subDocument
+	if elemIndex, err := strconv.Atoi(strings.Split(key, ".")[1]); err == nil && elemIndex >= 0 {
+		// if the next part of the key is a positive int, treat it like an array index
+		setNestedArrayValue(key, value, subDocument)                  // set our nested array value
+		finalValue, _ = bsonutil.FindValueByKey(keyName, subDocument) // extract nested array value
+		if existingKey {                                              // merge the previous incarnation of the document with our new one
+			newDocument := bson.D{}
+			for _, doc := range *document { // rebuild document to merge in new DocElem and remove old one
+				if doc.Name == keyName { // if we found our key, update with the new doc
+					newDocument = append(newDocument, bson.DocElem{Name: keyName, Value: finalValue})
+				} else { // else add back to our working document
+					newDocument = append(newDocument, doc)
+				}
+			}
+			*document = newDocument
+		}
+	} else {
+		setNestedValue(key[index+1:], value, subDocument)
+	}
 	if !existingKey {
-		*document = append(*document, bson.DocElem{Name: keyName, Value: subDocument})
+		*document = append(*document, bson.DocElem{Name: keyName, Value: finalValue})
+	}
+}
+
+// setNestedArrayValue helps setNestedValue build nested arrays for subdocuments
+// setNestedArrayValue takes a nested field - in the form "a.n.c" (where n is a positive integer) -
+// its associated value, and a document. It then assigns that
+// value to the appropriate nested array element within the document
+func setNestedArrayValue(key string, value interface{}, document *bson.D) {
+	keyParts := strings.Split(key, ".")
+	keyName := keyParts[0]
+	elemIndex, errAtoiConversion := strconv.Atoi(keyParts[1])
+	if errAtoiConversion != nil || elemIndex < 0 { // did not get a positive int for index, bail out
+		return
+	}
+
+	// does this element already exist in the document?
+	var nestedArray []interface{}
+	existingKey := true
+	elem, errFind := bsonutil.FindValueByKey(keyName, document)
+	if errFind != nil { // no such key in the document
+		elem = nil
+		existingKey = false
+	} else {
+		nestedArray, _ = elem.([]interface{})
+	}
+
+	// pad out our slice such that the index we're using exists
+	for len(nestedArray) < elemIndex+1 {
+		nestedArray = append(nestedArray, &bson.D{})
+	}
+
+	if len(keyParts) > 2 { // check to see if we have furthur nested elements to process
+		remainingKeyParts := strings.Join(keyParts[2:], ".")                   // consume [1] as we've processed as an index
+		subKey := fmt.Sprintf("%s.%s", keyName, remainingKeyParts)             // rebuild key with [0] and [2:]
+		subDocument := &bson.D{{Name: keyName, Value: nestedArray[elemIndex]}} // build new *D
+		setNestedValue(subKey, value, subDocument)                             // go back for another round
+		nestedValue, _ := bsonutil.FindValueByKey(keyName, subDocument)        // extract nested value
+		nestedArray[elemIndex] = nestedValue                                   // insert nested value
+	} else {
+		nestedArray[elemIndex] = value // if we don't have to go further, just insert value
+	}
+
+	if existingKey { // rebuild document to merge in new DocElem and remove old one
+		newDocument := bson.D{}
+		for _, doc := range *document {
+			if doc.Name == keyName { // if we found our key, update with the new doc
+				newDocument = append(newDocument, bson.DocElem{Name: keyName, Value: nestedArray})
+			} else { // add back to our working document
+				newDocument = append(newDocument, doc)
+			}
+		}
+		*document = newDocument // replace the old document with our new one
+	} else { // else we can just append the fresh new DocElem
+		*document = append(*document, bson.DocElem{Name: keyName, Value: nestedArray})
 	}
 }
 
