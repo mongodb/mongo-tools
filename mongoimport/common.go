@@ -221,11 +221,14 @@ func getUpsertValue(field string, document bson.D) interface{} {
 	if subDoc == nil {
 		return nil
 	}
-	subDocD, ok := subDoc.(bson.D)
-	if !ok {
+	switch subDoc.(type) {
+	case bson.D:
+		return getUpsertValue(field[index+1:], subDoc.(bson.D))
+	case *bson.D:
+		return getUpsertValue(field[index+1:], *subDoc.(*bson.D))
+	default:
 		return nil
 	}
-	return getUpsertValue(field[index+1:], subDocD)
 }
 
 // filterIngestError accepts a boolean indicating if a non-nil error should be,
