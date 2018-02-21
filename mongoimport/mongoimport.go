@@ -38,6 +38,7 @@ const (
 	modeInsert = "insert"
 	modeUpsert = "upsert"
 	modeMerge  = "merge"
+	modeRemove = "remove"
 )
 
 const (
@@ -183,6 +184,8 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 		if err := validateFields(imp.upsertFields); err != nil {
 			return fmt.Errorf("invalid --upsertFields argument: %v", err)
 		}
+	} else if imp.IngestOptions.Mode == modeRemove {
+		return fmt.Errorf("upsertFields are required to execute in remove mode")
 	} else if imp.IngestOptions.Mode != modeInsert {
 		imp.upsertFields = []string{"_id"}
 	}
@@ -192,22 +195,34 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 		imp.IngestOptions.Mode = modeInsert
 	}
 
+	log.Logvf(log.DebugLow, "using mode: %v", imp.IngestOptions.Mode)
+
 	// double-check mode choices
 	if !(imp.IngestOptions.Mode == modeInsert ||
 		imp.IngestOptions.Mode == modeUpsert ||
-		imp.IngestOptions.Mode == modeMerge) {
+		imp.IngestOptions.Mode == modeMerge ||
+		imp.IngestOptions.Mode == modeRemove) {
 		return fmt.Errorf("invalid --mode argument: %v", imp.IngestOptions.Mode)
 	}
 
 	if imp.IngestOptions.Mode != modeInsert {
-		imp.IngestOptions.MaintainInsertionOrder = true
+		if !((imp.IngestOptions.BulkUpdate && imp.IngestOptions.Mode == modeUpsert) || imp.IngestOptions.Mode == modeRemove) {
+			imp.IngestOptions.MaintainInsertionOrder = true
+		}
 		log.Logvf(log.Info, "using upsert fields: %v", imp.upsertFields)
 	}
+
+	if imp.IngestOptions.BulkUpdate {
+		log.Logvf(log.DebugLow, "using BulkUpdate option")
+	}
+
+	log.Logvf(log.DebugLow, "using maintain insertion order: %v", imp.IngestOptions.MaintainInsertionOrder)
 
 	// set the number of decoding workers to use for imports
 	if imp.IngestOptions.NumDecodingWorkers <= 0 {
 		imp.IngestOptions.NumDecodingWorkers = imp.ToolOptions.MaxProcs
 	}
+
 	log.Logvf(log.DebugLow, "using %v decoding workers", imp.IngestOptions.NumDecodingWorkers)
 
 	// set the number of insertion workers to use for imports
@@ -215,17 +230,21 @@ func (imp *MongoImport) ValidateSettings(args []string) error {
 		imp.IngestOptions.NumInsertionWorkers = 1
 	}
 
-	log.Logvf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
-
 	// if --maintainInsertionOrder is set, we can only allow 1 insertion worker
 	if imp.IngestOptions.MaintainInsertionOrder {
 		imp.IngestOptions.NumInsertionWorkers = 1
 	}
 
+	log.Logvf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
+
 	// get the number of documents per batch
-	if imp.IngestOptions.BulkBufferSize <= 0 || imp.IngestOptions.BulkBufferSize > 1000 {
+	if imp.IngestOptions.BulkBufferSize <= 0 {
 		imp.IngestOptions.BulkBufferSize = 1000
+	} else if imp.IngestOptions.BulkBufferSize > 100000 {
+		imp.IngestOptions.BulkBufferSize = 100000
 	}
+
+	log.Logvf(log.DebugLow, "using %v batch size", imp.IngestOptions.BulkBufferSize)
 
 	// ensure no more than one positional argument is supplied
 	if len(args) > 1 {
@@ -459,6 +478,8 @@ func (imp *MongoImport) configureSession(session *mgo.Session) error {
 
 type flushInserter interface {
 	Insert(doc interface{}) error
+	Upsert(pair []interface{}) error
+	Remove(doc interface{}) error
 	Flush() error
 }
 
@@ -476,7 +497,9 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	collection := session.DB(imp.ToolOptions.DB).C(imp.ToolOptions.Collection)
 
 	var inserter flushInserter
-	if imp.IngestOptions.Mode == modeInsert {
+	if imp.IngestOptions.Mode == modeInsert ||
+		imp.IngestOptions.Mode == modeRemove ||
+		(imp.IngestOptions.BulkUpdate && imp.IngestOptions.Mode == modeUpsert) {
 		inserter = db.NewBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
 		if !imp.IngestOptions.MaintainInsertionOrder {
 			inserter.(*db.BufferedBulkInserter).Unordered()
@@ -492,7 +515,24 @@ readLoop:
 			if !alive {
 				break readLoop
 			}
-			err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Insert(document))
+			if imp.IngestOptions.Mode == modeUpsert && imp.IngestOptions.BulkUpdate {
+				pair, errUpsertPair := constructUpsertDocumentPair(imp.upsertFields, document)
+				if errUpsertPair == nil {
+					err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Upsert(pair))
+				} else {
+					err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Insert(document))
+				}
+			} else if imp.IngestOptions.Mode == modeRemove {
+				selector := constructUpsertDocument(imp.upsertFields, document)
+				if selector != nil {
+					err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Remove(selector))
+				} else {
+					errRemoveSelector := fmt.Errorf("Could not generate remove selector using fields:%v and document:%v", imp.upsertFields, document)
+					err = filterIngestError(imp.IngestOptions.StopOnError, errRemoveSelector)
+				}
+			} else {
+				err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Insert(document))
+			}
 			if err != nil {
 				return err
 			}
@@ -530,6 +570,19 @@ func (imp *MongoImport) newUpserter(collection *mgo.Collection) *upserter {
 	}
 }
 
+// constructUpsertDocumentPair constructs and returns a
+// selector document pair or an error
+func constructUpsertDocumentPair(upsertFields []string, document bson.D) ([]interface{}, error) {
+	selector := constructUpsertDocument(upsertFields, document)
+	if selector == nil {
+		return nil, fmt.Errorf("Could not generate document upsert pair for: upsertFields:%v, document:%v", upsertFields, document)
+	}
+	var pair []interface{}
+	pair = append(pair, selector)
+	pair = append(pair, document)
+	return pair, nil
+}
+
 // Insert is part of the flushInserter interface and performs
 // upserts or inserts.
 func (up *upserter) Insert(doc interface{}) error {
@@ -549,6 +602,18 @@ func (up *upserter) Insert(doc interface{}) error {
 // Flush is needed so that upserter implements flushInserter, but upserter
 // doesn't buffer anything so we don't need to do anything in Flush.
 func (up *upserter) Flush() error {
+	return nil
+}
+
+// Upsert is needed so that upserter implements flushInserter, but upserter
+// doesn't doesn't really support this
+func (up *upserter) Upsert(pair []interface{}) error {
+	return nil
+}
+
+// Remove is needed so that upserter implements flushInserter, but upserter
+// doesn't doesn't really support this
+func (up *upserter) Remove(doc interface{}) error {
 	return nil
 }
 

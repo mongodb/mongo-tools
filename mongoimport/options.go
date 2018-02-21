@@ -64,10 +64,11 @@ type IngestOptions struct {
 	// Modify the import process.
 	// Always insert the documents if they are new (do NOT match --upsertFields).
 	// For existing documents (match --upsertFields) in the database:
-	// "insert": Insert only, skip exisiting documents.
+	// "insert": Insert only, skip existing documents.
 	// "upsert": Insert new documents or replace existing ones.
 	// "merge": Insert new documents or modify existing ones; Preserve values in the database that are not overwritten.
-	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" description:"insert: insert only. upsert: insert or replace existing documents. merge: insert or modify existing documents. defaults to insert"`
+	// "remove": Remove existing documents based on upsertFields
+	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" choice:"remove" description:"insert: insert only. upsert: insert or replace existing documents. merge: insert or modify existing documents. remove: remove existing documents based on upsertFields. defaults to insert"`
 
 	Upsert bool `long:"upsert" hidden:"true" description:"(deprecated; same as --mode=upsert) insert or update objects that already exist"`
 
@@ -86,6 +87,8 @@ type IngestOptions struct {
 	NumDecodingWorkers int `long:"numDecodingWorkers" default:"0" hidden:"true"`
 
 	BulkBufferSize int `long:"batchSize" default:"1000" hidden:"true"`
+
+	BulkUpdate bool `long:"bulkUpdate" hidden:"true" description:"Bypass one at a time safeties for upsert"`
 }
 
 // Name returns a description of the IngestOptions struct.

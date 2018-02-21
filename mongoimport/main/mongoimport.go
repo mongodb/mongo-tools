@@ -80,9 +80,9 @@ func main() {
 		if err != nil {
 			log.Logvf(log.Always, "Failed: %v", err)
 		}
-		message := fmt.Sprintf("imported 1 document")
+		message := fmt.Sprintf("processed 1 document")
 		if numDocs != 1 {
-			message = fmt.Sprintf("imported %v documents", numDocs)
+			message = fmt.Sprintf("processed %v documents", numDocs)
 		}
 		log.Logvf(log.Always, message)
 	}

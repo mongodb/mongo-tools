@@ -8,6 +8,7 @@ package db
 
 import (
 	"fmt"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -72,7 +73,61 @@ func (bb *BufferedBulkInserter) Insert(doc interface{}) error {
 	return err
 }
 
-// Flush writes all buffered documents in one bulk insert then resets the buffer.
+// Upsert adds a document to the buffer for bulk upsertion. If the buffer is
+// full, the bulk upsert is made, returning any error that occurs.
+// Upsert queues up the provided pair of upserting instructions.
+// The first element of each pair selects which documents must be
+// updated, and the second element defines how to update it.
+// Each pair matches exactly one document for updating at most.
+func (bb *BufferedBulkInserter) Upsert(pair []interface{}) error {
+	if len(pair)%2 != 0 {
+		return fmt.Errorf("Bulk.Upsert requires an even number of parameters")
+	}
+	selector := pair[0]
+	if selector == nil {
+		selector = bson.D{}
+	}
+	document := pair[1]
+	rawBytes, err := bson.Marshal(document)
+	if err != nil {
+		return fmt.Errorf("bson encoding error: %v", err)
+	}
+	rawBytesSelector, errSelector := bson.Marshal(selector)
+	if errSelector != nil {
+		return fmt.Errorf("bson encoding error: %v", errSelector)
+	}
+	totalRequestSize := len(rawBytes) + len(rawBytesSelector)
+	// flush if we are full
+	if bb.docCount >= bb.docLimit || bb.byteCount+totalRequestSize > MaxBSONSize {
+		err = bb.Flush()
+	}
+	// buffer the document
+	bb.docCount++
+	bb.byteCount += totalRequestSize
+	bb.bulk.Upsert(selector, bson.Raw{Data: rawBytes})
+	return err
+}
+
+// Remove queues up the provided selectors for removing matching documents.
+// Each selector will remove only a single matching document.
+func (bb *BufferedBulkInserter) Remove(selector interface{}) error {
+	if selector == nil {
+		return fmt.Errorf("Remove received a nil selector")
+	}
+	rawBytesSelector, err := bson.Marshal(selector)
+	if err != nil {
+		return fmt.Errorf("bson encoding error: %v", err)
+	}
+	if bb.docCount >= bb.docLimit || bb.byteCount+len(rawBytesSelector) > MaxBSONSize {
+		err = bb.Flush()
+	}
+	bb.docCount++
+	bb.byteCount += len(rawBytesSelector)
+	bb.bulk.Remove(selector)
+	return err
+}
+
+// Flush writes all buffered documents in one bulk operation then resets the buffer.
 func (bb *BufferedBulkInserter) Flush() error {
 	if bb.docCount == 0 {
 		return nil
