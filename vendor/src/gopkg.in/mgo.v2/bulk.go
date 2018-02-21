@@ -125,7 +125,7 @@ func (c *Collection) Bulk() *Bulk {
 
 // Unordered puts the bulk operation in unordered mode.
 //
-// In unordered mode the indvidual operations may be sent
+// In unordered mode the individual operations may be sent
 // out of order, which means latter operations may proceed
 // even if prior ones have failed.
 func (b *Bulk) Unordered() {

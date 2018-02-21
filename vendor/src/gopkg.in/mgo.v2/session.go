@@ -4697,6 +4697,11 @@ func (r *writeCmdResult) BulkErrorCases() []BulkErrorCase {
 // will also be returned as err.
 func (c *Collection) writeOp(op interface{}, ordered bool) (lerr *LastError, err error) {
 	s := c.Database.Session
+	buildInfo, errBI := s.BuildInfo()
+	if errBI != nil {
+		return nil, errBI
+	}
+	maxObjectSize := buildInfo.MaxObjectSize
 	socket, err := s.acquireSocket(c.Database.Name == "local")
 	if err != nil {
 		return nil, err
@@ -4708,29 +4713,83 @@ func (c *Collection) writeOp(op interface{}, ordered bool) (lerr *LastError, err
 	bypassValidation := s.bypassValidation
 	s.m.RUnlock()
 
+	// Servers with a more recent write protocol benefit from write commands.
 	if socket.ServerInfo().MaxWireVersion >= 2 {
-		// Servers with a more recent write protocol benefit from write commands.
-		if op, ok := op.(*insertOp); ok && len(op.documents) > 1000 {
-			var lerr LastError
+		maxDocuments := 1000 // Prior to 3.6 the document limit is 1000
+		if socket.ServerInfo().MaxWireVersion >= 6 {
+			maxDocuments = 100000 // After 3.6 the document limit is 100000
+		}
 
-			// Maximum batch size is 1000. Must split out in separate operations for compatibility.
-			all := op.documents
-			for i := 0; i < len(all); i += 1000 {
-				l := i + 1000
-				if l > len(all) {
-					l = len(all)
+		// Calculate document count and size, see if we need to split into separate operations
+		var allDocuments []interface{}
+		switch op.(type) {
+		case *insertOp:
+			allDocuments = op.(*insertOp).documents
+		case bulkUpdateOp:
+			allDocuments = op.(bulkUpdateOp)
+		case bulkDeleteOp:
+			allDocuments = op.(bulkDeleteOp)
+		}
+		rawBytes, _ := bson.Marshal(allDocuments)
+		allDocumentSize := len(rawBytes)
+
+		// If we're over the document or size limit, split
+		if len(allDocuments) > maxDocuments || allDocumentSize > maxObjectSize {
+			var lerr LastError
+			for i, l := 0, 0; i < len(allDocuments); i = l {
+				l = i + maxDocuments
+				if l > len(allDocuments) {
+					l = len(allDocuments)
 				}
-				op.documents = all[i:l]
-				oplerr, err := c.writeOpCommand(socket, safeOp, op, ordered, bypassValidation)
-				lerr.N += oplerr.N
-				lerr.modified += oplerr.modified
-				if err != nil {
-					for ei := range oplerr.ecases {
-						oplerr.ecases[ei].Index += i
+				tmpDocuments := allDocuments[i:l]
+				rawBytes, _ := bson.Marshal(tmpDocuments)
+				documentSize := len(rawBytes)
+
+				// If we're too big, keep splitting the document list in half until we fit
+				for documentSize > maxObjectSize && !(l == i+1) {
+					l = ((l - i) / 2) + i
+					if l <= i {
+						l = i + 1 // Make sure we're making some progress
 					}
-					lerr.ecases = append(lerr.ecases, oplerr.ecases...)
-					if op.flags&1 == 0 {
-						return &lerr, err
+					tmpDocuments = allDocuments[i:l]
+					rawBytes, _ = bson.Marshal(tmpDocuments)
+					documentSize = len(rawBytes)
+				}
+
+				// Update op with current subset of documents
+				switch op.(type) {
+				case *insertOp:
+					op.(*insertOp).documents = tmpDocuments
+				case bulkUpdateOp:
+					op = bulkUpdateOp(tmpDocuments)
+				case bulkDeleteOp:
+					op = bulkDeleteOp(tmpDocuments)
+				}
+
+				// Execute operation and handle errors
+				oplerr, err := c.writeOpCommand(socket, safeOp, op, ordered, bypassValidation)
+				if err != nil {
+					if oplerr != nil {
+						lerr.N += oplerr.N
+						lerr.modified += oplerr.modified
+						for ei := range oplerr.ecases {
+							oplerr.ecases[ei].Index += i
+						}
+						lerr.ecases = append(lerr.ecases, oplerr.ecases...)
+					} else {
+						lerr.N++
+						lerr.modified++
+						lerr.ecases = append(lerr.ecases, BulkErrorCase{Index: i, Err: err})
+					}
+					switch op.(type) {
+					case *insertOp:
+						if op.(*insertOp).flags&1 == 0 {
+							return &lerr, err
+						}
+					default:
+						if ordered {
+							break
+						}
 					}
 				}
 			}
