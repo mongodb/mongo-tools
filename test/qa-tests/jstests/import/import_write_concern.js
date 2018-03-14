@@ -31,6 +31,9 @@
       .concat(writeConcern)
       .concat(commonToolArgs));
     assert.eq(exitCode, ret, name);
+  }
+
+  function testSetup() {
     db.dropDatabase();
   }
 
@@ -63,7 +66,7 @@
 
   // load and run the write concern suite
   load('jstests/libs/wc_framework.js');
-  runWCTest("mongoimport", rs, toolTest, writeConcernTestFunc, noConnectTest);
+  runWCTest("mongoimport", rs, toolTest, writeConcernTestFunc, noConnectTest, testSetup);
 
   db.dropDatabase();
   rs.stopSet();
