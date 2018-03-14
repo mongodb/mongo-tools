@@ -28,6 +28,9 @@
       .concat(commonToolArgs)
       .concat(['put', 'jstests/files/testdata/files1.txt']));
     assert.eq(exitCode, ret, name);
+  }
+
+  function testSetup() {
     dbOne.dropDatabase();
   }
 
@@ -45,7 +48,7 @@
 
   // load and run the write concern suite
   load('jstests/libs/wc_framework.js');
-  runWCTest("mongofiles", rs, toolTest, writeConcernTestFunc, noConnectTest);
+  runWCTest("mongofiles", rs, toolTest, writeConcernTestFunc, noConnectTest, testSetup);
 
   dbOne.dropDatabase();
   rs.stopSet();
