@@ -46,12 +46,12 @@
   // grab the query from the profiling collection
   var queries = profilingColl.find({op: 'query', ns: 'test.data'}).toArray();
 
-  // there should only be one query so far, and it should have snapshot set
+  // there should only be one query so far, and it should have snapshot set (or equivalent).
   assert.eq(1, queries.length);
   if (queries[0].command === undefined) {
-    assert.eq(true, queries[0].query.$snapshot || queries[0].query.snapshot);
+    assert.eq(true, queries[0].query.$snapshot || queries[0].query.snapshot || queries[0].query.hint._id);
   } else {
-    assert.eq(true, queries[0].command.snapshot);
+    assert.eq(true, queries[0].command.snapshot || queries[0].command.hint._id == 1);
   }
 
   // remove the export file
@@ -69,14 +69,14 @@
   // grab the queries again
   queries = profilingColl.find({op: 'query', ns: 'test.data'}).sort({ts: 1}).toArray();
 
-  // there should be two queries, and the second one should not
-  // have snapshot set
+  // there should be two queries, and the second one should not have snapshot set (or equivalent).
   assert.eq(2, queries.length);
   if (queries[1].command === undefined) {
-    assert(!queries[1].query['$snapshot']);
+    assert(!queries[1].query['$snapshot'] && !queries[1].query.hint);
   } else {
-    assert.eq(true, !queries[1].command.snapshot);
+    assert.eq(true, !queries[1].command.snapshot && !queries[1].command.hint);
   }
+
 
   // wipe the collection
   testColl.remove({});
@@ -111,14 +111,13 @@
   // grab the queries again
   queries = profilingColl.find({op: 'query', ns: 'test.data'}).sort({ts: 1}).toArray();
 
-  // there should be 3 queries, and the last one should not have snapshot set
+  // there should be 3 queries and the last one should not have snapshot set (or equivalent).
   assert.eq(3, queries.length);
   if (queries[2].command === undefined) {
-    assert(!queries[2].query['$snapshot']);
+    assert(!queries[2].query['$snapshot'] && !queries[1].query.hint);
   } else {
-    assert.eq(true, !queries[2].command.snapshot);
+    assert.eq(true, !queries[2].command.snapshot && !queries[2].command.hint);
   }
-
 
   // success
   toolTest.stop();

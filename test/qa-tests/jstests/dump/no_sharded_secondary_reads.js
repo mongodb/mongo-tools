@@ -50,20 +50,24 @@
   mongosAddr = st.getConnNames()[0];
   runMongoProgram("mongodump", "--host", st.s.host, "-vvvv");
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
+  printjson(replDB.system.profile.find(profQuery).toArray());
   assert.eq(replDB.system.profile.find({
     ns: "test.a",
     op: "query",
     $or: [
-      // 3.6+ schema
+      // 4.0
+      {"command.hint._id": 1},
+
+      // 3.6 schema
       {"command.$snapshot": true},
       {"command.snapshot": true},
 
       // 3.4 and previous schema
       {"query.$snapshot": true},
       {"query.snapshot": true},
+      {"query.hint._id": 1},
     ]
   }).count(), 1);
-  printjson(replDB.system.profile.find(profQuery).toArray());
   // make sure the secondaries saw 0 queries
   for (i = 0; i < secondaries.length; i++) {
     print("checking secondary " + i);
