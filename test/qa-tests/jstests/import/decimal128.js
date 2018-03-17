@@ -22,16 +22,16 @@
   assert.eq(0, db1.c.count(), "initial collection is not empty");
   db1.c.save(testDoc);
   toolTest.runTool.apply(toolTest, ["export",
-      "--out", toolTest.extFile,
-      "-d", toolTest.baseName,
-      "-c", db1.c.getName()]
-      .concat(commonToolArgs));
+    "--out", toolTest.extFile,
+    "-d", toolTest.baseName,
+    "-c", db1.c.getName()]
+    .concat(commonToolArgs));
 
   toolTest.runTool.apply(toolTest, ["import",
-      "--file", toolTest.extFile,
-      "--db", "imported",
-      "--collection", "dec128"]
-      .concat(commonToolArgs));
+    "--file", toolTest.extFile,
+    "--db", "imported",
+    "--collection", "dec128"]
+    .concat(commonToolArgs));
   var importedDocs = db1.c.getDB().getSiblingDB("imported").dec128.find().toArray();
 
   assert.eq(importedDocs.length, 1, "incorrect # of docs imported");

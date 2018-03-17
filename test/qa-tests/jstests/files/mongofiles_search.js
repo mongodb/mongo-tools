@@ -37,11 +37,11 @@ var testName = 'mongofiles_search';
       clearRawMongoProgramOutput();
       var queryString = searchStrings[i];
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--quiet',
-          '--port', conn.port,
-          'search', queryString]
+        '--quiet',
+        '--port', conn.port,
+        'search', queryString]
         .concat(passthrough.args)),
-        0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
+      0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
 
       // eslint-disable-next-line no-loop-func
       assert.eq.soon(expectedResult, function() {
@@ -59,10 +59,10 @@ var testName = 'mongofiles_search';
 
     for (var i = 0; i < filesToInsert.length; i++) {
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
-            '--port', conn.port,
-            'put', filesToInsert[i]]
+        '--port', conn.port,
+        'put', filesToInsert[i]]
         .concat(passthrough.args)),
-          0, 'put failed on ' + filesToInsert[i] + ' when it should have succeeded');
+      0, 'put failed on ' + filesToInsert[i] + ' when it should have succeeded');
     }
 
     jsTest.log('Searching files in GridFS with ' + passthrough.name + ' passthrough');

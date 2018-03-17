@@ -15,14 +15,14 @@
 
   // run restore with --db and a missing dump directory
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'test']
+    '--db', 'test']
     .concat(getRestoreTarget('xxxxxxxx')));
   assert.neq(0, ret);
 
   // specify --collection with a missing file
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'test',
-      '--collection', 'data']
+    '--db', 'test',
+    '--collection', 'data']
     .concat(getRestoreTarget('jstests/restore/testdata/blankdb/xxxxxxxx.bson')));
   assert.neq(0, ret);
 

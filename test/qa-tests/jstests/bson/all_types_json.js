@@ -8,7 +8,7 @@
   assert.eq(x, 0, "bsondump should exit successfully with 0");
 
   assert.strContains.soon("20 objects found", rawMongoProgramOutput,
-      "should print out all top-level documents from the test data");
+    "should print out all top-level documents from the test data");
 
   var results = rawMongoProgramOutput();
   assert.strContains("$binary", results, "bson type 'binary' should be present in the debug output");

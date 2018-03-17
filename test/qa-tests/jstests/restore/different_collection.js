@@ -42,8 +42,8 @@
   // in the same database
   var destCollName = 'destColl';
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'source',
-      '--collection', destCollName]
+    '--db', 'source',
+    '--collection', destCollName]
     .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);
@@ -58,8 +58,8 @@
   // in a different database
   var destDB = toolTest.db.getSiblingDB('dest');
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'dest',
-      '--collection', sourceCollName]
+    '--db', 'dest',
+    '--collection', sourceCollName]
     .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);
@@ -73,8 +73,8 @@
   // restore just the collection into a different collection
   // in a different database
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'dest',
-      '--collection', destCollName]
+    '--db', 'dest',
+    '--collection', destCollName]
     .concat(getRestoreTarget(dumpTarget+'/source/sourceColl.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);

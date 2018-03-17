@@ -93,7 +93,7 @@
       concat(getRestoreTarget(targetPath)).
       concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
-        'mongorestore should succeed');
+      'mongorestore should succeed');
     assert.eq(1, testDB.bar.count());
     assert.eq(0, testDB.getSiblingDB('baz').bar.count());
   };

@@ -27,7 +27,7 @@
 
   // wait for full output to appear
   assert.strContains.soon('exported 20 records', rawMongoProgramOutput,
-      'should show number of exported records');
+    'should show number of exported records');
 
   // grab the raw output
   var output = rawMongoProgramOutput();

@@ -47,7 +47,7 @@
   // restore the data, with --oplogReplay. _ids 10-14, appearing
   // in the oplog.bson file, should be inserted as well.
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--oplogReplay']
+    '--oplogReplay']
     .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
     .concat(commonToolArgs));
   assert.eq(0, ret);
@@ -62,8 +62,8 @@
   // restore the data, with --oplogReplay and --oplogLimit with a
   // value that will filter out { _id: 14 } from getting inserted.
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--oplogReplay',
-      '--oplogLimit', '1416342266:0']
+    '--oplogReplay',
+    '--oplogLimit', '1416342266:0']
     .concat(getRestoreTarget('jstests/restore/testdata/dump_with_oplog'))
     .concat(commonToolArgs));
   assert.eq(0, ret);

@@ -36,6 +36,6 @@
   x = _runMongoProgram("bsondump", "jstests/bson/testdata/bad_cstring.bson");
   assert.eq(x, 0, "bsondump should not exit with an error when given a non-terminated cstring without --objcheck");
   assert.strContains.soon("corrupted", rawMongoProgramOutput,
-      "one of the documents should have been labelled as corrupted");
+    "one of the documents should have been labelled as corrupted");
 
 }());

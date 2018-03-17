@@ -178,7 +178,7 @@ if (typeof _threadInject !== "undefined") {
 
     i = 0;
     files.forEach(function(x) {
-      if ((/[\/\\]_/.test(x.name)) ||
+      if ((/[/\\]_/.test(x.name)) ||
               (!/\.js$/.test(x.name)) ||
               (x.name.match(parallelFilesDir + "/(.*\\.js)")[1] in skipTests) ||
               (x.name in serialTests)) {
@@ -224,7 +224,7 @@ if (typeof _threadInject !== "undefined") {
     var wrapper = function(fun, argv) {
       // TODO: this doesn't need to use eval
       eval( // eslint-disable-line no-eval
-          "var z = function() {" +
+        "var z = function() {" +
             "var __parallelTests__fun = " + fun.toString() + ";" +
             "var __parallelTests__argv = " + tojson(argv) + ";" +
             "var __parallelTests__passed = false;" +

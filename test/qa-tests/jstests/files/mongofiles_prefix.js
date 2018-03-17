@@ -14,10 +14,10 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        'put', filesToInsert[0]]
+      '--port', conn.port,
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 1 failed');
+    0, 'put 1 failed');
 
     // ensure the default collection name prefix was used
     assert.eq(1, db.fs.files.count(), 'unexpected fs.files count');
@@ -27,11 +27,11 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--prefix', testName,
-          'put', filesToInsert[0]]
+      '--port', conn.port,
+      '--prefix', testName,
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'put 2 failed');
+    0, 'put 2 failed');
 
     // ensure the supplied collection name prefix was used
     assert.eq(1, db.fs.files.count(), 'unexpected fs.files count');

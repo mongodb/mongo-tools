@@ -48,9 +48,9 @@
 
   // import the data in from types.json
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', importFile,
-      '--db', 'imported',
-      '--collection', 'types']
+    '--file', importFile,
+    '--db', 'imported',
+    '--collection', 'types']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

@@ -36,21 +36,21 @@ load('jstests/files/util/mongofiles_common.js');
     var dumpDir = './dumpDir';
 
     assert.eq(runMongoProgram.apply(this, ['mongodump',
-          '-d', dbName,
-          '--port', conn.port,
-          '-c', collection,
-          '--out', dumpDir]
+      '-d', dbName,
+      '--port', conn.port,
+      '-c', collection,
+      '--out', dumpDir]
       .concat(passthrough.args)),
-        0, 'dump failed when it should have succeeded');
+    0, 'dump failed when it should have succeeded');
 
     jsTest.log('Putting directory');
 
     // putting a directory should fail
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          'put', dumpDir]
+      '--port', conn.port,
+      'put', dumpDir]
       .concat(passthrough.args)),
-        0, 'put succeeded when it should have failed');
+    0, 'put succeeded when it should have failed');
 
     jsTest.log('Putting file with ' + passthrough.name + ' passthrough');
 
@@ -58,11 +58,11 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure putting of the large file succeeds
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', putFile,
-          'put', testName]
+      '--port', conn.port,
+      '--local', putFile,
+      'put', testName]
       .concat(passthrough.args)),
-        0, 'put failed when it should have succeeded');
+    0, 'put failed when it should have succeeded');
 
     // verify file metadata
     var fileObj = db.fs.files.findOne({
@@ -84,11 +84,11 @@ load('jstests/files/util/mongofiles_common.js');
     // ensure tool runs without error
     var getFile = testName + (Math.random() + 1).toString(36).substring(7);
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', getFile,
-          'get', testName]
+      '--port', conn.port,
+      '--local', getFile,
+      'get', testName]
       .concat(passthrough.args)),
-        0, 'get failed');
+    0, 'get failed');
 
     // ensure the retrieved file is exactly the same as that inserted
     var actual = md5sumFile(putFile);

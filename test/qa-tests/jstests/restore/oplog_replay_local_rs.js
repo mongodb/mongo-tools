@@ -38,9 +38,9 @@
 
   // Dump the fake oplog.
   var ret = toolTest.runTool.apply(toolTest, ['dump',
-      '--db', 'local',
-      '-c', 'oplog.rs',
-      '--out', dumpTarget]
+    '--db', 'local',
+    '-c', 'oplog.rs',
+    '--out', dumpTarget]
     .concat(commonToolArgs));
   assert.eq(0, ret, "dump operation failed");
 
@@ -56,12 +56,12 @@
 
   // Replay the oplog from the provided oplog
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--oplogReplay',
-      dumpTarget]
+    '--oplogReplay',
+    dumpTarget]
     .concat(commonToolArgs));
   assert.eq(0, ret, "restore operation failed");
 
   assert.eq(oplogSize, testRestoreColl.count(),
-      "all oplog entries should be inserted");
+    "all oplog entries should be inserted");
   toolTest.stop();
 }());
