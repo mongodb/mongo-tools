@@ -73,10 +73,10 @@
 
   // try to restore the data with new temp collections
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'test',
-      '--tempUsersColl', 'tempU',
-      '--tempRolesColl', 'tempR',
-      '--restoreDbUsersAndRoles']
+    '--db', 'test',
+    '--tempUsersColl', 'tempU',
+    '--tempRolesColl', 'tempR',
+    '--restoreDbUsersAndRoles']
     .concat(getRestoreTarget(dumpTarget+'/test'))
     .concat(commonToolArgs));
 

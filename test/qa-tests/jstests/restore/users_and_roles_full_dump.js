@@ -26,7 +26,7 @@
                 (destDBVersion || 'latest'));
 
     var toolTest = new ToolTest('users_and_roles_full_dump',
-            {binVersion: sourceDBVersion});
+      {binVersion: sourceDBVersion});
     toolTest.startDB('foo');
 
     // where we'll put the dump

@@ -106,9 +106,9 @@ function statCheck(args, checker) {
 
 function discoverTest(ports, connectHost) {
   return statCheck(["mongostat",
-      "--host", connectHost,
-      "--noheaders",
-      "--discover"],
-    hasOnlyPorts(ports));
+    "--host", connectHost,
+    "--noheaders",
+    "--discover"],
+  hasOnlyPorts(ports));
 }
 

@@ -31,9 +31,9 @@
   function writeConcernTestFunc(exitCode, writeConcern, name) {
     jsTest.log(name);
     var ret = toolTest.runTool.apply(toolTest, ['import',
-        '--file', fileTarget,
-        '-d', dbName,
-        '-c', colName]
+      '--file', fileTarget,
+      '-d', dbName,
+      '-c', colName]
       .concat(writeConcern)
       .concat(commonToolArgs));
     assert.eq(exitCode, ret, name);
@@ -45,9 +45,9 @@
 
   function startProgramNoConnect() {
     return startMongoProgramNoConnect.apply(null, ['mongoimport',
-        '--writeConcern={w:3}',
-        '--host', st.s.host,
-        '--file', fileTarget]
+      '--writeConcern={w:3}',
+      '--host', st.s.host,
+      '--file', fileTarget]
       .concat(commonToolArgs));
   }
 
@@ -61,9 +61,9 @@
 
   // setup: export the data that we'll use
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', fileTarget,
-      '-d', dbName,
-      '-c', colName]
+    '--out', fileTarget,
+    '-d', dbName,
+    '-c', colName]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

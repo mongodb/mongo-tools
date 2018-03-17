@@ -18,9 +18,9 @@
   assert.eq(2, db1.c.count(), "setup2");
 
   toolTest.runTool.apply(toolTest, ["export",
-      "--out", toolTest.extFile,
-      "-d", toolTest.baseName,
-      "-c", db1.c.getName()]
+    "--out", toolTest.extFile,
+    "-d", toolTest.baseName,
+    "-c", db1.c.getName()]
     .concat(commonToolArgs));
 
   db1.c.drop();
@@ -37,40 +37,40 @@
 
 
   toolTest.runTool.apply(toolTest, ["import",
-      "--file", "foo.blah.json"]
+    "--file", "foo.blah.json"]
     .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").foo.blah.count(), 2,
-      "importing file named after collection should insert to correct namespace");
+    "importing file named after collection should insert to correct namespace");
   db1.c.getDB().getSiblingDB("test").foo.blah.drop();
 
   toolTest.runTool.apply(toolTest, ["import",
-      "--file", "foo.blah.json.backup"]
+    "--file", "foo.blah.json.backup"]
     .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").foo.blah.json.count(), 2,
-      "importing file with extra extension should still assume correct namespace");
+    "importing file with extra extension should still assume correct namespace");
   db1.c.getDB().getSiblingDB("test").foo.blah.json.drop();
 
   toolTest.runTool.apply(toolTest, ["import",
-      "--file", "foo.blah.json",
-      "--collection", "testcoll1"]
+    "--file", "foo.blah.json",
+    "--collection", "testcoll1"]
     .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").testcoll1.count(), 2,
-      "importing --file with --collection should use correct collection name");
+    "importing --file with --collection should use correct collection name");
   db1.c.getDB().getSiblingDB("test").testcoll1.drop();
 
   toolTest.runTool.apply(toolTest, ["import",
-      "foo.blah.json"]
+    "foo.blah.json"]
     .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("test").foo.blah.count(), 2,
-      "should be allowed to specify file as positional arg");
+    "should be allowed to specify file as positional arg");
   db1.c.getDB().getSiblingDB("test").foo.blah.drop();
 
   toolTest.runTool.apply(toolTest, ["import",
-      "foo.blah.json",
-      "--db", "testdb2"]
+    "foo.blah.json",
+    "--db", "testdb2"]
     .concat(commonToolArgs));
   assert.eq(db1.c.getDB().getSiblingDB("testdb2").foo.blah.count(), 2,
-      "should use database specified by --db");
+    "should use database specified by --db");
   db1.c.getDB().getSiblingDB("testdb2").foo.blah.drop();
 
   toolTest.stop();

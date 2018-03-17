@@ -37,9 +37,9 @@
 
   // run mongoexport without --forceTableScan
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'data']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'data']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -59,10 +59,10 @@
 
   // run mongoexport again, with --forceTableScan
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'data',
-      '--forceTableScan']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'data',
+    '--forceTableScan']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -83,9 +83,9 @@
 
   // import the data back in
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'data']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'data']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -101,10 +101,10 @@
   // run mongoexport again, without --forceTableScan but with --sort. --forceTableScan
   // should be implicitly set
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'data',
-      '--sort', '{_id:1}']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'data',
+    '--sort', '{_id:1}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

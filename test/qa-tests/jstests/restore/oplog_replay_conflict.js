@@ -22,12 +22,12 @@
 
   // Replay the oplog from the provided oplog
   var ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--oplogReplay',
-      '--oplogFile', 'jstests/restore/testdata/extra_oplog.bson',
-      restoreTarget].concat(commonToolArgs));
+    '--oplogReplay',
+    '--oplogFile', 'jstests/restore/testdata/extra_oplog.bson',
+    restoreTarget].concat(commonToolArgs));
 
   assert.eq(0, testColl.count(),
-            "no original entries should be restored");
+    "no original entries should be restored");
   assert.eq(1, ret, "restore operation succeeded when it shouldn't have");
   toolTest.stop();
 }());

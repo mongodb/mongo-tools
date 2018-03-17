@@ -21,11 +21,11 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error with a non-empty --local argument
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        '-l', filesToInsert[0],
-        'put', putFSName]
+      '--port', conn.port,
+      '-l', filesToInsert[0],
+      'put', putFSName]
       .concat(passthrough.args)),
-      0, 'put failed when it should have succeeded 1');
+    0, 'put failed when it should have succeeded 1');
 
     // ensure the file exists
     assert(db.fs.files.findOne({
@@ -34,19 +34,19 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool returns an error if the --local argument does not exist
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', filesToInsert[0] + '?',
-          'put', putFSName]
+      '--port', conn.port,
+      '--local', filesToInsert[0] + '?',
+      'put', putFSName]
       .concat(passthrough.args)),
-        0, 'put succeeded when it should have failed 2');
+    0, 'put succeeded when it should have failed 2');
 
     // if the argument is empty, use the putFSName - which should cause an error since it doesn't exist
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', '',
-          'put', putFSName]
+      '--port', conn.port,
+      '--local', '',
+      'put', putFSName]
       .concat(passthrough.args)),
-        0, 'put succeeded when it should have failed 3');
+    0, 'put succeeded when it should have failed 3');
 
     // if the argument is empty, and the GridFS file exists, it should run
     // without error  on linux and fails on windows
@@ -55,21 +55,21 @@ load('jstests/files/util/mongofiles_common.js');
       comparison = 'neq';
     }
     assert[comparison](runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', '',
-          'put', filesToInsert[0]]
+      '--port', conn.port,
+      '--local', '',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'put failed when it should have succeeded 2');
+    0, 'put failed when it should have succeeded 2');
 
     jsTest.log('Running get on file with --local');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', getFSName,
-          'get', putFSName]
+      '--port', conn.port,
+      '--local', getFSName,
+      'get', putFSName]
       .concat(passthrough.args)),
-        0, 'get failed when it should have succeeded 1');
+    0, 'get failed when it should have succeeded 1');
 
     // ensure the right file name was written
     assert.eq(md5sumFile(filesToInsert[0]), md5sumFile(getFSName), 'files do not match!');
@@ -81,11 +81,11 @@ load('jstests/files/util/mongofiles_common.js');
       comparison = 'neq';
     }
     assert[comparison](runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', '',
-          'get', putFSName]
+      '--port', conn.port,
+      '--local', '',
+      'get', putFSName]
       .concat(passthrough.args)),
-        0, 'get failed unexpectedly');
+    0, 'get failed unexpectedly');
 
     if (!_isWindows()) {
       assert.eq(md5sumFile(filesToInsert[0]), md5sumFile(putFSName), 'md5sums do not match - expected ' + md5sumFile(filesToInsert[0]) + ' got ' + md5sumFile(putFSName));

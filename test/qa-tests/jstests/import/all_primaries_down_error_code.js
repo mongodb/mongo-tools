@@ -48,17 +48,17 @@
     }
     // Assert that we left due to running out of primaries and not due to the loop ending.
     assert(ranOutOfPrimaries,
-        'Had to kill primary more times than number of nodes in the replset.');
+      'Had to kill primary more times than number of nodes in the replset.');
   }
 
   // Check that we catch 'could not contact primary for replica set'
   jsTest.log('All primaries stepped down, trying to import.');
 
   var ret = runMongoProgram('mongoimport',
-      '--file', 'jstests/import/testdata/basic.json',
-      '--db', 'test',
-      '--collection', 'noPrimaryErrorCode',
-      '--host', sh.s0.host);
+    '--file', 'jstests/import/testdata/basic.json',
+    '--db', 'test',
+    '--collection', 'noPrimaryErrorCode',
+    '--host', sh.s0.host);
   assert.eq(ret, 1, 'mongoimport should fail with no primary');
 
   sh.stop();

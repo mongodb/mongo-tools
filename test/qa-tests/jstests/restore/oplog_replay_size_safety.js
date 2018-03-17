@@ -40,9 +40,9 @@
 
     // dump the fake oplog
     var ret = toolTest.runTool.apply(toolTest, ['dump',
-        '--db', 'test_oplog',
-        '-c', 'oplog',
-        '--out', dumpTarget]
+      '--db', 'test_oplog',
+      '-c', 'oplog',
+      '--out', dumpTarget]
       .concat(commonToolArgs));
     assert.eq(0, ret, "dump operation failed " + debugString);
 
@@ -53,19 +53,19 @@
 
     // trick restore into replaying the "oplog" we forged above
     ret = toolTest.runTool.apply(toolTest, ['restore',
-        '--oplogReplay', dumpTarget+'/test_oplog']
+      '--oplogReplay', dumpTarget+'/test_oplog']
       .concat(commonToolArgs));
     assert.eq(0, ret, "restore operation failed " + debugString);
     assert.eq(oplogSize, testRestoreColl.count(),
-          "all oplog entries should be inserted " + debugString);
+      "all oplog entries should be inserted " + debugString);
     toolTest.stop();
   }
 
   // run the test on various oplog and op sizes
-  tryOplogReplay(1024, 1024);      // sanity check
-  tryOplogReplay(1024*1024, 1);    // millions of micro ops
+  tryOplogReplay(1024, 1024); // sanity check
+  tryOplogReplay(1024*1024, 1); // millions of micro ops
   tryOplogReplay(8, 16*1024*1023); // 8 ~16MB ops
-  tryOplogReplay(32, 1024*1024);   // 32 ~1MB ops
-  tryOplogReplay(32*1024, 1024);   // many ~1KB ops
+  tryOplogReplay(32, 1024*1024); // 32 ~1MB ops
+  tryOplogReplay(32*1024, 1024); // many ~1KB ops
 
 }());

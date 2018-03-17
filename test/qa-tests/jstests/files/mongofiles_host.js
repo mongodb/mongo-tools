@@ -13,17 +13,17 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        '--host', 'localhost',
-        'put', filesToInsert[0]]
+      '--port', conn.port,
+      '--host', 'localhost',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 1 failed');
+    0, 'put 1 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        '--host', '127.0.0.1',
-        'put', filesToInsert[0]]
+      '--port', conn.port,
+      '--host', '127.0.0.1',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 2 failed');
+    0, 'put 2 failed');
 
     // ensure the file was inserted
     assert.eq(2, db.getCollection('fs.files').count(), 'unexpected fs.files count 1');
@@ -32,17 +32,17 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool exits with a non-zero exit code when supplied invalid hosts
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--host', 'does-not-exist',
-          'put', filesToInsert[0]]
+      '--port', conn.port,
+      '--host', 'does-not-exist',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'expected mongofiles to fail but it succeeded 1');
+    0, 'expected mongofiles to fail but it succeeded 1');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--host', '555.555.555.555',
-          'put', filesToInsert[0]]
+      '--port', conn.port,
+      '--host', '555.555.555.555',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'expected mongofiles to fail but it succeeded 2');
+    0, 'expected mongofiles to fail but it succeeded 2');
 
     // ensure the file was not inserted
     assert.eq(2, db.getCollection('fs.files').count(), 'unexpected fs.files count 2');

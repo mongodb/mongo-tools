@@ -8,24 +8,24 @@
 
   if (HOST_TYPE === "windows") {
     runProgram(
-            "certutil.exe", "-addstore", "-user", "-f", "CA", "jstests\\libs\\trusted-ca.pem");
+      "certutil.exe", "-addstore", "-user", "-f", "CA", "jstests\\libs\\trusted-ca.pem");
   }
 
   var testWithCerts = function(serverPem) {
     jsTest.log(`Testing with SSL certs $ {
             serverPem
         }`);
-        // allowSSL instead of requireSSL so that the non-SSL connection succeeds.
+    // allowSSL instead of requireSSL so that the non-SSL connection succeeds.
     var conn = MongoRunner.runMongod(
-            {sslMode: 'requireSSL', sslPEMKeyFile: "jstests/libs/" + serverPem});
+      {sslMode: 'requireSSL', sslPEMKeyFile: "jstests/libs/" + serverPem});
 
-        // Should not be able to authenticate with x509.
-        // Authenticate call will return 1 on success, 0 on error.
+    // Should not be able to authenticate with x509.
+    // Authenticate call will return 1 on success, 0 on error.
     var argv =
             ['./mongodump', '-v', '--ssl', '--port', conn.port];
     if (HOST_TYPE === "linux") {
-            // On Linux we override the default path to the system CA store to point to our
-            // "trusted" CA. On Windows, this CA will have been added to the user's trusted CA list
+      // On Linux we override the default path to the system CA store to point to our
+      // "trusted" CA. On Windows, this CA will have been added to the user's trusted CA list
       argv.unshift("env", "SSL_CERT_FILE=jstests/libs/trusted-ca.pem");
     }
     var exitStatus = runMongoProgram.apply(null, argv);

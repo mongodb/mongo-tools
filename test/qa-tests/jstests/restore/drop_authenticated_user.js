@@ -57,8 +57,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump',
-      '--username', 'backup',
-      '--password', 'password']
+    '--username', 'backup',
+    '--password', 'password']
     .concat(getDumpTarget(dumpTarget)));
   assert.eq(0, ret);
 
@@ -86,9 +86,9 @@
 
   // restore the data, specifying --drop
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--drop',
-      '--username', 'restore',
-      '--password', 'password']
+    '--drop',
+    '--username', 'restore',
+    '--password', 'password']
     .concat(getRestoreTarget(dumpTarget)));
   assert.eq(0, ret);
 

@@ -47,12 +47,12 @@
     var c = db1.c.getDB().getSiblingDB(format + "testdb")[format+"testcoll"];
     // check that headerline uses the correct headers
     var ret = toolTest.runTool.apply(toolTest, ["import",
-        "--file", "jstests/import/testdata/typed_header." + format,
-        "--type=" + format,
-        "--db", format + "testdb",
-        "--collection", format + "testcoll",
-        "--columnsHaveTypes",
-        "--headerline"]
+      "--file", "jstests/import/testdata/typed_header." + format,
+      "--type=" + format,
+      "--db", format + "testdb",
+      "--collection", format + "testcoll",
+      "--columnsHaveTypes",
+      "--headerline"]
       .concat(commonToolArgs));
 
     checkCollectionContents(c);
@@ -60,24 +60,24 @@
 
     // check that the fields can be specified with --fields
     ret = toolTest.runTool.apply(toolTest, ["import",
-        "--file", "jstests/import/testdata/typed_noheader." + format,
-        "--type=" + format,
-        "--db", format + "testdb",
-        "--collection", format + "testcoll",
-        "--columnsHaveTypes",
-        "--fields", header]
+      "--file", "jstests/import/testdata/typed_noheader." + format,
+      "--type=" + format,
+      "--db", format + "testdb",
+      "--collection", format + "testcoll",
+      "--columnsHaveTypes",
+      "--fields", header]
       .concat(commonToolArgs));
     checkCollectionContents(c);
     reset(c);
 
     // check that the fields can be specified with --fieldsFile
     ret = toolTest.runTool.apply(toolTest, ["import",
-        "--file", "jstests/import/testdata/typed_noheader." + format,
-        "--type=" + format,
-        "--db", format + "testdb",
-        "--collection", format + "testcoll",
-        "--columnsHaveTypes",
-        "--fieldFile", "jstests/import/testdata/typedfieldfile"]
+      "--file", "jstests/import/testdata/typed_noheader." + format,
+      "--type=" + format,
+      "--db", format + "testdb",
+      "--collection", format + "testcoll",
+      "--columnsHaveTypes",
+      "--fieldFile", "jstests/import/testdata/typedfieldfile"]
       .concat(commonToolArgs));
     checkCollectionContents(c);
     reset(c);
@@ -85,23 +85,23 @@
     // when --fieldFile, --fields, and --headerline are all omitted,
     // import should fail
     ret = toolTest.runTool.apply(toolTest, ["import",
-        "--file", "jstests/import/testdata/typed_noheader." + format,
-        "--type=" + format,
-        "--db", format + "testdb",
-        "--collection", format + "testcoll",
-        "--columnsHaveTypes"]
+      "--file", "jstests/import/testdata/typed_noheader." + format,
+      "--type=" + format,
+      "--db", format + "testdb",
+      "--collection", format + "testcoll",
+      "--columnsHaveTypes"]
       .concat(commonToolArgs));
     assert.neq(ret, 0);
     reset(c);
 
     // check that extra fields are created as expected
     ret = toolTest.runTool.apply(toolTest, ["import",
-        "--file", "jstests/import/testdata/typed_extrafields." + format,
-        "--type=" + format,
-        "--db", format + "testdb",
-        "--collection", format + "testcoll",
-        "--columnsHaveTypes",
-        "--fieldFile", "jstests/import/testdata/typedfieldfile"]
+      "--file", "jstests/import/testdata/typed_extrafields." + format,
+      "--type=" + format,
+      "--db", format + "testdb",
+      "--collection", format + "testcoll",
+      "--columnsHaveTypes",
+      "--fieldFile", "jstests/import/testdata/typedfieldfile"]
       .concat(commonToolArgs));
 
     var importedDoc = c.findOne({"a": "one"});
