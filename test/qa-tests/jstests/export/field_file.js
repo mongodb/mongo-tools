@@ -28,22 +28,22 @@
 
   // export the data, using a field file that specifies 'a' and 'b'
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--type=csv',
-      '--fieldFile', 'jstests/export/testdata/simple_field_file']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--type=csv',
+    '--fieldFile', 'jstests/export/testdata/simple_field_file']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest',
-      '--type=csv',
-      '--fields', 'a,b,c']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest',
+    '--type=csv',
+    '--fields', 'a,b,c']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

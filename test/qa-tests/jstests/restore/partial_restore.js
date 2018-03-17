@@ -66,8 +66,8 @@
 
   // restore a single collection
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'dbOne',
-      '--collection', 'collTwo']
+    '--db', 'dbOne',
+    '--collection', 'collTwo']
     .concat(getRestoreTarget(dumpTarget+'/dbOne/collTwo.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);

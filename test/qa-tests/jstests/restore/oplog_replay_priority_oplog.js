@@ -24,17 +24,17 @@
 
   // Replay the oplog from the provided oplog
   var ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--oplogReplay',
-      '--oplogFile', 'jstests/restore/testdata/extra_oplog.bson',
-      restoreTarget]
+    '--oplogReplay',
+    '--oplogFile', 'jstests/restore/testdata/extra_oplog.bson',
+    restoreTarget]
     .concat(commonToolArgs));
   assert.eq(0, ret, "restore operation failed");
 
   // Extra oplog has 5 entries as explained in oplog_replay_and_limit.js
   assert.eq(5, testColl.count(),
-      "all original entries from high priority oplog should be restored");
+    "all original entries from high priority oplog should be restored");
   assert.eq(0, restoreColl.count(),
-      "no original entries from low priority oplog should be restored");
+    "no original entries from low priority oplog should be restored");
   toolTest.stop();
 }());
 

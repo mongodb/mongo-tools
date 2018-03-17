@@ -36,11 +36,11 @@
 
   // export the data, using --skip
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'data',
-      '--sort', '{a:1}',
-      '--skip', '20']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'data',
+    '--sort', '{a:1}',
+    '--skip', '20']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -49,9 +49,9 @@
 
   // import the data back in
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'data']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'data']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

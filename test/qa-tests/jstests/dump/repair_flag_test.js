@@ -25,7 +25,7 @@
   db.dropDatabase();
   db.bar.insert({x: 1});
 
-    // Running mongodump with '--repair' specified but no '--db' should fail
+  // Running mongodump with '--repair' specified but no '--db' should fail
   var dumpArgs = ['dump',
     '--db', 'foo',
     '--repair']

@@ -67,8 +67,8 @@
 
   // restore the data to another different db
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--nsFrom', '$db$.$collection$',
-      '--nsTo', 'otherdest.$db$_$collection$']
+    '--nsFrom', '$db$.$collection$',
+    '--nsTo', 'otherdest.$db$_$collection$']
     .concat(getRestoreTarget(dumpTarget))
     .concat(commonToolArgs));
   assert.eq(0, ret);

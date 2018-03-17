@@ -20,8 +20,8 @@
   // run the restore with the blank collection file and no
   // metadata file. it should succeed, but insert nothing.
   var ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'test',
-      '--collection', 'blank']
+    '--db', 'test',
+    '--collection', 'blank']
     .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);
@@ -30,8 +30,8 @@
   // run the restore with the blank collection file and a blank
   // metadata file. it should succeed, but insert nothing.
   ret = toolTest.runTool.apply(toolTest, ['restore',
-      '--db', 'test',
-      '--collection', 'blank']
+    '--db', 'test',
+    '--collection', 'blank']
     .concat(getRestoreTarget('jstests/restore/testdata/blankcoll/blank_metadata.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);

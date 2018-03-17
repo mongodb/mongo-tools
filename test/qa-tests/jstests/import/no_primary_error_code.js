@@ -40,10 +40,10 @@
 
 
   var ret = runMongoProgram('mongoimport',
-      '--file', 'jstests/import/testdata/basic.json',
-      '--db', 'test',
-      '--collection', 'noPrimaryErrorCode',
-      '--host', sh.s0.host);
+    '--file', 'jstests/import/testdata/basic.json',
+    '--db', 'test',
+    '--collection', 'noPrimaryErrorCode',
+    '--host', sh.s0.host);
   assert.eq(ret, 1, 'mongoimport should fail with no primary');
 
   sh.getDB('test').dropDatabase();
@@ -55,10 +55,10 @@
   jsTest.log('All primaries died, trying to import.');
 
   ret = runMongoProgram('mongoimport',
-      '--file', 'jstests/import/testdata/basic.json',
-      '--db', 'test',
-      '--collection', 'noPrimaryErrorCode',
-      '--host', sh.s0.host);
+    '--file', 'jstests/import/testdata/basic.json',
+    '--db', 'test',
+    '--collection', 'noPrimaryErrorCode',
+    '--host', sh.s0.host);
   assert.eq(ret, 1, 'mongoimport should fail with no primary');
 
   sh.stop();

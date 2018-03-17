@@ -14,10 +14,10 @@ load('jstests/files/util/mongofiles_common.js');
     // ensure tool runs without error
     for (var i = 0; i < 10; i++) {
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          'put', filesToInsert[0]]
+        '--port', conn.port,
+        'put', filesToInsert[0]]
         .concat(passthrough.args)),
-        0, 'put failed');
+      0, 'put failed');
     }
 
     // ensure all the files were written
@@ -27,10 +27,10 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          'delete', filesToInsert[0]]
+      '--port', conn.port,
+      'delete', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'delete failed');
+    0, 'delete failed');
 
     // ensure all the files were deleted
     assert.eq(0, db.fs.files.count(), 'unexpected fs.files count');

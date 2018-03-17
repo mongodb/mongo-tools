@@ -24,7 +24,7 @@
                 (destDBVersion || 'latest') + ', expected to pass=' + shouldSucceed);
 
     var toolTest = new ToolTest('conflicting_auth_schema_version',
-            {binVersion: sourceDBVersion, auth: ''});
+      {binVersion: sourceDBVersion, auth: ''});
     toolTest.startDB('foo');
 
     // where we'll put the dump

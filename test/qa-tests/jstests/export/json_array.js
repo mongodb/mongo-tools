@@ -26,7 +26,7 @@
 
   // export the data
   var ret = toolTest.runTool('export', '--out', exportTarget,
-      '--db', 'test', '--collection', 'data', '--jsonArray');
+    '--db', 'test', '--collection', 'data', '--jsonArray');
   assert.eq(0, ret);
 
   // drop the data
@@ -34,7 +34,7 @@
 
   // make sure that mongoimport without --jsonArray does not work
   ret = toolTest.runTool('import', '--file', exportTarget,
-      '--db', 'test', '--collection', 'data');
+    '--db', 'test', '--collection', 'data');
   assert.neq(0, ret);
 
   // make sure nothing was imported
@@ -42,7 +42,7 @@
 
   // run mongoimport again, with --jsonArray
   ret = toolTest.runTool('import', '--file', exportTarget,
-      '--db', 'test', '--collection', 'data', '--jsonArray');
+    '--db', 'test', '--collection', 'data', '--jsonArray');
   assert.eq(0, ret);
 
   // make sure the data was imported

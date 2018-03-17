@@ -30,18 +30,18 @@
 
   // export the data, with a query that will match nothing
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--query', '{a:3}']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--query', '{a:3}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -53,18 +53,18 @@
 
   // export the data, with a query matching a single element
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--query', "{a:1, c:'1'}"]
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--query', "{a:1, c:'1'}"]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -78,18 +78,18 @@
 
   // TOOLS-716 export the data, with a queryFile matching a single element
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--queryFile', "jstests/export/testdata/query.json"]
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--queryFile', "jstests/export/testdata/query.json"]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -104,18 +104,18 @@
 
   // export the data, with a query on an embedded document
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--query', "{a:2, 'x.c':'2'}"]
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--query', "{a:2, 'x.c':'2'}"]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -129,18 +129,18 @@
 
   // export the data, with a blank query (should match everything)
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--query', "{}"]
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--query', "{}"]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -156,16 +156,16 @@
     y: ISODate("2014-12-13T13:52:39.498Z")
   });
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--query', '{x:{$gt:Date(1418305949498), $lt:Date(1418305979498)}, y:{$gt:{$date:1418478749498}, $lt:{$date:1418478769498}}}']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--query', '{x:{$gt:Date(1418305949498), $lt:Date(1418305979498)}, y:{$gt:{$date:1418478749498}, $lt:{$date:1418478769498}}}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret); assert.eq(1, destColl.count());
 
@@ -178,16 +178,16 @@
     y: ISODate("2014-12-13T13:52:39.498Z")
   });
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--query', '{x:{$gt:ISODate("2014-12-11T13:52:39.3Z"), $lt:ISODate("2014-12-11T13:52:39.5Z")}}']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--query', '{x:{$gt:ISODate("2014-12-11T13:52:39.3Z"), $lt:ISODate("2014-12-11T13:52:39.5Z")}}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest']
     .concat(commonToolArgs));
   assert.eq(0, ret);
   assert.eq(1, destColl.count());

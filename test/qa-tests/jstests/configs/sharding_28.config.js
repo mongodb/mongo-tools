@@ -8,13 +8,13 @@ var getToolTest;
     var toolTest = new ToolTest(name, null);
 
     var shardingTest = new ShardingTest({name: name,
-        shards: 2,
-        verbose: 0,
-        mongos: 3,
-        other: {
-          chunksize: 1,
-          enableBalancer: 0
-        }
+      shards: 2,
+      verbose: 0,
+      mongos: 3,
+      other: {
+        chunksize: 1,
+        enableBalancer: 0
+      }
     });
     shardingTest.adminCommand({enablesharding: name});
 

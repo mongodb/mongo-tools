@@ -22,8 +22,8 @@
   function writeConcernTestFunc(exitCode, writeConcern, name) {
     jsTest.log(name);
     ret = toolTest.runTool.apply(toolTest, ['files',
-        '-vvvvv',
-        '-d', 'dbOne']
+      '-vvvvv',
+      '-d', 'dbOne']
       .concat(writeConcern)
       .concat(commonToolArgs)
       .concat(['put', 'jstests/files/testdata/files1.txt']));
@@ -36,9 +36,9 @@
 
   function noConnectTest() {
     return startMongoProgramNoConnect.apply(null, ['mongofiles',
-        '-d', 'dbOne',
-        '--writeConcern={w:3}',
-        '--host', rs.getPrimary().host]
+      '-d', 'dbOne',
+      '--writeConcern={w:3}',
+      '--host', rs.getPrimary().host]
       .concat(commonToolArgs)
       .concat(['put', 'jstests/files/testdata/files1.txt']));
   }

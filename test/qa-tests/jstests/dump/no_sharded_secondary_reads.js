@@ -40,10 +40,10 @@
   // assert that the shell queries happened only on primaries
   profQuery= {ns: "test.a", op: "query"};
   assert.eq(replDB.system.profile.find().count(profQuery), 3,
-        "three queries should have been logged");
+    "three queries should have been logged");
   for (i = 0; i < secondaries.length; i++) {
     assert.eq(secondaries[i].system.profile.find(profQuery).count(), 0,
-          "no queries should be against secondaries");
+      "no queries should be against secondaries");
   }
 
   print("running mongodump on mongos");
@@ -72,7 +72,7 @@
   for (i = 0; i < secondaries.length; i++) {
     print("checking secondary " + i);
     assert.eq(secondaries[i].system.profile.find(profQuery).count(), 0,
-          "no dump queries should be against secondaries");
+      "no dump queries should be against secondaries");
   }
 
 }());

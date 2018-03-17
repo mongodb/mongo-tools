@@ -14,10 +14,10 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        'put', filesToInsert[0]]
+      '--port', conn.port,
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 1 failed');
+    0, 'put 1 failed');
 
     // ensure the file was inserted
     assert.eq(1, db.fs.files.count(), 'unexpected fs.files count 1');
@@ -26,15 +26,15 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool exits with a non-zero exit code when supplied invalid ports
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', '12345',
-          'put', filesToInsert[0]]
+      '--port', '12345',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'expected mongofiles to fail but it succeeded 1');
+    0, 'expected mongofiles to fail but it succeeded 1');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', 'random',
-          'put', filesToInsert[0]]
+      '--port', 'random',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'expected mongofiles to fail but it succeeded 2');
+    0, 'expected mongofiles to fail but it succeeded 2');
 
     // ensure the file was not inserted
     var count = db.fs.files.count();

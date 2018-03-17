@@ -38,47 +38,47 @@
 
   jsTest.log('Exporting documents with subdocument _ids.');
   var ret = toolTest.runTool.apply(toolTest, ["export",
-      "-o", toolTest.extFile,
-      "--db", db.getName(),
-      "--collection", db.c.getName()]
+    "-o", toolTest.extFile,
+    "--db", db.getName(),
+    "--collection", db.c.getName()]
     .concat(commonToolArgs));
   assert.eq(ret, 0, "export should succeed");
 
   jsTest.log('Upserting pre-made documents with subdocument _ids.');
   ret = toolTest.runTool.apply(toolTest, ["import",
-      "--file", "jstests/import/testdata/upsert3.json",
-      "--mode=upsert",
-      "--db", db.getName(),
-      "--collection", db.c.getName()]
+    "--file", "jstests/import/testdata/upsert3.json",
+    "--mode=upsert",
+    "--db", db.getName(),
+    "--collection", db.c.getName()]
     .concat(commonToolArgs));
   assert.eq(ret, 0, "import should succeed");
   assert.eq(db.c.count(), 2000,
-      "count should be the same before and after import");
+    "count should be the same before and after import");
 
   // check each document
   for (i = 0; i < 100; i++) {
     for (j = 0; j < 20; j++) {
       assert.eq(db.c.findOne({_id: {a: i, b: [0, 1, 2, {c: j, d: "foo"}], e: "bar"}}).x, "str2",
-          "all documents should be updated");
+        "all documents should be updated");
     }
   }
 
   jsTest.log('Upserting original exported documents with subdocument _ids.');
   ret = toolTest.runTool.apply(toolTest, ["import",
-      "--file", toolTest.extFile,
-      "--mode=upsert",
-      "--db", db.getName(),
-      "--collection", db.c.getName()]
+    "--file", toolTest.extFile,
+    "--mode=upsert",
+    "--db", db.getName(),
+    "--collection", db.c.getName()]
     .concat(commonToolArgs));
   assert.eq(ret, 0, "import should succeed");
   assert.eq(db.c.count(), 2000,
-      "count should be the same before and after import");
+    "count should be the same before and after import");
 
   // check each document to see that it is back at its original value
   for (i = 0; i < 100; i++) {
     for (j = 0; j < 20; j++) {
       assert.eq(db.c.findOne({_id: {a: i, b: [0, 1, 2, {c: j, d: "foo"}], e: "bar"}}).x, "string",
-          "all documents should be updated");
+        "all documents should be updated");
     }
   }
 

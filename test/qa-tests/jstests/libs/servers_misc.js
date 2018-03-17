@@ -31,10 +31,10 @@ MongodRunner.prototype.start = function(reuseData) {
     args.push("mongod");
   }
   args.push(
-      "--port", this.port_,
-      "--dbpath", this.dbpath_,
-      "--noprealloc",
-      "--smallfiles");
+    "--port", this.port_,
+    "--dbpath", this.dbpath_,
+    "--noprealloc",
+    "--smallfiles");
   if (!this.options_.no_bind) {
     args.push("--bind_ip", "127.0.0.1");
   }
@@ -125,9 +125,9 @@ ToolTest.prototype.runTool = function() {
 
   if (this.useSSL) {
     a = a.concat(["--ssl",
-        "--sslPEMKeyFile", "jstests/libs/server.pem",
-        "--sslCAFile", "jstests/libs/ca.pem",
-        "--sslAllowInvalidHostnames"]);
+      "--sslPEMKeyFile", "jstests/libs/server.pem",
+      "--sslCAFile", "jstests/libs/ca.pem",
+      "--sslAllowInvalidHostnames"]);
   }
 
   if (!hasdbpath) {
@@ -175,10 +175,10 @@ ReplTest.prototype.getOptions = function(master, extra, putBinaryFirst, norepl) 
     a.push("mongod");
   }
   a.push("--noprealloc",
-      "--bind_ip", "127.0.0.1",
-      "--smallfiles",
-      "--port", this.getPort(master),
-      "--dbpath", this.getPath(master));
+    "--bind_ip", "127.0.0.1",
+    "--smallfiles",
+    "--port", this.getPort(master),
+    "--dbpath", this.getPath(master));
 
   if (jsTestOptions().noJournal) {
     a.push("--nojournal");
