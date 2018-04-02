@@ -1907,7 +1907,7 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     gorootvars: 'PATH="/opt/go1.8/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.8/go CC=/opt/mongodbtoolchain/v2/bin/ppc64le-mongodb-linux-gcc'
-    build_tags: 'ssl'
+    build_tags: 'ssl sasl'
   tasks:
   - name: dist
 
