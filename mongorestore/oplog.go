@@ -87,8 +87,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 			break
 		}
 
-		// TODO: TOOLS-1817 will add support for conditionally keeping UUIDS
-		entryAsOplog, err = filterUUIDs(entryAsOplog)
+		entryAsOplog, err = restore.filterUUIDs(entryAsOplog)
 		if err != nil {
 			return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
 		}
@@ -168,13 +167,15 @@ func ParseTimestampFlag(ts string) (bson.MongoTimestamp, error) {
 }
 
 // filterUUIDs removes 'ui' entries from ops, including nested applyOps ops.
-func filterUUIDs(op db.Oplog) (db.Oplog, error) {
+func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 	// Remove UUIDs from oplog entries
-	op.UI = nil
+	if !restore.OutputOptions.PreserveUUID {
+		op.UI = nil
+	}
 
 	// Check for and filter nested applyOps ops
 	if op.Operation == "c" && isApplyOpsCmd(op.Object) {
-		filtered, err := newFilteredApplyOps(op.Object)
+		filtered, err := restore.newFilteredApplyOps(op.Object)
 		if err != nil {
 			return db.Oplog{}, err
 		}
@@ -196,7 +197,7 @@ func isApplyOpsCmd(cmd bson.RawD) bool {
 
 // newFilteredApplyOps iterates over nested ops in an applyOps document and
 // returns a new applyOps document that omits the 'ui' field from nested ops.
-func newFilteredApplyOps(cmd bson.RawD) (bson.RawD, error) {
+func (restore *MongoRestore) newFilteredApplyOps(cmd bson.RawD) (bson.RawD, error) {
 	ops, err := unwrapNestedApplyOps(cmd)
 	if err != nil {
 		return nil, err
@@ -204,7 +205,7 @@ func newFilteredApplyOps(cmd bson.RawD) (bson.RawD, error) {
 
 	filtered := make([]db.Oplog, len(ops))
 	for i, v := range ops {
-		filtered[i], err = filterUUIDs(v)
+		filtered[i], err = restore.filterUUIDs(v)
 		if err != nil {
 			return nil, err
 		}
