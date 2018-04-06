@@ -1849,15 +1849,6 @@ buildvariants:
 #     Dist only Buildvariants         #
 #######################################
 
-- name: suse11
-  display_name: SUSE 11 SSL
-  run_on:
-  - suse11-test
-  expansions:
-    build_tags: "sasl ssl"
-  tasks:
-  - name: dist
-
 - name: suse12
   display_name: SUSE 12 SSL
   run_on:
