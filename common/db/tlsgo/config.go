@@ -70,7 +70,7 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile, password string) (string, 
 		}
 	}
 
-	cert, err := tls.X509KeyPair(certPEM.Bytes, keyPEM.Bytes)
+	cert, err := tls.X509KeyPair(pem.EncodeToMemory(certPEM), pem.EncodeToMemory(keyPEM))
 	if err != nil {
 		return "", err
 	}
