@@ -46,7 +46,6 @@ mongo_tools_variables:
       - name: qa-tests
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-wt
       - name: unit
       - name: vet
       - name: replay-dist
@@ -88,7 +87,6 @@ mongo_tools_variables:
       - name: legacy30
       - name: legacy26
       - name: qa-tests
-      - name: qa-tests-wt
       - name: unit
       - name: replay-dist
       - name: replay-sanity_check
@@ -162,7 +160,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests
-      - name: qa-tests-wt
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -180,7 +177,6 @@ mongo_tools_variables:
       - name: kerberos
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-wt
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -197,7 +193,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-wt
       - name: native-cert-ssl
 
 
@@ -1180,49 +1175,6 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_gzip"
-        excludes: "requires_unstable,${excludes}"
-
-- name: qa-tests-wt
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "3.4"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongooplog
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core"
-        resmoke_args: "--storageEngine=wiredTiger ${resmoke_args}"
         excludes: "requires_unstable,${excludes}"
 
 - name: unit
