@@ -44,7 +44,6 @@ mongo_tools_variables:
       - name: lint-go
       - name: lint-js
       - name: qa-tests
-      - name: qa-tests-unstable
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests-wt
@@ -63,7 +62,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
       - name: qa-tests
-      - name: qa-tests-unstable
       - name: native-cert-ssl
     ubuntu1404_enterprise_task_list: &ubuntu1404_enterprise_tasks
       - name: db
@@ -164,7 +162,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests
-      - name: qa-tests-unstable
       - name: qa-tests-wt
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
@@ -183,7 +180,6 @@ mongo_tools_variables:
       - name: kerberos
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-unstable
       - name: qa-tests-wt
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
@@ -201,7 +197,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-unstable
       - name: qa-tests-wt
       - name: native-cert-ssl
 
@@ -1049,47 +1044,6 @@ tasks:
           PATH="/opt/node/bin:$PATH"
           /opt/node/bin/npm install eslint@3.2
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
-
-- name: qa-tests-unstable
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "latest"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongooplog
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
 
 - name: qa-tests
   depends_on:
