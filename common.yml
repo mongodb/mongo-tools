@@ -73,7 +73,6 @@ mongo_tools_variables:
       - name: kerberos
       - name: legacy30
       - name: legacy26
-      - name: legacy24
       - name: qa-tests
       - name: native-cert-ssl
       - name: replay-dist
@@ -90,7 +89,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
       - name: legacy26
-      - name: legacy24
       - name: qa-tests
       - name: qa-tests-wt
       - name: unit
@@ -114,9 +112,6 @@ mongo_tools_variables:
       - name: legacy26
         distros:
         - windows-64-vs2013-test
-      - name: legacy24
-        distros:
-        - windows-64-vs2013-test
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: db
@@ -127,9 +122,6 @@ mongo_tools_variables:
         distros:
         - windows-64-vs2013-test
       - name: legacy26
-        distros:
-        - windows-64-vs2013-test
-      - name: legacy24
         distros:
         - windows-64-vs2013-test
       - name: qa-tests
@@ -1027,46 +1019,6 @@ tasks:
     - func: "run legacy tests"
       vars:
         test_path: "test/legacy26"
-        smoke_use_ssl: ""
-
-- name: legacy24
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "2.4"
-    - func: "download mongod"
-      vars:
-        mongo_version: "2.6"
-        only_shell: true
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongooplog
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "run legacy tests"
-      vars:
-        test_path: "test/legacy24"
         smoke_use_ssl: ""
 
 - name: lint-go
