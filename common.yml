@@ -247,7 +247,7 @@ functions:
         rm -rf /data/mci/install /data/mci/multiversion
         mkdir -p /data/mci/install /data/mci/multiversion
         if [ "${multiversion_override}" != "skip" ]; then
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|2.6 2.4} --latest ${smoke_use_ssl} --os="${mongo_os}"
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|2.6} --latest ${smoke_use_ssl} --os="${mongo_os}"
         fi
         chmod 400 jstests/libs/key*
 
