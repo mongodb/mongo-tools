@@ -7,6 +7,8 @@
   var toolTest = new ToolTest('ordered_oplog');
   toolTest.startDB('foo');
 
+  toolTest.db.getSiblingDB('test').createCollection('foobar');
+
   // run restore, with an "update" oplog with a _id field that is a subdocument with several fields
   // { "h":{"$numberLong":"7987029173745013482"},"ns":"test.foobar",
   //   "o":{"_id":{"a":1,"b":2,"c":3,"d":5,"e":6,"f":7,"g":8},"foo":"bar"},
