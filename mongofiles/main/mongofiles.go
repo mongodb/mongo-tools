@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongofiles"
 
+	"fmt"
 	"os"
 )
 
@@ -78,5 +79,5 @@ func main() {
 		log.Logvf(log.Always, "Failed: %v", err)
 		os.Exit(util.ExitError)
 	}
-	log.Logvf(log.Always, output)
+	fmt.Printf("%s", output)
 }
