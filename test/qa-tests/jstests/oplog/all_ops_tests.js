@@ -25,7 +25,7 @@
   db.getSiblingDB('rs').dropDatabase();
 
   // Create capped collection
-  db.getSiblingDB('rs').createCollection('rs_test', {capped: true, size: 4});
+  db.getSiblingDB('rs').createCollection('rs_test', {capped: true, max: 100});
 
   // Add a bunch of operations to the fake oplog
 
