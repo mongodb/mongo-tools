@@ -64,7 +64,7 @@ var requiresAuth = function(passthrough) {
 /* exported standaloneTopology */
 var standaloneTopology = {
   init: function(passthrough) {
-    jsTest.log('Using standalone topology');
+    jsTest.log('Using standalone topology in ' + passthrough.name + ' mode');
 
     passthrough = passthrough || [];
     var startupArgs = buildStartupArgs(passthrough);
@@ -90,7 +90,7 @@ var standaloneTopology = {
 /* exported replicaSetTopology */
 var replicaSetTopology = {
   init: function(passthrough) {
-    jsTest.log('Using replica set topology');
+    jsTest.log('Using replica set topology in ' + passthrough.name + ' mode');
 
     passthrough = passthrough || [];
     var startupArgs = buildStartupArgs(passthrough);
@@ -129,7 +129,7 @@ var replicaSetTopology = {
 /* exported shardedClusterTopology */
 var shardedClusterTopology = {
   init: function(passthrough) {
-    jsTest.log('Using sharded cluster topology');
+    jsTest.log('Using sharded cluster topology in ' + passthrough.name + ' mode');
 
     passthrough = passthrough || [];
     var other = buildStartupArgs(passthrough);
