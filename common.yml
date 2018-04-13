@@ -205,7 +205,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-gzip
       - name: qa-tests-unstable
       - name: native-cert-ssl
-      - name: unit
 
 
 ## Common mongodb arguments
