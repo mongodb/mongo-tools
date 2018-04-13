@@ -196,7 +196,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: native-cert-ssl
-      - name: unit
 
 
 ## Common mongodb arguments
