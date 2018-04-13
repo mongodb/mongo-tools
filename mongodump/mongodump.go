@@ -96,8 +96,6 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.Collection != "":
 		return fmt.Errorf("cannot specify a collection when running with dumpDbUsersAndRoles")
-	case dump.OutputOptions.Oplog && dump.ToolOptions.Namespace.DB != "":
-		return fmt.Errorf("--oplog mode only supported on full dumps")
 	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.Collection != "":
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.Collection != "":
@@ -421,7 +419,7 @@ func (dump *MongoDump) Dump() (err error) {
 
 		log.Logvf(log.Always, "writing captured oplog to %v", dump.manager.Oplog().Location)
 
-		err = dump.DumpOplogBetweenTimestamps(dump.oplogStart, dump.oplogEnd)
+		err = dump.DumpOplogBetweenTimestamps(dump.oplogStart, dump.oplogEnd, dump.ToolOptions.Namespace.DB)
 		if err != nil {
 			return fmt.Errorf("error dumping oplog: %v", err)
 		}

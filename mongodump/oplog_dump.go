@@ -107,17 +107,27 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
 // entries between the given timestamp to the writer. Returns any errors that occur.
-func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp) error {
+func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp, nameSpace string) error {
 	session, err := dump.SessionProvider.GetSession()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 	session.SetPrefetch(1.0) // mimic exhaust cursor
-	queryObj := bson.M{"$and": []bson.M{
-		bson.M{"ts": bson.M{"$gte": start}},
-		bson.M{"ts": bson.M{"$lte": end}},
-	}}
+	var queryObj bson.M
+
+	if nameSpace != "" {
+		queryObj = bson.M{"$and": []bson.M{
+			bson.M{"ts": bson.M{"$gte": start}, "ns": bson.M{"$regex": "^" + nameSpace}},
+			bson.M{"ts": bson.M{"$lte": end}, "ns": bson.M{"$regex": "^" + nameSpace}},
+		}}
+	} else {
+		queryObj = bson.M{"$and": []bson.M{
+			bson.M{"ts": bson.M{"$gte": start}},
+			bson.M{"ts": bson.M{"$lte": end}},
+		}}
+	}
+
 	oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
 	oplogCount, err := dump.dumpFilteredQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentFilter)
 	if err == nil {
