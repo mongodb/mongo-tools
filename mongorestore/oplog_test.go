@@ -182,3 +182,41 @@ func TestOplogRestore(t *testing.T) {
 		So(count, ShouldEqual, 10)
 	})
 }
+
+func TestOplogRestoreTools2002(t *testing.T) {
+	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	_, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		inputOptions := &InputOptions{
+			Directory:   "testdata/tools-2002",
+			OplogReplay: true,
+		}
+		outputOptions := &OutputOptions{
+			NumParallelCollections: 1,
+			NumInsertionWorkers:    1,
+			Drop:                   true,
+		}
+		nsOptions := &NSOptions{}
+		provider, toolOpts, err := testutil.GetBareSessionProvider()
+		if err != nil {
+			log.Logvf(log.Always, "error connecting to host: %v", err)
+			os.Exit(util.ExitError)
+		}
+		restore := MongoRestore{
+			ToolOptions:     toolOpts,
+			OutputOptions:   outputOptions,
+			InputOptions:    inputOptions,
+			NSOptions:       nsOptions,
+			SessionProvider: provider,
+			TargetDirectory: inputOptions.Directory,
+		}
+
+		// Run mongorestore
+		err = restore.Restore()
+		So(err, ShouldBeNil)
+	})
+}
