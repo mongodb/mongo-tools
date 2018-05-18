@@ -26,8 +26,8 @@ for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mong
     cp $f $progpath
 done
 
-echo "Copying mongod and mongo from $mongobin"
-for p in mongo mongod; do
+echo "Copying mongod, mongos and mongo from $mongobin"
+for p in mongo mongos mongod; do
     prog="$mongobin/$p"
     echo "  - $(basename $prog)"
     cp $prog $progpath
