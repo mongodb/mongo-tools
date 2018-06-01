@@ -1,4 +1,6 @@
 (function() {
+  load('jstests/common/check_version.js');
+
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
@@ -24,6 +26,12 @@
   rs.awaitReplication();
   toolTest.port = st.s.port;
   var dbOne = st.s.getDB('dbOne');
+
+  if (isAtLeastVersion(dbOne.version(), '4.0.0')) {
+    jsTest.log("skipping test on "+db.version()+" until TOOLS-2035 is resolved");
+    return;
+  }
+
   function writeConcernTestFunc(exitCode, writeConcern, name) {
     jsTest.log(name);
     ret = toolTest.runTool.apply(toolTest, ['files',
