@@ -29,20 +29,20 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-archiving-3.2
       - name: unit
-# disabled until BUILD-2273 is done
-#      - name: replay-dist
-#      - name: replay-sanity_check
-#      - name: replay-go_test
-#      - name: replay-auth_test
-#      - name: replay-sharded_test
-#      - name: replay-repl_test
-#      - name: replay-replay_test
+      - name: replay-dist
+      - name: replay-sanity_check
+      - name: replay-go_test
+      - name: replay-auth_test
+      - name: replay-sharded_test
+      - name: replay-repl_test
+      - name: replay-replay_test
     macos_1012_ssl_task_list: &macos_1012_ssl_tasks
       - name: dist
       - name: qa-tests-4.0
       - name: qa-tests-unstable
       - name: native-cert-ssl
       - name: unit
+      - name: replay-dist
     ubuntu1404_x86_64_task_list: &ubuntu1404_x86_64_tasks
       - name: db
       - name: dist
@@ -77,6 +77,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-unstable
       - name: native-cert-ssl
+      - name: replay-dist
     ubuntu1404_x86_64_enterprise_task_list: &ubuntu1404_x86_64_enterprise_tasks
       - name: db
       - name: dist
@@ -193,14 +194,13 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-unstable
       - name: native-cert-ssl
-# disabled until BUILD-2273 is done
-#      - name: replay-dist
-#      - name: replay-sanity_check
-#      - name: replay-go_test
-#      - name: replay-auth_test
-#      - name: replay-sharded_test
-#      - name: replay-repl_test
-#      - name: replay-replay_test
+      - name: replay-dist
+      - name: replay-sanity_check
+      - name: replay-go_test
+      - name: replay-auth_test
+      - name: replay-sharded_test
+      - name: replay-repl_test
+      - name: replay-replay_test
     rhel67_s390x_enterprise_task_list: &rhel67_s390x_enterprise_tasks
       - name: db
       - name: dist
@@ -214,14 +214,13 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-unstable
       - name: native-cert-ssl
-# disabled until BUILD-2273 is done
-#      - name: replay-dist
-#      - name: replay-sanity_check
-#      - name: replay-go_test
-#      - name: replay-auth_test
-#      - name: replay-sharded_test
-#      - name: replay-repl_test
-#      - name: replay-replay_test
+      - name: replay-dist
+      - name: replay-sanity_check
+      - name: replay-go_test
+      - name: replay-auth_test
+      - name: replay-sharded_test
+      - name: replay-repl_test
+      - name: replay-replay_test
     ubuntu1604_arm64_ssl_task_list: &ubuntu1604_arm64_ssl_tasks
       - name: db
       - name: dist
@@ -234,6 +233,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-unstable
       - name: native-cert-ssl
+      - name: replay-dist
 
 
 ## Common mongodb arguments
@@ -1646,6 +1646,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 - name: amazon2
   display_name: Amazon Linux 64 v2 (Go 1.8)
@@ -1656,6 +1657,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1670,6 +1672,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 - name: debian92
   display_name: Debian 9.2 (Go 1.8)
@@ -1680,6 +1683,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #           macOS Buildvariant        #
@@ -1727,6 +1731,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 - name: rhel70
   display_name: RHEL 7.0 (Go 1.8)
@@ -1737,6 +1742,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1751,6 +1757,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1820,6 +1827,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #        Windows Buildvariants        #
@@ -1959,6 +1967,7 @@ buildvariants:
     build_tags: 'ssl sasl'
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #     Z (s390x) Buildvariants         #
@@ -1999,6 +2008,7 @@ buildvariants:
     build_tags: "sasl ssl"
   tasks:
   - name: dist
+  - name: replay-dist
 
 #######################################
 #     Experimental Buildvariants      #
