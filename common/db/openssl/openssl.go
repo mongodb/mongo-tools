@@ -107,7 +107,10 @@ func setupCtx(opts options.ToolOptions) (*openssl.Ctx, error) {
 	var err error
 
 	for _, sslInitFunc := range sslInitializationFunctions {
-		sslInitFunc(opts)
+		err = sslInitFunc(opts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if ctx, err = openssl.NewCtxWithVersion(openssl.AnyVersion); err != nil {

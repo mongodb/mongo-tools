@@ -18,12 +18,21 @@ import (
 func init() {
 	if openssl.FIPSModeDefined() {
 		sslInitializationFunctions = append(sslInitializationFunctions, SetUpFIPSMode)
+	} else {
+		sslInitializationFunctions = append(sslInitializationFunctions, NoFIPSModeAvailable)
 	}
 }
 
 func SetUpFIPSMode(opts options.ToolOptions) error {
 	if err := openssl.FIPSModeSet(opts.SSLFipsMode); err != nil {
 		return fmt.Errorf("couldn't set FIPS mode to %v: %v", opts.SSLFipsMode, err)
+	}
+	return nil
+}
+
+func NoFIPSModeAvailable(opts options.ToolOptions) error {
+	if opts.SSLFipsMode {
+		return fmt.Errorf("FIPS mode not supported")
 	}
 	return nil
 }
