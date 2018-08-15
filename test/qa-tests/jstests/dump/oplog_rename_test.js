@@ -5,7 +5,7 @@
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
 
-  var targetPath = 'dump_oplog_uuid_test';
+  var targetPath = 'dump_oplog_rename_test';
   resetDbpath(targetPath);
   var toolTest = getToolTest('oplogUUIDTest');
   var commonToolArgs = getCommonToolArguments();
