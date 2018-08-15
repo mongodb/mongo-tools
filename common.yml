@@ -400,13 +400,14 @@ functions:
     params:
       working_dir: src
       script: |
+        # export sensitive info before `set -x`
+        export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
         set -x
         set -v
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
         fi;
         . ./set_gopath.sh
-        export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
         export basedir=$PWD
         cd ${package}
         ${gorootvars} go test ${coverage_args} ${args} -tags "${build_tags}" -test.v > unit.suite
@@ -422,13 +423,13 @@ functions:
       # Set up Kerberos stuff: run kinit if necessary, and add KDC to registry
       # on Windows (see https://wiki.mongodb.com/display/DH/Testing+Kerberos)
       script: |
-        set -x
-        set -v
         set -e
-        if [ '${run_kinit}' = 'true' ]
-        then
+        # export sensitive info before `set -x`
+        if [ '${run_kinit}' = 'true' ]; then
           echo "${kerberos_password}" | kinit -p drivers@LDAPTEST.10GEN.CC;
         fi;
+        set -x
+        set -v
         if [ "Windows_NT" = "$OS" ]; then
           cmd /c "REG ADD HKLM\SYSTEM\ControlSet001\Control\Lsa\Kerberos\Domains\LDAPTEST.10GEN.CC /v KdcNames /d ldaptest.10gen.cc /t REG_MULTI_SZ /f"
         fi;
@@ -497,12 +498,13 @@ functions:
     params:
       working_dir: src
       script: |
-        set -x
-        set -v
+        # export sensitive info before `set -x`
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
             export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
         fi;
+        set -x
+        set -v
         . ./set_gopath.sh
 
         if [ "${create_mongod_users_command}" != "" ]; then
