@@ -53,7 +53,7 @@ var logoutAdmin = function(topology) {
   var db = conn.getDB('test');
 
   db.getSiblingDB('admin').logout();
-}
+};
 
 // buildStartupArgs constructs the proper object to be passed as arguments in
 // starting mongod
