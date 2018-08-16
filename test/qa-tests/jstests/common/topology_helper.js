@@ -44,6 +44,17 @@ var runAuthSetup = function(topology) {
   assert.eq(db.getSiblingDB('admin').auth(authUser, authPassword), 1, 'authentication failed');
 };
 
+// logoutAdmin logs out the admin user so the topology helpers can auth
+// without causing a multi-auth situation.
+var logoutAdmin = function(topology) {
+  jsTest.log('Logging out admin');
+
+  var conn = topology.connection();
+  var db = conn.getDB('test');
+
+  db.getSiblingDB('admin').logout();
+}
+
 // buildStartupArgs constructs the proper object to be passed as arguments in
 // starting mongod
 var buildStartupArgs = function(passthrough) {
@@ -74,6 +85,7 @@ var standaloneTopology = {
     // set up the auth user if needed
     if (requiresAuth(passthrough)) {
       runAuthSetup(this);
+      this.didAuth = true;
     }
     return this;
   },
@@ -81,6 +93,9 @@ var standaloneTopology = {
     return this.conn;
   },
   stop: function() {
+    if (this.didAuth) {
+      logoutAdmin(this);
+    }
     MongoRunner.stopMongod(this.conn);
   },
 };
@@ -113,6 +128,7 @@ var replicaSetTopology = {
     // set up the auth user if needed
     if (requiresAuth(passthrough)) {
       runAuthSetup(this);
+      this.didAuth = true;
     }
     return this;
   },
@@ -120,6 +136,9 @@ var replicaSetTopology = {
     return this.replTest.getPrimary();
   },
   stop: function() {
+    if (this.didAuth) {
+      logoutAdmin(this);
+    }
     this.replTest.stopSet();
   },
 };
@@ -146,6 +165,7 @@ var shardedClusterTopology = {
       };
       this.shardingTest = new ShardingTest(startupArgs);
       runAuthSetup(this);
+      this.didAuth = true;
     } else {
       startupArgs.other = {
         shardOptions: other,
@@ -158,6 +178,9 @@ var shardedClusterTopology = {
     return this.shardingTest.s;
   },
   stop: function() {
+    if (this.didAuth) {
+      logoutAdmin(this);
+    }
     this.shardingTest.stop();
   },
 };
