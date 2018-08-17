@@ -588,10 +588,6 @@
       opts.logpath = opts.logFile;
     }
 
-    if (jsTestOptions().noJournalPrealloc || opts.noJournalPrealloc) {
-      opts.nopreallocj = "";
-    }
-
     if (jsTestOptions().noJournal || opts.noJournal) {
       opts.nojournal = "";
     }

@@ -8,7 +8,6 @@ SlowWeeklyMongod = function(name) {
   this.conn = startMongodEmpty(
     "--port", this.port,
     "--dbpath", MongoRunner.dataPath + this.name,
-    "--smallfiles",
     "--nojournal");
 };
 

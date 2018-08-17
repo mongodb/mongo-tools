@@ -32,9 +32,8 @@ MongodRunner.prototype.start = function(reuseData) {
   }
   args.push(
     "--port", this.port_,
-    "--dbpath", this.dbpath_,
-    "--noprealloc",
-    "--smallfiles");
+    "--dbpath", this.dbpath_
+  );
   if (!this.options_.no_bind) {
     args.push("--bind_ip", "127.0.0.1");
   }
@@ -76,8 +75,6 @@ ToolTest.prototype.startDB = function(coll) {
   var options = {
     port: this.port,
     dbpath: this.dbpath,
-    noprealloc: "",
-    smallfiles: "",
     bind_ip: "127.0.0.1",
   };
 
@@ -174,17 +171,12 @@ ReplTest.prototype.getOptions = function(master, extra, putBinaryFirst, norepl) 
   if (putBinaryFirst) {
     a.push("mongod");
   }
-  a.push("--noprealloc",
+  a.push(
     "--bind_ip", "127.0.0.1",
-    "--smallfiles",
     "--port", this.getPort(master),
     "--dbpath", this.getPath(master));
-
   if (jsTestOptions().noJournal) {
     a.push("--nojournal");
-  }
-  if (jsTestOptions().noJournalPrealloc) {
-    a.push("--nopreallocj");
   }
   if (jsTestOptions().keyFile) {
     a.push("--keyFile", jsTestOptions().keyFile);

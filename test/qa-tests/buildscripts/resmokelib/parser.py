@@ -151,9 +151,6 @@ def parse_command_line():
     parser.add_option("--nojournal", action="store_true", dest="no_journal",
                       help="Disable journaling for all mongod's.")
 
-    parser.add_option("--nopreallocj", action="store_const", const="off", dest="prealloc_journal",
-                      help="Disable preallocation of journal files for all mongod processes.")
-
     parser.add_option("--preallocJournal", type="choice", action="store", dest="prealloc_journal",
                       choices=("on", "off"), metavar="ON|OFF",
                       help=("Enable or disable preallocation of journal files for all mongod"

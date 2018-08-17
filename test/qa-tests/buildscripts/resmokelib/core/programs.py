@@ -36,7 +36,6 @@ def mongod_program(logger, executable=None, process_kwargs=None, **kwargs):
 
     shortcut_opts = {
         "nojournal": config.NO_JOURNAL,
-        "nopreallocj": config.NO_PREALLOC_JOURNAL,
         "storageEngine": config.STORAGE_ENGINE,
         "wiredTigerCollectionConfigString": config.WT_COLL_CONFIG,
         "wiredTigerEngineConfigString": config.WT_ENGINE_CONFIG,
@@ -44,7 +43,7 @@ def mongod_program(logger, executable=None, process_kwargs=None, **kwargs):
     }
 
     # These options are just flags, so they should not take a value.
-    opts_without_vals = ("nojournal", "nopreallocj")
+    opts_without_vals = ("nojournal")
 
     # Have the --nojournal command line argument to resmoke.py unset the journal option.
     if shortcut_opts["nojournal"] and "journal" in kwargs:
