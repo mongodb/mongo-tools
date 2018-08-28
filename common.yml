@@ -35,7 +35,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2107
+      # - name: replay-replay_test
     macos_1012_ssl_task_list: &macos_1012_ssl_tasks
       - name: dist
       - name: qa-tests-4.0
