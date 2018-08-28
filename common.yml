@@ -23,7 +23,6 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: qa-dump-restore-gzip
       - name: qa-dump-restore-gzip-3.2
       - name: qa-dump-restore-archiving
@@ -40,7 +39,6 @@ mongo_tools_variables:
     macos_1012_ssl_task_list: &macos_1012_ssl_tasks
       - name: dist
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
       - name: unit
     ubuntu1404_x86_64_task_list: &ubuntu1404_x86_64_tasks
@@ -55,7 +53,6 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: qa-dump-restore-gzip
       - name: qa-dump-restore-gzip-3.2
       - name: qa-dump-restore-archiving
@@ -75,7 +72,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
     ubuntu1404_x86_64_enterprise_task_list: &ubuntu1404_x86_64_enterprise_tasks
       - name: db
@@ -86,7 +82,6 @@ mongo_tools_variables:
       - name: legacy30
       - name: legacy26
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
       - name: replay-dist
       - name: replay-sanity_check
@@ -143,7 +138,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-gzip-3.2
         distros:
         - windows-64-vs2013-test
-      - name: qa-tests-unstable
       - name: unit
     windows_64_ssl_task_list: &windows_64_ssl_tasks
       - name: dist
@@ -151,7 +145,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
       - name: unit
     windows_64_enterprise_task_list: &windows_64_enterprise_tasks
@@ -175,7 +168,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
         distros:
         - windows-64-vs2013-test
-      - name: qa-tests-unstable
         distros:
         - windows-64-vs2013-test
       - name: unit
@@ -191,7 +183,6 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -212,7 +203,6 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -232,7 +222,6 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-      - name: qa-tests-unstable
       - name: native-cert-ssl
 
 
@@ -1065,44 +1054,6 @@ tasks:
           PATH="/opt/node/bin:$PATH"
           /opt/node/bin/npm install eslint@3.2
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
-
-- name: qa-tests-unstable
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "latest"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
 
 - name: qa-tests-4.0
   depends_on:
