@@ -69,7 +69,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2116
+      # - name: replay-replay_test
     rhel_x86_64_ssl_task_list: &rhel_x86_64_ssl_tasks
       - name: dist
       - name: integration
@@ -93,7 +94,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2116
+      # - name: replay-replay_test
     ubuntu_x86_64_task_list: &ubuntu_x86_64_tasks
       - name: db
       - name: dist
