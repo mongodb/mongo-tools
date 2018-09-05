@@ -16,8 +16,6 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-#      No SSL on 2.6 for osx
-#      - name: legacy26
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
@@ -48,7 +46,6 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: legacy26
       - name: legacy30
       - name: lint-go
       - name: lint-js
@@ -336,7 +333,7 @@ functions:
         rm -rf /data/mci/install /data/mci/multiversion
         mkdir -p /data/mci/install /data/mci/multiversion
         if [ "${multiversion_override}" != "skip" ]; then
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|2.6} --latest ${smoke_use_ssl} --os="${mongo_os}"
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|3.0} --latest ${smoke_use_ssl} --os="${mongo_os}"
         fi
         chmod 400 jstests/libs/key*
 
@@ -1063,39 +1060,6 @@ tasks:
         test_path: "test/legacy30"
         smoke_args: "--authMechanism SCRAM-SHA-1"
 
-- name: legacy26
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "2.6"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "run legacy tests"
-      vars:
-        test_path: "test/legacy26"
-        smoke_use_ssl: ""
-
 - name: lint-go
   commands:
     - func: "fetch source"
@@ -1365,7 +1329,7 @@ tasks:
           mv ../../bin/* .
           rm -rf /data/mci/install /data/mci/multiversion
           mkdir -p /data/mci/install /data/mci/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} "2.6" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
+          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} "3.0" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
           PATH=$PATH:/data/mci/multiversion python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
@@ -1980,7 +1944,7 @@ buildvariants:
     resmoke_use_ssl: _ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     excludes: requires_large_ram,requires_mongo_24
-    multiversion_override: "2.6"
+    multiversion_override: "3.0"
     extension: .exe
     arch: "win32/x86_64"
     gorootvars: 'PATH="/cygdrive/c/golang/go1.10/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH" GOROOT="c:/golang/go1.10"'
@@ -2003,7 +1967,7 @@ buildvariants:
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
     excludes: requires_large_ram,requires_mongo_24
-    multiversion_override: "2.6"
+    multiversion_override: "3.0"
     edition: enterprise
     extension: .exe
     arch: "win32/x86_64"
