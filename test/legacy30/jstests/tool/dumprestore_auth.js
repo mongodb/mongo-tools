@@ -83,7 +83,7 @@ assert(!fooColl.options.flags, "find namespaces 2");
 
 assert.eq(sysUsers, adminDB.system.users.count());
 
-// Dump & restore DB/colection with user defined roles
+// Dump & restore DB/collection with user defined roles
 t.runTool("dump" , "--out" , t.ext, "--username", "backupFoo", "--password", "password",
           "--db", dbName, "--collection", "foo");
 

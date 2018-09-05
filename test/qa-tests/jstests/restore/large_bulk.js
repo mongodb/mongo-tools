@@ -42,7 +42,7 @@
 
   // restore it
   // 32 records are well under the 1k batch size
-  // so this should test wether the physcial size limit is respected
+  // so this should test whether the physical size limit is respected
   ret = toolTest.runTool.apply(toolTest, ['restore']
     .concat(getRestoreTarget(dumpTarget))
     .concat(commonToolArgs));
