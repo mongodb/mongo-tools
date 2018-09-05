@@ -4,7 +4,7 @@ var exitCodeErr = 1;
 var exitCodeBadOptions = 3;
 var exitCodeStopped = 4;
 
-// NOTE: On Windows, stopMongoProgramByPid doesn't terminiate a process in a
+// NOTE: On Windows, stopMongoProgramByPid doesn't terminate a process in a
 // way that it can control its exit code.
 if (_isWindows()) {
   exitCodeStopped = exitCodeErr;

@@ -2,7 +2,7 @@
  * Run a mongod process.
  *
  * After initializing a MongodRunner, you must call start() on it.
- * @param {int} port port to run db on, use allocatePorts(num) to requision
+ * @param {int} port port to run db on, use allocatePorts(num) to requisition
  * @param {string} dbpath path to use
  * @param {boolean} peer pass in false (DEPRECATED, was used for replica pair host)
  * @param {boolean} arbiter pass in false (DEPRECATED, was used for replica pair host)

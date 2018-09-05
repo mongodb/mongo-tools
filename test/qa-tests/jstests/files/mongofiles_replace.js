@@ -1,5 +1,5 @@
 // mongofiles_replace.js; ensure that after putting a file once multiple times,
-// on using --replace, any and all occurences of the given file is replaced in
+// on using --replace, any and all occurrences of the given file is replaced in
 // the GridFS collection - all other files are left as is
 var testName = 'mongofiles_replace';
 load('jstests/files/util/mongofiles_common.js');

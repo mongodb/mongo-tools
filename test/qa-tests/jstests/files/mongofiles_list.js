@@ -4,7 +4,7 @@
 // 2. Checks that the actual md5 of the file matches what's stored in the database
 // 3. Runs the mongofiles list command to view all files stored.
 // 4. Ensures that all the files inserted and returned.
-// 5. Ensures that the returned list matches thae actual filesToInsert[0] and size of
+// 5. Ensures that the returned list matches the actual filesToInsert[0] and size of
 //    files inserted.
 var testName = 'mongofiles_list';
 (function() {
