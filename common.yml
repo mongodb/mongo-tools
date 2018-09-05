@@ -330,14 +330,9 @@ functions:
         chmod +x bin/*
         mv bin/* test/qa-tests/
         cd test/qa-tests
-        rm -rf /data/mci/install /data/mci/multiversion
-        mkdir -p /data/mci/install /data/mci/multiversion
-        if [ "${multiversion_override}" != "skip" ]; then
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} ${multiversion_override|3.0} --latest ${smoke_use_ssl} --os="${mongo_os}"
-        fi
         chmod 400 jstests/libs/key*
 
-        PATH=$PATH:/data/mci/multiversion python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+        python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
   "build tool":
     command: shell.exec
@@ -874,8 +869,6 @@ post:
         set -x
           set -v
         rm -rf /data/db/*
-        rm -rf /data/mci/multiversion
-        rm -rf /data/mci/install
         exit 0
 
 timeout:
@@ -1328,11 +1321,8 @@ tasks:
           set -e
           chmod +x ../../bin/*
           mv ../../bin/* .
-          rm -rf /data/mci/install /data/mci/multiversion
-          mkdir -p /data/mci/install /data/mci/multiversion
-          python buildscripts/setup_multiversion_mongodb.py /data/mci/install /data/mci/multiversion ${arch} "3.0" --latest ${smoke_use_ssl} --os="${mongo_os}" || true
           chmod 400 jstests/libs/key*
-          PATH=$PATH:/data/mci/multiversion python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+          python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
 - name: qa-dump-restore-archiving
   depends_on:
@@ -1945,7 +1935,6 @@ buildvariants:
     resmoke_use_ssl: _ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     excludes: requires_large_ram,requires_mongo_24
-    multiversion_override: "3.0"
     extension: .exe
     arch: "win32/x86_64"
     gorootvars: 'PATH="/cygdrive/c/golang/go1.10/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH" GOROOT="c:/golang/go1.10"'
@@ -1968,7 +1957,6 @@ buildvariants:
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
     excludes: requires_large_ram,requires_mongo_24
-    multiversion_override: "3.0"
     edition: enterprise
     extension: .exe
     arch: "win32/x86_64"
@@ -1998,7 +1986,6 @@ buildvariants:
     gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/aarch64-mongodb-linux-gcc'
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
-    multiversion_override: "skip"
     arch: "linux/arm64"
     edition: ssl
     integration_test_args: integration
@@ -2027,7 +2014,6 @@ buildvariants:
     gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/ppc64le-mongodb-linux-gcc'
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    multiversion_override: "skip"
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
@@ -2068,7 +2054,6 @@ buildvariants:
     gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
-    multiversion_override: "skip"
     arch: "linux/s390x"
     edition: enterprise
     run_kinit: true
