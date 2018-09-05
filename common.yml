@@ -1126,6 +1126,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
+        excludes: "requires_mongo_26,${excludes}"
 
 - name: qa-tests-4.0
   depends_on:
@@ -1164,7 +1165,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_unstable,${excludes}"
+        excludes: "requires_mongo_26,requires_unstable,${excludes}"
 
 - name: qa-tests-3.6
   depends_on:
@@ -1203,7 +1204,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_unstable,${excludes}"
+        excludes: "requires_mongo_26,requires_mongo_40,requires_unstable,${excludes}"
 
 - name: qa-tests-3.4
   depends_on:
@@ -1242,7 +1243,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_unstable,requires_mongo_36,${excludes}"
+        excludes: "requires_mongo_26,requires_mongo_36,requires_mongo_40,requires_unstable,${excludes}"
 
 - name: qa-tests-3.2
   depends_on:
@@ -1281,7 +1282,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_unstable,requires_mongo_34,requires_mongo_36,${excludes}"
+        excludes: "requires_mongo_26,requires_mongo_34,requires_mongo_36,requires_mongo_40,requires_unstable,,${excludes}"
 
 - name: native-cert-ssl
   depends_on:
@@ -1352,7 +1353,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_archive"
-        excludes: "requires_unstable,${excludes}"
+        excludes: "requires_mongo_26,requires_unstable,${excludes}"
 
 - name: qa-dump-restore-archiving-3.2
   depends_on:
@@ -1373,7 +1374,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_archive"
-        excludes: "requires_unstable,requires_mongo_34,requires_mongo_36,${excludes}"
+        excludes: "requires_mongo_26,requires_mongo_34,requires_mongo_36,requires_mongo_40,requires_unstable,${excludes}"
 
 - name: qa-dump-restore-gzip
   depends_on:
@@ -1394,7 +1395,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_gzip"
-        excludes: "requires_unstable,${excludes}"
+        excludes: "requires_mongo_26,requires_unstable,${excludes}"
 
 - name: qa-dump-restore-gzip-3.2
   depends_on:
@@ -1415,7 +1416,7 @@ tasks:
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_gzip"
-        excludes: "requires_unstable,requires_mongo_34,requires_mongo_36,${excludes}"
+        excludes: "requires_mongo_26,requires_mongo_34,requires_mongo_36,requires_mongo_40,requires_unstable,${excludes}"
 
 - name: unit
   commands:
