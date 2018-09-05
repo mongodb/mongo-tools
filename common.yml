@@ -118,7 +118,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2108
+      # - name: replay-replay_test
     ubuntu_x86_64_ssl_task_list: &ubuntu_x86_64_ssl_tasks
       - name: dist
       - name: integration
@@ -142,7 +143,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2108
+      # - name: replay-replay_test
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: db
       - name: dist
@@ -156,7 +158,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2108
+      # - name: replay-replay_test
     windows_64_task_list: &windows_64_tasks
       - name: db
       - name: dist
@@ -242,7 +245,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2108
+      # - name: replay-replay_test
     rhel67_s390x_enterprise_task_list: &rhel67_s390x_enterprise_tasks
       - name: db
       - name: dist
@@ -262,7 +266,8 @@ mongo_tools_variables:
       - name: replay-auth_test
       - name: replay-sharded_test
       - name: replay-repl_test
-      - name: replay-replay_test
+      # Disabled due to TOOLS-2108
+      # - name: replay-replay_test
     ubuntu1604_arm64_ssl_task_list: &ubuntu1604_arm64_ssl_tasks
       - name: db
       - name: dist
