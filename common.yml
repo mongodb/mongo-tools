@@ -81,7 +81,8 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: kerberos
+      # Disabled due to TOOLS-2119
+      # - name: kerberos
       - name: qa-tests-4.0
       - name: qa-tests-unstable
       - name: native-cert-ssl
@@ -251,7 +252,8 @@ mongo_tools_variables:
       - name: dist
       - name: integration
       - name: integration-auth
-      - name: kerberos
+      # Disabled due to TOOLS-2119
+      # - name: kerberos
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests-3.4
