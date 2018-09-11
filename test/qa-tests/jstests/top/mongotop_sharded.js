@@ -42,9 +42,6 @@ var testName = 'mongotop_sharded';
 
   // run with plain and auth passthroughs
   passthroughs.forEach(function(passthrough) {
-    // SERVER-32677: problems with sharded cluster orchestration with auth
-    if (!requiresAuth(passthrough)) {
-      runTests(shardedClusterTopology, passthrough);
-    }
+    runTests(shardedClusterTopology, passthrough);
   });
 }());
