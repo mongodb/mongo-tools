@@ -76,9 +76,6 @@ var testName = 'mongofiles_get';
   passthroughs.forEach(function(passthrough) {
     runTests(standaloneTopology, passthrough);
     runTests(replicaSetTopology, passthrough);
-    // SERVER-32677: problems with sharded cluster orchestration with auth
-    if (!requiresAuth(passthrough)) {
-      runTests(shardedClusterTopology, passthrough);
-    }
+    runTests(shardedClusterTopology, passthrough);
   });
 }());
