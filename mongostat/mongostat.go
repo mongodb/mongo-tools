@@ -256,7 +256,7 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, er
 func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.ServerStatus, error) {
 	stat := &status.ServerStatus{}
 	log.Logvf(log.DebugHigh, "getting session on server: %v", node.host)
-	s, err := node.sessionProvider.GetSession()
+	session, err := node.sessionProvider.GetSession()
 	if err != nil {
 		log.Logvf(log.DebugLow, "got error getting session to server %v", node.host)
 		return nil, err
@@ -266,20 +266,20 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	// The read pref for the session must be set to 'secondary' to enable using
 	// the driver with 'direct' connections, which disables the built-in
 	// replset discovery mechanism since we do our own node discovery here.
-	s.SetMode(mgo.Eventual, true)
+	session.SetMode(mgo.Eventual, true)
 
 	// Disable the socket timeout - otherwise if db.serverStatus() takes a long time on the server
 	// side, the client will close the connection early and report an error.
-	s.SetSocketTimeout(0)
-	defer s.Close()
+	session.SetSocketTimeout(0)
+	defer session.Close()
 
-	err = s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, stat)
+	err = session.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, stat)
 	if err != nil {
 		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
 	statMap := make(map[string]interface{})
-	s.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, statMap)
+	session.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, statMap)
 	stat.Flattened = status.Flatten(statMap)
 
 	node.Err = nil
@@ -297,7 +297,7 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	stat.Host = node.host
 	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
 		log.Logvf(log.DebugLow, "checking config database to discover shards")
-		shardCursor := s.DB("config").C("shards").Find(bson.M{}).Iter()
+		shardCursor := session.DB("config").C("shards").Find(bson.M{}).Iter()
 		shard := ConfigShard{}
 		for shardCursor.Next(&shard) {
 			shardHosts := strings.Split(shard.Host, ",")
