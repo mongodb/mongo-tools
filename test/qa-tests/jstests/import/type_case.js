@@ -54,7 +54,7 @@
     "--type=JSON");
   assert.eq(ret, 0);
 
-  // verify that the a csv type specifier failes to load a json file
+  // verify that the a csv type specifier fails to load a json file
   ret = toolTest.runTool("import",
     "--file", toolTest.extFile,
     "-d", "test",

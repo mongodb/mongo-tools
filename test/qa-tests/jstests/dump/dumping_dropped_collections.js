@@ -7,7 +7,7 @@ if (typeof getToolTest === 'undefined') {
 // it would be nice to verify that dump has emitted the
 // "the collection foo.bar appears to have been dropped after the dump started"
 // log line, but by the time dump finishes those lines have pushed off of the top
-// of the caputred output buffer
+// of the captured output buffer
 
 (function() {
   var targetPath = "dump_dumping_dropped_collections_test";
