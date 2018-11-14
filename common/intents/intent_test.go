@@ -7,15 +7,16 @@
 package intents
 
 import (
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestIntentManager(t *testing.T) {
 	var manager *Manager
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With an empty IntentManager", t, func() {
 		manager = NewIntentManager()

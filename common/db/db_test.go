@@ -7,17 +7,18 @@
 package db
 
 import (
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"reflect"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
 )
 
 func TestNewSessionProvider(t *testing.T) {
 
-	testutil.VerifyTestType(t, "db")
+	testtype.VerifyTestType(t, "db")
 
 	Convey("When initializing a session provider", t, func() {
 
@@ -73,7 +74,7 @@ func TestNewSessionProvider(t *testing.T) {
 
 func TestGetIndexes(t *testing.T) {
 
-	testutil.VerifyTestType(t, "db")
+	testtype.VerifyTestType(t, "db")
 
 	Convey("With a valid session", t, func() {
 		opts := options.ToolOptions{
