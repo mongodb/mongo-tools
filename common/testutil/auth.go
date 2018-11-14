@@ -3,6 +3,7 @@ package testutil
 import (
 	"fmt"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"os"
@@ -64,7 +65,7 @@ func CreateUserWithRole(session *mgo.Session, user,
 }
 
 func GetAuthOptions() options.Auth {
-	if HasTestType(AuthTestType) {
+	if testtype.HasTestType(testtype.AuthTestType) {
 		return options.Auth{
 			Username: os.Getenv(CreatedUserNameEnv),
 			Password: os.Getenv(CreatedUserPasswordEnv),
