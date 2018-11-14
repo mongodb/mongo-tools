@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/intents"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -20,7 +21,7 @@ const ExistsDB = "restore_collection_exists"
 
 func TestCollectionExists(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
@@ -81,7 +82,7 @@ func TestCollectionExists(t *testing.T) {
 
 func TestGetDumpAuthVersion(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	restore := &MongoRestore{}
 
 	Convey("With a test mongorestore", t, func() {

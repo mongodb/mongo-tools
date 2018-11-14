@@ -18,6 +18,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
@@ -100,7 +101,7 @@ func NewMongoImport() (*MongoImport, error) {
 }
 
 func TestSplitInlineHeader(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("handle normal, untyped headers", t, func() {
 		fields := []string{"foo.bar", "baz", "boo"}
 		header := strings.Join(fields, ",")
@@ -125,7 +126,7 @@ func TestSplitInlineHeader(t *testing.T) {
 }
 
 func TestMongoImportValidateSettings(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("Given a mongoimport instance for validation, ", t, func() {
 		Convey("an error should be thrown if no collection is given", func() {
@@ -362,7 +363,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 }
 
 func TestGetSourceReader(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("Given a mongoimport instance, on calling getSourceReader", t,
 		func() {
 			Convey("an error should be thrown if the given file referenced by "+
@@ -396,7 +397,7 @@ func TestGetSourceReader(t *testing.T) {
 }
 
 func TestGetInputReader(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("Given a io.Reader on calling getInputReader", t, func() {
 		Convey("should parse --fields using valid csv escaping", func() {
 			imp, err := NewMongoImport()
@@ -498,7 +499,7 @@ func TestGetInputReader(t *testing.T) {
 }
 
 func TestImportDocuments(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	Convey("With a mongoimport instance", t, func() {
 		Reset(func() {
 			sessionProvider, err := db.NewSessionProvider(*getBasicToolOptions())
