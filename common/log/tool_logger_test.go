@@ -8,13 +8,21 @@ package log
 
 import (
 	"bytes"
-	"github.com/mongodb/mongo-tools/common/options"
-	. "github.com/smartystreets/goconvey/convey"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
+
+type verbosity struct {
+	L int
+	Q bool
+}
+
+func (v verbosity) IsQuiet() bool { return v.Q }
+func (v verbosity) Level() int    { return v.L }
 
 func TestBasicToolLoggerFunctionality(t *testing.T) {
 	var tl *ToolLogger
@@ -24,12 +32,7 @@ func TestBasicToolLoggerFunctionality(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	Convey("With a new ToolLogger", t, func() {
-		v1 := &options.Verbosity{
-			Quiet:        false,
-			SetVerbosity: nil,
-			VLevel:       3,
-		}
-		tl = NewToolLogger(v1)
+		tl = NewToolLogger(&verbosity{L: 3})
 		So(tl, ShouldNotBeNil)
 		So(tl.writer, ShouldNotBeNil)
 		So(tl.verbosity, ShouldEqual, 3)
@@ -73,15 +76,11 @@ func TestGlobalToolLoggerFunctionality(t *testing.T) {
 	globalToolLogger = nil // just to be sure
 
 	Convey("With an initialized global ToolLogger", t, func() {
-		globalToolLogger = NewToolLogger(&options.Verbosity{
-			Quiet:        false,
-			SetVerbosity: nil,
-			VLevel:       3,
-		})
+		globalToolLogger = NewToolLogger(&verbosity{L: 3})
 		So(globalToolLogger, ShouldNotBeNil)
 
 		Convey("actions shouldn't panic", func() {
-			So(func() { SetVerbosity(&options.Verbosity{Quiet: true}) }, ShouldNotPanic)
+			So(func() { SetVerbosity(&verbosity{Q: true}) }, ShouldNotPanic)
 			So(func() { Logvf(0, "woooo") }, ShouldNotPanic)
 			So(func() { SetDateFormat("ahaha") }, ShouldNotPanic)
 			So(func() { SetWriter(os.Stdout) }, ShouldNotPanic)
@@ -92,12 +91,7 @@ func TestGlobalToolLoggerFunctionality(t *testing.T) {
 func TestToolLoggerWriter(t *testing.T) {
 	Convey("With a tool logger that writes to a buffer", t, func() {
 		buff := bytes.NewBuffer(make([]byte, 1024))
-		v1 := &options.Verbosity{
-			Quiet:        false,
-			SetVerbosity: nil,
-			VLevel:       3,
-		}
-		tl := NewToolLogger(v1)
+		tl := NewToolLogger(&verbosity{L: 3})
 		tl.SetWriter(buff)
 
 		Convey("writing using a ToolLogWriter", func() {
