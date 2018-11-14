@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package db
+package db_test
 
 // This file runs Kerberos tests if the test.types includes 'kerberos'
 
@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -30,7 +31,7 @@ func TestKerberosAuthMechanism(t *testing.T) {
 	testtype.VerifyTestType(t, testtype.KerberosTestType)
 
 	Convey("should be able to successfully connect", t, func() {
-		connector := &VanillaDBConnector{}
+		connector := &db.VanillaDBConnector{}
 
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
