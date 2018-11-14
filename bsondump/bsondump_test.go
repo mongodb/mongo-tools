@@ -69,6 +69,10 @@ func TestBsondump(t *testing.T) {
 		bufDumpStr := bufDump.String()
 
 		So(bufDumpStr, ShouldEqual, bufRefStr)
+
+		Reset(func() {
+			os.Remove("out.json")
+		})
 	})
 
 	Convey("Test bsondump reading from a file with --bsonFile and writing to stdout", t, func() {
@@ -135,6 +139,10 @@ func TestBsondump(t *testing.T) {
 		bufDumpStr := bufDump.String()
 
 		So(bufDumpStr, ShouldEqual, bufRefStr)
+
+		Reset(func() {
+			os.Remove("out.json")
+		})
 	})
 
 	Convey("Test bsondump reading from a file with a positional arg and writing to a file", t, func() {
@@ -158,5 +166,9 @@ func TestBsondump(t *testing.T) {
 		bufDumpStr := bufDump.String()
 
 		So(bufDumpStr, ShouldEqual, bufRefStr)
+
+		Reset(func() {
+			os.Remove("out.json")
+		})
 	})
 }
