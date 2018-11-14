@@ -18,7 +18,6 @@ ldflags="-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.Gitspec=${Gi
 # remove stale packages
 rm -rf vendor/pkg
 
-. ./set_gopath.sh
 mkdir -p bin
 
 for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop mongooplog mongoreplay; do
