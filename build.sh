@@ -18,7 +18,6 @@ ldflags="-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.Gitspec=${Gi
 # remove stale packages
 rm -rf vendor/pkg
 
-. ./set_gopath.sh
 mkdir -p bin
 
 ec=0

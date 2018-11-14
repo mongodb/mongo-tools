@@ -27,7 +27,7 @@ set_dependencies() {
     fi
 
     local giturl="https://$package"
-    local install_path="vendor/src/$dest"
+    local install_path="vendor/$dest"
 
     mkdir -p "$install_path"
 
