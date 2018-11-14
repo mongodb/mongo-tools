@@ -7,17 +7,19 @@
 package db
 
 import (
+	"testing"
+	"time"
+
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2"
-	"testing"
-	"time"
 )
 
 func TestVanillaDBConnector(t *testing.T) {
 
-	testutil.VerifyTestType(t, "db")
+	testtype.VerifyTestType(t, "db")
 
 	Convey("With a vanilla db connector", t, func() {
 
@@ -68,7 +70,7 @@ func TestVanillaDBConnector(t *testing.T) {
 }
 
 func TestVanillaDBConnectorWithAuth(t *testing.T) {
-	testutil.VerifyTestType(t, "auth")
+	testtype.VerifyTestType(t, "auth")
 	session, err := mgo.Dial("localhost:33333")
 	if err != nil {
 		t.Fatalf("error dialing server: %v", err)

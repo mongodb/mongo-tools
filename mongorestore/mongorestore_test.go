@@ -10,6 +10,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 
@@ -32,7 +33,7 @@ var (
 )
 
 func TestMongorestore(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
@@ -88,7 +89,7 @@ func TestMongorestore(t *testing.T) {
 }
 
 func TestMongorestoreCantPreserveUUID(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
@@ -131,7 +132,7 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 }
 
 func TestMongorestorePreserveUUID(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")

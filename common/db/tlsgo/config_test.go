@@ -3,9 +3,13 @@ package tlsgo
 import (
 	"strings"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 func TestAddClientCert(t *testing.T) {
+	testtype.VerifyTestType(t, testtype.UnitTestType)
+
 	cases := []struct {
 		Path  string
 		Pass  string
