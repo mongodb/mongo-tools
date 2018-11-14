@@ -3,16 +3,17 @@ package mongoexport
 import (
 	"bytes"
 	"encoding/csv"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func TestWriteCSV(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a CSV export output", t, func() {
 		fields := []string{"_id", "x", " y", "z.1.a"}

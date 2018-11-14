@@ -1,13 +1,14 @@
 package mongoimport
 
 import (
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 	"testing"
 	"time"
+
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func init() {
@@ -17,7 +18,7 @@ func init() {
 }
 
 func TestTypedHeaderParser(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("Using 'zip.string(),number.double(),foo.auto()'", t, func() {
 		var headers = []string{"zip.string()", "number.double()", "foo.auto()", `bar.date(January 2\, \(2006\))`}
@@ -87,7 +88,7 @@ func TestAutoHeaderParser(t *testing.T) {
 }
 
 func TestFieldParsers(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("Using FieldAutoParser", t, func() {
 		var p, _ = NewFieldParser(ctAuto, "")

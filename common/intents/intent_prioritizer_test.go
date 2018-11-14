@@ -4,14 +4,14 @@ import (
 	"container/heap"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func TestLegacyPrioritizer(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a legacyPrioritizer initialized with an ordered intent list", t, func() {
 		testList := []*Intent{
@@ -37,7 +37,7 @@ func TestLegacyPrioritizer(t *testing.T) {
 func TestBasicDBHeapBehavior(t *testing.T) {
 	var dbheap heap.Interface
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With an empty dbHeap", t, func() {
 		dbheap = &DBHeap{}
@@ -87,7 +87,7 @@ func TestBasicDBHeapBehavior(t *testing.T) {
 
 func TestDBCounterCollectionSorting(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a dbCounter and an unordered collection of intents", t, func() {
 		dbc := &dbCounter{
@@ -114,7 +114,7 @@ func TestDBCounterCollectionSorting(t *testing.T) {
 func TestBySizeAndView(t *testing.T) {
 	var prioritizer IntentPrioritizer
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a prioritizer initialized with on a set of intents", t, func() {
 		intents := []*Intent{
@@ -145,7 +145,7 @@ func TestBySizeAndView(t *testing.T) {
 func TestSimulatedMultiDBJob(t *testing.T) {
 	var prioritizer IntentPrioritizer
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a prioritizer initialized with a set of intents", t, func() {
 		intents := []*Intent{

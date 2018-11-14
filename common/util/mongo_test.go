@@ -1,14 +1,15 @@
 package util
 
 import (
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestParseConnectionString(t *testing.T) {
 
-	testutil.VerifyTestType(t, "unit")
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("When extracting the replica set and hosts from a connection"+
 		" url", t, func() {
@@ -40,7 +41,7 @@ func TestParseConnectionString(t *testing.T) {
 
 func TestCreateConnectionAddrs(t *testing.T) {
 
-	testutil.VerifyTestType(t, "unit")
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("When creating the slice of connection addresses", t, func() {
 

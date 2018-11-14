@@ -3,14 +3,14 @@ package mongorestore
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func TestTimestampStringParsing(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("Testing some possible timestamp strings:", t, func() {
 		Convey("123:456 [should pass]", func() {
@@ -65,7 +65,7 @@ func TestTimestampStringParsing(t *testing.T) {
 
 func TestValidOplogLimitChecking(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoRestore instance with oplogLimit of 5:0", t, func() {
 		mr := &MongoRestore{

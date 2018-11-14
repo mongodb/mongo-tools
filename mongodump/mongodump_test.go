@@ -3,22 +3,24 @@ package mongodump
 import (
 	"bytes"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
-	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/json"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/util"
+	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -272,7 +274,7 @@ func testQuery(md *MongoDump, session *mgo.Session) string {
 }
 
 func TestMongoDumpValidateOptions(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoDump instance", t, func() {
 		md := simpleMongoDumpInstance()
@@ -300,7 +302,7 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 }
 
 func TestMongoDumpKerberos(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.KerberosTestType)
+	testtype.VerifyTestType(t, testtype.KerberosTestType)
 
 	Convey("Should be able to run mongodump with Kerberos auth", t, func() {
 		opts, err := testutil.GetKerberosOptions()
@@ -339,7 +341,7 @@ func TestMongoDumpKerberos(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -549,7 +551,7 @@ func TestMongoDumpBSON(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {

@@ -4,6 +4,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 
@@ -29,7 +30,7 @@ func TestMongorestore(t *testing.T) {
 	ssl := testutil.GetSSLOptions()
 	auth := testutil.GetAuthOptions()
 
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 	toolOptions := &options.ToolOptions{
 		Connection: &options.Connection{
 			Host: testServer,

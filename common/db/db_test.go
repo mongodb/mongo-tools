@@ -1,16 +1,17 @@
 package db
 
 import (
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"reflect"
 	"testing"
+
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewSessionProvider(t *testing.T) {
 
-	testutil.VerifyTestType(t, "db")
+	testtype.VerifyTestType(t, "db")
 
 	Convey("When initializing a session provider", t, func() {
 

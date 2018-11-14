@@ -6,6 +6,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
@@ -167,7 +168,7 @@ func fileExists(name string) bool {
 // Test that it works whenever valid arguments are passed in and that
 // it barfs whenever invalid ones are passed
 func TestValidArguments(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoFiles instance", t, func() {
 		args := []string{"search", "file"}
@@ -215,7 +216,7 @@ func TestValidArguments(t *testing.T) {
 
 // Test that the output from mongofiles is actually correct
 func TestMongoFilesCommands(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.IntegrationTestType)
+	testtype.VerifyTestType(t, testtype.IntegrationTestType)
 
 	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
 		"with a MongoDump instance", t, func() {

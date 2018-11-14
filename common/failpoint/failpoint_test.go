@@ -5,12 +5,12 @@ package failpoint
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestFailpointParsing(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 
 	Convey("With test args", t, func() {
 		args := "foo=bar,baz,biz=,=a"

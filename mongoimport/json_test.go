@@ -6,13 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func TestJSONArrayStreamDocument(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("With a JSON array input reader", t, func() {
 		var jsonFile, fileHandle *os.File
 		Convey("an error should be thrown if a plain JSON document is supplied", func() {
@@ -75,7 +75,7 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 }
 
 func TestJSONPlainStreamDocument(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("With a plain JSON input reader", t, func() {
 		var jsonFile, fileHandle *os.File
 		Convey("string valued JSON documents should be imported properly", func() {
@@ -178,7 +178,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 }
 
 func TestReadJSONArraySeparator(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("With an array JSON input reader", t, func() {
 		Convey("reading a JSON array separator should consume [",
 			func() {
@@ -244,7 +244,7 @@ func TestReadJSONArraySeparator(t *testing.T) {
 }
 
 func TestJSONConvert(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.VerifyTestType(t, testtype.UnitTestType)
 	Convey("With a JSON input reader", t, func() {
 		Convey("calling convert on a JSONConverter should return the expected BSON document", func() {
 			jsonConverter := JSONConverter{
