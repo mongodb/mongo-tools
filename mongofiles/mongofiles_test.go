@@ -582,6 +582,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Reset(func() {
 			So(tearDownGridFSTestData(), ShouldBeNil)
+			err = os.Remove("lorem_ipsum_copy.txt")
 		})
 	})
 
