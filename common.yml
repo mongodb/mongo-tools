@@ -288,7 +288,6 @@ functions:
         sed -i.bak "s/built-without-version-string/$(git describe)/" common/options/options.go
         sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
 
-        . ./set_gopath.sh
         ${gorootvars} go version
         ${gorootvars} env | grep ^GO
         ${gorootvars} go build ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
@@ -342,7 +341,6 @@ functions:
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
-          . ./set_gopath.sh
           ${gorootvars} go tool cover -html=coverage.out -o coverage.html
           ${gorootvars} go tool cover -func=coverage.out -o coverage.txt
         fi;
@@ -371,13 +369,12 @@ functions:
     params:
       working_dir: src
       script: |
-        set -x
-        set -v
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
         fi;
-        . ./set_gopath.sh
         export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
+        set -x
+        set -v
         export basedir=$PWD
         cd ${package}
         ${gorootvars} go test ${coverage_args} ${args} -tags "${build_tags}" -test.v > unit.suite
@@ -404,16 +401,6 @@ functions:
           cmd /c "REG ADD HKLM\SYSTEM\ControlSet001\Control\Lsa\Kerberos\Domains\LDAPTEST.10GEN.CC /v KdcNames /d ldaptest.10gen.cc /t REG_MULTI_SZ /f"
         fi;
 
-  "setup permissions":
-    command: shell.exec
-    params:
-      working_dir: src
-      script: |
-        set -x
-        set -v
-        set -e
-        chmod 700 set_gopath.sh
-
   "run tool unit tests":
     command: shell.exec
     type: test
@@ -425,7 +412,6 @@ functions:
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
         fi;
-        . ./set_gopath.sh
 
         cwd=$(pwd)
         # run unit tests under common package
@@ -468,13 +454,13 @@ functions:
     params:
       working_dir: src
       script: |
-        set -x
-        set -v
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
             export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
         fi;
-        . ./set_gopath.sh
+
+        set -x
+        set -v
 
         if [ "${create_mongod_users_command}" != "" ]; then
           export AUTH_USERNAME=${auth_username}
@@ -512,8 +498,6 @@ functions:
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
         fi;
-
-        . ./set_gopath.sh
 
         for i in mongoimport mongoexport mongostat mongorestore mongodump mongofiles; do
             cd $i
@@ -753,7 +737,6 @@ functions:
         set -x
         set -v
         set -e
-        . ./set_gopath.sh
         ${gorootvars} ${environment_vars} go test ${additional_args} -v > ${filename}.suite
 
 
@@ -1019,7 +1002,7 @@ tasks:
           set -x
           set -v
           set -e
-          ${gorootvars} retVal=$(. ./set_gopath.sh && go run vendor/src/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*);
+          ${gorootvars} retVal=$(go run vendor/src/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
 
 - name: lint-js
@@ -1383,7 +1366,6 @@ tasks:
           set -x
           set -v
           set -e
-          . ./set_gopath.sh
           ${gorootvars} go tool vet bsondump common mongo*
 
 - name: replay-dist
@@ -1545,7 +1527,6 @@ tasks:
         set -x
         set -v
         set -e
-        . ./set_gopath.sh
         chmod +x bin/mongoreplay
         echo "Running replay test"
         PATH=$PATH:$PWD/bin:$PWD/vendor/bin ./mongoreplay/replay_test.sh --verbose --explicit --keep
