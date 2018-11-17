@@ -10,10 +10,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 cd $SCRIPT_DIR
 
-VersionStr="$(git describe)"
-Gitspec="$(git rev-parse HEAD)"
-importpath="github.com/mongodb/mongo-tools/common/options"
-ldflags="-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.Gitspec=${Gitspec}"
+. ./set_goenv.sh
+set_goenv || exit
+ldflags="$(print_ldflags)"
 
 # remove stale packages
 rm -rf vendor/pkg
