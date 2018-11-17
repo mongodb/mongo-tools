@@ -25,7 +25,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -42,13 +42,12 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
 
-        sed -i.bak "s/built-without-version-string/$(git describe)/" common/options/options.go
-        sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
-
-        . ./set_gopath.sh
-        ${gorootvars} go version
-        ${gorootvars} env | grep ^GO
-        ${gorootvars} go build ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+        ldflags="$(print_ldflags)"
+        go version
+        env | grep ^GO
+        go build -ldflags "$ldflags" ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
   "fetch tool" :
@@ -57,7 +56,7 @@ functions:
       bucket: mciuploads
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/bin/${tool}${extension}
+      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}${extension}
       remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
 
   "upload tool":
@@ -65,7 +64,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/bin/${tool}
+      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}
       remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
       bucket: mciuploads
       permissions: public-read
@@ -73,15 +72,22 @@ functions:
       display_name: ${tool}
 
   "fetch source" :
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
     - command: shell.exec
       params:
-        working_dir: src
+        script: |
+          set -x
+          set -v
+          set -e
+          mkdir -p src/github.com/mongodb
+    - command: git.get_project
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: git.apply_patch
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
@@ -92,7 +98,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
@@ -193,7 +199,6 @@ buildvariants:
   run_on:
   - linux-64-amzn-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -202,7 +207,6 @@ buildvariants:
   run_on:
   - amazon2-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -215,7 +219,6 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -224,7 +227,6 @@ buildvariants:
   run_on:
   - debian92-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -238,7 +240,6 @@ buildvariants:
   - macos-1012
   expansions:
     build_tags: "ssl openssl_pre_1.0"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
   tasks: *atlas_live_tasks
 
 #######################################
@@ -250,7 +251,6 @@ buildvariants:
   run_on:
   - rhel62-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -259,7 +259,6 @@ buildvariants:
   run_on:
   - rhel70
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -272,7 +271,6 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -285,7 +283,6 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -294,7 +291,6 @@ buildvariants:
   run_on:
   - ubuntu1604-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
 
@@ -308,7 +304,6 @@ buildvariants:
   - windows-64-vs2013-compile
   expansions:
     build_tags: "ssl"
-    gorootvars: 'PATH="/cygdrive/c/golang/go1.10/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH" GOROOT="c:/golang/go1.10"'
   tasks: *atlas_live_tasks
 
 #######################################
@@ -323,7 +318,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "ssl"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/aarch64-mongodb-linux-gcc'
   tasks: *atlas_live_tasks
 
 #######################################
@@ -338,7 +332,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: 'ssl'
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/ppc64le-mongodb-linux-gcc'
   tasks: *atlas_live_tasks
 
 - name: ubuntu1604-ppc64le-enterprise
@@ -348,7 +341,6 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/ppc64le-mongodb-linux-gcc'
     build_tags: 'ssl sasl'
   tasks: *atlas_live_tasks
 
@@ -364,7 +356,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl ssl"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
   tasks: *atlas_live_tasks
 
 - name: ubuntu1604-s390x-enterprise
@@ -374,6 +365,5 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     build_tags: "sasl ssl"
   tasks: *atlas_live_tasks
