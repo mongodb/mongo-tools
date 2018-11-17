@@ -233,7 +233,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -247,7 +247,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -268,7 +268,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -285,18 +285,18 @@ functions:
           export PATH=/opt/ldwrapper/bin:$PATH
         fi
 
-        sed -i.bak "s/built-without-version-string/$(git describe)/" common/options/options.go
-        sed -i.bak "s/built-without-git-spec/$(git rev-parse HEAD)/" common/options/options.go
-
-        ${gorootvars} go version
-        ${gorootvars} env | grep ^GO
-        ${gorootvars} go build ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+        ldflags="$(print_ldflags)"
+        go version
+        env | grep ^GO
+        go build -ldflags "$ldflags" ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
   "download mongod":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -325,14 +325,14 @@ functions:
       bucket: mciuploads
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/bin/${tool}${extension}
+      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}${extension}
       remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
 
   "generate coverage html + text":
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -341,8 +341,8 @@ functions:
           if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
           fi;
-          ${gorootvars} go tool cover -html=coverage.out -o coverage.html
-          ${gorootvars} go tool cover -func=coverage.out -o coverage.txt
+          go tool cover -html=coverage.out -o coverage.html
+          go tool cover -func=coverage.out -o coverage.txt
         fi;
 
   "get buildnumber":
@@ -354,7 +354,7 @@ functions:
   "move coverage data":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -367,7 +367,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
@@ -376,8 +376,11 @@ functions:
         set -x
         set -v
         export basedir=$PWD
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+        ldflags="$(print_ldflags)"
         cd ${package}
-        ${gorootvars} go test ${coverage_args} ${args} -tags "${build_tags}" -test.v > unit.suite
+        go test -ldflags "$ldflags" ${coverage_args} ${args} -tags "${build_tags}" -test.v > unit.suite
         export exitcode=$?
         cat unit.suite
         cp unit.suite $basedir/.
@@ -386,7 +389,7 @@ functions:
   "setup integration test":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       # Set up Kerberos stuff: run kinit if necessary, and add KDC to registry
       # on Windows (see https://wiki.mongodb.com/display/DH/Testing+Kerberos)
       script: |
@@ -405,7 +408,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -413,6 +416,9 @@ functions:
             set -o igncr
         fi;
 
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+        ldflags="$(print_ldflags)"
         cwd=$(pwd)
         # run unit tests under common package
         for i in archive bsonutil db/tlsgo failpoint intents json log options progress text util; do
@@ -422,7 +428,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$COMMON_SUBPKG.out"
             fi;
-            ${gorootvars} go test $COVERAGE_ARGS ${args} -tags "failpoints ${build_tags}" -test.v > $COMMON_SUBPKG.suite
+            go test -ldflags "$ldflags" $COVERAGE_ARGS ${args} -tags "failpoints ${build_tags}" -test.v > $COMMON_SUBPKG.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -438,7 +444,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            ${gorootvars} go test $COVERAGE_ARGS ${args} -tags "${build_tags}" -test.v > $i.suite
+            go test -ldflags "$ldflags" $COVERAGE_ARGS ${args} -tags "${build_tags}" -test.v > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -452,7 +458,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         if [ "Windows_NT" = "$OS" ]; then
             set -o igncr
@@ -461,6 +467,9 @@ functions:
 
         set -x
         set -v
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+        ldflags="$(print_ldflags)"
 
         if [ "${create_mongod_users_command}" != "" ]; then
           export AUTH_USERNAME=${auth_username}
@@ -474,7 +483,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            ${gorootvars} go test $COVERAGE_ARGS -test.v ${args} -tags "${build_tags}" > $i.suite
+            go test -ldflags "$ldflags" $COVERAGE_ARGS -test.v ${args} -tags "${build_tags}" > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -489,7 +498,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -499,11 +508,16 @@ functions:
             set -o igncr
         fi;
 
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+
+        # XXX Need to fix up use of 'src' below somehow; for now commented out
+        # because we're using an actual GOPATH instead of a hack and replaced with a copy
         for i in mongoimport mongoexport mongostat mongorestore mongodump mongofiles; do
             cd $i
-            perl -pe 's/.*src/github.com\/mongodb\/mongo-tools/' coverage_$i.out > coverage_$i_rewrite.out
-            ${gorootvars} go tool cover -html=coverage_$i_rewrite.out -o coverage_$i.html
-            ${gorootvars} go tool cover -func=coverage_$i_rewrite.out -o coverage_$i.txt
+            # perl -pe 's/.*src/github.com\/mongodb\/mongo-tools/' coverage_$i.out > coverage_$i_rewrite.out
+            go tool cover -html=coverage_$i.out -o coverage_$i.html
+            go tool cover -func=coverage_$i.out -o coverage_$i.txt
             cd ..
         done
 
@@ -512,7 +526,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/${coverage_pkg}/coverage_${coverage_pkg}.html
+      local_file: src/github.com/mongodb/mongo-tools/${coverage_pkg}/coverage_${coverage_pkg}.html
       remote_file: mongo-tools/coverage/${coverage_pkg}/${task_id}.html
       bucket: mciuploads
       permissions: public-read
@@ -525,7 +539,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/${coverage_pkg}/coverage_${coverage_pkg}.txt
+      local_file: src/github.com/mongodb/mongo-tools/${coverage_pkg}/coverage_${coverage_pkg}.txt
       remote_file: mongo-tools/coverage/${coverage_pkg}/${task_id}.txt
       bucket: mciuploads
       permissions: public-read
@@ -536,7 +550,7 @@ functions:
   "setup credentials" :
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       silent: true
       script: |
         set -x
@@ -556,7 +570,7 @@ functions:
   "start mongod":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       background: true
       script: |
         set -x
@@ -570,7 +584,7 @@ functions:
   "wait for mongod to be ready":
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -597,7 +611,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/bin/${tool}
+      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}
       remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
       bucket: mciuploads
       permissions: public-read
@@ -605,15 +619,22 @@ functions:
       display_name: ${tool}
 
   "fetch source" :
-    - command: git.get_project
-      params:
-        directory: src
-    - command: git.apply_patch
-      params:
-        directory: src
     - command: shell.exec
       params:
-        working_dir: src
+        script: |
+          set -x
+          set -v
+          set -e
+          mkdir -p src/github.com/mongodb
+    - command: git.get_project
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: git.apply_patch
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
@@ -625,7 +646,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/${filename}
+      local_file: src/github.com/mongodb/mongo-tools/${filename}
       remote_file: mongo-tools/mongoreplay/archive/${build_id}/${filename}
       bucket: mciuploads
       permissions: public-read
@@ -635,7 +656,7 @@ functions:
   "create timeseries" :
     command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -649,7 +670,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/timeseries.html
+      local_file: src/github.com/mongodb/mongo-tools/timeseries.html
       remote_file: mongo-tools/mongoreplay/timeseries/${build_id}/timeseries.html
       bucket: mciuploads
       permissions: public-read
@@ -662,24 +683,24 @@ functions:
         bucket: boxes.10gen.com
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/mongoreplay/testPcap/${pcapFname}
+        local_file: src/github.com/mongodb/mongo-tools/mongoreplay/testPcap/${pcapFname}
         remote_file: build/mongotape/${pcapFname}
 
   "fetch ftdc" :
   - command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
         set -e
-        ${gorootvars} GOPATH=$PWD go get github.com/10gen/ftdc-utils/cmd/ftdc
+        GOPATH=$PWD go get github.com/10gen/ftdc-utils/cmd/ftdc
 
   "create auth_user" :
   - command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -689,7 +710,7 @@ functions:
   "create sharded_cluster" :
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         background: true
         script: |
           set -x
@@ -700,7 +721,7 @@ functions:
           PATH=./bin:$PATH ./bin/mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}' 
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
@@ -710,7 +731,7 @@ functions:
   "create repl_set" :
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         background: true
         script: |
           set -x
@@ -721,7 +742,7 @@ functions:
           PATH=./bin:$PATH ./bin/mongo --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:3, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
@@ -732,12 +753,15 @@ functions:
   - command: shell.exec
     type: test
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
         set -e
-        ${gorootvars} ${environment_vars} go test ${additional_args} -v > ${filename}.suite
+        . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
+        ldflags="$(print_ldflags)"
+        ${environment_vars} go test -ldflags "$ldflags" ${additional_args} -v > ${filename}.suite
 
 
 pre:
@@ -754,7 +778,7 @@ pre:
 post:
   - command: attach.results
     params:
-      file_location: src/report.json
+      file_location: src/github.com/mongodb/mongo-tools/report.json
   - command: shell.exec
     params:
       silent: true
@@ -765,7 +789,7 @@ post:
         exit 0
   - command: gotest.parse_files
     params:
-      files: ["src/*.suite"]
+      files: ["src/github.com/mongodb/mongo-tools/*.suite"]
   - command: shell.exec
     params:
       script: |
@@ -997,12 +1021,14 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
           set -e
-          ${gorootvars} retVal=$(go run vendor/src/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*);
+          . ./set_goenv.sh
+          GOROOT="" set_goenv || exit
+          retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
 
 - name: lint-js
@@ -1011,7 +1037,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
@@ -1212,7 +1238,7 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/test/qa-tests
+        working_dir: src/github.com/mongodb/mongo-tools/test/qa-tests
         script: |
           set -x
           set -v
@@ -1361,12 +1387,12 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
           set -e
-          ${gorootvars} go tool vet bsondump common mongo*
+          go tool vet bsondump common mongo*
 
 - name: replay-dist
   commands:
@@ -1394,7 +1420,7 @@ tasks:
   - func: "wait for mongod to be ready"
   - command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -1522,7 +1548,7 @@ tasks:
   - func: "fetch ftdc"
   - command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -1532,7 +1558,7 @@ tasks:
         PATH=$PATH:$PWD/bin:$PWD/vendor/bin ./mongoreplay/replay_test.sh --verbose --explicit --keep
   - command: shell.exec
     params:
-      working_dir: src
+      working_dir: src/github.com/mongodb/mongo-tools
       script: |
         set -x
         set -v
@@ -1555,7 +1581,6 @@ buildvariants:
   run_on:
   - linux-64-amzn-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1565,7 +1590,6 @@ buildvariants:
   run_on:
   - amazon2-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1589,7 +1613,6 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1599,7 +1622,6 @@ buildvariants:
   run_on:
   - debian92-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1619,7 +1641,6 @@ buildvariants:
     mongo_target: "osx-ssl"
     arch: "osx/x86_64"
     excludes: requires_many_files
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
   tasks: *macos_1012_tasks
 
 - name: macOS-1012-ssl
@@ -1634,7 +1655,6 @@ buildvariants:
     arch: "osx/x86_64"
     build_tags: "ssl openssl_pre_1.0"
     excludes: requires_many_files
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
   tasks: *macos_1012_ssl_tasks
 
 #######################################
@@ -1646,7 +1666,6 @@ buildvariants:
   run_on:
   - rhel62-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1656,7 +1675,6 @@ buildvariants:
   run_on:
   - rhel70
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1670,7 +1688,6 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1688,7 +1705,6 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1404"
     mongo_edition: "targeted"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
     arch: "linux/x86_64"
     integration_test_args: integration
@@ -1704,7 +1720,6 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     mongo_os: "ubuntu1404"
     mongo_edition: "enterprise"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
     edition: ssl
     arch: "linux/x86_64"
@@ -1723,7 +1738,6 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1404"
     mongo_edition: "enterprise"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "ssl sasl"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
@@ -1739,7 +1753,6 @@ buildvariants:
   run_on:
   - ubuntu1604-test
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1763,7 +1776,6 @@ buildvariants:
     arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration"
-    gorootvars: 'PATH="/cygdrive/c/golang/go1.10/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH" GOROOT="c:/golang/go1.10"'
   tasks: *windows_64_tasks
 
 - name: windows-64-ssl
@@ -1784,7 +1796,6 @@ buildvariants:
     multiversion_override: "2.6"
     extension: .exe
     arch: "win32/x86_64"
-    gorootvars: 'PATH="/cygdrive/c/golang/go1.10/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH" GOROOT="c:/golang/go1.10"'
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration,ssl"
   tasks: *windows_64_ssl_tasks
@@ -1808,7 +1819,6 @@ buildvariants:
     edition: enterprise
     extension: .exe
     arch: "win32/x86_64"
-    gorootvars: 'PATH="/cygdrive/c/golang/go1.10/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH" GOROOT="c:/golang/go1.10"'
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration"
   tasks: *windows_64_enterprise_tasks
@@ -1831,7 +1841,6 @@ buildvariants:
     mongo_arch: "arm64"
     build_tags: "ssl"
     resmoke_use_ssl: _ssl
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/aarch64-mongodb-linux-gcc'
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     multiversion_override: "skip"
@@ -1860,7 +1869,6 @@ buildvariants:
     #args: ... libsasl2; build_tags "sasl ssl"
     build_tags: 'ssl'
     resmoke_use_ssl: _ssl
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/ppc64le-mongodb-linux-gcc'
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     multiversion_override: "skip"
@@ -1877,7 +1885,6 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/ppc64le-mongodb-linux-gcc'
     build_tags: 'ssl sasl'
   tasks:
   - name: dist
@@ -1912,7 +1919,6 @@ buildvariants:
     mongo_arch: "s390x"
     build_tags: "sasl ssl"
     resmoke_use_ssl: _ssl
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     multiversion_override: "skip"
@@ -1941,7 +1947,6 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10 CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1961,7 +1966,6 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1404"
     mongo_edition: "enterprise"
-    gorootvars: 'PATH="/opt/golang/go1.10/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/golang/go1.10'
     build_tags: "sasl ssl"
     arch: "linux/x86_64"
     args: "-race"
