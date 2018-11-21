@@ -12,13 +12,12 @@ cd $SCRIPT_DIR
 
 . ./set_goenv.sh
 set_goenv || exit
-ldflags="$(print_ldflags)"
 
 # remove stale packages
 rm -rf vendor/pkg
 
 # build binaries for any tests that expect them for blackbox testing
-./build.sh
+./build.sh $tags
 
 ec=0
 
@@ -27,19 +26,19 @@ ec=0
 # Test common/db with test type flags
 for i in common/db; do
         echo "Testing ${i}..."
-        (go test -ldflags "$ldflags" -tags "$tags" ./$i -test.types=unit,integration) || { echo "Error testing $i"; ec=1; }
+        (go test -ldflags "$(print_ldflags)" -tags "$(print_tags $tags)" ./$i -test.types=unit,integration) || { echo "Error testing $i"; ec=1; }
 done
 
 for i in common/db mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop; do
         echo "Testing ${i}..."
-        (cd $i && go test -ldflags "$ldflags" -tags "$tags" ./... -test.types=unit,integration) || { echo "Error testing $i"; ec=1; }
+        (cd $i && go test -ldflags "$(print_ldflags)" -tags "$(print_tags $tags)" ./... -test.types=unit,integration) || { echo "Error testing $i"; ec=1; }
 done
 
 # These don't support the test.types flag
 common_with_test=$(find common -iname '*_test.go' | xargs -I % dirname % | sort -u | grep -v 'common/db')
 for i in bsondump mongoreplay $common_with_test; do
         echo "Testing ${i}..."
-        (cd $i && go test -ldflags "$ldflags" -tags "$tags" . ) || { echo "Error testing $i"; ec=1; }
+        (cd $i && go test -ldflags "$(print_ldflags)" -tags "$(print_tags $tags)" . ) || { echo "Error testing $i"; ec=1; }
 done
 
 if [ -t /dev/stdin ]; then
