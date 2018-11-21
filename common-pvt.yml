@@ -44,10 +44,9 @@ functions:
 
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        ldflags="$(print_ldflags)"
         go version
         env | grep ^GO
-        go build -ldflags "$ldflags" ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
+        go build -ldflags "$(print_ldflags)" ${args} -tags "$(print_tags failpoints ${build_tags})" -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
   "fetch tool" :
@@ -239,7 +238,7 @@ buildvariants:
   run_on:
   - macos-1012
   expansions:
-    build_tags: "ssl openssl_pre_1.0"
+    build_tags: "ssl"
   tasks: *atlas_live_tasks
 
 #######################################

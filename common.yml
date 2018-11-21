@@ -359,10 +359,9 @@ functions:
 
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        ldflags="$(print_ldflags)"
         go version
         env | grep ^GO
-        go build -ldflags "$ldflags" ${args} -tags "failpoints ${build_tags}" -o bin/${tool} ${tool}/main/${tool}.go
+        go build -ldflags "$(print_ldflags)" ${args} -tags "$(print_tags failpoints ${build_tags})" -o bin/${tool} ${tool}/main/${tool}.go
         ./bin/${tool} --version
 
   "download mongod":
@@ -451,9 +450,8 @@ functions:
         export basedir=$PWD
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        ldflags="$(print_ldflags)"
         cd ${package}
-        go test -ldflags "$ldflags" ${coverage_args} ${args} -tags "${build_tags}" -test.v > unit.suite
+        go test -ldflags "$(print_ldflags)" ${coverage_args} ${args} -tags "$(print_tags ${build_tags})" -test.v > unit.suite
         export exitcode=$?
         cat unit.suite
         cp unit.suite $basedir/.
@@ -499,7 +497,6 @@ functions:
 
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        ldflags="$(print_ldflags)"
         cwd=$(pwd)
         # run unit tests under common package
         for i in archive bsonutil db/tlsgo failpoint intents json log options progress text util; do
@@ -509,7 +506,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$COMMON_SUBPKG.out"
             fi;
-            go test -ldflags "$ldflags" $COVERAGE_ARGS ${args} -tags "failpoints ${build_tags}" -test.v > $COMMON_SUBPKG.suite
+            go test -ldflags "$(print_ldflags)" $COVERAGE_ARGS ${args} -tags "$(print_tags failpoints ${build_tags})" -test.v > $COMMON_SUBPKG.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -525,7 +522,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            go test -ldflags "$ldflags" $COVERAGE_ARGS ${args} -tags "${build_tags}" -test.v > $i.suite
+            go test -ldflags "$(print_ldflags)" $COVERAGE_ARGS ${args} -tags "$(print_tags ${build_tags})" -test.v > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -550,7 +547,6 @@ functions:
         set -v
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        ldflags="$(print_ldflags)"
 
         if [ "${create_mongod_users_command}" != "" ]; then
           export AUTH_USERNAME=${auth_username}
@@ -564,7 +560,7 @@ functions:
             if [ "${run_coverage}" ]; then
                 COVERAGE_ARGS="-coverprofile=coverage_$i.out"
             fi;
-            go test -ldflags "$ldflags" $COVERAGE_ARGS -test.v ${args} -tags "${build_tags}" > $i.suite
+            go test -ldflags "$(print_ldflags)" $COVERAGE_ARGS -test.v ${args} -tags "$(print_tags ${build_tags})" > $i.suite
             if [ $? -ne 0 ]; then
                 echo "suite failed, will exit with error on finish"
                 export exitcode=1
@@ -841,8 +837,7 @@ functions:
         set -e
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        ldflags="$(print_ldflags)"
-        ${environment_vars} go test -ldflags "$ldflags" ${additional_args} -v > ${filename}.suite
+        ${environment_vars} go test -ldflags "$(print_ldflags)" ${additional_args} -v > ${filename}.suite
 
 
 pre:
@@ -1770,7 +1765,7 @@ buildvariants:
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     arch: "osx/x86_64"
-    build_tags: "ssl openssl_pre_1.0"
+    build_tags: "ssl"
     excludes: requires_many_files
   tasks: *macos_ssl_tasks
 
