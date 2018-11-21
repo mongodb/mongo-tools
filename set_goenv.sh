@@ -76,3 +76,20 @@ print_ldflags() {
     importpath="github.com/mongodb/mongo-tools/common/options"
     echo "-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.Gitspec=${Gitspec}"
 }
+
+print_tags() {
+    tags=""
+    if [ ! -z "$1" ]
+    then
+            tags="$@"
+    fi
+    UNAME_S=$(PATH="/usr/bin:/bin" uname -s)
+    case $UNAME_S in
+        Darwin)
+            if expr "$tags" : '.*ssl' > /dev/null ; then
+                tags="$tags openssl_pre_1.0"
+            fi
+        ;;
+    esac
+    echo "$tags"
+}

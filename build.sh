@@ -12,7 +12,6 @@ cd $SCRIPT_DIR
 
 . ./set_goenv.sh
 set_goenv || exit
-ldflags="$(print_ldflags)"
 
 # remove stale packages
 rm -rf vendor/pkg
@@ -21,7 +20,7 @@ mkdir -p bin
 
 for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop mongooplog mongoreplay; do
         echo "Building ${i}..."
-        go build -o "bin/$i" -ldflags "$ldflags" -tags "$tags" "$i/main/$i.go" || { echo "Error building $i"; ec=1; break; }
+        go build -o "bin/$i" -ldflags "$(print_ldflags)" -tags "$(print_tags $tags)" "$i/main/$i.go" || { echo "Error building $i"; ec=1; break; }
         ./bin/$i --version | head -1
 done
 
