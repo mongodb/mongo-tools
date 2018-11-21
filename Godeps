@@ -12,7 +12,7 @@ github.com/howeyc/gopass                44476384cd4721b68705e72f19e95d1a3a504370
 github.com/nsf/termbox-go               0723e7c3d0a317dea811f0fbe4d6edd81908c971
 github.com/mattn/go-runewidth           d6bea18f789704b5f83375793155289da36a3c7f
 golang.org/x/crypto                     1f22c0103821b9390939b6776727195525381532    github.com/golang/crypto
-github.com/10gen/llmgo                  master
+github.com/10gen/llmgo                  afcced55e92d9b6b93ccf32508238c08cfbaddb8
 github.com/google/gopacket              1b0b78901cdd351ecfc68bf1a2adafcd2ff30220
 github.com/patrickmn/go-cache           1881a9bccb818787f68c52bfba648c6cf34c34fa
 github.com/10gen/escaper                17fe61c658dcbdcbf246c783f4f7dc97efde3a8b
