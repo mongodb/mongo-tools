@@ -51,7 +51,6 @@ mongo_tools_variables:
       - name: qa-tests
       - name: qa-tests-3.2
       - name: qa-tests-3.4
-      - name: qa-tests-unstable
       - name: qa-dump-restore-gzip
       - name: qa-dump-restore-gzip-3.2
       - name: qa-dump-restore-archiving
@@ -71,7 +70,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
       - name: qa-tests
-      - name: qa-tests-unstable
       - name: native-cert-ssl
     ubuntu1404_enterprise_task_list: &ubuntu1404_enterprise_tasks
       - name: db
@@ -135,7 +133,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-gzip-3.2
         distros:
         - windows-64-vs2013-test
-      - name: qa-tests-unstable
       - name: unit
     windows_64_ssl_task_list: &windows_64_ssl_tasks
       - name: dist
@@ -168,7 +165,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
       - name: qa-tests
-      - name: qa-tests-unstable
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -186,7 +182,6 @@ mongo_tools_variables:
       - name: kerberos
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-unstable
       - name: native-cert-ssl
 # disabled until BUILD-2273 is done
 #      - name: replay-dist
@@ -203,7 +198,6 @@ mongo_tools_variables:
       - name: integration-auth
       - name: qa-dump-restore-archiving
       - name: qa-dump-restore-gzip
-      - name: qa-tests-unstable
       - name: native-cert-ssl
 
 
