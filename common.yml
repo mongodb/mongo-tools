@@ -495,13 +495,12 @@ functions:
             set -o igncr
         fi;
 
-        for i in mongoimport mongoexport mongostat mongooplog mongorestore mongodump mongofiles; do
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
 
         # XXX Need to fix up use of 'src' below somehow; for now commented out
         # because we're using an actual GOPATH instead of a hack and replaced with a copy
-        for i in mongoimport mongoexport mongostat mongorestore mongodump mongofiles; do
+        for i in mongoimport mongoexport mongostat mongorestore mongodump mongofiles mongooplog; do
             cd $i
             # perl -pe 's/.*src/github.com\/mongodb\/mongo-tools/' coverage_$i.out > coverage_$i_rewrite.out
             go tool cover -html=coverage_$i.out -o coverage_$i.html

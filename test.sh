@@ -29,7 +29,7 @@ for i in common/db; do
         (go test -ldflags "$(print_ldflags)" -tags "$(print_tags $tags)" ./$i -test.types=unit,integration) || { echo "Error testing $i"; ec=1; }
 done
 
-for i in common/db mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop; do
+for i in common/db mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop mongooplog; do
         echo "Testing ${i}..."
         (cd $i && go test -ldflags "$(print_ldflags)" -tags "$(print_tags $tags)" ./... -test.types=unit,integration) || { echo "Error testing $i"; ec=1; }
 done
