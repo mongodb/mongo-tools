@@ -159,6 +159,11 @@ func TestGetUpsertValue(t *testing.T) {
 			bsonDocument := bson.D{{"a", inner}}
 			So(getUpsertValue("a.b", bsonDocument), ShouldEqual, 4)
 		})
+		Convey("the value of the key should be correct for nested document pointer fields", func() {
+			inner := bson.D{{"b", 4}}
+			bsonDocument := bson.D{{"a", &inner}}
+			So(getUpsertValue("a.b", bsonDocument), ShouldEqual, 4)
+		})
 		Convey("the value of the key should be nil for unnested document "+
 			"fields that do not exist", func() {
 			bsonDocument := bson.D{{"a", 4}}
@@ -168,6 +173,12 @@ func TestGetUpsertValue(t *testing.T) {
 			"fields that do not exist", func() {
 			inner := bson.D{{"b", 4}}
 			bsonDocument := bson.D{{"a", inner}}
+			So(getUpsertValue("a.c", bsonDocument), ShouldBeNil)
+		})
+		Convey("the value of the key should be nil for nested document pointer "+
+			"fields that do not exist", func() {
+			inner := bson.D{{"b", 4}}
+			bsonDocument := bson.D{{"a", &inner}}
 			So(getUpsertValue("a.c", bsonDocument), ShouldBeNil)
 		})
 		Convey("the value of the key should be nil for nil document values", func() {

@@ -57,6 +57,17 @@ func checkOnlyHasDocuments(sessionProvider db.SessionProvider, expectedDocuments
 	return nil
 }
 
+func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
+	session, err := (*sessionProvider).GetSession()
+	if err != nil {
+		return 0, err
+	}
+	defer session.Close()
+
+	collection := session.DB(testDb).C(testCollection)
+	return collection.Count()
+}
+
 // getBasicToolOptions returns a test helper to instantiate the session provider
 // for calls to StreamDocument
 func getBasicToolOptions() *options.ToolOptions {
@@ -781,6 +792,36 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.MaintainInsertionOrder = true
 			_, err = imp.ImportDocuments()
 			So(err, ShouldNotBeNil)
+		})
+		Convey("CSV import with --mode=upsert/--upsertFields with a nested upsert field should succeed when repeated", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_nested_upsert.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.IngestOptions.Mode = modeUpsert
+			imp.upsertFields = []string{"level1.level2.key1"}
+			numImported, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numImported, ShouldEqual, 1)
+			n, err := countDocuments(imp.SessionProvider)
+			So(err, ShouldBeNil)
+			So(n, ShouldEqual, 1)
+
+			// Repeat must succeed
+			imp, err = NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_nested_upsert.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.IngestOptions.Mode = modeUpsert
+			imp.upsertFields = []string{"level1.level2.key1"}
+			numImported, err = imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numImported, ShouldEqual, 1)
+			n, err = countDocuments(imp.SessionProvider)
+			So(err, ShouldBeNil)
+			So(n, ShouldEqual, 1)
 		})
 	})
 }
