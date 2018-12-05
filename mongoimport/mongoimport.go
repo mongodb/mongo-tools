@@ -349,9 +349,11 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	if imp.ToolOptions.Host != "" {
 		connURL = imp.ToolOptions.Host
 	} else if imp.ToolOptions.URI.ConnectionString != "" {
-		connURL = imp.ToolOptions.URI.ParsedConnString().ReplicaSet +
-			"/" +
-			strings.Join(imp.ToolOptions.URI.GetConnectionAddrs(), ",")
+		connURL = strings.Join(imp.ToolOptions.URI.GetConnectionAddrs(), ",")
+		if imp.ToolOptions.URI.ParsedConnString().ReplicaSet != "" {
+			connURL = imp.ToolOptions.URI.ParsedConnString().ReplicaSet +
+				"/" + connURL
+		}
 	}
 
 	if imp.ToolOptions.Port != "" {
