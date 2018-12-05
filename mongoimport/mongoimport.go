@@ -345,10 +345,15 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	}
 	defer session.Close()
 
-	connURL := imp.ToolOptions.Host
-	if connURL == "" {
-		connURL = util.DefaultHost
+	connURL := util.DefaultHost
+	if imp.ToolOptions.Host != "" {
+		connURL = imp.ToolOptions.Host
+	} else if imp.ToolOptions.URI.ConnectionString != "" {
+		connURL = imp.ToolOptions.URI.ParsedConnString().ReplicaSet +
+			"/" +
+			strings.Join(imp.ToolOptions.URI.GetConnectionAddrs(), ",")
 	}
+
 	if imp.ToolOptions.Port != "" {
 		connURL = connURL + ":" + imp.ToolOptions.Port
 	}
