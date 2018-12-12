@@ -7,6 +7,7 @@
 package db
 
 import (
+	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
@@ -15,10 +16,32 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// Copied this var block and GetAuthOptions from common/testutil/auth.go to avoid circular dependency
+var (
+	UserAdmin              = "uAdmin"
+	UserAdminPassword      = "password"
+	CreatedUserNameEnv     = "TOOLS_TESTING_AUTH_USERNAME"
+	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
+)
+
+func DBGetAuthOptions() options.Auth {
+	if testtype.HasTestType(testtype.AuthTestType) {
+		return options.Auth{
+			Username: os.Getenv(CreatedUserNameEnv),
+			Password: os.Getenv(CreatedUserPasswordEnv),
+			Source:   "admin",
+		}
+	}
+
+	return options.Auth{}
+}
+
 func TestBufferedBulkInserterInserts(t *testing.T) {
 	var bufBulk *BufferedBulkInserter
 
-	testtype.VerifyTestType(t, "db")
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	auth := DBGetAuthOptions()
 
 	Convey("With a valid session", t, func() {
 		opts := options.ToolOptions{
@@ -26,7 +49,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 				Port: DefaultTestPort,
 			},
 			SSL:  &options.SSL{},
-			Auth: &options.Auth{},
+			Auth: &auth,
 		}
 		provider, err := NewSessionProvider(opts)
 		So(provider, ShouldNotBeNil)

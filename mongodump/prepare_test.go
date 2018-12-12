@@ -15,7 +15,7 @@ import (
 
 func TestSkipCollection(t *testing.T) {
 
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a mongodump that excludes collections 'test' and 'fake'"+
 		" and excludes prefixes 'pre-' and 'no'", t, func() {
@@ -64,6 +64,7 @@ type testTable struct {
 }
 
 func TestShouldSkipSystemNamespace(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	tests := []testTable{
 		testTable{
 			db:     "test",

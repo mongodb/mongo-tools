@@ -111,7 +111,7 @@ func convertBSONDToRaw(documents []bson.D) []bson.Raw {
 }
 
 func TestValidateFields(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given an import input, in validating the headers", t, func() {
 		Convey("if the fields contain '..', an error should be thrown", func() {
@@ -147,7 +147,7 @@ func TestValidateFields(t *testing.T) {
 }
 
 func TestGetUpsertValue(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a field and a BSON document, on calling getUpsertValue", t, func() {
 		Convey("the value of the key should be correct for unnested documents", func() {
@@ -188,7 +188,7 @@ func TestGetUpsertValue(t *testing.T) {
 }
 
 func TestConstructUpsertDocument(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a set of upsert fields and a BSON document, on calling "+
 		"constructUpsertDocument", t, func() {
@@ -230,7 +230,7 @@ func TestConstructUpsertDocument(t *testing.T) {
 }
 
 func TestSetNestedValue(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a field, its value, and an existing BSON document...", t, func() {
 		b := bson.D{{"c", "d"}}
@@ -282,7 +282,7 @@ func TestSetNestedValue(t *testing.T) {
 }
 
 func TestRemoveBlankFields(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given an unordered BSON document", t, func() {
 		Convey("the same document should be returned if there are no blanks", func() {
@@ -319,7 +319,7 @@ func TestRemoveBlankFields(t *testing.T) {
 }
 
 func TestTokensToBSON(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given an slice of column specs and tokens to convert to BSON", t, func() {
 		Convey("the expected ordered BSON should be produced for the given"+
@@ -396,7 +396,7 @@ func TestTokensToBSON(t *testing.T) {
 }
 
 func TestProcessDocuments(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given an import worker", t, func() {
 		index := uint64(0)
@@ -479,7 +479,7 @@ func TestProcessDocuments(t *testing.T) {
 }
 
 func TestDoSequentialStreaming(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given some import workers, a Converters input channel and an bson.D output channel", t, func() {
 		inputChannel := make(chan Converter, 5)
@@ -523,7 +523,7 @@ func TestDoSequentialStreaming(t *testing.T) {
 }
 
 func TestStreamDocuments(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey(`Given:
 			1. a boolean indicating streaming order
 			2. an input channel where documents are streamed in
@@ -565,7 +565,7 @@ func TestStreamDocuments(t *testing.T) {
 }
 
 func TestChannelQuorumError(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Given a channel and a quorum...", t, func() {
 		Convey("an error should be returned if one is received", func() {
 			ch := make(chan error, 2)
@@ -590,7 +590,7 @@ func TestChannelQuorumError(t *testing.T) {
 }
 
 func TestFilterIngestError(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a boolean 'stopOnError' and an error...", t, func() {
 

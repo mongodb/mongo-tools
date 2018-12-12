@@ -18,7 +18,8 @@ import (
 
 func TestNewSessionProvider(t *testing.T) {
 
-	testtype.VerifyTestType(t, "db")
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	auth := DBGetAuthOptions()
 
 	Convey("When initializing a session provider", t, func() {
 
@@ -29,7 +30,7 @@ func TestNewSessionProvider(t *testing.T) {
 					Port: DefaultTestPort,
 				},
 				SSL:  &options.SSL{},
-				Auth: &options.Auth{},
+				Auth: &auth,
 			}
 			provider, err := NewSessionProvider(opts)
 			So(err, ShouldBeNil)
@@ -74,15 +75,16 @@ func TestNewSessionProvider(t *testing.T) {
 
 func TestGetIndexes(t *testing.T) {
 
-	testtype.VerifyTestType(t, "db")
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	Convey("With a valid session", t, func() {
+		auth := DBGetAuthOptions()
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
 				Port: DefaultTestPort,
 			},
 			SSL:  &options.SSL{},
-			Auth: &options.Auth{},
+			Auth: &auth,
 		}
 		provider, err := NewSessionProvider(opts)
 		So(err, ShouldBeNil)
