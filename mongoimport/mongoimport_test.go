@@ -65,7 +65,13 @@ func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
 	defer session.Close()
 
 	collection := session.DB(testDb).C(testCollection)
-	return collection.Count()
+	dbDocuments := []bson.M{}
+	// Count via scan because 'count' command can be an approximation
+	err = collection.Find(nil).All(&dbDocuments)
+	if err != nil {
+		return 0, err
+	}
+	return len(dbDocuments), nil
 }
 
 // getBasicToolOptions returns a test helper to instantiate the session provider
@@ -522,7 +528,7 @@ func TestImportDocuments(t *testing.T) {
 				t.Fatalf("error getting session: %v", err)
 			}
 			defer session.Close()
-			session.DB(testDb).C(testCollection).DropCollection()
+			session.DB(testDb).C(testCollection).RemoveAll(nil)
 		})
 		Convey("no error should be thrown for CSV import on test data and all "+
 			"CSV data lines should be imported correctly", func() {
