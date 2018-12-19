@@ -21,6 +21,17 @@ set_goenv() {
         ;;
     esac
 
+    # Set OS-level compilation flags
+    case $UNAME_S in
+        'CYGWIN*')
+            export CGO_CFLAGS="-D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x06010000"
+            ;;
+        'Darwin')
+            export CGO_CFLAGS="-mmacosx-version-min=10.11"
+            export CGO_LDFLAGS="-mmacosx-version-min=10.11"
+            ;;
+    esac
+
     # XXX Setting the compiler might not be necessary anymore now that we're
     # using standard Go toolchain and if we don't put mongodbtoolchain into the
     # path.  But if we need to keep mongodbtoolchain for other tools (eg. python),
