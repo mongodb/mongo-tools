@@ -8,16 +8,16 @@
 package main
 
 import (
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/signals"
-	"github.com/mongodb/mongo-tools/common/util"
-	"github.com/mongodb/mongo-tools/mongotop"
-	"gopkg.in/mgo.v2"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/signals"
+	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/mongotop"
 )
 
 func main() {
@@ -89,7 +89,7 @@ func main() {
 	}
 
 	if opts.ReplicaSetName == "" {
-		sessionProvider.SetReadPreference(mgo.PrimaryPreferred)
+		sessionProvider.SetReadPreference(db.PrimaryPreferred())
 	}
 
 	// fail fast if connecting to a mongos
