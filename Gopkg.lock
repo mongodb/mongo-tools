@@ -141,20 +141,29 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:73309d0c2516df03f8cddb70218d4c43df7b7ed22042091e57d19cbbb4a51b67"
+  digest = "1:816aae7366f3c6bcd8d02bd9859cfc3c2cec5a4af8b0f515f3554465cb4dccd2"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
+    "archive",
+    "auth",
+    "bsonutil",
     "connstring",
     "db",
     "failpoint",
+    "intents",
     "json",
     "log",
     "options",
     "password",
+    "progress",
+    "signals",
+    "testtype",
+    "testutil",
+    "text",
     "util",
   ]
   pruneopts = "T"
-  revision = "403df24bd5d29fa0988c77fdeb480faf5d549df0"
+  revision = "35a4d01aa28802ff44184bf9400faba04a93ba87"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -284,7 +293,26 @@
     "github.com/google/gopacket/tcpassembly",
     "github.com/howeyc/gopass",
     "github.com/jessevdk/go-flags",
+    "github.com/mongodb/mongo-go-driver/bson",
+    "github.com/mongodb/mongo-go-driver/mongo",
+    "github.com/mongodb/mongo-go-driver/mongo/readpref",
+    "github.com/mongodb/mongo-go-driver/x/bsonx",
+    "github.com/mongodb/mongo-tools-common/archive",
+    "github.com/mongodb/mongo-tools-common/auth",
+    "github.com/mongodb/mongo-tools-common/bsonutil",
+    "github.com/mongodb/mongo-tools-common/connstring",
     "github.com/mongodb/mongo-tools-common/db",
+    "github.com/mongodb/mongo-tools-common/failpoint",
+    "github.com/mongodb/mongo-tools-common/intents",
+    "github.com/mongodb/mongo-tools-common/json",
+    "github.com/mongodb/mongo-tools-common/log",
+    "github.com/mongodb/mongo-tools-common/options",
+    "github.com/mongodb/mongo-tools-common/progress",
+    "github.com/mongodb/mongo-tools-common/signals",
+    "github.com/mongodb/mongo-tools-common/testtype",
+    "github.com/mongodb/mongo-tools-common/testutil",
+    "github.com/mongodb/mongo-tools-common/text",
+    "github.com/mongodb/mongo-tools-common/util",
     "github.com/nsf/termbox-go",
     "github.com/patrickmn/go-cache",
     "github.com/smartystreets/goconvey/convey",

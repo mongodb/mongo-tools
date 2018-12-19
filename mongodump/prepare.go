@@ -8,16 +8,17 @@ package mongodump
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/mongodb/mongo-tools/common/archive"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools-common/archive"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
 )
 
 type NilPos struct{}
@@ -272,9 +273,8 @@ func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	collOptions, err := db.GetCollectionInfo(session.DB(dbName).C(colName))
+	collOptions, err := db.GetCollectionInfo(session.Database(dbName).Collection(colName))
 	if err != nil {
 		return fmt.Errorf("error getting collection options: %v", err)
 	}
@@ -352,8 +352,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	if err != nil {
 		return nil, err
 	}
-	defer session.Close()
-	count, err := session.DB(dbName).C(ci.Name).Count()
+	count, err := session.Database(dbName).Collection(ci.Name).CountDocuments(nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error counting %v: %v", intent.Namespace(), err)
 	}
@@ -370,21 +369,18 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	colsIter, usesFullNames, err := db.GetCollections(session.DB(dbName), "")
+	colsIter, err := db.GetCollections(session.Database(dbName), "")
+	defer colsIter.Close(context.Background())
 	if err != nil {
 		return fmt.Errorf("error getting collections for database `%v`: %v", dbName, err)
 	}
 
 	collInfo := &db.CollectionInfo{}
-	for colsIter.Next(collInfo) {
-		if usesFullNames {
-			collName, err := db.StripDBFromNamespace(collInfo.Name, dbName)
-			if err != nil {
-				return err
-			}
-			collInfo.Name = collName
+	for colsIter.Next(nil) {
+		err = colsIter.Decode(collInfo)
+		if err != nil {
+			return fmt.Errorf("error decoding collection info: %v", err)
 		}
 		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
 			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
@@ -422,7 +418,7 @@ func (dump *MongoDump) CreateAllIntents() error {
 			continue
 		}
 		if err := dump.CreateIntentsForDatabase(dbName); err != nil {
-			return err
+			return fmt.Errorf("error creating intents for database %s: %v", dbName, err)
 		}
 	}
 	return nil

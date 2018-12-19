@@ -9,9 +9,9 @@ package mongodump
 import (
 	"fmt"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -45,7 +45,7 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
 
-	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, []string{"-$natural"}, &mostRecentOplogEntry, 0)
+	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": -1}, &mostRecentOplogEntry, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -58,7 +58,7 @@ func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
 // captured at the start of the dump.
 func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, error) {
 	oldestOplogEntry := db.Oplog{}
-	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, []string{"+$natural"}, &oldestOplogEntry, 0)
+	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": 1}, &oldestOplogEntry, 0)
 	if err != nil {
 		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
 	}
@@ -112,13 +112,15 @@ func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp
 	if err != nil {
 		return err
 	}
-	defer session.Close()
-	session.SetPrefetch(1.0) // mimic exhaust cursor
 	queryObj := bson.M{"$and": []bson.M{
 		bson.M{"ts": bson.M{"$gte": start}},
 		bson.M{"ts": bson.M{"$lte": end}},
 	}}
-	oplogQuery := session.DB("local").C(dump.oplogCollection).Find(queryObj).LogReplay()
+	oplogQuery := &db.DeferredQuery{
+		Coll:      session.Database("local").Collection(dump.oplogCollection),
+		Filter:    queryObj,
+		LogReplay: true,
+	}
 	oplogCount, err := dump.dumpFilteredQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentFilter)
 	if err == nil {
 		log.Logvf(log.Always, "\tdumped %v oplog %v",

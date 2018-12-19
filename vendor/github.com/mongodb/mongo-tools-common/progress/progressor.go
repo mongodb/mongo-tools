@@ -31,24 +31,28 @@ type Updateable interface {
 	Set(amount int64)
 }
 
-// countProgressor is an implementation of Progressor that uses
-type countProgressor struct {
+// CountProgressor is an implementation of Progressor that uses
+type CountProgressor struct {
 	max, current int64
 }
 
-func (c *countProgressor) Progress() (int64, int64) {
+// Progress returns the current and maximum values of the counter.
+func (c *CountProgressor) Progress() (int64, int64) {
 	current := atomic.LoadInt64(&c.current)
 	return current, c.max
 }
 
-func (c *countProgressor) Inc(amount int64) {
+// Inc atomically increments the counter by the given amount.
+func (c *CountProgressor) Inc(amount int64) {
 	atomic.AddInt64(&c.current, amount)
 }
 
-func (c *countProgressor) Set(amount int64) {
+// Set atomically sets the counter to a given number.
+func (c *CountProgressor) Set(amount int64) {
 	atomic.StoreInt64(&c.current, amount)
 }
 
-func newCounter(max int64) *countProgressor {
-	return &countProgressor{max, 0}
+// NewCounter constructs a CountProgressor with a given maximum count.
+func NewCounter(max int64) *CountProgressor {
+	return &CountProgressor{max, 0}
 }
