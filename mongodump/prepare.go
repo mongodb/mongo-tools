@@ -376,8 +376,8 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		return fmt.Errorf("error getting collections for database `%v`: %v", dbName, err)
 	}
 
-	collInfo := &db.CollectionInfo{}
 	for colsIter.Next(nil) {
+		collInfo := &db.CollectionInfo{}
 		err = colsIter.Decode(collInfo)
 		if err != nil {
 			return fmt.Errorf("error decoding collection info: %v", err)
