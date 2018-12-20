@@ -49,6 +49,7 @@ if (typeof getToolTest === 'undefined') {
     'error reading from db',
     'error reading collection',
     'connection closed',
+    'Interrupted',
   ];
   assert.soon(function() {
     var output = rawMongoProgramOutput();
