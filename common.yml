@@ -485,16 +485,14 @@ functions:
         fi;
 
         . ./set_goenv.sh
-        if [ "${UNIT_TEST}" == "true" ]; then
+        if [ "${UNIT_TEST}" = "true" ]; then
           export TOOLS_TESTING_UNIT="true"
         fi;
-        if [ "${DB_TESTS}" == "true" ]; then
-            export TOOLS_TESTING_DB="true"
-        fi
-        if [ "${run_coverage}" == "true" ]; then
+        if [ "${run_coverage}" = "true" ]; then
             export RUN_COVERAGE="true"
         fi
         export ON_EVERGREEN="true"
+        export TOOLS_BUILD_TAGS=${build_tags}
         ./runTests.sh -v
         exit $?
 
@@ -513,14 +511,18 @@ functions:
         set -v
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
-        if [ "${INT_TEST}" == "true" ]; then
+        if [ "${KERBEROS_TEST}" = "true" ]; then
+          export TOOLS_TESTING_KERBEROS="true"
+        elif [ "${USE_SSL}" = "true" ]; then
+          export TOOLS_TESTING_SSL="true"
           export TOOLS_TESTING_INTEGRATION="true"
         fi;
-        if [ "${AUTH_TEST}" == "true" ]; then
+        if [ "${AUTH_TEST}" = "true" ]; then
           export TOOLS_TESTING_AUTH="true"
+          export TOOLS_TESTING_INTEGRATION="true"
         fi;
-        if [ "${KERBEROS_TEST}" == "true" ]; then
-          export TOOLS_TESTING_KERBEROS="true"
+        if [ "${INT_TEST}" = "true" ]; then
+          export TOOLS_TESTING_INTEGRATION="true"
         fi;
         if [ "${create_mongod_users_command}" != "" ]; then
           export TOOLS_TESTING_AUTH_USERNAME=${auth_username}
@@ -528,6 +530,7 @@ functions:
           echo "${create_mongod_users_command}" | ./bin/mongo${extension} ${mongo_args} admin
         fi;
         export ON_EVERGREEN="true"
+        export TOOLS_BUILD_TAGS="${build_tags}"
         ./runTests.sh -v
         exit $?
 
@@ -553,7 +556,6 @@ functions:
         # because we're using an actual GOPATH instead of a hack and replaced with a copy
         for i in mongoimport mongoexport mongostat mongorestore mongodump mongofiles; do
             cd $i
-            ls
             # perl -pe 's/.*src/github.com\/mongodb\/mongo-tools/' coverage_$i.out > coverage_$i_rewrite.out
             go tool cover -html=coverage_$i.out -o coverage_$i.html
             go tool cover -func=coverage_$i.out -o coverage_$i.txt
@@ -800,7 +802,7 @@ functions:
         . ./set_goenv.sh
         GOROOT="" set_goenv || exit
         
-        if [ "${TESTING_REPLAY}" == "true" ]; then
+        if [ "${TESTING_REPLAY}" = "true" ]; then
             export TOOLS_TESTING_REPLAY="true"
         fi
         ${environment_vars} go test -ldflags "$(print_ldflags)" ${additional_args} -v > ${filename}.suite
@@ -971,7 +973,6 @@ tasks:
     - func: "run tool integration tests"
       vars:
           KERBEROS_TEST: "true"
-          INT_TEST: "true"
 
 - name: legacy30
   depends_on:
@@ -1757,6 +1758,8 @@ buildvariants:
     resmoke_use_ssl: _ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     integration_test_args: "integration,ssl"
+    USE_SSL: "true"
+
   tasks: *rhel_x86_64_ssl_tasks
 
 - name: rhel62-enterprise
@@ -1877,6 +1880,7 @@ buildvariants:
     resmoke_use_ssl: _ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     integration_test_args: "integration,ssl"
+    USE_SSL: "true"
   tasks: *ubuntu_x86_64_ssl_tasks
 
 - name: ubuntu1604-enterprise
@@ -1958,6 +1962,7 @@ buildvariants:
     arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration,ssl"
+    USE_SSL: "true"
   tasks: *windows_64_ssl_tasks
 
 - name: windows-64-enterprise
@@ -2005,6 +2010,7 @@ buildvariants:
     arch: "linux/arm64"
     edition: ssl
     integration_test_args: integration
+    USE_SSL: "true"
   tasks: *ubuntu1604_arm64_ssl_tasks
 
 #######################################

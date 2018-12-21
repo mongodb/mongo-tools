@@ -107,6 +107,7 @@ func TestNumberIntValue(t *testing.T) {
 }
 
 func TestNumberLongValue(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("When unmarshalling JSON with NumberLong values", t, func() {
 

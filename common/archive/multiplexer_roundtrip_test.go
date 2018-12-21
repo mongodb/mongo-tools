@@ -62,6 +62,7 @@ type testNotifier struct{}
 func (n *testNotifier) Notify() {}
 
 func TestBasicMux(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	var err error
 
 	Convey("with 10000 docs in each of five collections", t, func() {

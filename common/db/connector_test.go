@@ -20,6 +20,10 @@ import (
 func TestVanillaDBConnector(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// VanillaDBConnector can't connect if SSL or Auth are enabled
+	if testtype.HasTestType(testtype.SSLTestType) || testtype.HasTestType(testtype.AuthTestType) {
+		t.SkipNow()
+	}
 
 	Convey("With a vanilla db connector", t, func() {
 
@@ -72,6 +76,10 @@ func TestVanillaDBConnector(t *testing.T) {
 
 func TestVanillaDBConnectorWithAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+	// VanillaDBConnector can't connect if SSL is enabled
+	if testtype.HasTestType(testtype.SSLTestType) {
+		t.SkipNow()
+	}
 
 	Convey("With a vanilla db connector and a mongod running with"+
 		" auth", t, func() {

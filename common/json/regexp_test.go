@@ -115,6 +115,7 @@ func TestRegExpValue(t *testing.T) {
 }
 
 func TestRegexpLiteral(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("When unmarshalling JSON with regular expression literals", t, func() {
 
