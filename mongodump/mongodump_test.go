@@ -98,7 +98,7 @@ func countNonIndexBSONFiles(dir string) (int, error) {
 }
 
 func listNonIndexBSONFiles(dir string) ([]string, error) {
-	files := make([]string, 0)
+	var files []string
 	matchingFiles, err := getMatchingFiles(dir, ".*\\.bson")
 	if err != nil {
 		return nil, err
