@@ -371,10 +371,10 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	}
 
 	colsIter, err := db.GetCollections(session.Database(dbName), "")
-	defer colsIter.Close(context.Background())
 	if err != nil {
 		return fmt.Errorf("error getting collections for database `%v`: %v", dbName, err)
 	}
+	defer colsIter.Close(context.Background())
 
 	for colsIter.Next(nil) {
 		collInfo := &db.CollectionInfo{}

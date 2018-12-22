@@ -19,7 +19,7 @@ import (
 // the name of the oplog collection in the connected db
 func (dump *MongoDump) determineOplogCollectionName() error {
 	masterDoc := bson.M{}
-	err := dump.SessionProvider.Run("isMaster", &masterDoc, "admin")
+	err := dump.SessionProvider.RunString("isMaster", &masterDoc, "admin")
 	if err != nil {
 		return fmt.Errorf("error running command: %v", err)
 	}
