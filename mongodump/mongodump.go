@@ -135,6 +135,19 @@ func (dump *MongoDump) Init() error {
 	if dump.OutputWriter == nil {
 		dump.OutputWriter = os.Stdout
 	}
+
+	var pref *readpref.ReadPref
+	if dump.InputOptions.ReadPreference != "" {
+		pref, err = db.ParseReadPreference(dump.InputOptions.ReadPreference)
+		if err != nil {
+			return fmt.Errorf("error parsing --readPreference : %v", err)
+		}
+	} else {
+		pref = readpref.Primary()
+		// Direct connection is configured elsewhere if replica set name is not given
+	}
+	dump.ToolOptions.ReadPreference = pref
+
 	dump.SessionProvider, err = db.NewSessionProvider(*dump.ToolOptions)
 	if err != nil {
 		return fmt.Errorf("can't create session: %v", err)
@@ -149,28 +162,10 @@ func (dump *MongoDump) Init() error {
 		return fmt.Errorf("can't use --oplog option when dumping from a mongos")
 	}
 
-	var pref *readpref.ReadPref
-	if dump.ToolOptions.ReplicaSetName != "" || dump.isMongos {
-		pref = readpref.Primary()
-	} else {
-		// XXX I think this effectively "anything" in the case of a direct
-		// connection, but without setting direct connection.
-		pref = readpref.Nearest()
-	}
-
-	if dump.InputOptions.ReadPreference != "" {
-		pref, err = db.ParseReadPreference(dump.InputOptions.ReadPreference)
-		if err != nil {
-			return fmt.Errorf("error parsing --readPreference : %v", err)
-		}
-	}
-
 	// warn if we are trying to dump from a secondary in a sharded cluster
 	if dump.isMongos && pref != readpref.Primary() {
 		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
 	}
-
-	dump.SessionProvider.SetReadPreference(pref)
 
 	// return a helpful error message for mongos --repair
 	if dump.OutputOptions.Repair && dump.isMongos {
@@ -257,6 +252,16 @@ func (dump *MongoDump) Dump() (err error) {
 				log.Logvf(log.DebugLow, "mux completed successfully")
 			}
 		}()
+	}
+
+	// Confirm connectivity
+	session, err := dump.SessionProvider.GetSession()
+	if err != nil {
+		return fmt.Errorf("error getting a client session: %v", err)
+	}
+	err = session.Ping(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("error connecting to host: %v", err)
 	}
 
 	// switch on what kind of execution to do
