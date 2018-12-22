@@ -81,15 +81,15 @@ func main() {
 		os.Exit(util.ExitBadOptions)
 	}
 
+	if opts.ReplicaSetName == "" {
+		opts.ReadPreference = db.PrimaryPreferred()
+	}
+
 	// create a session provider to connect to the db
 	sessionProvider, err := db.NewSessionProvider(*opts)
 	if err != nil {
 		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
-	}
-
-	if opts.ReplicaSetName == "" {
-		sessionProvider.SetReadPreference(db.PrimaryPreferred())
 	}
 
 	// fail fast if connecting to a mongos
