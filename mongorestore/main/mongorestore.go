@@ -12,12 +12,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/signals"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/signals"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
 )
 
@@ -71,16 +71,22 @@ func main() {
 	}
 	targetDir = util.ToUniversalPath(targetDir)
 
+	// TODO: Make sure both these values are set by this point
+	opts.WriteConcern, err = db.PackageWriteConcernOptsToObject(outputOpts.WriteConcern, opts.URI.ParsedConnString())
+	if err != nil {
+		log.Logvf(log.Always, "error parsing write concern: %v", err)
+		os.Exit(util.ExitError)
+	}
+
 	provider, err := db.NewSessionProvider(*opts)
 	if err != nil {
 		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitError)
 	}
 	defer provider.Close()
-	provider.SetBypassDocumentValidation(outputOpts.BypassDocumentValidation)
 
 	// disable TCP timeouts for restore jobs
-	provider.SetFlags(db.DisableSocketTimeout)
+	// provider.SetFlags(db.DisableSocketTimeout)
 
 	// start up the progress bar manager
 	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, true)
@@ -99,6 +105,7 @@ func main() {
 
 	finishedChan := signals.HandleWithInterrupt(restore.HandleInterrupt)
 	defer close(finishedChan)
+	defer restore.SessionProvider.Close()
 
 	if err = restore.Restore(); err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)

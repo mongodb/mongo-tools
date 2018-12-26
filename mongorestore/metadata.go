@@ -10,14 +10,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/mongodb/mongo-tools/common"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2"
+	gbson "github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -145,7 +145,7 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 }
 
 func stripDBFromNS(ns string) string {
-	_, c := common.SplitNamespace(ns)
+	_, c := util.SplitNamespace(ns)
 	return c
 }
 
@@ -167,13 +167,23 @@ func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, err
 		if err != nil {
 			return false, fmt.Errorf("error establishing connection: %v", err)
 		}
-		defer session.Close()
-		collections, err := session.DB(intent.DB).CollectionNames()
+		collections, err := session.Database(intent.DB).ListCollections(nil, bson.M{})
 		if err != nil {
 			return false, err
 		}
 		// update the cache
-		restore.knownCollections[intent.DB] = collections
+		for collections.Next(nil) {
+			doc := &gbson.Raw{}
+			if err := collections.Decode(doc); err != nil {
+				return false, fmt.Errorf("Error decoding collection list: %v", err)
+			}
+			colNameRaw := doc.Lookup("name")
+			colName, ok := colNameRaw.StringValueOK()
+			if !ok {
+				return false, fmt.Errorf("Invalid collection name: %v", colNameRaw)
+			}
+			restore.knownCollections[intent.DB] = append(restore.knownCollections[intent.DB], colName)
+		}
 	}
 
 	// now check the cache for the given collection name
@@ -209,16 +219,13 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	session.SetSafe(&mgo.Safe{})
-	defer session.Close()
 
 	// then attempt the createIndexes command
 	rawCommand := bson.D{
 		{"createIndexes", intent.C},
 		{"indexes", indexes},
 	}
-	results := bson.M{}
-	err = session.DB(intent.DB).Run(rawCommand, &results)
+	err = session.Database(intent.DB).RunCommand(nil, rawCommand).Err()
 	if err == nil {
 		return nil
 	}
@@ -245,12 +252,9 @@ func (restore *MongoRestore) LegacyInsertIndex(intent *intents.Intent, index Ind
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	defer session.Close()
 
-	// overwrite safety to make sure we catch errors
-	session.SetSafe(&mgo.Safe{})
-	indexCollection := session.DB(intent.DB).C("system.indexes")
-	err = indexCollection.Insert(index)
+	indexCollection := session.Database(intent.DB).Collection("system.indexes")
+	_, err = indexCollection.InsertOne(nil, index)
 	if err != nil {
 		return fmt.Errorf("insert error: %v", err)
 	}
@@ -265,7 +269,6 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	defer session.Close()
 
 	switch {
 
@@ -277,13 +280,17 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 
 }
 
-func (restore *MongoRestore) createCollectionWithCommand(session *mgo.Session, intent *intents.Intent, options bson.D) error {
+func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
 	command := createCollectionCommand(intent, options)
 	res := bson.M{}
-	err := session.DB(intent.DB).Run(command, &res)
+	// If there is no error, the result doesnt matter
+	singleRes := session.Database(intent.DB).RunCommand(nil, command, nil)
+	err := singleRes.Err()
+	singleRes.Decode(&res)
 	if err != nil {
 		return fmt.Errorf("error running create command: %v", err)
 	}
+
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("create command: %v", res["errmsg"])
 	}
@@ -291,7 +298,7 @@ func (restore *MongoRestore) createCollectionWithCommand(session *mgo.Session, i
 
 }
 
-func (restore *MongoRestore) createCollectionWithApplyOps(session *mgo.Session, intent *intents.Intent, options bson.D, uuidHex string) error {
+func (restore *MongoRestore) createCollectionWithApplyOps(session *mongo.Client, intent *intents.Intent, options bson.D, uuidHex string) error {
 	command := createCollectionCommand(intent, options)
 	uuid, err := hex.DecodeString(uuidHex)
 	if err != nil {
@@ -362,7 +369,6 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	defer session.Close()
 
 	// For each of the users and roles intents:
 	//   build up the mergeArgs component of the _mergeAuthzCollections command
@@ -394,7 +400,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		}
 		if tempCollectionNameExists {
 			log.Logvf(log.Info, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
-			err = session.DB("admin").C(arg.tempCollectionName).DropCollection()
+			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(nil)
 			if err != nil {
 				return fmt.Errorf("error dropping preexisting temporary collection %v: %v", arg.tempCollectionName, err)
 			}
@@ -413,9 +419,8 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 				log.Logvf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", arg.tempCollectionName, e)
 				return
 			}
-			defer session.Close()
 			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", arg.tempCollectionName)
-			e = session.DB("admin").C(arg.tempCollectionName).DropCollection()
+			e = session.Database("admin").Collection(arg.tempCollectionName).Drop(nil)
 			if e != nil {
 				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", arg.tempCollectionName, e)
 			}
@@ -423,24 +428,27 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		userTargetDB = arg.intent.DB
 	}
 
-	if userTargetDB == "admin" {
-		// _mergeAuthzCollections uses an empty db string as a sentinel for "all databases"
-		userTargetDB = ""
-	}
-
 	// we have to manually convert mgo's safety to a writeconcern object
 	writeConcern := bson.M{}
-	if restore.safety == nil {
+	wcMap := make(map[string]string)
+	if restore.wc == nil {
 		writeConcern["w"] = 0
 	} else {
-		if restore.safety.WMode != "" {
-			writeConcern["w"] = restore.safety.WMode
-		} else {
-			writeConcern["w"] = restore.safety.W
+		_, elems, err := restore.wc.MarshalBSONValue()
+		if err != nil {
+			return err
 		}
+		err = json.Unmarshal(elems, &wcMap)
+		if err != nil {
+			return err
+		}
+
+		writeConcern["w"] = wcMap["w"]
+		return err
+
 	}
 
-	command := bsonutil.MarshalD{}
+	command := bson.D{}
 	command = append(command,
 		bson.DocElem{Name: "_mergeAuthzCollections", Value: 1})
 	command = append(command,
@@ -452,10 +460,11 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 
 	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
 	res := bson.M{}
-	err = session.Run(command, &res)
-	if err != nil {
-		return fmt.Errorf("error running merge command: %v", err)
+	resSingle := session.Database(userTargetDB).RunCommand(nil, command)
+	if resSingle.Err() != nil {
+		return fmt.Errorf("error running merge command: %v", resSingle.Err())
 	}
+	resSingle.Decode(&res)
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("_mergeAuthzCollections command: %v", res["errmsg"])
 	}
@@ -586,8 +595,7 @@ func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	defer session.Close()
-	err = session.DB(intent.DB).C(intent.C).DropCollection()
+	err = session.Database(intent.DB).Collection(intent.C).Drop(nil)
 	if err != nil {
 		return fmt.Errorf("error dropping collection: %v", err)
 	}

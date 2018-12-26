@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -93,7 +93,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 		return fmt.Errorf("error reading database: %v", err)
 	}
 
-	if restore.safety == nil && !restore.OutputOptions.Drop && collectionExists {
+	if restore.wc == nil && !restore.OutputOptions.Drop && collectionExists {
 		log.Logvf(log.Always, "restoring to existing collection %v without dropping", intent.Namespace())
 		log.Logv(log.Always, "Important: restored data will be inserted without raising errors; check your server log")
 	}
@@ -246,10 +246,8 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 	if err != nil {
 		return int64(0), fmt.Errorf("error establishing connection: %v", err)
 	}
-	session.SetSafe(restore.safety)
-	defer session.Close()
 
-	collection := session.DB(dbName).C(colName)
+	collection := session.Database(dbName).Collection(colName)
 
 	documentCount := int64(0)
 	watchProgressor := progress.NewCounter(fileSize)
@@ -292,12 +290,14 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 	for i := 0; i < maxInsertWorkers; i++ {
 		go func() {
 			// get a session copy for each insert worker
-			s := session.Copy()
-			defer s.Close()
 
-			coll := collection.With(s)
+			// TODO: Does removing this cause problems? collection.With returns a copy in use by session
+			// coll := collection.With(session)
+			// bulk := db.NewBufferedBulkInserter(
+			// coll, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
 			bulk := db.NewBufferedBulkInserter(
-				coll, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
+				collection, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
+			bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
 			for rawDoc := range docChan {
 				if restore.objCheck {
 					err := bson.Unmarshal(rawDoc.Data, &bson.D{})
@@ -318,7 +318,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				}
 				watchProgressor.Set(file.Pos())
 			}
-			err := bulk.Flush()
+			err = bulk.Flush()
 			if err != nil {
 				if !db.IsConnectionError(err) && !restore.OutputOptions.StopOnError {
 					// Suppress this error since it's not a severe connection error and

@@ -7,12 +7,13 @@
 package mongorestore
 
 import (
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools-common/testutil"
+	"github.com/mongodb/mongo-tools-common/util"
+	"gopkg.in/mgo.v2/bson"
 
 	"os"
 	"testing"
@@ -59,14 +60,13 @@ func TestMongorestore(t *testing.T) {
 			SessionProvider: provider,
 		}
 		session, _ := provider.GetSession()
-		defer session.Close()
-		c1 := session.DB("db1").C("c1")
-		c1.DropCollection()
+		c1 := session.Database("db1").Collection("c1")
+		c1.Drop(nil)
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
 			err = restore.Restore()
 			So(err, ShouldBeNil)
-			count, err := c1.Count()
+			count, err := c1.Count(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
@@ -80,7 +80,7 @@ func TestMongorestore(t *testing.T) {
 			restore.TargetDirectory = "-"
 			err = restore.Restore()
 			So(err, ShouldBeNil)
-			count, err := c1.Count()
+			count, err := c1.Count(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
@@ -94,7 +94,6 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No server available")
 	}
-	defer session.Close()
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp >= 0 {
 		t.Skip("Requires server with FCV less than 3.6")
@@ -137,7 +136,6 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No server available")
 	}
-	defer session.Close()
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 3.6 or later")
@@ -154,8 +152,8 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			os.Exit(util.ExitError)
 		}
 
-		c1 := session.DB("db1").C("c1")
-		c1.DropCollection()
+		c1 := session.Database("db1").Collection("c1")
+		c1.Drop(nil)
 
 		Convey("normal restore gives new UUID", func() {
 			inputOptions := &InputOptions{}
@@ -173,7 +171,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			restore.TargetDirectory = "testdata/oplogdump"
 			err = restore.Restore()
 			So(err, ShouldBeNil)
-			count, err := c1.Count()
+			count, err := c1.Count(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 5)
 			info, err := db.GetCollectionInfo(c1)
@@ -219,7 +217,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			restore.TargetDirectory = "testdata/oplogdump"
 			err = restore.Restore()
 			So(err, ShouldBeNil)
-			count, err := c1.Count()
+			count, err := c1.Count(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 5)
 			info, err := db.GetCollectionInfo(c1)

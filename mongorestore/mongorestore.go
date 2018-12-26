@@ -16,16 +16,16 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/mongodb/mongo-tools/common/archive"
-	"github.com/mongodb/mongo-tools/common/auth"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-tools-common/archive"
+	"github.com/mongodb/mongo-tools-common/auth"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -47,7 +47,7 @@ type MongoRestore struct {
 
 	// other internal state
 	manager *intents.Manager
-	safety  *mgo.Safe
+	wc      *writeconcern.WriteConcern
 
 	objCheck         bool
 	oplogLimit       bson.MongoTimestamp
@@ -77,6 +77,26 @@ type MongoRestore struct {
 }
 
 type collectionIndexes map[string][]IndexDocument
+
+// Function was removed from common/db/command.go, so copied to here
+func SupportsCollectionUUID(sp *db.SessionProvider) (bool, error) {
+	session, err := sp.GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	collInfo, err := db.GetCollectionInfo(session.Database("admin").Collection("system.version"))
+	if err != nil {
+		return false, err
+	}
+
+	// On FCV 3.6+, admin.system.version will have a UUID
+	if collInfo != nil && collInfo.GetUUID() != "" {
+		return true, nil
+	}
+
+	return false, nil
+}
 
 // ParseAndValidateOptions returns a non-nil error if user-supplied options are invalid.
 func (restore *MongoRestore) ParseAndValidateOptions() error {
@@ -146,11 +166,6 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 
 	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
-	restore.safety, err = db.BuildWriteConcern(restore.OutputOptions.WriteConcern, nodeType,
-		restore.ToolOptions.URI.ParsedConnString())
-	if err != nil {
-		return fmt.Errorf("error parsing write concern: %v", err)
-	}
 
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
@@ -235,7 +250,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			return fmt.Errorf("cannot specify --preserveUUID without --drop")
 		}
 
-		ok, err := restore.SessionProvider.SupportsCollectionUUID()
+		ok, err := SupportsCollectionUUID(restore.SessionProvider)
 		if err != nil {
 			return err
 		}

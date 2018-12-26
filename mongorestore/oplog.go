@@ -11,12 +11,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2"
+	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -63,7 +63,6 @@ func (restore *MongoRestore) RestoreOplog() error {
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	defer session.Close()
 
 	for bsonSource.Next(rawOplogEntry) {
 		entrySize = len(rawOplogEntry.Data)
@@ -113,12 +112,13 @@ func (restore *MongoRestore) RestoreOplog() error {
 
 // ApplyOps is a wrapper for the applyOps database command, we pass in
 // a session to avoid opening a new connection for a few inserts at a time.
-func (restore *MongoRestore) ApplyOps(session *mgo.Session, entries []interface{}) error {
+func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface{}) error {
 	res := bson.M{}
-	err := session.Run(bson.D{{"applyOps", entries}}, &res)
-	if err != nil {
-		return fmt.Errorf("applyOps: %v", err)
+	singleRes := session.Database("admin").RunCommand(nil, bson.D{{"applyOps", entries}})
+	if singleRes.Err() != nil {
+		return fmt.Errorf("applyOps: %v", singleRes.Err())
 	}
+	singleRes.Decode(&res)
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("applyOps command: %v", res["errmsg"])
 	}

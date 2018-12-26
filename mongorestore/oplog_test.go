@@ -7,13 +7,14 @@
 package mongorestore
 
 import (
+	"context"
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools-common/testutil"
+	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -136,7 +137,6 @@ func TestOplogRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No server available")
 	}
-	defer session.Close()
 	fcv := testutil.GetFCV(session)
 	var shouldPreserveUUID bool
 	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp >= 0 {
@@ -169,18 +169,18 @@ func TestOplogRestore(t *testing.T) {
 			TargetDirectory: inputOptions.Directory,
 		}
 		session, _ := provider.GetSession()
-		defer session.Close()
-		c1 := session.DB("db1").C("c1")
-		c1.DropCollection()
+		c1 := session.Database("db1").Collection("c1")
+		c1.Drop(nil)
 
 		// Run mongorestore
 		err = restore.Restore()
 		So(err, ShouldBeNil)
 
 		// Verify restoration
-		count, err := c1.Count()
+		count, err := c1.Count(nil, bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10)
+		session.Disconnect(context.Background())
 	})
 }
 
