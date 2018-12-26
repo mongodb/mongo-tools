@@ -8,17 +8,17 @@
 package mongostat
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -263,23 +263,13 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	}
 	log.Logvf(log.DebugHigh, "got session on server: %v", node.host)
 
-	// The read pref for the session must be set to 'secondary' to enable using
-	// the driver with 'direct' connections, which disables the built-in
-	// replset discovery mechanism since we do our own node discovery here.
-	session.SetMode(mgo.Eventual, true)
-
-	// Disable the socket timeout - otherwise if db.serverStatus() takes a long time on the server
-	// side, the client will close the connection early and report an error.
-	session.SetSocketTimeout(0)
-	defer session.Close()
-
-	err = session.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, stat)
-	if err != nil {
+	result := session.Database("admin").RunCommand(nil, bson.D{{"serverStatus", 1}, {"recordStats", 0}})
+	if result.Err() != nil {
 		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
 	statMap := make(map[string]interface{})
-	session.DB("admin").Run(bson.D{{"serverStatus", 1}, {"recordStats", 0}}, statMap)
+	result.Decode(statMap)
 	stat.Flattened = status.Flatten(statMap)
 
 	node.Err = nil
@@ -297,15 +287,21 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	stat.Host = node.host
 	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
 		log.Logvf(log.DebugLow, "checking config database to discover shards")
-		shardCursor := session.DB("config").C("shards").Find(bson.M{}).Iter()
+		shardCursor, err := session.Database("config").Collection("shards").Find(nil, bson.M{}, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error discovering shards: %v", err)
+		}
 		shard := ConfigShard{}
-		for shardCursor.Next(&shard) {
+		for shardCursor.Next(nil) {
+			if cursorErr := shardCursor.Decode(shard); cursorErr != nil {
+				return nil, fmt.Errorf("error decoding shard info: %v", err)
+			}
 			shardHosts := strings.Split(shard.Host, ",")
 			for _, shardHost := range shardHosts {
 				discover <- shardHost
 			}
 		}
-		shardCursor.Close()
+		shardCursor.Close(nil)
 	}
 
 	return stat, nil
