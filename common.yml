@@ -485,6 +485,7 @@ functions:
         fi;
 
         . ./set_goenv.sh
+        GOROOT="" set_goenv || exit
         if [ "${UNIT_TEST}" = "true" ]; then
           export TOOLS_TESTING_UNIT="true"
         fi;
