@@ -150,8 +150,7 @@ func (sp *SessionProvider) SetTags(tags bson.D) {
 	panic("unsupported")
 }
 
-// NewSessionProvider constructs a session provider but does not attempt to
-// create the initial session.
+// NewSessionProvider constructs a session provider, including a connected client.
 func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	// finalize auth options, filling in missing passwords
 	if opts.Auth.ShouldAskForPassword() {
@@ -161,6 +160,10 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	client, err := configureClient(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring the connector: %v", err)
+	}
+	err = client.Connect(context.Background())
+	if err != nil {
+		return nil, err
 	}
 
 	// create the provider
@@ -225,16 +228,15 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetSSL(ssl)
 	}
 
-	var uri string
-	if opts.URI != nil && opts.URI.ConnectionString != "" {
-		uri = opts.URI.ConnectionString
-	} else {
-		// Shouldn't ever reach here because URI should be set in options parsing, but
-		// just in case, we'll set a fallback.
-		uri = "mongodb://localhost/"
+	if opts.URI == nil || opts.URI.ConnectionString == "" {
+		// XXX Normal operations shouldn't ever reach here because a URI should
+		// be created in options parsing, but tests still manually construct
+		// options and generally don't construct a URI, so we invoke the URI
+		// normalization routine here to correct for that.
+		opts.NormalizeHostPortURI()
 	}
 
-	return mongo.NewClientWithOptions(uri, clientopt)
+	return mongo.NewClientWithOptions(opts.URI.ConnectionString, clientopt)
 }
 
 // IsConnectionError returns a boolean indicating if a given error is due to

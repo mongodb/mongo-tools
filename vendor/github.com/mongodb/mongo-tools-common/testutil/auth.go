@@ -12,15 +12,15 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/testtype"
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
 var (
 	UserAdmin              = "uAdmin"
 	UserAdminPassword      = "password"
-	CreatedUserNameEnv     = "AUTH_USERNAME"
-	CreatedUserPasswordEnv = "AUTH_PASSWORD"
+	CreatedUserNameEnv     = "TOOLS_TESTING_AUTH_USERNAME"
+	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
 )
 
 // Initialize a user admin, using the already-connected session passed in.

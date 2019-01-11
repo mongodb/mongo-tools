@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 
+	gbson "github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
@@ -70,7 +71,7 @@ func (bb *BufferedBulkInserter) Insert(doc interface{}) error {
 	// buffer the document
 	bb.docCount++
 	bb.byteCount += len(rawBytes)
-	bb.documents = append(bb.documents, bson.Raw{Data: rawBytes})
+	bb.documents = append(bb.documents, gbson.Raw(rawBytes))
 	return err
 }
 

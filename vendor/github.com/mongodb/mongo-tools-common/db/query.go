@@ -3,6 +3,7 @@ package db
 import (
 	"github.com/mongodb/mongo-go-driver/mongo"
 	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // DeferredQuery represents a deferred query
@@ -18,7 +19,11 @@ func (q *DeferredQuery) Count() (int, error) {
 	if q.Hint != nil {
 		opt.SetHint(q.Hint)
 	}
-	c, err := q.Coll.CountDocuments(nil, q.Filter, opt)
+	filter := q.Filter
+	if filter == nil {
+		filter = bson.D{}
+	}
+	c, err := q.Coll.CountDocuments(nil, filter, opt)
 	return int(c), err
 }
 
@@ -30,7 +35,11 @@ func (q *DeferredQuery) Iter() (mongo.Cursor, error) {
 	if q.LogReplay {
 		opts.SetOplogReplay(true)
 	}
-	return q.Coll.Find(nil, q.Filter, opts)
+	filter := q.Filter
+	if filter == nil {
+		filter = bson.D{}
+	}
+	return q.Coll.Find(nil, filter, opts)
 }
 
 // XXX temporary fix; fake a Repair via regular cursor

@@ -632,7 +632,7 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 	if len(dump.query) == 0 {
 		total, err = query.Count()
 		if err != nil {
-			return int64(0), fmt.Errorf("error reading from db: %v", err)
+			return int64(0), fmt.Errorf("error getting count from db: %v", err)
 		}
 		log.Logvf(log.DebugLow, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
 	} else {

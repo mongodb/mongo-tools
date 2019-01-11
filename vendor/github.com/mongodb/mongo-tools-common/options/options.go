@@ -440,14 +440,23 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 
 	failpoint.ParseFailpoints(opts.Failpoints)
 
+	err = opts.NormalizeHostPortURI()
+	if err != nil {
+		return []string{}, err
+	}
+
+	return args, err
+}
+
+func (opts *ToolOptions) NormalizeHostPortURI() error {
 	if opts.URI != nil && opts.URI.ConnectionString != "" {
 		cs, err := connstring.ParseURIConnectionString(opts.URI.ConnectionString)
 		if err != nil {
-			return []string{}, err
+			return err
 		}
 		err = opts.setOptionsFromURI(cs)
 		if err != nil {
-			return []string{}, err
+			return err
 		}
 	} else {
 		// If URI not provided, get replica set name and generate connection string
@@ -458,7 +467,7 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 	// connect directly, unless a replica set name is explicitly specified
 	opts.Direct = (opts.ReplicaSetName == "")
 
-	return args, err
+	return nil
 }
 
 func (opts *ToolOptions) handleUnknownOption(option string, arg flags.SplitArgument, args []string) ([]string, error) {

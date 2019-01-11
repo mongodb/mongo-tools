@@ -33,7 +33,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-go-driver"
-  version = "0.1.0"
+  version = "v0.2.0"
 
 [[constraint]]
   name = "github.com/10gen/escaper"

@@ -101,7 +101,7 @@
   revision = "d6bea18f789704b5f83375793155289da36a3c7f"
 
 [[projects]]
-  digest = "1:f690f4e68b04af81843940ef5400d2dd46da23804d791f2cb78e00aea980b20c"
+  digest = "1:f6df80d770ffe463e815ecca52192634bd5b650b08baa60df74936e7accc8388"
   name = "github.com/mongodb/mongo-go-driver"
   packages = [
     "bson",
@@ -136,12 +136,12 @@
     "x/network/wiremessage",
   ]
   pruneopts = "T"
-  revision = "29905d4bda472574c8b499e2f93b5b2747d8fbd7"
-  version = "v0.1.0"
+  revision = "3cfdc9ffcf780eede57d27ec26a3edad4c9ab6a9"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:816aae7366f3c6bcd8d02bd9859cfc3c2cec5a4af8b0f515f3554465cb4dccd2"
+  digest = "1:16f3f5615c907adc03df3c558fef94b55adf9a16f1f7b6ccedb8b9bbefc74c49"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -163,7 +163,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "35a4d01aa28802ff44184bf9400faba04a93ba87"
+  revision = "9695a4d429abdf284b66807d4abfa552d9ed0955"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"

@@ -15,8 +15,8 @@ func GetSSLOptions() commonOpts.SSL {
 	if testtype.HasTestType(testtype.SSLTestType) {
 		return commonOpts.SSL{
 			UseSSL:        true,
-			SSLCAFile:     "../common/db/openssl/testdata/ca.pem",
-			SSLPEMKeyFile: "../common/db/openssl/testdata/server.pem",
+			SSLCAFile:     "../db/testdata/ca.pem",
+			SSLPEMKeyFile: "../db/testdata/server.pem",
 		}
 	}
 

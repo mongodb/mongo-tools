@@ -48,7 +48,7 @@
   version = "v4.20"
 
 [[projects]]
-  digest = "1:820eeb72f78947f9b2e87bd99a57b5cc791c8fb47676a5c3824d408441ab1546"
+  digest = "1:27fa1b385644151ee1fc0c8b04f1f86963d9701335491b94488fd3912e370354"
   name = "github.com/mongodb/mongo-go-driver"
   packages = [
     "bson",
@@ -83,8 +83,8 @@
     "x/network/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "29905d4bda472574c8b499e2f93b5b2747d8fbd7"
-  version = "v0.1.0"
+  revision = "3cfdc9ffcf780eede57d27ec26a3edad4c9ab6a9"
+  version = "v0.2.0"
 
 [[projects]]
   digest = "1:cc1c574c9cb5e99b123888c12b828e2d19224ab6c2244bda34647f230bf33243"
@@ -183,6 +183,7 @@
     "github.com/mongodb/mongo-go-driver/mongo",
     "github.com/mongodb/mongo-go-driver/mongo/options",
     "github.com/mongodb/mongo-go-driver/mongo/readpref",
+    "github.com/mongodb/mongo-go-driver/mongo/writeconcern",
     "github.com/mongodb/mongo-go-driver/tag",
     "github.com/smartystreets/goconvey/convey",
     "golang.org/x/crypto/ssh/terminal",

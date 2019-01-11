@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type NilPos struct{}
@@ -352,7 +353,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	if err != nil {
 		return nil, err
 	}
-	count, err := session.Database(dbName).Collection(ci.Name).CountDocuments(nil, nil)
+	count, err := session.Database(dbName).Collection(ci.Name).CountDocuments(context.Background(), bson.D{})
 	if err != nil {
 		return nil, fmt.Errorf("error counting %v: %v", intent.Namespace(), err)
 	}

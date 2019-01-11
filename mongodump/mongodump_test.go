@@ -349,7 +349,7 @@ func testQuery(md *MongoDump, session *mongo.Client) string {
 		So(err, ShouldBeNil)
 
 		// count number of all restored documents
-		restDocCount, err := restoredDB.Collection(testCollName).CountDocuments(nil, nil)
+		restDocCount, err := restoredDB.Collection(testCollName).CountDocuments(nil, bson.D{})
 		So(err, ShouldBeNil)
 
 		So(restDocCount, ShouldEqual, origDocCount)
@@ -389,17 +389,17 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 	So(err, ShouldBeNil)
 
 	Convey("with the correct number of documents", func() {
-		numDocsOrig, err := collOriginal.CountDocuments(nil, nil)
+		numDocsOrig, err := collOriginal.CountDocuments(nil, bson.D{})
 		So(err, ShouldBeNil)
 
-		numDocsRestore, err := collRestore.CountDocuments(nil, nil)
+		numDocsRestore, err := collRestore.CountDocuments(nil, bson.D{})
 		So(err, ShouldBeNil)
 
 		So(numDocsRestore, ShouldEqual, numDocsOrig)
 	})
 
 	Convey("that are the same as the documents in the test database", func() {
-		iter, err := collOriginal.Find(nil, nil)
+		iter, err := collOriginal.Find(nil, bson.D{})
 		So(err, ShouldBeNil)
 
 		var result bson.M
