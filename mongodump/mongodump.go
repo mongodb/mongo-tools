@@ -571,7 +571,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		// XXX Have to fake Repair until we have an equivalent
 		// -- xdg, 2018-09-19
 		// 		repairIter := session.Database(intent.DB).Collection(intent.C).Repair()
-		repairIter, err := session.Database(intent.DB).Collection(intent.C).Find(nil, nil)
+		repairIter, err := session.Database(intent.DB).Collection(intent.C).Find(nil, bson.D{})
 		defer repairIter.Close(context.Background())
 		if err != nil {
 			return err
