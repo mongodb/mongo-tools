@@ -242,6 +242,9 @@ func main() {
 
 	// kick it off
 	err = stat.Run()
+	for _, monitor := range stat.Nodes {
+		monitor.Disconnect()
+	}
 	formatter.Finish()
 	if err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)
