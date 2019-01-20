@@ -94,11 +94,12 @@
   revision = "8ddce2a84170772b95dd5d576c48d517b22cac63"
 
 [[projects]]
-  digest = "1:1583473db99b1057f15e6acf80fee5848c055aad49614f56862690aadcb87694"
+  digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
   pruneopts = "T"
-  revision = "d6bea18f789704b5f83375793155289da36a3c7f"
+  revision = "3ee7d812e62a0804a7d0a324e0249ca2db3476d3"
+  version = "v0.0.4"
 
 [[projects]]
   digest = "1:f6df80d770ffe463e815ecca52192634bd5b650b08baa60df74936e7accc8388"
@@ -141,7 +142,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:16f3f5615c907adc03df3c558fef94b55adf9a16f1f7b6ccedb8b9bbefc74c49"
+  digest = "1:5129d81fe8ca694eac6389d604deb1c1cac1702c53d53b7d01c1325f3f9e4fb5"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -163,7 +164,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "9695a4d429abdf284b66807d4abfa552d9ed0955"
+  revision = "34e24d7f52d64eb3c6a0a65d087d10fe272ccadc"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -307,6 +308,7 @@
     "github.com/mongodb/mongo-tools-common/json",
     "github.com/mongodb/mongo-tools-common/log",
     "github.com/mongodb/mongo-tools-common/options",
+    "github.com/mongodb/mongo-tools-common/password",
     "github.com/mongodb/mongo-tools-common/progress",
     "github.com/mongodb/mongo-tools-common/signals",
     "github.com/mongodb/mongo-tools-common/testtype",

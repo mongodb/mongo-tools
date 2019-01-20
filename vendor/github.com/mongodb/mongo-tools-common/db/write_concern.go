@@ -302,10 +302,9 @@ func constructWCOptionsFromConnString(cs *connstring.ConnString) (*WriteConcernO
 	return opts, nil
 }
 
-// BuildWriteConcern takes a string and a NodeType indicating the type of node the write concern
-// is intended to be used against, and converts the write concern string argument into a
+// BuildWriteConcern takes a string and converts the write concern string argument into a
 // WriteConcern options object. Only one of writeConcern and cs can be specified.
-func BuildMongoWriteConcernOpts(writeConcern string, nodeType NodeType, cs *connstring.ConnString) (*WriteConcernOptions, error) {
+func BuildMongoWriteConcernOpts(writeConcern string, cs *connstring.ConnString) (*WriteConcernOptions, error) {
 	opts := &WriteConcernOptions{}
 	var err error
 
@@ -336,12 +335,6 @@ func BuildMongoWriteConcernOpts(writeConcern string, nodeType NodeType, cs *conn
 		return nil, nil
 	}
 
-	// for standalone mongods, set the default write concern to 1
-	if nodeType == Standalone {
-		log.Logvf(log.DebugLow, "standalone server: setting write concern %v to 1", w)
-		opts.W = 1
-	}
-
 	log.Logvf(log.Info, "using write concern: %v='%v', %v=%v, %v=%v, %v=%v",
 		w, opts.W,
 		j, opts.J,
@@ -354,8 +347,8 @@ func BuildMongoWriteConcernOpts(writeConcern string, nodeType NodeType, cs *conn
 
 // A wrapper for BuildMongoWriteConcern. Tests will call BuildMongoWriteConcern because they can read the options. Real users will call this.
 // Temporary until Go Driver adds accessors.
-func PackageWriteConcernOptsToObject(writeConcern string, nodeType NodeType, cs *connstring.ConnString) (*writeconcern.WriteConcern, error) {
-	opts, err := BuildMongoWriteConcernOpts(writeConcern, nodeType, cs)
+func PackageWriteConcernOptsToObject(writeConcern string, cs *connstring.ConnString) (*writeconcern.WriteConcern, error) {
+	opts, err := BuildMongoWriteConcernOpts(writeConcern, cs)
 	if opts == nil {
 		return nil, err
 	}

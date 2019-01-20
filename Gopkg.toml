@@ -106,7 +106,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[override]]
   name = "github.com/mattn/go-runewidth"
-  revision = "d6bea18f789704b5f83375793155289da36a3c7f"
+  version = "v0.0.4"
 
 [[override]]
   name = "github.com/golang/snappy"

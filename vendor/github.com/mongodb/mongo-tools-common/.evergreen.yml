@@ -28,6 +28,12 @@ mongo_tools_variables:
 
 functions:
 
+  "attach-test-results":
+    - command: gotest.parse_files
+      type: system
+      params:
+        files:
+          - "src/github.com/mongodb/mongo-tools-common/testing_output/*.suite"
   "fetch source" :
     - command: shell.exec
       params:
@@ -176,8 +182,13 @@ functions:
         if [ "${INT_TEST}" = "true" ]; then
           export TOOLS_TESTING_INTEGRATION="true"
         fi;
+        if [ "${USE_SSL}" = "true" ]; then
+          export TOOLS_TESTING_SSL="true"
+          export TOOLS_TESTING_INTEGRATION="true"
+        fi;
         if [ "${AUTH_TEST}" = "true" ]; then
           export TOOLS_TESTING_AUTH="true"
+          export TOOLS_TESTING_INTEGRATION="true"
         fi;
         if [ "${KERBEROS_TEST}" = "true" ]; then
           export TOOLS_TESTING_KERBEROS="true"
@@ -201,6 +212,7 @@ tasks:
       vars:
           UNIT_TEST: "true"
           run_coverage: "true"
+    - func: "attach-test-results"
 
 - name: integration-4.0
   commands:
@@ -214,6 +226,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
           INT_TEST: "true" 
+    - func: "attach-test-results"
 
 - name: integration-4.0-auth
   commands:
@@ -239,7 +252,7 @@ tasks:
       vars:
           INT_TEST: "true"
           AUTH_TEST: "true"
-
+    - func: "attach-test-results"
 - name: kerberos
   commands:
     - func: "fetch source"
@@ -253,7 +266,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
           KERBEROS_TEST: "true"
-          INT_TEST: "true"
+    - func: "attach-test-results"
 
 - name: lint
   commands:
@@ -398,6 +411,7 @@ buildvariants:
     mongo_target: "osx-ssl"
     build_tags: "ssl"
     excludes: requires_many_files
+    USE_SSL: "true"
   tasks:
   - name: unit
   - name: integration-4.0
@@ -434,6 +448,7 @@ buildvariants:
     build_tags: "ssl"
     edition: ssl
     smoke_use_ssl: --use-ssl
+    USE_SSL: "true"
   tasks:
   - name: unit
   - name: integration-4.0
@@ -547,6 +562,7 @@ buildvariants:
     mongo_edition: "enterprise"
     build_tags: "ssl"
     edition: ssl
+    USE_SSL: "true"
   tasks:
   - name: unit
   - name: integration-4.0
@@ -619,6 +635,7 @@ buildvariants:
     build_tags: "ssl"
     edition: ssl
     extension: .exe
+    USE_SSL: "true"
   tasks:
   - name: unit
   - name: integration-4.0
@@ -661,6 +678,7 @@ buildvariants:
     mongo_arch: "arm64"
     build_tags: "ssl"
     edition: ssl
+    USE_SSL: "true"
   tasks:
   - name: unit
   - name: integration-4.0

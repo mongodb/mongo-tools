@@ -96,7 +96,7 @@ func (sp *SessionProvider) ServerVersion() (string, error) {
 // DatabaseNames returns a slice containing the names of all the databases on the
 // connected server.
 func (sp *SessionProvider) DatabaseNames() ([]string, error) {
-	return sp.client.ListDatabaseNames(nil, nil)
+	return sp.client.ListDatabaseNames(nil, bson.D{})
 }
 
 // CollectionNames returns the names of all the collections in the dbName database.
@@ -247,6 +247,10 @@ func (sp *SessionProvider) FindOne(db, collection string, skip int, query interf
 	session, err := sp.GetSession()
 	if err != nil {
 		return err
+	}
+
+	if query == nil {
+		query = bson.D{}
 	}
 
 	opts := mopt.FindOne().SetSort(sort).SetSkip(int64(skip))
