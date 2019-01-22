@@ -264,7 +264,7 @@ func (sp *SessionProvider) FindOne(db, collection string, skip int, query interf
 // ApplyFlags applies flags to the given query session.
 func ApplyFlags(opts *mopt.FindOneOptions, flags int) {
 	if flags&Snapshot > 0 {
-		opts.SetHint("_id_")
+		opts.SetHint(bson.D{{"_id", 1}})
 	}
 	if flags&LogReplay > 0 {
 		opts.SetOplogReplay(true)

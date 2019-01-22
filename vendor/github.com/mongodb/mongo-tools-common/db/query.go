@@ -14,11 +14,10 @@ type DeferredQuery struct {
 	LogReplay bool
 }
 
+// Count issues a count command. We don't use the Hint because
+// that's not supported with older servers.
 func (q *DeferredQuery) Count() (int, error) {
 	opt := mopt.Count()
-	if q.Hint != nil {
-		opt.SetHint(q.Hint)
-	}
 	filter := q.Filter
 	if filter == nil {
 		filter = bson.D{}
