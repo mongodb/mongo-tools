@@ -9,6 +9,7 @@ package mongodump
 import (
 	"fmt"
 
+	gbson "github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
@@ -44,8 +45,13 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 // getOplogCurrentTime returns the most recent oplog entry
 func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
+	var tempBSON gbson.Raw
 
-	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": -1}, &mostRecentOplogEntry, 0)
+	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": -1}, &tempBSON, 0)
+	if err != nil {
+		return 0, err
+	}
+	err = bson.Unmarshal(tempBSON, &mostRecentOplogEntry)
 	if err != nil {
 		return 0, err
 	}
@@ -58,9 +64,15 @@ func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
 // captured at the start of the dump.
 func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, error) {
 	oldestOplogEntry := db.Oplog{}
-	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": 1}, &oldestOplogEntry, 0)
+	var tempBSON gbson.Raw
+
+	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": 1}, &tempBSON, 0)
 	if err != nil {
 		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
+	}
+	err = bson.Unmarshal(tempBSON, &oldestOplogEntry)
+	if err != nil {
+		return false, err
 	}
 
 	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
