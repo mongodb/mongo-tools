@@ -833,67 +833,68 @@ func TestImportDocuments(t *testing.T) {
 }
 
 func TestGetTargetDestination(t *testing.T) {
-	Convey("Given mongoimport instance", t, func() {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("Given mongoimport instance, on calling getTargetConnection", t, func() {
 		imp, err := NewMongoImport()
 		imp.ToolOptions = options.New("", "", options.EnabledOptions{URI: true})
 		So(err, ShouldBeNil)
-		Convey("With undefined Host and Port", func() {
+		Convey("no error should be thrown with undefined --host and --port", func() {
 			imp.ToolOptions.Host = ""
 			imp.ToolOptions.Port = ""
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "localhost")
 		})
-		Convey("With undefined Host and defined Port", func() {
+		Convey("no error should be thrown with undefined --host and defined --port", func() {
 			imp.ToolOptions.Host = ""
 			imp.ToolOptions.Port = "30000"
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "localhost:30000")
 		})
-		Convey("With defined Host and undefined Port", func() {
+		Convey("no error should be thrown with defined --host and undefined --port", func() {
 			imp.ToolOptions.Host = "foobar"
 			imp.ToolOptions.Port = ""
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "foobar")
 		})
-		Convey("With defined standalone Host containing port", func() {
+		Convey("no error should be thrown with defined standalone --host containing port", func() {
 			imp.ToolOptions.Host = "foobar:30000"
 			imp.ToolOptions.Port = ""
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "foobar:30000")
 		})
-		Convey("With defined replica set Host", func() {
+		Convey("no error should be thrown with defined replica set --host", func() {
 			imp.ToolOptions.Host = "replica/foo1:30000,foo2:30000,foo3:30000"
 			imp.ToolOptions.Port = ""
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "replica/foo1:30000,foo2:30000,foo3:30000")
 		})
-		Convey("With defined standalone URI", func() {
+		Convey("no error should be thrown with defined standalone --uri", func() {
 			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb://foo1:30000"})
 			So(err, ShouldBeNil)
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "foo1:30000")
 		})
-		Convey("With defined replica set URI", func() {
+		Convey("no error should be thrown with defined replica set --uri", func() {
 			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb://foo1,foo2,foo3/dbx?replicaSet=replica"})
 			So(err, ShouldBeNil)
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "replica/foo1,foo2,foo3")
 		})
-		Convey("With defined replica set URI containing credentials", func() {
+		Convey("no error should be thrown with defined replica set --uri containing credentials", func() {
 			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb://username:password@foo1,foo2,foo3/dbx?replicaSet=replica"})
 			So(err, ShouldBeNil)
 			url, err := imp.getTargetConnection()
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "replica/foo1,foo2,foo3")
 		})
-		Convey("With defined SRV URI", func() {
+		Convey("no error should be thrown with defined SRV --uri", func() {
 			// NOTE: this requires SRV and TXT records in DNS as specified here:
 			// https://github.com/mongodb/specifications/tree/master/source/initial-dns-seedlist-discovery
 			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb+srv://test5.test.build.10gen.cc/dbx?replicaSet=rs0"})
@@ -901,7 +902,7 @@ func TestGetTargetDestination(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "rs0/localhost.test.build.10gen.cc:27017")
 		})
-		Convey("With defined SRV URI but no record", func() {
+		Convey("an error should be thrown with defined SRV --uri but no record found", func() {
 			// NOTE: this requires SRV and TXT records in DNS as specified here:
 			// https://github.com/mongodb/specifications/tree/master/source/initial-dns-seedlist-discovery
 			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb+srv://test4.test.build.10gen.cc/dbx?replicaSet=rs0"})
