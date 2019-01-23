@@ -7,14 +7,15 @@
 package mongodump
 
 import (
+	"context"
 	"fmt"
 	"io"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -45,7 +46,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	// The collection options were already gathered while building the list of intents.
 	// We convert them to JSON so that they can be written to the metadata json file as text.
 	if intent.Options != nil {
-		if meta.Options, err = bsonutil.ConvertBSONValueToJSON(*intent.Options); err != nil {
+		if meta.Options, err = bsonutil.ConvertBSONValueToJSON(intent.Options); err != nil {
 			return fmt.Errorf("error converting collection options to JSON: %v", err)
 		}
 	} else {
@@ -67,13 +68,13 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
 	if intent.IsView() {
 		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a view", intent.Namespace())
 	} else {
 		// get the indexes
-		indexesIter, err := db.GetIndexes(session.DB(intent.DB).C(intent.C))
+		indexesIter, err := db.GetIndexes(session.Database(intent.DB).Collection(intent.C))
+		defer indexesIter.Close(context.Background())
 		if err != nil {
 			return err
 		}
@@ -82,8 +83,13 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 			return nil
 		}
 
-		indexOpts := &bson.D{}
-		for indexesIter.Next(indexOpts) {
+		ctx := context.Background()
+		for indexesIter.Next(ctx) {
+			indexOpts := &bson.D{}
+			err := indexesIter.Decode(indexOpts)
+			if err != nil {
+				return fmt.Errorf("error converting index: %v", err)
+			}
 			convertedIndex, err := bsonutil.ConvertBSONValueToJSON(*indexOpts)
 			if err != nil {
 				return fmt.Errorf("error converting index (%#v): %v", convertedIndex, err)

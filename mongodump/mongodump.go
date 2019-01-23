@@ -8,18 +8,21 @@
 package mongodump
 
 import (
-	"github.com/mongodb/mongo-tools/common/archive"
-	"github.com/mongodb/mongo-tools/common/auth"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/failpoint"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2"
+	"context"
+
+	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-tools-common/archive"
+	"github.com/mongodb/mongo-tools-common/auth"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/failpoint"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/util"
 	"gopkg.in/mgo.v2/bson"
 
 	"bufio"
@@ -64,8 +67,10 @@ type MongoDump struct {
 	// Writer to take care of BSON output when not writing to the local filesystem.
 	// This is initialized to os.Stdout if unset.
 	OutputWriter io.Writer
-	readPrefMode mgo.Mode
-	readPrefTags []bson.D
+
+	// XXX Unused?!?
+	// readPrefMode mgo.Mode
+	// readPrefTags []bson.D
 }
 
 type notifier struct {
@@ -122,6 +127,7 @@ func (dump *MongoDump) ValidateOptions() error {
 
 // Init performs preliminary setup operations for MongoDump.
 func (dump *MongoDump) Init() error {
+	log.Logvf(log.DebugHigh, "initializing mongodump object")
 	err := dump.ValidateOptions()
 	if err != nil {
 		return fmt.Errorf("bad option: %v", err)
@@ -129,48 +135,37 @@ func (dump *MongoDump) Init() error {
 	if dump.OutputWriter == nil {
 		dump.OutputWriter = os.Stdout
 	}
+
+	var pref *readpref.ReadPref
+	if dump.InputOptions.ReadPreference != "" {
+		pref, err = db.ParseReadPreference(dump.InputOptions.ReadPreference)
+		if err != nil {
+			return fmt.Errorf("error parsing --readPreference : %v", err)
+		}
+	} else {
+		pref = readpref.Primary()
+		// Direct connection is configured elsewhere if replica set name is not given
+	}
+	dump.ToolOptions.ReadPreference = pref
+
 	dump.SessionProvider, err = db.NewSessionProvider(*dump.ToolOptions)
 	if err != nil {
 		return fmt.Errorf("can't create session: %v", err)
 	}
 
-	// temporarily allow secondary reads for the isMongos check
-	dump.SessionProvider.SetReadPreference(mgo.Nearest)
 	dump.isMongos, err = dump.SessionProvider.IsMongos()
 	if err != nil {
-		return err
+		return fmt.Errorf("error checking for Mongos: %v", err)
 	}
 
 	if dump.isMongos && dump.OutputOptions.Oplog {
 		return fmt.Errorf("can't use --oplog option when dumping from a mongos")
 	}
 
-	var mode mgo.Mode
-	if dump.ToolOptions.ReplicaSetName != "" || dump.isMongos {
-		mode = mgo.Primary
-	} else {
-		mode = mgo.Nearest
-	}
-	var tags bson.D
-
-	if dump.InputOptions.ReadPreference != "" {
-		mode, tags, err = db.ParseReadPreference(dump.InputOptions.ReadPreference)
-		if err != nil {
-			return fmt.Errorf("error parsing --readPreference : %v", err)
-		}
-		if len(tags) > 0 {
-			dump.SessionProvider.SetTags(tags)
-		}
-	}
-
 	// warn if we are trying to dump from a secondary in a sharded cluster
-	if dump.isMongos && mode != mgo.Primary {
+	if dump.isMongos && pref != readpref.Primary() {
 		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
 	}
-
-	dump.SessionProvider.SetReadPreference(mode)
-	dump.SessionProvider.SetTags(tags)
-	dump.SessionProvider.SetFlags(db.DisableSocketTimeout)
 
 	// return a helpful error message for mongos --repair
 	if dump.OutputOptions.Repair && dump.isMongos {
@@ -184,6 +179,7 @@ func (dump *MongoDump) Init() error {
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
 	defer dump.SessionProvider.Close()
+	log.Logvf(log.DebugHigh, "starting Dump()")
 
 	dump.shutdownIntentsNotifier = newNotifier()
 
@@ -258,6 +254,16 @@ func (dump *MongoDump) Dump() (err error) {
 		}()
 	}
 
+	// Confirm connectivity
+	session, err := dump.SessionProvider.GetSession()
+	if err != nil {
+		return fmt.Errorf("error getting a client session: %v", err)
+	}
+	err = session.Ping(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("error connecting to host: %v", err)
+	}
+
 	// switch on what kind of execution to do
 	switch {
 	case dump.ToolOptions.DB == "" && dump.ToolOptions.Collection == "":
@@ -268,7 +274,7 @@ func (dump *MongoDump) Dump() (err error) {
 		err = dump.CreateCollectionIntent(dump.ToolOptions.DB, dump.ToolOptions.Collection)
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating intents to dump: %v", err)
 	}
 
 	if dump.OutputOptions.Oplog {
@@ -313,18 +319,10 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 
 	if dump.OutputOptions.Archive != "" {
-		session, err := dump.SessionProvider.GetSession()
-		if err != nil {
-			return err
-		}
-		defer session.Close()
-		buildInfo, err := session.BuildInfo()
-		var serverVersion string
+		serverVersion, err := dump.SessionProvider.ServerVersion()
 		if err != nil {
 			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
 			serverVersion = "unknown"
-		} else {
-			serverVersion = buildInfo.Version
 		}
 		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.OutputOptions.NumParallelCollections, serverVersion)
 		if err != nil {
@@ -528,25 +526,17 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	if err != nil {
 		return err
 	}
-	defer session.Close()
-	// in mgo, setting prefetch = 1.0 causes the driver to make requests for
-	// more results as soon as results are returned. This effectively
-	// duplicates the behavior of an exhaust cursor.
-	session.SetPrefetch(1.0)
-
-	var findQuery *mgo.Query
+	findQuery := &db.DeferredQuery{Coll: session.Database(intent.DB).Collection(intent.C)}
 	switch {
 	case len(dump.query) > 0:
-		findQuery = session.DB(intent.DB).C(intent.C).Find(dump.query)
-	case dump.OutputOptions.ViewsAsCollections:
-		// views have an implied aggregation which does not support snapshot
-		fallthrough
-	case dump.InputOptions.TableScan || intent.IsSpecialCollection() || intent.IsOplog():
+		findQuery.Filter = dump.query
+	case dump.OutputOptions.ViewsAsCollections || dump.InputOptions.TableScan || intent.IsSpecialCollection() || intent.IsOplog():
 		// ---forceTablesScan runs the query without snapshot enabled
 		// The system.profile collection has no index on _id so can't be hinted.
-		findQuery = session.DB(intent.DB).C(intent.C).Find(nil)
+		// Views have an implied aggregation which does not support snapshot.
+		// These are all a no-op.
 	default:
-		findQuery = session.DB(intent.DB).C(intent.C).Find(nil).Hint("_id")
+		findQuery.Hint = bson.D{{"_id", 1}}
 	}
 
 	var dumpCount int64
@@ -578,7 +568,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	} else {
 		// handle repairs as a special case, since we cannot count them
 		log.Logvf(log.Always, "writing repair of %v to %v", intent.Namespace(), intent.Location)
-		repairIter := session.DB(intent.DB).C(intent.C).Repair()
+		// XXX Have to fake Repair until we have an equivalent
+		// -- xdg, 2018-09-19
+		// 		repairIter := session.Database(intent.DB).Collection(intent.C).Repair()
+		repairIter, err := session.Database(intent.DB).Collection(intent.C).Find(nil, bson.D{})
+		defer repairIter.Close(context.Background())
+		if err != nil {
+			return err
+		}
 		repairCounter := progress.NewCounter(1) // this counter is ignored
 		if err := dump.dumpIterToWriter(repairIter, buffer, repairCounter); err != nil {
 			return fmt.Errorf("repair error: %v", err)
@@ -604,7 +601,7 @@ func copyDocumentFilter(in []byte) ([]byte, error) {
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occurred.
 func (dump *MongoDump) dumpQueryToIntent(
-	query *mgo.Query, intent *intents.Intent, buffer resettableOutputBuffer) (dumpCount int64, err error) {
+	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer) (dumpCount int64, err error) {
 	return dump.dumpFilteredQueryToIntent(query, intent, buffer, copyDocumentFilter)
 }
 
@@ -613,7 +610,7 @@ func (dump *MongoDump) dumpQueryToIntent(
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occurred.
 func (dump *MongoDump) dumpFilteredQueryToIntent(
-	query *mgo.Query, intent *intents.Intent, buffer resettableOutputBuffer, filter documentFilter) (dumpCount int64, err error) {
+	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer, filter documentFilter) (dumpCount int64, err error) {
 
 	// restore of views from archives require an empty collection as the trigger to create the view
 	// so, we open here before the early return if IsView so that we write an empty collection to the archive
@@ -635,7 +632,7 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 	if len(dump.query) == 0 {
 		total, err = query.Count()
 		if err != nil {
-			return int64(0), fmt.Errorf("error reading from db: %v", err)
+			return int64(0), fmt.Errorf("error getting count from db: %v", err)
 		}
 		log.Logvf(log.DebugLow, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
 	} else {
@@ -661,7 +658,11 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 		}()
 	}
 
-	err = dump.dumpFilteredIterToWriter(query.Iter(), f, dumpProgressor, filter)
+	cursor, err := query.Iter()
+	if err != nil {
+		return
+	}
+	err = dump.dumpFilteredIterToWriter(cursor, f, dumpProgressor, filter)
 	dumpCount, _ = dumpProgressor.Progress()
 	if err != nil {
 		err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), err)
@@ -672,14 +673,15 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 // dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpIterToWriter(
-	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable) error {
+	iter mongo.Cursor, writer io.Writer, progressCount progress.Updateable) error {
 	return dump.dumpFilteredIterToWriter(iter, writer, progressCount, copyDocumentFilter)
 }
 
 // dumpFilteredIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and filters and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpFilteredIterToWriter(
-	iter *mgo.Iter, writer io.Writer, progressCount progress.Updateable, filter documentFilter) error {
+	iter mongo.Cursor, writer io.Writer, progressCount progress.Updateable, filter documentFilter) error {
+	defer iter.Close(context.Background())
 	var termErr error
 
 	// We run the result iteration in its own goroutine,
@@ -687,6 +689,7 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 	// which gives a slight speedup on benchmarks
 	buffChan := make(chan []byte)
 	go func() {
+		ctx := context.Background()
 		for {
 			select {
 			case <-dump.shutdownIntentsNotifier.notified:
@@ -695,14 +698,20 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 				close(buffChan)
 				return
 			default:
-				raw := &bson.Raw{}
-				next := iter.Next(raw)
-				if !next {
-					// we check the iterator for errors below
+				if !iter.Next(ctx) {
+					if err := iter.Err(); err != nil {
+						termErr = err
+					}
 					close(buffChan)
 					return
 				}
-				out, err := filter(raw.Data)
+				reader, err := iter.DecodeBytes()
+				if err != nil {
+					termErr = err
+					close(buffChan)
+					return
+				}
+				out, err := filter(reader)
 				if err != nil {
 					termErr = err
 					close(buffChan)
@@ -734,28 +743,35 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 
 // DumpUsersAndRolesForDB queries and dumps the users and roles tied to the given
 // database. Only works with an authentication schema version >= 3.
-func (dump *MongoDump) DumpUsersAndRolesForDB(db string) error {
+func (dump *MongoDump) DumpUsersAndRolesForDB(name string) error {
 	session, err := dump.SessionProvider.GetSession()
 	buffer := dump.getResettableOutputBuffer()
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	dbQuery := bson.M{"db": db}
-	usersQuery := session.DB("admin").C("system.users").Find(dbQuery)
+	dbQuery := bson.M{"db": name}
+	usersQuery := &db.DeferredQuery{
+		Coll:   session.Database("admin").Collection("system.users"),
+		Filter: dbQuery,
+	}
 	_, err = dump.dumpQueryToIntent(usersQuery, dump.manager.Users(), buffer)
 	if err != nil {
 		return fmt.Errorf("error dumping db users: %v", err)
 	}
 
-	rolesQuery := session.DB("admin").C("system.roles").Find(dbQuery)
+	rolesQuery := &db.DeferredQuery{
+		Coll:   session.Database("admin").Collection("system.roles"),
+		Filter: dbQuery,
+	}
 	_, err = dump.dumpQueryToIntent(rolesQuery, dump.manager.Roles(), buffer)
 	if err != nil {
 		return fmt.Errorf("error dumping db roles: %v", err)
 	}
 
-	versionQuery := session.DB("admin").C("system.version").Find(nil)
+	versionQuery := &db.DeferredQuery{
+		Coll: session.Database("admin").Collection("system.version"),
+	}
 	_, err = dump.dumpQueryToIntent(versionQuery, dump.manager.AuthVersion(), buffer)
 	if err != nil {
 		return fmt.Errorf("error dumping db auth version: %v", err)

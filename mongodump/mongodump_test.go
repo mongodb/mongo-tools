@@ -8,6 +8,7 @@ package mongodump
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -17,16 +18,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools-common/testutil"
+	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -89,17 +90,25 @@ func simpleMongoDumpInstance() *MongoDump {
 // returns the number of .bson files in a directory
 // excluding system.indexes.bson
 func countNonIndexBSONFiles(dir string) (int, error) {
-	matchingFiles, err := getMatchingFiles(dir, ".*\\.bson")
+	files, err := listNonIndexBSONFiles(dir)
 	if err != nil {
 		return 0, err
 	}
-	count := 0
+	return len(files), nil
+}
+
+func listNonIndexBSONFiles(dir string) ([]string, error) {
+	var files []string
+	matchingFiles, err := getMatchingFiles(dir, ".*\\.bson")
+	if err != nil {
+		return nil, err
+	}
 	for _, fileName := range matchingFiles {
 		if fileName != "system.indexes.bson" {
-			count++
+			files = append(files, fileName)
 		}
 	}
-	return count, nil
+	return files, nil
 }
 
 // returns count of metadata files
@@ -176,7 +185,6 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
 	fileInfos, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -190,7 +198,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 		}
 
 		collectionName := fileName[:strings.LastIndex(fileName, ".bson")]
-		collection := session.DB(restoreDBName).C(collectionName)
+		collection := session.Database(restoreDBName).Collection(collectionName)
 
 		file, err := os.Open(fmt.Sprintf("%s/%s", dir, fileName))
 		if err != nil {
@@ -203,7 +211,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 
 		var result bson.M
 		for bsonSource.Next(&result) {
-			err = collection.Insert(result)
+			_, err = collection.InsertOne(nil, result)
 			if err != nil {
 				return err
 			}
@@ -221,13 +229,12 @@ func setUpMongoDumpTestData() error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
 	for i, collectionName := range testCollectionNames {
-		coll := session.DB(testDB).C(collectionName)
+		coll := session.Database(testDB).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
-			err = coll.Insert(bson.M{"collectionName": collectionName, "age": j})
+			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j})
 			if err != nil {
 				return err
 			}
@@ -249,18 +256,17 @@ func backgroundInsert(ready, done chan struct{}, errs chan error) {
 		close(ready)
 		return
 	}
-	defer session.Close()
 
-	colls := make([]*mgo.Collection, len(testCollectionNames))
+	colls := make([]*mongo.Collection, len(testCollectionNames))
 	for i, v := range testCollectionNames {
-		colls[i] = session.DB(testDB).C(v)
+		colls[i] = session.Database(testDB).Collection(v)
 	}
 
 	var n int
 
 	// Insert a doc to ensure the DB is actually ready for inserts
 	// and not pausing while a dropDatabase is processing.
-	err = colls[0].Insert(bson.M{"n": n})
+	_, err = colls[0].InsertOne(nil, bson.M{"n": n})
 	if err != nil {
 		errs <- err
 		close(ready)
@@ -275,7 +281,7 @@ func backgroundInsert(ready, done chan struct{}, errs chan error) {
 			return
 		default:
 			coll := colls[rand.Intn(len(colls))]
-			err := coll.Insert(bson.M{"n": n})
+			_, err := coll.InsertOne(nil, bson.M{"n": n})
 			if err != nil {
 				errs <- err
 				return
@@ -290,9 +296,8 @@ func tearDownMongoDumpTestData() error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	err = session.DB(testDB).DropDatabase()
+	err = session.Database(testDB).Drop(nil)
 	if err != nil {
 		return err
 	}
@@ -308,9 +313,9 @@ func fileDirExists(name string) bool {
 	return true
 }
 
-func testQuery(md *MongoDump, session *mgo.Session) string {
-	origDB := session.DB(testDB)
-	restoredDB := session.DB(testRestoreDB)
+func testQuery(md *MongoDump, session *mongo.Client) string {
+	origDB := session.Database(testDB)
+	restoredDB := session.Database(testRestoreDB)
 
 	// query to test --query* flags
 	bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
@@ -334,25 +339,83 @@ func testQuery(md *MongoDump, session *mgo.Session) string {
 	So(fileDirExists(dumpDir), ShouldBeTrue)
 	So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
+	So(restoredDB.Drop(nil), ShouldBeNil)
 	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
 	So(err, ShouldBeNil)
 
 	for _, testCollName := range testCollectionNames {
 		// count filtered docs
-		numDocs1, err := origDB.C(testCollName).Find(bsonQuery).Count()
+		origDocCount, err := origDB.Collection(testCollName).CountDocuments(nil, bsonQuery)
 		So(err, ShouldBeNil)
 
 		// count number of all restored documents
-		numDocs2, err := restoredDB.C(testCollName).Find(nil).Count()
+		restDocCount, err := restoredDB.Collection(testCollName).CountDocuments(nil, bson.D{})
 		So(err, ShouldBeNil)
 
-		So(numDocs1, ShouldEqual, numDocs2)
+		So(restDocCount, ShouldEqual, origDocCount)
 	}
 	return dumpDir
 }
 
+func testDumpOneCollection(md *MongoDump, dumpDir string) {
+	path, err := os.Getwd()
+	So(err, ShouldBeNil)
+
+	absDumpDir := util.ToUniversalPath(filepath.Join(path, dumpDir))
+	So(os.RemoveAll(absDumpDir), ShouldBeNil)
+	So(fileDirExists(absDumpDir), ShouldBeFalse)
+
+	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	So(fileDirExists(dumpDBDir), ShouldBeFalse)
+
+	md.OutputOptions.Out = dumpDir
+	err = md.Dump()
+	So(err, ShouldBeNil)
+	So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+	session, err := testutil.GetBareSession()
+	So(err, ShouldBeNil)
+
+	countColls, err := countNonIndexBSONFiles(dumpDBDir)
+	So(err, ShouldBeNil)
+	So(countColls, ShouldEqual, 1)
+
+	collOriginal := session.Database(testDB).Collection(testCollectionNames[0])
+
+	So(session.Database(testRestoreDB).Drop(nil), ShouldBeNil)
+	collRestore := session.Database(testRestoreDB).Collection(testCollectionNames[0])
+
+	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
+	So(err, ShouldBeNil)
+
+	Convey("with the correct number of documents", func() {
+		numDocsOrig, err := collOriginal.CountDocuments(nil, bson.D{})
+		So(err, ShouldBeNil)
+
+		numDocsRestore, err := collRestore.CountDocuments(nil, bson.D{})
+		So(err, ShouldBeNil)
+
+		So(numDocsRestore, ShouldEqual, numDocsOrig)
+	})
+
+	Convey("that are the same as the documents in the test database", func() {
+		iter, err := collOriginal.Find(nil, bson.D{})
+		So(err, ShouldBeNil)
+
+		var result bson.M
+		for iter.Next(nil) {
+			iter.Decode(&result)
+			restoredCount, err := collRestore.CountDocuments(nil, result)
+			So(err, ShouldBeNil)
+			So(restoredCount, ShouldNotEqual, 0)
+		}
+		So(iter.Err(), ShouldBeNil)
+		So(iter.Close(context.Background()), ShouldBeNil)
+	})
+}
+
 func TestMongoDumpValidateOptions(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoDump instance", t, func() {
 		md := simpleMongoDumpInstance()
@@ -380,7 +443,7 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 }
 
 func TestMongoDumpKerberos(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.KerberosTestType)
+	testtype.SkipUnlessTestType(t, testtype.KerberosTestType)
 
 	Convey("Should be able to run mongodump with Kerberos auth", t, func() {
 		opts, err := testutil.GetKerberosOptions()
@@ -419,7 +482,7 @@ func TestMongoDumpKerberos(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -436,79 +499,11 @@ func TestMongoDumpBSON(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("it dumps to the default output directory", func() {
-					// we don't have to set this manually if parsing options via command line
-					md.OutputOptions.Out = "dump"
-					err = md.Dump()
-					So(err, ShouldBeNil)
-					path, err := os.Getwd()
-					So(err, ShouldBeNil)
-
-					dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-					dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-					So(fileDirExists(dumpDir), ShouldBeTrue)
-					So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-					err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
-					So(err, ShouldBeNil)
-
-					session, err := testutil.GetBareSession()
-					So(err, ShouldBeNil)
-
-					countColls, err := countNonIndexBSONFiles(dumpDBDir)
-					So(err, ShouldBeNil)
-					So(countColls, ShouldEqual, 1)
-
-					collOriginal := session.DB(testDB).C(testCollectionNames[0])
-					collRestore := session.DB(testRestoreDB).C(testCollectionNames[0])
-
-					Convey("with the correct number of documents", func() {
-						numDocsOrig, err := collOriginal.Count()
-						So(err, ShouldBeNil)
-
-						numDocsRestore, err := collRestore.Count()
-						So(err, ShouldBeNil)
-
-						So(numDocsOrig, ShouldEqual, numDocsRestore)
-					})
-
-					Convey("that are the same as the documents in the test database", func() {
-						iter := collOriginal.Find(nil).Iter()
-
-						var result bson.M
-						for iter.Next(&result) {
-							restoredCount, err := collRestore.Find(result).Count()
-							So(err, ShouldBeNil)
-							So(restoredCount, ShouldNotEqual, 0)
-						}
-						So(iter.Close(), ShouldBeNil)
-					})
-
-					Reset(func() {
-						So(session.DB(testRestoreDB).DropDatabase(), ShouldBeNil)
-						So(os.RemoveAll(dumpDir), ShouldBeNil)
-					})
+					testDumpOneCollection(md, "dump")
 				})
 
 				Convey("it dumps to a user-specified output directory", func() {
-					md.OutputOptions.Out = "dump_user"
-					err = md.Dump()
-					So(err, ShouldBeNil)
-					path, err := os.Getwd()
-					So(err, ShouldBeNil)
-
-					dumpDir := util.ToUniversalPath(filepath.Join(path, "dump_user"))
-					dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-					So(fileDirExists(dumpDir), ShouldBeTrue)
-					So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-					countColls, err := countNonIndexBSONFiles(dumpDBDir)
-					So(err, ShouldBeNil)
-					So(countColls, ShouldEqual, 1)
-
-					Reset(func() {
-						So(os.RemoveAll(dumpDir), ShouldBeNil)
-					})
-
+					testDumpOneCollection(md, "dump_user")
 				})
 
 				Convey("it dumps to standard output", func() {
@@ -600,7 +595,7 @@ func TestMongoDumpBSON(t *testing.T) {
 				dumpDir := testQuery(md, session)
 
 				Reset(func() {
-					So(session.DB(testRestoreDB).DropDatabase(), ShouldBeNil)
+					So(session.Database(testRestoreDB).Drop(nil), ShouldBeNil)
 					So(os.RemoveAll(dumpDir), ShouldBeNil)
 				})
 
@@ -614,7 +609,7 @@ func TestMongoDumpBSON(t *testing.T) {
 				dumpDir := testQuery(md, session)
 
 				Reset(func() {
-					So(session.DB(testRestoreDB).DropDatabase(), ShouldBeNil)
+					So(session.Database(testRestoreDB).Drop(nil), ShouldBeNil)
 					So(os.RemoveAll(dumpDir), ShouldBeNil)
 					So(os.Remove("example.json"), ShouldBeNil)
 				})
@@ -629,7 +624,7 @@ func TestMongoDumpBSON(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -693,6 +688,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 							So(ok, ShouldBeTrue)
 							checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
 							So(checkUUID.MatchString(uuid.(string)), ShouldBeTrue)
+							// XXX useless -- xdg, 2018-09-21
 							So(err, ShouldBeNil)
 						})
 					}
@@ -714,12 +710,16 @@ func TestMongoDumpMetaData(t *testing.T) {
 }
 
 func TestMongoDumpOplog(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
-		t.Fatalf("No server available")
+		t.Fatalf("No cluster available: %v", err)
 	}
-	if !testutil.IsReplicaSet(session) {
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available: %v", err)
+	}
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
 		t.SkipNow()
 	}
 	log.SetWriter(ioutil.Discard)

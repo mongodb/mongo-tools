@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/password"
-	"github.com/mongodb/mongo-tools/common/signals"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/password"
+	"github.com/mongodb/mongo-tools-common/signals"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongostat"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
@@ -242,6 +242,9 @@ func main() {
 
 	// kick it off
 	err = stat.Run()
+	for _, monitor := range stat.Nodes {
+		monitor.Disconnect()
+	}
 	formatter.Finish()
 	if err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)
