@@ -785,6 +785,79 @@ func TestImportDocuments(t *testing.T) {
 	})
 }
 
+func TestGetTargetDestination(t *testing.T) {
+	Convey("Given mongoimport instance", t, func() {
+		imp, err := NewMongoImport()
+		imp.ToolOptions = options.New("", "", options.EnabledOptions{URI: true})
+		So(err, ShouldBeNil)
+		Convey("With undefined Host and Port", func() {
+			imp.ToolOptions.Host = ""
+			imp.ToolOptions.Port = ""
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "localhost")
+		})
+		Convey("With undefined Host and defined Port", func() {
+			imp.ToolOptions.Host = ""
+			imp.ToolOptions.Port = "30000"
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "localhost:30000")
+		})
+		Convey("With defined Host and undefined Port", func() {
+			imp.ToolOptions.Host = "foobar"
+			imp.ToolOptions.Port = ""
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "foobar")
+		})
+		Convey("With defined standalone Host containing port", func() {
+			imp.ToolOptions.Host = "foobar:30000"
+			imp.ToolOptions.Port = ""
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "foobar:30000")
+		})
+		Convey("With defined replica set Host", func() {
+			imp.ToolOptions.Host = "replica/foo1:30000,foo2:30000,foo3:30000"
+			imp.ToolOptions.Port = ""
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "replica/foo1:30000,foo2:30000,foo3:30000")
+		})
+		Convey("With defined standalone URI", func() {
+			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb://foo1:30000"})
+			So(err, ShouldBeNil)
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "foo1:30000")
+		})
+		Convey("With defined replica set URI", func() {
+			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb://foo1,foo2,foo3/dbx?replicaSet=replica"})
+			So(err, ShouldBeNil)
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "replica/foo1,foo2,foo3")
+		})
+		Convey("With defined SRV URI", func() {
+			// NOTE: this requires SRV and TXT records in DNS as specified here:
+			// https://github.com/mongodb/specifications/tree/master/source/initial-dns-seedlist-discovery
+			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb+srv://test5.test.build.10gen.cc/dbx?replicaSet=rs0"})
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "rs0/localhost.test.build.10gen.cc:27017")
+		})
+		Convey("With defined SRV URI but no record", func() {
+			// NOTE: this requires SRV and TXT records in DNS as specified here:
+			// https://github.com/mongodb/specifications/tree/master/source/initial-dns-seedlist-discovery
+			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb+srv://test4.test.build.10gen.cc/dbx?replicaSet=rs0"})
+			url, err := imp.getTargetConnection()
+			So(err, ShouldNotBeNil)
+			So(url, ShouldEqual, "")
+		})
+	})
+}
+
 // Regression test for TOOLS-1694 to prevent issue from TOOLS-1115
 func TestHiddenOptionsDefaults(t *testing.T) {
 	Convey("With a new mongoimport with empty options", t, func() {
@@ -802,5 +875,4 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 			So(imp.IngestOptions.BulkBufferSize, ShouldEqual, 1000)
 		})
 	})
-
 }
