@@ -886,6 +886,13 @@ func TestGetTargetDestination(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(url, ShouldEqual, "replica/foo1,foo2,foo3")
 		})
+		Convey("With defined replica set URI containing credentials", func() {
+			_, err = imp.ToolOptions.ParseArgs([]string{"--uri=mongodb://username:password@foo1,foo2,foo3/dbx?replicaSet=replica"})
+			So(err, ShouldBeNil)
+			url, err := imp.getTargetConnection()
+			So(err, ShouldBeNil)
+			So(url, ShouldEqual, "replica/foo1,foo2,foo3")
+		})
 		Convey("With defined SRV URI", func() {
 			// NOTE: this requires SRV and TXT records in DNS as specified here:
 			// https://github.com/mongodb/specifications/tree/master/source/initial-dns-seedlist-discovery
