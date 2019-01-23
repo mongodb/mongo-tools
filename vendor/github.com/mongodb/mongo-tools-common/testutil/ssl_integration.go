@@ -9,14 +9,22 @@ package testutil
 import (
 	commonOpts "github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/testtype"
+	"runtime"
+	"strings"
 )
 
 func GetSSLOptions() commonOpts.SSL {
+	// Get current filename and location
+	_, filename, _, _ := runtime.Caller(0)
+	// Get the path to containing folder
+	foldername := filename[0:strings.LastIndex(filename, "/")]
+	caFile := foldername + "/../db/testdata/ca.pem"
+	serverFile := foldername + "/../db/testdata/server.pem"
 	if testtype.HasTestType(testtype.SSLTestType) {
 		return commonOpts.SSL{
 			UseSSL:        true,
-			SSLCAFile:     "../db/testdata/ca.pem",
-			SSLPEMKeyFile: "../db/testdata/server.pem",
+			SSLCAFile:     caFile,
+			SSLPEMKeyFile: serverFile,
 		}
 	}
 
