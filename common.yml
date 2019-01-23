@@ -822,6 +822,10 @@ pre:
         exit 0
 
 post:
+    # attach.results works for jstests, gotest.parse_files for golang tests
+  - command: attach.results
+    params:
+      file_location: src/github.com/mongodb/mongo-tools/report.json
   - command: gotest.parse_files
     params:
       files: ["src/github.com/mongodb/mongo-tools/testing_output/*.suite"]
