@@ -9,6 +9,7 @@ package mongostat
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -233,11 +234,15 @@ func (cluster *AsyncClusterMonitor) Monitor(sleep time.Duration) error {
 func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, error) {
 	optsCopy := opts
 	host, port := parseHostPort(fullHost)
-	optsCopy.Connection = &options.Connection{
-		Host:    host,
-		Port:    port,
-		Timeout: opts.Timeout,
+	optsCopy.Connection.Host = host
+	optsCopy.Connection.Port = port
+	uriCopy := *opts.URI
+	newCS, err := rewriteURI(uriCopy.ConnectionString, fullHost)
+	if err != nil {
+		return nil, err
 	}
+	uriCopy.ConnectionString = newCS
+	optsCopy.URI = &uriCopy
 	optsCopy.Direct = true
 	sessionProvider, err := db.NewSessionProvider(optsCopy)
 	if err != nil {
@@ -249,6 +254,15 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, er
 		LastUpdate:      time.Now(),
 		Err:             nil,
 	}, nil
+}
+
+func rewriteURI(oldURI, newAddress string) (string, error) {
+	u, err := url.Parse(oldURI)
+	if err != nil {
+		return "", err
+	}
+	u.Host = newAddress
+	return u.String(), nil
 }
 
 func (node *NodeMonitor) Disconnect() {
