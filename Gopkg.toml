@@ -45,7 +45,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/10gen/openssl"
-  revision = "812b95859f13cba543f6ad860fcff4bb0f7fcdaa"
+  revision = "fc9a1d560ec3549c695198fe39b9de7f89a7503d"
 
 [[constraint]]
   name = "github.com/google/gopacket"

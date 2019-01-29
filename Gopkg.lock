@@ -21,14 +21,14 @@
   revision = "afcced55e92d9b6b93ccf32508238c08cfbaddb8"
 
 [[projects]]
-  digest = "1:17fd6441926671a4ff4580786816ae9f9f4f08705821d41907c26b4b9a0ddbaa"
+  digest = "1:70d6415a756d8180faa29c99dd08a37cab123c04d6c0d01d885ccc7d612a93b3"
   name = "github.com/10gen/openssl"
   packages = [
     ".",
     "utils",
   ]
   pruneopts = "T"
-  revision = "812b95859f13cba543f6ad860fcff4bb0f7fcdaa"
+  revision = "fc9a1d560ec3549c695198fe39b9de7f89a7503d"
 
 [[projects]]
   digest = "1:d9d83b3d983f3e6f78baf83e19666facd3377e81acde31f7db8a6fcd31eae009"
