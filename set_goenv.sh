@@ -104,3 +104,15 @@ print_tags() {
     esac
     echo "$tags"
 }
+
+# On linux, we want to set buildmode=pie for ASLR support
+buildflags() {
+    flags=""
+    UNAME_S=$(PATH="/usr/bin:/bin" uname -s)
+    case $UNAME_S in
+        Linux)
+            flags="-buildmode=pie"
+        ;;
+    esac
+    echo "$flags"
+}
