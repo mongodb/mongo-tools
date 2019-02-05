@@ -8,20 +8,25 @@
 package mongofiles
 
 import (
+	"context"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	driverOptions "github.com/mongodb/mongo-go-driver/mongo/options"
 	"io"
 	"os"
-	"regexp"
+	//"regexp"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/util"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // List of possible commands for mongofiles.
@@ -63,13 +68,13 @@ type MongoFiles struct {
 
 // GFSFile represents a GridFS file.
 type GFSFile struct {
-	Id          bson.ObjectId `bson:"_id"`
-	ChunkSize   int           `bson:"chunkSize"`
-	Name        string        `bson:"filename"`
-	Length      int64         `bson:"length"`
-	Md5         string        `bson:"md5"`
-	UploadDate  time.Time     `bson:"uploadDate"`
-	ContentType string        `bson:"contentType,omitempty"`
+	Id          primitive.ObjectID `bson:"_id"`
+	ChunkSize   int           	   `bson:"chunkSize"`
+	Name        string             `bson:"filename"`
+	Length      int64              `bson:"length"`
+	Md5         string             `bson:"md5"`
+	UploadDate  time.Time          `bson:"uploadDate"`
+	ContentType string             `bson:"contentType,omitempty"`
 }
 
 // ValidateCommand ensures the arguments supplied are valid.
@@ -321,6 +326,10 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS, hasID bool) (err error) {
 // displayed.
 func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	connUrl := mf.ToolOptions.Host
+
+	// TODO: validate options
+	var err error
+
 	if connUrl == "" {
 		connUrl = util.DefaultHost
 	}
@@ -328,30 +337,23 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 		connUrl = fmt.Sprintf("%s:%s", connUrl, mf.ToolOptions.Port)
 	}
 
-	var mode = mgo.Nearest
-	var tags bson.D
-
+	var readPref *readpref.ReadPref
 	if mf.InputOptions.ReadPreference != "" {
 		var err error
-		mode, tags, err = db.ParseReadPreference(mf.InputOptions.ReadPreference)
+		readPref, err = db.ParseReadPreference(mf.InputOptions.ReadPreference)
 		if err != nil {
 			return "", fmt.Errorf("error parsing --readPreference : %v", err)
 		}
-		if len(tags) > 0 {
-			mf.SessionProvider.SetTags(tags)
-		}
+	} else {
+		readPref = readpref.Nearest()
 	}
+	mf.ToolOptions.ReadPreference = readPref
+	// TODO: disable socket timeout
 
-	mf.SessionProvider.SetReadPreference(mode)
-	mf.SessionProvider.SetTags(tags)
-	mf.SessionProvider.SetFlags(db.DisableSocketTimeout)
-
-	// get session
-	session, err := mf.SessionProvider.GetSession()
+	mf.SessionProvider, err = db.NewSessionProvider(*mf.ToolOptions)
 	if err != nil {
 		return "", err
 	}
-	defer session.Close()
 
 	// check type of node we're connected to, and fall back to w=1 if standalone (for <= 2.4)
 	nodeType, err := mf.SessionProvider.GetNodeType()
@@ -361,16 +363,26 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 
 	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
 
-	safety, err := db.BuildWriteConcern(mf.StorageOptions.WriteConcern, nodeType,
-		mf.ToolOptions.URI.ParsedConnString())
+	// TODO: figure out new write concern situation
+	// safety, err := db.BuildWriteConcern(mf.StorageOptions.WriteConcern, nodeType,
+	//	mf.ToolOptions.URI.ParsedConnString())
 
-	if err != nil {
-		return "", fmt.Errorf("error parsing write concern: %v", err)
-	}
+	// if err != nil {
+	//	return "", fmt.Errorf("error parsing write concern: %v", err)
+	// }
 
 	// configure the session with the appropriate write concern and ensure the
 	// socket does not timeout
-	session.SetSafe(safety)
+	// session.SetSafe(safety)
+
+	client, err := mf.SessionProvider.GetSession()
+	if err != nil {
+		return "", fmt.Errorf("error getting client: %v", err)
+	}
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		return "", fmt.Errorf("error connecting to host: %v", err)
+	}
 
 	if displayHost {
 		log.Logvf(log.Always, "connected to: %v", connUrl)
@@ -380,12 +392,17 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	// it's ok to validate only <db>.<prefix>.chunks (the longer one)
 	err = util.ValidateFullNamespace(fmt.Sprintf("%s.%s.chunks", mf.StorageOptions.DB,
 		mf.StorageOptions.GridFSPrefix))
-
 	if err != nil {
 		return "", err
 	}
-	// get GridFS handle
-	gfs := session.DB(mf.StorageOptions.DB).GridFS(mf.StorageOptions.GridFSPrefix)
+
+	database := client.Database(mf.StorageOptions.DB)
+	opts := driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix}
+
+	_, err = gridfs.NewBucket(database, &opts)
+	if err != nil {
+		return "", fmt.Errorf("couldn't get gridfs bucket: %v", err)
+	}
 
 	var output string
 
@@ -394,7 +411,8 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	switch mf.Command {
 
 	case List:
-
+		return "list", nil
+		/*
 		query := bson.M{}
 		if mf.FileName != "" {
 			regex := bson.M{"$regex": "^" + regexp.QuoteMeta(mf.FileName)}
@@ -404,60 +422,69 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 		output, err = mf.findAndDisplay(gfs, query)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case Search:
-
-		regex := bson.M{"$regex": mf.FileName}
+		return "search", nil
+		/*regex := bson.M{"$regex": mf.FileName}
 		query := bson.M{"filename": regex}
 
 		output, err = mf.findAndDisplay(gfs, query)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case Get:
+		return "get", nil
 
+		/*
 		err = mf.handleGet(gfs)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case GetID:
-
+		return "getid", nil
+		/*
 		err = mf.handleGetID(gfs)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case Put:
+		return "put", nil
+		/*
 
 		err = mf.handlePut(gfs, false)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case PutID:
-
+		return "putID", nil
+		/*
 		err = mf.handlePut(gfs, true)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case Delete:
-
+		return "delete", nil
+		/*
 		err = mf.handleDelete(gfs)
 		if err != nil {
 			return "", err
-		}
+		}*/
 
 	case DeleteID:
+		return "deleteId", nil
 
+		/*
 		err = mf.handleDeleteID(gfs)
 		if err != nil {
 			return "", err
 		}
-
+*/
 	}
 
 	return output, nil
