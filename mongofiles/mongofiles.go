@@ -10,12 +10,13 @@ package mongofiles
 import (
 	"context"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	driverOptions "github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"io"
 	"os"
+	"regexp"
+
 	//"regexp"
 	"time"
 
@@ -66,9 +67,18 @@ type MongoFiles struct {
 	Id string
 }
 
+type GFSWhole struct {
+	Metadata   GFSFile
+	data       []byte
+}
+
+func (file *GFSWhole) Read(buf []byte) (int, error) {
+	return copy(buf, file.data), nil
+}
+
 // GFSFile represents a GridFS file.
 type GFSFile struct {
-	Id          primitive.ObjectID `bson:"_id"`
+	Id          bson.RawValue      `bson:"_id"`
 	ChunkSize   int           	   `bson:"chunkSize"`
 	Name        string             `bson:"filename"`
 	Length      int64              `bson:"length"`
@@ -135,15 +145,28 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 }
 
 // Query GridFS for files and display the results.
-func (mf *MongoFiles) findAndDisplay(gfs *mgo.GridFS, query bson.M) (string, error) {
+func (mf *MongoFiles) findAndDisplay(bucket *gridfs.Bucket, query bson.M) (string, error) {
 	display := ""
 
-	cursor := gfs.Find(query).Iter()
-	defer cursor.Close()
+	cursor, err := bucket.Find(query)
+	if err != nil {
+		return "", err
+	}
 
-	var file GFSFile
-	for cursor.Next(&file) {
-		display += fmt.Sprintf("%s\t%d\n", file.Name, file.Length)
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var file GFSFile
+		err = cursor.Decode(&file)
+		if err != nil {
+			return "", fmt.Errorf("error encountered while iterating cursor: %v", err)
+		}
+
+		if file.Name != "" {
+			display += fmt.Sprintf("filename: %s\t%d\n", file.Name, file.Length)
+		} else {
+			display += fmt.Sprintf("_id: %s\t%d\n", file.Id, file.Length)
+		}
 	}
 	if err := cursor.Err(); err != nil {
 		return "", fmt.Errorf("error retrieving list of GridFS files: %v", err)
@@ -155,11 +178,11 @@ func (mf *MongoFiles) findAndDisplay(gfs *mgo.GridFS, query bson.M) (string, err
 // Return the local filename, as specified by the --local flag. Defaults to
 // the GridFile's name if not present. If GridFile is nil, uses the filename
 // given on the command line.
-func (mf *MongoFiles) getLocalFileName(gridFile *mgo.GridFile) string {
+func (mf *MongoFiles) getLocalFileName(gridFile *GFSFile) string {
 	localFileName := mf.StorageOptions.LocalFileName
 	if localFileName == "" {
 		if gridFile != nil {
-			localFileName = gridFile.Name()
+			localFileName = gridFile.Name
 		} else {
 			localFileName = mf.FileName
 		}
@@ -167,22 +190,54 @@ func (mf *MongoFiles) getLocalFileName(gridFile *mgo.GridFile) string {
 	return localFileName
 }
 
-// handle logic for 'get' command
-func (mf *MongoFiles) handleGet(gfs *mgo.GridFS) error {
-	gFile, err := gfs.Open(mf.FileName)
+func (mf *MongoFiles) getFileMetadata(bucket *gridfs.Bucket, filename string) (GFSFile, error) {
+	var out GFSFile
+	cursor, err := bucket.Find(bson.M{"filename": filename})
 	if err != nil {
-		return fmt.Errorf("error opening GridFS file '%s': %v", mf.FileName, err)
+		return out, err
 	}
-	defer gFile.Close()
-	if err = mf.writeFile(gFile); err != nil {
+	defer cursor.Close(context.Background())
+
+	err = cursor.Decode(&out)
+	if err != nil {
+		return out, err
+	}
+
+	return out, nil
+}
+
+// handle logic for 'get' command
+func (mf *MongoFiles) handleGet(bucket *gridfs.Bucket, filename string) error {
+	file, err := mf.getFileMetadata(bucket, filename)
+	if err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("finished writing to %s\n", mf.getLocalFileName(gFile)))
+
+	stream, err := bucket.OpenDownloadStreamByName(filename)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+
+	var buf []byte
+	_, err = stream.Read(buf)
+	if err != nil {
+		return err
+	}
+	f := GFSWhole{Metadata: file, data: buf}
+
+	err = mf.writeFile(&f)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // handle logic for 'get_id' command
 func (mf *MongoFiles) handleGetID(gfs *mgo.GridFS) error {
+	/*
 	id, err := mf.parseID()
 	if err != nil {
 		return err
@@ -196,7 +251,7 @@ func (mf *MongoFiles) handleGetID(gfs *mgo.GridFS) error {
 	if err = mf.writeFile(gFile); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("finished writing to: %s\n", mf.getLocalFileName(gFile)))
+	log.Logvf(log.Always, fmt.Sprintf("finished writing to: %s\n", mf.getLocalFileName(gFile)))*/
 	return nil
 }
 
@@ -240,8 +295,8 @@ func (mf *MongoFiles) parseID() (interface{}, error) {
 }
 
 // writeFile writes a file from gridFS to stdout or the filesystem.
-func (mf *MongoFiles) writeFile(gridFile *mgo.GridFile) (err error) {
-	localFileName := mf.getLocalFileName(gridFile)
+func (mf *MongoFiles) writeFile(gridFile *GFSWhole,) (err error) {
+	localFileName := mf.getLocalFileName(&gridFile.Metadata)
 	var localFile io.WriteCloser
 	if localFileName == "-" {
 		localFile = os.Stdout
@@ -399,7 +454,7 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	database := client.Database(mf.StorageOptions.DB)
 	opts := driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix}
 
-	_, err = gridfs.NewBucket(database, &opts)
+	bucket, err := gridfs.NewBucket(database, &opts)
 	if err != nil {
 		return "", fmt.Errorf("couldn't get gridfs bucket: %v", err)
 	}
@@ -411,38 +466,32 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	switch mf.Command {
 
 	case List:
-		return "list", nil
-		/*
 		query := bson.M{}
 		if mf.FileName != "" {
 			regex := bson.M{"$regex": "^" + regexp.QuoteMeta(mf.FileName)}
 			query = bson.M{"filename": regex}
 		}
 
-		output, err = mf.findAndDisplay(gfs, query)
+		output, err = mf.findAndDisplay(bucket, query)
 		if err != nil {
 			return "", err
-		}*/
+		}
 
 	case Search:
-		return "search", nil
-		/*regex := bson.M{"$regex": mf.FileName}
+		regex := bson.M{"$regex": mf.FileName}
 		query := bson.M{"filename": regex}
 
-		output, err = mf.findAndDisplay(gfs, query)
+		output, err = mf.findAndDisplay(bucket, query)
 		if err != nil {
 			return "", err
-		}*/
+		}
 
 	case Get:
-		return "get", nil
-
-		/*
-		err = mf.handleGet(gfs)
+		err = mf.handleGet(bucket, mf.FileName)
 		if err != nil {
 			return "", err
-		}*/
-
+		}
+		output = ""
 	case GetID:
 		return "getid", nil
 		/*
