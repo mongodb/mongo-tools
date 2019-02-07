@@ -9,7 +9,9 @@ package mongofiles
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
 	driverOptions "github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
@@ -21,9 +23,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/util"
@@ -63,21 +63,25 @@ type MongoFiles struct {
 	// filename in GridFS
 	FileName string
 
-	//ID to put into GridFS
+	// ID to put into GridFS
 	Id string
+
+	// GridFS bucket to operate on
+	bucket *gridfs.Bucket
 }
 
-type GFSWhole struct {
-	Metadata   GFSFile
-	data       []byte
-}
-
-func (file *GFSWhole) Read(buf []byte) (int, error) {
-	return copy(buf, file.data), nil
-}
-
-// GFSFile represents a GridFS file.
 type GFSFile struct {
+	Metadata GFSFileMetadata
+	Data     []byte
+	i        int
+}
+
+func (file *GFSFile) Read(buf []byte) (int, error) {
+	return copy(buf, file.Data), nil
+}
+
+// GFSFileMetadata represents a GridFS file.
+type GFSFileMetadata struct {
 	Id          bson.RawValue      `bson:"_id"`
 	ChunkSize   int           	   `bson:"chunkSize"`
 	Name        string             `bson:"filename"`
@@ -85,6 +89,25 @@ type GFSFile struct {
 	Md5         string             `bson:"md5"`
 	UploadDate  time.Time          `bson:"uploadDate"`
 	ContentType string             `bson:"contentType,omitempty"`
+}
+
+func (mf *MongoFiles) getBucket() (*gridfs.Bucket, error) {
+	if mf.bucket != nil {
+		return mf.bucket, nil
+	}
+
+	session, err := mf.SessionProvider.GetSession()
+	if err != nil {
+		return nil, err
+	}
+
+	database := session.Database(mf.StorageOptions.DB)
+	mf.bucket, err = gridfs.NewBucket(database, &driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix})
+	if err != nil {
+		return nil, err
+	}
+
+	return mf.bucket, nil
 }
 
 // ValidateCommand ensures the arguments supplied are valid.
@@ -145,7 +168,12 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 }
 
 // Query GridFS for files and display the results.
-func (mf *MongoFiles) findAndDisplay(bucket *gridfs.Bucket, query bson.M) (string, error) {
+func (mf *MongoFiles) findAndDisplay(query bson.M) (string, error) {
+	bucket, err := mf.getBucket()
+	if err != nil {
+		return "", err
+	}
+
 	display := ""
 
 	cursor, err := bucket.Find(query)
@@ -156,17 +184,19 @@ func (mf *MongoFiles) findAndDisplay(bucket *gridfs.Bucket, query bson.M) (strin
 	defer cursor.Close(context.Background())
 
 	for cursor.Next(context.Background()) {
-		var file GFSFile
+		var file GFSFileMetadata
 		err = cursor.Decode(&file)
 		if err != nil {
 			return "", fmt.Errorf("error encountered while iterating cursor: %v", err)
 		}
 
+		display += fmt.Sprintf("%s\t%d\n", file.Name, file.Length)
+		/*
 		if file.Name != "" {
 			display += fmt.Sprintf("filename: %s\t%d\n", file.Name, file.Length)
 		} else {
 			display += fmt.Sprintf("_id: %s\t%d\n", file.Id, file.Length)
-		}
+		}*/
 	}
 	if err := cursor.Err(); err != nil {
 		return "", fmt.Errorf("error retrieving list of GridFS files: %v", err)
@@ -182,7 +212,7 @@ func (mf *MongoFiles) getLocalFileName(gridFile *GFSFile) string {
 	localFileName := mf.StorageOptions.LocalFileName
 	if localFileName == "" {
 		if gridFile != nil {
-			localFileName = gridFile.Name
+			localFileName = gridFile.Metadata.Name
 		} else {
 			localFileName = mf.FileName
 		}
@@ -190,68 +220,123 @@ func (mf *MongoFiles) getLocalFileName(gridFile *GFSFile) string {
 	return localFileName
 }
 
-func (mf *MongoFiles) getFileMetadata(bucket *gridfs.Bucket, filename string) (GFSFile, error) {
-	var out GFSFile
-	cursor, err := bucket.Find(bson.M{"filename": filename})
+func (mf *MongoFiles) getFileMetadata(query bson.M) (*GFSFileMetadata, error) {
+	bucket, err := mf.getBucket()
 	if err != nil {
-		return out, err
+		return nil, err
+	}
+
+	cursor, err := bucket.Find(query)
+	if err != nil {
+		return nil, err
 	}
 	defer cursor.Close(context.Background())
 
-	err = cursor.Decode(&out)
-	if err != nil {
-		return out, err
+	if !cursor.Next(context.Background()) {
+		return nil, errors.New("cursor has no results")
 	}
 
-	return out, nil
+	var out GFSFileMetadata
+	if err = cursor.Decode(&out); err != nil {
+		return &out, err
+	}
+
+	return &out, nil
 }
 
-// handle logic for 'get' command
-func (mf *MongoFiles) handleGet(bucket *gridfs.Bucket, filename string) error {
-	file, err := mf.getFileMetadata(bucket, filename)
+func (mf *MongoFiles) getFileMetadataByName(filename string) (*GFSFileMetadata, error) {
+	return mf.getFileMetadata(bson.M{"filename": filename})
+}
+
+func (mf *MongoFiles) getFileMetadataById(id interface{}) (*GFSFileMetadata, error) {
+	return mf.getFileMetadata(bson.M{"_id": id})
+}
+
+func (mf *MongoFiles) getGFSFileByStream(stream *gridfs.DownloadStream, metadata *GFSFileMetadata) (*GFSFile, error) {
+	var buf = make([]byte, metadata.Length)
+	_, err := stream.Read(buf)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	return &GFSFile{Metadata: *metadata, Data: buf}, nil
+}
+
+func (mf *MongoFiles) getGFSFileById(id interface{}) (*GFSFile, error) {
+	metadata, err := mf.getFileMetadataById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket, err := mf.getBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	oid, ok := id.(primitive.ObjectID)
+	if !ok {
+		return nil, fmt.Errorf("id is not an objectid %v", id)
+	}
+
+	stream, err := bucket.OpenDownloadStream(oid)
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Close()
+
+	return mf.getGFSFileByStream(stream, metadata)
+}
+
+func (mf *MongoFiles) getGFSFileByName(filename string) (*GFSFile, error) {
+	metadata, err := mf.getFileMetadataByName(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket, err := mf.getBucket()
+	if err != nil {
+		return nil, err
 	}
 
 	stream, err := bucket.OpenDownloadStreamByName(filename)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer stream.Close()
 
-	var buf []byte
-	_, err = stream.Read(buf)
-	if err != nil {
+	return mf.getGFSFileByStream(stream, metadata)
+}
+
+// handle logic for 'get' command
+func (mf *MongoFiles) handleGet() error {
+	file, err := mf.getGFSFileByName(mf.FileName)
+
+	if err = mf.writeGFSFile(file); err != nil {
 		return err
 	}
-	f := GFSWhole{Metadata: file, data: buf}
 
-	err = mf.writeFile(&f)
-
-	if err != nil {
-		return err
-	}
+	log.Logvf(log.Always, fmt.Sprintf("finished writing to %s\n", mf.FileName))
 
 	return nil
 }
 
 // handle logic for 'get_id' command
-func (mf *MongoFiles) handleGetID(gfs *mgo.GridFS) error {
-	/*
+func (mf *MongoFiles) handleGetID() error {
 	id, err := mf.parseID()
 	if err != nil {
 		return err
 	}
-	// with the parsed _id, grab the file and write it to disk
-	gFile, err := gfs.OpenId(id)
+
+	file, err := mf.getGFSFileById(id)
 	if err != nil {
-		return fmt.Errorf("error opening GridFS file with _id %s: %v", mf.Id, err)
-	}
-	defer gFile.Close()
-	if err = mf.writeFile(gFile); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("finished writing to: %s\n", mf.getLocalFileName(gFile)))*/
+
+	if err = mf.writeGFSFile(file); err != nil {
+		return err
+	}
+
+	log.Logvf(log.Always, fmt.Sprintf("finished writing to: %s\n", file.Metadata.Name))
 	return nil
 }
 
@@ -280,23 +365,23 @@ func (mf *MongoFiles) handleDeleteID(gfs *mgo.GridFS) error {
 
 // parse and convert extended JSON
 func (mf *MongoFiles) parseID() (interface{}, error) {
-	// parse the id using extended json
-	var asJSON interface{}
-	err := json.Unmarshal([]byte(mf.Id), &asJSON)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"error parsing _id as json: %v; make sure you are properly escaping input", err)
+	var id interface{}
+	if err := bson.UnmarshalExtJSON([]byte(mf.Id), false, &id); err != nil {
+		return nil, fmt.Errorf("cant unmarshal ext json: %v", err)
 	}
-	id, err := bsonutil.ConvertJSONValueToBSON(asJSON)
-	if err != nil {
-		return nil, fmt.Errorf("error converting _id to bson: %v", err)
+
+	// TODO: fix this
+	if _, ok := id.(primitive.ObjectID); !ok {
+		return bson.Raw{}, fmt.Errorf("only use ObjectIds as _id")
+		// return nil, fmt.Errorf("error parsing _id as json: %v; make sure you are properly escaping input")
 	}
+
 	return id, nil
 }
 
-// writeFile writes a file from gridFS to stdout or the filesystem.
-func (mf *MongoFiles) writeFile(gridFile *GFSWhole,) (err error) {
-	localFileName := mf.getLocalFileName(&gridFile.Metadata)
+// writeGFSFile writes a file from gridFS to stdout or the filesystem.
+func (mf *MongoFiles) writeGFSFile(gridFile *GFSFile) (err error) {
+	localFileName := mf.getLocalFileName(gridFile)
 	var localFile io.WriteCloser
 	if localFileName == "-" {
 		localFile = os.Stdout
@@ -308,8 +393,8 @@ func (mf *MongoFiles) writeFile(gridFile *GFSWhole,) (err error) {
 		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 	}
 
-	if _, err = io.Copy(localFile, gridFile); err != nil {
-		return fmt.Errorf("error while writing data into local file '%v': %v\n", localFileName, err)
+	if _, err = localFile.Write(gridFile.Data); err != nil {
+		return fmt.Errorf("error while writing Data into local file '%v': %v\n", localFileName, err)
 	}
 	return nil
 }
@@ -323,7 +408,7 @@ func (mf *MongoFiles) handlePut(gfs *mgo.GridFS, hasID bool) (err error) {
 		if err != nil {
 			return err
 		}
-		// always log that data has been removed
+		// always log that Data has been removed
 		log.Logvf(log.Always, "removed all instances of '%v' from GridFS\n", mf.FileName)
 	}
 
@@ -434,6 +519,7 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error getting client: %v", err)
 	}
+
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
 		return "", fmt.Errorf("error connecting to host: %v", err)
@@ -451,14 +537,6 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 		return "", err
 	}
 
-	database := client.Database(mf.StorageOptions.DB)
-	opts := driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix}
-
-	bucket, err := gridfs.NewBucket(database, &opts)
-	if err != nil {
-		return "", fmt.Errorf("couldn't get gridfs bucket: %v", err)
-	}
-
 	var output string
 
 	log.Logvf(log.Info, "handling mongofiles '%v' command...", mf.Command)
@@ -472,7 +550,7 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 			query = bson.M{"filename": regex}
 		}
 
-		output, err = mf.findAndDisplay(bucket, query)
+		output, err = mf.findAndDisplay(query)
 		if err != nil {
 			return "", err
 		}
@@ -481,24 +559,22 @@ func (mf *MongoFiles) Run(displayHost bool) (string, error) {
 		regex := bson.M{"$regex": mf.FileName}
 		query := bson.M{"filename": regex}
 
-		output, err = mf.findAndDisplay(bucket, query)
+		output, err = mf.findAndDisplay(query)
 		if err != nil {
 			return "", err
 		}
 
 	case Get:
-		err = mf.handleGet(bucket, mf.FileName)
+		err = mf.handleGet()
 		if err != nil {
 			return "", err
 		}
 		output = ""
 	case GetID:
-		return "getid", nil
-		/*
-		err = mf.handleGetID(gfs)
+		err = mf.handleGetID()
 		if err != nil {
 			return "", err
-		}*/
+		}
 
 	case Put:
 		return "put", nil
