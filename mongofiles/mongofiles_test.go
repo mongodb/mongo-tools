@@ -8,25 +8,30 @@ package mongofiles
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools-common/testutil"
+	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2"
 )
 
+type TestName string
+type NBytes int
+
 var (
-	testDB     = "mongofiles_test_db"
+	testDBName = "mongofiles_test_db"
 	testServer = "localhost"
 	testPort   = db.DefaultTestPort
 
@@ -43,10 +48,11 @@ var (
 		Verbosity:  &options.Verbosity{},
 		URI:        &options.URI{},
 	}
+	testFiles = map[TestName]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3" : primitive.NewObjectID()}
 )
 
-// put in some test data into GridFS
-func setUpGridFSTestData() ([]interface{}, error) {
+// put in some test Data into GridFS
+func setUpGridFSTestData() (map[TestName]NBytes, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, err
@@ -55,32 +61,42 @@ func setUpGridFSTestData() ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer session.Close()
 
-	bytesExpected := []interface{}{}
-	gfs := session.DB(testDB).GridFS("fs")
+	bytesExpected := map[TestName]NBytes{}
 
-	var testfile *mgo.GridFile
+	testDb := session.Database(testDBName)
+	bucket, err := gridfs.NewBucket(testDb)
+	if err != nil {
+		return nil, err
+	}
 
-	for i, item := range []string{"testfile1", "testfile2", "testfile3"} {
-		testfile, err = gfs.Create(item)
+	// var testfile *mgo.GridFile
+
+	i := 0
+	for item, id := range testFiles {
+		stream, err := bucket.OpenUploadStreamWithID(id, string(item))
 		if err != nil {
 			return nil, err
 		}
-		defer testfile.Close()
 
-		n, err := testfile.Write([]byte(strings.Repeat("a", (i+1)*5)))
+		n, err := stream.Write([]byte(strings.Repeat("a", (i+1)*5)))
 		if err != nil {
 			return nil, err
 		}
 
-		bytesExpected = append(bytesExpected, n)
+		bytesExpected[item] = NBytes(n)
+
+		if err = stream.Close(); err != nil {
+			return nil, err
+		}
+
+		i++
 	}
 
 	return bytesExpected, nil
 }
 
-// remove test data from GridFS
+// remove test Data from GridFS
 func tearDownGridFSTestData() error {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -90,9 +106,8 @@ func tearDownGridFSTestData() error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	if err = session.DB(testDB).DropDatabase(); err != nil {
+	if err = session.Database(testDBName).Drop(context.Background()); err != nil {
 		return err
 	}
 
@@ -117,7 +132,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, Id string) (*Mong
 	mongofiles := MongoFiles{
 		ToolOptions:     toolOptions,
 		InputOptions:    &InputOptions{},
-		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDBName},
 		SessionProvider: sessionProvider,
 		Command:         command,
 		FileName:        fname,
@@ -162,12 +177,9 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 
 // get an id of an existing file, for _id access
 func idOfFile(mf *MongoFiles, filename string) string {
-	session, _ := mf.SessionProvider.GetSession()
-	defer session.Close()
-	gfs := session.DB(mf.StorageOptions.DB).GridFS(mf.StorageOptions.GridFSPrefix)
-	gFile, _ := gfs.Open(filename)
-	bytes, _ := json.Marshal(gFile.Id())
-	return fmt.Sprintf("ObjectId(%v)", string(bytes))
+	file, _ := mf.getGFSFileByName(filename)
+	idBytes, _ := json.Marshal(file.Metadata.Id)
+	return fmt.Sprintf("ObjectId(%v)", string(idBytes))
 }
 
 // test output needs some cleaning
@@ -181,36 +193,33 @@ func cleanAndTokenizeTestOutput(str string) []string {
 }
 
 // return slices of files and bytes in each file represented by each line
-func getFilesAndBytesFromLines(lines []string) ([]interface{}, []interface{}) {
-	var fileName string
-	var byteCount int
+func getFilesAndBytesFromLines(lines []string) map[TestName]NBytes {
+	var fileName TestName
+	var byteCount NBytes
 
-	filesGotten := []interface{}{}
-	bytesGotten := []interface{}{}
+	results := make(map[TestName]NBytes)
 
 	for _, line := range lines {
 		fmt.Sscanf(line, "%s\t%d", &fileName, &byteCount)
-
-		filesGotten = append(filesGotten, fileName)
-		bytesGotten = append(bytesGotten, byteCount)
+		results[fileName] = byteCount
 	}
 
-	return filesGotten, bytesGotten
+	return results
 }
 
-func getFilesAndBytesListFromGridFS() ([]interface{}, []interface{}, error) {
+func getFilesAndBytesListFromGridFS() (map[TestName]NBytes, error) {
 	mfAfter, err := simpleMongoFilesInstanceCommandOnly("list")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	str, err := mfAfter.Run(false)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	lines := cleanAndTokenizeTestOutput(str)
-	filesGotten, bytesGotten := getFilesAndBytesFromLines(lines)
-	return filesGotten, bytesGotten, nil
+	results := getFilesAndBytesFromLines(lines)
+	return results, nil
 }
 
 // inefficient but fast way to ensure set equality of
@@ -305,7 +314,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// []interface{} here so we can use 'ensureSetEquality' method for both []string and []int
-		filesExpected := []interface{}{"testfile1", "testfile2", "testfile3"}
+		// filesExpected := []interface{}{"testfile1", "testfile2", "testfile3"}
 
 		Convey("Testing the 'list' command with a file that isn't in GridFS should", func() {
 			mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish")
@@ -330,11 +339,10 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(len(str), ShouldNotEqual, 0)
 
 				lines := cleanAndTokenizeTestOutput(str)
-				So(len(lines), ShouldEqual, len(filesExpected))
+				So(len(lines), ShouldEqual, len(testFiles))
 
-				filesGotten, bytesGotten := getFilesAndBytesFromLines(lines)
-				ensureSetEquality(filesExpected, filesGotten)
-				ensureSetEquality(bytesExpected, bytesGotten)
+				bytesGotten := getFilesAndBytesFromLines(lines)
+				So(bytesGotten, ShouldResemble, bytesExpected)
 			})
 		})
 
@@ -349,11 +357,10 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(len(str), ShouldNotEqual, 0)
 
 				lines := cleanAndTokenizeTestOutput(str)
-				So(len(lines), ShouldEqual, len(filesExpected))
+				So(len(lines), ShouldEqual, len(testFiles))
 
-				filesGotten, bytesGotten := getFilesAndBytesFromLines(lines)
-				ensureSetEquality(filesExpected, filesGotten)
-				ensureSetEquality(bytesExpected, bytesGotten)
+				bytesGotten := getFilesAndBytesFromLines(lines)
+				So(bytesGotten, ShouldResemble, bytesExpected)
 			})
 		})
 
@@ -379,7 +386,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				// pretty small file; so read all
 				testFile1Bytes, err := ioutil.ReadAll(testFile)
 				So(err, ShouldBeNil)
-				So(len(testFile1Bytes), ShouldEqual, bytesExpected[0])
+				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
 
 			Convey("store the file contents in a file with different name if '--local' flag used", func() {
@@ -397,7 +404,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				// pretty small file; so read all
 				testFile1Bytes, err := ioutil.ReadAll(testFile)
 				So(err, ShouldBeNil)
-				So(len(testFile1Bytes), ShouldEqual, bytesExpected[0])
+				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
 
 			// cleanup file we just copied to the local FS
@@ -418,9 +425,11 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
-			// hack to grab an _id
 			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1")
-			idString := idOfFile(mf, "testfile1")
+			id := fmt.Sprintf("{\"$oid\": \"%s\"}", testFiles["testfile1"].Hex())
+
+			So(err, ShouldBeNil)
+			idString := string(id)
 
 			mf, err = simpleMongoFilesInstanceWithID("get_id", idString)
 			So(err, ShouldBeNil)
@@ -443,7 +452,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				// pretty small file; so read all
 				testFile1Bytes, err := ioutil.ReadAll(testFile)
 				So(err, ShouldBeNil)
-				So(len(testFile1Bytes), ShouldEqual, bytesExpected[0])
+				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
 
 			Reset(func() {
@@ -476,10 +485,10 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(buff.Len(), ShouldNotEqual, 0)
 
 				Convey("and files should exist in gridfs", func() {
-					filesGotten, _, err := getFilesAndBytesListFromGridFS()
+					bytesGotten, err := getFilesAndBytesListFromGridFS()
 					So(err, ShouldBeNil)
-					So(len(filesGotten), ShouldEqual, len(filesExpected)+1)
-					So(filesGotten, ShouldContain, "lorem_ipsum_287613_bytes.txt")
+					So(len(bytesGotten), ShouldEqual, len(testFiles)+1)
+					So(bytesGotten, ShouldContain, "lorem_ipsum_287613_bytes.txt")
 				})
 
 				Convey("and should have exactly the same content as the original file", func() {
@@ -541,12 +550,11 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(buff.Len(), ShouldNotEqual, 0)
 
 				Convey("check that the file has been deleted from GridFS", func() {
-					filesGotten, bytesGotten, err := getFilesAndBytesListFromGridFS()
+					bytesGotten, err := getFilesAndBytesListFromGridFS()
 					So(err, ShouldEqual, nil)
-					So(len(filesGotten), ShouldEqual, len(filesExpected)-1)
+					So(len(bytesGotten), ShouldEqual, len(testFiles)-1)
 
-					So(filesGotten, ShouldNotContain, "testfile2")
-					So(bytesGotten, ShouldNotContain, bytesExpected[1])
+					So(bytesGotten, ShouldNotContain, "testfile2")
 				})
 			})
 		})
@@ -570,12 +578,11 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(buff.Len(), ShouldNotEqual, 0)
 
 				Convey("check that the file has been deleted from GridFS", func() {
-					filesGotten, bytesGotten, err := getFilesAndBytesListFromGridFS()
+					bytesGotten, err := getFilesAndBytesListFromGridFS()
 					So(err, ShouldEqual, nil)
-					So(len(filesGotten), ShouldEqual, len(filesExpected)-1)
+					So(len(bytesGotten), ShouldEqual, len(testFiles)-1)
 
-					So(filesGotten, ShouldNotContain, "testfile2")
-					So(bytesGotten, ShouldNotContain, bytesExpected[1])
+					So(bytesGotten, ShouldNotContain, "testfile2")
 				})
 			})
 		})
@@ -606,9 +613,9 @@ func runPutIdTestCase(idToTest string, t *testing.T) {
 	So(buff.Len(), ShouldNotEqual, 0)
 
 	t.Log("and its filename should exist when the 'list' command is run")
-	filesGotten, _, err := getFilesAndBytesListFromGridFS()
+	bytesGotten, err := getFilesAndBytesListFromGridFS()
 	So(err, ShouldBeNil)
-	So(filesGotten, ShouldContain, remoteName)
+	So(bytesGotten, ShouldContain, remoteName)
 
 	t.Log("and get_id should have exactly the same content as the original file")
 
