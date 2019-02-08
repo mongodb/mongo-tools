@@ -8,6 +8,8 @@
 package main
 
 import (
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -53,6 +55,31 @@ func main() {
 
 	// add the specified database to the namespace options struct
 	opts.Namespace.DB = storageOpts.DB
+
+	// set WriteConcern
+	var writeConcern *writeconcern.WriteConcern
+	if storageOpts.WriteConcern != "" {
+		writeConcern, err = db.PackageWriteConcernOptsToObject(storageOpts.WriteConcern, nil)
+	} else if opts.ConnectionString != "" {
+		writeConcern, err = db.PackageWriteConcernOptsToObject("", opts.ParsedConnString())
+	}
+	if err != nil {
+		return
+	}
+	opts.WriteConcern = writeConcern
+
+	// set ReadPreference
+	var readPref *readpref.ReadPref
+	if inputOpts.ReadPreference != "" {
+		readPref, err = db.ParseReadPreference(inputOpts.ReadPreference)
+		if err != nil {
+			log.Logv(log.Always, fmt.Sprintf("error parsing --readPreference : %v", err))
+			return
+		}
+	} else {
+		readPref = readpref.Nearest()
+	}
+	opts.ReadPreference = readPref
 
 	// create a session provider to connect to the db
 	provider, err := db.NewSessionProvider(*opts)
