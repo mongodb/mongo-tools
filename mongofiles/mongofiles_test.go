@@ -219,13 +219,6 @@ func getFilesAndBytesListFromGridFS() (map[TestName]NBytes, error) {
 	return results, nil
 }
 
-// inefficient but fast way to ensure set equality of
-func ensureSetEquality(firstArray []interface{}, secondArray []interface{}) {
-	for _, line := range firstArray {
-		So(secondArray, ShouldContain, line)
-	}
-}
-
 // check if file exists
 func fileExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
@@ -309,9 +302,6 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		bytesExpected, err := setUpGridFSTestData()
 		So(err, ShouldBeNil)
-
-		// []interface{} here so we can use 'ensureSetEquality' method for both []string and []int
-		// filesExpected := []interface{}{"testfile1", "testfile2", "testfile3"}
 
 		Convey("Testing the 'list' command with a file that isn't in GridFS should", func() {
 			mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish")

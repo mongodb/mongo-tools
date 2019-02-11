@@ -6,6 +6,16 @@
 
 package mongofiles
 
+import (
+	"fmt"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/signals"
+)
+
 var Usage = `<options> <command> <filename or _id>
 
 Manipulate gridfs files using the command line.
@@ -21,6 +31,57 @@ Possible commands include:
 	delete_id - delete a file with the given '_id'
 
 See http://docs.mongodb.org/manual/reference/program/mongofiles/ for more information.`
+
+// Creates a new ToolOptions and configures it using the command line arguments.
+func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *InputOptions) ([]string, *options.ToolOptions, error) {
+	// initialize command-line opts
+	opts := options.New("mongofiles", Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
+
+	opts.AddOptions(storageOpts)
+	opts.AddOptions(inputOpts)
+	opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
+	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
+
+	args, err := opts.ParseArgs(rawArgs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing command line options: %v\ntry 'mongofiles --help' for more information", err)
+	}
+
+	log.SetVerbosity(opts.Verbosity)
+	signals.Handle()
+
+	// verify uri options and log them
+	opts.URI.LogUnsupportedOptions()
+
+	// add the specified database to the namespace options struct
+	opts.Namespace.DB = storageOpts.DB
+
+	// set WriteConcern
+	var writeConcern *writeconcern.WriteConcern
+	if storageOpts.WriteConcern != "" {
+		writeConcern, err = db.PackageWriteConcernOptsToObject(storageOpts.WriteConcern, nil)
+	} else {
+		writeConcern, err = db.PackageWriteConcernOptsToObject("", opts.ParsedConnString())
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing --writeConcern: %v", err)
+	}
+	opts.WriteConcern = writeConcern
+
+	// set ReadPreference
+	var readPref *readpref.ReadPref
+	if inputOpts.ReadPreference != "" {
+		readPref, err = db.ParseReadPreference(inputOpts.ReadPreference)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error parsing --readPreference: %v", err)
+		}
+	} else {
+		readPref = readpref.Nearest()
+	}
+	opts.ReadPreference = readPref
+
+	return args, opts, nil
+}
 
 // StorageOptions defines the set of options to use in storing/retrieving data from server.
 type StorageOptions struct {

@@ -90,18 +90,18 @@ type gfsFileMetadata struct {
 	ContentType string             `bson:"contentType,omitempty"`
 }
 
-// Write data to GridFS Upload Stream. If this file has not been written before, it opens up a new stream that must be closed.
-// Note: if this file already exists, the chunks written here will be orphaned when close is called.
+// Write data to GridFS Upload Stream. If this file has not been written to before, this function will open a new stream that must be closed.
+// Note: if this file already exists, the chunks written here will be orphaned when close is called and an error will be returned.
 func (file *gfsFile) Write(p []byte) (int, error) {
 	if file.upStream == nil {
 		rawBSON, err := bson.Marshal(file.Metadata)
 		if err != nil {
-			return 0, fmt.Errorf("can't marshal metadata to BSON")
+			return 0, fmt.Errorf("could not marshal metadata to BSON: %v", err)
 		}
 
 		doc, err := bsonx.ReadDoc(rawBSON)
 		if err != nil {
-			return 0, fmt.Errorf("can't read metadata to document")
+			return 0, fmt.Errorf("could not read metadata to document: %v", err)
 		}
 
 		// TODO: remove this (GO-815)
@@ -120,7 +120,7 @@ func (file *gfsFile) Write(p []byte) (int, error) {
 	return file.upStream.Write(p)
 }
 
-// Reads data from GridFS download stream. If this file has not been read from before, this opens a new stream that must be closed.
+// Reads data from GridFS download stream. If this file has not been read from before, this function will open a new stream that must be closed.
 func (file *gfsFile) Read(buf []byte) (int, error) {
 	if file.downStream == nil {
 		// TODO: remove this (GO-815)
@@ -131,7 +131,7 @@ func (file *gfsFile) Read(buf []byte) (int, error) {
 
 		stream, err := file.mf.bucket.OpenDownloadStream(objectId)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("could not open download stream: %v", err)
 		}
 		file.downStream = stream
 	}
@@ -143,7 +143,7 @@ func (file *gfsFile) Read(buf []byte) (int, error) {
 // Note: this file must be closed if it had been written to before being deleted. Any download streams will be closed as part of this deletion.
 func (file *gfsFile) Delete() error {
 	if file.upStream != nil {
-		return fmt.Errorf("must be closed for writing before deleting")
+		return fmt.Errorf("this file (%v) must be closed for writing before being deleted", file.Name)
 	}
 
 	if err := file.Close(); err != nil {
@@ -167,13 +167,13 @@ func (file *gfsFile) Delete() error {
 func (file *gfsFile) Close() error {
 	if file.downStream != nil {
 		if err := file.downStream.Close(); err != nil {
-			return err
+			return fmt.Errorf("could not close download stream: %v", err)
 		}
 	}
 
 	if file.upStream != nil {
 		if err := file.upStream.Close(); err != nil {
-			return err
+			return fmt.Errorf("could not close download stream: %v", err)
 		}
 	}
 
@@ -223,7 +223,7 @@ func (mf *MongoFiles) getGFSFiles(query bson.M) ([]*gfsFile, error) {
 	for cursor.Next(context.Background()) {
 		var out gfsFile
 		if err = cursor.Decode(&out); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error decoding GFSFile: %v", err)
 		}
 		out.mf = mf
 		files = append(files, &out)
@@ -316,39 +316,8 @@ func (mf *MongoFiles) put(gridFile *gfsFile) error {
 	return nil
 }
 
-// parse and convert input extended JSON _id.
-func (mf *MongoFiles) parseID() (interface{}, error) {
-	if mf.Id == "" {
-		return primitive.NewObjectID(), nil
-	}
-
-	var asJSON interface{}
-	if err := json.Unmarshal([]byte(mf.Id), &asJSON); err != nil {
-		return nil, err
-	}
-
-	// legacy extJSON parser
-	id, err := bsonutil.ConvertJSONValueToBSON(asJSON)
-	if err != nil {
-		return nil, fmt.Errorf("error convertjson vlaue to bson: %v", err)
-	}
-
-	// TODO: fix this (GO-815)
-	mgoId, ok := id.(mgobson.ObjectId)
-	if !ok {
-		return nil, fmt.Errorf("only use ObjectIds as input _id")
-	}
-
-	objectId, err := primitive.ObjectIDFromHex(mgoId.Hex())
-	if err != nil {
-		return nil, err
-	}
-
-	return objectId, nil
-}
-
-// writeGFSFile writes a file from gridFS to stdout or the filesystem.
-func (mf *MongoFiles) writeGFSFile(gridFile *gfsFile) (err error) {
+// writeGFSFileToFile writes a file from gridFS to stdout or the filesystem.
+func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 	localFileName := mf.getLocalFileName(gridFile)
 	var localFile io.WriteCloser
 	if localFileName == "-" {
@@ -367,6 +336,36 @@ func (mf *MongoFiles) writeGFSFile(gridFile *gfsFile) (err error) {
 
 	log.Logvf(log.Always, fmt.Sprintf("finished writing to %s\n", localFileName))
 	return nil
+}
+
+// parse and convert input extended JSON _id.
+func (mf *MongoFiles) parseID() (interface{}, error) {
+	if mf.Id == "" {
+		return primitive.NewObjectID(), nil
+	}
+
+	var asJSON interface{}
+	if err := json.Unmarshal([]byte(mf.Id), &asJSON); err != nil {
+		return nil, fmt.Errorf("error parsing provided extJSON: %v", err)
+	}
+
+	// legacy extJSON parser
+	id, err := bsonutil.ConvertJSONValueToBSON(asJSON)
+	if err != nil {
+		return nil, fmt.Errorf("error converting extJSON vlaue to bson: %v", err)
+	}
+
+	// TODO: fix this (GO-815)
+	mgoId, ok := id.(mgobson.ObjectId)
+	if !ok {
+		return nil, fmt.Errorf("only use ObjectIds as input _id")
+	}
+	objectId, err := primitive.ObjectIDFromHex(mgoId.Hex())
+	if err != nil {
+		return nil, err
+	}
+
+	return objectId, nil
 }
 
 // ValidateCommand ensures the arguments supplied are valid.
@@ -429,11 +428,9 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 // Run the mongofiles utility. If displayHost is true, the connected host/port is
 // displayed.
 func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
-	connUrl := mf.ToolOptions.Host
-
-	// TODO: validate options
 	var err error
 
+	connUrl := mf.ToolOptions.Host
 	if connUrl == "" {
 		connUrl = util.DefaultHost
 	}
@@ -516,7 +513,9 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		}
 		defer safeClose(file)
 
-		err = mf.writeGFSFile(file)
+		if err = mf.writeGFSFileToFile(file); err != nil {
+			return "", err
+		}
 
 	case Put, PutID:
 		id, err := mf.parseID()
