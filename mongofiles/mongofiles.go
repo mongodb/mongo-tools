@@ -222,9 +222,15 @@ func (mf *MongoFiles) getGFSFiles(query bson.M) ([]*gfsFile, error) {
 
 	for cursor.Next(context.Background()) {
 		var out gfsFile
+
 		if err = cursor.Decode(&out); err != nil {
 			return nil, fmt.Errorf("error decoding GFSFile: %v", err)
 		}
+
+		if err = cursor.Decode(&out.Metadata); err != nil {
+			return nil, fmt.Errorf("error decoding GFSFile metadata: %v", err)
+		}
+
 		out.mf = mf
 		files = append(files, &out)
 	}
