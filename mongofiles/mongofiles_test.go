@@ -26,9 +26,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type TestName = string
-type NBytes = int
-
 var (
 	testDBName = "mongofiles_test_db"
 	testServer = "localhost"
