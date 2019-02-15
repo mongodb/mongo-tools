@@ -173,7 +173,7 @@ func (file *gfsFile) Close() error {
 
 	if file.upStream != nil {
 		if err := file.upStream.Close(); err != nil {
-			return fmt.Errorf("could not close download stream: %v", err)
+			return fmt.Errorf("could not close upload stream: %v", err)
 		}
 	}
 
@@ -225,10 +225,6 @@ func (mf *MongoFiles) getGFSFiles(query bson.M) ([]*gfsFile, error) {
 
 		if err = cursor.Decode(&out); err != nil {
 			return nil, fmt.Errorf("error decoding GFSFile: %v", err)
-		}
-
-		if err = cursor.Decode(&out.Metadata); err != nil {
-			return nil, fmt.Errorf("error decoding GFSFile metadata: %v", err)
 		}
 
 		out.mf = mf
@@ -482,7 +478,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 
 	safeClose := func(file *gfsFile) {
 		if closeErr := file.Close(); closeErr != nil {
-			err = closeErr
+			finalErr = closeErr
 			output = ""
 		}
 	}

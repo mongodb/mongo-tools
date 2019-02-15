@@ -47,11 +47,11 @@ var (
 		Verbosity:  &options.Verbosity{},
 		URI:        &options.URI{},
 	}
-	testFiles = map[TestName]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3" : primitive.NewObjectID()}
+	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3" : primitive.NewObjectID()}
 )
 
 // put in some test Data into GridFS
-func setUpGridFSTestData() (map[TestName]NBytes, error) {
+func setUpGridFSTestData() (map[string]int, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func setUpGridFSTestData() (map[TestName]NBytes, error) {
 		return nil, err
 	}
 
-	bytesExpected := map[TestName]NBytes{}
+	bytesExpected := map[string]int{}
 
 	testDb := session.Database(testDBName)
 	bucket, err := gridfs.NewBucket(testDb)
@@ -83,7 +83,7 @@ func setUpGridFSTestData() (map[TestName]NBytes, error) {
 			return nil, err
 		}
 
-		bytesExpected[item] = NBytes(n)
+		bytesExpected[item] = int(n)
 
 		if err = stream.Close(); err != nil {
 			return nil, err
@@ -175,7 +175,7 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 }
 
 // get an id of an existing file, for _id access
-func idOfFile(filename TestName) string {
+func idOfFile(filename string) string {
 	return fmt.Sprintf("ObjectId('%v')", testFiles[filename].Hex())
 }
 
@@ -190,11 +190,11 @@ func cleanAndTokenizeTestOutput(str string) []string {
 }
 
 // return slices of files and bytes in each file represented by each line
-func getFilesAndBytesFromLines(lines []string) map[TestName]NBytes {
-	var fileName TestName
-	var byteCount NBytes
+func getFilesAndBytesFromLines(lines []string) map[string]int {
+	var fileName string
+	var byteCount int
 
-	results := make(map[TestName]NBytes)
+	results := make(map[string]int)
 
 	for _, line := range lines {
 		fmt.Sscanf(line, "%s\t%d", &fileName, &byteCount)
@@ -204,7 +204,7 @@ func getFilesAndBytesFromLines(lines []string) map[TestName]NBytes {
 	return results
 }
 
-func getFilesAndBytesListFromGridFS() (map[TestName]NBytes, error) {
+func getFilesAndBytesListFromGridFS() (map[string]int, error) {
 	mfAfter, err := simpleMongoFilesInstanceCommandOnly("list")
 	if err != nil {
 		return nil, err
