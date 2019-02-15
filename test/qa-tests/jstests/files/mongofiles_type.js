@@ -28,7 +28,7 @@ load('jstests/files/util/mongofiles_common.js');
 
     assert(fileObj, 'did not find expected GridFS file - ' + filesToInsert[0]);
 
-    assert.eq(fileObj.contentType, contentType, 'unexpected content type - found ' + fileObj.contentType + ' but expected ' + contentType);
+    assert.eq(fileObj.metadata.contentType, contentType, 'unexpected content type - found ' + fileObj.contentType + ' but expected ' + contentType);
 
     // ensure tool runs without error with empty --type argument on linux
     // and fails on windows
