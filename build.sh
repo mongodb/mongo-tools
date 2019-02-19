@@ -16,7 +16,7 @@ set_goenv || exit
 BINARY_EXT=""
 UNAME_S=$(PATH="/usr/bin:/bin" uname -s)
     case ${UNAME_S} in
-        'CYGWIN*')
+        CYGWIN*)
             BINARY_EXT=".exe"
         ;;
     esac
