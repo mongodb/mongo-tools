@@ -24,10 +24,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 
 			So(err, ShouldBeNil)
 			So(storageOpts.WriteConcern, ShouldEqual, "")
-
-			Convey("and building write concern object, WMode should be majority", func() {
-				So(opts.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.WMajority()))
-			})
+			So(opts.WriteConcern, ShouldBeNil)
 		})
 
 		Convey("Parsing with URI with no write concern specified in it should not error", func() {
@@ -40,24 +37,10 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			_, opts, err := ParseOptions(args, storageOpts, inputOpts)
 
 			So(err, ShouldBeNil)
-			So(opts.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.WMajority()))
+			So(opts.WriteConcern, ShouldBeNil)
 		})
 
-		Convey("Parsing with write concern in both URI and command line should prefer command line", func() {
-			args := []string{
-				"--uri", "mongodb://localhost:27017/test?w=majority",
-				"--writeConcern", "{w: 2}",
-			}
-
-			storageOpts := &StorageOptions{}
-			inputOpts := &InputOptions{}
-			_, opts, err := ParseOptions(args, storageOpts, inputOpts)
-
-			So(err, ShouldBeNil)
-			So(opts.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.W(2)))
-		})
-
-		Convey("Parsing with writeconcern only in URI should set it correctly", func() {
+		Convey("Parsing with writeconcern only in URI should leave write concern empty", func() {
 			args := []string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
 			}
@@ -67,7 +50,8 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			_, opts, err := ParseOptions(args, storageOpts, inputOpts)
 
 			So(err, ShouldBeNil)
-			So(opts.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.W(2)))
+			So(storageOpts.WriteConcern, ShouldEqual, "")
+			So(opts.WriteConcern, ShouldBeNil)
 		})
 
 		Convey("Parsing with writeconcern only in command line should set it correctly", func() {
