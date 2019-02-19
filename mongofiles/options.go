@@ -9,7 +9,6 @@ package mongofiles
 import (
 	"fmt"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -57,16 +56,14 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 	opts.Namespace.DB = storageOpts.DB
 
 	// set WriteConcern
-	var writeConcern *writeconcern.WriteConcern
 	if storageOpts.WriteConcern != "" {
-		writeConcern, err = db.PackageWriteConcernOptsToObject(storageOpts.WriteConcern, nil)
+		opts.WriteConcern, err = db.PackageWriteConcernOptsToObject(storageOpts.WriteConcern, nil)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error parsing --writeConcern: %v", err)
+		}
 	} else {
-		writeConcern, err = db.PackageWriteConcernOptsToObject("", opts.ParsedConnString())
+		opts.WriteConcern = nil
 	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("error parsing --writeConcern: %v", err)
-	}
-	opts.WriteConcern = writeConcern
 
 	// set ReadPreference
 	var readPref *readpref.ReadPref
