@@ -18,7 +18,6 @@ import (
 )
 
 func TestBsondump(t *testing.T) {
-	// TOOLS-2179 filed to figure out why this is neccessary
 	executable := "../bin/bsondump"
 	if runtime.GOOS == "windows" {
 		executable = "../bin/bsondump.exe"
