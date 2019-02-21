@@ -23,10 +23,10 @@ set_goenv() {
 
     # Set OS-level compilation flags
     case $UNAME_S in
-        'CYGWIN*')
+        CYGWIN*)
             export CGO_CFLAGS="-D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x06010000"
             ;;
-        'Darwin')
+        Darwin)
             export CGO_CFLAGS="-mmacosx-version-min=10.11"
             export CGO_LDFLAGS="-mmacosx-version-min=10.11"
             ;;
