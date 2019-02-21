@@ -180,6 +180,13 @@ func (file *gfsFile) Close() error {
 	return nil
 }
 
+// Closes the file, assigning any error returned to finalErr. Use this to catch errors in deferred closing.
+func (file *gfsFile) SafeClose(finalErr *error) {
+	if err := file.Close(); err != nil {
+		*finalErr = err
+	}
+}
+
 // Query GridFS for files and display the results.
 func (mf *MongoFiles) findAndDisplay(query bson.M) (string, error) {
 	gridFiles, err := mf.getGFSFiles(query)
@@ -239,7 +246,13 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 	var gridFiles []*gfsFile
 	var err error
 
+	var queryProp string
+	var query string
+
 	if mf.Id != "" {
+		queryProp = "_id"
+		query = mf.Id
+
 		id, err := mf.parseID()
 		if err != nil {
 			return nil, err
@@ -249,6 +262,9 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 			return nil, err
 		}
 	} else {
+		queryProp = "name"
+		query = mf.FileName
+
 		gridFiles, err = mf.getGFSFiles(bson.M{"filename": mf.FileName})
 		if err != nil {
 			return nil, err
@@ -256,7 +272,7 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 	}
 
 	if len(gridFiles) == 0 {
-		return nil, fmt.Errorf("no such file with name: %v", mf.FileName)
+		return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
 	}
 
 	return gridFiles[0], nil
@@ -279,9 +295,12 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 	return nil
 }
 
-// Write the given GridFS file to the database. Will fail if file already exists.
-func (mf *MongoFiles) put(gridFile *gfsFile) error {
-	localFileName := mf.getLocalFileName(gridFile)
+// Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
+func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, finalErr error) {
+	gridFile := gfsFile{Name: mf.FileName, Id: id, mf: mf}
+	defer gridFile.SafeClose(&finalErr)
+
+	localFileName := mf.getLocalFileName(&gridFile)
 
 	var localFile io.ReadCloser
 	var err error
@@ -291,7 +310,7 @@ func (mf *MongoFiles) put(gridFile *gfsFile) error {
 	} else {
 		localFile, err = os.Open(localFileName)
 		if err != nil {
-			return fmt.Errorf("error while opening local gridFile '%v' : %v\n", localFileName, err)
+			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v\n", localFileName, err)
 		}
 		defer localFile.Close()
 		log.Logvf(log.DebugLow, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
@@ -300,22 +319,20 @@ func (mf *MongoFiles) put(gridFile *gfsFile) error {
 	// check if --replace flag turned on
 	if mf.StorageOptions.Replace {
 		if err := mf.deleteAll(gridFile.Name); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
 	if mf.StorageOptions.ContentType != "" {
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
-	n, err := io.Copy(gridFile, localFile)
+
+	n, err := io.Copy(&gridFile, localFile)
 	if err != nil {
-		return fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, err)
+		return n, fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, err)
 	}
 
-	log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-	log.Logvf(log.Always, fmt.Sprintf("added gridFile: %v\n", gridFile.Name))
-
-	return nil
+	return n, nil
 }
 
 // writeGFSFileToFile writes a file from gridFS to stdout or the filesystem.
@@ -476,13 +493,6 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		return "", err
 	}
 
-	safeClose := func(file *gfsFile) {
-		if closeErr := file.Close(); closeErr != nil {
-			finalErr = closeErr
-			output = ""
-		}
-	}
-
 	log.Logvf(log.Info, "handling mongofiles '%v' command...", mf.Command)
 
 	switch mf.Command {
@@ -513,7 +523,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		if err != nil {
 			return "", err
 		}
-		defer safeClose(file)
+		defer file.SafeClose(&finalErr)
 
 		if err = mf.writeGFSFileToFile(file); err != nil {
 			return "", err
@@ -525,12 +535,13 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 			return "", err
 		}
 
-		file := gfsFile{Name: mf.FileName, Id: id, mf: mf}
-		defer safeClose(&file)
-
-		if err = mf.put(&file); err != nil {
+		n, err := mf.put(id, mf.FileName)
+		if err != nil {
 			return "", err
 		}
+
+		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
+		log.Logvf(log.Always, fmt.Sprintf("added gridFile: %v\n", mf.FileName))
 
 	case DeleteID:
 		file, err := mf.getTargetGFSFile()
