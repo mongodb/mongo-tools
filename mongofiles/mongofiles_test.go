@@ -92,7 +92,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 	return bytesExpected, nil
 }
 
-// remove test Data from GridFS
+// remove test data from GridFS
 func tearDownGridFSTestData() error {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
