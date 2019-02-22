@@ -149,7 +149,7 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 			return true
 		}
 	case "config":
-		if collName == "transactions" || collName == "system.sessions" {
+		if collName == "transactions" || collName == "system.sessions" || collName == "transaction_coordinators"{
 			return true
 		}
 	default:
