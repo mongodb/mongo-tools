@@ -27,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/testutil"
 	"github.com/mongodb/mongo-tools-common/util"
+	localUtil "github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -36,7 +37,7 @@ var (
 	testDB = "mongodump_test_db"
 	// temp database used for restoring a DB
 	testRestoreDB       = "temp_mongodump_restore_test_db"
-	testCollectionNames = []string{"coll1", "coll2", "coll3"}
+	testCollectionNames = []string{"coll1", "coll2", "coll/three"}
 )
 
 const (
@@ -197,7 +198,11 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 			continue
 		}
 
-		collectionName := fileName[:strings.LastIndex(fileName, ".bson")]
+		collectionName, err := localUtil.UnescapeCollectionName(fileName[:strings.LastIndex(fileName, ".bson")])
+		if err != nil {
+			return err
+		}
+
 		collection := session.Database(restoreDBName).Collection(collectionName)
 
 		file, err := os.Open(fmt.Sprintf("%s/%s", dir, fileName))
@@ -380,10 +385,10 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 	So(err, ShouldBeNil)
 	So(countColls, ShouldEqual, 1)
 
-	collOriginal := session.Database(testDB).Collection(testCollectionNames[0])
+	collOriginal := session.Database(testDB).Collection(md.ToolOptions.Namespace.Collection)
 
 	So(session.Database(testRestoreDB).Drop(nil), ShouldBeNil)
-	collRestore := session.Database(testRestoreDB).Collection(testCollectionNames[0])
+	collRestore := session.Database(testRestoreDB).Collection(md.ToolOptions.Namespace.Collection)
 
 	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
 	So(err, ShouldBeNil)
@@ -525,6 +530,24 @@ func TestMongoDumpBSON(t *testing.T) {
 
 					Reset(func() {
 					})
+
+				})
+
+			})
+
+			Convey("and that it dumps a collection with a slash in its name", func() {
+				md.ToolOptions.Namespace.Collection = testCollectionNames[2]
+
+				Convey("to the filesystem", func() {
+					err = md.Init()
+					So(err, ShouldBeNil)
+					testDumpOneCollection(md, "dump_slash")
+				})
+
+				Convey("to an archive", func() {
+					md.OutputOptions.Archive = "dump_slash.archive"
+					err = md.Init()
+					So(err, ShouldBeNil)
 
 				})
 

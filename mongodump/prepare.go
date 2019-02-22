@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -193,10 +194,13 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 	} else {
 		root = dump.OutputOptions.Out
 	}
+
+	escapedCollName := util.EscapeCollectionName(colName)
+
 	if dbName == "" {
-		return filepath.Join(root, colName)
+		return filepath.Join(root, escapedCollName)
 	}
-	return filepath.Join(root, dbName, colName)
+	return filepath.Join(root, dbName, escapedCollName)
 }
 
 func checkStringForPathSeparator(s string, c *rune) bool {
@@ -311,11 +315,6 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		} else if dump.OutputOptions.ViewsAsCollections || !ci.IsView() {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
-			var c rune
-			if checkStringForPathSeparator(ci.Name, &c) || checkStringForPathSeparator(dbName, &c) {
-				return nil, fmt.Errorf(`"%v.%v" contains a path separator '%c' `+
-					`and can't be dumped to the filesystem`, dbName, ci.Name, c)
-			}
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 		} else {
