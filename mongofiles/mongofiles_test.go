@@ -66,8 +66,6 @@ func setUpGridFSTestData() (map[string]int, error) {
 		return nil, err
 	}
 
-	// var testfile *mgo.GridFile
-
 	i := 0
 	for item, id := range testFiles {
 		stream, err := bucket.OpenUploadStreamWithID(id, string(item))
@@ -413,7 +411,6 @@ func TestMongoFilesCommands(t *testing.T) {
 			id := idOfFile("testfile1")
 
 			So(err, ShouldBeNil)
-			// idString := string(id)
 			idString := id
 
 			mf, err = simpleMongoFilesInstanceWithID("get_id", idString)
