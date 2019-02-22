@@ -61,8 +61,6 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 		if err != nil {
 			return nil, nil, fmt.Errorf("error parsing --writeConcern: %v", err)
 		}
-	} else {
-		opts.WriteConcern = nil
 	}
 
 	// set ReadPreference
