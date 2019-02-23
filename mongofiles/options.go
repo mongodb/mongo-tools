@@ -12,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
-	"github.com/mongodb/mongo-tools-common/signals"
 )
 
 var Usage = `<options> <command> <filename or _id>
@@ -47,7 +46,6 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 	}
 
 	log.SetVerbosity(opts.Verbosity)
-	signals.Handle()
 
 	// verify uri options and log them
 	opts.URI.LogUnsupportedOptions()
@@ -64,16 +62,14 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 	}
 
 	// set ReadPreference
-	var readPref *readpref.ReadPref
 	if inputOpts.ReadPreference != "" {
-		readPref, err = db.ParseReadPreference(inputOpts.ReadPreference)
+		opts.ReadPreference, err = db.ParseReadPreference(inputOpts.ReadPreference)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error parsing --readPreference: %v", err)
 		}
 	} else {
-		readPref = readpref.Nearest()
+		opts.ReadPreference = readpref.Nearest()
 	}
-	opts.ReadPreference = readPref
 
 	return args, opts, nil
 }

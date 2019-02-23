@@ -86,12 +86,13 @@ type gfsFile struct {
 
 // Struct representing the metadata associated with a GridFS files collection document.
 type gfsFileMetadata struct {
-	ChunkSize   int           	   `bson:"chunkSize"`
+	ChunkSize   int                `bson:"chunkSize"`
 	ContentType string             `bson:"contentType,omitempty"`
 }
 
 // Write data to GridFS Upload Stream. If this file has not been written to before, this function will open a new stream that must be closed.
-// Note: if this file already exists, the chunks written here will be orphaned when close is called and an error will be returned.
+// Note: the go driver buffers data until it hits a chunk size before writing to the database, so if the amount of data is written < chunkSize,
+// the actual write to the database will occur in Close.
 func (file *gfsFile) Write(p []byte) (int, error) {
 	if file.upStream == nil {
 		rawBSON, err := bson.Marshal(file.Metadata)
