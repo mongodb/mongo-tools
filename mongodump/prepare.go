@@ -315,6 +315,12 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		} else if dump.OutputOptions.ViewsAsCollections || !ci.IsView() {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
+			var c rune
+			if checkStringForPathSeparator(dbName, &c) {
+				return nil, fmt.Errorf(`databse "%v" contains a path separator '%c' `+
+					`and can't be dumped to the filesystem`, dbName, c)
+			}
+
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 		} else {
