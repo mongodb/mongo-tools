@@ -317,7 +317,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			// then create a standard filesystem path for this collection.
 			var c rune
 			if checkStringForPathSeparator(dbName, &c) {
-				return nil, fmt.Errorf(`databse "%v" contains a path separator '%c' `+
+				return nil, fmt.Errorf(`database "%v" contains a path separator '%c' `+
 					`and can't be dumped to the filesystem`, dbName, c)
 			}
 
