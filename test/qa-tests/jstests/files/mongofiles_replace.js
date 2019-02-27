@@ -67,6 +67,25 @@ load('jstests/files/util/mongofiles_common.js');
 
     assert.eq(db.fs.files.count(), 3, 'expected 3 files inserted but got ' + db.fs.files.count());
 
+    // test put_id with duplicate _id
+    const dupId = 'ObjectId("5c76d063bb84e01bee38eff6")';
+
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'put_id', filesToInsert[0], dupId]
+            .concat(passthrough.args)),
+        0, 'put_id failed when it should have succeeded 8');
+
+    const numChunks = db.fs.chunks.count();
+
+    assert.neq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'put_id', filesToInsert[0], dupId]
+            .concat(passthrough.args)),
+        0, 'put_id succeeded when it should have failed 9');
+
+    assert.eq(numChunks, db.fs.chunks.count(), 'existing chunks were modified when they should not have been');
+
     t.stop();
   };
 
