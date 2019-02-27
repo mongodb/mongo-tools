@@ -21,6 +21,7 @@ import (
 )
 
 var ErrNoSuchField = errors.New("no such field")
+var ErrNoSuchString = errors.New("field present, but is not a string")
 
 // ConvertJSONDocumentToBSON iterates through the document map and converts JSON
 // values to their corresponding BSON values. It also replaces any extended JSON
@@ -78,6 +79,21 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, error) {
 		}
 	}
 	return nil, ErrNoSuchField
+}
+
+// FindStringValueByKey returns the value of keyName in document as a String.
+// If keyName is not found in the top-level of the document, returns ErrNoSuchField.
+// If keyName is found but the value is not a string, returns ErrNoSuchString.
+func FindStringValueByKey(keyName string, document *bson.D) (string, error) {
+	value, err := FindValueByKey(keyName, document)
+	if err != nil {
+		return "", err
+	}
+	str, ok := value.(string)
+	if !ok {
+		return "", ErrNoSuchString
+	}
+	return str, nil
 }
 
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON

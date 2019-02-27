@@ -112,6 +112,35 @@ func TestFindValueByKey(t *testing.T) {
 	})
 }
 
+func TestFindStringValueByKey(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("Given a bson.D document and a specific key", t, func() {
+		subDocument := &bson.D{
+			bson.DocElem{Name: "field4", Value: "c"},
+		}
+		document := &bson.D{
+			bson.DocElem{Name: "field1", Value: "a"},
+			bson.DocElem{Name: "field2", Value: "b"},
+			bson.DocElem{Name: "field3", Value: subDocument},
+		}
+		Convey("the corresponding value top-level keys should be returned", func() {
+			value, err := FindStringValueByKey("field1", document)
+			So(value, ShouldEqual, "a")
+			So(err, ShouldBeNil)
+		})
+		Convey("for non-existent keys empty string and an error should be returned", func() {
+			value, err := FindStringValueByKey("field4", document)
+			So(value, ShouldEqual, "")
+			So(err, ShouldNotBeNil)
+		})
+		Convey("for existing keys with non-string values empty string and an error should be returned", func() {
+			value, err := FindStringValueByKey("field3", document)
+			So(value, ShouldEqual, "")
+			So(err, ShouldNotBeNil)
+		})
+	})
+}
+
 func TestEscapedKey(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Given a bson.D document with a key that requires escaping", t, func() {
