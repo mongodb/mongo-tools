@@ -96,6 +96,25 @@ load('jstests/files/util/mongofiles_common.js');
 
     assert.eq(actual, expected, 'mismatched md5 sum - expected ' + expected + ' got ' + actual);
 
+    // test put_id with duplicate _id
+    const dupId = '1';
+
+    assert.eq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'put_id', filesToInsert[0], dupId]
+            .concat(passthrough.args)),
+        0, 'put_id failed when it should have succeeded');
+
+    const numChunks = db.fs.chunks.count();
+
+    assert.neq(runMongoProgram.apply(this, ['mongofiles',
+          '--port', conn.port,
+          'put_id', filesToInsert[1], dupId]
+            .concat(passthrough.args)),
+        0, 'put_id succeeded when it should have failed');
+
+    assert.eq(numChunks, db.fs.chunks.count(), 'existing chunks were modified when they should not have been');
+
     t.stop();
   };
 
