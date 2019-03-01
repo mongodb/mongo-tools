@@ -11,12 +11,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -113,11 +113,11 @@ func (restore *MongoRestore) RestoreOplog() error {
 // ApplyOps is a wrapper for the applyOps database command, we pass in
 // a session to avoid opening a new connection for a few inserts at a time.
 func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface{}) error {
-	res := bson.M{}
 	singleRes := session.Database("admin").RunCommand(nil, bson.D{{"applyOps", entries}})
-	if singleRes.Err() != nil {
-		return fmt.Errorf("applyOps: %v", singleRes.Err())
+	if err := singleRes.Err(); err != nil {
+		return fmt.Errorf("applyOps: %v", err)
 	}
+	res := bson.M{}
 	singleRes.Decode(&res)
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("applyOps command: %v", res["errmsg"])

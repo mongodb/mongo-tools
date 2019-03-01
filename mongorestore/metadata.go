@@ -10,14 +10,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	gbson "github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
+	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -175,12 +175,12 @@ func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, err
 		for collections.Next(nil) {
 			doc := &gbson.Raw{}
 			if err := collections.Decode(doc); err != nil {
-				return false, fmt.Errorf("Error decoding collection list: %v", err)
+				return false, fmt.Errorf("error decoding collection list: %v", err)
 			}
 			colNameRaw := doc.Lookup("name")
 			colName, ok := colNameRaw.StringValueOK()
 			if !ok {
-				return false, fmt.Errorf("Invalid collection name: %v", colNameRaw)
+				return false, fmt.Errorf("invalid collection name: %v", colNameRaw)
 			}
 			restore.knownCollections[intent.DB] = append(restore.knownCollections[intent.DB], colName)
 		}
@@ -282,15 +282,15 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 
 func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
 	command := createCollectionCommand(intent, options)
-	res := bson.M{}
+
 	// If there is no error, the result doesnt matter
 	singleRes := session.Database(intent.DB).RunCommand(nil, command, nil)
-	err := singleRes.Err()
-	singleRes.Decode(&res)
-	if err != nil {
+	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("error running create command: %v", err)
 	}
 
+	res := bson.M{}
+	singleRes.Decode(&res)
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("create command: %v", res["errmsg"])
 	}
@@ -337,6 +337,33 @@ func createCollectionCommand(intent *intents.Intent, options bson.D) bson.D {
 // RestoreUsersOrRoles accepts a users intent and a roles intent, and restores
 // them via _mergeAuthzCollections. Either or both can be nil. In the latter case
 // nothing is done.
+//
+// _mergeAuthzCollections is an internal server command implemented specifically for mongorestore. Instead of inserting
+// into the admin.system.{roles, users} collections (which isn't allowed due to some locking policies), we construct
+// temporary collections that are then merged with or replace the existing ones.
+//
+// The "drop" argument that determines whether the merge replaces the existing users/roles or adds to them.
+//
+// The "db" argument determines which databases' users and roles are merged. If left blank, it merges users and roles
+// from all databases. When the user restores the admin database, we assume they wish to restore the users and roles for
+// all databases, not just the admin ones, so we leave the "db" field blank in that case.
+//
+// The "temp{Users,Roles}Collection" arguments determine which temporary collections to merge from, and the presence of
+// either determines which collection to merge to. (e.g. if tempUsersCollection is defined, admin.system.users is merged
+// into).
+//
+// This command must be run on the "admin" database. Thus, the temporary collections must be on the admin db as well.
+// This command must also be run on the primary.
+//
+// Example command:
+// {
+//    _mergeAuthzCollections: 1,
+//    db: "foo",
+//    tempUsersCollection: "myTempUsers"
+//    drop: true
+//    writeConcern: {w: "majority"}
+// }
+//
 func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) error {
 
 	type loopArg struct {
@@ -428,25 +455,12 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		userTargetDB = arg.intent.DB
 	}
 
-	// we have to manually convert mgo's safety to a writeconcern object
-	writeConcern := bson.M{}
-	wcMap := make(map[string]string)
-	if restore.wc == nil {
-		writeConcern["w"] = 0
-	} else {
-		_, elems, err := restore.wc.MarshalBSONValue()
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(elems, &wcMap)
-		if err != nil {
-			return err
-		}
-
-		writeConcern["w"] = wcMap["w"]
-		return err
-
+	if userTargetDB == "admin" {
+		// _mergeAuthzCollections uses an empty db string as a sentinel for "all databases"
+		userTargetDB = ""
 	}
+
+	adminDB := session.Database("admin")
 
 	command := bson.D{}
 	command = append(command,
@@ -455,15 +469,30 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		mergeArgs...)
 	command = append(command,
 		bson.DocElem{Name: "drop", Value: restore.OutputOptions.Drop},
-		bson.DocElem{Name: "writeConcern", Value: writeConcern},
 		bson.DocElem{Name: "db", Value: userTargetDB})
 
-	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
-	res := bson.M{}
-	resSingle := session.Database(userTargetDB).RunCommand(nil, command)
-	if resSingle.Err() != nil {
-		return fmt.Errorf("error running merge command: %v", resSingle.Err())
+	// TODO: can get this from ToolOptions once new URI parser is merged
+	if adminDB.WriteConcern() != nil {
+		_, wcBson, err := adminDB.WriteConcern().MarshalBSONValue()
+		if err != nil {
+			return fmt.Errorf("error parsing write concern: %v", err)
+		}
+
+		writeConcern := bson.M{}
+		err = bson.Unmarshal(wcBson, &writeConcern)
+		if err != nil {
+			return fmt.Errorf("error parsing write concern: %v", err)
+		}
+
+		command = append(command, bson.DocElem{Name: "writeConcern", Value: writeConcern})
 	}
+
+	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
+	resSingle := adminDB.RunCommand(nil, command)
+	if err = resSingle.Err(); err != nil {
+		return fmt.Errorf("error running merge command: %v", err)
+	}
+	res := bson.M{}
 	resSingle.Decode(&res)
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("_mergeAuthzCollections command: %v", res["errmsg"])

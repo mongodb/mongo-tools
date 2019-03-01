@@ -8,13 +8,10 @@ package mongorestore
 
 import (
 	"context"
-	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/testutil"
-	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -128,10 +125,6 @@ func TestValidOplogLimitChecking(t *testing.T) {
 
 func TestOplogRestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -144,31 +137,19 @@ func TestOplogRestore(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		inputOptions := &InputOptions{
-			Directory:   "testdata/oplogdump",
-			OplogReplay: true,
+		args := []string {
+			DirectoryOption, "testdata/oplogdump",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
 		}
-		outputOptions := &OutputOptions{
-			NumParallelCollections: 1,
-			NumInsertionWorkers:    1,
-			Drop:                   true,
-			PreserveUUID:           shouldPreserveUUID,
+		if shouldPreserveUUID {
+			args = append(args, PreserveUUIDOption)
 		}
-		nsOptions := &NSOptions{}
-		provider, toolOpts, err := testutil.GetBareSessionProvider()
-		if err != nil {
-			log.Logvf(log.Always, "error connecting to host: %v", err)
-			os.Exit(util.ExitError)
-		}
-		restore := MongoRestore{
-			ToolOptions:     toolOpts,
-			OutputOptions:   outputOptions,
-			InputOptions:    inputOptions,
-			NSOptions:       nsOptions,
-			SessionProvider: provider,
-			TargetDirectory: inputOptions.Directory,
-		}
-		session, _ := provider.GetSession()
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
 		c1 := session.Database("db1").Collection("c1")
 		c1.Drop(nil)
 
@@ -177,7 +158,7 @@ func TestOplogRestore(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		// Verify restoration
-		count, err := c1.Count(nil, bson.M{})
+		count, err := c1.CountDocuments(nil, bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10)
 		session.Disconnect(context.Background())
@@ -192,29 +173,15 @@ func TestOplogRestoreTools2002(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		inputOptions := &InputOptions{
-			Directory:   "testdata/tools-2002",
-			OplogReplay: true,
+		args := []string {
+			DirectoryOption, "testdata/tools-2002",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
 		}
-		outputOptions := &OutputOptions{
-			NumParallelCollections: 1,
-			NumInsertionWorkers:    1,
-			Drop:                   true,
-		}
-		nsOptions := &NSOptions{}
-		provider, toolOpts, err := testutil.GetBareSessionProvider()
-		if err != nil {
-			log.Logvf(log.Always, "error connecting to host: %v", err)
-			os.Exit(util.ExitError)
-		}
-		restore := MongoRestore{
-			ToolOptions:     toolOpts,
-			OutputOptions:   outputOptions,
-			InputOptions:    inputOptions,
-			NSOptions:       nsOptions,
-			SessionProvider: provider,
-			TargetDirectory: inputOptions.Directory,
-		}
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
 
 		// Run mongorestore
 		err = restore.Restore()

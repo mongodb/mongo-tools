@@ -15,8 +15,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/archive"
 	"github.com/mongodb/mongo-tools-common/auth"
 	"github.com/mongodb/mongo-tools-common/db"
@@ -27,6 +27,11 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	"gopkg.in/mgo.v2/bson"
+)
+
+const (
+	progressBarLength   = 24
+	progressBarWaitTime = time.Second * 3
 )
 
 // MongoRestore is a container for the user-specified options and
@@ -47,7 +52,6 @@ type MongoRestore struct {
 
 	// other internal state
 	manager *intents.Manager
-	wc      *writeconcern.WriteConcern
 
 	objCheck         bool
 	oplogLimit       bson.MongoTimestamp
@@ -78,7 +82,31 @@ type MongoRestore struct {
 
 type collectionIndexes map[string][]IndexDocument
 
-// Function was removed from common/db/command.go, so copied to here
+// New initializes an instance of MongoRestore according to the provided options.
+func New(opts Options) (*MongoRestore, error) {
+	provider, err := db.NewSessionProvider(*opts.ToolOptions)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to host: %v", err)
+	}
+
+	// start up the progress bar manager
+	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, true)
+	progressManager.Start()
+
+	restore := &MongoRestore{
+		ToolOptions:     opts.ToolOptions,
+		OutputOptions:   opts.OutputOptions,
+		InputOptions:    opts.InputOptions,
+		NSOptions:       opts.NSOptions,
+		TargetDirectory: opts.TargetDirectory,
+		SessionProvider: provider,
+		ProgressManager: progressManager,
+	}
+
+	return restore, nil
+}
+
+// SupportsCollectionUUID was removed from common/db/command.go, so copied to here
 func SupportsCollectionUUID(sp *db.SessionProvider) (bool, error) {
 	session, err := sp.GetSession()
 	if err != nil {
@@ -96,6 +124,15 @@ func SupportsCollectionUUID(sp *db.SessionProvider) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// Close ends any connections and cleans up other internal state.
+func (restore *MongoRestore) Close() {
+	restore.SessionProvider.Close()
+	barWriter, ok := restore.ProgressManager.(*progress.BarWriter)
+	if ok { // should always be ok
+		barWriter.Stop()
+	}
 }
 
 // ParseAndValidateOptions returns a non-nil error if user-supplied options are invalid.

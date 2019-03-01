@@ -79,9 +79,6 @@ func TestCollectionExists(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(exists, ShouldBeFalse)
 		})
-		Convey("This is the end", func() {
-			So(err, ShouldBeNil)
-		})
 	})
 }
 

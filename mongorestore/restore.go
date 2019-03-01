@@ -93,9 +93,8 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) error {
 		return fmt.Errorf("error reading database: %v", err)
 	}
 
-	if restore.wc == nil && !restore.OutputOptions.Drop && collectionExists {
+	if !restore.OutputOptions.Drop && collectionExists {
 		log.Logvf(log.Always, "restoring to existing collection %v without dropping", intent.Namespace())
-		log.Logv(log.Always, "Important: restored data will be inserted without raising errors; check your server log")
 	}
 
 	if restore.OutputOptions.Drop {
@@ -289,14 +288,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 	for i := 0; i < maxInsertWorkers; i++ {
 		go func() {
-			// get a session copy for each insert worker
-
-			// TODO: Does removing this cause problems? collection.With returns a copy in use by session
-			// coll := collection.With(session)
-			// bulk := db.NewBufferedBulkInserter(
-			// coll, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
-			bulk := db.NewBufferedBulkInserter(
-				collection, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
+			bulk := db.NewBufferedBulkInserter(collection, restore.OutputOptions.BulkBufferSize, !restore.OutputOptions.StopOnError)
 			bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
 			for rawDoc := range docChan {
 				if restore.objCheck {

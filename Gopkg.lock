@@ -103,8 +103,8 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:fe929907941cd2fd430922aadf14e91ee03425592d46941efc114e683605cf68"
+  branch = "TOOLS-1838-migrate-mongorestore"
+  digest = "1:4ccd7c17813305de2d248fb615417645a6d04c7cd267b4e8cde34efa743e07b3"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -294,11 +294,6 @@
     "github.com/google/gopacket/tcpassembly",
     "github.com/howeyc/gopass",
     "github.com/jessevdk/go-flags",
-    "github.com/mongodb/mongo-go-driver/bson",
-    "github.com/mongodb/mongo-go-driver/mongo",
-    "github.com/mongodb/mongo-go-driver/mongo/readpref",
-    "github.com/mongodb/mongo-go-driver/mongo/writeconcern",
-    "github.com/mongodb/mongo-go-driver/x/bsonx",
     "github.com/mongodb/mongo-tools-common/archive",
     "github.com/mongodb/mongo-tools-common/auth",
     "github.com/mongodb/mongo-tools-common/bsonutil",

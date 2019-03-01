@@ -13,6 +13,17 @@ import (
 	"strings"
 )
 
+func GetSSLArgs() []string {
+	sslOpts := GetSSLOptions()
+	if sslOpts.UseSSL {
+		return []string{
+			"--sslCAFile", sslOpts.SSLCAFile,
+			"--sslPEMKeyFile", sslOpts.SSLPEMKeyFile,
+		}
+	}
+	return nil
+}
+
 func GetSSLOptions() commonOpts.SSL {
 	// Get current filename and location
 	_, filename, _, _ := runtime.Caller(0)

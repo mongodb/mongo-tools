@@ -23,7 +23,6 @@ import (
 type BufferedBulkInserter struct {
 	collection               *mongo.Collection
 	documents                []interface{}
-	continueOnError          bool
 	docLimit                 int
 	byteCount                int
 	docCount                 int
@@ -33,11 +32,10 @@ type BufferedBulkInserter struct {
 
 // NewBufferedBulkInserter returns an initialized BufferedBulkInserter
 // for writing.
-func NewBufferedBulkInserter(collection *mongo.Collection, docLimit int,
-	continueOnError bool) *BufferedBulkInserter {
+func NewBufferedBulkInserter(collection *mongo.Collection, docLimit int, unordered bool) *BufferedBulkInserter {
 	bb := &BufferedBulkInserter{
 		collection:      collection,
-		continueOnError: continueOnError,
+		unordered:       unordered,
 		docLimit:        docLimit,
 	}
 	bb.resetBulk()
