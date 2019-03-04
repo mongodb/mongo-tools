@@ -237,7 +237,7 @@ func (restore *MongoRestore) getInfoFromFilename(filename string) (string, FileT
 
 	unescaped, err := util.UnescapeCollectionName(baseName)
 	if err != nil {
-		return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename: %v", err)
+		return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename \"%v\": %v", baseName, err)
 	}
 	return unescaped, fileType, nil
 }

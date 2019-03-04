@@ -195,12 +195,7 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 		root = dump.OutputOptions.Out
 	}
 
-	escapedCollName := util.EscapeCollectionName(colName)
-
-	if dbName == "" {
-		return filepath.Join(root, escapedCollName)
-	}
-	return filepath.Join(root, dbName, escapedCollName)
+	return filepath.Join(root, dbName, util.EscapeCollectionName(colName))
 }
 
 func checkStringForPathSeparator(s string, c *rune) bool {
