@@ -42,11 +42,11 @@ func ToUniversalPath(path string) string {
 }
 
 func EscapeCollectionName(collName string) string {
-	return url.QueryEscape(collName)
+	return url.PathEscape(collName)
 }
 
 func UnescapeCollectionName(escapedCollName string) (string, error) {
-	return url.QueryUnescape(escapedCollName)
+	return url.PathUnescape(escapedCollName)
 }
 
 type WrappedReadCloser struct {
