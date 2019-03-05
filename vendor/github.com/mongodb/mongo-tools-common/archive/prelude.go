@@ -196,6 +196,11 @@ func (hpc *preludeParserConsumer) BodyBSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	cm.Collection, err = util.UnescapeCollectionName(cm.Collection)
+	if err != nil {
+		return err
+	}
+
 	hpc.prelude.AddMetadata(cm)
 	return nil
 }
@@ -228,9 +233,9 @@ func (pe *PreludeExplorer) Name() string {
 		return pe.database
 	}
 	if pe.isMetadata {
-		return pe.collection + ".metadata.json"
+		return util.EscapeCollectionName(pe.collection) + ".metadata.json"
 	}
-	return pe.collection + ".bson"
+	return util.EscapeCollectionName(pe.collection) + ".bson"
 }
 
 // Path is part of the DirLike interface. It creates the full path for the "location" in the prelude.

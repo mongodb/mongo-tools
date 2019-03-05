@@ -118,7 +118,8 @@ func (it *Intent) IsSystemProfile() bool {
 }
 
 func (it *Intent) IsSpecialCollection() bool {
-	return it.IsSystemIndexes() || it.IsUsers() || it.IsRoles() || it.IsAuthVersion() || it.IsSystemProfile() || it.IsOplog()
+	// can't see oplog as special collection because when restore from archive it need to be a RegularCollectionReceiver
+	return it.IsSystemIndexes() || it.IsUsers() || it.IsRoles() || it.IsAuthVersion() || it.IsSystemProfile()
 }
 
 func (it *Intent) IsView() bool {

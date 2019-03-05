@@ -27,7 +27,6 @@ import (
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/testutil"
 	"github.com/mongodb/mongo-tools-common/util"
-	localUtil "github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -198,7 +197,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 			continue
 		}
 
-		collectionName, err := localUtil.UnescapeCollectionName(fileName[:strings.LastIndex(fileName, ".bson")])
+		collectionName, err := util.UnescapeCollectionName(fileName[:strings.LastIndex(fileName, ".bson")])
 		if err != nil {
 			return err
 		}

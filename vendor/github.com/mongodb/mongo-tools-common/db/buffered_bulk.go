@@ -21,13 +21,14 @@ import (
 // message size) is reached. Must be flushed at the end to ensure that all
 // documents are written.
 type BufferedBulkInserter struct {
-	collection      *mongo.Collection
-	documents       []interface{}
-	continueOnError bool
-	docLimit        int
-	byteCount       int
-	docCount        int
-	unordered       bool
+	collection               *mongo.Collection
+	documents                []interface{}
+	continueOnError          bool
+	docLimit                 int
+	byteCount                int
+	docCount                 int
+	unordered                bool
+	bypassDocumentValidation bool
 }
 
 // NewBufferedBulkInserter returns an initialized BufferedBulkInserter
@@ -45,6 +46,10 @@ func NewBufferedBulkInserter(collection *mongo.Collection, docLimit int,
 
 func (bb *BufferedBulkInserter) Unordered() {
 	bb.unordered = true
+}
+
+func (bb *BufferedBulkInserter) SetBypassDocumentValidation(bypass bool) {
+	bb.bypassDocumentValidation = bypass
 }
 
 // throw away the old bulk and init a new one
@@ -81,6 +86,7 @@ func (bb *BufferedBulkInserter) Flush() error {
 		return nil
 	}
 	defer bb.resetBulk()
-	_, err := bb.collection.InsertMany(context.Background(), bb.documents, mopt.InsertMany().SetOrdered(!bb.unordered))
+	insertOpts := mopt.InsertMany().SetOrdered(!bb.unordered).SetBypassDocumentValidation(bb.bypassDocumentValidation)
+	_, err := bb.collection.InsertMany(context.Background(), bb.documents, insertOpts)
 	return err
 }

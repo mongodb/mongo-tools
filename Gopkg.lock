@@ -142,7 +142,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a182dccfa663be59519c790cdb12c752faf8bc1a0238da1691c7ad4e0efb122e"
+  digest = "1:993532d7c4c8a911b93b939ed7aab6e53f7226d8e313850808950603bef954d4"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -164,7 +164,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "3cbc0afb21c0824e6529939c772722e944fb92d7"
+  revision = "ff545c79e44760fffbf04ca92f775edd5f4afd5d"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -237,11 +237,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6932d1ef4294f3ea819748e89d1003f5df3804b20b84b5f1c60f8f1d7c933e2d"
+  digest = "1:7054d0b00df4ca102284022b5014be2a790bf3bc5dda947678e4c1f0d8238287"
   name = "golang.org/x/sync"
   packages = ["semaphore"]
   pruneopts = "T"
-  revision = "37e7f081c4d4c64e13b10787722085407fe5d15f"
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
 
 [[projects]]
   digest = "1:6164911cb5e94e8d8d5131d646613ff82c14f5a8ce869de2f6d80d9889df8c5a"
