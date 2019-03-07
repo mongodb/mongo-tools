@@ -107,8 +107,8 @@ func tearDownGridFSTestData() error {
 
 	return nil
 }
-func simpleMongoFilesInstanceWithID(command, Id string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, "", Id)
+func simpleMongoFilesInstanceWithID(command, ID string) (*MongoFiles, error) {
+	return simpleMongoFilesInstanceWithFilenameAndID(command, "", ID)
 }
 func simpleMongoFilesInstanceWithFilename(command, fname string) (*MongoFiles, error) {
 	return simpleMongoFilesInstanceWithFilenameAndID(command, fname, "")
@@ -117,7 +117,7 @@ func simpleMongoFilesInstanceCommandOnly(command string) (*MongoFiles, error) {
 	return simpleMongoFilesInstanceWithFilenameAndID(command, "", "")
 }
 
-func simpleMongoFilesInstanceWithFilenameAndID(command, fname, Id string) (*MongoFiles, error) {
+func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*MongoFiles, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, Id string) (*Mong
 		SessionProvider: sessionProvider,
 		Command:         command,
 		FileName:        fname,
-		Id:              Id,
+		ID:              ID,
 	}
 
 	return &mongofiles, nil
@@ -515,7 +515,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'put_id' command by putting some lorem ipsum file with 287613 bytes with different ids should succeed", func() {
 			for _, idToTest := range []string{"'test_id'", "'{a:\"b\"}'", "'{$numberlong:9999999999999999999999}'", "'{a:{b:{c:{}}}}'"} {
-				runPutIdTestCase(idToTest, t)
+				runPutIDTestCase(idToTest, t)
 			}
 		})
 
@@ -579,7 +579,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 }
 
-func runPutIdTestCase(idToTest string, t *testing.T) {
+func runPutIDTestCase(idToTest string, t *testing.T) {
 	remoteName := "remoteName"
 	mongoFilesInstance, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", remoteName, idToTest)
 

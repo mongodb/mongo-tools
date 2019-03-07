@@ -13,12 +13,12 @@ import (
 
 // Struct representing a GridFS files collection document.
 type gfsFile struct {
-	Id         interface{}        `bson:"_id"`
-	Name       string             `bson:"filename"`
-	Length     int64              `bson:"length"`
-	Md5        string             `bson:"md5"`
-	UploadDate time.Time          `bson:"uploadDate"`
-	Metadata   gfsFileMetadata    `bson:"metadata"`
+	ID         interface{}     `bson:"_id"`
+	Name       string          `bson:"filename"`
+	Length     int64           `bson:"length"`
+	Md5        string          `bson:"md5"`
+	UploadDate time.Time       `bson:"uploadDate"`
+	Metadata   gfsFileMetadata `bson:"metadata"`
 
 	// Storage required for reading and writing GridFS files
 	mf         *MongoFiles
@@ -48,12 +48,12 @@ func (file *gfsFile) Write(p []byte) (int, error) {
 		}
 
 		// TODO: remove this (GO-815)
-		objectId, ok := file.Id.(primitive.ObjectID)
+		objectID, ok := file.ID.(primitive.ObjectID)
 		if !ok {
 			return 0, fmt.Errorf("need to use objectid for _id")
 		}
 
-		stream, err := file.mf.bucket.OpenUploadStreamWithID(objectId, file.Name, &driverOptions.UploadOptions{Metadata: doc})
+		stream, err := file.mf.bucket.OpenUploadStreamWithID(objectID, file.Name, &driverOptions.UploadOptions{Metadata: doc})
 		if err != nil {
 			return 0, err
 		}
@@ -67,12 +67,12 @@ func (file *gfsFile) Write(p []byte) (int, error) {
 func (file *gfsFile) Read(buf []byte) (int, error) {
 	if file.downStream == nil {
 		// TODO: remove this (GO-815)
-		objectId, ok := file.Id.(primitive.ObjectID)
+		objectID, ok := file.ID.(primitive.ObjectID)
 		if !ok {
 			return 0, fmt.Errorf("need to use objectid for _id")
 		}
 
-		stream, err := file.mf.bucket.OpenDownloadStream(objectId)
+		stream, err := file.mf.bucket.OpenDownloadStream(objectID)
 		if err != nil {
 			return 0, fmt.Errorf("could not open download stream: %v", err)
 		}
@@ -94,13 +94,13 @@ func (file *gfsFile) Delete() error {
 	}
 
 	// TODO: remove this (GO-815)
-	objectId, ok := file.Id.(primitive.ObjectID)
+	objectID, ok := file.ID.(primitive.ObjectID)
 	if !ok {
 		return fmt.Errorf("must be objectid")
 	}
 
-	if err := file.mf.bucket.Delete(objectId); err != nil {
-		return fmt.Errorf("error while removing '%v' from GridFS: %v\n", file.Name, err)
+	if err := file.mf.bucket.Delete(objectID); err != nil {
+		return fmt.Errorf("error while removing '%v' from GridFS: %v", file.Name, err)
 	}
 
 	return nil
