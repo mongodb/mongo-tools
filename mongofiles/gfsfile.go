@@ -19,6 +19,7 @@ type gfsFile struct {
 	Md5        string          `bson:"md5"`
 	UploadDate time.Time       `bson:"uploadDate"`
 	Metadata   gfsFileMetadata `bson:"metadata"`
+	ChunkSize   int            `bson:"chunkSize"`
 
 	// Storage required for reading and writing GridFS files
 	mf         *MongoFiles
@@ -28,7 +29,6 @@ type gfsFile struct {
 
 // Struct representing the metadata associated with a GridFS files collection document.
 type gfsFileMetadata struct {
-	ChunkSize   int                `bson:"chunkSize"`
 	ContentType string             `bson:"contentType,omitempty"`
 }
 
