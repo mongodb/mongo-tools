@@ -136,6 +136,20 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 	return &mongofiles, nil
 }
 
+func getMongofilesWithArgs(args ...string) (*MongoFiles, error) {
+	opts, err := ParseOptions(args)
+	if err != nil {
+		return nil, err
+	}
+
+	mf, err := New(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return mf, nil
+}
+
 func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 	file1Stat, err := file1.Stat()
 	if err != nil {
@@ -577,6 +591,26 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 	})
 
+}
+
+// Test that when no write concern is specified, we don't set one on the client.
+func TestDefaultWriteConcern(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	if ssl.UseSSL {
+		t.Skip("Skipping non-SSL test with SSL configuration")
+	}
+
+	Convey("with a URI that doesn't specify write concern", t, func() {
+		mf, err := getMongofilesWithArgs("get", "filename", "--uri", "mongodb://localhost:33333")
+		So(err, ShouldBeNil)
+		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldBeNil)
+	})
+
+	Convey("with no URI and no write concern option", t, func() {
+		mf, err := getMongofilesWithArgs("get", "filename")
+		So(err, ShouldBeNil)
+		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldBeNil)
+	})
 }
 
 func runPutIDTestCase(idToTest string, t *testing.T) {

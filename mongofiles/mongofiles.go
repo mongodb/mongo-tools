@@ -67,6 +67,35 @@ type MongoFiles struct {
 	bucket *gridfs.Bucket
 }
 
+// New constructs a new mongofiles instance from the provided options. Will fail if cannot connect to server or if the
+// provided options are invalid.
+func New(opts Options) (*MongoFiles, error) {
+	// create a session provider to connect to the db
+	provider, err := db.NewSessionProvider(*opts.ToolOptions)
+	if err != nil {
+		log.Logvf(log.Always, "error connecting to host: %v", err)
+		return nil, fmt.Errorf("error connecting to host: %v", err)
+	}
+
+	mf := &MongoFiles{
+		ToolOptions:     opts.ToolOptions,
+		StorageOptions:  opts.StorageOptions,
+		SessionProvider: provider,
+		InputOptions:    opts.InputOptions,
+	}
+
+	if err := mf.ValidateCommand(opts.ParsedArgs); err != nil {
+		return nil, fmt.Errorf("%v\ntry 'mongofiles --help' for more information", err)
+	}
+
+	return mf, nil
+}
+
+// Close disconnects from the server and cleans up internal mongofiles state.
+func (mf *MongoFiles) Close() {
+	mf.SessionProvider.Close()
+}
+
 // ValidateCommand ensures the arguments supplied are valid.
 func (mf *MongoFiles) ValidateCommand(args []string) error {
 	// make sure a command is specified and that we don't have
