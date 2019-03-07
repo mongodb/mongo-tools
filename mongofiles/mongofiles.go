@@ -155,12 +155,17 @@ func (mf *MongoFiles) getLocalFileName(gridFile *gfsFile) string {
 }
 
 // handleGet contains the logic for the 'get' and 'get_id' commands
-func (mf *MongoFiles) handleGet() error {
+func (mf *MongoFiles) handleGet() (err error) {
 	file, err := mf.getTargetGFSFile()
 	if err != nil {
 		return err
 	}
-	defer file.SafeClose(&err)
+	defer func () {
+		closeErr := file.Close()
+		if closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	if err = mf.writeGFSFileToFile(file); err != nil {
 		return err
@@ -315,14 +320,18 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 }
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
-func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, finalErr error) {
+func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err error) {
 	gridFile := gfsFile{Name: mf.FileName, ID: id, mf: mf}
-	defer gridFile.SafeClose(&finalErr)
+	defer func () {
+		closeErr := gridFile.Close()
+		if closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	localFileName := mf.getLocalFileName(&gridFile)
 
 	var localFile io.ReadCloser
-	var err error
 
 	if localFileName == "-" {
 		localFile = os.Stdin
@@ -337,7 +346,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, fina
 
 	// check if --replace flag turned on
 	if mf.StorageOptions.Replace {
-		if err := mf.deleteAll(gridFile.Name); err != nil {
+		if err = mf.deleteAll(gridFile.Name); err != nil {
 			return 0, err
 		}
 	}

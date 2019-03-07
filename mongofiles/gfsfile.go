@@ -122,10 +122,3 @@ func (file *gfsFile) Close() error {
 
 	return nil
 }
-
-// Closes the file, assigning any error returned to finalErr. Use this to catch errors in deferred closing.
-func (file *gfsFile) SafeClose(finalErr *error) {
-	if err := file.Close(); err != nil {
-		*finalErr = err
-	}
-}
