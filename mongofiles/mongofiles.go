@@ -237,7 +237,7 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 
 // Delete all files with the given filename.
 func (mf *MongoFiles) deleteAll(filename string) error {
-	gridFiles, err := mf.getGFSFiles(bson.M{"filename": mf.FileName})
+	gridFiles, err := mf.getGFSFiles(bson.M{"filename": filename})
 	if err != nil {
 		return err
 	}
@@ -321,7 +321,7 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
 func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err error) {
-	gridFile := gfsFile{Name: mf.FileName, ID: id, mf: mf}
+	gridFile := gfsFile{Name: name, ID: id, mf: mf}
 	defer func () {
 		closeErr := gridFile.Close()
 		if closeErr != nil {
