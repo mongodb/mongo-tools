@@ -307,8 +307,13 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 		if localFile, err = os.Create(localFileName); err != nil {
 			return fmt.Errorf("error while opening local file '%v': %v", localFileName, err)
 		}
-		defer localFile.Close()
-		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
+		defer func() {
+			closeErr := localFile.Close()
+			if closeErr != nil {
+				err = closeErr
+			}
+			log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
+		}()
 	}
 
 	if _, err = io.Copy(localFile, gridFile); err != nil {
@@ -332,7 +337,6 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 	localFileName := mf.getLocalFileName(&gridFile)
 
 	var localFile io.ReadCloser
-
 	if localFileName == "-" {
 		localFile = os.Stdin
 	} else {
@@ -340,7 +344,12 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		if err != nil {
 			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v", localFileName, err)
 		}
-		defer localFile.Close()
+		defer func () {
+			closeErr := localFile.Close()
+			if closeErr != nil {
+				err = closeErr
+			}
+		}()
 		log.Logvf(log.DebugLow, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
 	}
 
