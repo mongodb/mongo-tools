@@ -8,7 +8,6 @@
 package main
 
 import (
-	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/signals"
 	"github.com/mongodb/mongo-tools-common/util"
@@ -19,9 +18,7 @@ import (
 )
 
 func main() {
-	storageOpts := &mongofiles.StorageOptions{}
-	inputOpts := &mongofiles.InputOptions{}
-	args, opts, err := mongofiles.ParseOptions(os.Args[1:], storageOpts, inputOpts)
+	opts, err := mongofiles.ParseOptions(os.Args[1:])
 	if err != nil {
 		log.Logv(log.Always, err.Error())
 		os.Exit(util.ExitBadOptions)
@@ -39,25 +36,11 @@ func main() {
 		os.Exit(util.ExitClean)
 	}
 
-	// create a session provider to connect to the db
-	provider, err := db.NewSessionProvider(*opts)
+	mf, err := mongofiles.New(opts)
 	if err != nil {
-		log.Logvf(log.Always, "error connecting to host: %v", err)
-		os.Exit(util.ExitError)
+		log.Logv(log.Always, err.Error())
 	}
-	defer provider.Close()
-	mf := mongofiles.MongoFiles{
-		ToolOptions:     opts,
-		StorageOptions:  storageOpts,
-		SessionProvider: provider,
-		InputOptions:    inputOpts,
-	}
-
-	if err := mf.ValidateCommand(args); err != nil {
-		log.Logvf(log.Always, "%v", err)
-		log.Logvf(log.Always, "try 'mongofiles --help' for more information")
-		os.Exit(util.ExitBadOptions)
-	}
+	defer mf.Close()
 
 	output, err := mf.Run(true)
 	if err != nil {

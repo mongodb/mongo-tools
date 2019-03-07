@@ -32,9 +32,12 @@ Possible commands include:
 See http://docs.mongodb.org/manual/reference/program/mongofiles/ for more information.`
 
 // ParseOptions creates a new ToolOptions and configures it using the command line arguments.
-func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *InputOptions) ([]string, *options.ToolOptions, error) {
+func ParseOptions(rawArgs []string) (Options, error) {
 	// initialize command-line opts
 	opts := options.New("mongofiles", Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
+
+	storageOpts := &StorageOptions{}
+	inputOpts := &InputOptions{}
 
 	opts.AddOptions(storageOpts)
 	opts.AddOptions(inputOpts)
@@ -43,7 +46,7 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 
 	args, err := opts.ParseArgs(rawArgs)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error parsing command line options: %v\ntry 'mongofiles --help' for more information", err)
+		return Options{}, fmt.Errorf("error parsing command line options: %v\ntry 'mongofiles --help' for more information", err)
 	}
 
 	log.SetVerbosity(opts.Verbosity)
@@ -58,7 +61,7 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 	if storageOpts.WriteConcern != "" {
 		opts.WriteConcern, err = db.PackageWriteConcernOptsToObject(storageOpts.WriteConcern, nil)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error parsing --writeConcern: %v", err)
+			return Options{}, fmt.Errorf("error parsing --writeConcern: %v", err)
 		}
 	}
 
@@ -66,13 +69,21 @@ func ParseOptions(rawArgs []string, storageOpts *StorageOptions, inputOpts *Inpu
 	if inputOpts.ReadPreference != "" {
 		opts.ReadPreference, err = db.ParseReadPreference(inputOpts.ReadPreference)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error parsing --readPreference: %v", err)
+			return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 		}
 	} else {
 		opts.ReadPreference = readpref.Nearest()
 	}
 
-	return args, opts, nil
+	return Options{opts, storageOpts, inputOpts, args}, nil
+}
+
+// Options contains all the possible options that can configure mongofiles
+type Options struct {
+	*options.ToolOptions
+	*StorageOptions
+	*InputOptions
+	ParsedArgs []string
 }
 
 // StorageOptions defines the set of options to use in storing/retrieving data from server.
