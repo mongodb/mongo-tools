@@ -61,7 +61,7 @@ type MongoFiles struct {
 	FileName string
 
 	// ID to put into GridFS
-	Id string
+	ID string
 
 	// GridFS bucket to operate on
 	bucket *gridfs.Bucket
@@ -102,7 +102,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
 		}
-		mf.Id = args[1]
+		mf.ID = args[1]
 	case PutID:
 		if len(args) > 3 {
 			return fmt.Errorf("too many positional arguments")
@@ -111,7 +111,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 			return fmt.Errorf("'%v' argument(s) missing", args[0])
 		}
 		mf.FileName = args[1]
-		mf.Id = args[2]
+		mf.ID = args[2]
 	default:
 		return fmt.Errorf("'%v' is not a valid command", args[0])
 	}
@@ -201,9 +201,9 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 	var queryProp string
 	var query string
 
-	if mf.Id != "" {
+	if mf.ID != "" {
 		queryProp = "_id"
-		query = mf.Id
+		query = mf.ID
 
 		id, err := mf.parseID()
 		if err != nil {
@@ -257,19 +257,19 @@ func (mf *MongoFiles) handleDeleteID() error {
 	if err := file.Delete(); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS\n", mf.Id))
+	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS\n", mf.ID))
 
 	return nil
 }
 
 // parse and convert input extended JSON _id.
 func (mf *MongoFiles) parseID() (interface{}, error) {
-	if mf.Id == "" {
+	if mf.ID == "" {
 		return primitive.NewObjectID(), nil
 	}
 
 	var asJSON interface{}
-	if err := json.Unmarshal([]byte(mf.Id), &asJSON); err != nil {
+	if err := json.Unmarshal([]byte(mf.ID), &asJSON); err != nil {
 		return nil, fmt.Errorf("error parsing provided extJSON: %v", err)
 	}
 
@@ -280,16 +280,16 @@ func (mf *MongoFiles) parseID() (interface{}, error) {
 	}
 
 	// TODO: fix this (GO-815)
-	mgoId, ok := id.(mgobson.ObjectId)
+	mgoID, ok := id.(mgobson.ObjectId)
 	if !ok {
 		return nil, fmt.Errorf("only use ObjectIds as input _id")
 	}
-	objectId, err := primitive.ObjectIDFromHex(mgoId.Hex())
+	objectID, err := primitive.ObjectIDFromHex(mgoID.Hex())
 	if err != nil {
 		return nil, err
 	}
 
-	return objectId, nil
+	return objectID, nil
 }
 
 // writeGFSFileToFile writes a file from gridFS to stdout or the filesystem.
@@ -300,14 +300,14 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 		localFile = os.Stdout
 	} else {
 		if localFile, err = os.Create(localFileName); err != nil {
-			return fmt.Errorf("error while opening local file '%v': %v\n", localFileName, err)
+			return fmt.Errorf("error while opening local file '%v': %v", localFileName, err)
 		}
 		defer localFile.Close()
 		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 	}
 
 	if _, err = io.Copy(localFile, gridFile); err != nil {
-		return fmt.Errorf("error while writing Data into local file '%v': %v\n", localFileName, err)
+		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
 	}
 
 	log.Logvf(log.Always, fmt.Sprintf("finished writing to %s\n", localFileName))
@@ -316,7 +316,7 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
 func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, finalErr error) {
-	gridFile := gfsFile{Name: mf.FileName, Id: id, mf: mf}
+	gridFile := gfsFile{Name: mf.FileName, ID: id, mf: mf}
 	defer gridFile.SafeClose(&finalErr)
 
 	localFileName := mf.getLocalFileName(&gridFile)
@@ -329,7 +329,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, fina
 	} else {
 		localFile, err = os.Open(localFileName)
 		if err != nil {
-			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v\n", localFileName, err)
+			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v", localFileName, err)
 		}
 		defer localFile.Close()
 		log.Logvf(log.DebugLow, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
@@ -348,7 +348,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, fina
 
 	n, err := io.Copy(&gridFile, localFile)
 	if err != nil {
-		return n, fmt.Errorf("error while storing '%v' into GridFS: %v\n", localFileName, err)
+		return n, fmt.Errorf("error while storing '%v' into GridFS: %v", localFileName, err)
 	}
 
 	return n, nil
@@ -377,12 +377,12 @@ func (mf *MongoFiles) handlePut() error {
 func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	var err error
 
-	connUrl := mf.ToolOptions.Host
-	if connUrl == "" {
-		connUrl = util.DefaultHost
+	connURL := mf.ToolOptions.Host
+	if connURL == "" {
+		connURL = util.DefaultHost
 	}
 	if mf.ToolOptions.Port != "" {
-		connUrl = fmt.Sprintf("%s:%s", connUrl, mf.ToolOptions.Port)
+		connURL = fmt.Sprintf("%s:%s", connURL, mf.ToolOptions.Port)
 	}
 
 	// check type of node we're connected to, and fall back to w=1 if standalone (for <= 2.4)
@@ -410,7 +410,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	}
 
 	if displayHost {
-		log.Logvf(log.Always, "connected to: %v", connUrl)
+		log.Logvf(log.Always, "connected to: %v", connURL)
 	}
 
 	// first validate the namespaces we'll be using: <db>.<prefix>.files and <db>.<prefix>.chunks
