@@ -189,7 +189,7 @@ func (mf *MongoFiles) handleGet() (err error) {
 	if err != nil {
 		return err
 	}
-	defer func () {
+	defer func() {
 		closeErr := file.Close()
 		if closeErr != nil {
 			err = closeErr
@@ -363,7 +363,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 	if err != nil {
 		return 0, err
 	}
-	defer func () {
+	defer func() {
 		closeErr := gridFile.Close()
 		if closeErr != nil {
 			err = closeErr
@@ -380,7 +380,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		if err != nil {
 			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v", localFileName, err)
 		}
-		defer func () {
+		defer func() {
 			closeErr := localFile.Close()
 			if closeErr != nil {
 				err = closeErr
