@@ -222,9 +222,6 @@ func (mf *MongoFiles) getGFSFiles(query bson.M) (files []*gfsFile, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if out == nil {
-			panic("sadfasdfsadf")
-		}
 		files = append(files, out)
 	}
 
