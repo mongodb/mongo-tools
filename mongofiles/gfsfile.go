@@ -6,6 +6,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
 	driverOptions "github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
@@ -30,6 +31,33 @@ type gfsFile struct {
 // Struct representing the metadata associated with a GridFS files collection document.
 type gfsFileMetadata struct {
 	ContentType string             `bson:"contentType,omitempty"`
+}
+
+func newGfsFile(ID interface{}, name string, mf *MongoFiles) (*gfsFile, error) {
+	if ID == nil || mf == nil {
+		return nil, fmt.Errorf("invalid gfsFile arguments, one of ID (%v) or MongoFiles (%v) nil", ID, mf)
+	}
+
+	return &gfsFile{Name: name, ID: ID, mf: mf}, nil
+}
+
+func newGfsFileFromCursor(cursor mongo.Cursor, mf *MongoFiles) (*gfsFile, error) {
+	if mf == nil {
+		return nil, fmt.Errorf("invalid gfsFile argument, MongoFiles nil")
+	}
+
+	var out gfsFile
+	if err := cursor.Decode(&out); err != nil {
+		return nil, fmt.Errorf("error decoding GFSFile: %v", err)
+	}
+
+	if out.ID == nil {
+		return nil, fmt.Errorf("invalid gfsFile, ID nil")
+	}
+
+	out.mf = mf
+
+	return &out, nil
 }
 
 // Write data to GridFS Upload Stream. If this file has not been written to before, this function will open a new stream that must be closed.

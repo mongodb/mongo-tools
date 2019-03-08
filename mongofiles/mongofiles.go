@@ -204,24 +204,28 @@ func (mf *MongoFiles) handleGet() (err error) {
 }
 
 // Gets all GridFS files that match the given query.
-func (mf *MongoFiles) getGFSFiles(query bson.M) ([]*gfsFile, error) {
+func (mf *MongoFiles) getGFSFiles(query bson.M) (files []*gfsFile, err error) {
 	cursor, err := mf.bucket.Find(query)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.Background())
-
-	var files []*gfsFile
+	defer func() {
+		closeErr := cursor.Close(context.Background())
+		if closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	for cursor.Next(context.Background()) {
-		var out gfsFile
-
-		if err = cursor.Decode(&out); err != nil {
-			return nil, fmt.Errorf("error decoding GFSFile: %v", err)
+		var out *gfsFile
+		out, err = newGfsFileFromCursor(cursor, mf)
+		if err != nil {
+			return nil, err
 		}
-
-		out.mf = mf
-		files = append(files, &out)
+		if out == nil {
+			panic("sadfasdfsadf")
+		}
+		files = append(files, out)
 	}
 
 	return files, nil
@@ -355,7 +359,10 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
 func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err error) {
-	gridFile := gfsFile{Name: name, ID: id, mf: mf}
+	gridFile, err := newGfsFile(id, name, mf)
+	if err != nil {
+		return 0, err
+	}
 	defer func () {
 		closeErr := gridFile.Close()
 		if closeErr != nil {
@@ -363,7 +370,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		}
 	}()
 
-	localFileName := mf.getLocalFileName(&gridFile)
+	localFileName := mf.getLocalFileName(gridFile)
 
 	var localFile io.ReadCloser
 	if localFileName == "-" {
@@ -393,7 +400,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
 
-	n, err := io.Copy(&gridFile, localFile)
+	n, err := io.Copy(gridFile, localFile)
 	if err != nil {
 		return n, fmt.Errorf("error while storing '%v' into GridFS: %v", localFileName, err)
 	}
