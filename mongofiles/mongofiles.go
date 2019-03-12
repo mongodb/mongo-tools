@@ -189,12 +189,6 @@ func (mf *MongoFiles) handleGet() (err error) {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		closeErr := file.Close()
-		if closeErr != nil {
-			err = closeErr
-		}
-	}()
 
 	if err = mf.writeGFSFileToFile(file); err != nil {
 		return err
@@ -346,6 +340,17 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 		}()
 	}
 
+	err = gridFile.OpenForReading()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		closeErr := gridFile.Close()
+		if closeErr != nil {
+			err = closeErr
+		}
+	}()
+
 	if _, err = io.Copy(localFile, gridFile); err != nil {
 		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
 	}
@@ -360,12 +365,6 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 	if err != nil {
 		return 0, err
 	}
-	defer func() {
-		closeErr := gridFile.Close()
-		if closeErr != nil {
-			err = closeErr
-		}
-	}()
 
 	localFileName := mf.getLocalFileName(gridFile)
 
@@ -397,6 +396,16 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
 
+	err = gridFile.OpenForWriting()
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		closeErr := gridFile.Close()
+		if closeErr != nil {
+			err = closeErr
+		}
+	}()
 	n, err := io.Copy(gridFile, localFile)
 	if err != nil {
 		return n, fmt.Errorf("error while storing '%v' into GridFS: %v", localFileName, err)
