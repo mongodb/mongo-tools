@@ -24,8 +24,6 @@ type gfsFile struct {
 
 	// Storage required for reading and writing GridFS files
 	mf         *MongoFiles
-	downStream *gridfs.DownloadStream
-	upStream   *gridfs.UploadStream
 }
 
 // Struct representing the metadata associated with a GridFS files collection document.
@@ -60,88 +58,51 @@ func newGfsFileFromCursor(cursor mongo.Cursor, mf *MongoFiles) (*gfsFile, error)
 	return &out, nil
 }
 
-// OpenForWriting opens a stream for uploading data to a GridFS file.
-// This must be followed by a call to Close to finish the writing.
-func (file *gfsFile) OpenForWriting() error {
-	if file.upStream != nil {
-		return fmt.Errorf("file already open for writing")
-	}
-
+// OpenStreamForWriting opens a stream for uploading data to a GridFS file that must be closed.
+func (file *gfsFile) OpenStreamForWriting() (*gridfs.UploadStream, error) {
 	rawBSON, err := bson.Marshal(file.Metadata)
 	if err != nil {
-		return fmt.Errorf("could not marshal metadata to BSON: %v", err)
+		return nil, fmt.Errorf("could not marshal metadata to BSON: %v", err)
 	}
 
 	doc, err := bsonx.ReadDoc(rawBSON)
 	if err != nil {
-		return fmt.Errorf("could not read metadata to document: %v", err)
+		return nil, fmt.Errorf("could not read metadata to document: %v", err)
 	}
 
 	// TODO: remove this (GO-815)
 	objectID, ok := file.ID.(primitive.ObjectID)
 	if !ok {
-		return fmt.Errorf("need to use objectid for _id")
+		return nil, fmt.Errorf("need to use objectid for _id")
 	}
 
 	stream, err := file.mf.bucket.OpenUploadStreamWithID(objectID, file.Name, &driverOptions.UploadOptions{Metadata: doc})
 	if err != nil {
-		return fmt.Errorf("could not open upload stream: %v", err)
-	}
-	file.upStream = stream
-
-	return nil
-}
-
-// Write data to GridFS Upload Stream. This file must be opened for writing before this function can operate.
-// Note: the go driver buffers data until it hits a chunk size before writing to the database, so if the amount of data is written < chunkSize,
-// the actual write to the database will occur in Close.
-func (file *gfsFile) Write(p []byte) (int, error) {
-	if file.upStream == nil {
-		return 0, fmt.Errorf("file not opened for writing")
+		return nil, fmt.Errorf("could not open upload stream: %v", err)
 	}
 
-	return file.upStream.Write(p)
+	return stream, nil
 }
 
-// OpenForReading opens a stream for reading data from a GridFS file.
-// This must be followed by a call to Close.
-func (file *gfsFile) OpenForReading() error {
+// OpenStreamForReading opens a stream for reading data from a GridFS file that must be closed.
+func (file *gfsFile) OpenStreamForReading() (*gridfs.DownloadStream, error) {
 	// TODO: remove this (GO-815)
 	objectID, ok := file.ID.(primitive.ObjectID)
 	if !ok {
-		return fmt.Errorf("need to use objectid for _id")
+		return nil, fmt.Errorf("need to use objectid for _id")
 	}
 
 	stream, err := file.mf.bucket.OpenDownloadStream(objectID)
 	if err != nil {
-		return fmt.Errorf("could not open download stream: %v", err)
-	}
-	file.downStream = stream
-
-	return nil
-}
-
-// Reads data from GridFS download stream. If this file has not been read from before, this function will open a new stream that must be closed.
-func (file *gfsFile) Read(buf []byte) (int, error) {
-	if file.downStream == nil {
-		return 0, fmt.Errorf("file not opened for reading")
+		return nil, fmt.Errorf("could not open download stream: %v", err)
 	}
 
-	return file.downStream.Read(buf)
+	return stream, nil
 }
 
 // Deletes the corresponding GridFS file in the database and its chunks.
 // Note: this file must be closed if it had been written to before being deleted. Any download streams will be closed as part of this deletion.
 func (file *gfsFile) Delete() error {
-	// This path is not currently exercised, but this check is included as a safety measure in case of future changes (e.g. "abort" functionality).
-	if file.upStream != nil {
-		return fmt.Errorf("this file (%v) must be closed for writing before being deleted", file.Name)
-	}
-
-	if err := file.Close(); err != nil {
-		return err
-	}
-
 	// TODO: remove this (GO-815)
 	objectID, ok := file.ID.(primitive.ObjectID)
 	if !ok {
@@ -155,19 +116,3 @@ func (file *gfsFile) Delete() error {
 	return nil
 }
 
-// Closes any opened Download or Upload streams.
-func (file *gfsFile) Close() error {
-	if file.downStream != nil {
-		if err := file.downStream.Close(); err != nil {
-			return fmt.Errorf("could not close download stream: %v", err)
-		}
-	}
-
-	if file.upStream != nil {
-		if err := file.upStream.Close(); err != nil {
-			return fmt.Errorf("could not close upload stream: %v", err)
-		}
-	}
-
-	return nil
-}

@@ -332,14 +332,14 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 	}
 
-	err = gridFile.OpenForReading()
+	stream, err := gridFile.OpenStreamForReading()
 	if err != nil {
 		return err
 	}
-	dc := util.DeferredCloser{Closer: gridFile}
+	dc := util.DeferredCloser{Closer: stream}
 	defer dc.CloseWithErrorCapture(&err)
 
-	if _, err = io.Copy(localFile, gridFile); err != nil {
+	if _, err = io.Copy(localFile, stream); err != nil {
 		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
 	}
 
@@ -380,14 +380,14 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
 
-	err = gridFile.OpenForWriting()
+	stream, err := gridFile.OpenStreamForWriting()
 	if err != nil {
 		return 0, err
 	}
-	dc := util.DeferredCloser{Closer: gridFile}
+	dc := util.DeferredCloser{Closer: stream}
 	defer dc.CloseWithErrorCapture(&err)
 
-	n, err := io.Copy(gridFile, localFile)
+	n, err := io.Copy(stream, localFile)
 	if err != nil {
 		return n, fmt.Errorf("error while storing '%v' into GridFS: %v", localFileName, err)
 	}
