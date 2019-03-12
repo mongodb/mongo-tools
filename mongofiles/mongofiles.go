@@ -155,7 +155,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 
 // Query GridFS for files and display the results.
 func (mf *MongoFiles) findAndDisplay(query bson.M) (string, error) {
-	gridFiles, err := mf.getGFSFiles(query)
+	gridFiles, err := mf.findGFSFiles(query)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving list of GridFS files: %v", err)
 	}
@@ -190,7 +190,7 @@ func (mf *MongoFiles) handleGet() (err error) {
 		return err
 	}
 
-	if err = mf.writeGFSFileToFile(file); err != nil {
+	if err = mf.writeGFSFileToLocal(file); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (mf *MongoFiles) handleGet() (err error) {
 }
 
 // Gets all GridFS files that match the given query.
-func (mf *MongoFiles) getGFSFiles(query bson.M) (files []*gfsFile, err error) {
+func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 	cursor, err := mf.bucket.Find(query)
 	if err != nil {
 		return nil, err
@@ -230,11 +230,11 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 		queryProp = "_id"
 		query = mf.Id
 
-		id, err := mf.parseID()
+		id, err := mf.parseOrCreateID()
 		if err != nil {
 			return nil, err
 		}
-		gridFiles, err = mf.getGFSFiles(bson.M{"_id": id})
+		gridFiles, err = mf.findGFSFiles(bson.M{"_id": id})
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +242,7 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 		queryProp = "name"
 		query = mf.FileName
 
-		gridFiles, err = mf.getGFSFiles(bson.M{"filename": mf.FileName})
+		gridFiles, err = mf.findGFSFiles(bson.M{"filename": mf.FileName})
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +257,7 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 
 // Delete all files with the given filename.
 func (mf *MongoFiles) deleteAll(filename string) error {
-	gridFiles, err := mf.getGFSFiles(bson.M{"filename": filename})
+	gridFiles, err := mf.findGFSFiles(bson.M{"filename": filename})
 	if err != nil {
 		return err
 	}
@@ -282,13 +282,13 @@ func (mf *MongoFiles) handleDeleteID() error {
 	if err := file.Delete(); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS\n", mf.Id))
+	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS", mf.Id))
 
 	return nil
 }
 
-// parse and convert input extended JSON _id.
-func (mf *MongoFiles) parseID() (interface{}, error) {
+// parse and convert input extended JSON _id. Generates a new ObjectID if no _id provided.
+func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	if mf.Id == "" {
 		return primitive.NewObjectID(), nil
 	}
@@ -317,8 +317,8 @@ func (mf *MongoFiles) parseID() (interface{}, error) {
 	return objectID, nil
 }
 
-// writeGFSFileToFile writes a file from gridFS to stdout or the filesystem.
-func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
+// writeGFSFileToLocal writes a file from gridFS to stdout or the filesystem.
+func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 	localFileName := mf.getLocalFileName(gridFile)
 	var localFile io.WriteCloser
 	if localFileName == "-" {
@@ -397,7 +397,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 
 // handlePut contains the logic for the 'put' and 'put_id' commands
 func (mf *MongoFiles) handlePut() error {
-	id, err := mf.parseID()
+	id, err := mf.parseOrCreateID()
 	if err != nil {
 		return err
 	}
