@@ -203,12 +203,8 @@ func (mf *MongoFiles) getGFSFiles(query bson.M) (files []*gfsFile, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		closeErr := cursor.Close(context.Background())
-		if closeErr != nil {
-			err = closeErr
-		}
-	}()
+	dc := util.DeferredCloser{Closer: &util.CloserCursor{Cursor: cursor}}
+	defer dc.CloseWithErrorCapture(&err)
 
 	for cursor.Next(context.Background()) {
 		var out *gfsFile
@@ -331,25 +327,17 @@ func (mf *MongoFiles) writeGFSFileToFile(gridFile *gfsFile) (err error) {
 		if localFile, err = os.Create(localFileName); err != nil {
 			return fmt.Errorf("error while opening local file '%v': %v", localFileName, err)
 		}
-		defer func() {
-			closeErr := localFile.Close()
-			if closeErr != nil {
-				err = closeErr
-			}
-			log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
-		}()
+		dc := util.DeferredCloser{Closer: localFile}
+		defer dc.CloseWithErrorCapture(&err)
+		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 	}
 
 	err = gridFile.OpenForReading()
 	if err != nil {
 		return err
 	}
-	defer func() {
-		closeErr := gridFile.Close()
-		if closeErr != nil {
-			err = closeErr
-		}
-	}()
+	dc := util.DeferredCloser{Closer: gridFile}
+	defer dc.CloseWithErrorCapture(&err)
 
 	if _, err = io.Copy(localFile, gridFile); err != nil {
 		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
@@ -376,12 +364,8 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		if err != nil {
 			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v", localFileName, err)
 		}
-		defer func() {
-			closeErr := localFile.Close()
-			if closeErr != nil {
-				err = closeErr
-			}
-		}()
+		dc := util.DeferredCloser{Closer: localFile}
+		defer dc.CloseWithErrorCapture(&err)
 		log.Logvf(log.DebugLow, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
 	}
 
@@ -400,12 +384,9 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 	if err != nil {
 		return 0, err
 	}
-	defer func() {
-		closeErr := gridFile.Close()
-		if closeErr != nil {
-			err = closeErr
-		}
-	}()
+	dc := util.DeferredCloser{Closer: gridFile}
+	defer dc.CloseWithErrorCapture(&err)
+
 	n, err := io.Copy(gridFile, localFile)
 	if err != nil {
 		return n, fmt.Errorf("error while storing '%v' into GridFS: %v", localFileName, err)
