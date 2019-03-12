@@ -61,7 +61,7 @@ type MongoFiles struct {
 	FileName string
 
 	// ID to put into GridFS
-	ID string
+	Id string
 
 	// GridFS bucket to operate on
 	bucket *gridfs.Bucket
@@ -131,7 +131,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
 		}
-		mf.ID = args[1]
+		mf.Id = args[1]
 	case PutID:
 		if len(args) > 3 {
 			return fmt.Errorf("too many positional arguments")
@@ -140,7 +140,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 			return fmt.Errorf("'%v' argument(s) missing", args[0])
 		}
 		mf.FileName = args[1]
-		mf.ID = args[2]
+		mf.Id = args[2]
 	default:
 		return fmt.Errorf("'%v' is not a valid command", args[0])
 	}
@@ -226,9 +226,9 @@ func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
 	var queryProp string
 	var query string
 
-	if mf.ID != "" {
+	if mf.Id != "" {
 		queryProp = "_id"
-		query = mf.ID
+		query = mf.Id
 
 		id, err := mf.parseID()
 		if err != nil {
@@ -282,19 +282,19 @@ func (mf *MongoFiles) handleDeleteID() error {
 	if err := file.Delete(); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS\n", mf.ID))
+	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS\n", mf.Id))
 
 	return nil
 }
 
 // parse and convert input extended JSON _id.
 func (mf *MongoFiles) parseID() (interface{}, error) {
-	if mf.ID == "" {
+	if mf.Id == "" {
 		return primitive.NewObjectID(), nil
 	}
 
 	var asJSON interface{}
-	if err := json.Unmarshal([]byte(mf.ID), &asJSON); err != nil {
+	if err := json.Unmarshal([]byte(mf.Id), &asJSON); err != nil {
 		return nil, fmt.Errorf("error parsing provided extJSON: %v", err)
 	}
 

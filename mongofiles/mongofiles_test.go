@@ -130,7 +130,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 		SessionProvider: sessionProvider,
 		Command:         command,
 		FileName:        fname,
-		ID:              ID,
+		Id:              ID,
 	}
 
 	return &mongofiles, nil
