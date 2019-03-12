@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -27,7 +28,7 @@ import (
 )
 
 var (
-	testDBName = "mongofiles_test_db"
+	testDB     = "mongofiles_test_db"
 	testServer = "localhost"
 	testPort   = db.DefaultTestPort
 
@@ -47,7 +48,7 @@ var (
 	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3" : primitive.NewObjectID()}
 )
 
-// put in some test Data into GridFS
+// put in some test data into GridFS
 func setUpGridFSTestData() (map[string]int, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -60,7 +61,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 
 	bytesExpected := map[string]int{}
 
-	testDb := session.Database(testDBName)
+	testDb := session.Database(testDB)
 	bucket, err := gridfs.NewBucket(testDb)
 	if err != nil {
 		return nil, err
@@ -101,7 +102,7 @@ func tearDownGridFSTestData() error {
 		return err
 	}
 
-	if err = session.Database(testDBName).Drop(context.Background()); err != nil {
+	if err = session.Database(testDB).Drop(context.Background()); err != nil {
 		return err
 	}
 
@@ -126,7 +127,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 	mongofiles := MongoFiles{
 		ToolOptions:     toolOptions,
 		InputOptions:    &InputOptions{},
-		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDBName},
+		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
 		SessionProvider: sessionProvider,
 		Command:         command,
 		FileName:        fname,
@@ -603,13 +604,13 @@ func TestDefaultWriteConcern(t *testing.T) {
 	Convey("with a URI that doesn't specify write concern", t, func() {
 		mf, err := getMongofilesWithArgs("get", "filename", "--uri", "mongodb://localhost:33333")
 		So(err, ShouldBeNil)
-		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldBeNil)
+		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 	})
 
 	Convey("with no URI and no write concern option", t, func() {
 		mf, err := getMongofilesWithArgs("get", "filename")
 		So(err, ShouldBeNil)
-		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldBeNil)
+		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 	})
 }
 

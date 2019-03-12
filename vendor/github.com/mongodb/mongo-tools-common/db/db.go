@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo"
 	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
 	"gopkg.in/mgo.v2/bson"
@@ -183,6 +184,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 	if opts.WriteConcern != nil {
 		clientopt.SetWriteConcern(opts.WriteConcern)
+	} else {
+		// If no write concern was specified, default to majority
+		clientopt.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	}
 
 	if opts.Auth != nil {
