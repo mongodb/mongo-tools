@@ -13,9 +13,59 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func getBSONDumpWithArgs(args... string) (*BSONDump, error) {
+	opts, err := ParseOptions(args)
+	if err != nil {
+		return nil, err
+	}
+
+	dump, err := New(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return dump, nil
+}
+
+func TestBlah(t *testing.T) {
+	Convey("Test bsondump reading from a file with --bsonFile and writing to a file", t, func() {
+		//cmd := exec.Command(executable, "--outFile", "out.json",
+		//	"--bsonFile", "testdata/sample.bson")
+
+		dump, err := getBSONDumpWithArgs("--outFile", "out.json", "--bsonFile", "testdata/sample.bson")
+		So(err, ShouldBeNil)
+
+		n, err := dump.JSON()
+		So(err, ShouldBeNil)
+		So(n, ShouldBeGreaterThan, 0)
+		//err := cmd.Run()
+		//So(err, ShouldBeNil)
+
+		// Get the correct bsondump result from a file to use as a reference.
+		outReference, err := os.Open("testdata/sample.json")
+		So(err, ShouldBeNil)
+		bufRef := new(bytes.Buffer)
+		bufRef.ReadFrom(outReference)
+		bufRefStr := bufRef.String()
+
+		// Get the output from a file.
+		outDump, err := os.Open("out.json")
+		So(err, ShouldBeNil)
+		bufDump := new(bytes.Buffer)
+		bufDump.ReadFrom(outDump)
+		bufDumpStr := bufDump.String()
+
+		So(bufDumpStr, ShouldEqual, bufRefStr)
+
+		Reset(func() {
+			os.Remove("out.json")
+		})
+	})
+}
 
 func TestBsondump(t *testing.T) {
 	executable := "../bin/bsondump"
@@ -124,11 +174,17 @@ func TestBsondump(t *testing.T) {
 	})
 
 	Convey("Test bsondump reading from a file with --bsonFile and writing to a file", t, func() {
-		cmd := exec.Command(executable, "--outFile", "out.json",
-			"--bsonFile", "testdata/sample.bson")
+		//cmd := exec.Command(executable, "--outFile", "out.json",
+		//	"--bsonFile", "testdata/sample.bson")
 
-		err := cmd.Run()
+		dump, err := getBSONDumpWithArgs("--outFile", "out.json", "--bsonFile", "testdata/sample.bson")
 		So(err, ShouldBeNil)
+
+		n, err := dump.JSON()
+		So(err, ShouldBeNil)
+		So(n, ShouldBeGreaterThan, 0)
+		//err := cmd.Run()
+		//So(err, ShouldBeNil)
 
 		// Get the correct bsondump result from a file to use as a reference.
 		outReference, err := os.Open("testdata/sample.json")

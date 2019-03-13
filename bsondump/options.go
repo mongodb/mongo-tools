@@ -6,13 +6,24 @@
 
 package bsondump
 
+import (
+	"fmt"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+)
+
 var Usage = `<options> <file>
 
 View and debug .bson files.
 
 See http://docs.mongodb.org/manual/reference/program/bsondump/ for more information.`
 
-type BSONDumpOptions struct {
+type Options struct {
+	*options.ToolOptions
+	*OutputOptions
+}
+
+type OutputOptions struct {
 	// Format to display the BSON data file
 	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"type of output: debug, json (default 'json')"`
 
@@ -29,14 +40,46 @@ type BSONDumpOptions struct {
 	OutFileName string `long:"outFile" description:"path to output file to dump BSON to; default is stdout"`
 }
 
-func (_ *BSONDumpOptions) Name() string {
+func (_ *OutputOptions) Name() string {
 	return "output"
 }
 
-func (_ *BSONDumpOptions) PostParse() error {
+func (_ *OutputOptions) PostParse() error {
 	return nil
 }
 
-func (_ *BSONDumpOptions) Validate() error {
+func (_ *OutputOptions) Validate() error {
 	return nil
+}
+
+func ParseOptions(rawArgs []string) (*Options, error) {
+	toolOpts := options.New("bsondump", Usage, options.EnabledOptions{})
+	outputOpts := &OutputOptions{}
+	toolOpts.AddOptions(outputOpts)
+
+	args, err := toolOpts.ParseArgs(rawArgs)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing command line options: %v", err)
+	}
+
+	log.SetVerbosity(toolOpts.Verbosity)
+
+	if len(args) > 1 {
+		return nil, fmt.Errorf("too many positional arguments: %v", args)
+	}
+
+	// If the user specified a bson input file
+	if len(args) == 1 {
+		if outputOpts.BSONFileName != "" {
+			return nil, fmt.Errorf("cannot specify both a positional argument and --bsonFile")
+		}
+
+		outputOpts.BSONFileName = args[0]
+	}
+
+	if len(outputOpts.Type) != 0 && outputOpts.Type != "debug" && outputOpts.Type != "json" {
+		return nil, fmt.Errorf("unsupported output type '%v'. Must be either 'debug' or 'json'", outputOpts.Type)
+	}
+
+	return &Options{toolOpts, outputOpts}, nil
 }

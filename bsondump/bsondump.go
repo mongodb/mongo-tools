@@ -15,14 +15,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/failpoint"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/failpoint"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/util"
 )
 
 // BSONDump is a container for the user-specified options and
@@ -31,8 +32,8 @@ type BSONDump struct {
 	// generic mongo tool options
 	ToolOptions *options.ToolOptions
 
-	// BSONDumpOptions defines options used to control how BSON data is displayed
-	BSONDumpOptions *BSONDumpOptions
+	// OutputOptions defines options used to control how BSON data is displayed
+	OutputOptions *OutputOptions
 
 	// File handle for the output data.
 	Out io.WriteCloser
@@ -52,9 +53,9 @@ type WriteNopCloser struct {
 
 func (WriteNopCloser) Close() error { return nil }
 
-// GetWriter opens and returns an io.WriteCloser for the OutFileName in BSONDumpOptions
+// GetWriter opens and returns an io.WriteCloser for the OutFileName in OutputOptions
 // or nil if none is set. The caller is responsible for closing it.
-func (bdo *BSONDumpOptions) GetWriter() (io.WriteCloser, error) {
+func (bdo *OutputOptions) GetWriter() (io.WriteCloser, error) {
 	if bdo.OutFileName != "" {
 		file, err := os.Create(util.ToUniversalPath(bdo.OutFileName))
 		if err != nil {
@@ -66,9 +67,9 @@ func (bdo *BSONDumpOptions) GetWriter() (io.WriteCloser, error) {
 	return WriteNopCloser{os.Stdout}, nil
 }
 
-// GetBSONReader opens and returns an io.ReadCloser for the BSONFileName in BSONDumpOptions
+// GetBSONReader opens and returns an io.ReadCloser for the BSONFileName in OutputOptions
 // or nil if none is set. The caller is responsible for closing it.
-func (bdo *BSONDumpOptions) GetBSONReader() (io.ReadCloser, error) {
+func (bdo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
 	if bdo.BSONFileName != "" {
 		file, err := os.Open(util.ToUniversalPath(bdo.BSONFileName))
 		if err != nil {
@@ -79,27 +80,56 @@ func (bdo *BSONDumpOptions) GetBSONReader() (io.ReadCloser, error) {
 	return ReadNopCloser{os.Stdin}, nil
 }
 
-func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
-	decodedDoc := bson.D{}
-	err := bson.Unmarshal(doc.Data, &decodedDoc)
-	if err != nil {
-		return nil, err
+func New(opts *Options) (*BSONDump, error) {
+	dumper := &BSONDump{
+		ToolOptions:   opts.ToolOptions,
+		OutputOptions: opts.OutputOptions,
 	}
 
-	extendedDoc, err := bsonutil.ConvertBSONValueToJSON(decodedDoc)
+	reader, err := opts.GetBSONReader()
+	if err != nil {
+		log.Logvf(log.Always, "Getting BSON Reader Failed: %v", err)
+		os.Exit(util.ExitError)
+	}
+	dumper.BSONSource = db.NewBSONSource(reader)
+
+	writer, err := opts.GetWriter()
+	if err != nil {
+		log.Logvf(log.Always, "Getting Writer Failed: %v", err)
+		_ = reader.Close()
+		os.Exit(util.ExitError)
+	}
+	dumper.Out = writer
+
+	return dumper, nil
+}
+
+func (bd *BSONDump) Close() error {
+	if err := bd.Out.Close(); err != nil {
+		return err
+	}
+
+	if err := bd.BSONSource.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
+	extendedJSON, err := bson.MarshalExtJSON(doc, false, false)
 	if err != nil {
 		return nil, fmt.Errorf("error converting BSON to extended JSON: %v", err)
 	}
-	jsonBytes, err := json.Marshal(extendedDoc)
+
 	if pretty {
 		var jsonFormatted bytes.Buffer
-		json.Indent(&jsonFormatted, jsonBytes, "", "\t")
-		jsonBytes = jsonFormatted.Bytes()
+		if err := json.Indent(&jsonFormatted, extendedJSON, "", "\t"); err != nil {
+			return nil, fmt.Errorf("error pretty-ifying extended JSON: %v", err)
+		}
+		extendedJSON = jsonFormatted.Bytes()
 	}
-	if err != nil {
-		return nil, fmt.Errorf("error converting doc to JSON: %v", err)
-	}
-	return jsonBytes, nil
+	return extendedJSON, nil
 }
 
 // JSON iterates through the BSON file and for each document it finds,
@@ -114,15 +144,13 @@ func (bd *BSONDump) JSON() (int, error) {
 		panic("Tried to call JSON() before opening file")
 	}
 
-	decodedStream := db.NewDecodedBSONSource(bd.BSONSource)
-
-	var result bson.Raw
-	for decodedStream.Next(&result) {
-		if bytes, err := formatJSON(&result, bd.BSONDumpOptions.Pretty); err != nil {
+	result := bson.Raw(bd.BSONSource.LoadNext())
+	for result != nil {
+		if bytes, err := formatJSON(&result, bd.OutputOptions.Pretty); err != nil {
 			log.Logvf(log.Always, "unable to dump document %v: %v", numFound+1, err)
 
 			//if objcheck is turned on, stop now. otherwise keep on dumpin'
-			if bd.BSONDumpOptions.ObjCheck {
+			if bd.OutputOptions.ObjCheck {
 				return numFound, err
 			}
 		} else {
@@ -136,11 +164,9 @@ func (bd *BSONDump) JSON() (int, error) {
 		if failpoint.Enabled(failpoint.SlowBSONDump) {
 			time.Sleep(2 * time.Second)
 		}
+		result = bd.BSONSource.LoadNext()
+	}
 
-	}
-	if err := decodedStream.Err(); err != nil {
-		return numFound, err
-	}
 	return numFound, nil
 }
 
@@ -162,11 +188,11 @@ func (bd *BSONDump) Debug() (int, error) {
 		if doc == nil {
 			break
 		}
-		result.Data = doc
+		result = doc
 
-		if bd.BSONDumpOptions.ObjCheck {
+		if bd.OutputOptions.ObjCheck {
 			validated := bson.M{}
-			err := bson.Unmarshal(result.Data, &validated)
+			err := bson.Unmarshal(result, &validated)
 			if err != nil {
 				// ObjCheck is turned on and we hit an error, so short-circuit now.
 				return numFound, fmt.Errorf("failed to validate bson during objcheck: %v", err)
@@ -192,16 +218,17 @@ func (bd *BSONDump) Debug() (int, error) {
 func printBSON(raw bson.Raw, indentLevel int, out io.Writer) error {
 	indent := strings.Repeat("\t", indentLevel)
 	fmt.Fprintf(out, "%v--- new object ---\n", indent)
-	fmt.Fprintf(out, "%v\tsize : %v\n", indent, len(raw.Data))
+	fmt.Fprintf(out, "%v\tsize : %v\n", indent, len(raw))
 
-	//Convert raw into an array of RawD we can iterate over.
-	var rawD bson.RawD
-	err := bson.Unmarshal(raw.Data, &rawD)
+	elements, err := raw.Elements()
 	if err != nil {
 		return err
 	}
-	for _, rawElem := range rawD {
-		fmt.Fprintf(out, "%v\t\t%v\n", indent, rawElem.Name)
+	for _, rawElem := range elements {
+		key := rawElem.Key()
+		value := rawElem.Value()
+
+		fmt.Fprintf(out, "%v\t\t%v\n", indent, key)
 
 		// the size of an element is the combined size of the following:
 		// 1. 1 byte for the BSON type
@@ -209,12 +236,12 @@ func printBSON(raw bson.Raw, indentLevel int, out io.Writer) error {
 		// 3. The BSON value
 		// So size == 1 [size of type byte] +  1 [null byte for cstring key] + len(bson key) + len(bson value)
 		// see http://bsonspec.org/spec.html for more details
-		fmt.Fprintf(out, "%v\t\t\ttype: %4v size: %v\n", indent, int8(rawElem.Value.Kind),
-			2+len(rawElem.Name)+len(rawElem.Value.Data))
+		fmt.Fprintf(out, "%v\t\t\ttype: %4v size: %v\n", indent, int8(value.Type),
+			2+len(key)+len(value.Value))
 
 		//For nested objects or arrays, recurse.
-		if rawElem.Value.Kind == 0x03 || rawElem.Value.Kind == 0x04 {
-			err = printBSON(rawElem.Value, indentLevel+3, out)
+		if value.Type == bsontype.EmbeddedDocument || value.Type == bsontype.Array {
+			err = printBSON(value.Value, indentLevel+3, out)
 			if err != nil {
 				return err
 			}
