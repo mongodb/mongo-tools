@@ -31,7 +31,7 @@ Possible commands include:
 
 See http://docs.mongodb.org/manual/reference/program/mongofiles/ for more information.`
 
-// ParseOptions creates a new ToolOptions and configures it using the command line arguments.
+// ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance
 func ParseOptions(rawArgs []string) (Options, error) {
 	// initialize command-line opts
 	opts := options.New("mongofiles", Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
