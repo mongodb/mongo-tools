@@ -7,7 +7,7 @@
 package db
 
 import (
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/options"
 	"gopkg.in/mgo.v2/bson"

@@ -48,45 +48,6 @@
   version = "v4.20"
 
 [[projects]]
-  digest = "1:27fa1b385644151ee1fc0c8b04f1f86963d9701335491b94488fd3912e370354"
-  name = "github.com/mongodb/mongo-go-driver"
-  packages = [
-    "bson",
-    "bson/bsoncodec",
-    "bson/bsonrw",
-    "bson/bsontype",
-    "bson/primitive",
-    "event",
-    "internal",
-    "mongo",
-    "mongo/options",
-    "mongo/readconcern",
-    "mongo/readpref",
-    "mongo/writeconcern",
-    "tag",
-    "version",
-    "x/bsonx",
-    "x/bsonx/bsoncore",
-    "x/mongo/driver",
-    "x/mongo/driver/auth",
-    "x/mongo/driver/auth/internal/gssapi",
-    "x/mongo/driver/session",
-    "x/mongo/driver/topology",
-    "x/mongo/driver/uuid",
-    "x/network/address",
-    "x/network/command",
-    "x/network/compressor",
-    "x/network/connection",
-    "x/network/connstring",
-    "x/network/description",
-    "x/network/result",
-    "x/network/wiremessage",
-  ]
-  pruneopts = "UT"
-  revision = "3cfdc9ffcf780eede57d27ec26a3edad4c9ab6a9"
-  version = "v0.2.0"
-
-[[projects]]
   digest = "1:cc1c574c9cb5e99b123888c12b828e2d19224ab6c2244bda34647f230bf33243"
   name = "github.com/smartystreets/assertions"
   packages = [
@@ -124,6 +85,45 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
+
+[[projects]]
+  digest = "1:21f9cb6f1337c4776ed1d2d7b7ed6ffba3269ca12274c065364a5c0edee1f28b"
+  name = "go.mongodb.org/mongo-driver"
+  packages = [
+    "bson",
+    "bson/bsoncodec",
+    "bson/bsonrw",
+    "bson/bsontype",
+    "bson/primitive",
+    "event",
+    "internal",
+    "mongo",
+    "mongo/options",
+    "mongo/readconcern",
+    "mongo/readpref",
+    "mongo/writeconcern",
+    "tag",
+    "version",
+    "x/bsonx",
+    "x/bsonx/bsoncore",
+    "x/mongo/driver",
+    "x/mongo/driver/auth",
+    "x/mongo/driver/auth/internal/gssapi",
+    "x/mongo/driver/session",
+    "x/mongo/driver/topology",
+    "x/mongo/driver/uuid",
+    "x/network/address",
+    "x/network/command",
+    "x/network/compressor",
+    "x/network/connection",
+    "x/network/connstring",
+    "x/network/description",
+    "x/network/result",
+    "x/network/wiremessage",
+  ]
+  pruneopts = "UT"
+  revision = "1c3b9b9a41eecdf056560e07b68e6407b8d598c3"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:79784b4d6789bbd40f17a9d204051bdd887d889acbbdc24ed8263b3dca28dfbf"
@@ -178,14 +178,14 @@
   input-imports = [
     "github.com/howeyc/gopass",
     "github.com/jessevdk/go-flags",
-    "github.com/mongodb/mongo-go-driver/bson",
-    "github.com/mongodb/mongo-go-driver/bson/primitive",
-    "github.com/mongodb/mongo-go-driver/mongo",
-    "github.com/mongodb/mongo-go-driver/mongo/options",
-    "github.com/mongodb/mongo-go-driver/mongo/readpref",
-    "github.com/mongodb/mongo-go-driver/mongo/writeconcern",
-    "github.com/mongodb/mongo-go-driver/tag",
     "github.com/smartystreets/goconvey/convey",
+    "go.mongodb.org/mongo-driver/bson",
+    "go.mongodb.org/mongo-driver/bson/primitive",
+    "go.mongodb.org/mongo-driver/mongo",
+    "go.mongodb.org/mongo-driver/mongo/options",
+    "go.mongodb.org/mongo-driver/mongo/readpref",
+    "go.mongodb.org/mongo-driver/mongo/writeconcern",
+    "go.mongodb.org/mongo-driver/tag",
     "golang.org/x/crypto/ssh/terminal",
     "gopkg.in/mgo.v2",
     "gopkg.in/mgo.v2/bson",

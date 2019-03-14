@@ -10,9 +10,9 @@ import (
 	"context"
 	"fmt"
 
-	gbson "github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo"
-	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
+	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 )
 
