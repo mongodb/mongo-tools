@@ -350,6 +350,10 @@ func (auth *Auth) RequiresExternalDB() bool {
 	return auth.Mechanism == "GSSAPI" || auth.Mechanism == "PLAIN" || auth.Mechanism == "MONGODB-X509"
 }
 
+func (auth *Auth) IsSet() bool {
+	return *auth != Auth{}
+}
+
 // ShouldAskForPassword returns true if the user specifies a username flag
 // but no password, and the authentication mechanism requires a password.
 func (auth *Auth) ShouldAskForPassword() bool {

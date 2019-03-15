@@ -10,8 +10,6 @@ package mongodump
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"github.com/mongodb/mongo-tools-common/archive"
 	"github.com/mongodb/mongo-tools-common/auth"
 	"github.com/mongodb/mongo-tools-common/bsonutil"
@@ -23,6 +21,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"gopkg.in/mgo.v2/bson"
 
 	"bufio"
