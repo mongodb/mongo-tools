@@ -175,7 +175,19 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 // configure the client according to the options set in the uri and command line, with command line options having preference.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
+
+	if opts.URI == nil || opts.URI.ConnectionString == "" {
+		// XXX Normal operations shouldn't ever reach here because a URI should
+		// be created in options parsing, but tests still manually construct
+		// options and generally don't construct a URI, so we invoke the URI
+		// normalization routine here to correct for that.
+		opts.NormalizeHostPortURI()
+	}
+
 	uriOpts := mopt.Client().ApplyURI(opts.URI.ConnectionString)
+	if err := uriOpts.Validate(); err != nil {
+		return nil, fmt.Errorf("error parsing options from URI: %v", err)
+	}
 	timeout := time.Duration(opts.Timeout) * time.Second
 
 	clientopt.SetConnectTimeout(timeout)
@@ -193,7 +205,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	}
 
-	if opts.Auth != nil {
+	if opts.Auth != nil && opts.Auth.Source != "" {
 		cred := mopt.Credential{
 			Username:      opts.Auth.Username,
 			Password:      opts.Auth.Password,
@@ -211,7 +223,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetAuth(cred)
 	}
 
-	if opts.SSL != nil {
+	if opts.SSL != nil && opts.UseSSL {
 		// Error on unsupported features
 		if opts.SSLFipsMode {
 			return nil, fmt.Errorf("FIPS mode not supported")
@@ -240,14 +252,6 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			}
 		}
 		clientopt.SetTLSConfig(tlsConfig.Config)
-	}
-
-	if opts.URI == nil || opts.URI.ConnectionString == "" {
-		// XXX Normal operations shouldn't ever reach here because a URI should
-		// be created in options parsing, but tests still manually construct
-		// options and generally don't construct a URI, so we invoke the URI
-		// normalization routine here to correct for that.
-		opts.NormalizeHostPortURI()
 	}
 
 	return mongo.NewClient(uriOpts, clientopt)

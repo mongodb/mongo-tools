@@ -660,13 +660,8 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 					close(buffChan)
 					return
 				}
-				var reader bson.Raw
-				if err := iter.Decode(&reader); err != nil {
-					termErr = err
-					close(buffChan)
-					return
-				}
-				out, err := filter(reader.Data)
+
+				out, err := filter(iter.Current)
 				if err != nil {
 					termErr = err
 					close(buffChan)
