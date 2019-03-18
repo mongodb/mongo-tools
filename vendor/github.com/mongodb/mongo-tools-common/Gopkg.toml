@@ -34,10 +34,6 @@
   revision = "97448c91aac742cbca3d020b3e769013a420a06f"
 
 [[constraint]]
-  name = "github.com/mongodb/mongo-go-driver"
-  version = "v0.2.0"
-
-[[constraint]]
   name = "github.com/smartystreets/goconvey"
   revision = "bf58a9a1291224109919756b4dcc469c670cc7e4"
 

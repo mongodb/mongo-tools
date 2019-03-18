@@ -172,7 +172,7 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	return &SessionProvider{client: client}, nil
 }
 
-// configure the client according to the options set in the uri and command line, with command line options having preference.
+// configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
 

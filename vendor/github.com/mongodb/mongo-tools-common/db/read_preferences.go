@@ -9,9 +9,9 @@ package db
 import (
 	"fmt"
 
+	"github.com/mongodb/mongo-tools-common/json"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
-	"github.com/mongodb/mongo-tools-common/json"
 )
 
 type readPrefDoc struct {

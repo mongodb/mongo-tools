@@ -7,11 +7,11 @@
 package db
 
 import (
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"gopkg.in/mgo.v2"
 
 	"fmt"

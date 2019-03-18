@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4a0c6bb4805508a6287675fac876be2ac1182539ca8a32468d8128882e9d5009"
+  digest = "1:e4f5819333ac698d294fe04dbf640f84719658d5c7ce195b10060cc37292ce79"
   name = "github.com/golang/snappy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
+  revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
 
 [[projects]]
   branch = "master"
@@ -23,7 +23,7 @@
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
   pruneopts = "UT"
-  revision = "d547d1d9531ed93dbdebcbff7f83e7c876a1e0ee"
+  revision = "847fc94819f9d5a4e7154e2203b36f6dbace6f48"
 
 [[projects]]
   digest = "1:8e9ae4fedb2abb5267f2cd69f8d3010e6c464a9c51d1fa1f9d192c0757ac691a"
@@ -141,7 +141,7 @@
   name = "golang.org/x/sync"
   packages = ["semaphore"]
   pruneopts = "UT"
-  revision = "37e7f081c4d4c64e13b10787722085407fe5d15f"
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
@@ -186,6 +186,7 @@
     "go.mongodb.org/mongo-driver/mongo/readpref",
     "go.mongodb.org/mongo-driver/mongo/writeconcern",
     "go.mongodb.org/mongo-driver/tag",
+    "go.mongodb.org/mongo-driver/x/network/connection",
     "golang.org/x/crypto/ssh/terminal",
     "gopkg.in/mgo.v2",
     "gopkg.in/mgo.v2/bson",

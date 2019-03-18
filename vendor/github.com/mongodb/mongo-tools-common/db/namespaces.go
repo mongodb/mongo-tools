@@ -12,10 +12,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mongodb/mongo-tools-common/log"
 	gbson "go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"github.com/mongodb/mongo-tools-common/log"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )

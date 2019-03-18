@@ -18,12 +18,12 @@ import (
 	"time"
 
 	flags "github.com/jessevdk/go-flags"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
