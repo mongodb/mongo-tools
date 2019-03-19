@@ -179,6 +179,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetSocketTimeout(SocketTimeout * time.Second)
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
 	clientopt.SetSingle(opts.Direct)
+	clientopt.SetAppName(opts.AppName)
 	if opts.ReadPreference != nil {
 		clientopt.SetReadPreference(opts.ReadPreference)
 	}
