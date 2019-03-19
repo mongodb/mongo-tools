@@ -111,10 +111,6 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("--db is required when --excludeCollection is specified")
 	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.DB == "":
 		return fmt.Errorf("--db is required when --excludeCollectionsWithPrefix is specified")
-	case dump.OutputOptions.Repair && dump.InputOptions.Query != "":
-		return fmt.Errorf("cannot run a query with --repair enabled")
-	case dump.OutputOptions.Repair && dump.InputOptions.QueryFile != "":
-		return fmt.Errorf("cannot run a queryFile with --repair enabled")
 	case dump.OutputOptions.Out != "" && dump.OutputOptions.Archive != "":
 		return fmt.Errorf("--out not allowed when --archive is specified")
 	case dump.OutputOptions.Out == "-" && dump.OutputOptions.Gzip:
@@ -165,11 +161,6 @@ func (dump *MongoDump) Init() error {
 	// warn if we are trying to dump from a secondary in a sharded cluster
 	if dump.isMongos && pref != readpref.Primary() {
 		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
-	}
-
-	// return a helpful error message for mongos --repair
-	if dump.OutputOptions.Repair && dump.isMongos {
-		return fmt.Errorf("--repair flag cannot be used on a mongos")
 	}
 
 	dump.manager = intents.NewIntentManager()
@@ -288,22 +279,6 @@ func (dump *MongoDump) Dump() (err error) {
 		err = dump.CreateUsersRolesVersionIntentsForDB(dump.ToolOptions.DB)
 		if err != nil {
 			return err
-		}
-	}
-
-	// verify we can use repair cursors
-	if dump.OutputOptions.Repair {
-		log.Logv(log.DebugLow, "verifying that the connected server supports repairCursor")
-		if dump.isMongos {
-			return fmt.Errorf("cannot use --repair on mongos")
-		}
-		exampleIntent := dump.manager.Peek()
-		if exampleIntent != nil {
-			supported, err := dump.SessionProvider.SupportsRepairCursor(
-				exampleIntent.DB, exampleIntent.C)
-			if !supported {
-				return err // no extra context needed
-			}
 		}
 	}
 
@@ -560,29 +535,9 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		}
 	}
 
-	if !dump.OutputOptions.Repair {
-		log.Logvf(log.Always, "writing %v to %v", intent.Namespace(), intent.Location)
-		if dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer); err != nil {
-			return err
-		}
-	} else {
-		// handle repairs as a special case, since we cannot count them
-		log.Logvf(log.Always, "writing repair of %v to %v", intent.Namespace(), intent.Location)
-		// XXX Have to fake Repair until we have an equivalent
-		// -- xdg, 2018-09-19
-		// 		repairIter := session.Database(intent.DB).Collection(intent.C).Repair()
-		repairIter, err := session.Database(intent.DB).Collection(intent.C).Find(nil, bson.D{})
-		defer repairIter.Close(context.Background())
-		if err != nil {
-			return err
-		}
-		repairCounter := progress.NewCounter(1) // this counter is ignored
-		if err := dump.dumpIterToWriter(repairIter, buffer, repairCounter); err != nil {
-			return fmt.Errorf("repair error: %v", err)
-		}
-		_, repairCount := repairCounter.Progress()
-		log.Logvf(log.Always, "\trepair cursor found %v %v in %v",
-			repairCount, docPlural(repairCount), intent.Namespace())
+	log.Logvf(log.Always, "writing %v to %v", intent.Namespace(), intent.Location)
+	if dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer); err != nil {
+		return err
 	}
 
 	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))

@@ -40,8 +40,3 @@ func (q *DeferredQuery) Iter() (mongo.Cursor, error) {
 	}
 	return q.Coll.Find(nil, filter, opts)
 }
-
-// XXX temporary fix; fake a Repair via regular cursor
-func (q *DeferredQuery) Repair() (mongo.Cursor, error) {
-	return q.Iter()
-}

@@ -8,7 +8,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
@@ -182,43 +181,6 @@ func (sp *SessionProvider) IsMongos() (bool, error) {
 //
 // 	return false, nil
 // }
-
-// SupportsRepairCursor takes in an example db and collection name and
-// returns true if the connected server supports the repairCursor command.
-// It returns false and the error that occurred if it is not supported.
-func (sp *SessionProvider) SupportsRepairCursor(db, collection string) (bool, error) {
-	// XXX disable for now -- xdg, 2018-09-19
-	return false, fmt.Errorf("--repair flag cannot be used until supported by the Go driver")
-	// 	session, err := sp.GetSession()
-	// 	if err != nil {
-	// 		return false, err
-	// 	}
-	//
-	// 	// This check is slightly hacky, but necessary to allow users to run repair without
-	// 	// permissions to all collections. There are multiple reasons a repair command could fail,
-	// 	// but we are only interested in the ones that imply that the repair command is not
-	// 	// usable by the connected server. If we do not get one of these specific error messages,
-	// 	// we will let the error happen again later.
-	// 	//
-	// 	// XXX Repair not available, maybe have to just run command and see
-	// 	// what raw result we get -- xdg, 2018-09-19
-	// 	repairIter := session.Database(db).Collection(collection).Repair()
-	// 	repairIter.Next(bson.D{})
-	// 	err = repairIter.Err()
-	// 	if err == nil {
-	// 		return true, nil
-	// 	}
-	// 	if strings.Index(err.Error(), "no such cmd: repairCursor") > -1 {
-	// 		// return a helpful error message for early server versions
-	// 		return false, fmt.Errorf("--repair flag cannot be used on mongodb versions before 2.7.8")
-	// 	}
-	// 	if strings.Index(err.Error(), "repair iterator not supported") > -1 {
-	// 		// helpful error message if the storage engine does not support repair (WiredTiger)
-	// 		return false, fmt.Errorf("--repair is not supported by the connected storage engine")
-	// 	}
-	//
-	// 	return true, nil
-}
 
 //
 // // SupportsWriteCommands returns true if the connected server supports write

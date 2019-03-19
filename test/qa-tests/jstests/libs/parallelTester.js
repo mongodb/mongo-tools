@@ -117,7 +117,6 @@ if (typeof _threadInject !== "undefined") {
     // some tests can't run in parallel with most others
     var skipTests = makeKeys([
       "dbadmin.js",
-      "repair.js",
       "cursor8.js",
       "recstore.js",
       "extent.js",
