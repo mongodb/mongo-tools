@@ -53,7 +53,7 @@
   revision = "d9eb7a3d35ec988b8585d4a0068e462c27d28380"
 
 [[projects]]
-  digest = "1:6ab71fd3d97c04408a09606acd1c3e56d2546f962b1c57dd6e249ed36c5ed1f9"
+  digest = "1:f9c618e8c569f950d5cd339a475eaef92e02e5e63d1434fd7e7881bfa5f02901"
   name = "github.com/google/gopacket"
   packages = [
     ".",
@@ -62,15 +62,15 @@
     "tcpassembly",
   ]
   pruneopts = "T"
-  revision = "1b0b78901cdd351ecfc68bf1a2adafcd2ff30220"
+  revision = "7edef24d642a09d18efcf1e00a9dc2d4c6342c82"
 
 [[projects]]
   branch = "master"
-  digest = "1:4d4c5d77b8fc930d16722d1d271788b96e304db03888d4552ade6d8cfc650d11"
+  digest = "1:c5b612f12dc3ba60fc0a6ff1508890954df5dbd9757bdeb601014018f1f730c2"
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
   pruneopts = "T"
-  revision = "d547d1d9531ed93dbdebcbff7f83e7c876a1e0ee"
+  revision = "847fc94819f9d5a4e7154e2203b36f6dbace6f48"
 
 [[projects]]
   digest = "1:8e9ae4fedb2abb5267f2cd69f8d3010e6c464a9c51d1fa1f9d192c0757ac691a"
