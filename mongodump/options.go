@@ -7,8 +7,8 @@
 package mongodump
 
 import (
-	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/options"
+	"go.mongodb.org/mongo-driver/x/network/connstring"
 
 	"fmt"
 	"io/ioutil"

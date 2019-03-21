@@ -187,6 +187,7 @@
     "go.mongodb.org/mongo-driver/mongo/writeconcern",
     "go.mongodb.org/mongo-driver/tag",
     "go.mongodb.org/mongo-driver/x/network/connection",
+    "go.mongodb.org/mongo-driver/x/network/connstring",
     "golang.org/x/crypto/ssh/terminal",
     "gopkg.in/mgo.v2",
     "gopkg.in/mgo.v2/bson",

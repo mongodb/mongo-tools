@@ -18,12 +18,12 @@ import (
 	"time"
 
 	flags "github.com/jessevdk/go-flags"
-	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
@@ -454,7 +454,7 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 
 func (opts *ToolOptions) NormalizeHostPortURI() error {
 	if opts.URI != nil && opts.URI.ConnectionString != "" {
-		cs, err := connstring.ParseURIConnectionString(opts.URI.ConnectionString)
+		cs, err := connstring.Parse(opts.URI.ConnectionString)
 		if err != nil {
 			return err
 		}
@@ -527,29 +527,27 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	opts.Direct = (cs.Connect == connstring.SingleConnect)
 	opts.ReplicaSetName = cs.ReplicaSet
 
-	if cs.UseSSL && !BuiltWithSSL {
-		if cs.UsingSRV {
+	if cs.SSL && !BuiltWithSSL {
+		if strings.HasPrefix(cs.Original, "mongodb+srv") {
 			return fmt.Errorf("SSL enabled by default when using SRV but tool not built with SSL: " +
 				"SSL must be explicitly disabled with ssl=false in the connection string")
 		}
 		return fmt.Errorf("cannot use ssl: tool not built with SSL support")
 	}
-	if cs.UseSSLSeen {
-		if opts.SSL.UseSSL && !cs.UseSSL {
+	if cs.SSLSet {
+		if opts.SSL.UseSSL && !cs.SSL {
 			return fmt.Errorf(ConflictingArgsErrorFormat, "--ssl")
 		}
-		opts.SSL.UseSSL = cs.UseSSL
+		opts.SSL.UseSSL = cs.SSL
 	}
 
-	if cs.KerberosService != "" && !BuiltWithGSSAPI {
-		return fmt.Errorf("cannot specify gssapiservicename: tool not built with kerberos support")
+	if strings.ToLower(cs.AuthMechanism) == "gssapi" {
+		if !BuiltWithGSSAPI {
+			return fmt.Errorf("cannot specify gssapiservicename: tool not built with kerberos support")
+		}
+		opts.Kerberos.Service = cs.AuthMechanismProperties["SERVICE_NAME"]
+		opts.Kerberos.ServiceHost = cs.AuthMechanismProperties["SERVICE_HOST"]
 	}
-	if cs.KerberosServiceHost != "" && !BuiltWithGSSAPI {
-		return fmt.Errorf("cannot specify gssapihostname: tool not built with kerberos support")
-	}
-
-	opts.Kerberos.Service = cs.KerberosService
-	opts.Kerberos.ServiceHost = cs.KerberosServiceHost
 
 	for _, extraOpts := range opts.URI.extraOptionsRegistry {
 		if uriSetter, ok := extraOpts.(URISetter); ok {

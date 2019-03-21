@@ -29,7 +29,11 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  branch = "master"
+  revision = "0553bca581f9fceb23db4aea7fa40dc203c9528a"
+
+[[constraint]]
+  name = "go.mongodb.org/mongo-driver"
+  version = "~1.0.0"
 
 [[constraint]]
   name = "github.com/10gen/escaper"
@@ -120,8 +124,3 @@ required = ["github.com/3rf/mongo-lint"]
 [prune]
   go-tests = true
   # unused-packages = true
-
-
-[[constraint]]
-  name = "go.mongodb.org/mongo-driver"
-  version = "~1.0.0"
