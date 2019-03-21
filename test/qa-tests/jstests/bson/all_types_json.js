@@ -14,12 +14,11 @@
   assert.strContains("$binary", results, "bson type 'binary' should be present in the debug output");
   assert.strContains("$date", results, "bson type 'date' should be present in the debug output");
   assert.strContains("$timestamp", results, "bson type 'timestamp' should be present in the debug output");
-  assert.strContains("$regex", results, "bson type 'regex' should be present in the debug output");
+  assert.strContains("$regularExpression", results, "bson type 'regex' should be present in the debug output");
   assert.strContains("$oid", results, "bson type 'oid' should be present in the debug output");
   assert.strContains("$undefined", results, "bson type 'undefined' should be present in the debug output");
   assert.strContains("$minKey", results, "bson type 'min' should be present in the debug output");
   assert.strContains("$maxKey", results, "bson type 'max' should be present in the debug output");
-  assert.strContains("$numberLong", results, "bson type 'long' should be present in the debug output");
   assert.strContains("$ref", results, "bson type 'dbref' should be present in the debug output");
   assert.strContains("$id", results, "bson type 'dbref' should be present in the debug output");
   assert.strContains("$code", results, "bson type 'javascript' should be present in the debug output");
