@@ -10,8 +10,6 @@ package mongodump
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-tools-common/archive"
 	"github.com/mongodb/mongo-tools-common/auth"
 	"github.com/mongodb/mongo-tools-common/bsonutil"
@@ -23,6 +21,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"gopkg.in/mgo.v2/bson"
 
 	"bufio"
@@ -628,14 +628,14 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 // dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpIterToWriter(
-	iter mongo.Cursor, writer io.Writer, progressCount progress.Updateable) error {
+	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable) error {
 	return dump.dumpFilteredIterToWriter(iter, writer, progressCount, copyDocumentFilter)
 }
 
 // dumpFilteredIterToWriter takes an mgo iterator, a writer, and a pointer to
 // a counter, and filters and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpFilteredIterToWriter(
-	iter mongo.Cursor, writer io.Writer, progressCount progress.Updateable, filter documentFilter) error {
+	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable, filter documentFilter) error {
 	defer iter.Close(context.Background())
 	var termErr error
 
@@ -660,13 +660,8 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 					close(buffChan)
 					return
 				}
-				reader, err := iter.DecodeBytes()
-				if err != nil {
-					termErr = err
-					close(buffChan)
-					return
-				}
-				out, err := filter(reader)
+
+				out, err := filter(iter.Current)
 				if err != nil {
 					termErr = err
 					close(buffChan)

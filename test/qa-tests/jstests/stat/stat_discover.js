@@ -46,23 +46,26 @@
   assert(discoverTest([toolTest.port], toolTest.m.host), "--discover against a stand alone-sees just the stand-alone");
 
   // Test discovery with nodes cutting in and out
+  const discovered = slaves[0];
+  const specified = slaves[1];
+
   clearRawMongoProgramOutput();
-  pid = startMongoProgramNoConnect("mongostat", "--host", slaves[1].host, "--discover");
+  pid = startMongoProgramNoConnect("mongostat", "--host", specified.host, "--discover");
 
-  assert.soon(hasPort(slaves[0].port), "discovered host is seen");
-  assert.soon(hasPort(slaves[1].port), "specified host is seen");
+  assert.soon(hasPort(discovered.port), "discovered host (" + discovered.host + ") is seen");
+  assert.soon(hasPort(specified.port), "specified host (" + specified.host + ") is seen");
 
-  rs.stop(slaves[0]);
-  assert.soon(lacksPort(slaves[0].port), "after discovered host is stopped, it is not seen");
-  assert.soon(hasPort(slaves[1].port), "after discovered host is stopped, specified host is still seen");
+  rs.stop(discovered);
+  assert.soon(lacksPort(discovered.port), "after discovered host (" + discovered.host + ") is stopped, it is not seen");
+  assert.soon(hasPort(specified.port), "after discovered host (" + discovered.host + ") is stopped, specified host (" + specified.host + ") is still seen");
 
-  rs.start(slaves[0]);
-  assert.soon(hasPort(slaves[0].port), "after discovered is restarted, discovered host is seen again");
-  assert.soon(hasPort(slaves[1].port), "after discovered is restarted, specified host is still seen");
+  rs.start(discovered);
+  assert.soon(hasPort(discovered.port), "after discovered host (" + discovered.host + ") is restarted, it is seen again");
+  assert.soon(hasPort(specified.port), "after discovered host (" + discovered.host + ") is restarted, specified host (" + specified.host + ") is still seen");
 
-  rs.stop(slaves[1]);
-  assert.soon(lacksPort(slaves[1].port), "after specified host is stopped, specified host is not seen");
-  assert.soon(hasPort(slaves[0].port), "after specified host is stopped, the discovered host is still seen");
+  rs.stop(specified);
+  assert.soon(lacksPort(specified.port), "after specified host (" + specified.host + ") is stopped, it is not seen");
+  assert.soon(hasPort(discovered.port), "after specified host (" + specified.host + ") is stopped, the discovered host (" + discovered.host + ") is still seen");
 
   stopMongoProgramByPid(pid);
 

@@ -11,14 +11,15 @@ package db
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/x/network/connection"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
-	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
+	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"gopkg.in/mgo.v2/bson"
 
 	"fmt"
@@ -171,26 +172,41 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	return &SessionProvider{client: client}, nil
 }
 
+// configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
+
+	if opts.URI == nil || opts.URI.ConnectionString == "" {
+		// XXX Normal operations shouldn't ever reach here because a URI should
+		// be created in options parsing, but tests still manually construct
+		// options and generally don't construct a URI, so we invoke the URI
+		// normalization routine here to correct for that.
+		opts.NormalizeHostPortURI()
+	}
+
+	uriOpts := mopt.Client().ApplyURI(opts.URI.ConnectionString)
+	if err := uriOpts.Validate(); err != nil {
+		return nil, fmt.Errorf("error parsing options from URI: %v", err)
+	}
 	timeout := time.Duration(opts.Timeout) * time.Second
 
 	clientopt.SetConnectTimeout(timeout)
 	clientopt.SetSocketTimeout(SocketTimeout * time.Second)
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
-	clientopt.SetSingle(opts.Direct)
+
 	clientopt.SetAppName(opts.AppName)
+	clientopt.SetDirect(opts.Direct)
 	if opts.ReadPreference != nil {
 		clientopt.SetReadPreference(opts.ReadPreference)
 	}
 	if opts.WriteConcern != nil {
 		clientopt.SetWriteConcern(opts.WriteConcern)
-	} else {
+	} else if uriOpts.WriteConcern == nil {
 		// If no write concern was specified, default to majority
 		clientopt.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	}
 
-	if opts.Auth != nil {
+	if opts.Auth != nil && opts.Auth.IsSet() {
 		cred := mopt.Credential{
 			Username:      opts.Auth.Username,
 			Password:      opts.Auth.Password,
@@ -208,7 +224,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetAuth(cred)
 	}
 
-	if opts.SSL != nil {
+	if opts.SSL != nil && opts.UseSSL {
 		// Error on unsupported features
 		if opts.SSLFipsMode {
 			return nil, fmt.Errorf("FIPS mode not supported")
@@ -217,31 +233,29 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			return nil, fmt.Errorf("CRL files are not supported on this platform")
 		}
 
-		ssl := &mopt.SSLOpt{Enabled: opts.UseSSL}
+		tlsConfig := connection.NewTLSConfig()
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
-			ssl.Insecure = true
+			tlsConfig.SetInsecure(true)
 		}
 		if opts.SSLPEMKeyFile != "" {
-			ssl.ClientCertificateKeyFile = opts.SSLPEMKeyFile
 			if opts.SSLPEMKeyPassword != "" {
-				ssl.ClientCertificateKeyPassword = func() string { return opts.SSLPEMKeyPassword }
+				tlsConfig.SetClientCertDecryptPassword(func() string { return opts.SSLPEMKeyPassword })
+			}
+
+			_, err := tlsConfig.AddClientCertFromFile(opts.SSLPEMKeyFile)
+			if err != nil {
+				return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
 			}
 		}
 		if opts.SSLCAFile != "" {
-			ssl.CaFile = opts.SSLCAFile
+			if err := tlsConfig.AddCACertFromFile(opts.SSLCAFile); err != nil {
+				return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
+			}
 		}
-		clientopt.SetSSL(ssl)
+		clientopt.SetTLSConfig(tlsConfig.Config)
 	}
 
-	if opts.URI == nil || opts.URI.ConnectionString == "" {
-		// XXX Normal operations shouldn't ever reach here because a URI should
-		// be created in options parsing, but tests still manually construct
-		// options and generally don't construct a URI, so we invoke the URI
-		// normalization routine here to correct for that.
-		opts.NormalizeHostPortURI()
-	}
-
-	return mongo.NewClientWithOptions(opts.URI.ConnectionString, clientopt)
+	return mongo.NewClient(uriOpts, clientopt)
 }
 
 // IsConnectionError returns a boolean indicating if a given error is due to

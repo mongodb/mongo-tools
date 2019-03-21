@@ -18,12 +18,12 @@ import (
 	"time"
 
 	flags "github.com/jessevdk/go-flags"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-tools-common/connstring"
 	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 // Gitspec that the tool was built with. Needs to be set using -ldflags
@@ -348,6 +348,10 @@ type URISetter interface {
 
 func (auth *Auth) RequiresExternalDB() bool {
 	return auth.Mechanism == "GSSAPI" || auth.Mechanism == "PLAIN" || auth.Mechanism == "MONGODB-X509"
+}
+
+func (auth *Auth) IsSet() bool {
+	return *auth != Auth{}
 }
 
 // ShouldAskForPassword returns true if the user specifies a username flag

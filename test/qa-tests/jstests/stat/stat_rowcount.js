@@ -15,9 +15,7 @@
 
   x = runMongoProgram("mongostat", "--host", toolTest.m.host, "--rowcount", 7, "--noheaders");
   assert.eq.soon(7, function() {
-    return rawMongoProgramOutput().split("\n").filter(function(r) {
-      return r.match(rowRegex);
-    }).length;
+    return allDefaultStatRows().length;
   }, "--rowcount value is respected correctly");
 
   startTime = new Date();
@@ -48,9 +46,13 @@
   assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
 
   MongoRunner.stopMongod(toolTest.port);
-  assert.gte.soon(10, function() {
-    var rows = statRows();
-    return statFields(rows[rows.length - 1]).length;
-  }, "should stop showing new stat lines");
+
+  sleep(1000);
+  clearRawMongoProgramOutput();
+  sleep(5 * 1000);
+
+  const rows = allDefaultStatRows();
+  assert.eq(rows.length, 0, "should stop showing new stat lines, showed " + JSON.stringify(rows) + " instead.");
+
   assert.eq(exitCodeStopped, stopMongoProgramByPid(pid), "mongostat shouldn't error out when the server goes down");
 }());

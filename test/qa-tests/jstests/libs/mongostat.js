@@ -10,20 +10,33 @@ if (_isWindows()) {
   exitCodeStopped = exitCodeErr;
 }
 
-var rowRegex = /^sh\d+\|\s/;
-// portRegex finds the port on a line which has enough whitespace-delimited
-// values to be considered a stat line and not an error message
-var portRegex = /^sh\d+\|\s+\S+:(\d+)(\s+\S+){16}/;
+// shellRowRegex matches all lines of shell output
+const shellRowRegex = /^sh\d+\|\s+/;
+// defaultStatLineRegex matches default mongostat stat lines (ends in a timestamp, has at least 16 space delimited fields)
+const defaultStatLineRegex = /^sh\d+\|(\s+\S+){16}.*[A-Z][a-z]{2}\s\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3}$/;
+// portRegex finds the port on a stat line
+const portRegex = /^\S+:(\d+)/;
 
-function statRows() {
-  return rawMongoProgramOutput()
+function isDefaultStatLine(r) {
+  return !r.includes("error") && !r.includes("Error") && r.match(defaultStatLineRegex);
+}
+
+function filterShellRows(chunk, matcherFunc) {
+  return chunk
     .split("\n")
-    .filter(function(r) {
-      return r.match(rowRegex);
-    })
+    .filter(r => r.match(shellRowRegex) && matcherFunc(r))
     .map(function(r) {
-      return r.replace(/^sh\d+\| /, "");
+      return r.replace(/^sh\d+\|\s+/, "");
     });
+}
+
+// get all rows of shell output
+function allShellRows() {
+  return filterShellRows(rawMongoProgramOutput(), () => true);
+}
+
+function allDefaultStatRows() {
+  return filterShellRows(rawMongoProgramOutput(), isDefaultStatLine);
 }
 
 function statFields(row) {
@@ -43,14 +56,23 @@ function getLatestChunk() {
   return lineChunks[lineChunks.length - 2];
 }
 
+function getPortFromStatLine(line) {
+  const matches = line.match(portRegex);
+  if (matches === null) {
+    return null;
+  }
+
+  return matches[1];
+}
+
 function latestPortCounts() {
   var portCounts = {};
-  getLatestChunk().split("\n").forEach(function(r) {
-    var matches = r.match(portRegex);
-    if (matches === null) {
+  filterShellRows(getLatestChunk(), isDefaultStatLine).forEach(function(r) {
+    const port = getPortFromStatLine(r);
+    if (port === null) {
       return;
     }
-    var port = matches[1];
+
     if (!portCounts[port]) {
       portCounts[port] = 0;
     }

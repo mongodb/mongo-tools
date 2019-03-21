@@ -1,8 +1,8 @@
 package db
 
 import (
-	"github.com/mongodb/mongo-go-driver/mongo"
-	mopt "github.com/mongodb/mongo-go-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -26,7 +26,7 @@ func (q *DeferredQuery) Count() (int, error) {
 	return int(c), err
 }
 
-func (q *DeferredQuery) Iter() (mongo.Cursor, error) {
+func (q *DeferredQuery) Iter() (*mongo.Cursor, error) {
 	opts := mopt.Find()
 	if q.Hint != nil {
 		opts.SetHint(q.Hint)

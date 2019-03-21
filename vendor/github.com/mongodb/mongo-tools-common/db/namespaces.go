@@ -12,10 +12,10 @@ import (
 	"fmt"
 	"strings"
 
-	gbson "github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-tools-common/log"
+	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -93,7 +93,7 @@ func buildBsonArray(iter *mgo.Iter) ([]bson.D, error) {
 // does not exist.
 //
 // XXX Requires GODRIVER-279 for legacy server support
-func GetIndexes(coll *mongo.Collection) (mongo.Cursor, error) {
+func GetIndexes(coll *mongo.Collection) (*mongo.Cursor, error) {
 	return coll.Indexes().List(context.Background())
 }
 
@@ -106,7 +106,7 @@ func getIndexesPre28(coll *mgo.Collection) (*mgo.Iter, error) {
 // XXX Requires GODRIVER-492 for legacy server support
 // Assumes that mongo.Database will normalize legacy names to omit database
 // name as required by the Enumerate Collections spec
-func GetCollections(database *mongo.Database, name string) (mongo.Cursor, error) {
+func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error) {
 	filter := gbson.D{}
 	if len(name) > 0 {
 		filter = append(filter, primitive.E{"name", name})

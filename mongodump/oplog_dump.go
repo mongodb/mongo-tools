@@ -9,10 +9,10 @@ package mongodump
 import (
 	"fmt"
 
-	gbson "github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
+	gbson "go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2/bson"
 )
 
