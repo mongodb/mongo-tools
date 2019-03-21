@@ -351,7 +351,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return newDownloadStream(nil, b.chunkSize, 0), nil
 	}
 
-	chunksCursor, err := b.findChunks(ctx, fileIDElem.ObjectID())
+	chunksCursor, err := b.findChunks(ctx, fileIDElem)
 	if err != nil {
 		return nil, err
 	}
@@ -525,6 +525,9 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 	uo := options.MergeUploadOptions(opts...)
 	if uo.ChunkSizeBytes != nil {
 		upload.chunkSize = *uo.ChunkSizeBytes
+	}
+	if uo.Registry == nil {
+		uo.Registry = bson.DefaultRegistry
 	}
 	if uo.Metadata != nil {
 		raw, err := bson.MarshalWithRegistry(uo.Registry, uo.Metadata)
