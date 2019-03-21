@@ -144,8 +144,15 @@ func (bd *BSONDump) JSON() (int, error) {
 		panic("Tried to call JSON() before opening file")
 	}
 
-	result := bson.Raw(bd.BSONSource.LoadNext())
-	for result != nil {
+	for {
+		result := bson.Raw(bd.BSONSource.LoadNext())
+		if result == nil {
+			if bd.BSONSource.Err() != nil {
+				return 0, bd.BSONSource.Err()
+			}
+			break
+		}
+
 		if bytes, err := formatJSON(&result, bd.OutputOptions.Pretty); err != nil {
 			log.Logvf(log.Always, "unable to dump document %v: %v", numFound+1, err)
 
@@ -164,7 +171,6 @@ func (bd *BSONDump) JSON() (int, error) {
 		if failpoint.Enabled(failpoint.SlowBSONDump) {
 			time.Sleep(2 * time.Second)
 		}
-		result = bd.BSONSource.LoadNext()
 	}
 
 	return numFound, nil
