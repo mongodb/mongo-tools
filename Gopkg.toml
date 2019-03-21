@@ -29,7 +29,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  branch = "TOOLS-2213"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/10gen/escaper"
