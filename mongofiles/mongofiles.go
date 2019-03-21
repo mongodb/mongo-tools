@@ -10,21 +10,21 @@ package mongofiles
 import (
 	"context"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
-	driverOptions "github.com/mongodb/mongo-go-driver/mongo/options"
+	"io"
+	"os"
+	"regexp"
+
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	driverOptions "go.mongodb.org/mongo-driver/mongo/options"
 	mgobson "gopkg.in/mgo.v2/bson"
-
-	"io"
-	"os"
-	"regexp"
 )
 
 // List of possible commands for mongofiles.
@@ -299,22 +299,30 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	}
 
 	// legacy extJSON parser
-	id, err := bsonutil.ConvertJSONValueToBSON(asJSON)
+	mgoId, err := bsonutil.ConvertJSONValueToBSON(asJSON)
 	if err != nil {
 		return nil, fmt.Errorf("error converting extJSON vlaue to bson: %v", err)
 	}
 
-	// TODO: fix this (GO-815)
-	mgoID, ok := id.(mgobson.ObjectId)
-	if !ok {
-		return nil, fmt.Errorf("only use ObjectIds as input _id")
-	}
-	objectID, err := primitive.ObjectIDFromHex(mgoID.Hex())
+	// marshal mgobson type to raw bson bytes
+	bsonBuffer, err := mgobson.Marshal(mgobson.M{"_id": mgoId})
 	if err != nil {
 		return nil, err
 	}
 
-	return objectID, nil
+	// unmarshal into new go driver types
+	var idDoc bson.M
+	err = bson.Unmarshal(bsonBuffer, &idDoc)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling buffer: %v", err)
+	}
+
+	id, ok := idDoc["_id"]
+	if !ok {
+		return nil, fmt.Errorf("couldn't unmarshal correctly")
+	}
+
+	return id, nil
 }
 
 // writeGFSFileToLocal writes a file from gridFS to stdout or the filesystem.

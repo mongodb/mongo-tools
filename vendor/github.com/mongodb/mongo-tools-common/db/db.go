@@ -11,6 +11,7 @@ package db
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/x/network/connection"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/options"
@@ -19,7 +20,6 @@ import (
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/network/connection"
 	"gopkg.in/mgo.v2/bson"
 
 	"fmt"

@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // GetFieldsFromFile fetches the first line from the contents of the file
@@ -80,6 +80,7 @@ func (wwc *WrappedWriteCloser) Close() error {
 	return innerErr
 }
 
+
 // Wrapper that can capture errors that occur when closing the underlying closer.
 type DeferredCloser struct {
 	io.Closer
@@ -102,7 +103,7 @@ func (dc *DeferredCloser) CloseWithErrorCapture(deferredErr *error) {
 
 // Wrapper around Cursor to implement Closer
 type CloserCursor struct {
-	mongo.Cursor
+	*mongo.Cursor
 }
 
 func (cursor *CloserCursor) Close() error {

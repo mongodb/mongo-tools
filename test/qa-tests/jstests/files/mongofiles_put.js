@@ -74,8 +74,7 @@ load('jstests/files/util/mongofiles_common.js');
 
     // the number of chunks should be equal to math.ceil[fileSize (KB) / 255 KB]
     // filesize for the dump should be s bytes
-    // TODO: use 255 KiB instead of KB (GODRIVER-833)
-    var expectedNumChunks = Math.ceil(fileObj.length / (1000 * 255));
+    var expectedNumChunks = Math.ceil(fileObj.length / (1024 * 255));
 
     assert.eq(expectedNumChunks, numDbChunks, 'expected ' + expectedNumChunks + ' chunks; got ' + numDbChunks);
 

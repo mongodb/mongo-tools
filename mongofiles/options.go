@@ -8,10 +8,10 @@ package mongofiles
 
 import (
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Usage string printed as part of --help
@@ -72,7 +72,10 @@ func ParseOptions(rawArgs []string) (Options, error) {
 			return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 		}
 	} else {
-		opts.ReadPreference = readpref.Nearest()
+		opts.ReadPreference, err = readpref.New(readpref.NearestMode)
+		if err != nil {
+			return Options{}, fmt.Errorf("error setting default read preference: %v", err)
+		}
 	}
 
 	return Options{opts, storageOpts, inputOpts, args}, nil

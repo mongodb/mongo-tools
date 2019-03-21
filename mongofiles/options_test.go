@@ -7,11 +7,11 @@
 package mongofiles
 
 import (
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 func TestWriteConcernOptionParsing(t *testing.T) {

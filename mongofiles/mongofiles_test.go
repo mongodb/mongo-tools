@@ -10,9 +10,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -25,6 +22,9 @@ import (
 	"github.com/mongodb/mongo-tools-common/testutil"
 	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 var (
@@ -634,7 +634,7 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	t.Log("and its filename should exist when the 'list' command is run")
 	bytesGotten, err := getFilesAndBytesListFromGridFS()
 	So(err, ShouldBeNil)
-	So(bytesGotten, ShouldContain, remoteName)
+	So(bytesGotten, ShouldContainKey, remoteName)
 
 	t.Log("and get_id should have exactly the same content as the original file")
 
