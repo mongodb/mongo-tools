@@ -173,12 +173,11 @@ func ParseOptions(rawArgs []string) (Options, error) {
 	targetDir = util.ToUniversalPath(targetDir)
 
 
-	if outputOpts.WriteConcern != "" {
-		opts.WriteConcern, err = db.PackageWriteConcernOptsToObject(outputOpts.WriteConcern, nil)
-		if err != nil {
-			return Options{}, fmt.Errorf("error parsing write concern: %v", err)
-		}
+	wcOpts, err := db.NewMongoWriteConcernOpts(outputOpts.WriteConcern, opts.URI.ParsedConnString())
+	if err != nil {
+		return Options{}, fmt.Errorf("error parsing write concern: %v", err)
 	}
+	opts.WriteConcern = wcOpts.ToMongoWriteConcern()
 
 	return Options{opts, inputOpts, nsOpts, outputOpts, targetDir}, nil
 }

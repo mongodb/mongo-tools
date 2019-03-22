@@ -471,9 +471,8 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		bson.DocElem{Name: "drop", Value: restore.OutputOptions.Drop},
 		bson.DocElem{Name: "db", Value: userTargetDB})
 
-	// TODO: can get this from ToolOptions once new URI parser is merged
-	if adminDB.WriteConcern() != nil {
-		_, wcBson, err := adminDB.WriteConcern().MarshalBSONValue()
+	if restore.ToolOptions.WriteConcern != nil {
+		_, wcBson, err := restore.ToolOptions.WriteConcern.MarshalBSONValue()
 		if err != nil {
 			return fmt.Errorf("error parsing write concern: %v", err)
 		}
