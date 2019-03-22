@@ -103,8 +103,8 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "TOOLS-1838-migrate-mongorestore"
-  digest = "1:4ccd7c17813305de2d248fb615417645a6d04c7cd267b4e8cde34efa743e07b3"
+  branch = "master"
+  digest = "1:eaf0c3e939a6a6466ff179714f6658da2411dbea59690a1a9d44045b068dcefb"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -125,7 +125,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "9dff10039f3daa8067fad2d0e1b43a95a3d713aa"
+  revision = "c878f0e96dd99f1e84ea2d976d405b3dabb2ec28"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
