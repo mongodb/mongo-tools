@@ -87,7 +87,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[override]]
   name = "github.com/jtolds/gls"
-  revision = "8ddce2a84170772b95dd5d576c48d517b22cac63"
+  version = "4.20.0"
 
 [[override]]
   name = "github.com/jacobsa/oglematchers"

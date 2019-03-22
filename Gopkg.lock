@@ -87,11 +87,12 @@
   revision = "97448c91aac742cbca3d020b3e769013a420a06f"
 
 [[projects]]
-  digest = "1:e60e4265f8a89c03c9a01de4849f413e8db802662176e4087d0fdbad868bf5f3"
+  digest = "1:4b63210654b1f2b664f74ec434a1bb1cb442b3d75742cc064a10808d1cca6361"
   name = "github.com/jtolds/gls"
   packages = ["."]
   pruneopts = "T"
-  revision = "8ddce2a84170772b95dd5d576c48d517b22cac63"
+  revision = "b4936e06046bbecbb94cae9c18127ebe510a2cb9"
+  version = "v4.20"
 
 [[projects]]
   digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
