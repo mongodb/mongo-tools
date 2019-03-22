@@ -594,7 +594,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 }
 
-// Test that when no write concern is specified, we don't set one on the client.
+// Test that when no write concern is specified, a majority write concern is set.
 func TestDefaultWriteConcern(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	if ssl.UseSSL {
