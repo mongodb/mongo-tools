@@ -40,10 +40,9 @@ type WriteConcernOptions struct {
 	WTimeout   time.Duration
 }
 
-// NewMongoWriteConcernOpts takes a string (from the command line writeConcern option)
-// or a ConnString object (from the command line uri option) and returns a
-// WriteConcernOptions. Only one of writeConcern and cs can be specified.  If neither
-// is provided, the default 'majority' write concern is constructed.
+// NewMongoWriteConcernOpts takes a string (from the command line writeConcern option) and a ConnString object
+// (from the command line uri option) and returns a WriteConcernOptions. If both are provided, preference is given to
+// the command line writeConcern option. If neither is provided, the default 'majority' write concern is constructed.
 func NewMongoWriteConcernOpts(writeConcern string, cs *connstring.ConnString) (wco *WriteConcernOptions, err error) {
 
 	// Log whatever write concern was generated
@@ -53,14 +52,9 @@ func NewMongoWriteConcernOpts(writeConcern string, cs *connstring.ConnString) (w
 		}
 	}()
 
-	// Error case
-	if cs != nil && writeConcern != "" {
-		return nil, fmt.Errorf("cannot specify writeConcern string and connectionString object")
-	}
-
-	// URI Connection String case; constructWCOptionsFromConnString handles
+	// URI Connection String provided but no String provided case; constructWCOptionsFromConnString handles
 	// default for ConnString without write concern
-	if cs != nil {
+	if writeConcern == "" && cs != nil {
 		return constructWCOptionsFromConnString(cs)
 	}
 

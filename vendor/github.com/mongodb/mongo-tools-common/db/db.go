@@ -201,7 +201,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 	if opts.WriteConcern != nil {
 		clientopt.SetWriteConcern(opts.WriteConcern)
-	} else if uriOpts.WriteConcern == nil {
+	} else {
 		// If no write concern was specified, default to majority
 		clientopt.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	}
