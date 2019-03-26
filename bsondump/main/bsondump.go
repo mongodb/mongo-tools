@@ -19,12 +19,10 @@ func main() {
 	// initialize command-line opts
 	opts, err := bsondump.ParseOptions(os.Args[1:])
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "%v", err)
 		log.Logvf(log.Always, "try 'bsondump --help' for more information")
 		os.Exit(util.ExitBadOptions)
 	}
-
-	log.Logvf(log.DebugLow, "running bsondump with --objcheck: %v", opts.ObjCheck)
 
 	// print help, if specified
 	if opts.PrintHelp(false) {
@@ -43,6 +41,15 @@ func main() {
 		log.Logv(log.Always, err.Error())
 		os.Exit(util.ExitError)
 	}
+	defer func() {
+		err := dumper.Close()
+		if err != nil {
+			log.Logvf(log.Always, "error cleaning up: %v", err)
+			os.Exit(util.ExitError)
+		}
+	}()
+
+	log.Logvf(log.DebugLow, "running bsondump with --objcheck: %v", opts.ObjCheck)
 
 	var numFound int
 	if opts.Type == "debug" {

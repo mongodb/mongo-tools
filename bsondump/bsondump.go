@@ -80,6 +80,8 @@ func (bdo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
 	return ReadNopCloser{os.Stdin}, nil
 }
 
+// New constructs a new instance of BSONDump configured by the provided options.
+// A successfully created instance must be closed with Close().
 func New(opts *Options) (*BSONDump, error) {
 	dumper := &BSONDump{
 		ToolOptions:   opts.ToolOptions,
@@ -88,22 +90,22 @@ func New(opts *Options) (*BSONDump, error) {
 
 	reader, err := opts.GetBSONReader()
 	if err != nil {
-		log.Logvf(log.Always, "Getting BSON Reader Failed: %v", err)
-		os.Exit(util.ExitError)
+		return nil, fmt.Errorf("getting BSON reader failed: %v", err)
 	}
 	dumper.BSONSource = db.NewBSONSource(reader)
 
 	writer, err := opts.GetWriter()
 	if err != nil {
-		log.Logvf(log.Always, "Getting Writer Failed: %v", err)
 		_ = reader.Close()
-		os.Exit(util.ExitError)
+		return nil, fmt.Errorf("getting Writer failed: %v", err)
 	}
 	dumper.Out = writer
 
 	return dumper, nil
 }
 
+// Close cleans up the internal state of the given BSONDump instance. The instance should not be used again
+// after Close is called.
 func (bd *BSONDump) Close() error {
 	if err := bd.Out.Close(); err != nil {
 		return err
@@ -125,7 +127,7 @@ func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
 	if pretty {
 		var jsonFormatted bytes.Buffer
 		if err := json.Indent(&jsonFormatted, extendedJSON, "", "\t"); err != nil {
-			return nil, fmt.Errorf("error pretty-ifying extended JSON: %v", err)
+			return nil, fmt.Errorf("error pretty-fying extended JSON: %v", err)
 		}
 		extendedJSON = jsonFormatted.Bytes()
 	}
@@ -188,13 +190,11 @@ func (bd *BSONDump) Debug() (int, error) {
 		panic("Tried to call Debug() before opening file")
 	}
 
-	var result bson.Raw
 	for {
-		doc := bd.BSONSource.LoadNext()
-		if doc == nil {
+		result := bson.Raw(bd.BSONSource.LoadNext())
+		if result == nil {
 			break
 		}
-		result = doc
 
 		if bd.OutputOptions.ObjCheck {
 			validated := bson.M{}

@@ -314,6 +314,7 @@
     "github.com/patrickmn/go-cache",
     "github.com/smartystreets/goconvey/convey",
     "go.mongodb.org/mongo-driver/bson",
+    "go.mongodb.org/mongo-driver/bson/bsontype",
     "go.mongodb.org/mongo-driver/bson/primitive",
     "go.mongodb.org/mongo-driver/mongo",
     "go.mongodb.org/mongo-driver/mongo/gridfs",

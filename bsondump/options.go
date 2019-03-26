@@ -8,6 +8,7 @@ package bsondump
 
 import (
 	"fmt"
+
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 )
@@ -18,10 +19,19 @@ View and debug .bson files.
 
 See http://docs.mongodb.org/manual/reference/program/bsondump/ for more information.`
 
+// Options contains all the possible options used to configure bsondump.
 type Options struct {
 	*options.ToolOptions
 	*OutputOptions
 }
+
+const (
+	TypeOption = "--type"
+	ObjCheckOption = "--objcheck"
+	PrettyOption = "--pretty"
+	BSONFileNameOption = "--bsonFile"
+	OutFileNameOption = "--outFile"
+)
 
 type OutputOptions struct {
 	// Format to display the BSON data file
@@ -40,18 +50,19 @@ type OutputOptions struct {
 	OutFileName string `long:"outFile" description:"path to output file to dump BSON to; default is stdout"`
 }
 
-func (_ *OutputOptions) Name() string {
+func (*OutputOptions) Name() string {
 	return "output"
 }
 
-func (_ *OutputOptions) PostParse() error {
+func (*OutputOptions) PostParse() error {
 	return nil
 }
 
-func (_ *OutputOptions) Validate() error {
+func (*OutputOptions) Validate() error {
 	return nil
 }
 
+// ParseOptions translates the command line arguments into an Options used to configure BSONDump.
 func ParseOptions(rawArgs []string) (*Options, error) {
 	toolOpts := options.New("bsondump", Usage, options.EnabledOptions{})
 	outputOpts := &OutputOptions{}
