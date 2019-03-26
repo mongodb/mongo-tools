@@ -26,7 +26,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -54,7 +54,7 @@ type MongoRestore struct {
 	manager *intents.Manager
 
 	objCheck         bool
-	oplogLimit       bson.MongoTimestamp
+	oplogLimit       primitive.Timestamp
 	isMongos         bool
 	useWriteCommands bool
 	authVersions     authVersionPair

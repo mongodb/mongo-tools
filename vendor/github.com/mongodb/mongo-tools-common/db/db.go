@@ -20,7 +20,8 @@ import (
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"fmt"
 	"io"
@@ -86,14 +87,14 @@ type ApplyOpsResponse struct {
 
 // Oplog represents a MongoDB oplog document.
 type Oplog struct {
-	Timestamp bson.MongoTimestamp `bson:"ts"`
+	Timestamp primitive.Timestamp `bson:"ts"`
 	HistoryID int64               `bson:"h"`
 	Version   int                 `bson:"v"`
 	Operation string              `bson:"op"`
 	Namespace string              `bson:"ns"`
 	Object    bson.D              `bson:"o"`
 	Query     bson.D              `bson:"o2"`
-	UI        *bson.Binary        `bson:"ui,omitempty"`
+	UI        *primitive.Binary   `bson:"ui,omitempty"`
 }
 
 // Returns a mongo.Client connected to the database server for which the

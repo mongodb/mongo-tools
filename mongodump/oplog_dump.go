@@ -9,6 +9,7 @@ package mongodump
 import (
 	"fmt"
 
+	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
@@ -51,11 +52,11 @@ func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
 	if err != nil {
 		return 0, err
 	}
-	err = bson.Unmarshal(tempBSON, &mostRecentOplogEntry)
+	err = gbson.Unmarshal(tempBSON, &mostRecentOplogEntry)
 	if err != nil {
 		return 0, err
 	}
-	return mostRecentOplogEntry.Timestamp, nil
+	return bsonutil.ConvertTimestampToMongoTimestamp(mostRecentOplogEntry.Timestamp), nil
 }
 
 // checkOplogTimestampExists checks to make sure the oplog hasn't rolled over
@@ -70,13 +71,13 @@ func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, 
 	if err != nil {
 		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
 	}
-	err = bson.Unmarshal(tempBSON, &oldestOplogEntry)
+	err = gbson.Unmarshal(tempBSON, &oldestOplogEntry)
 	if err != nil {
 		return false, err
 	}
 
 	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
-	if oldestOplogEntry.Timestamp > ts {
+	if bsonutil.ConvertTimestampToMongoTimestamp(oldestOplogEntry.Timestamp) > ts {
 		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is older than %v",
 			oldestOplogEntry.Timestamp, ts)
 		return false, nil

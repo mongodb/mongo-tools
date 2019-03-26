@@ -13,7 +13,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestTimestampStringParsing(t *testing.T) {
@@ -24,49 +25,49 @@ func TestTimestampStringParsing(t *testing.T) {
 		Convey("123:456 [should pass]", func() {
 			ts, err := ParseTimestampFlag("123:456")
 			So(err, ShouldBeNil)
-			So(ts, ShouldEqual, (int64(123)<<32 | int64(456)))
+			So(ts, ShouldResemble, primitive.Timestamp{T: 123, I: 456})
 		})
 
 		Convey("123 [should pass]", func() {
 			ts, err := ParseTimestampFlag("123")
 			So(err, ShouldBeNil)
-			So(ts, ShouldEqual, int64(123)<<32)
+			So(ts, ShouldResemble, primitive.Timestamp{T: 123, I: 0})
 		})
 
 		Convey("123: [should pass]", func() {
 			ts, err := ParseTimestampFlag("123:")
 			So(err, ShouldBeNil)
-			So(ts, ShouldEqual, int64(123)<<32)
+			So(ts, ShouldResemble, primitive.Timestamp{T: 123, I: 0})
 		})
 
 		Convey("123.123 [should fail]", func() {
 			ts, err := ParseTimestampFlag("123.123")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldEqual, 0)
+			So(ts, ShouldResemble, primitive.Timestamp{})
 		})
 
 		Convey(": [should fail]", func() {
 			ts, err := ParseTimestampFlag(":")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldEqual, 0)
+			So(ts, ShouldResemble, primitive.Timestamp{})
 		})
 
 		Convey("1:1:1 [should fail]", func() {
 			ts, err := ParseTimestampFlag("1:1:1")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldEqual, 0)
+			So(ts, ShouldResemble, primitive.Timestamp{})
 		})
 
 		Convey("cats [should fail]", func() {
 			ts, err := ParseTimestampFlag("cats")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldEqual, 0)
+			So(ts, ShouldResemble, primitive.Timestamp{})
 		})
 
 		Convey("[empty string] [should fail]", func() {
 			ts, err := ParseTimestampFlag("")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldEqual, 0)
+			So(ts, ShouldResemble, primitive.Timestamp{})
 		})
 	})
 }
@@ -77,31 +78,31 @@ func TestValidOplogLimitChecking(t *testing.T) {
 
 	Convey("With a MongoRestore instance with oplogLimit of 5:0", t, func() {
 		mr := &MongoRestore{
-			oplogLimit: bson.MongoTimestamp(int64(5) << 32),
+			oplogLimit: primitive.Timestamp{T: 5, I: 0},
 		}
 
 		Convey("an oplog entry with ts=1000:0 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(1000)<<32)), ShouldBeFalse)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 1000, I: 0}), ShouldBeFalse)
 		})
 
 		Convey("an oplog entry with ts=5:1 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(5)<<32|1)), ShouldBeFalse)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 1}), ShouldBeFalse)
 		})
 
 		Convey("an oplog entry with ts=5:0 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(5)<<32)), ShouldBeFalse)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 0}), ShouldBeFalse)
 		})
 
 		Convey("an oplog entry with ts=4:9 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(4)<<32|9)), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 4, I: 9}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=4:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(4)<<32)), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 4, I: 0}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=0:1 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(1)), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 0, I: 1}), ShouldBeTrue)
 		})
 	})
 
@@ -109,15 +110,15 @@ func TestValidOplogLimitChecking(t *testing.T) {
 		mr := &MongoRestore{}
 
 		Convey("an oplog entry with ts=1000:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(1000)<<32)), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 1000, I: 0}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=5:1 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(5)<<32|1)), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 1}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=5:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.MongoTimestamp(int64(5)<<32)), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I:0}), ShouldBeTrue)
 		})
 	})
 
