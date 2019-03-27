@@ -82,7 +82,7 @@ func (bdo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
 
 // New constructs a new instance of BSONDump configured by the provided options.
 // A successfully created instance must be closed with Close().
-func New(opts *Options) (*BSONDump, error) {
+func New(opts Options) (*BSONDump, error) {
 	dumper := &BSONDump{
 		ToolOptions:   opts.ToolOptions,
 		OutputOptions: opts.OutputOptions,
@@ -149,9 +149,6 @@ func (bd *BSONDump) JSON() (int, error) {
 	for {
 		result := bson.Raw(bd.BSONSource.LoadNext())
 		if result == nil {
-			if bd.BSONSource.Err() != nil {
-				return 0, bd.BSONSource.Err()
-			}
 			break
 		}
 
@@ -173,6 +170,9 @@ func (bd *BSONDump) JSON() (int, error) {
 		if failpoint.Enabled(failpoint.SlowBSONDump) {
 			time.Sleep(2 * time.Second)
 		}
+	}
+	if err := bd.BSONSource.Err(); err != nil {
+		return numFound, err
 	}
 
 	return numFound, nil

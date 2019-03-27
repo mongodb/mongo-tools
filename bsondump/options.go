@@ -63,34 +63,34 @@ func (*OutputOptions) Validate() error {
 }
 
 // ParseOptions translates the command line arguments into an Options used to configure BSONDump.
-func ParseOptions(rawArgs []string) (*Options, error) {
+func ParseOptions(rawArgs []string) (Options, error) {
 	toolOpts := options.New("bsondump", Usage, options.EnabledOptions{})
 	outputOpts := &OutputOptions{}
 	toolOpts.AddOptions(outputOpts)
 
 	args, err := toolOpts.ParseArgs(rawArgs)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing command line options: %v", err)
+		return Options{}, fmt.Errorf("error parsing command line options: %v", err)
 	}
 
 	log.SetVerbosity(toolOpts.Verbosity)
 
 	if len(args) > 1 {
-		return nil, fmt.Errorf("too many positional arguments: %v", args)
+		return Options{}, fmt.Errorf("too many positional arguments: %v", args)
 	}
 
 	// If the user specified a bson input file
 	if len(args) == 1 {
 		if outputOpts.BSONFileName != "" {
-			return nil, fmt.Errorf("cannot specify both a positional argument and --bsonFile")
+			return Options{}, fmt.Errorf("cannot specify both a positional argument and --bsonFile")
 		}
 
 		outputOpts.BSONFileName = args[0]
 	}
 
 	if len(outputOpts.Type) != 0 && outputOpts.Type != "debug" && outputOpts.Type != "json" {
-		return nil, fmt.Errorf("unsupported output type '%v'. Must be either 'debug' or 'json'", outputOpts.Type)
+		return Options{}, fmt.Errorf("unsupported output type '%v'. Must be either 'debug' or 'json'", outputOpts.Type)
 	}
 
-	return &Options{toolOpts, outputOpts}, nil
+	return Options{toolOpts, outputOpts}, nil
 }
