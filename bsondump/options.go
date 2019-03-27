@@ -25,6 +25,7 @@ type Options struct {
 	*OutputOptions
 }
 
+// OutputOptions command line argument long names
 const (
 	TypeOption = "--type"
 	ObjCheckOption = "--objcheck"
