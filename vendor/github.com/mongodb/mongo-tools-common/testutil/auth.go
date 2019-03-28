@@ -85,7 +85,7 @@ func GetAuthOptions() options.Auth {
 
 func GetAuthArgs() []string {
 	authOpts := GetAuthOptions()
-	if authOpts.Source != "" {
+	if authOpts.IsSet() {
 		return []string {
 			"--username", authOpts.Username,
 			"--password", authOpts.Password,
