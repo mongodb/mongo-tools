@@ -17,6 +17,7 @@ func GetSSLArgs() []string {
 	sslOpts := GetSSLOptions()
 	if sslOpts.UseSSL {
 		return []string{
+			"--ssl",
 			"--sslCAFile", sslOpts.SSLCAFile,
 			"--sslPEMKeyFile", sslOpts.SSLPEMKeyFile,
 		}
