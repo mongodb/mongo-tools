@@ -127,7 +127,7 @@ func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
 	if pretty {
 		var jsonFormatted bytes.Buffer
 		if err := json.Indent(&jsonFormatted, extendedJSON, "", "\t"); err != nil {
-			return nil, fmt.Errorf("error pretty-fying extended JSON: %v", err)
+			return nil, fmt.Errorf("error prettifying extended JSON: %v", err)
 		}
 		extendedJSON = jsonFormatted.Bytes()
 	}

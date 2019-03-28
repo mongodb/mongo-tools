@@ -25,6 +25,12 @@ type Options struct {
 	*OutputOptions
 }
 
+// Types out output supported by the --type option
+const (
+	DebugOutputType = "debug"
+	JSONOutputType = "json"
+)
+
 // OutputOptions command line argument long names
 const (
 	TypeOption = "--type"
@@ -55,14 +61,6 @@ func (*OutputOptions) Name() string {
 	return "output"
 }
 
-func (*OutputOptions) PostParse() error {
-	return nil
-}
-
-func (*OutputOptions) Validate() error {
-	return nil
-}
-
 // ParseOptions translates the command line arguments into an Options used to configure BSONDump.
 func ParseOptions(rawArgs []string) (Options, error) {
 	toolOpts := options.New("bsondump", Usage, options.EnabledOptions{})
@@ -89,9 +87,10 @@ func ParseOptions(rawArgs []string) (Options, error) {
 		outputOpts.BSONFileName = args[0]
 	}
 
-	if len(outputOpts.Type) != 0 && outputOpts.Type != "debug" && outputOpts.Type != "json" {
-		return Options{}, fmt.Errorf("unsupported output type '%v'. Must be either 'debug' or 'json'", outputOpts.Type)
+	switch outputOpts.Type {
+	case "", DebugOutputType, JSONOutputType:
+		return Options{toolOpts, outputOpts}, nil
+	default:
+		return Options{}, fmt.Errorf("unsupported output type '%v'. Must be either '%v' or '%v'", DebugOutputType, JSONOutputType, outputOpts.Type)
 	}
-
-	return Options{toolOpts, outputOpts}, nil
 }
