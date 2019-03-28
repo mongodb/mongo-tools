@@ -265,7 +265,15 @@ func IsConnectionError(err error) bool {
 	if err == nil {
 		return false
 	}
-	lowerCaseError := strings.ToLower(err.Error())
+
+	// The new driver stringifies command errors as "(Name) Message" rather than just "message". Cast to the
+	// CommandError type if possible to extract the correct error message.
+	errMsg := err.Error()
+	if cmdErr, ok := err.(mongo.CommandError); ok {
+		errMsg = cmdErr.Message
+	}
+
+	lowerCaseError := strings.ToLower(errMsg)
 	if lowerCaseError == ErrNoReachableServers ||
 		err == io.EOF ||
 		strings.Contains(lowerCaseError, ErrReplTimeoutPrefix) ||
