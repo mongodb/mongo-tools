@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -346,12 +347,19 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return nil, err
 	}
 
-	fileLen := fileLenElem.Int64()
+	var fileLen int64
+	switch fileLenElem.Type {
+	case bsontype.Int32:
+		fileLen = int64(fileLenElem.Int32())
+	default:
+		fileLen = fileLenElem.Int64()
+	}
+	
 	if fileLen == 0 {
 		return newDownloadStream(nil, b.chunkSize, 0), nil
 	}
 
-	chunksCursor, err := b.findChunks(ctx, fileIDElem.ObjectID())
+	chunksCursor, err := b.findChunks(ctx, fileIDElem)
 	if err != nil {
 		return nil, err
 	}
@@ -525,6 +533,9 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 	uo := options.MergeUploadOptions(opts...)
 	if uo.ChunkSizeBytes != nil {
 		upload.chunkSize = *uo.ChunkSizeBytes
+	}
+	if uo.Registry == nil {
+		uo.Registry = bson.DefaultRegistry
 	}
 	if uo.Metadata != nil {
 		raw, err := bson.MarshalWithRegistry(uo.Registry, uo.Metadata)
