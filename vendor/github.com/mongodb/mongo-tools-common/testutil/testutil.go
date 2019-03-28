@@ -68,6 +68,16 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 	return sessionProvider, toolOptions, nil
 }
 
+func GetBareArgs() []string {
+	args := []string{}
+
+	args = append(args, GetSSLArgs()...)
+	args = append(args, GetAuthArgs()...)
+	args = append(args, "--host", "localhost", "--port", db.DefaultTestPort)
+
+	return args
+}
+
 // GetFCV returns the featureCompatibilityVersion string for an mgo Session
 // or the empty string if it can't be found.
 func GetFCV(s *mongo.Client) string {

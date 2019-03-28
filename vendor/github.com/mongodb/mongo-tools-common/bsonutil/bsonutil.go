@@ -17,6 +17,7 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -420,4 +421,9 @@ func parseNumberLongField(jsonValue interface{}) (int64, error) {
 	default:
 		return 0, errors.New("expected $numberLong field to have string value")
 	}
+}
+
+func ConvertTimestampToMongoTimestamp(timestamp primitive.Timestamp) bson.MongoTimestamp {
+	ts := (int64(timestamp.T) << 32) | int64(timestamp.I)
+	return bson.MongoTimestamp(ts)
 }
