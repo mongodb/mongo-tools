@@ -36,9 +36,9 @@ type BSONDump struct {
 	OutputOptions *OutputOptions
 
 	// File handle for the output data.
-	Out io.WriteCloser
+	OutputWriter io.WriteCloser
 
-	BSONSource *db.BSONSource
+	InputSource *db.BSONSource
 }
 
 type ReadNopCloser struct {
@@ -92,14 +92,14 @@ func New(opts Options) (*BSONDump, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting BSON reader failed: %v", err)
 	}
-	dumper.BSONSource = db.NewBSONSource(reader)
+	dumper.InputSource = db.NewBSONSource(reader)
 
 	writer, err := opts.GetWriter()
 	if err != nil {
 		_ = reader.Close()
 		return nil, fmt.Errorf("getting Writer failed: %v", err)
 	}
-	dumper.Out = writer
+	dumper.OutputWriter = writer
 
 	return dumper, nil
 }
@@ -107,11 +107,11 @@ func New(opts Options) (*BSONDump, error) {
 // Close cleans up the internal state of the given BSONDump instance. The instance should not be used again
 // after Close is called.
 func (bd *BSONDump) Close() error {
-	if err := bd.Out.Close(); err != nil {
+	if err := bd.OutputWriter.Close(); err != nil {
 		return err
 	}
 
-	if err := bd.BSONSource.Close(); err != nil {
+	if err := bd.InputSource.Close(); err != nil {
 		return err
 	}
 
@@ -142,12 +142,12 @@ func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
 func (bd *BSONDump) JSON() (int, error) {
 	numFound := 0
 
-	if bd.BSONSource == nil {
+	if bd.InputSource == nil {
 		panic("Tried to call JSON() before opening file")
 	}
 
 	for {
-		result := bson.Raw(bd.BSONSource.LoadNext())
+		result := bson.Raw(bd.InputSource.LoadNext())
 		if result == nil {
 			break
 		}
@@ -161,7 +161,7 @@ func (bd *BSONDump) JSON() (int, error) {
 			}
 		} else {
 			bytes = append(bytes, '\n')
-			_, err := bd.Out.Write(bytes)
+			_, err := bd.OutputWriter.Write(bytes)
 			if err != nil {
 				return numFound, err
 			}
@@ -171,7 +171,7 @@ func (bd *BSONDump) JSON() (int, error) {
 			time.Sleep(2 * time.Second)
 		}
 	}
-	if err := bd.BSONSource.Err(); err != nil {
+	if err := bd.InputSource.Err(); err != nil {
 		return numFound, err
 	}
 
@@ -186,12 +186,12 @@ func (bd *BSONDump) JSON() (int, error) {
 func (bd *BSONDump) Debug() (int, error) {
 	numFound := 0
 
-	if bd.BSONSource == nil {
+	if bd.InputSource == nil {
 		panic("Tried to call Debug() before opening file")
 	}
 
 	for {
-		result := bson.Raw(bd.BSONSource.LoadNext())
+		result := bson.Raw(bd.InputSource.LoadNext())
 		if result == nil {
 			break
 		}
@@ -204,14 +204,14 @@ func (bd *BSONDump) Debug() (int, error) {
 				return numFound, fmt.Errorf("failed to validate bson during objcheck: %v", err)
 			}
 		}
-		err := printBSON(result, 0, bd.Out)
+		err := printBSON(result, 0, bd.OutputWriter)
 		if err != nil {
 			log.Logvf(log.Always, "encountered error debugging BSON data: %v", err)
 		}
 		numFound++
 	}
 
-	if err := bd.BSONSource.Err(); err != nil {
+	if err := bd.InputSource.Err(); err != nil {
 		// This error indicates the BSON document header is corrupted;
 		// either the 4-byte header couldn't be read in full, or
 		// the size in the header would require reading more bytes
