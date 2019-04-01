@@ -189,16 +189,15 @@ func (exp *MongoExport) getCount() (c int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	defer session.Close()
 	if exp.InputOpts != nil && exp.InputOpts.Limit != 0 {
 		return exp.InputOpts.Limit, nil
 	}
 	if exp.InputOpts != nil && exp.InputOpts.Query != "" {
 		return 0, nil
 	}
-	mgoCollection := session.DB(exp.ToolOptions.Namespace.DB).C(exp.ToolOptions.Namespace.Collection)
+	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
 
-	collInfo, err := db.GetCollectionInfo(mgoCollection)
+	collInfo, err := db.GetCollectionInfo(coll)
 	if err != nil {
 		return 0, err
 	}
@@ -206,11 +205,12 @@ func (exp *MongoExport) getCount() (c int, err error) {
 		return 0, nil
 	}
 
-	q := mgoCollection.Find(nil)
-	c, err = q.Count()
+	n, err := coll.EstimatedDocumentCount(nil)
 	if err != nil {
 		return 0, err
 	}
+
+	c = int(n)
 	var skip int
 	if exp.InputOpts != nil {
 		skip = exp.InputOpts.Skip
@@ -304,12 +304,11 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 		return 0, err
 	}
 
-	cursor, session, err := exp.getCursor()
+	cursor, err := exp.getCursor()
 	if err != nil {
 		return 0, err
 	}
-	defer session.Close()
-	defer cursor.Close()
+	defer cursor.Close(nil)
 
 	connURL := exp.ToolOptions.Host
 	if connURL == "" {
@@ -326,12 +325,15 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 		return 0, err
 	}
 
-	var result bson.D
-
 	docsCount := int64(0)
 
 	// Write document content
-	for cursor.Next(&result) {
+	for cursor.Next(nil) {
+		var result bson.D
+		if err := cursor.Decode(&result); err != nil {
+			return docsCount, err
+		}
+
 		err := exportOutput.ExportDocument(result)
 		if err != nil {
 			return docsCount, err
