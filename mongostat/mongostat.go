@@ -20,7 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // MongoStat is a container for the user-specified options and

@@ -27,8 +27,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/testutil"
 	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var (

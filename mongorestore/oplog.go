@@ -136,7 +136,7 @@ func (restore *MongoRestore) TimestampBeforeLimit(ts primitive.Timestamp) bool {
 		// always valid if there is no --oplogLimit set
 		return true
 	}
-	return ts.T < restore.oplogLimit.T || (ts.T == restore.oplogLimit.T && ts.I < restore.oplogLimit.I)
+	return util.CompareTimestamps(ts, restore.oplogLimit) < 0
 }
 
 // ParseTimestampFlag takes in a string the form of <time_t>:<ordinal>,
