@@ -13,7 +13,7 @@ if (_isWindows()) {
 // shellRowRegex matches all lines of shell output
 const shellRowRegex = /^sh\d+\|\s+/;
 // defaultStatLineRegex matches default mongostat stat lines (ends in a timestamp, has at least 16 space delimited fields)
-const defaultStatLineRegex = /^sh\d+\|(\s+\S+){16}.*[A-Z][a-z]{2}\s\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3}$/;
+const defaultStatLineRegex = /^sh\d+\|(\s+\S+){16}.*[A-Z][a-z]{2}\s(\s\d|\d\d)\s\d{2}:\d{2}:\d{2}\.\d{3}$/;
 // portRegex finds the port on a stat line
 const portRegex = /^\S+:(\d+)/;
 
