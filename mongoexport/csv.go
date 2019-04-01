@@ -9,8 +9,8 @@ package mongoexport
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/json"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/json"
 	"gopkg.in/mgo.v2/bson"
 	"io"
 	"reflect"
