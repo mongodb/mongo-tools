@@ -132,7 +132,7 @@ func ParseOptions(rawArgs []string) (Options, error) {
 	if inputOpts.ReadPreference != "" {
 		pref, err := db.ParseReadPreference(inputOpts.ReadPreference)
 		if err != nil {
-			return Options{}, fmt.Errorf("error parsing --ReadPreference: %v", err)
+			return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 		}
 
 		opts.ReadPreference = pref
