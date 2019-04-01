@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
@@ -24,6 +25,7 @@ import (
 	gbson "go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -32,6 +34,11 @@ const (
 	CSV                            = "csv"
 	JSON                           = "json"
 	watchProgressorUpdateFrequency = 8000
+)
+
+const (
+	progressBarLength   = 24
+	progressBarWaitTime = time.Second
 )
 
 // MongoExport is a container for the user-specified options and
@@ -71,9 +78,55 @@ type ExportOutput interface {
 	Flush() error
 }
 
-// ValidateSettings returns an error if any settings specified on the command line
+// New constructs a new MongoExport instance from the provided options.
+func New(opts Options) (*MongoExport, error) {
+	exporter := &MongoExport{
+		ToolOptions: *opts.ToolOptions,
+		OutputOpts:  opts.OutputFormatOptions,
+		InputOpts:   opts.InputOptions,
+	}
+
+	err := exporter.validateSettings()
+	if err != nil {
+		return nil, err
+	}
+
+	provider, err := db.NewSessionProvider(*opts.ToolOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	isMongos, err := provider.IsMongos()
+	if err != nil {
+		provider.Close()
+		return nil, err
+	}
+
+	// warn if we are trying to export from a secondary in a sharded cluster
+	pref := opts.ToolOptions.ReadPreference
+	if isMongos && pref != nil && pref.Mode() != readpref.PrimaryMode {
+		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
+	}
+
+	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, false)
+	progressManager.Start()
+
+	exporter.SessionProvider = provider
+	exporter.ProgressManager = progressManager
+	return exporter, nil
+}
+
+// Close cleans up all the resources for a MongoExport instance.
+func (exp *MongoExport) Close() {
+	exp.SessionProvider.Close()
+	if barWriter, ok := exp.ProgressManager.(*progress.BarWriter); ok {
+		barWriter.Stop()
+	}
+}
+
+// validateSettings returns an error if any settings specified on the command line
 // were invalid, or nil if they are valid.
-func (exp *MongoExport) ValidateSettings() error {
+func (exp *MongoExport) validateSettings() error {
 	// Namespace must have a valid database if none is specified,
 	// use 'test'
 	if exp.ToolOptions.Namespace.DB == "" {

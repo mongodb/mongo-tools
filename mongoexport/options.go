@@ -9,6 +9,10 @@ package mongoexport
 import (
 	"fmt"
 	"io/ioutil"
+
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
 )
 
 var Usage = `<options>
@@ -82,4 +86,62 @@ func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
 		return content, err
 	}
 	panic("GetQuery can return valid values only for query or queryFile input")
+}
+
+// Options represents all possible options that can be used to configure mongoexport.
+type Options struct {
+	*options.ToolOptions
+	*OutputFormatOptions
+	*InputOptions
+	ParsedArgs []string
+}
+
+// ParseOptions reads command line arguments and converts them into options that can be used to configure mongoexport.
+func ParseOptions(rawArgs []string) (Options, error) {
+	// initialize command-line opts
+	opts := options.New("mongoexport", Usage,
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
+	outputOpts := &OutputFormatOptions{}
+	opts.AddOptions(outputOpts)
+	inputOpts := &InputOptions{}
+	opts.AddOptions(inputOpts)
+	opts.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
+
+	args, err := opts.ParseArgs(rawArgs)
+	if err != nil {
+		return Options{}, err
+	}
+	if len(args) != 0 {
+		return Options{}, fmt.Errorf("too many positional arguments: %v", args)
+	}
+
+	log.SetVerbosity(opts.Verbosity)
+
+	// verify URI options and log them
+	opts.URI.LogUnsupportedOptions()
+
+	if inputOpts.SlaveOk {
+		if inputOpts.ReadPreference != "" {
+			return Options{}, fmt.Errorf("--slaveOk can't be specified when --readPreference is specified")
+		}
+
+		log.Logvf(log.Always, "--slaveOk is deprecated and being internally rewritten as --readPreference=nearest")
+		inputOpts.ReadPreference = "nearest"
+	}
+
+	if inputOpts.ReadPreference != "" {
+		pref, err := db.ParseReadPreference(inputOpts.ReadPreference)
+		if err != nil {
+			return Options{}, fmt.Errorf("error parsing --ReadPreference: %v", err)
+		}
+
+		opts.ReadPreference = pref
+	}
+
+	return Options{
+		opts,
+		outputOpts,
+		inputOpts,
+		args,
+	}, nil
 }
