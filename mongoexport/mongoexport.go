@@ -21,7 +21,9 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
-	"gopkg.in/mgo.v2"
+	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -157,8 +159,8 @@ func (exp *MongoExport) GetOutputWriter() (io.WriteCloser, error) {
 // Take a comma-delimited set of field names and build a selector doc for query projection.
 // For fields containing a dot '.', we project the entire top-level portion.
 // e.g. "a,b,c.d.e,f.$" -> {a:1, b:1, "c":1, "f.$": 1}.
-func makeFieldSelector(fields string) bson.M {
-	selector := bson.M{"_id": 1}
+func makeFieldSelector(fields string) gbson.M {
+	selector := gbson.M{"_id": 1}
 	if fields == "" {
 		return selector
 	}
@@ -224,17 +226,16 @@ func (exp *MongoExport) getCount() (c int, err error) {
 // getCursor returns a cursor that can be iterated over to get all the documents
 // to export, based on the options given to mongoexport. Also returns the
 // associated session, so that it can be closed once the cursor is used up.
-func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
-	sortFields := []string{}
+func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
+	findOpts := driverOpts.Find()
+
 	if exp.InputOpts != nil && exp.InputOpts.Sort != "" {
 		sortD, err := getSortFromArg(exp.InputOpts.Sort)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		sortFields, err = bsonutil.MakeSortString(sortD)
-		if err != nil {
-			return nil, nil, err
-		}
+
+		findOpts.SetSort(sortD)
 	}
 
 	query := map[string]interface{}{}
@@ -242,53 +243,44 @@ func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
 		var err error
 		content, err := exp.InputOpts.GetQuery()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		query, err = getObjectFromByteArg(content)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	session, err := exp.SessionProvider.GetSession()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	collection := session.DB(exp.ToolOptions.Namespace.DB).C(exp.ToolOptions.Namespace.Collection)
+	collection := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
 
 	// figure out if we're exporting a view
 	collInfo, err := db.GetCollectionInfo(collection)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	flags := 0
 	// don't snapshot if we've been asked not to,
 	// or if we cannot because  we are querying, sorting, or if the collection is a view
 	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" && !collInfo.IsView() && !collInfo.IsSystemCollection() {
-		flags = flags | db.Snapshot
+		findOpts.SetSnapshot(true)
 	}
 
-	skip := 0
 	if exp.InputOpts != nil {
-		skip = exp.InputOpts.Skip
+		findOpts.SetSkip(int64(exp.InputOpts.Skip))
 	}
-	limit := 0
 	if exp.InputOpts != nil {
-		limit = exp.InputOpts.Limit
+		findOpts.SetLimit(int64(exp.InputOpts.Limit))
 	}
-
-	// build the query
-	q := collection.Find(query).Sort(sortFields...).Skip(skip).Limit(limit)
 
 	if len(exp.OutputOpts.Fields) > 0 {
-		q.Select(makeFieldSelector(exp.OutputOpts.Fields))
+		findOpts.SetProjection(makeFieldSelector(exp.OutputOpts.Fields))
 	}
 
-	q = db.ApplyFlags(q, session, flags)
-
-	return q.Iter(), session, nil
-
+	return collection.Find(nil, query, findOpts)
 }
 
 // Internal function that handles exporting to the given writer. Used primarily
