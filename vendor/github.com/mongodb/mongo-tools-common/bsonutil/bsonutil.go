@@ -17,16 +17,43 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var ErrNoSuchField = errors.New("no such field")
 
+func convertExtendedJSONDocumentToBSON(doc map[string]interface{}, canonical bool) error {
+	extJSON, err := bson.MarshalExtJSON(doc, canonical, false)
+	if err != nil {
+		return fmt.Errorf("can't marshal into extJSON: %v", err)
+	}
+
+	bsonDoc := map[string]interface{}{}
+	err = bson.UnmarshalExtJSON(extJSON, canonical, &bsonDoc)
+	if err != nil {
+		return fmt.Errorf("can't unmarshal from extJSON: %v", err)
+	}
+
+	for k, v := range bsonDoc {
+		doc[k] = v
+	}
+
+	return nil
+}
+
+// Con
+func ConvertCanonicalExtendedJSONDocumentToBSON(doc map[string]interface{}) error {
+	return convertExtendedJSONDocumentToBSON(doc, true)
+}
+
 // ConvertJSONDocumentToBSON iterates through the document map and converts JSON
 // values to their corresponding BSON values. It also replaces any extended JSON
 // type value (e.g. $date) with the corresponding BSON type.
+func ConvertJSONDocumentToBSON1(doc map[string]interface{}) error {
+	return convertExtendedJSONDocumentToBSON(doc, false)
+}
+
 func ConvertJSONDocumentToBSON(doc map[string]interface{}) error {
 	for key, jsonValue := range doc {
 		var bsonValue interface{}
@@ -63,8 +90,8 @@ func GetExtendedBsonD(doc bson.D) (bson.D, error) {
 		if err != nil {
 			return nil, err
 		}
-		bsonDoc = append(bsonDoc, bson.DocElem{
-			Name:  docElem.Name,
+		bsonDoc = append(bsonDoc, bson.E{
+			Key:  docElem.Key,
 			Value: bsonValue,
 		})
 	}
@@ -75,7 +102,7 @@ func GetExtendedBsonD(doc bson.D) (bson.D, error) {
 // in the top-level of the document, ErrNoSuchField is returned as the error.
 func FindValueByKey(keyName string, document *bson.D) (interface{}, error) {
 	for _, key := range *document {
-		if key.Name == keyName {
+		if key.Key == keyName {
 			return key.Value, nil
 		}
 	}
@@ -146,7 +173,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		if jsonValue, ok := doc["$code"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return bson.JavaScript{Code: v}, nil
+				return primitive.CodeWithScope{Code: primitive.JavaScript(v), Scope: nil}, nil
 			default:
 				return nil, errors.New("expected $code field to have string value")
 			}
@@ -155,11 +182,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		if jsonValue, ok := doc["$oid"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				if !bson.IsObjectIdHex(v) {
-					return nil, errors.New("expected $oid field to contain 24 hexadecimal character")
-				}
-				return bson.ObjectIdHex(v), nil
-
+				return primitive.ObjectIDFromHex(v)
 			default:
 				return nil, errors.New("expected $oid field to have string value")
 			}
@@ -213,36 +236,36 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				return nil, errors.New("expected $timestamp to have 'i' field")
 			}
 			// see BSON spec for details on the bit fiddling here
-			return bson.MongoTimestamp(int64(ts.Seconds)<<32 | int64(ts.Increment)), nil
+			return primitive.Timestamp{T: uint32(ts.Seconds), I: uint32(ts.Increment)}, nil
 		}
 
 		if jsonValue, ok := doc["$numberDecimal"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return bson.ParseDecimal128(v)
+				return primitive.ParseDecimal128(v)
 			default:
 				return nil, errors.New("expected $numberDecimal field to have string value")
 			}
 		}
 
 		if _, ok := doc["$undefined"]; ok {
-			return bson.Undefined, nil
+			return primitive.Undefined{}, nil
 		}
 
 		if _, ok := doc["$maxKey"]; ok {
-			return bson.MaxKey, nil
+			return primitive.MaxKey{}, nil
 		}
 
 		if _, ok := doc["$minKey"]; ok {
-			return bson.MinKey, nil
+			return primitive.MinKey{}, nil
 		}
 
 	case 2: // document has two fields
 		if jsonValue, ok := doc["$code"]; ok {
-			code := bson.JavaScript{}
+			code := primitive.CodeWithScope{}
 			switch v := jsonValue.(type) {
 			case string:
-				code.Code = v
+				code.Code = primitive.JavaScript(v)
 			default:
 				return nil, errors.New("expected $code field to have string value")
 			}
@@ -265,7 +288,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		}
 
 		if jsonValue, ok := doc["$regex"]; ok {
-			regex := bson.RegEx{}
+			regex := primitive.Regex{}
 
 			switch pattern := jsonValue.(type) {
 			case string:
@@ -299,7 +322,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		}
 
 		if jsonValue, ok := doc["$binary"]; ok {
-			binary := bson.Binary{}
+			binary := primitive.Binary{}
 
 			switch data := jsonValue.(type) {
 			case string:
@@ -324,68 +347,12 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				} else if len(kind) != 1 {
 					return nil, errors.New("expected single byte (as hexadecimal string) for $type field")
 				}
-				binary.Kind = kind[0]
+				binary.Subtype = kind[0]
 
 			default:
 				return nil, errors.New("expected $type field to have string value")
 			}
 			return binary, nil
-		}
-
-		if jsonValue, ok := doc["$ref"]; ok {
-			dbRef := mgo.DBRef{}
-
-			switch data := jsonValue.(type) {
-			case string:
-				dbRef.Collection = data
-			default:
-				return nil, errors.New("expected string for $ref field")
-			}
-			if jsonValue, ok = doc["$id"]; ok {
-				switch v2 := jsonValue.(type) {
-				case map[string]interface{}, bson.D:
-					x, err := ParseSpecialKeys(v2)
-					if err != nil {
-						return nil, fmt.Errorf("error parsing $id field: %v", err)
-					}
-					dbRef.Id = x
-				default:
-					dbRef.Id = v2
-				}
-				return dbRef, nil
-			}
-		}
-	case 3:
-		if jsonValue, ok := doc["$ref"]; ok {
-			dbRef := mgo.DBRef{}
-
-			switch data := jsonValue.(type) {
-			case string:
-				dbRef.Collection = data
-			default:
-				return nil, errors.New("expected string for $ref field")
-			}
-			if jsonValue, ok = doc["$id"]; ok {
-				switch v2 := jsonValue.(type) {
-				case map[string]interface{}, bson.D:
-					x, err := ParseSpecialKeys(v2)
-					if err != nil {
-						return nil, fmt.Errorf("error parsing $id field: %v", err)
-					}
-					dbRef.Id = x
-				default:
-					dbRef.Id = v2
-				}
-				if dbValue, ok := doc["$db"]; ok {
-					switch v3 := dbValue.(type) {
-					case string:
-						dbRef.Database = v3
-					default:
-						return nil, errors.New("expected string for $db field")
-					}
-					return dbRef, nil
-				}
-			}
 		}
 	}
 
@@ -421,9 +388,4 @@ func parseNumberLongField(jsonValue interface{}) (int64, error) {
 	default:
 		return 0, errors.New("expected $numberLong field to have string value")
 	}
-}
-
-func ConvertTimestampToMongoTimestamp(timestamp primitive.Timestamp) bson.MongoTimestamp {
-	ts := (int64(timestamp.T) << 32) | int64(timestamp.I)
-	return bson.MongoTimestamp(ts)
 }

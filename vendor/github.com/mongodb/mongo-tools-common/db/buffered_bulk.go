@@ -10,10 +10,9 @@ import (
 	"context"
 	"fmt"
 
-	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // BufferedBulkInserter implements a bufio.Writer-like design for queuing up
@@ -81,7 +80,7 @@ func (bb *BufferedBulkInserter) InsertRaw(rawBytes []byte) (err error) {
 	// buffer the document
 	bb.docCount++
 	bb.byteCount += len(rawBytes)
-	bb.documents = append(bb.documents, gbson.Raw(rawBytes))
+	bb.documents = append(bb.documents, bson.Raw(rawBytes))
 	return err
 }
 

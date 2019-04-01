@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools-common/db"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // GetAuthVersion gets the authentication schema version of the connected server

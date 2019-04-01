@@ -13,12 +13,13 @@
 package json
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
+
 	"bytes"
 	"encoding"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"math"
 	"reflect"
 	"runtime"
@@ -1028,7 +1029,7 @@ func (d *decodeState) bsonDInterface() bson.D {
 		}
 
 		// Read value.
-		m = append(m, bson.DocElem{Name: key, Value: d.valueInterface(true)})
+		m = append(m, bson.E{Key: key, Value: d.valueInterface(true)})
 
 		// Next token must be , or }.
 		op = d.scanWhile(scanSkipSpace)

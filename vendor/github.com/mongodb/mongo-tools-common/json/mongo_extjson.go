@@ -7,8 +7,10 @@
 package json
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"reflect"
 )
 
@@ -36,7 +38,7 @@ type DBRef struct {
 // and the objectId in which the _id of the document is contained
 type DBPointer struct {
 	Namespace string
-	Id        bson.ObjectId
+	Id        primitive.ObjectID
 }
 
 // Represents the literal MinKey.
@@ -55,7 +57,7 @@ type NumberLong int64
 type NumberFloat float64
 
 type Decimal128 struct {
-	bson.Decimal128
+	primitive.Decimal128
 }
 
 // Represents a regular expression.

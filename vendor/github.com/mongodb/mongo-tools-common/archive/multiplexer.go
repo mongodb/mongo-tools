@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // bufferSize enables or disables the MuxIn buffering

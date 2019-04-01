@@ -9,9 +9,9 @@ package db
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Query flags
@@ -78,7 +78,7 @@ func (sp *SessionProvider) DropDatabase(dbName string) error {
 
 func (sp *SessionProvider) CreateCollection(dbName, collName string) error {
 	command := &bson.M{"create": collName}
-	out := &bson.RawD{}
+	out := &bson.Raw{}
 	err := sp.Run(command, out, dbName)
 	return err
 }
