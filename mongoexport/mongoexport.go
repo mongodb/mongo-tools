@@ -278,17 +278,6 @@ func (exp *MongoExport) getCursor() (*mgo.Iter, *mgo.Session, error) {
 		limit = exp.InputOpts.Limit
 	}
 
-	if exp.InputOpts.AssertExists {
-		collNames, err := session.DB(exp.ToolOptions.Namespace.DB).CollectionNames()
-		if err != nil {
-			return nil, session, err
-		}
-		if !util.StringSliceContains(collNames, exp.ToolOptions.Namespace.Collection) {
-			return nil, session, fmt.Errorf("collection '%s' does not exist",
-				exp.ToolOptions.Namespace.Collection)
-		}
-	}
-
 	// build the query
 	q := collection.Find(query).Sort(sortFields...).Skip(skip).Limit(limit)
 
@@ -378,6 +367,27 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 // of documents successfully exported, and a non-nil error if something went wrong
 // during the export operation.
 func (exp *MongoExport) Export(out io.Writer) (int64, error) {
+	session, err := exp.SessionProvider.GetSession()
+	if err != nil {
+		return 0, err
+	}
+
+	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	collInfo, err := db.GetCollectionInfo(coll)
+	if err != nil {
+		return 0, err
+	}
+
+	// If the collection doesn't exist, GetCollectionInfo will return nil
+	if collInfo == nil {
+		var collInfoErr error
+		if exp.InputOpts.AssertExists {
+			collInfoErr = fmt.Errorf("collection '%s' does not exist", exp.ToolOptions.Namespace.Collection)
+		}
+
+		return 0, collInfoErr
+	}
+
 	count, err := exp.exportInternal(out)
 	return count, err
 }
