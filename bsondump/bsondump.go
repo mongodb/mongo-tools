@@ -55,9 +55,9 @@ func (WriteNopCloser) Close() error { return nil }
 
 // GetWriter opens and returns an io.WriteCloser for the OutFileName in OutputOptions
 // or nil if none is set. The caller is responsible for closing it.
-func (bdo *OutputOptions) GetWriter() (io.WriteCloser, error) {
-	if bdo.OutFileName != "" {
-		file, err := os.Create(util.ToUniversalPath(bdo.OutFileName))
+func (oo *OutputOptions) GetWriter() (io.WriteCloser, error) {
+	if oo.OutFileName != "" {
+		file, err := os.Create(util.ToUniversalPath(oo.OutFileName))
 		if err != nil {
 			return nil, err
 		}
@@ -69,9 +69,9 @@ func (bdo *OutputOptions) GetWriter() (io.WriteCloser, error) {
 
 // GetBSONReader opens and returns an io.ReadCloser for the BSONFileName in OutputOptions
 // or nil if none is set. The caller is responsible for closing it.
-func (bdo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
-	if bdo.BSONFileName != "" {
-		file, err := os.Open(util.ToUniversalPath(bdo.BSONFileName))
+func (oo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
+	if oo.BSONFileName != "" {
+		file, err := os.Open(util.ToUniversalPath(oo.BSONFileName))
 		if err != nil {
 			return nil, fmt.Errorf("couldn't open BSON file: %v", err)
 		}
@@ -110,12 +110,7 @@ func (bd *BSONDump) Close() error {
 	if err := bd.OutputWriter.Close(); err != nil {
 		return err
 	}
-
-	if err := bd.InputSource.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return bd.InputSource.Close()
 }
 
 func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
@@ -242,8 +237,7 @@ func printBSON(raw bson.Raw, indentLevel int, out io.Writer) error {
 		// 3. The BSON value
 		// So size == 1 [size of type byte] +  1 [null byte for cstring key] + len(bson key) + len(bson value)
 		// see http://bsonspec.org/spec.html for more details
-		fmt.Fprintf(out, "%v\t\t\ttype: %4v size: %v\n", indent, int8(value.Type),
-			2+len(key)+len(value.Value))
+		fmt.Fprintf(out, "%v\t\t\ttype: %4v size: %v\n", indent, int8(value.Type), len(rawElem))
 
 		//For nested objects or arrays, recurse.
 		if value.Type == bsontype.EmbeddedDocument || value.Type == bsontype.Array {
