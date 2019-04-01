@@ -11,9 +11,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	gbson "go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -44,8 +45,8 @@ func TestFieldSelect(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Using makeFieldSelector should return correct projection doc", t, func() {
-		So(makeFieldSelector("a,b"), ShouldResemble, bson.M{"_id": 1, "a": 1, "b": 1})
-		So(makeFieldSelector(""), ShouldResemble, bson.M{"_id": 1})
-		So(makeFieldSelector("x,foo.baz"), ShouldResemble, bson.M{"_id": 1, "foo": 1, "x": 1})
+		So(makeFieldSelector("a,b"), ShouldResemble, gbson.M{"_id": 1, "a": 1, "b": 1})
+		So(makeFieldSelector(""), ShouldResemble, gbson.M{"_id": 1})
+		So(makeFieldSelector("x,foo.baz"), ShouldResemble, gbson.M{"_id": 1, "foo": 1, "x": 1})
 	})
 }
