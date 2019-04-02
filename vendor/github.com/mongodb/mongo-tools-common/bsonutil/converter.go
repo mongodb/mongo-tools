@@ -17,9 +17,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ConvertJSONValueToBSON walks through a document or an array and
+// ConvertLegacyExtJSONValueToBSON walks through a document or an array and
 // replaces any extended JSON value with its corresponding BSON type.
-func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
+func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -27,7 +27,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		return v, nil
 	case map[string]interface{}: // document
 		for key, jsonValue := range v {
-			bsonValue, err := ParseJSONValue(jsonValue)
+			bsonValue, err := ParseLegacyExtJSONValue(jsonValue)
 			if err != nil {
 				return nil, err
 			}
@@ -37,7 +37,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 	case bson.D:
 		for i := range v {
 			var err error
-			v[i].Value, err = ParseJSONValue(v[i].Value)
+			v[i].Value, err = ParseLegacyExtJSONValue(v[i].Value)
 			if err != nil {
 				return nil, err
 			}
@@ -46,7 +46,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 	case []interface{}: // array
 		for i, jsonValue := range v {
-			bsonValue, err := ParseJSONValue(jsonValue)
+			bsonValue, err := ParseLegacyExtJSONValue(jsonValue)
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +115,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 func convertKeys(v bson.M) (bson.M, error) {
 	for key, value := range v {
-		jsonValue, err := ConvertBSONValueToJSON(value)
+		jsonValue, err := ConvertBSONValueToLegacyExtJSON(value)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func convertKeys(v bson.M) (bson.M, error) {
 func getConvertedKeys(v bson.M) (bson.M, error) {
 	out := bson.M{}
 	for key, value := range v {
-		jsonValue, err := GetBSONValueAsJSON(value)
+		jsonValue, err := GetBSONValueAsLegacyExtJSON(value)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +138,7 @@ func getConvertedKeys(v bson.M) (bson.M, error) {
 
 func convertArray(v bson.A) ([]interface{}, error) {
 	for i, value := range v {
-		jsonValue, err := ConvertBSONValueToJSON(value)
+		jsonValue, err := ConvertBSONValueToLegacyExtJSON(value)
 		if err != nil {
 			return nil, err
 		}
@@ -147,10 +147,10 @@ func convertArray(v bson.A) ([]interface{}, error) {
 	return []interface{}(v), nil
 }
 
-// ConvertBSONValueToJSON walks through a document or an array and
+// ConvertBSONValueToLegacyExtJSON walks through a document or an array and
 // converts any BSON value to its corresponding extended JSON type.
 // It returns the converted JSON document and any error encountered.
-func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
+func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -169,7 +169,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		return convertKeys(v)
 	case bson.D:
 		for i, value := range v {
-			jsonValue, err := ConvertBSONValueToJSON(value.Value)
+			jsonValue, err := ConvertBSONValueToLegacyExtJSON(value.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -233,7 +233,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
-			scope, err = ConvertBSONValueToJSON(v.Scope)
+			scope, err = ConvertBSONValueToLegacyExtJSON(v.Scope)
 			if err != nil {
 				return nil, err
 			}
@@ -256,8 +256,8 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
 }
 
-// GetBSONValueAsJSON is equivalent to ConvertBSONValueToJSON, but does not mutate its argument.
-func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
+// GetBSONValueAsLegacyExtJSON is equivalent to ConvertBSONValueToLegacyExtJSON, but does not mutate its argument.
+func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -277,7 +277,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case bson.D:
 		out := bson.D{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value.Value)
+			jsonValue, err := GetBSONValueAsLegacyExtJSON(value.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -288,7 +288,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		}
 		return MarshalD(out), nil
 	case MarshalD:
-		out, err := GetBSONValueAsJSON(bson.D(v))
+		out, err := GetBSONValueAsLegacyExtJSON(bson.D(v))
 		if err != nil {
 			return nil, err
 		}
@@ -296,7 +296,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case []interface{}: // array
 		out := []interface{}{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value)
+			jsonValue, err := GetBSONValueAsLegacyExtJSON(value)
 			if err != nil {
 				return nil, err
 			}
@@ -355,7 +355,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
-			scope, err = GetBSONValueAsJSON(v.Scope)
+			scope, err = GetBSONValueAsLegacyExtJSON(v.Scope)
 			if err != nil {
 				return nil, err
 			}
