@@ -333,6 +333,27 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 // Internal function that handles exporting to the given writer. Used primarily
 // for testing, because it bypasses writing to the file system.
 func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
+	// Check if the collection exists before starting export
+	session, err := exp.SessionProvider.GetSession()
+	if err != nil {
+		return 0, err
+	}
+
+	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	exp.collInfo, err = db.GetCollectionInfo(coll)
+	if err != nil {
+		return 0, err
+	}
+
+	// If the collection doesn't exist, GetCollectionInfo will return nil
+	if exp.collInfo == nil {
+		var collInfoErr error
+		if exp.InputOpts.AssertExists {
+			collInfoErr = fmt.Errorf("collection '%s' does not exist", exp.ToolOptions.Namespace.Collection)
+		}
+
+		return 0, collInfoErr
+	}
 
 	max, err := exp.getCount()
 	if err != nil {
@@ -408,27 +429,6 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 // of documents successfully exported, and a non-nil error if something went wrong
 // during the export operation.
 func (exp *MongoExport) Export(out io.Writer) (int64, error) {
-	session, err := exp.SessionProvider.GetSession()
-	if err != nil {
-		return 0, err
-	}
-
-	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
-	exp.collInfo, err = db.GetCollectionInfo(coll)
-	if err != nil {
-		return 0, err
-	}
-
-	// If the collection doesn't exist, GetCollectionInfo will return nil
-	if exp.collInfo == nil {
-		var collInfoErr error
-		if exp.InputOpts.AssertExists {
-			collInfoErr = fmt.Errorf("collection '%s' does not exist", exp.ToolOptions.Namespace.Collection)
-		}
-
-		return 0, collInfoErr
-	}
-
 	count, err := exp.exportInternal(out)
 	return count, err
 }
