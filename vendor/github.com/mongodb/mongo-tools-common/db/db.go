@@ -282,7 +282,7 @@ func IsConnectionError(err error) bool {
 		strings.Contains(lowerCaseError, ErrWriteResultsUnavailable) ||
 		strings.Contains(lowerCaseError, ErrCouldNotFindPrimaryPrefix) ||
 		strings.Contains(lowerCaseError, ErrUnableToTargetPrefix) ||
-		lowerCaseError == ErrNotMaster ||
+		strings.Contains(lowerCaseError, ErrNotMaster) ||
 		strings.HasSuffix(lowerCaseError, ErrConnectionRefusedSuffix) {
 		return true
 	}

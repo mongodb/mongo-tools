@@ -22,79 +22,65 @@ import (
 const (
 	j         = "j"
 	w         = "w"
-	fSync     = "fsync"
 	wTimeout  = "wtimeout"
 	majString = "majority"
-	tagString = "tagset"
 )
 
-// WriteConcernOptions is a shim in between write concern option configuration
-// inputs and the Go driver write concern option type, which is currently
-// opaque (GODRIVER-752).  Having the shim allows easier testing of
-// configuration parsing.
-type WriteConcernOptions struct {
-	WNumber    int
-	WNumberSet bool
-	WString    string
-	J          bool
-	WTimeout   time.Duration
-}
-
-// NewMongoWriteConcernOpts takes a string (from the command line writeConcern option) and a ConnString object
-// (from the command line uri option) and returns a WriteConcernOptions. If both are provided, preference is given to
+// NewMongoWriteConcern takes a string (from the command line writeConcern option) and a ConnString object
+// (from the command line uri option) and returns a WriteConcern. If both are provided, preference is given to
 // the command line writeConcern option. If neither is provided, the default 'majority' write concern is constructed.
-func NewMongoWriteConcernOpts(writeConcern string, cs *connstring.ConnString) (wco *WriteConcernOptions, err error) {
+func NewMongoWriteConcern(writeConcern string, cs *connstring.ConnString) (wc *writeconcern.WriteConcern, err error) {
 
 	// Log whatever write concern was generated
 	defer func() {
-		if wco != nil {
-			log.Logvf(log.Info, "using write concern: %v", wco)
+		if wc != nil {
+			log.Logvf(log.Info, "using write concern: %v", wc)
 		}
 	}()
 
-	// URI Connection String provided but no String provided case; constructWCOptionsFromConnString handles
+	// URI Connection String provided but no String provided case; constructWCFromConnString handles
 	// default for ConnString without write concern
 	if writeConcern == "" && cs != nil {
-		return constructWCOptionsFromConnString(cs)
+		return constructWCFromConnString(cs)
 	}
 
-	// String case; constructWCOptionsFromString handles default for empty string
-	return constructWCOptionsFromString(writeConcern)
+	// String case; constructWCFromString handles default for empty string
+	return constructWCFromString(writeConcern)
 }
 
-// constructWCOptionsFromConnString takes in a parsed connection string and
+// constructWCFromConnString takes in a parsed connection string and
 // extracts values from it. If the ConnString has no write concern value, it defaults
 // to 'majority'.
-func constructWCOptionsFromConnString(cs *connstring.ConnString) (*WriteConcernOptions, error) {
-	opts := &WriteConcernOptions{}
+func constructWCFromConnString(cs *connstring.ConnString) (*writeconcern.WriteConcern, error) {
+	var opts []writeconcern.Option
 
 	switch {
 	case cs.WNumberSet:
 		if cs.WNumber < 0 {
 			return nil, fmt.Errorf("invalid 'w' argument: %v", cs.WNumber)
 		}
-		opts.WNumberSet = cs.WNumberSet
-		opts.WNumber = cs.WNumber
+
+		opts = append(opts, writeconcern.W(cs.WNumber))
 	case cs.WString != "":
-		opts.WString = cs.WString
+		opts = append(opts, writeconcern.WTagSet(cs.WString))
 	default:
-		opts.WString = majString
+		opts = append(opts, writeconcern.WMajority())
 	}
 
-	opts.J = cs.J
-	opts.WTimeout = cs.WTimeout
+	opts = append(opts, writeconcern.J(cs.J))
+	opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
 
-	return opts, nil
+	return writeconcern.New(opts...), nil
 }
 
-// constructWCOptionsFromString takes in a write concern and attempts to
+// constructWCFromString takes in a write concern and attempts to
 // extract values from it. It returns an error if it is unable to parse the
 // string or if a parsed write concern field value is invalid.
-func constructWCOptionsFromString(writeConcern string) (*WriteConcernOptions, error) {
+func constructWCFromString(writeConcern string) (*writeconcern.WriteConcern, error) {
 
 	// Default case
 	if writeConcern == "" {
-		return &WriteConcernOptions{WString: majString}, nil
+		return writeconcern.New(writeconcern.WMajority()), nil
 	}
 
 	// Try to unmarshal as JSON document
@@ -108,32 +94,33 @@ func constructWCOptionsFromString(writeConcern string) (*WriteConcernOptions, er
 	// allows a default to the old behavior wherein the entire argument passed
 	// in is assigned to the 'w' field - thus allowing users pass a write
 	// concern that looks like: "majority", 0, "4", etc.
-	opts, err := parseModeString(writeConcern)
-	if err == nil {
-		return opts, nil
+	wOpt, err := parseModeString(writeConcern)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, err
+	return writeconcern.New(wOpt), err
 }
 
-// parseJSONWriteConcern converts a JSON map representing a write concern object
-func parseJSONWriteConcern(jsonWriteConcern map[string]interface{}) (*WriteConcernOptions, error) {
-	var err error
-	var opts *WriteConcernOptions
+// parseJSONWriteConcern converts a JSON map representing a write concern object into a WriteConcern
+func parseJSONWriteConcern(jsonWriteConcern map[string]interface{}) (*writeconcern.WriteConcern, error) {
+	var opts []writeconcern.Option
 
 	// Construct new options from 'w', if it exists; otherwise default to 'majority'
 	if wVal, ok := jsonWriteConcern[w]; ok {
-		opts, err = parseWField(wVal)
+		opt, err := parseWField(wVal)
 		if err != nil {
 			return nil, err
 		}
+
+		opts = append(opts, opt)
 	} else {
-		opts = &WriteConcernOptions{WString: majString}
+		opts = append(opts, writeconcern.WMajority())
 	}
 
 	// Journal option
 	if jVal, ok := jsonWriteConcern[j]; ok && util.IsTruthy(jVal) {
-		opts.J = true
+		opts = append(opts, writeconcern.J(true))
 	}
 
 	// Wtimeout option
@@ -143,41 +130,40 @@ func parseJSONWriteConcern(jsonWriteConcern map[string]interface{}) (*WriteConce
 			return nil, fmt.Errorf("invalid '%v' argument: %v", wTimeout, wtimeout)
 		}
 		// Previous implementation assumed passed in string was milliseconds
-		opts.WTimeout = time.Duration(timeoutVal) * time.Millisecond
+		opts = append(opts, writeconcern.WTimeout(time.Duration(timeoutVal)*time.Millisecond))
 	}
 
-	return opts, nil
+	return writeconcern.New(opts...), nil
 }
 
-func parseWField(wValue interface{}) (*WriteConcernOptions, error) {
+func parseWField(wValue interface{}) (writeconcern.Option, error) {
 	// Try parsing as int
 	if wNumber, err := util.ToInt(wValue); err == nil {
 		return parseModeNumber(wNumber)
 	}
+
 	// Try parsing as string
 	if wStrVal, ok := wValue.(string); ok {
 		return parseModeString(wStrVal)
 	}
+
 	return nil, fmt.Errorf("invalid 'w' argument type: %v has type %T", wValue, wValue)
 }
 
-// Given an integer, returns a write concern options object or error
-func parseModeNumber(wNumber int) (*WriteConcernOptions, error) {
+// Given an integer, returns a write concern object or error
+func parseModeNumber(wNumber int) (writeconcern.Option, error) {
 	if wNumber < 0 {
 		return nil, fmt.Errorf("invalid 'w' argument: %v", wNumber)
 	}
-	opts := &WriteConcernOptions{
-		WNumberSet: true,
-		WNumber:    wNumber,
-	}
-	return opts, nil
+
+	return writeconcern.W(wNumber), nil
 }
 
-// Given a string, returns a write concern options object or error
-func parseModeString(wString string) (*WriteConcernOptions, error) {
+// Given a string, returns a write concern object or error
+func parseModeString(wString string) (writeconcern.Option, error) {
 	// Default case
 	if wString == "" {
-		return &WriteConcernOptions{WString: majString}, nil
+		return writeconcern.WMajority(), nil
 	}
 
 	// Try parsing as number before treating as just a string
@@ -185,28 +171,5 @@ func parseModeString(wString string) (*WriteConcernOptions, error) {
 		return parseModeNumber(wNumber)
 	}
 
-	return &WriteConcernOptions{WString: wString}, nil
-}
-
-// ToMongoWriteConcern translates a WriteConcernOptions with public fields we
-// can examine into an opaque MongoDB Go driver write concern.
-func (wco WriteConcernOptions) ToMongoWriteConcern() *writeconcern.WriteConcern {
-	switch {
-	case wco.WNumberSet:
-		return writeconcern.New(writeconcern.W(wco.WNumber), writeconcern.J(wco.J), writeconcern.WTimeout(wco.WTimeout))
-	case wco.WString == majString:
-		return writeconcern.New(writeconcern.WMajority(), writeconcern.J(wco.J), writeconcern.WTimeout(wco.WTimeout))
-	default:
-		return writeconcern.New(writeconcern.WTagSet(wco.WString), writeconcern.J(wco.J), writeconcern.WTimeout(wco.WTimeout))
-	}
-}
-
-func (wco WriteConcernOptions) String() string {
-	var w string
-	if wco.WNumberSet {
-		w = fmt.Sprintf("%d", wco.WNumber)
-	} else {
-		w = wco.WString
-	}
-	return fmt.Sprintf("w='%v', j=%v, wTimeout=%v", w, wco.J, wco.WTimeout)
+	return writeconcern.WTagSet(wString), nil
 }

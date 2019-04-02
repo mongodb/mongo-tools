@@ -58,11 +58,11 @@ func ParseOptions(rawArgs []string) (Options, error) {
 	opts.Namespace.DB = storageOpts.DB
 
 	// set WriteConcern
-	wcOpts, err := db.NewMongoWriteConcernOpts(storageOpts.WriteConcern, opts.URI.ParsedConnString())
+	wc, err := db.NewMongoWriteConcern(storageOpts.WriteConcern, opts.URI.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --writeConcern: %v", err)
 	}
-	opts.WriteConcern = wcOpts.ToMongoWriteConcern()
+	opts.WriteConcern = wc
 
 	// set ReadPreference
 	if inputOpts.ReadPreference != "" {
