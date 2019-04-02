@@ -57,6 +57,9 @@ type MongoExport struct {
 	ExportOutput    ExportOutput
 
 	ProgressManager progress.Manager
+
+	// Cached version of the collection info
+	collInfo *db.CollectionInfo
 }
 
 // ExportOutput is an interface that specifies how a document should be formatted
@@ -250,11 +253,7 @@ func (exp *MongoExport) getCount() (c int, err error) {
 	}
 	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
 
-	collInfo, err := db.GetCollectionInfo(coll)
-	if err != nil {
-		return 0, err
-	}
-	if collInfo.IsView() {
+	if exp.collInfo.IsView() {
 		return 0, nil
 	}
 
@@ -310,15 +309,11 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	}
 	collection := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
 
-	// figure out if we're exporting a view
-	collInfo, err := db.GetCollectionInfo(collection)
-	if err != nil {
-		return nil, err
-	}
-
 	// don't snapshot if we've been asked not to,
 	// or if we cannot because  we are querying, sorting, or if the collection is a view
-	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" && !collInfo.IsView() && !collInfo.IsSystemCollection() {
+	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" &&
+		!exp.collInfo.IsView() && !exp.collInfo.IsSystemCollection() {
+
 		findOpts.SetSnapshot(true)
 	}
 
@@ -420,13 +415,13 @@ func (exp *MongoExport) Export(out io.Writer) (int64, error) {
 	}
 
 	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
-	collInfo, err := db.GetCollectionInfo(coll)
+	exp.collInfo, err = db.GetCollectionInfo(coll)
 	if err != nil {
 		return 0, err
 	}
 
 	// If the collection doesn't exist, GetCollectionInfo will return nil
-	if collInfo == nil {
+	if exp.collInfo == nil {
 		var collInfoErr error
 		if exp.InputOpts.AssertExists {
 			collInfoErr = fmt.Errorf("collection '%s' does not exist", exp.ToolOptions.Namespace.Collection)
