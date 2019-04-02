@@ -39,6 +39,12 @@ func main() {
 	exporter, err := mongoexport.New(opts)
 	if err != nil {
 		log.Logvf(log.Always, "%v", err)
+
+		if se, ok := err.(mongoexport.SetupError); ok {
+			os.Exit(se.Code)
+		}
+
+		// default to ExitError if a different type of error was thrown
 		os.Exit(util.ExitError)
 	}
 	defer exporter.Close()

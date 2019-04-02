@@ -81,6 +81,17 @@ type ExportOutput interface {
 	Flush() error
 }
 
+// SetupError is the error thrown by New to convey what error occurred and the appropriate exit code.
+type SetupError struct {
+	Err  error
+	Code int
+}
+
+// Error implements the error interface.
+func (se SetupError) Error() string {
+	return se.Err.Error()
+}
+
 // New constructs a new MongoExport instance from the provided options.
 func New(opts Options) (*MongoExport, error) {
 	exporter := &MongoExport{
@@ -91,18 +102,27 @@ func New(opts Options) (*MongoExport, error) {
 
 	err := exporter.validateSettings()
 	if err != nil {
-		return nil, err
+		return nil, SetupError{
+			Err:  err,
+			Code: util.ExitBadOptions,
+		}
 	}
 
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		return nil, err
+		return nil, SetupError{
+			Err:  err,
+			Code: util.ExitError,
+		}
 	}
 
 	isMongos, err := provider.IsMongos()
 	if err != nil {
 		provider.Close()
-		return nil, err
+		return nil, SetupError{
+			Err:  err,
+			Code: util.ExitError,
+		}
 	}
 
 	// warn if we are trying to export from a secondary in a sharded cluster

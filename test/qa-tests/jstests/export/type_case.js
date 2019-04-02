@@ -33,7 +33,7 @@
     '--type="foobar"',
     '--fields', 'a']
     .concat(commonToolArgs));
-  assert.eq(1, ret);
+  assert.eq(3, ret);
 
   // create a dump file using a lowercase csv type
   ret = toolTest.runTool.apply(toolTest, ['export',
