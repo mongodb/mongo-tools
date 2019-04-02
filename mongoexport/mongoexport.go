@@ -240,7 +240,7 @@ func makeFieldSelector(fields string) gbson.M {
 // If there is a query and no limit then it returns 0, because it's too expensive to count the query.
 // If the collection is a view then it returns 0, because it is too expensive to count the view.
 // Otherwise it returns the count minus the skip
-func (exp *MongoExport) getCount() (c int, err error) {
+func (exp *MongoExport) getCount() (int64, error) {
 	session, err := exp.SessionProvider.GetSession()
 	if err != nil {
 		return 0, err
@@ -257,13 +257,12 @@ func (exp *MongoExport) getCount() (c int, err error) {
 		return 0, nil
 	}
 
-	n, err := coll.EstimatedDocumentCount(nil)
+	c, err := coll.EstimatedDocumentCount(nil)
 	if err != nil {
 		return 0, err
 	}
 
-	c = int(n)
-	var skip int
+	var skip int64
 	if exp.InputOpts != nil {
 		skip = exp.InputOpts.Skip
 	}
@@ -318,10 +317,10 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	}
 
 	if exp.InputOpts != nil {
-		findOpts.SetSkip(int64(exp.InputOpts.Skip))
+		findOpts.SetSkip(exp.InputOpts.Skip)
 	}
 	if exp.InputOpts != nil {
-		findOpts.SetLimit(int64(exp.InputOpts.Limit))
+		findOpts.SetLimit(exp.InputOpts.Limit)
 	}
 
 	if len(exp.OutputOpts.Fields) > 0 {

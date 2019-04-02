@@ -60,8 +60,8 @@ type InputOptions struct {
 	SlaveOk        bool   `long:"slaveOk" short:"k" description:"allow secondary reads if available (default true)" default:"false" default-mask:"-"`
 	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference name or a preference json object"`
 	ForceTableScan bool   `long:"forceTableScan" description:"force a table scan (do not use $snapshot)"`
-	Skip           int    `long:"skip" value-name:"<count>" description:"number of documents to skip"`
-	Limit          int    `long:"limit" value-name:"<count>" description:"limit the number of documents to export"`
+	Skip           int64  `long:"skip" value-name:"<count>" description:"number of documents to skip"`
+	Limit          int64  `long:"limit" value-name:"<count>" description:"limit the number of documents to export"`
 	Sort           string `long:"sort" value-name:"<json>" description:"sort order, as a JSON string, e.g. '{x:1}'"`
 	AssertExists   bool   `long:"assertExists" default:"false" description:"if specified, export fails if the collection does not exist"`
 }
