@@ -14,12 +14,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-// validateParseOptions is a helper to call ParseOptions and verify the results.
+// validateReadPreferenceParsing is a helper to call ParseOptions and verify the results for read preferences.
 // args: command line arguments
 // expectSuccess: whether or not ParseOptions should succeed
 // inputRp: the expected read preference on InputOptions
 // toolsRp: the expected read preference on ToolOptions
-func validateParseOptions(args []string, expectSuccess bool, inputRp string, toolsRp *readpref.ReadPref) func() {
+func validateReadPreferenceParsing(args []string, expectSuccess bool, inputRp string, toolsRp *readpref.ReadPref) func() {
 	return func() {
 		opts, err := ParseOptions(args)
 		if expectSuccess {
@@ -38,20 +38,20 @@ func validateParseOptions(args []string, expectSuccess bool, inputRp string, too
 	}
 }
 
-func TestOptionsParsing(t *testing.T) {
+func TestReadPreferenceParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With ToolOptions and InputOptions", t, func() {
 		Convey("Parsing with no values should leave read pref empty",
-			validateParseOptions([]string{}, true, "", nil))
+			validateReadPreferenceParsing([]string{}, true, "", nil))
 
 		Convey("Parsing with value only in command line opts",
-			validateParseOptions([]string{"--readPreference", "secondary"}, true, "secondary", readpref.Secondary()))
+			validateReadPreferenceParsing([]string{"--readPreference", "secondary"}, true, "secondary", readpref.Secondary()))
 
 		Convey("Specifying slaveOk should set read pref to nearest",
-			validateParseOptions([]string{"--slaveOk"}, true, "nearest", readpref.Nearest()))
+			validateReadPreferenceParsing([]string{"--slaveOk"}, true, "nearest", readpref.Nearest()))
 
 		Convey("Specifying slaveOk and read pref should error",
-			validateParseOptions([]string{"--slaveOk", "--readPreference", "secondary"}, false, "", nil))
+			validateReadPreferenceParsing([]string{"--slaveOk", "--readPreference", "secondary"}, false, "", nil))
 	})
 }
