@@ -23,6 +23,9 @@ import (
 
 var ErrNoSuchField = errors.New("no such field")
 
+// ConvertLegacyExtJSONDocumentToBSON iterates through the document map and converts JSON
+// values to their corresponding BSON values. It also replaces any extended JSON
+// type value (e.g. $date) with the corresponding BSON type
 func ConvertLegacyExtJSONDocumentToBSON(doc map[string]interface{}) error {
 	for key, jsonValue := range doc {
 		var bsonValue interface{}
