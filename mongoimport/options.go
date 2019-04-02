@@ -6,6 +6,13 @@
 
 package mongoimport
 
+import (
+	"fmt"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools/common/log"
+)
+
 var Usage = `<options> <file>
 
 Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport reads from stdin.
@@ -91,4 +98,44 @@ type IngestOptions struct {
 // Name returns a description of the IngestOptions struct.
 func (_ *IngestOptions) Name() string {
 	return "ingest"
+}
+
+// Options contains all the possible options that can be used to configure mongoimport.
+type Options struct {
+	*options.ToolOptions
+	*InputOptions
+	*IngestOptions
+	ParsedArgs []string
+}
+
+// ParseOptions reads command line arguments and converts them into options used to configure mongoimport.
+func ParseOptions(rawArgs []string) (Options, error) {
+	opts := options.New("mongoimport", Usage,
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
+	inputOpts := &InputOptions{}
+	ingestOpts := &IngestOptions{}
+	opts.AddOptions(inputOpts)
+	opts.AddOptions(ingestOpts)
+	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
+
+	args, err := opts.ParseArgs(rawArgs)
+	if err != nil {
+		return Options{}, err
+	}
+
+	log.SetVerbosity(opts.Verbosity)
+	opts.URI.LogUnsupportedOptions()
+
+	wc, err := db.NewMongoWriteConcern(ingestOpts.WriteConcern, opts.URI.ParsedConnString())
+	if err != nil {
+		return Options{}, fmt.Errorf("error constructing write concern: %v", err)
+	}
+	opts.WriteConcern = wc
+
+	return Options{
+		opts,
+		inputOpts,
+		ingestOpts,
+		args,
+	}, nil
 }

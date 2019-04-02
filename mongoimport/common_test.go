@@ -11,10 +11,10 @@ import (
 	"io"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/tomb.v2"
@@ -438,7 +438,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -460,7 +460,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -496,12 +496,12 @@ func TestDoSequentialStreaming(t *testing.T) {
 			&importWorker{
 				unprocessedDataChan:   workerInputChannel[0],
 				processedDocumentChan: workerOutputChannel[0],
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			},
 			&importWorker{
 				unprocessedDataChan:   workerInputChannel[1],
 				processedDocumentChan: workerOutputChannel[1],
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			},
 		}
 		Convey("documents moving through the input channel should be processed and returned in sequence", func() {
