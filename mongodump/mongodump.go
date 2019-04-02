@@ -180,7 +180,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error parsing query as json: %v", err)
 		}
-		convertedJSON, err := bsonutil.ConvertJSONValueToBSON(asJSON)
+		convertedJSON, err := bsonutil.ConvertLegacyExtJSONValueToBSON(asJSON)
 		if err != nil {
 			return fmt.Errorf("error converting query to bson: %v", err)
 		}

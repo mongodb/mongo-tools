@@ -298,7 +298,7 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	}
 
 	// legacy extJSON parser
-	id, err := bsonutil.ConvertJSONValueToBSON(asJSON)
+	id, err := bsonutil.ConvertLegacyExtJSONValueToBSON(asJSON)
 	if err != nil {
 		return nil, fmt.Errorf("error converting extJSON vlaue to bson: %v", err)
 	}
