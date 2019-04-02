@@ -45,7 +45,7 @@ func TestReadPreferenceParsing(t *testing.T) {
 		Convey("Parsing with no values should leave read pref empty",
 			validateReadPreferenceParsing([]string{}, true, "", nil))
 
-		Convey("Parsing with value only in command line opts",
+		Convey("Parsing with value only in command line opts should set read pref correctly",
 			validateReadPreferenceParsing([]string{"--readPreference", "secondary"}, true, "secondary", readpref.Secondary()))
 
 		Convey("Specifying slaveOk should set read pref to nearest",

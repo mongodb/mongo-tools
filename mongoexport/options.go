@@ -125,7 +125,7 @@ func ParseOptions(rawArgs []string) (Options, error) {
 			return Options{}, fmt.Errorf("--slaveOk can't be specified when --readPreference is specified")
 		}
 
-		log.Logvf(log.Always, "--slaveOk is deprecated and being internally rewritten as --readPreference=nearest")
+		log.Logvf(log.Always, "--slaveOk is deprecated and --readPreference=nearest should be used instead")
 		inputOpts.ReadPreference = "nearest"
 	}
 
