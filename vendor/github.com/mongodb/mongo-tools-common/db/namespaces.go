@@ -54,13 +54,10 @@ func (ci *CollectionInfo) GetUUID() string {
 // using the listIndexes command if available, or by falling back to querying
 // against system.indexes (pre-3.0 systems). nil is returned if the collection
 // does not exist.
-//
-// XXX Requires GODRIVER-279 for legacy server support
 func GetIndexes(coll *mongo.Collection) (*mongo.Cursor, error) {
 	return coll.Indexes().List(context.Background())
 }
 
-// XXX Requires GODRIVER-492 for legacy server support
 // Assumes that mongo.Database will normalize legacy names to omit database
 // name as required by the Enumerate Collections spec
 func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error) {
