@@ -136,6 +136,17 @@ func getConvertedKeys(v bson.M) (bson.M, error) {
 	return out, nil
 }
 
+func convertArray(v bson.A) ([]interface{}, error) {
+	for i, value := range v {
+		jsonValue, err := ConvertBSONValueToJSON(value)
+		if err != nil {
+			return nil, err
+		}
+		v[i] = jsonValue
+	}
+	return []interface{}(v), nil
+}
+
 // ConvertBSONValueToJSON walks through a document or an array and
 // converts any BSON value to its corresponding extended JSON type.
 // It returns the converted JSON document and any error encountered.
@@ -167,16 +178,10 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		return MarshalD(v), nil
 	case MarshalD:
 		return v, nil
+	case bson.A: // array
+		return convertArray(v)
 	case []interface{}: // array
-		for i, value := range v {
-			jsonValue, err := ConvertBSONValueToJSON(value)
-			if err != nil {
-				return nil, err
-			}
-			v[i] = jsonValue
-		}
-		return v, nil
-
+		return convertArray(v)
 	case string:
 		return v, nil // require no conversion
 
