@@ -45,7 +45,7 @@ const (
 // internal state used for running mongoexport.
 type MongoExport struct {
 	// generic mongo tool options
-	ToolOptions options.ToolOptions
+	ToolOptions *options.ToolOptions
 
 	// OutputOpts controls options for how the exported data should be formatted
 	OutputOpts *OutputFormatOptions
@@ -84,7 +84,7 @@ type ExportOutput interface {
 // New constructs a new MongoExport instance from the provided options.
 func New(opts Options) (*MongoExport, error) {
 	exporter := &MongoExport{
-		ToolOptions: *opts.ToolOptions,
+		ToolOptions: opts.ToolOptions,
 		OutputOpts:  opts.OutputFormatOptions,
 		InputOpts:   opts.InputOptions,
 	}
