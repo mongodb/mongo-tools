@@ -25,10 +25,10 @@ const (
 		"connection to mongos may produce inconsistent duplicates or miss some documents."
 )
 
-// ParseReadPreference takes a string (command line read preference argument) and a ConnString (from the command line
+// NewReadPreference takes a string (command line read preference argument) and a ConnString (from the command line
 // URI argument) and returns a ReadPref. If both are provided, preference is given to the command line argument. If
-// both are empty, a default read preference of nearest will be returned.
-func ParseReadPreference(cmdReadPref string, cs *connstring.ConnString) (*readpref.ReadPref, error) {
+// both are empty, a default read preference of primary will be returned.
+func NewReadPreference(cmdReadPref string, cs *connstring.ConnString) (*readpref.ReadPref, error) {
 	var rp string
 	if cs != nil {
 		rp = cs.ReadPreference

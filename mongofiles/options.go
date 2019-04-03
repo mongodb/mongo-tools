@@ -64,7 +64,7 @@ func ParseOptions(rawArgs []string) (Options, error) {
 	opts.WriteConcern = wc
 
 	// set ReadPreference
-	opts.ReadPreference, err = db.ParseReadPreference(inputOpts.ReadPreference, opts.URI.ParsedConnString())
+	opts.ReadPreference, err = db.NewReadPreference(inputOpts.ReadPreference, opts.URI.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 	}

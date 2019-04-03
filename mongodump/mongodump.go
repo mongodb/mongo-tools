@@ -132,7 +132,7 @@ func (dump *MongoDump) Init() error {
 		dump.OutputWriter = os.Stdout
 	}
 
-	pref, err := db.ParseReadPreference(dump.InputOptions.ReadPreference, dump.ToolOptions.URI.ParsedConnString())
+	pref, err := db.NewReadPreference(dump.InputOptions.ReadPreference, dump.ToolOptions.URI.ParsedConnString())
 	if err != nil {
 		return fmt.Errorf("error parsing --readPreference : %v", err)
 	}
