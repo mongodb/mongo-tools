@@ -104,7 +104,7 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cannot dump with oplog while renames occur")
 	}
 
-	return in, nil
+	return append([]byte(nil), in...), nil
 }
 
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
