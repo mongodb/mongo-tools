@@ -28,59 +28,53 @@ const (
 // NewReadPreference takes a string (command line read preference argument) and a ConnString (from the command line
 // URI argument) and returns a ReadPref. If both are provided, preference is given to the command line argument. If
 // both are empty, a default read preference of primary will be returned.
-func NewReadPreference(cmdReadPref string, cs *connstring.ConnString) (*readpref.ReadPref, error) {
-	// default to primary if a read preference isn't specified anywhere
-	if cmdReadPref == "" && (cs == nil || cs.ReadPreference == "") {
+func NewReadPreference(rp string, cs *connstring.ConnString) (*readpref.ReadPref, error) {
+	if rp == "" && (cs == nil || cs.ReadPreference == "") {
 		return readpref.Primary(), nil
 	}
 
-	var doc readPrefDoc
-	var err error
-	if cmdReadPref != "" {
-		doc, err = readPrefDocFromString(cmdReadPref)
-	} else {
-		doc = readPrefDocFromConnString(cs)
-	}
-	if err != nil {
-		return nil, err
+	if rp == "" {
+		return readPrefFromConnString(cs)
 	}
 
-	mode, err := readpref.ModeFromString(doc.Mode)
-	if err != nil {
-		return nil, err
-	}
-
-	tagSet := tag.NewTagSetFromMap(doc.Tags)
-	return readpref.New(mode, readpref.WithTagSets(tagSet))
-}
-
-func readPrefDocFromConnString(cs *connstring.ConnString) readPrefDoc {
-	doc := readPrefDoc{
-		Mode: cs.ReadPreference,
-	}
-
-	if len(cs.ReadPreferenceTagSets) == 0 {
-		// no tag sets
-		return doc
-	}
-
-	// take the last tag set
-	doc.Tags = cs.ReadPreferenceTagSets[len(cs.ReadPreferenceTagSets) - 1]
-	return doc
-}
-
-func readPrefDocFromString(rp string) (readPrefDoc, error) {
-	var doc readPrefDoc
-
+	var mode string
+	var tagSet tag.Set
 	if rp[0] != '{' {
-		doc.Mode = rp
-		return doc, nil
+		mode = rp
+	} else {
+		var doc readPrefDoc
+		err := json.Unmarshal([]byte(rp), &doc)
+		if err != nil {
+			return nil, fmt.Errorf("invalid --ReadPreferences json object: %v", err)
+		}
+		tagSet = tag.NewTagSetFromMap(doc.Tags)
+		mode = doc.Mode
 	}
 
-	err := json.Unmarshal([]byte(rp), &doc)
+	rpMode, err := readpref.ModeFromString(mode)
 	if err != nil {
-		return doc, fmt.Errorf("invalid --ReadPreferences json object: %v", err)
+		return nil, err
 	}
 
-	return doc, nil
+	return readpref.New(rpMode, readpref.WithTagSets(tagSet))
+}
+
+func readPrefFromConnString(cs *connstring.ConnString) (*readpref.ReadPref, error) {
+	var opts []readpref.Option
+
+	tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+	if len(tagSets) > 0 {
+		opts = append(opts, readpref.WithTagSets(tagSets...))
+	}
+
+	if cs.MaxStaleness != 0 {
+		opts = append(opts, readpref.WithMaxStaleness(cs.MaxStaleness))
+	}
+
+	mode, err := readpref.ModeFromString(cs.ReadPreference)
+	if err != nil {
+		return nil, err
+	}
+
+	return readpref.New(mode, opts...)
 }
