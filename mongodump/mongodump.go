@@ -132,15 +132,9 @@ func (dump *MongoDump) Init() error {
 		dump.OutputWriter = os.Stdout
 	}
 
-	var pref *readpref.ReadPref
-	if dump.InputOptions.ReadPreference != "" {
-		pref, err = db.ParseReadPreference(dump.InputOptions.ReadPreference)
-		if err != nil {
-			return fmt.Errorf("error parsing --readPreference : %v", err)
-		}
-	} else {
-		pref = readpref.Primary()
-		// Direct connection is configured elsewhere if replica set name is not given
+	pref, err := db.NewReadPreference(dump.InputOptions.ReadPreference, dump.ToolOptions.URI.ParsedConnString())
+	if err != nil {
+		return fmt.Errorf("error parsing --readPreference : %v", err)
 	}
 	dump.ToolOptions.ReadPreference = pref
 

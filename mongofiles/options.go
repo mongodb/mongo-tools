@@ -11,7 +11,6 @@ import (
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Usage string printed as part of --help
@@ -65,16 +64,9 @@ func ParseOptions(rawArgs []string) (Options, error) {
 	opts.WriteConcern = wc
 
 	// set ReadPreference
-	if inputOpts.ReadPreference != "" {
-		opts.ReadPreference, err = db.ParseReadPreference(inputOpts.ReadPreference)
-		if err != nil {
-			return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
-		}
-	} else {
-		opts.ReadPreference, err = readpref.New(readpref.NearestMode)
-		if err != nil {
-			return Options{}, fmt.Errorf("error setting default read preference: %v", err)
-		}
+	opts.ReadPreference, err = db.NewReadPreference(inputOpts.ReadPreference, opts.URI.ParsedConnString())
+	if err != nil {
+		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 	}
 
 	return Options{opts, storageOpts, inputOpts, args}, nil

@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/json"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
 
 type readPrefDoc struct {
@@ -24,16 +25,20 @@ const (
 		"connection to mongos may produce inconsistent duplicates or miss some documents."
 )
 
-func Primary() *readpref.ReadPref          { return readpref.Primary() }
-func PrimaryPreferred() *readpref.ReadPref { return readpref.PrimaryPreferred() }
-func Nearest() *readpref.ReadPref          { return readpref.Nearest() }
+// NewReadPreference takes a string (command line read preference argument) and a ConnString (from the command line
+// URI argument) and returns a ReadPref. If both are provided, preference is given to the command line argument. If
+// both are empty, a default read preference of primary will be returned.
+func NewReadPreference(rp string, cs *connstring.ConnString) (*readpref.ReadPref, error) {
+	if rp == "" && (cs == nil || cs.ReadPreference == "") {
+		return readpref.Primary(), nil
+	}
 
-func ParseReadPreference(rp string) (*readpref.ReadPref, error) {
+	if rp == "" {
+		return readPrefFromConnString(cs)
+	}
+
 	var mode string
 	var tagSet tag.Set
-	if rp == "" {
-		return readpref.Nearest(), nil
-	}
 	if rp[0] != '{' {
 		mode = rp
 	} else {
@@ -45,17 +50,31 @@ func ParseReadPreference(rp string) (*readpref.ReadPref, error) {
 		tagSet = tag.NewTagSetFromMap(doc.Tags)
 		mode = doc.Mode
 	}
-	switch mode {
-	case "primary":
-		return readpref.Primary(), nil
-	case "primaryPreferred":
-		return readpref.PrimaryPreferred(readpref.WithTagSets(tagSet)), nil
-	case "secondary":
-		return readpref.Secondary(readpref.WithTagSets(tagSet)), nil
-	case "secondaryPreferred":
-		return readpref.SecondaryPreferred(readpref.WithTagSets(tagSet)), nil
-	case "nearest":
-		return readpref.Nearest(readpref.WithTagSets(tagSet)), nil
+
+	rpMode, err := readpref.ModeFromString(mode)
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("invalid readPreference mode '%v'", mode)
+
+	return readpref.New(rpMode, readpref.WithTagSets(tagSet))
+}
+
+func readPrefFromConnString(cs *connstring.ConnString) (*readpref.ReadPref, error) {
+	var opts []readpref.Option
+
+	tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+	if len(tagSets) > 0 {
+		opts = append(opts, readpref.WithTagSets(tagSets...))
+	}
+
+	if cs.MaxStalenessSet {
+		opts = append(opts, readpref.WithMaxStaleness(cs.MaxStaleness))
+	}
+
+	mode, err := readpref.ModeFromString(cs.ReadPreference)
+	if err != nil {
+		return nil, err
+	}
+
+	return readpref.New(mode, opts...)
 }
