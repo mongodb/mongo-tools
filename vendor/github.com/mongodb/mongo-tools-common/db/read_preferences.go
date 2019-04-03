@@ -67,7 +67,7 @@ func readPrefFromConnString(cs *connstring.ConnString) (*readpref.ReadPref, erro
 		opts = append(opts, readpref.WithTagSets(tagSets...))
 	}
 
-	if cs.MaxStaleness != 0 {
+	if cs.MaxStalenessSet {
 		opts = append(opts, readpref.WithMaxStaleness(cs.MaxStaleness))
 	}
 
