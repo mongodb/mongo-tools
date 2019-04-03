@@ -606,7 +606,7 @@ func TestMongoDumpBSON(t *testing.T) {
 
 			// expect 10 documents per collection
 			bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
-			jsonQuery, err := bsonutil.ConvertBSONValueToJSON(bsonQuery)
+			jsonQuery, err := bsonutil.ConvertBSONValueToLegacyExtJSON(bsonQuery)
 			So(err, ShouldBeNil)
 			jsonQueryBytes, err := json.Marshal(jsonQuery)
 			So(err, ShouldBeNil)

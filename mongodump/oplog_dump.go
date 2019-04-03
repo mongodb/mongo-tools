@@ -85,16 +85,13 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 }
 
 func oplogDocumentFilter(in []byte) ([]byte, error) {
-	var rawD bson.D
-	err := bson.Unmarshal(in, &rawD)
-	if err != nil {
-		return nil, err
-	}
-
 	var nsD struct {
 		NS string `bson:"ns"`
+		O *struct {
+			RenameCollection interface{} `bson:"renameCollection"`
+		} `bson:"o"`
 	}
-	err = bson.Unmarshal(in, &nsD)
+	err := bson.Unmarshal(in, &nsD)
 	if err != nil {
 		return nil, err
 	}
@@ -103,19 +100,11 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
 	}
 
-	for _, e := range rawD {
-		if e.Key == "o" {
-			subdoc, ok := e.Value.(bson.D)
-			if ok {
-				for _, oE := range subdoc {
-					if oE.Key == "renameCollection" {
-						return nil, fmt.Errorf("cannot dump with oplog while renames occur")
-					}
-				}
-			}
-		}
+	if nsD.O != nil && nsD.O.RenameCollection != nil {
+		return nil, fmt.Errorf("cannot dump with oplog while renames occur")
 	}
-	return bson.Marshal(rawD)
+
+	return in, nil
 }
 
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
