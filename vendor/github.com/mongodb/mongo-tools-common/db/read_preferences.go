@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/json"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
 
 type readPrefDoc struct {
@@ -24,15 +25,22 @@ const (
 		"connection to mongos may produce inconsistent duplicates or miss some documents."
 )
 
-func Primary() *readpref.ReadPref          { return readpref.Primary() }
-func PrimaryPreferred() *readpref.ReadPref { return readpref.PrimaryPreferred() }
-func Nearest() *readpref.ReadPref          { return readpref.Nearest() }
+// ParseReadPreference takes a string (command line read preference argument) and a ConnString (from the command line
+// URI argument) and returns a ReadPref. If both are provided, preference is given to the command line argument. If
+// both are empty, a default read preference of nearest will be returned.
+func ParseReadPreference(cmdReadPref string, cs *connstring.ConnString) (*readpref.ReadPref, error) {
+	var rp string
+	if cs != nil {
+		rp = cs.ReadPreference
+	}
+	if cmdReadPref != "" {
+		rp = cmdReadPref
+	}
 
-func ParseReadPreference(rp string) (*readpref.ReadPref, error) {
 	var mode string
 	var tagSet tag.Set
 	if rp == "" {
-		return readpref.Nearest(), nil
+		return readpref.Primary(), nil
 	}
 	if rp[0] != '{' {
 		mode = rp
