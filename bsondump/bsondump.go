@@ -96,7 +96,7 @@ func New(opts Options) (*BSONDump, error) {
 
 	writer, err := opts.GetWriter()
 	if err != nil {
-		_ = reader.Close()
+		_ = dumper.InputSource.Close()
 		return nil, fmt.Errorf("getting Writer failed: %v", err)
 	}
 	dumper.OutputWriter = writer
@@ -107,10 +107,8 @@ func New(opts Options) (*BSONDump, error) {
 // Close cleans up the internal state of the given BSONDump instance. The instance should not be used again
 // after Close is called.
 func (bd *BSONDump) Close() error {
-	if err := bd.OutputWriter.Close(); err != nil {
-		return err
-	}
-	return bd.InputSource.Close()
+	_ = bd.InputSource.Close()
+	return bd.OutputWriter.Close()
 }
 
 func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
