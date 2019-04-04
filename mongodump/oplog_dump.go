@@ -8,12 +8,12 @@ package mongodump
 
 import (
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // determineOplogCollectionName uses a command to infer
@@ -76,7 +76,7 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 	}
 
 	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
-	if util.CompareTimestamps(oldestOplogEntry.Timestamp, ts) > 0 {
+	if util.TimestampGreaterThan(oldestOplogEntry.Timestamp, ts) {
 		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is older than %v",
 			oldestOplogEntry.Timestamp, ts)
 		return false, nil
@@ -87,9 +87,6 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 func oplogDocumentFilter(in []byte) ([]byte, error) {
 	var nsD struct {
 		NS string `bson:"ns"`
-		O *struct {
-			RenameCollection interface{} `bson:"renameCollection"`
-		} `bson:"o"`
 	}
 	err := bson.Unmarshal(in, &nsD)
 	if err != nil {
@@ -100,11 +97,13 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
 	}
 
-	if nsD.O != nil && nsD.O.RenameCollection != nil {
+	if _, err := bson.Raw(in).LookupErr("o", "renameCollection"); err == nil {
 		return nil, fmt.Errorf("cannot dump with oplog while renames occur")
 	}
 
-	return append([]byte(nil), in...), nil
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out, nil
 }
 
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog

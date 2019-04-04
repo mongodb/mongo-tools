@@ -9,18 +9,6 @@ package util
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 // CompareTimestamps returns -1 if lhs comes before rhs, 0 if they're equal, and 1 if rhs comes after lhs.
-func CompareTimestamps(lhs, rhs primitive.Timestamp) int {
-	if lhs.T == rhs.T {
-		if lhs.I > rhs.I {
-			return 1
-		} else if lhs.I < rhs.I {
-			return -1
-		} else {
-			return 0
-		}
-	} else if lhs.T > rhs.T {
-		return 1
-	} else {
-		return -1
-	}
+func TimestampGreaterThan(lhs, rhs primitive.Timestamp) bool {
+	return lhs.T > rhs.T || lhs.T == rhs.T && lhs.I > rhs.I
 }
