@@ -1,5 +1,5 @@
 (function() {
-  load("jstests/libs/mongostat.js");
+  load("jstests/libs/output.js");
   var port = allocatePort();
   var m = startMongod(
     "--auth",

@@ -2,7 +2,7 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
-  load('jstests/libs/mongostat.js');
+  load('jstests/libs/output.js');
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
 

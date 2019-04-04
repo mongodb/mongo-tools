@@ -3,7 +3,7 @@
 (function() {
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
-  load("jstests/libs/mongostat.js");
+  load("jstests/libs/output.js");
 
   const doc = {
     "double": 2.0,

@@ -1,5 +1,5 @@
 (function() {
-  load("jstests/libs/mongostat.js");
+  load("jstests/libs/output.js");
 
   var st = new ShardingTest({name: "shard1", shards: 2});
   if ("port" in st._connections[0]) {
