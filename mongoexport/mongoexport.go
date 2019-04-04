@@ -326,7 +326,7 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	if err != nil {
 		return nil, err
 	}
-	collection := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
 
 	// don't snapshot if we've been asked not to,
 	// or if we cannot because  we are querying, sorting, or if the collection is a view
@@ -347,22 +347,21 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		findOpts.SetProjection(makeFieldSelector(exp.OutputOpts.Fields))
 	}
 
-	return collection.Find(nil, query, findOpts)
+	return coll.Find(nil, query, findOpts)
 }
 
-// Internal function that handles exporting to the given writer. Used primarily
-// for testing, because it bypasses writing to the file system.
-func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
-	// Check if the collection exists before starting export
+// verifyCollectionExists checks if the collection exists. If it does, a copy of the collection info will be cached
+// on the receiver. If the collection does not exist and AssertExists was specified, a non-nil error is returned.
+func (exp *MongoExport) verifyCollectionExists() (bool, error) {
 	session, err := exp.SessionProvider.GetSession()
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
 	exp.collInfo, err = db.GetCollectionInfo(coll)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	// If the collection doesn't exist, GetCollectionInfo will return nil
@@ -372,7 +371,19 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 			collInfoErr = fmt.Errorf("collection '%s' does not exist", exp.ToolOptions.Namespace.Collection)
 		}
 
-		return 0, collInfoErr
+		return false, collInfoErr
+	}
+
+	return true, nil
+}
+
+// Internal function that handles exporting to the given writer. Used primarily
+// for testing, because it bypasses writing to the file system.
+func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
+	// Check if the collection exists before starting export
+	exists, err := exp.verifyCollectionExists()
+	if err != nil || !exists {
+		return 0, err
 	}
 
 	max, err := exp.getCount()
