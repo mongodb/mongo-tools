@@ -50,7 +50,7 @@ func TestBsondump(t *testing.T) {
 	})
 
 	Convey("Test bsondump reading from stdin and writing to a file", t, func() {
-		cmd := exec.Command(executable, OutFileNameOption, "out.json")
+		cmd := exec.Command(executable, "--outFile", "out.json")
 
 		// Attach a file to stdin of the command.
 		inFile, err := os.Open("testdata/sample.bson")
@@ -82,7 +82,7 @@ func TestBsondump(t *testing.T) {
 	})
 
 	Convey("Test bsondump reading from a file with --bsonFile and writing to stdout", t, func() {
-		cmd := exec.Command(executable, BSONFileNameOption, "testdata/sample.bson")
+		cmd := exec.Command(executable, "--bsonFile", "testdata/sample.bson")
 
 		// Attach a buffer to stdout of the command.
 		cmdOutput := &bytes.Buffer{}
@@ -124,7 +124,7 @@ func TestBsondump(t *testing.T) {
 	})
 
 	Convey("Test bsondump reading from a file with --bsonFile and writing to a file", t, func() {
-		cmd := exec.Command(executable, OutFileNameOption, "out.json", BSONFileNameOption, "testdata/sample.bson")
+		cmd := exec.Command(executable, "--outFile", "out.json", "--bsonFile", "testdata/sample.bson")
 
 		err := cmd.Run()
 		So(err, ShouldBeNil)
@@ -151,7 +151,7 @@ func TestBsondump(t *testing.T) {
 	})
 
 	Convey("Test bsondump reading from a file with a positional arg and writing to a file", t, func() {
-		cmd := exec.Command(executable, OutFileNameOption, "out.json", "testdata/sample.bson")
+		cmd := exec.Command(executable, "--outFile", "out.json", "testdata/sample.bson")
 
 		err := cmd.Run()
 		So(err, ShouldBeNil)

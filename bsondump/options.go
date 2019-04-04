@@ -31,15 +31,6 @@ const (
 	JSONOutputType = "json"
 )
 
-// OutputOptions command line argument long names
-const (
-	TypeOption = "--type"
-	ObjCheckOption = "--objcheck"
-	PrettyOption = "--pretty"
-	BSONFileNameOption = "--bsonFile"
-	OutFileNameOption = "--outFile"
-)
-
 type OutputOptions struct {
 	// Format to display the BSON data file
 	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"type of output: debug, json (default 'json')"`
