@@ -33,6 +33,7 @@ func validateReadPreferenceParsing(args []string, expectSuccess bool, inputRp st
 		if toolsRp == nil {
 			So(opts.ToolOptions.ReadPreference, ShouldBeNil)
 		} else {
+			So(opts.ToolOptions.ReadPreference, ShouldNotBeNil)
 			So(opts.ToolOptions.ReadPreference.Mode(), ShouldEqual, toolsRp.Mode())
 		}
 	}
@@ -42,11 +43,15 @@ func TestReadPreferenceParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With ToolOptions and InputOptions", t, func() {
-		Convey("Parsing with no values should leave read pref empty",
-			validateReadPreferenceParsing([]string{}, true, "", nil))
+		Convey("Parsing with no values should default to primary",
+			validateReadPreferenceParsing([]string{}, true, "", readpref.Primary()))
 
 		Convey("Parsing with value only in command line opts should set read pref correctly",
 			validateReadPreferenceParsing([]string{"--readPreference", "secondary"}, true, "secondary", readpref.Secondary()))
+
+		Convey("Parsing with value only in URI should set read pref correctly",
+			validateReadPreferenceParsing([]string{"--uri", "mongodb://localhost:27017/db?readPreference=secondary"},
+				true, "", readpref.Secondary()))
 
 		Convey("Specifying slaveOk should set read pref to nearest",
 			validateReadPreferenceParsing([]string{"--slaveOk"}, true, "nearest", readpref.Nearest()))
