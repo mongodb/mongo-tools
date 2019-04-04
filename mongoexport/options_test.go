@@ -9,54 +9,65 @@ package mongoexport
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools-common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-// validateReadPreferenceParsing is a helper to call ParseOptions and verify the results for read preferences.
-// args: command line arguments
-// expectSuccess: whether or not ParseOptions should succeed
-// inputRp: the expected read preference on InputOptions
-// toolsRp: the expected read preference on ToolOptions
-func validateReadPreferenceParsing(args []string, expectSuccess bool, inputRp string, toolsRp *readpref.ReadPref) func() {
-	return func() {
-		opts, err := ParseOptions(args)
-		if expectSuccess {
-			So(err, ShouldBeNil)
-		} else {
-			So(err, ShouldNotBeNil)
-			return
+func TestParseOptions(t *testing.T) {
+	t.Run("TestReadPreferenceParsing", func(t *testing.T) {
+		// different sets of arguments to pass to ParseOptions
+		secondaryCmdLine := []string{"--readPreference", "secondary"}
+		slaveOkCmdLine := []string{"--slaveOk"}
+		rpSlaveOkCmdLine := []string{"--slaveOk", "--readPreference", "secondary"}
+		secondaryURI := []string{"--uri", "mongodb://localhost:27017/db?readPreference=secondary"}
+		cmdLineAndURI := []string{"--uri", "mongodb://localhost:27017/db?readPreference=secondary", "--readPreference", "nearest"}
+
+		testCases := []struct {
+			name          string
+			args          []string
+			expectSuccess bool
+			inputRp       string
+			toolOptionsRp *readpref.ReadPref
+		}{
+			{"No values defaults to primary", []string{}, true, "", readpref.Primary()},
+			{"Only command line", secondaryCmdLine, true, "secondary", readpref.Secondary()},
+			{"Only URI", secondaryURI, true, "", readpref.Secondary()},
+			{"Both URI and command line defaults to command line", cmdLineAndURI, true, "nearest", readpref.Nearest()},
+			{"slaveOk becomes nearest", slaveOkCmdLine, true, "nearest", readpref.Nearest()},
+			{"slaveOk and read pref errors", rpSlaveOkCmdLine, false, "", nil},
 		}
 
-		So(opts.InputOptions.ReadPreference, ShouldEqual, inputRp)
-		if toolsRp == nil {
-			So(opts.ToolOptions.ReadPreference, ShouldBeNil)
-		} else {
-			So(opts.ToolOptions.ReadPreference, ShouldNotBeNil)
-			So(opts.ToolOptions.ReadPreference.Mode(), ShouldEqual, toolsRp.Mode())
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				opts, err := ParseOptions(tc.args)
+
+				success := err == nil
+				if success != tc.expectSuccess {
+					t.Fatalf("expected err to be nil: %v; got error %v", tc.expectSuccess, err)
+				}
+
+				if !tc.expectSuccess {
+					// Shouldn't compare read preferences if an error was expected
+					return
+				}
+
+				if opts.InputOptions.ReadPreference != tc.inputRp {
+					t.Fatalf("read preference mismatch on InputOptions; expected %v, got %v", tc.inputRp,
+						opts.InputOptions.ReadPreference)
+				}
+
+				if tc.toolOptionsRp == nil {
+					if opts.ToolOptions.ReadPreference != nil {
+						t.Fatalf("expected read preference to be nil, got %v", opts.ToolOptions.ReadPreference)
+					}
+					return
+				}
+
+				expectedMode := tc.toolOptionsRp.Mode()
+				gotMode := opts.ToolOptions.ReadPreference.Mode()
+				if expectedMode != gotMode {
+					t.Fatalf("read preference mode mismatch; expected %v, got %v", expectedMode, gotMode)
+				}
+			})
 		}
-	}
-}
-
-func TestReadPreferenceParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	Convey("With ToolOptions and InputOptions", t, func() {
-		Convey("Parsing with no values should default to primary",
-			validateReadPreferenceParsing([]string{}, true, "", readpref.Primary()))
-
-		Convey("Parsing with value only in command line opts should set read pref correctly",
-			validateReadPreferenceParsing([]string{"--readPreference", "secondary"}, true, "secondary", readpref.Secondary()))
-
-		Convey("Parsing with value only in URI should set read pref correctly",
-			validateReadPreferenceParsing([]string{"--uri", "mongodb://localhost:27017/db?readPreference=secondary"},
-				true, "", readpref.Secondary()))
-
-		Convey("Specifying slaveOk should set read pref to nearest",
-			validateReadPreferenceParsing([]string{"--slaveOk"}, true, "nearest", readpref.Nearest()))
-
-		Convey("Specifying slaveOk and read pref should error",
-			validateReadPreferenceParsing([]string{"--slaveOk", "--readPreference", "secondary"}, false, "", nil))
 	})
 }
