@@ -8,7 +8,7 @@ package util
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
-// CompareTimestamps returns -1 if lhs comes before rhs, 0 if they're equal, and 1 if rhs comes after lhs.
+// TimestampGreaterThan returns true if lhs comes after rhs, false otherwise.
 func TimestampGreaterThan(lhs, rhs primitive.Timestamp) bool {
 	return lhs.T > rhs.T || lhs.T == rhs.T && lhs.I > rhs.I
 }
