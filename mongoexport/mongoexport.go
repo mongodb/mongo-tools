@@ -22,11 +22,10 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
-	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Output types supported by mongoexport.
@@ -235,8 +234,8 @@ func (exp *MongoExport) GetOutputWriter() (io.WriteCloser, error) {
 // Take a comma-delimited set of field names and build a selector doc for query projection.
 // For fields containing a dot '.', we project the entire top-level portion.
 // e.g. "a,b,c.d.e,f.$" -> {a:1, b:1, "c":1, "f.$": 1}.
-func makeFieldSelector(fields string) gbson.M {
-	selector := gbson.M{"_id": 1}
+func makeFieldSelector(fields string) bson.M {
+	selector := bson.M{"_id": 1}
 	if fields == "" {
 		return selector
 	}
@@ -334,7 +333,7 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		!exp.collInfo.IsView() && !exp.collInfo.IsSystemCollection() {
 
 		// Use a hint on the _id index instead of the deprecated snapshot option
-		findOpts.SetHint(gbson.D{{"_id", 1}})
+		findOpts.SetHint(bson.D{{"_id", 1}})
 	}
 
 	if exp.InputOpts != nil {
@@ -509,7 +508,7 @@ func getObjectFromByteArg(queryRaw []byte) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("query '%v' is not valid JSON: %v", queryRaw, err)
 	}
 
-	err = bsonutil.ConvertJSONDocumentToBSON(parsedJSON)
+	err = bsonutil.ConvertLegacyExtJSONDocumentToBSON(parsedJSON)
 	if err != nil {
 		return nil, err
 	}

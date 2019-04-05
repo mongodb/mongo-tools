@@ -14,8 +14,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	gbson "go.mongodb.org/mongo-driver/bson"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestExtendedJSON(t *testing.T) {
@@ -23,17 +23,17 @@ func TestExtendedJSON(t *testing.T) {
 
 	Convey("Serializing a doc to extended JSON should work", t, func() {
 		x := bson.M{
-			"_id": bson.NewObjectId(),
+			"_id": primitive.NewObjectID(),
 			"hey": "sup",
 			"subdoc": bson.M{
-				"subid": bson.NewObjectId(),
+				"subid": primitive.NewObjectID(),
 			},
 			"array": []interface{}{
-				bson.NewObjectId(),
-				bson.Undefined,
+				primitive.NewObjectID(),
+				primitive.Undefined{},
 			},
 		}
-		out, err := bsonutil.ConvertBSONValueToJSON(x)
+		out, err := bsonutil.ConvertBSONValueToLegacyExtJSON(x)
 		So(err, ShouldBeNil)
 
 		jsonEncoder := json.NewEncoder(os.Stdout)
@@ -45,8 +45,8 @@ func TestFieldSelect(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Using makeFieldSelector should return correct projection doc", t, func() {
-		So(makeFieldSelector("a,b"), ShouldResemble, gbson.M{"_id": 1, "a": 1, "b": 1})
-		So(makeFieldSelector(""), ShouldResemble, gbson.M{"_id": 1})
-		So(makeFieldSelector("x,foo.baz"), ShouldResemble, gbson.M{"_id": 1, "foo": 1, "x": 1})
+		So(makeFieldSelector("a,b"), ShouldResemble, bson.M{"_id": 1, "a": 1, "b": 1})
+		So(makeFieldSelector(""), ShouldResemble, bson.M{"_id": 1})
+		So(makeFieldSelector("x,foo.baz"), ShouldResemble, bson.M{"_id": 1, "foo": 1, "x": 1})
 	})
 }

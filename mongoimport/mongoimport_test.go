@@ -21,9 +21,9 @@ import (
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
-	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
-	"gopkg.in/mgo.v2/bson"
+
 )
 
 const (
@@ -33,21 +33,21 @@ const (
 
 // checkOnlyHasDocuments returns an error if the documents in the test
 // collection don't exactly match those that are passed in
-func checkOnlyHasDocuments(sessionProvider db.SessionProvider, expectedDocuments []gbson.M) error {
+func checkOnlyHasDocuments(sessionProvider db.SessionProvider, expectedDocuments []bson.M) error {
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		return err
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	cursor, err := collection.Find(nil, gbson.D{}, driverOpts.Find().SetSort(gbson.D{{"_id", 1}}))
+	cursor, err := collection.Find(nil, bson.D{}, driverOpts.Find().SetSort(bson.D{{"_id", 1}}))
 	if err != nil {
 		return err
 	}
 
-	var docs []gbson.M
+	var docs []bson.M
 	for cursor.Next(nil) {
-		var doc gbson.M
+		var doc bson.M
 		if err = cursor.Decode(&doc); err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	n, err := collection.CountDocuments(nil, gbson.D{})
+	n, err := collection.CountDocuments(nil, bson.D{})
 	if err != nil {
 		return 0, err
 	}
@@ -537,7 +537,7 @@ func TestImportDocuments(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error getting session: %v", err)
 			}
-			_, err = session.Database(testDb).Collection(testCollection).DeleteMany(nil, gbson.D{})
+			_, err = session.Database(testDb).Collection(testCollection).DeleteMany(nil, bson.D{})
 			if err != nil {
 				t.Fatalf("error dropping collection: %v", err)
 			}
@@ -587,10 +587,10 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2)},
-				gbson.M{"_id": int32(5), "c": "6e"},
-				gbson.M{"_id": int32(7), "b": int32(8), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2)},
+				bson.M{"_id": int32(5), "c": "6e"},
+				bson.M{"_id": int32(7), "b": int32(8), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -604,10 +604,10 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": ""},
-				gbson.M{"_id": int32(5), "b": "", "c": "6e"},
-				gbson.M{"_id": int32(7), "b": int32(8), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": ""},
+				bson.M{"_id": int32(5), "b": "", "c": "6e"},
+				bson.M{"_id": int32(7), "b": int32(8), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -623,10 +623,10 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				gbson.M{"_id": int32(3), "b": 5.4, "c": "string"},
-				gbson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
+				bson.M{"_id": int32(3), "b": 5.4, "c": "string"},
+				bson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -644,10 +644,10 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				gbson.M{"_id": int32(3), "b": 5.4, "c": "string"},
-				gbson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
+				bson.M{"_id": int32(3), "b": 5.4, "c": "string"},
+				bson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -664,11 +664,11 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 5)
 
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				gbson.M{"_id": int32(3), "b": 5.4, "c": "string"},
-				gbson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
-				gbson.M{"_id": int32(8), "b": int32(6), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
+				bson.M{"_id": int32(3), "b": 5.4, "c": "string"},
+				bson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
+				bson.M{"_id": int32(8), "b": int32(6), "c": int32(6)},
 			}
 			// all docs except the one with duplicate _id - should be imported
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
@@ -686,10 +686,10 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				gbson.M{"_id": int32(3), "b": 5.4, "c": "string"},
-				gbson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
+				bson.M{"_id": int32(3), "b": 5.4, "c": "string"},
+				bson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -734,10 +734,10 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 3)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "c": int32(2), "b": int32(3)},
-				gbson.M{"_id": int32(3), "c": 5.4, "b": "string"},
-				gbson.M{"_id": int32(5), "c": int32(6), "b": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "c": int32(2), "b": int32(3)},
+				bson.M{"_id": int32(3), "c": 5.4, "b": "string"},
+				bson.M{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -754,11 +754,11 @@ func TestImportDocuments(t *testing.T) {
 			numImported, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, 5)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				gbson.M{"_id": int32(3), "b": 5.4, "c": "string"},
-				gbson.M{"_id": int32(5), "b": int32(6), "c": int32(9)},
-				gbson.M{"_id": int32(8), "b": int32(6), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
+				bson.M{"_id": int32(3), "b": 5.4, "c": "string"},
+				bson.M{"_id": int32(5), "b": int32(6), "c": int32(9)},
+				bson.M{"_id": int32(8), "b": int32(6), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
@@ -775,10 +775,10 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.MaintainInsertionOrder = true
 			_, err = imp.ImportDocuments()
 			So(err, ShouldNotBeNil)
-			expectedDocuments := []gbson.M{
-				gbson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				gbson.M{"_id": int32(3), "b": 5.4, "c": "string"},
-				gbson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
+			expectedDocuments := []bson.M{
+				bson.M{"_id": int32(1), "b": int32(2), "c": int32(3)},
+				bson.M{"_id": int32(3), "b": 5.4, "c": "string"},
+				bson.M{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})

@@ -9,10 +9,11 @@ package mongoexport
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/json"
-	"gopkg.in/mgo.v2/bson"
-	"io"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // JSONExportOutput is an implementation of ExportOutput that writes documents
@@ -86,7 +87,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 				jsonExporter.Out.Write([]byte("\n"))
 			}
 		}
-		extendedDoc, err := bsonutil.ConvertBSONValueToJSON(document)
+		extendedDoc, err := bsonutil.ConvertBSONValueToLegacyExtJSON(document)
 		if err != nil {
 			return err
 		}
@@ -101,7 +102,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 		}
 		jsonExporter.Out.Write(jsonOut)
 	} else {
-		extendedDoc, err := bsonutil.ConvertBSONValueToJSON(document)
+		extendedDoc, err := bsonutil.ConvertBSONValueToLegacyExtJSON(document)
 		if err != nil {
 			return err
 		}
