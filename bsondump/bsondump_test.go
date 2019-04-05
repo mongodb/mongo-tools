@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -124,8 +124,7 @@ func TestBsondump(t *testing.T) {
 	})
 
 	Convey("Test bsondump reading from a file with --bsonFile and writing to a file", t, func() {
-		cmd := exec.Command(executable, "--outFile", "out.json",
-			"--bsonFile", "testdata/sample.bson")
+		cmd := exec.Command(executable, "--outFile", "out.json", "--bsonFile", "testdata/sample.bson")
 
 		err := cmd.Run()
 		So(err, ShouldBeNil)
