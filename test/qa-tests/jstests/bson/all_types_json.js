@@ -35,7 +35,7 @@
     "should print out all top-level documents from the test data");
 
   // get row of output containing the json
-  const results = filterShellRows(rawMongoProgramOutput(), row => row.contains("$oid"));
+  const results = filterShellRows(rawMongoProgramOutput(), row => row.indexOf("$oid") !== -1);
   assert.eq(results.length, 1);
   assert.eq(JSON.parse(results[0]), doc);
 }());
