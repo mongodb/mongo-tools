@@ -57,7 +57,7 @@ func (restore *MongoRestore) MetadataFromJSON(jsonBytes []byte) (*Metadata, erro
 
 	meta := &Metadata{}
 
-	err := bson.UnmarshalExtJSON(jsonBytes, false, meta)
+	err := bson.UnmarshalExtJSON(jsonBytes, true, meta)
 	if err != nil {
 		return nil, err
 	}
