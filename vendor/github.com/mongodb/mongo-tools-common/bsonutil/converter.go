@@ -8,19 +8,18 @@ package bsonutil
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/util"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ConvertJSONValueToBSON walks through a document or an array and
+// ConvertLegacyExtJSONValueToBSON walks through a document or an array and
 // replaces any extended JSON value with its corresponding BSON type.
-func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
+func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -28,7 +27,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		return v, nil
 	case map[string]interface{}: // document
 		for key, jsonValue := range v {
-			bsonValue, err := ParseJSONValue(jsonValue)
+			bsonValue, err := ParseLegacyExtJSONValue(jsonValue)
 			if err != nil {
 				return nil, err
 			}
@@ -38,7 +37,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 	case bson.D:
 		for i := range v {
 			var err error
-			v[i].Value, err = ParseJSONValue(v[i].Value)
+			v[i].Value, err = ParseLegacyExtJSONValue(v[i].Value)
 			if err != nil {
 				return nil, err
 			}
@@ -47,7 +46,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 	case []interface{}: // array
 		for i, jsonValue := range v {
-			bsonValue, err := ParseJSONValue(jsonValue)
+			bsonValue, err := ParseLegacyExtJSONValue(jsonValue)
 			if err != nil {
 				return nil, err
 			}
@@ -60,10 +59,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 	case json.ObjectId: // ObjectId
 		s := string(v)
-		if !bson.IsObjectIdHex(s) {
-			return nil, errors.New("expected ObjectId to contain 24 hexadecimal characters")
-		}
-		return bson.ObjectIdHex(s), nil
+		return primitive.ObjectIDFromHex(s)
 
 	case json.Decimal128:
 		return v.Decimal128, nil
@@ -89,37 +85,31 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return bson.Binary{v.Type, data}, nil
-
-	case json.DBRef: // DBRef
-		var err error
-		v.Id, err = ParseJSONValue(v.Id)
-		if err != nil {
-			return nil, err
-		}
-		return mgo.DBRef{v.Collection, v.Id, v.Database}, nil
+		return primitive.Binary{v.Type, data}, nil
 
 	case json.DBPointer: // DBPointer, for backwards compatibility
-		return bson.DBPointer{v.Namespace, v.Id}, nil
+		return primitive.DBPointer{v.Namespace, v.Id}, nil
 
 	case json.RegExp: // RegExp
-		return bson.RegEx{v.Pattern, v.Options}, nil
+		return primitive.Regex{v.Pattern, v.Options}, nil
 
 	case json.Timestamp: // Timestamp
-		ts := (int64(v.Seconds) << 32) | int64(v.Increment)
-		return bson.MongoTimestamp(ts), nil
+		return primitive.Timestamp{T: v.Seconds, I: v.Increment}, nil
 
 	case json.JavaScript: // Javascript
-		return bson.JavaScript{v.Code, v.Scope}, nil
+		if v.Scope != nil {
+			return primitive.CodeWithScope{Code: primitive.JavaScript(v.Code), Scope: v.Scope}, nil
+		}
+		return primitive.JavaScript(v.Code), nil
 
 	case json.MinKey: // MinKey
-		return bson.MinKey, nil
+		return primitive.MinKey{}, nil
 
 	case json.MaxKey: // MaxKey
-		return bson.MaxKey, nil
+		return primitive.MaxKey{}, nil
 
 	case json.Undefined: // undefined
-		return bson.Undefined, nil
+		return primitive.Undefined{}, nil
 
 	default:
 		return nil, fmt.Errorf("conversion of JSON value '%v' of type '%T' not supported", v, v)
@@ -128,7 +118,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 func convertKeys(v bson.M) (bson.M, error) {
 	for key, value := range v {
-		jsonValue, err := ConvertBSONValueToJSON(value)
+		jsonValue, err := ConvertBSONValueToLegacyExtJSON(value)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +130,7 @@ func convertKeys(v bson.M) (bson.M, error) {
 func getConvertedKeys(v bson.M) (bson.M, error) {
 	out := bson.M{}
 	for key, value := range v {
-		jsonValue, err := GetBSONValueAsJSON(value)
+		jsonValue, err := GetBSONValueAsLegacyExtJSON(value)
 		if err != nil {
 			return nil, err
 		}
@@ -149,10 +139,21 @@ func getConvertedKeys(v bson.M) (bson.M, error) {
 	return out, nil
 }
 
-// ConvertBSONValueToJSON walks through a document or an array and
+func convertArray(v bson.A) ([]interface{}, error) {
+	for i, value := range v {
+		jsonValue, err := ConvertBSONValueToLegacyExtJSON(value)
+		if err != nil {
+			return nil, err
+		}
+		v[i] = jsonValue
+	}
+	return []interface{}(v), nil
+}
+
+// ConvertBSONValueToLegacyExtJSON walks through a document or an array and
 // converts any BSON value to its corresponding extended JSON type.
 // It returns the converted JSON document and any error encountered.
-func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
+func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -171,7 +172,7 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		return convertKeys(v)
 	case bson.D:
 		for i, value := range v {
-			jsonValue, err := ConvertBSONValueToJSON(value.Value)
+			jsonValue, err := ConvertBSONValueToLegacyExtJSON(value.Value)
 			if err != nil {
 				return nil, err
 			}
@@ -180,27 +181,24 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		return MarshalD(v), nil
 	case MarshalD:
 		return v, nil
+	case bson.A: // array
+		return convertArray(v)
 	case []interface{}: // array
-		for i, value := range v {
-			jsonValue, err := ConvertBSONValueToJSON(value)
-			if err != nil {
-				return nil, err
-			}
-			v[i] = jsonValue
-		}
-		return v, nil
-
+		return convertArray(v)
 	case string:
 		return v, nil // require no conversion
 
 	case int:
 		return json.NumberInt(v), nil
 
-	case bson.ObjectId: // ObjectId
+	case primitive.ObjectID: // ObjectId
 		return json.ObjectId(v.Hex()), nil
 
-	case bson.Decimal128:
+	case primitive.Decimal128:
 		return json.Decimal128{v}, nil
+
+	case primitive.DateTime: // Date
+		return json.Date(v), nil
 
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
@@ -221,55 +219,54 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 		data := base64.StdEncoding.EncodeToString(v)
 		return json.BinData{0x00, data}, nil
 
-	case bson.Binary: // BinData
+	case primitive.Binary: // BinData
 		data := base64.StdEncoding.EncodeToString(v.Data)
-		return json.BinData{v.Kind, data}, nil
+		return json.BinData{v.Subtype, data}, nil
 
-	case mgo.DBRef: // DBRef
-		return json.DBRef{v.Collection, v.Id, v.Database}, nil
+	case primitive.DBPointer: // DBPointer
+		return json.DBPointer{v.DB, v.Pointer}, nil
 
-	case bson.DBPointer: // DBPointer
-		return json.DBPointer{v.Namespace, v.Id}, nil
-
-	case bson.RegEx: // RegExp
+	case primitive.Regex: // RegExp
 		return json.RegExp{v.Pattern, v.Options}, nil
 
-	case bson.MongoTimestamp: // Timestamp
-		timestamp := int64(v)
+	case primitive.Timestamp: // Timestamp
 		return json.Timestamp{
-			Seconds:   uint32(timestamp >> 32),
-			Increment: uint32(timestamp),
+			Seconds:   v.T,
+			Increment: v.I,
 		}, nil
 
-	case bson.JavaScript: // JavaScript
+	case primitive.JavaScript: // JavaScript Code
+		return json.JavaScript{Code: string(v), Scope: nil}, nil
+
+	case primitive.CodeWithScope: // JavaScript Code w/ Scope
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
-			scope, err = ConvertBSONValueToJSON(v.Scope)
+			scope, err = ConvertBSONValueToLegacyExtJSON(v.Scope)
 			if err != nil {
 				return nil, err
 			}
 		}
-		return json.JavaScript{v.Code, scope}, nil
+		return json.JavaScript{string(v.Code), scope}, nil
 
-	default:
-		switch x {
-		case bson.MinKey: // MinKey
-			return json.MinKey{}, nil
+	case primitive.MaxKey: // MaxKey
+		return json.MaxKey{}, nil
 
-		case bson.MaxKey: // MaxKey
-			return json.MaxKey{}, nil
+	case primitive.MinKey: // MinKey
+		return json.MinKey{}, nil
 
-		case bson.Undefined: // undefined
-			return json.Undefined{}, nil
-		}
+	case primitive.Undefined: // undefined
+		return json.Undefined{}, nil
+
+	case primitive.Null: // Null
+		return nil, nil
 	}
 
 	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
 }
 
-// GetBSONValueAsJSON is equivalent to ConvertBSONValueToJSON, but does not mutate its argument.
-func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
+// GetBSONValueAsLegacyExtJSON is equivalent to ConvertBSONValueToLegacyExtJSON, but does not mutate its argument.
+func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -289,18 +286,18 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case bson.D:
 		out := bson.D{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value.Value)
+			jsonValue, err := GetBSONValueAsLegacyExtJSON(value.Value)
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, bson.DocElem{
-				Name:  value.Name,
+			out = append(out, bson.E{
+				Key:  value.Key,
 				Value: jsonValue,
 			})
 		}
 		return MarshalD(out), nil
 	case MarshalD:
-		out, err := GetBSONValueAsJSON(bson.D(v))
+		out, err := GetBSONValueAsLegacyExtJSON(bson.D(v))
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +305,7 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case []interface{}: // array
 		out := []interface{}{}
 		for _, value := range v {
-			jsonValue, err := GetBSONValueAsJSON(value)
+			jsonValue, err := GetBSONValueAsLegacyExtJSON(value)
 			if err != nil {
 				return nil, err
 			}
@@ -322,11 +319,14 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 	case int:
 		return json.NumberInt(v), nil
 
-	case bson.ObjectId: // ObjectId
+	case primitive.ObjectID: // ObjectId
 		return json.ObjectId(v.Hex()), nil
 
-	case bson.Decimal128:
+	case primitive.Decimal128:
 		return json.Decimal128{v}, nil
+
+	case primitive.DateTime: // Date
+		return json.Date(v), nil
 
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
@@ -347,48 +347,47 @@ func GetBSONValueAsJSON(x interface{}) (interface{}, error) {
 		data := base64.StdEncoding.EncodeToString(v)
 		return json.BinData{0x00, data}, nil
 
-	case bson.Binary: // BinData
+	case primitive.Binary: // BinData
 		data := base64.StdEncoding.EncodeToString(v.Data)
-		return json.BinData{v.Kind, data}, nil
+		return json.BinData{Type: v.Subtype, Base64: data}, nil
 
-	case mgo.DBRef: // DBRef
-		return json.DBRef{v.Collection, v.Id, v.Database}, nil
+	case primitive.DBPointer: // DBPointer
+		return json.DBPointer{v.DB, v.Pointer}, nil
 
-	case bson.DBPointer: // DBPointer
-		return json.DBPointer{v.Namespace, v.Id}, nil
-
-	case bson.RegEx: // RegExp
+	case primitive.Regex: // RegExp
 		return json.RegExp{v.Pattern, v.Options}, nil
 
-	case bson.MongoTimestamp: // Timestamp
-		timestamp := int64(v)
+	case primitive.Timestamp: // Timestamp
 		return json.Timestamp{
-			Seconds:   uint32(timestamp >> 32),
-			Increment: uint32(timestamp),
+			Seconds:   v.T,
+			Increment: v.I,
 		}, nil
 
-	case bson.JavaScript: // JavaScript
+	case primitive.JavaScript: // JavaScript Code
+		return json.JavaScript{Code: string(v), Scope: nil}, nil
+
+	case primitive.CodeWithScope: // JavaScript Code w/ Scope
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
-			scope, err = GetBSONValueAsJSON(v.Scope)
+			scope, err = GetBSONValueAsLegacyExtJSON(v.Scope)
 			if err != nil {
 				return nil, err
 			}
 		}
-		return json.JavaScript{v.Code, scope}, nil
+		return json.JavaScript{string(v.Code), scope}, nil
 
-	default:
-		switch x {
-		case bson.MinKey: // MinKey
-			return json.MinKey{}, nil
+	case primitive.MaxKey: // MaxKey
+		return json.MaxKey{}, nil
 
-		case bson.MaxKey: // MaxKey
-			return json.MaxKey{}, nil
+	case primitive.MinKey: // MinKey
+		return json.MinKey{}, nil
 
-		case bson.Undefined: // undefined
-			return json.Undefined{}, nil
-		}
+	case primitive.Undefined: // undefined
+		return json.Undefined{}, nil
+
+	case primitive.Null: // Null
+		return nil, nil
 	}
 
 	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)

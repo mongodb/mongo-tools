@@ -14,7 +14,7 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestJSONArrayStreamDocument(t *testing.T) {
@@ -144,7 +144,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			for i := 0; i < len(expectedReads); i++ {
 				for j, readDocument := range <-docChan {
-					So(readDocument.Name, ShouldEqual, expectedReads[i][j].Name)
+					So(readDocument.Key, ShouldEqual, expectedReads[i][j].Key)
 					So(readDocument.Value, ShouldEqual, expectedReads[i][j].Value)
 				}
 			}
@@ -170,7 +170,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 				So(r.StreamDocument(true, docChan), ShouldBeNil)
 				for _, expectedRead := range expectedReads {
 					for i, readDocument := range <-docChan {
-						So(readDocument.Name, ShouldEqual, expectedRead[i].Name)
+						So(readDocument.Key, ShouldEqual, expectedRead[i].Key)
 						So(readDocument.Value, ShouldEqual, expectedRead[i].Value)
 					}
 				}

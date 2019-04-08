@@ -12,7 +12,8 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools-common/db"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // GetAuthVersion gets the authentication schema version of the connected server
@@ -42,12 +43,9 @@ func GetAuthVersion(sessionProvider *db.SessionProvider) (int, error) {
 		return 0, err
 	}
 
-	version, ok := results["authSchemaVersion"].(int)
-	if !ok {
-		// very unlikely this will ever happen
-		return 0, fmt.Errorf(
-			"getParameter command returned non-numeric result: %v",
-			results["authSchemaVersion"])
+	version, err := util.ToInt(results["authSchemaVersion"])
+	if err != nil {
+		return 0, fmt.Errorf("getParameter command returned non-numeric result: %v, error: %v", results["authSchemaVersion"], err)
 	}
 	return version, nil
 }

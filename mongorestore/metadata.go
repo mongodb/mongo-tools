@@ -85,7 +85,7 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 		// iterate over stored indexes, saving all that match the collection
 		for {
 			indexDocument := IndexDocument{}
-			if !bsonSource.NextGBSON(&indexDocument) {
+			if !bsonSource.Next(&indexDocument) {
 				break
 			}
 			namespace := indexDocument.Options["ns"].(string)
@@ -474,7 +474,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 
 	for {
 		versionDoc := bson.M{}
-		if !bsonSource.NextGBSON(&versionDoc) {
+		if !bsonSource.Next(&versionDoc) {
 			break
 		}
 

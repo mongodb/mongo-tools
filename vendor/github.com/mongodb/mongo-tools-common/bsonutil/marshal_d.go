@@ -12,7 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/util"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // MarshalD is a wrapper for bson.D that allows unmarshalling
@@ -26,9 +26,9 @@ func (md MarshalD) MarshalJSON() ([]byte, error) {
 	var buff bytes.Buffer
 	buff.WriteString("{")
 	for i, item := range md {
-		key, err := json.Marshal(item.Name)
+		key, err := json.Marshal(item.Key)
 		if err != nil {
-			return nil, fmt.Errorf("cannot marshal key %v: %v", item.Name, err)
+			return nil, fmt.Errorf("cannot marshal key %v: %v", item.Key, err)
 		}
 		val, err := json.Marshal(item.Value)
 		if err != nil {
@@ -60,7 +60,7 @@ func MakeSortString(sortObj bson.D) ([]string, error) {
 		if valueAsNumber < 0 {
 			prefix = "-"
 		}
-		sortStrs = append(sortStrs, fmt.Sprintf("%v%v", prefix, docElem.Name))
+		sortStrs = append(sortStrs, fmt.Sprintf("%v%v", prefix, docElem.Key))
 	}
 	return sortStrs, nil
 }

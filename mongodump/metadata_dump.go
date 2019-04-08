@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Metadata holds information about a collection's options and indexes.
@@ -46,7 +46,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	// The collection options were already gathered while building the list of intents.
 	// We convert them to JSON so that they can be written to the metadata json file as text.
 	if intent.Options != nil {
-		if meta.Options, err = bsonutil.ConvertBSONValueToJSON(intent.Options); err != nil {
+		if meta.Options, err = bsonutil.ConvertBSONValueToLegacyExtJSON(intent.Options); err != nil {
 			return fmt.Errorf("error converting collection options to JSON: %v", err)
 		}
 	} else {
@@ -90,7 +90,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 			if err != nil {
 				return fmt.Errorf("error converting index: %v", err)
 			}
-			convertedIndex, err := bsonutil.ConvertBSONValueToJSON(*indexOpts)
+			convertedIndex, err := bsonutil.ConvertBSONValueToLegacyExtJSON(*indexOpts)
 			if err != nil {
 				return fmt.Errorf("error converting index (%#v): %v", convertedIndex, err)
 			}

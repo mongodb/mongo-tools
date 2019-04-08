@@ -21,9 +21,10 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"gopkg.in/mgo.v2/bson"
 
 	"bufio"
 	"compress/gzip"
@@ -55,8 +56,8 @@ type MongoDump struct {
 	manager         *intents.Manager
 	query           bson.M
 	oplogCollection string
-	oplogStart      bson.MongoTimestamp
-	oplogEnd        bson.MongoTimestamp
+	oplogStart      primitive.Timestamp
+	oplogEnd        primitive.Timestamp
 	isMongos        bool
 	authVersion     int
 	archive         *archive.Writer
@@ -179,7 +180,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error parsing query as json: %v", err)
 		}
-		convertedJSON, err := bsonutil.ConvertJSONValueToBSON(asJSON)
+		convertedJSON, err := bsonutil.ConvertLegacyExtJSONValueToBSON(asJSON)
 		if err != nil {
 			return fmt.Errorf("error converting query to bson: %v", err)
 		}

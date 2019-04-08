@@ -13,7 +13,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestWriteJSON(t *testing.T) {
@@ -26,7 +27,7 @@ func TestWriteJSON(t *testing.T) {
 
 			Convey("ObjectId should have an extended JSON format", func() {
 				jsonExporter := NewJSONExportOutput(false, false, out)
-				objId := bson.NewObjectId()
+				objId := primitive.NewObjectID()
 				err := jsonExporter.WriteHeader()
 				So(err, ShouldBeNil)
 				err = jsonExporter.ExportDocument(bson.D{{"_id", objId}})
@@ -56,7 +57,7 @@ func TestJSONArray(t *testing.T) {
 
 			// Export a few docs of various types
 
-			testObjs := []interface{}{bson.NewObjectId(), "asd", 12345, 3.14159, bson.D{{"A", 1}}}
+			testObjs := []interface{}{primitive.NewObjectID(), "asd", 12345, 3.14159, bson.D{{"A", 1}}}
 			for _, obj := range testObjs {
 				err = jsonExporter.ExportDocument(bson.D{{"_id", obj}})
 				So(err, ShouldBeNil)

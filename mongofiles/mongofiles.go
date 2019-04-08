@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	driverOptions "go.mongodb.org/mongo-driver/mongo/options"
-	mgobson "gopkg.in/mgo.v2/bson"
 )
 
 // List of possible commands for mongofiles.
@@ -299,27 +298,9 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	}
 
 	// legacy extJSON parser
-	mgoId, err := bsonutil.ConvertJSONValueToBSON(asJSON)
+	id, err := bsonutil.ConvertLegacyExtJSONValueToBSON(asJSON)
 	if err != nil {
 		return nil, fmt.Errorf("error converting extJSON vlaue to bson: %v", err)
-	}
-
-	// marshal mgobson type to raw bson bytes
-	bsonBuffer, err := mgobson.Marshal(mgobson.M{"_id": mgoId})
-	if err != nil {
-		return nil, err
-	}
-
-	// unmarshal into new go driver types
-	var idDoc bson.M
-	err = bson.Unmarshal(bsonBuffer, &idDoc)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling buffer: %v", err)
-	}
-
-	id, ok := idDoc["_id"]
-	if !ok {
-		return nil, fmt.Errorf("couldn't unmarshal correctly")
 	}
 
 	return id, nil

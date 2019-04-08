@@ -9,12 +9,11 @@ package mongodump
 import (
 	"fmt"
 
-	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/util"
-	gbson "go.mongodb.org/mongo-driver/bson"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // determineOplogCollectionName uses a command to infer
@@ -44,40 +43,40 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 }
 
 // getOplogCurrentTime returns the most recent oplog entry
-func (dump *MongoDump) getCurrentOplogTime() (bson.MongoTimestamp, error) {
+func (dump *MongoDump) getCurrentOplogTime() (primitive.Timestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
-	var tempBSON gbson.Raw
+	var tempBSON bson.Raw
 
 	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": -1}, &tempBSON, 0)
 	if err != nil {
-		return 0, err
+		return primitive.Timestamp{}, err
 	}
-	err = gbson.Unmarshal(tempBSON, &mostRecentOplogEntry)
+	err = bson.Unmarshal(tempBSON, &mostRecentOplogEntry)
 	if err != nil {
-		return 0, err
+		return primitive.Timestamp{}, err
 	}
-	return bsonutil.ConvertTimestampToMongoTimestamp(mostRecentOplogEntry.Timestamp), nil
+	return mostRecentOplogEntry.Timestamp, nil
 }
 
 // checkOplogTimestampExists checks to make sure the oplog hasn't rolled over
 // since mongodump started. It does this by checking the oldest oplog entry
 // still in the database and making sure it happened at or before the timestamp
 // captured at the start of the dump.
-func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, error) {
+func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, error) {
 	oldestOplogEntry := db.Oplog{}
-	var tempBSON gbson.Raw
+	var tempBSON bson.Raw
 
 	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": 1}, &tempBSON, 0)
 	if err != nil {
 		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
 	}
-	err = gbson.Unmarshal(tempBSON, &oldestOplogEntry)
+	err = bson.Unmarshal(tempBSON, &oldestOplogEntry)
 	if err != nil {
 		return false, err
 	}
 
 	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
-	if bsonutil.ConvertTimestampToMongoTimestamp(oldestOplogEntry.Timestamp) > ts {
+	if util.TimestampGreaterThan(oldestOplogEntry.Timestamp, ts) {
 		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is older than %v",
 			oldestOplogEntry.Timestamp, ts)
 		return false, nil
@@ -86,16 +85,10 @@ func (dump *MongoDump) checkOplogTimestampExists(ts bson.MongoTimestamp) (bool, 
 }
 
 func oplogDocumentFilter(in []byte) ([]byte, error) {
-	var rawD bson.RawD
-	err := bson.Unmarshal(in, &rawD)
-	if err != nil {
-		return nil, err
-	}
-
 	var nsD struct {
 		NS string `bson:"ns"`
 	}
-	err = bson.Unmarshal(in, &nsD)
+	err := bson.Unmarshal(in, &nsD)
 	if err != nil {
 		return nil, err
 	}
@@ -104,23 +97,18 @@ func oplogDocumentFilter(in []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
 	}
 
-	for i := range rawD {
-		if rawD[i].Name == "o" {
-			var rawO bson.RawD
-			err = bson.Unmarshal(rawD[i].Value.Data, &rawO)
-			for j := range rawO {
-				if rawO[j].Name == "renameCollection" {
-					return nil, fmt.Errorf("cannot dump with oplog while renames occur")
-				}
-			}
-		}
+	if _, err := bson.Raw(in).LookupErr("o", "renameCollection"); err == nil {
+		return nil, fmt.Errorf("cannot dump with oplog while renames occur")
 	}
-	return bson.Marshal(rawD)
+
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out, nil
 }
 
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
 // entries between the given timestamp to the writer. Returns any errors that occur.
-func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.MongoTimestamp) error {
+func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end primitive.Timestamp) error {
 	session, err := dump.SessionProvider.GetSession()
 	if err != nil {
 		return err

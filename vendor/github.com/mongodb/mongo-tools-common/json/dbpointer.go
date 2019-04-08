@@ -7,8 +7,9 @@
 package json
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"fmt"
-	"gopkg.in/mgo.v2/bson"
 	"reflect"
 )
 
@@ -45,8 +46,11 @@ func (d *decodeState) storeDBPointer(v reflect.Value) {
 		if !ok {
 			d.error(fmt.Errorf("expected second argument to DBPointer to be of type ObjectId, but ended up being %t", args[1]))
 		}
-		id := bson.ObjectIdHex(string(arg1))
-		v.Set(reflect.ValueOf(DBPointer{arg0, id}))
+		oid, err := primitive.ObjectIDFromHex(string(arg1))
+		if err != nil {
+			d.error(fmt.Errorf("cannot parse ObjectID from string %v: %v", arg1, err))
+		}
+		v.Set(reflect.ValueOf(DBPointer{arg0, oid}))
 	default:
 		d.error(fmt.Errorf("cannot store %v value into %v type", dbPointerType, kind))
 	}
@@ -71,7 +75,10 @@ func (d *decodeState) getDBPointer() interface{} {
 	if !ok {
 		d.error(fmt.Errorf("expected ObjectId for second argument of DBPointer constructor"))
 	}
-	id := bson.ObjectIdHex(string(arg1))
+	oid, err := primitive.ObjectIDFromHex(string(arg1))
+	if err != nil {
+		d.error(fmt.Errorf("cannot parse ObjectID from string %v: %v", arg1, err))
+	}
 
-	return DBPointer{arg0, id}
+	return DBPointer{arg0, oid}
 }

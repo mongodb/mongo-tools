@@ -27,8 +27,8 @@ import (
 	"github.com/mongodb/mongo-tools-common/testutil"
 	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -606,7 +606,7 @@ func TestMongoDumpBSON(t *testing.T) {
 
 			// expect 10 documents per collection
 			bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
-			jsonQuery, err := bsonutil.ConvertBSONValueToJSON(bsonQuery)
+			jsonQuery, err := bsonutil.ConvertBSONValueToLegacyExtJSON(bsonQuery)
 			So(err, ShouldBeNil)
 			jsonQueryBytes, err := json.Marshal(jsonQuery)
 			So(err, ShouldBeNil)

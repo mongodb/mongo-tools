@@ -7,7 +7,7 @@
 package util
 
 import (
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"reflect"
 )
 
@@ -17,7 +17,7 @@ func IsTruthy(val interface{}) bool {
 	if val == nil {
 		return false
 	}
-	if val == bson.Undefined {
+	if val == (primitive.Undefined{}) {
 		return false
 	}
 

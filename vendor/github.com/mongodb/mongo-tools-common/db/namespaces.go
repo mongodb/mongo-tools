@@ -13,16 +13,14 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools-common/log"
-	gbson "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type CollectionInfo struct {
-	Name    string `bson:"name"`
-	Type    string `bson:"type"`
+	Name    string  `bson:"name"`
+	Type    string  `bson:"type"`
 	Options bson.M `bson:"options"`
 	Info    bson.M `bson:"info"`
 }
@@ -45,10 +43,6 @@ func (ci *CollectionInfo) GetUUID() string {
 			if x.Subtype == 4 {
 				return hex.EncodeToString(x.Data)
 			}
-		case bson.Binary:
-			if x.Kind == 4 {
-				return hex.EncodeToString(x.Data)
-			}
 		default:
 			log.Logvf(log.DebugHigh, "unknown UUID BSON type '%T'", v)
 		}
@@ -56,58 +50,18 @@ func (ci *CollectionInfo) GetUUID() string {
 	return ""
 }
 
-// IsNoCmd reeturns true if err indicates a query command is not supported,
-// otherwise, returns false.
-func IsNoCmd(err error) bool {
-	e, ok := err.(*mgo.QueryError)
-	return ok && strings.HasPrefix(e.Message, "no such cmd:")
-}
-
-// IsNoNamespace returns true if err indicates a query resulted in a
-// "NamespaceNotFound" error otherwise, returns false.
-func IsNoNamespace(err error) bool {
-	e, ok := err.(*mgo.QueryError)
-	return ok && e.Code == 26
-}
-
-// buildBsonArray takes a cursor iterator and returns an array of
-// all of its documents as bson.D objects.
-func buildBsonArray(iter *mgo.Iter) ([]bson.D, error) {
-	ret := make([]bson.D, 0, 0)
-	index := new(bson.D)
-	for iter.Next(index) {
-		ret = append(ret, *index)
-		index = new(bson.D)
-	}
-
-	if iter.Err() != nil {
-		return nil, iter.Err()
-	}
-	return ret, nil
-
-}
-
 // GetIndexes returns an iterator to thethe raw index info for a collection by
 // using the listIndexes command if available, or by falling back to querying
 // against system.indexes (pre-3.0 systems). nil is returned if the collection
 // does not exist.
-//
-// XXX Requires GODRIVER-279 for legacy server support
 func GetIndexes(coll *mongo.Collection) (*mongo.Cursor, error) {
 	return coll.Indexes().List(context.Background())
 }
 
-func getIndexesPre28(coll *mgo.Collection) (*mgo.Iter, error) {
-	indexColl := coll.Database.C("system.indexes")
-	iter := indexColl.Find(&bson.M{"ns": coll.FullName}).Iter()
-	return iter, nil
-}
-
-// XXX Requires GODRIVER-492 for legacy server support
 // Assumes that mongo.Database will normalize legacy names to omit database
 // name as required by the Enumerate Collections spec
 func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error) {
-	filter := gbson.D{}
+	filter := bson.D{}
 	if len(name) > 0 {
 		filter = append(filter, primitive.E{"name", name})
 	}
@@ -118,16 +72,6 @@ func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error
 	}
 
 	return cursor, nil
-}
-
-func getCollectionsPre28(database *mgo.Database, name string) (*mgo.Iter, error) {
-	indexColl := database.C("system.namespaces")
-	selector := bson.M{}
-	if len(name) > 0 {
-		selector["name"] = database.Name + "." + name
-	}
-	iter := indexColl.Find(selector).Iter()
-	return iter, nil
 }
 
 func GetCollectionInfo(coll *mongo.Collection) (*CollectionInfo, error) {
