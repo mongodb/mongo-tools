@@ -145,7 +145,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		if jsonValue, ok := doc["$code"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return primitive.CodeWithScope{Code: primitive.JavaScript(v), Scope: nil}, nil
+				return primitive.JavaScript(v), nil
 			default:
 				return nil, errors.New("expected $code field to have string value")
 			}

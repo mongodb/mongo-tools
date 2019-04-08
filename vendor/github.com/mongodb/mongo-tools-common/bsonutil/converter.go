@@ -97,7 +97,10 @@ func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
 		return primitive.Timestamp{T: v.Seconds, I: v.Increment}, nil
 
 	case json.JavaScript: // Javascript
-		return primitive.CodeWithScope{Code: primitive.JavaScript(v.Code), Scope: v.Scope}, nil
+		if v.Scope != nil {
+			return primitive.CodeWithScope{Code: primitive.JavaScript(v.Code), Scope: v.Scope}, nil
+		}
+		return primitive.JavaScript(v.Code), nil
 
 	case json.MinKey: // MinKey
 		return primitive.MinKey{}, nil
@@ -194,6 +197,9 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 	case primitive.Decimal128:
 		return json.Decimal128{v}, nil
 
+	case primitive.DateTime: // Date
+		return json.Date(v), nil
+
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
 
@@ -229,7 +235,10 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 			Increment: v.I,
 		}, nil
 
-	case primitive.CodeWithScope: // JavaScript
+	case primitive.JavaScript: // JavaScript Code
+		return json.JavaScript{Code: string(v), Scope: nil}, nil
+
+	case primitive.CodeWithScope: // JavaScript Code w/ Scope
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
@@ -240,17 +249,17 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		}
 		return json.JavaScript{string(v.Code), scope}, nil
 
-	default:
-		switch x {
-		case primitive.MinKey{}: // MinKey
-			return json.MinKey{}, nil
+	case primitive.MaxKey: // MaxKey
+		return json.MaxKey{}, nil
 
-		case primitive.MaxKey{}: // MaxKey
-			return json.MaxKey{}, nil
+	case primitive.MinKey: // MinKey
+		return json.MinKey{}, nil
 
-		case primitive.Undefined{}: // undefined
-			return json.Undefined{}, nil
-		}
+	case primitive.Undefined: // undefined
+		return json.Undefined{}, nil
+
+	case primitive.Null: // Null
+		return nil, nil
 	}
 
 	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
@@ -316,6 +325,9 @@ func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 	case primitive.Decimal128:
 		return json.Decimal128{v}, nil
 
+	case primitive.DateTime: // Date
+		return json.Date(v), nil
+
 	case time.Time: // Date
 		return json.Date(v.Unix()*1000 + int64(v.Nanosecond()/1e6)), nil
 
@@ -351,7 +363,10 @@ func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 			Increment: v.I,
 		}, nil
 
-	case primitive.CodeWithScope: // JavaScript
+	case primitive.JavaScript: // JavaScript Code
+		return json.JavaScript{Code: string(v), Scope: nil}, nil
+
+	case primitive.CodeWithScope: // JavaScript Code w/ Scope
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
@@ -362,17 +377,17 @@ func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 		}
 		return json.JavaScript{string(v.Code), scope}, nil
 
-	default:
-		switch x {
-		case primitive.MinKey{}: // MinKey
-			return json.MinKey{}, nil
+	case primitive.MaxKey: // MaxKey
+		return json.MaxKey{}, nil
 
-		case primitive.MaxKey{}: // MaxKey
-			return json.MaxKey{}, nil
+	case primitive.MinKey: // MinKey
+		return json.MinKey{}, nil
 
-		case primitive.Undefined{}: // undefined
-			return json.Undefined{}, nil
-		}
+	case primitive.Undefined: // undefined
+		return json.Undefined{}, nil
+
+	case primitive.Null: // Null
+		return nil, nil
 	}
 
 	return nil, fmt.Errorf("conversion of BSON value '%v' of type '%T' not supported", x, x)
