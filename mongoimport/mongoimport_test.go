@@ -23,7 +23,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
-
 )
 
 const (
