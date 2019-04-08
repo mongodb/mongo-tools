@@ -16,12 +16,11 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
-	"go.mongodb.org/mongo-driver/mongo"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	"fmt"
 	"io"
@@ -128,29 +127,6 @@ func (sp *SessionProvider) Close() {
 // DB provides a database with the default read preference
 func (sp *SessionProvider) DB(name string) *mongo.Database {
 	return sp.client.Database(name)
-}
-
-// SetFlags allows certain modifications to the masterSession after initial creation.
-func (sp *SessionProvider) SetFlags(flagBits sessionFlag) {
-	panic("unsupported")
-}
-
-// SetReadPreference sets the read preference mode in the SessionProvider
-// and eventually in the masterSession
-func (sp *SessionProvider) SetReadPreference(pref *readpref.ReadPref) {
-	panic("unsupported")
-}
-
-// SetBypassDocumentValidation sets whether to bypass document validation in the SessionProvider
-// and eventually in the masterSession
-func (sp *SessionProvider) SetBypassDocumentValidation(bypassDocumentValidation bool) {
-	panic("unsupported")
-}
-
-// SetTags sets the server selection tags in the SessionProvider
-// and eventually in the masterSession
-func (sp *SessionProvider) SetTags(tags bson.D) {
-	panic("unsupported")
 }
 
 // NewSessionProvider constructs a session provider, including a connected client.
