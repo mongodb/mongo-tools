@@ -36,14 +36,14 @@ type Options struct {
 
 // InputOptions command line argument long names
 const (
-	ObjcheckOption = "--objcheck"
-	OplogReplayOption = "--oplogReplay"
-	OplogLimitOption = "--oplogLimit"
-	OplogFileOption = "--oplogFile"
-	ArchiveOption = "--archive" // Value is optional, so must use '=' if specifying one
+	ObjcheckOption               = "--objcheck"
+	OplogReplayOption            = "--oplogReplay"
+	OplogLimitOption             = "--oplogLimit"
+	OplogFileOption              = "--oplogFile"
+	ArchiveOption                = "--archive" // Value is optional, so must use '=' if specifying one
 	RestoreDBUsersAndRolesOption = "--restoreDbUsersAndRoles"
-	DirectoryOption = "--dir"
-	GzipOption = "--gzip"
+	DirectoryOption              = "--dir"
+	GzipOption                   = "--gzip"
 )
 
 // InputOptions defines the set of options to use in configuring the restore process.
@@ -65,21 +65,21 @@ func (*InputOptions) Name() string {
 
 // OutputOptions command line argument long names
 const (
-	DropOption = "--drop"
-	DryRunOption = "--dryRun"
-	WriteConcernOption = "--writeConcern"
-	NoIndexRestoreOption = "--noIndexRestore"
-	NoOptionsRestoreOption = "--noOptionsRestore"
-	KeepIndexVersionOption = "--keepIndexVersion"
-	MaintainInsertionOrderOption = "--maintainInsertionOrder"
-	NumParallelCollectionsOption = "--numParallelCollections"
-	NumInsertionWorkersOption = "--numInsertionWorkersPerCollection"
-	StopOnErrorOption = "--stopOnError"
+	DropOption                     = "--drop"
+	DryRunOption                   = "--dryRun"
+	WriteConcernOption             = "--writeConcern"
+	NoIndexRestoreOption           = "--noIndexRestore"
+	NoOptionsRestoreOption         = "--noOptionsRestore"
+	KeepIndexVersionOption         = "--keepIndexVersion"
+	MaintainInsertionOrderOption   = "--maintainInsertionOrder"
+	NumParallelCollectionsOption   = "--numParallelCollections"
+	NumInsertionWorkersOption      = "--numInsertionWorkersPerCollection"
+	StopOnErrorOption              = "--stopOnError"
 	BypassDocumentValidationOption = "--bypassDocumentValidation"
-	PreserveUUIDOption = "--preserveUUID"
-	TempUsersCollOption = "--tempUsersColl"
-	TempRolesCollOption = "--tempRolesColl"
-	BulkBufferSizeOption = "--batchSize"
+	PreserveUUIDOption             = "--preserveUUID"
+	TempUsersCollOption            = "--tempUsersColl"
+	TempRolesCollOption            = "--tempRolesColl"
+	BulkBufferSizeOption           = "--batchSize"
 )
 
 // OutputOptions defines the set of options for restoring dump data.
@@ -110,14 +110,14 @@ func (*OutputOptions) Name() string {
 
 // NSOptions command line argument long names
 const (
-	DBOption = "--db"
-	CollectionOption = "--collection"
-	ExcludedCollectionsOption = "--excludeCollection"
+	DBOption                         = "--db"
+	CollectionOption                 = "--collection"
+	ExcludedCollectionsOption        = "--excludeCollection"
 	ExcludedCollectionPrefixesOption = "--excludeCollectionsWithPrefix"
-	NSExcludeOption = "--nsExclude"
-	NSIncludeOption = "--nsInclude"
-	NSFromOption = "--nsFrom"
-	NSToOption = "--nsTo"
+	NSExcludeOption                  = "--nsExclude"
+	NSIncludeOption                  = "--nsInclude"
+	NSFromOption                     = "--nsFrom"
+	NSToOption                       = "--nsTo"
 )
 
 // NSOptions defines the set of options for configuring involved namespaces
@@ -172,7 +172,6 @@ func ParseOptions(rawArgs []string) (Options, error) {
 	}
 	targetDir = util.ToUniversalPath(targetDir)
 
-
 	wc, err := db.NewMongoWriteConcern(outputOpts.WriteConcern, opts.URI.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing write concern: %v", err)
@@ -204,7 +203,7 @@ func getTargetDirFromArgs(extraArgs []string, dirFlag string) (string, error) {
 
 	case dirFlag != "":
 		// if we have no extra args and a --dir flag, use the --dir flag
-		log.Logv(log.Info, "using " + DirectoryOption + " flag instead of arguments")
+		log.Logv(log.Info, "using "+DirectoryOption+" flag instead of arguments")
 		return dirFlag, nil
 
 	default:

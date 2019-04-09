@@ -70,7 +70,7 @@ func TestCollectionExists(t *testing.T) {
 
 		Convey("and a fake cache should be used instead of the server when it exists", func() {
 			restore.knownCollections = map[string][]string{
-				ExistsDB: []string{"cats", "dogs", "snakes"},
+				ExistsDB: {"cats", "dogs", "snakes"},
 			}
 			exists, err := restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "dogs"})
 			So(err, ShouldBeNil)

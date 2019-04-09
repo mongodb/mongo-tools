@@ -114,8 +114,8 @@ func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end primitive.Timestamp
 		return err
 	}
 	queryObj := bson.M{"$and": []bson.M{
-		bson.M{"ts": bson.M{"$gte": start}},
-		bson.M{"ts": bson.M{"$lte": end}},
+		{"ts": bson.M{"$gte": start}},
+		{"ts": bson.M{"$lte": end}},
 	}}
 	oplogQuery := &db.DeferredQuery{
 		Coll:      session.Database("local").Collection(dump.oplogCollection),

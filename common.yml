@@ -46,6 +46,7 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
       - name: lint-go
+      - name: format-go
       - name: lint-js
       - name: qa-tests-3.2
       - name: qa-tests-3.4
@@ -96,6 +97,7 @@ mongo_tools_variables:
       - name: integration
       - name: integration-auth
       - name: lint-go
+      - name: format-go
       - name: lint-js
       - name: qa-tests-3.2
       - name: qa-tests-3.4
@@ -740,6 +742,17 @@ functions:
         set -e
         GOPATH=$PWD go get github.com/10gen/ftdc-utils/cmd/ftdc
 
+  "fetch golangci-lint" :
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest
+
   "create auth_user" :
   - command: shell.exec
     params:
@@ -1009,6 +1022,23 @@ tasks:
       vars:
         test_path: "test/legacy30"
         smoke_args: "--authMechanism SCRAM-SHA-1"
+
+- name: format-go
+  commands:
+    - func: "fetch source"
+    - func: "fetch golangci-lint"
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          . ./set_goenv.sh
+          GOROOT="" set_goenv || exit
+          PATH=$PATH:$PWD/bin golangci-lint run --disable-all -E gofmt ./...
+          exit $?
 
 - name: lint-go
   commands:

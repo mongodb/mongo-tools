@@ -129,7 +129,6 @@ func ParseOptions(rawArgs []string) (Options, error) {
 		inputOpts.ReadPreference = "nearest"
 	}
 
-
 	opts.ReadPreference, err = db.NewReadPreference(inputOpts.ReadPreference, opts.URI.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
