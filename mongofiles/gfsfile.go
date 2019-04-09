@@ -23,15 +23,15 @@ type gfsFile struct {
 	Md5        string          `bson:"md5"`
 	UploadDate time.Time       `bson:"uploadDate"`
 	Metadata   gfsFileMetadata `bson:"metadata"`
-	ChunkSize   int            `bson:"chunkSize"`
+	ChunkSize  int             `bson:"chunkSize"`
 
 	// Storage required for reading and writing GridFS files
-	mf         *MongoFiles
+	mf *MongoFiles
 }
 
 // Struct representing the metadata associated with a GridFS files collection document.
 type gfsFileMetadata struct {
-	ContentType string             `bson:"contentType,omitempty"`
+	ContentType string `bson:"contentType,omitempty"`
 }
 
 func newGfsFile(ID interface{}, name string, mf *MongoFiles) (*gfsFile, error) {

@@ -352,7 +352,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		log.Logvf(log.Always, "restoring %v from %v", arg.intentType, arg.intent.Location)
 
 		mergeArgs = append(mergeArgs, bson.E{
-			Key:  arg.mergeParamName,
+			Key:   arg.mergeParamName,
 			Value: "admin." + arg.tempCollectionName,
 		})
 

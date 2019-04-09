@@ -50,7 +50,7 @@ func TestMongorestore(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		args := []string {
+		args := []string{
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
 		}

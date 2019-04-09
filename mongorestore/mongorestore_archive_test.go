@@ -41,7 +41,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		args := []string {
+		args := []string{
 			ArchiveOption + "=" + testArchive,
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
@@ -68,7 +68,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			So(err, ShouldBeNil)
 			restore.archive = &archive.Reader{
 				Prelude: &archive.Prelude{},
-				In: ioutil.NopCloser(io.LimitReader(file, i)),
+				In:      ioutil.NopCloser(io.LimitReader(file, i)),
 			}
 
 			err = restore.Restore()
@@ -90,7 +90,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		args := []string {
+		args := []string{
 			ArchiveOption + "=" + testArchiveWithOplog,
 			OplogReplayOption,
 			DropOption,

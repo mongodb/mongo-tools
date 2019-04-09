@@ -118,7 +118,7 @@ func TestValidOplogLimitChecking(t *testing.T) {
 		})
 
 		Convey("an oplog entry with ts=5:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I:0}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 0}), ShouldBeTrue)
 		})
 	})
 
@@ -138,7 +138,7 @@ func TestOplogRestore(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		args := []string {
+		args := []string{
 			DirectoryOption, "testdata/oplogdump",
 			OplogReplayOption,
 			NumParallelCollectionsOption, "1",
@@ -174,7 +174,7 @@ func TestOplogRestoreTools2002(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		args := []string {
+		args := []string{
 			DirectoryOption, "testdata/tools-2002",
 			OplogReplayOption,
 			NumParallelCollectionsOption, "1",

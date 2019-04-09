@@ -29,7 +29,7 @@ func init() {
 var (
 	index         = uint64(0)
 	csvConverters = []CSVConverter{
-		CSVConverter{
+		{
 			colSpecs: []ColumnSpec{
 				{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
 				{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -38,7 +38,7 @@ var (
 			data:  []string{"a", "b", "c"},
 			index: index,
 		},
-		CSVConverter{
+		{
 			colSpecs: []ColumnSpec{
 				{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
 				{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -47,7 +47,7 @@ var (
 			data:  []string{"d", "e", "f"},
 			index: index,
 		},
-		CSVConverter{
+		{
 			colSpecs: []ColumnSpec{
 				{"field7", new(FieldAutoParser), pgAutoCast, "auto"},
 				{"field8", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -56,7 +56,7 @@ var (
 			data:  []string{"d", "e", "f"},
 			index: index,
 		},
-		CSVConverter{
+		{
 			colSpecs: []ColumnSpec{
 				{"field10", new(FieldAutoParser), pgAutoCast, "auto"},
 				{"field11", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -65,7 +65,7 @@ var (
 			data:  []string{"d", "e", "f"},
 			index: index,
 		},
-		CSVConverter{
+		{
 			colSpecs: []ColumnSpec{
 				{"field13", new(FieldAutoParser), pgAutoCast, "auto"},
 				{"field14", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -401,7 +401,7 @@ func TestProcessDocuments(t *testing.T) {
 	Convey("Given an import worker", t, func() {
 		index := uint64(0)
 		csvConverters := []CSVConverter{
-			CSVConverter{
+			{
 				colSpecs: []ColumnSpec{
 					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
 					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -410,7 +410,7 @@ func TestProcessDocuments(t *testing.T) {
 				data:  []string{"a", "b", "c"},
 				index: index,
 			},
-			CSVConverter{
+			{
 				colSpecs: []ColumnSpec{
 					{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
 					{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
@@ -493,12 +493,12 @@ func TestDoSequentialStreaming(t *testing.T) {
 			make(chan bson.D),
 		}
 		importWorkers := []*importWorker{
-			&importWorker{
+			{
 				unprocessedDataChan:   workerInputChannel[0],
 				processedDocumentChan: workerOutputChannel[0],
 				tomb:                  &tomb.Tomb{},
 			},
-			&importWorker{
+			{
 				unprocessedDataChan:   workerInputChannel[1],
 				processedDocumentChan: workerOutputChannel[1],
 				tomb:                  &tomb.Tomb{},
