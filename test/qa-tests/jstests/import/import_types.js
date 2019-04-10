@@ -50,7 +50,8 @@
   ret = toolTest.runTool.apply(toolTest, ['import',
     '--file', importFile,
     '--db', 'imported',
-    '--collection', 'types']
+    '--collection', 'types',
+    '--legacy']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

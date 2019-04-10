@@ -63,3 +63,39 @@ func TestWriteConcernWithURIParsing(t *testing.T) {
 			}, true, "{w: 3}", writeconcern.New(writeconcern.W(3))))
 	})
 }
+
+// Test parsing for the --legacy flag
+func TestLegacyOptionParsing(t *testing.T) {
+	testCases := []struct {
+		name           string
+		legacyOpt      string // If "", --legacy will not be included as an option
+		expectSuccess  bool
+		expectedLegacy bool
+	}{
+		{"legacy defaults to false", "", true, false},
+		{"legacy can be set", "true", true, true},
+	}
+
+	baseOpts := []string{"--host", "localhost:27017", "--db", "db", "--collection", "coll"}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			args := baseOpts
+			if tc.legacyOpt != "" {
+				args = append(args, "--legacy", tc.legacyOpt)
+			}
+
+			opts, err := ParseOptions(args)
+			success := err == nil
+			if success != tc.expectSuccess {
+				t.Fatalf("expected err to be nil: %v; error was nil: %v", tc.expectSuccess, success)
+			}
+			if !tc.expectSuccess {
+				return
+			}
+
+			if opts.Legacy != tc.expectedLegacy {
+				t.Fatalf("legacy mismatch; expected %v, got %v", tc.expectedLegacy, opts.Legacy)
+			}
+		})
+	}
+}

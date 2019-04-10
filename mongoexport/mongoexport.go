@@ -35,6 +35,14 @@ const (
 	watchProgressorUpdateFrequency = 8000
 )
 
+// jsonFormat is the type for all valid extended JSON formats to output.
+type jsonFormat string
+
+const (
+	canonical jsonFormat = "canonical"
+	relaxed              = "relaxed"
+)
+
 const (
 	progressBarLength   = 24
 	progressBarWaitTime = time.Second
@@ -179,6 +187,10 @@ func (exp *MongoExport) validateSettings() error {
 	}
 	if exp.OutputOpts.Type != CSV && exp.OutputOpts.Type != JSON {
 		return fmt.Errorf("invalid output type '%v', choose 'json' or 'csv'", exp.OutputOpts.Type)
+	}
+
+	if exp.OutputOpts.JSONFormat != canonical && exp.OutputOpts.JSONFormat != relaxed {
+		return fmt.Errorf("invalid JSON format '%v', choose 'relaxed' or 'canonical'", exp.OutputOpts.JSONFormat)
 	}
 
 	if exp.InputOpts.Query != "" && exp.InputOpts.ForceTableScan {
@@ -495,7 +507,7 @@ func (exp *MongoExport) getExportOutput(out io.Writer) (ExportOutput, error) {
 
 		return NewCSVExportOutput(exportFields, exp.OutputOpts.NoHeaderLine, out), nil
 	}
-	return NewJSONExportOutput(exp.OutputOpts.JSONArray, exp.OutputOpts.Pretty, out), nil
+	return NewJSONExportOutput(exp.OutputOpts.JSONArray, exp.OutputOpts.Pretty, out, exp.OutputOpts.JSONFormat), nil
 }
 
 // getObjectFromByteArg takes an object in extended JSON, and converts it to an object that

@@ -14,7 +14,6 @@ var formatable = ISODate("1970-01-02T05:00:00Z");
 assert.eq(formatable.valueOf(), 104400000);
 src.insert({ "_id" : formatable });
 
-// Insert a date that we cannot format as an ISODate string
 var nonformatable = ISODate("3001-01-01T00:00:00Z");
 assert.eq(nonformatable.valueOf(), 32535216000000);
 src.insert({ "_id" : nonformatable });
@@ -26,7 +25,7 @@ data = 'data/exportimport_date_test.json';
 
 print('About to call mongoexport on: ' + exportimport_db.getName() + '.' + src.getName() +
       ' with file: ' + data);
-tt.runTool('export', '--out' , data, '-d', exportimport_db.getName(), '-c', src.getName());
+tt.runTool('export', '--out' , data, '-d', exportimport_db.getName(), '-c', src.getName(), "--jsonFormat", "canonical");
 
 print('About to call mongoimport on: ' + exportimport_db.getName() + '.' + dst.getName() +
       ' with file: ' + data);

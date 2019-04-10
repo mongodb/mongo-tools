@@ -46,6 +46,9 @@ type OutputFormatOptions struct {
 
 	// NoHeaderLine, if set, will export CSV data without a list of field names at the first line.
 	NoHeaderLine bool `long:"noHeaderLine" description:"export CSV data without a list of field names at the first line"`
+
+	// JSONFormat specifies what extended JSON format to export (canonical or relaxed). Defaults to relaxed.
+	JSONFormat jsonFormat `long:"jsonFormat" value-name:"<type>" default:"relaxed" description:"the extended JSON format to output, either canonical or relaxed (defaults to 'relaxed')"`
 }
 
 // Name returns a human-readable group name for output format options.

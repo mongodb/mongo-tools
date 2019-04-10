@@ -29,7 +29,7 @@
 
     var argv = ["import",
       "--file", "jstests/import/testdata/upsert2.json",
-      "--upsertFields", "a,c"];
+      "--upsertFields", "a,c", "--legacy"];
     if (cmdArg) {
       argv.push(cmdArg);
     }
@@ -87,7 +87,7 @@
     db.c.insert(docOrigin[1]);
     assert.eq(db.c.count(), 2, "collection count should be 2 at setup");
 
-    var argv = ["import", "--file", "jstests/import/testdata/upsert1.json"];
+    var argv = ["import", "--file", "jstests/import/testdata/upsert1.json", "--legacy"];
     if (cmdArg) {
       argv.push(cmdArg);
     }

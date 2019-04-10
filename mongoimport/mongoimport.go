@@ -175,6 +175,9 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		if _, err := ValidatePG(imp.InputOptions.ParseGrace); err != nil {
 			return err
 		}
+		if imp.InputOptions.Legacy {
+			return fmt.Errorf("cannot use --legacy if input type is not JSON")
+		}
 	} else {
 		// input type is JSON
 		if imp.InputOptions.HeaderLine {
@@ -636,5 +639,5 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 	} else if imp.InputOptions.Type == TSV {
 		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
 	}
-	return NewJSONInputReader(imp.InputOptions.JSONArray, in, imp.IngestOptions.NumDecodingWorkers), nil
+	return NewJSONInputReader(imp.InputOptions.JSONArray, imp.InputOptions.Legacy, in, imp.IngestOptions.NumDecodingWorkers), nil
 }

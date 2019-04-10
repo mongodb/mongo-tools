@@ -69,16 +69,15 @@
       "imported field " + docKey + " does not match original");
   }
 
-  // DBPointer should turn into a DBRef with a $ref field and hte $id field being an ObjectId. It will not convert back to a DBPointer.
-
   var oid = ObjectId();
   var irregularObjects = {
     _id: ObjectId(),
-    a: DBPointer('namespace', oid),
+    a: DBRef('namespace', oid),
     b: NumberInt("5"),
     c: NumberLong("5000"),
     d: 5,
     e: 9223372036854775,
+    f: DBPointer('namespace', oid),
   };
 
   db1.c.drop();

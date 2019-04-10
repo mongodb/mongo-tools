@@ -70,4 +70,39 @@ func TestParseOptions(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("TestJSONFormat", func(t *testing.T) {
+		testCases := []struct {
+			name           string
+			jsonFormat     jsonFormat // If "", no jsonFormat will be included
+			expectSuccess  bool
+			expectedFormat jsonFormat
+		}{
+			{"JSON format defaults to relaxed", "", true, relaxed},
+			{"JSON format can be set", canonical, true, canonical},
+		}
+
+		baseOpts := []string{"--host", "localhost:27017", "--db", "db", "--collection", "coll"}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				args := baseOpts
+				if tc.jsonFormat != "" {
+					args = append(args, "--jsonFormat", string(tc.jsonFormat))
+				}
+
+				opts, err := ParseOptions(args)
+				success := err == nil
+				if success != tc.expectSuccess {
+					t.Fatalf("expected err to be nil: %v; error was nil: %v", tc.expectSuccess, success)
+				}
+				if !tc.expectSuccess {
+					return
+				}
+
+				if opts.JSONFormat != tc.expectedFormat {
+					t.Fatalf("JSON format mismatch; expected %v, got %v", tc.expectedFormat, opts.JSONFormat)
+				}
+			})
+		}
+	})
 }
