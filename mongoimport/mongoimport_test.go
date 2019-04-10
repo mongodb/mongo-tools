@@ -385,6 +385,16 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.validateSettings([]string{}), ShouldBeNil)
 			So(imp.ToolOptions.Namespace.Collection, ShouldEqual, "input")
 		})
+
+		Convey("error should be thrown if --legacy is specified and input type is not JSON", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.InputOptions.Type = CSV
+			fieldFile := "test.csv"
+			imp.InputOptions.FieldFile = &fieldFile
+			imp.InputOptions.Legacy = true
+			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+		})
 	})
 }
 
@@ -793,7 +803,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey("an error should be thrown if a plain JSON file is supplied", func() {
 			fileHandle, err := os.Open("testdata/test_plain.json")
 			So(err, ShouldBeNil)
-			jsonInputReader := NewJSONInputReader(true, fileHandle, 1)
+			jsonInputReader := NewJSONInputReader(true, true, fileHandle, 1)
 			docChan := make(chan bson.D, 1)
 			So(jsonInputReader.StreamDocument(true, docChan), ShouldNotBeNil)
 		})

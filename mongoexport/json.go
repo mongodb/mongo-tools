@@ -8,10 +8,8 @@ package mongoexport
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 
-	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/json"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -24,20 +22,20 @@ type JSONExportOutput struct {
 	ArrayOutput bool
 	// Pretty when set to true indicates that the output will be written in pretty mode.
 	PrettyOutput bool
-	Encoder      *json.Encoder
 	Out          io.Writer
 	NumExported  int64
+	JSONFormat   jsonFormat
 }
 
 // NewJSONExportOutput creates a new JSONExportOutput in array mode if specified,
 // configured to write data to the given io.Writer.
-func NewJSONExportOutput(arrayOutput bool, prettyOutput bool, out io.Writer) *JSONExportOutput {
+func NewJSONExportOutput(arrayOutput bool, prettyOutput bool, out io.Writer, jsonFormat jsonFormat) *JSONExportOutput {
 	return &JSONExportOutput{
 		arrayOutput,
 		prettyOutput,
-		json.NewEncoder(out),
 		out,
 		0,
+		jsonFormat,
 	}
 }
 
@@ -65,7 +63,9 @@ func (jsonExporter *JSONExportOutput) WriteFooter() error {
 		}
 	}
 	if jsonExporter.PrettyOutput {
-		jsonExporter.Out.Write([]byte("\n"))
+		if _, err := jsonExporter.Out.Write([]byte("\n")); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -81,33 +81,41 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 	if jsonExporter.ArrayOutput || jsonExporter.PrettyOutput {
 		if jsonExporter.NumExported >= 1 {
 			if jsonExporter.ArrayOutput {
-				jsonExporter.Out.Write([]byte(","))
+				if _, err := jsonExporter.Out.Write([]byte(",")); err != nil {
+					return err
+				}
 			}
 			if jsonExporter.PrettyOutput {
-				jsonExporter.Out.Write([]byte("\n"))
+				if _, err := jsonExporter.Out.Write([]byte("\n")); err != nil {
+					return err
+				}
 			}
 		}
-		extendedDoc, err := bsonutil.ConvertBSONValueToLegacyExtJSON(document)
+
+		jsonOut, err := bson.MarshalExtJSON(document, jsonExporter.JSONFormat == canonical, false)
 		if err != nil {
 			return err
 		}
-		jsonOut, err := json.Marshal(extendedDoc)
-		if err != nil {
-			return fmt.Errorf("error converting BSON to extended JSON: %v", err)
-		}
+
 		if jsonExporter.PrettyOutput {
 			var jsonFormatted bytes.Buffer
-			json.Indent(&jsonFormatted, jsonOut, "", "\t")
+			if err = json.Indent(&jsonFormatted, jsonOut, "", "\t"); err != nil {
+				return err
+			}
 			jsonOut = jsonFormatted.Bytes()
 		}
-		jsonExporter.Out.Write(jsonOut)
+
+		if _, err = jsonExporter.Out.Write(jsonOut); err != nil {
+			return err
+		}
 	} else {
-		extendedDoc, err := bsonutil.ConvertBSONValueToLegacyExtJSON(document)
+		extendedDoc, err := bson.MarshalExtJSON(document, jsonExporter.JSONFormat == canonical, false)
 		if err != nil {
 			return err
 		}
-		err = jsonExporter.Encoder.Encode(extendedDoc)
-		if err != nil {
+
+		extendedDoc = append(extendedDoc, '\n')
+		if _, err = jsonExporter.Out.Write(extendedDoc); err != nil {
 			return err
 		}
 	}

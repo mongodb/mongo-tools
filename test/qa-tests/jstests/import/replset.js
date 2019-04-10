@@ -17,7 +17,7 @@
     '--file', 'jstests/import/testdata/basic.json',
     '--db', db.getName(),
     '--collection', db.c.getName(),
-    '--host', secondary.host]), 0,
+    '--host', secondary.host, "--legacy"]), 0,
   "writing to secondary should fail");
 
   assert.eq(db.c.count(), 0, 'database not empty');
@@ -27,7 +27,7 @@
     '--file', 'jstests/import/testdata/basic.json',
     '--db', db.getName(),
     '--collection', db.c.getName(),
-    '--host', primary.host]), 0,
+    '--host', primary.host, "--legacy"]), 0,
   "writing to primary should succeed");
 
   assert.neq(db.c.count(), 0, 'database unexpectedly empty on primary');
@@ -39,7 +39,7 @@
     '--file', 'jstests/import/testdata/basic.json',
     '--db', db.getName(),
     '--collection', db.c.getName(),
-    '--host', replset1.name + "/" + secondary.host]), 0,
+    '--host', replset1.name + "/" + secondary.host, "--legacy"]), 0,
   "writing to secondary with replset name should succeed");
 
   assert.neq(db.c.count(), 0, 'database unexpectedly empty on secondary');

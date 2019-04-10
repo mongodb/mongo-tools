@@ -41,7 +41,7 @@
   var ret = toolTest.runTool.apply(toolTest, ['import',
     '--file', 'jstests/import/testdata/boolean.json',
     '--db', 'imported',
-    '--collection', 'testcollbool']
+    '--collection', 'testcollbool', '--legacy']
     .concat(commonToolArgs));
   assert.eq(ret, 0);
 
