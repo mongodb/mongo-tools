@@ -640,6 +640,17 @@ func TestMongoDumpBSON(t *testing.T) {
 			})
 		})
 
+		Convey("using MongoDump against a collection that doesn't exist succeeds", func() {
+			md := simpleMongoDumpInstance()
+			md.ToolOptions.Namespace.DB = "nonExistentDB"
+			md.ToolOptions.Namespace.Collection = "nonExistentColl"
+
+			err := md.Init()
+			So(err, ShouldBeNil)
+			err = md.Dump()
+			So(err, ShouldBeNil)
+		})
+
 		Reset(func() {
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
 		})

@@ -162,9 +162,36 @@ func (dump *MongoDump) Init() error {
 	return nil
 }
 
+func (dump *MongoDump) verifyCollectionExists() (bool, error) {
+	// Running MongoDump against a DB with no collection specified works. In this case, return true so the process
+	// can continue.
+	if dump.ToolOptions.Namespace.Collection == "" {
+		return true, nil
+	}
+
+	coll := dump.SessionProvider.DB(dump.ToolOptions.Namespace.DB).Collection(dump.ToolOptions.Namespace.Collection)
+	collInfo, err := db.GetCollectionInfo(coll)
+	if err != nil {
+		return false, err
+	}
+
+	return collInfo != nil, nil
+}
+
 // Dump handles some final options checking and executes MongoDump.
 func (dump *MongoDump) Dump() (err error) {
 	defer dump.SessionProvider.Close()
+
+	exists, err := dump.verifyCollectionExists()
+	if err != nil {
+		return fmt.Errorf("error verifying collection info: %v", err)
+	}
+	if !exists {
+		log.Logvf(log.Always, "namespace with DB %s and collection %s does not exist",
+			dump.ToolOptions.Namespace.DB, dump.ToolOptions.Namespace.Collection)
+		return nil
+	}
+
 	log.Logvf(log.DebugHigh, "starting Dump()")
 
 	dump.shutdownIntentsNotifier = newNotifier()
