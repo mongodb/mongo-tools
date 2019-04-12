@@ -39,6 +39,7 @@ func main() {
 	mf, err := mongofiles.New(opts)
 	if err != nil {
 		log.Logv(log.Always, err.Error())
+		os.Exit(util.ExitError)
 	}
 	defer mf.Close()
 

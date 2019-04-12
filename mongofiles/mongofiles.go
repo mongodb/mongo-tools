@@ -72,7 +72,6 @@ func New(opts Options) (*MongoFiles, error) {
 	// create a session provider to connect to the db
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		log.Logvf(log.Always, "error connecting to host: %v", err)
 		return nil, fmt.Errorf("error connecting to host: %v", err)
 	}
 
