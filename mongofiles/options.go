@@ -45,7 +45,7 @@ func ParseOptions(rawArgs []string) (Options, error) {
 
 	args, err := opts.ParseArgs(rawArgs)
 	if err != nil {
-		return Options{}, fmt.Errorf("error parsing command line options: %v\ntry 'mongofiles --help' for more information", err)
+		return Options{}, fmt.Errorf("error parsing command line options: %v", err)
 	}
 
 	log.SetVerbosity(opts.Verbosity)

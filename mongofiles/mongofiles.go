@@ -66,14 +66,24 @@ type MongoFiles struct {
 	bucket *gridfs.Bucket
 }
 
+// SetupError is the error thrown by New to convey what error occurred and the appropriate exit code.
+type SetupError struct {
+	Err  error
+	Code int
+}
+
+// Error implements the error interface.
+func (se SetupError) Error() string {
+	return se.Err.Error()
+}
+
 // New constructs a new mongofiles instance from the provided options. Will fail if cannot connect to server or if the
 // provided options are invalid.
 func New(opts Options) (*MongoFiles, error) {
 	// create a session provider to connect to the db
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		log.Logvf(log.Always, "error connecting to host: %v", err)
-		return nil, fmt.Errorf("error connecting to host: %v", err)
+		return nil, SetupError{Err: fmt.Errorf("error connecting to host: %v", err), Code: util.ExitError}
 	}
 
 	mf := &MongoFiles{
@@ -84,7 +94,7 @@ func New(opts Options) (*MongoFiles, error) {
 	}
 
 	if err := mf.ValidateCommand(opts.ParsedArgs); err != nil {
-		return nil, fmt.Errorf("%v\ntry 'mongofiles --help' for more information", err)
+		return nil, SetupError{Err: err, Code: util.ExitBadOptions}
 	}
 
 	return mf, nil
