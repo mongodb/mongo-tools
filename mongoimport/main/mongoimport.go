@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
 		log.Logvf(log.Always, "try 'mongoimport --help' for more information")
-		os.Exit(util.ExitBadOptions)
+		os.Exit(util.ExitFailure)
 	}
 
 	signals.Handle()
@@ -45,7 +45,7 @@ func main() {
 	m, err := mongoimport.New(opts)
 	if err != nil {
 		log.Logvf(log.Always, err.Error())
-		os.Exit(util.ExitError)
+		os.Exit(util.ExitFailure)
 	}
 	defer m.Close()
 
@@ -61,6 +61,6 @@ func main() {
 		log.Logvf(log.Always, message)
 	}
 	if err != nil {
-		os.Exit(util.ExitError)
+		os.Exit(util.ExitFailure)
 	}
 }
