@@ -566,28 +566,24 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	return nil
 }
 
-type documentFilter func([]byte) ([]byte, error)
-
-func copyDocumentFilter(in []byte) ([]byte, error) {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out, nil
-}
+// documentValidator represents a callback used to validate individual documents. It takes a slice of bytes for a
+// BSON document and returns a non-nil error if the document is not valid.
+type documentValidator func([]byte) error
 
 // dumpQueryToIntent takes an mgo Query, its intent, and a writer, performs the query,
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occurred.
 func (dump *MongoDump) dumpQueryToIntent(
 	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer) (dumpCount int64, err error) {
-	return dump.dumpFilteredQueryToIntent(query, intent, buffer, copyDocumentFilter)
+	return dump.dumpValidatedQueryToIntent(query, intent, buffer, nil)
 }
 
-// dumpFilterQueryToIntent takes an mgo Query, its intent, a writer, and a document filter, performs the query,
-// passes the results through the filter
+// dumpValidatedQueryToIntent takes an mgo Query, its intent, a writer, and a document validator, performs the query,
+// validates the results with the validator,
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occurred.
-func (dump *MongoDump) dumpFilteredQueryToIntent(
-	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer, filter documentFilter) (dumpCount int64, err error) {
+func (dump *MongoDump) dumpValidatedQueryToIntent(
+	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer, validator documentValidator) (dumpCount int64, err error) {
 
 	// restore of views from archives require an empty collection as the trigger to create the view
 	// so, we open here before the early return if IsView so that we write an empty collection to the archive
@@ -639,7 +635,7 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 	if err != nil {
 		return
 	}
-	err = dump.dumpFilteredIterToWriter(cursor, f, dumpProgressor, filter)
+	err = dump.dumpValidatedIterToWriter(cursor, f, dumpProgressor, validator)
 	dumpCount, _ = dumpProgressor.Progress()
 	if err != nil {
 		err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), err)
@@ -651,13 +647,13 @@ func (dump *MongoDump) dumpFilteredQueryToIntent(
 // a counter, and dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpIterToWriter(
 	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable) error {
-	return dump.dumpFilteredIterToWriter(iter, writer, progressCount, copyDocumentFilter)
+	return dump.dumpValidatedIterToWriter(iter, writer, progressCount, nil)
 }
 
-// dumpFilteredIterToWriter takes an mgo iterator, a writer, and a pointer to
-// a counter, and filters and dumps the iterator's contents to the writer.
-func (dump *MongoDump) dumpFilteredIterToWriter(
-	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable, filter documentFilter) error {
+// dumpValidatedIterToWriter takes a cursor, a writer, an Updateable object, and a documentValidator and validates and
+// dumps the iterator's contents to the writer.
+func (dump *MongoDump) dumpValidatedIterToWriter(
+	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable, validator documentValidator) error {
 	defer iter.Close(context.Background())
 	var termErr error
 
@@ -683,12 +679,16 @@ func (dump *MongoDump) dumpFilteredIterToWriter(
 					return
 				}
 
-				out, err := filter(iter.Current)
-				if err != nil {
-					termErr = err
-					close(buffChan)
-					return
+				if validator != nil {
+					if err := validator(iter.Current); err != nil {
+						termErr = err
+						close(buffChan)
+						return
+					}
 				}
+
+				out := make([]byte, len(iter.Current))
+				copy(out, iter.Current)
 				buffChan <- out
 			}
 		}
