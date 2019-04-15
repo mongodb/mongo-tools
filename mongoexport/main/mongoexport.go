@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		log.Logvf(log.Always, "%v", err)
 
-		if se, ok := err.(mongoexport.SetupError); ok {
+		if se, ok := err.(util.SetupError); ok {
 			os.Exit(se.Code)
 		}
 

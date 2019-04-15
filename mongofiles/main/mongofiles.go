@@ -40,7 +40,7 @@ func main() {
 	mf, err := mongofiles.New(opts)
 	if err != nil {
 		log.Logv(log.Always, err.Error())
-		if setupErr, ok := err.(mongofiles.SetupError); ok {
+		if setupErr, ok := err.(util.SetupError); ok {
 			if setupErr.Code == util.ExitBadOptions {
 				log.Logvf(log.Always, "try mongofiles --help for more information")
 			}

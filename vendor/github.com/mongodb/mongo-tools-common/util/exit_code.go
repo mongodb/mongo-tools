@@ -21,3 +21,14 @@ const (
 var (
 	ErrTerminated = errors.New("received termination signal")
 )
+
+// SetupError is the error thrown by "New" functions used to convey what error occurred and the appropriate exit code.
+type SetupError struct {
+	Err  error
+	Code int
+}
+
+// Error implements the error interface.
+func (se SetupError) Error() string {
+	return se.Err.Error()
+}

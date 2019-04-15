@@ -80,17 +80,6 @@ type ExportOutput interface {
 	Flush() error
 }
 
-// SetupError is the error thrown by New to convey what error occurred and the appropriate exit code.
-type SetupError struct {
-	Err  error
-	Code int
-}
-
-// Error implements the error interface.
-func (se SetupError) Error() string {
-	return se.Err.Error()
-}
-
 // New constructs a new MongoExport instance from the provided options.
 func New(opts Options) (*MongoExport, error) {
 	exporter := &MongoExport{
@@ -101,7 +90,7 @@ func New(opts Options) (*MongoExport, error) {
 
 	err := exporter.validateSettings()
 	if err != nil {
-		return nil, SetupError{
+		return nil, util.SetupError{
 			Err:  err,
 			Code: util.ExitBadOptions,
 		}
@@ -109,7 +98,7 @@ func New(opts Options) (*MongoExport, error) {
 
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		return nil, SetupError{
+		return nil, util.SetupError{
 			Err:  err,
 			Code: util.ExitError,
 		}
@@ -118,7 +107,7 @@ func New(opts Options) (*MongoExport, error) {
 	isMongos, err := provider.IsMongos()
 	if err != nil {
 		provider.Close()
-		return nil, SetupError{
+		return nil, util.SetupError{
 			Err:  err,
 			Code: util.ExitError,
 		}
