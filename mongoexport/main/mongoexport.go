@@ -25,7 +25,7 @@ func main() {
 	opts, err := mongoexport.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, "try 'mongoexport --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongoexport"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -45,10 +45,8 @@ func main() {
 	if err != nil {
 		log.Logvf(log.Always, "%v", err)
 
-		if se, ok := err.(util.SetupError); ok {
-			if se.Message != "" {
-				log.Logv(log.Always, se.Message)
-			}
+		if se, ok := err.(util.SetupError); ok && se.Message != "" {
+			log.Logv(log.Always, se.Message)
 		}
 
 		os.Exit(util.ExitFailure)

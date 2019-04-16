@@ -11,13 +11,17 @@ import (
 )
 
 const (
-	ExitFailure int = 1
-	ExitSuccess int = 0
+	ExitSuccess int = iota
+	ExitFailure
 )
 
 var (
 	ErrTerminated = errors.New("received termination signal")
 )
+
+func ShortUsage(tool string) string {
+	return "try '" + tool + " --help' for more information"
+}
 
 // SetupError is the error thrown by "New" functions used to convey what error occurred and the appropriate exit code.
 type SetupError struct {

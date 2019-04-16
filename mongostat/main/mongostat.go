@@ -78,7 +78,7 @@ func main() {
 	args, err := opts.ParseArgs(os.Args[1:])
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, "try 'mongostat --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongostat"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -89,7 +89,7 @@ func main() {
 	if len(args) > 0 {
 		if len(args) != 1 {
 			log.Logvf(log.Always, "too many positional arguments: %v", args)
-			log.Logvf(log.Always, "try 'mongostat --help' for more information")
+			log.Logvf(log.Always, util.ShortUsage("mongostat"))
 			os.Exit(util.ExitFailure)
 		}
 		sleepInterval, err = strconv.Atoi(args[0])

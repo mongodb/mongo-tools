@@ -42,13 +42,13 @@ func main() {
 	args, err := opts.ParseArgs(os.Args[1:])
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, "try 'mongodump --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongodump"))
 		os.Exit(util.ExitFailure)
 	}
 
 	if len(args) > 0 {
 		log.Logvf(log.Always, "positional arguments not allowed: %v", args)
-		log.Logvf(log.Always, "try 'mongodump --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongodump"))
 		os.Exit(util.ExitFailure)
 	}
 

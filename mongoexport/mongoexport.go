@@ -100,16 +100,13 @@ func New(opts Options) (*MongoExport, error) {
 	if err != nil {
 		return nil, util.SetupError{
 			Err:     err,
-			Message: "try 'mongoexport --help' for more information",
+			Message: util.ShortUsage("mongoexport"),
 		}
 	}
 
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		return nil, util.SetupError{
-			Err:     err,
-			Message: "",
-		}
+		return nil, util.SetupError{Err: err}
 	}
 
 	log.Logvf(log.Always, "connected to: %v", opts.URI.ConnectionString)
@@ -117,10 +114,7 @@ func New(opts Options) (*MongoExport, error) {
 	isMongos, err := provider.IsMongos()
 	if err != nil {
 		provider.Close()
-		return nil, util.SetupError{
-			Err:     err,
-			Message: "",
-		}
+		return nil, util.SetupError{Err: err}
 	}
 
 	// warn if we are trying to export from a secondary in a sharded cluster

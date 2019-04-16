@@ -39,7 +39,7 @@ func main() {
 	args, err := opts.ParseArgs(os.Args[1:])
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, "try 'mongotop --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongotop"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -61,7 +61,7 @@ func main() {
 
 	if len(args) > 1 {
 		log.Logvf(log.Always, "too many positional arguments")
-		log.Logvf(log.Always, "try 'mongotop --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongotop"))
 		os.Exit(util.ExitFailure)
 	}
 

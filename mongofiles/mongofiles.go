@@ -72,7 +72,7 @@ func New(opts Options) (*MongoFiles, error) {
 	// create a session provider to connect to the db
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		return nil, util.SetupError{Err: fmt.Errorf("error connecting to host: %v", err), Message: ""}
+		return nil, util.SetupError{Err: fmt.Errorf("error connecting to host: %v", err)}
 	}
 
 	mf := &MongoFiles{
@@ -83,7 +83,7 @@ func New(opts Options) (*MongoFiles, error) {
 	}
 
 	if err := mf.ValidateCommand(opts.ParsedArgs); err != nil {
-		return nil, util.SetupError{Err: err, Message: "try 'mongofiles --help' for more information"}
+		return nil, util.SetupError{Err: err, Message: util.ShortUsage("mongofiles")}
 	}
 
 	return mf, nil

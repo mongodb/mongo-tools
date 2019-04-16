@@ -26,7 +26,7 @@ func main() {
 
 	if err != nil {
 		log.Logv(log.Always, err.Error())
-		log.Logvf(log.Always, "try 'mongorestore --help' for more information")
+		log.Logvf(log.Always, util.ShortUsage("mongorestore"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -51,9 +51,6 @@ func main() {
 
 	if err = restore.Restore(); err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)
-		if err == util.ErrTerminated {
-			os.Exit(util.ExitFailure)
-		}
 		os.Exit(util.ExitFailure)
 	}
 }

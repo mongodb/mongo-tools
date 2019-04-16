@@ -26,7 +26,7 @@ func main() {
 	opts, err := mongofiles.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logv(log.Always, err.Error())
-		log.Logv(log.Always, "try 'mongofiles --help' for more information")
+		log.Logv(log.Always, util.ShortUsage("mongofiles"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -45,10 +45,8 @@ func main() {
 	mf, err := mongofiles.New(opts)
 	if err != nil {
 		log.Logv(log.Always, err.Error())
-		if setupErr, ok := err.(util.SetupError); ok {
-			if setupErr.Message != "" {
-				log.Logvf(log.Always, setupErr.Message)
-			}
+		if setupErr, ok := err.(util.SetupError); ok && setupErr.Message != "" {
+			log.Logvf(log.Always, setupErr.Message)
 		}
 		os.Exit(util.ExitFailure)
 	}
