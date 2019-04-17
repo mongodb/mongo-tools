@@ -359,10 +359,10 @@ func (auth *Auth) ShouldAskForPassword() bool {
 		!(auth.Mechanism == "MONGODB-X509" || auth.Mechanism == "GSSAPI")
 }
 
-func NewURI(connString string) (*URI, error) {
-	cs, err := connstring.Parse(connString)
+func NewURI(unparsed string) (*URI, error) {
+	cs, err := connstring.Parse(unparsed)
 	if err != nil {
-		return nil, fmt.Errorf("error creating URI from %v: %v", connString, err)
+		return nil, fmt.Errorf("error parsing URI from %v: %v", unparsed, err)
 	}
 	return &URI{ConnectionString: cs.String(), connString: cs}, nil
 }
