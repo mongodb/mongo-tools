@@ -608,7 +608,7 @@ func TestDefaultWriteConcern(t *testing.T) {
 	})
 
 	Convey("with no URI and no write concern option", t, func() {
-		mf, err := getMongofilesWithArgs("get", "filename")
+		mf, err := getMongofilesWithArgs("get", "filename", "--port", "33333")
 		So(err, ShouldBeNil)
 		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 	})
