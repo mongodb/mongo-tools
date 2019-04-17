@@ -137,6 +137,8 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 	return &mongofiles, nil
 }
 
+// simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
+// Use this for tests that don't communicate with the server (e.g. options parsing tests)
 func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
 	return &MongoFiles{
 		ToolOptions:     toolOptions,
