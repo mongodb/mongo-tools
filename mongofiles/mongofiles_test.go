@@ -137,6 +137,18 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 	return &mongofiles, nil
 }
 
+func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
+	return &MongoFiles{
+		ToolOptions:     toolOptions,
+		InputOptions:    &InputOptions{},
+		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		SessionProvider: nil,
+		Command:         command,
+		FileName:        fname,
+		Id:              "",
+	}
+}
+
 func getMongofilesWithArgs(args ...string) (*MongoFiles, error) {
 	opts, err := ParseOptions(args)
 	if err != nil {
@@ -245,8 +257,7 @@ func TestValidArguments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoFiles instance", t, func() {
-		mf, err := simpleMongoFilesInstanceWithFilename("search", "file")
-		So(err, ShouldBeNil)
+		mf := simpleMockMongoFilesInstanceWithFilename("search", "file")
 		Convey("It should error out when no arguments fed", func() {
 			args := []string{}
 			err := mf.ValidateCommand(args)
