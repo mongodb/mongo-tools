@@ -144,10 +144,8 @@ func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles
 		ToolOptions:     toolOptions,
 		InputOptions:    &InputOptions{},
 		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-		SessionProvider: nil,
 		Command:         command,
 		FileName:        fname,
-		Id:              "",
 	}
 }
 
