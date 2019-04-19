@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"fmt"
+
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -112,8 +113,8 @@ type Options struct {
 }
 
 // ParseOptions reads command line arguments and converts them into options used to configure mongoimport.
-func ParseOptions(rawArgs []string) (Options, error) {
-	opts := options.New("mongoimport", Usage,
+func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
+	opts := options.New("mongoimport", versionStr, gitCommit, Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	inputOpts := &InputOptions{}
 	ingestOpts := &IngestOptions{}

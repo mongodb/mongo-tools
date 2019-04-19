@@ -8,16 +8,22 @@
 package main
 
 import (
+	"os"
+
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/signals"
 	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/bsondump"
-	"os"
+)
+
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
 )
 
 func main() {
 	// initialize command-line opts
-	opts, err := bsondump.ParseOptions(os.Args[1:])
+	opts, err := bsondump.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "%v", err)
 		log.Logvf(log.Always, "try 'bsondump --help' for more information")

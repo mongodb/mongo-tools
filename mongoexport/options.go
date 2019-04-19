@@ -100,9 +100,9 @@ type Options struct {
 }
 
 // ParseOptions reads command line arguments and converts them into options that can be used to configure mongoexport.
-func ParseOptions(rawArgs []string) (Options, error) {
+func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	// initialize command-line opts
-	opts := options.New("mongoexport", Usage,
+	opts := options.New("mongoexport", versionStr, gitCommit, Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	outputOpts := &OutputFormatOptions{}
 	opts.AddOptions(outputOpts)

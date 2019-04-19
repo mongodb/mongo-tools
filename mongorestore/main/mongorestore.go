@@ -16,8 +16,13 @@ import (
 	"os"
 )
 
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
+)
+
 func main() {
-	opts, err := mongorestore.ParseOptions(os.Args[1:])
+	opts, err := mongorestore.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 
 	if err != nil {
 		log.Logv(log.Always, err.Error())

@@ -7,8 +7,9 @@
 package mongoimport
 
 import (
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
@@ -21,7 +22,7 @@ import (
 // toolsWc: the correct value for opts.ToolsOptions.WriteConcern
 func validateParseOptions(args []string, expectSuccess bool, ingestWc string, toolsWc *writeconcern.WriteConcern) func() {
 	return func() {
-		opts, err := ParseOptions(args)
+		opts, err := ParseOptions(args, "", "")
 		if expectSuccess {
 			So(err, ShouldBeNil)
 		} else {
@@ -84,7 +85,7 @@ func TestLegacyOptionParsing(t *testing.T) {
 				args = append(args, "--legacy", tc.legacyOpt)
 			}
 
-			opts, err := ParseOptions(args)
+			opts, err := ParseOptions(args, "", "")
 			success := err == nil
 			if success != tc.expectSuccess {
 				t.Fatalf("expected err to be nil: %v; error was nil: %v", tc.expectSuccess, success)

@@ -150,7 +150,7 @@ func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles
 }
 
 func getMongofilesWithArgs(args ...string) (*MongoFiles, error) {
-	opts, err := ParseOptions(args)
+	opts, err := ParseOptions(args, "", "")
 	if err != nil {
 		return nil, err
 	}

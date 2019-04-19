@@ -835,7 +835,7 @@ func TestGetTargetDestination(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Given mongoimport instance, on calling getTargetConnection", t, func() {
 		imp := NewMockMongoImport()
-		imp.ToolOptions = options.New("", "", options.EnabledOptions{URI: true})
+		imp.ToolOptions = options.New("", "", "", "", options.EnabledOptions{URI: true})
 		Convey("no error should be thrown with undefined --host and --port", func() {
 			imp.ToolOptions.Host = ""
 			imp.ToolOptions.Port = ""
@@ -916,7 +916,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a new mongoimport with empty options", t, func() {
 		imp := NewMockMongoImport()
-		imp.ToolOptions = options.New("", "", options.EnabledOptions{})
+		imp.ToolOptions = options.New("", "", "", "", options.EnabledOptions{})
 		Convey("Then parsing should fill args with expected defaults", func() {
 			_, err := imp.ToolOptions.ParseArgs([]string{})
 			So(err, ShouldBeNil)

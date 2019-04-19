@@ -18,7 +18,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Testing write concern parsing from command line and URI", t, func() {
 		Convey("Parsing with neither URI nor command line option should set a majority write concern", func() {
-			opts, err := ParseOptions([]string{})
+			opts, err := ParseOptions([]string{}, "", "")
 
 			So(err, ShouldBeNil)
 			So(opts.OutputOptions.WriteConcern, ShouldEqual, "")
@@ -29,7 +29,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			args := []string{
 				"--uri", "mongodb://localhost:27017/test",
 			}
-			opts, err := ParseOptions(args)
+			opts, err := ParseOptions(args, "", "")
 
 			So(err, ShouldBeNil)
 			So(opts.ToolOptions.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.WMajority()))
@@ -39,7 +39,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			args := []string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
 			}
-			opts, err := ParseOptions(args)
+			opts, err := ParseOptions(args, "", "")
 
 			So(err, ShouldBeNil)
 			So(opts.OutputOptions.WriteConcern, ShouldEqual, "")
@@ -50,7 +50,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			args := []string{
 				"--writeConcern", "{w: 2, j: true}",
 			}
-			opts, err := ParseOptions(args)
+			opts, err := ParseOptions(args, "", "")
 
 			So(err, ShouldBeNil)
 			So(opts.ToolOptions.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.W(2), writeconcern.J(true)))

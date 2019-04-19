@@ -38,7 +38,7 @@ func TestParseOptions(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				opts, err := ParseOptions(tc.args)
+				opts, err := ParseOptions(tc.args, "", "")
 
 				success := err == nil
 				if success != tc.expectSuccess {
@@ -90,7 +90,7 @@ func TestParseOptions(t *testing.T) {
 					args = append(args, "--jsonFormat", string(tc.jsonFormat))
 				}
 
-				opts, err := ParseOptions(args)
+				opts, err := ParseOptions(args, "", "")
 				success := err == nil
 				if success != tc.expectSuccess {
 					t.Fatalf("expected err to be nil: %v; error was nil: %v", tc.expectSuccess, success)

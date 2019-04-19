@@ -51,10 +51,15 @@ func optionCustomHeaders(option string) (headers []string) {
 	return
 }
 
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
+)
+
 func main() {
 	// initialize command-line opts
 	opts := options.New(
-		"mongostat",
+		"mongostat", VersionStr, GitCommit,
 		mongostat.Usage,
 		options.EnabledOptions{Connection: true, Auth: true, Namespace: false, URI: true})
 	opts.UseReadOnlyHostDescription()

@@ -8,6 +8,7 @@ package mongofiles
 
 import (
 	"fmt"
+
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -31,9 +32,9 @@ Possible commands include:
 See http://docs.mongodb.org/manual/reference/program/mongofiles/ for more information.`
 
 // ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance
-func ParseOptions(rawArgs []string) (Options, error) {
+func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	// initialize command-line opts
-	opts := options.New("mongofiles", Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
+	opts := options.New("mongofiles", versionStr, gitCommit, Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
 
 	storageOpts := &StorageOptions{}
 	inputOpts := &InputOptions{}
