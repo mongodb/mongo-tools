@@ -26,12 +26,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
 
-// Gitspec that the tool was built with. Needs to be set using -ldflags
-var (
-	VersionStr = "built-without-version-string"
-	Gitspec    = "built-without-git-spec"
-)
-
 var (
 	KnownURIOptionsAuth           = []string{"authsource", "authmechanism"}
 	KnownURIOptionsConnection     = []string{"connecttimeoutms"}
@@ -61,6 +55,9 @@ type ToolOptions struct {
 
 	// The version of the tool
 	VersionStr string
+
+	// The git commit reference of the tool
+	GitCommit string
 
 	// Sub-option types
 	*URI
@@ -200,10 +197,11 @@ func parseVal(val string) int {
 }
 
 // Ask for a new instance of tool options
-func New(appName, usageStr string, enabled EnabledOptions) *ToolOptions {
+func New(appName, versionStr, gitCommit, usageStr string, enabled EnabledOptions) *ToolOptions {
 	opts := &ToolOptions{
 		AppName:    appName,
-		VersionStr: VersionStr,
+		VersionStr: versionStr,
+		GitCommit:  gitCommit,
 
 		General:    &General{},
 		Verbosity:  &Verbosity{},
@@ -321,7 +319,7 @@ var versionInfos []versionInfo
 func (opts *ToolOptions) PrintVersion() bool {
 	if opts.Version {
 		fmt.Printf("%v version: %v\n", opts.AppName, opts.VersionStr)
-		fmt.Printf("git version: %v\n", Gitspec)
+		fmt.Printf("git version: %v\n", opts.GitCommit)
 		fmt.Printf("Go version: %v\n", runtime.Version())
 		fmt.Printf("   os: %v\n", runtime.GOOS)
 		fmt.Printf("   arch: %v\n", runtime.GOARCH)

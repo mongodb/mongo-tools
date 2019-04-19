@@ -21,9 +21,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
+)
+
 func main() {
 	// initialize command-line opts
-	opts := options.New("mongotop", mongotop.Usage,
+	opts := options.New("mongotop", VersionStr, GitCommit, mongotop.Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
 	opts.UseReadOnlyHostDescription()
 

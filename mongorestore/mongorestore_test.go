@@ -29,7 +29,7 @@ func init() {
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
-	opts, err := ParseOptions(append(testutil.GetBareArgs(), additionalArgs...))
+	opts, err := ParseOptions(append(testutil.GetBareArgs(), additionalArgs...), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
 	}

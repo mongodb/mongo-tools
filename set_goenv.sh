@@ -83,9 +83,9 @@ set_goenv() {
 
 print_ldflags() {
     VersionStr="$(git describe)"
-    Gitspec="$(git rev-parse HEAD)"
-    importpath="github.com/mongodb/mongo-tools/common/options"
-    echo "-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.Gitspec=${Gitspec}"
+    GitCommit="$(git rev-parse HEAD)"
+    importpath="main"
+    echo "-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.GitCommit=${GitCommit}"
 }
 
 print_tags() {

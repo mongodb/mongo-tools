@@ -138,8 +138,8 @@ func (*NSOptions) Name() string {
 }
 
 // ParseOptions reads the command line arguments and converts them into options used to configure a MongoRestore instance
-func ParseOptions(rawArgs []string) (Options, error) {
-	opts := options.New("mongorestore", Usage,
+func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
+	opts := options.New("mongorestore", versionStr, gitCommit, Usage,
 		options.EnabledOptions{Auth: true, Connection: true, URI: true})
 	nsOpts := &NSOptions{}
 	opts.AddOptions(nsOpts)

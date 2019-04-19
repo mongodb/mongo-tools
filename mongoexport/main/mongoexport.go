@@ -16,8 +16,13 @@ import (
 	"github.com/mongodb/mongo-tools/mongoexport"
 )
 
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
+)
+
 func main() {
-	opts, err := mongoexport.ParseOptions(os.Args[1:])
+	opts, err := mongoexport.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
 		log.Logvf(log.Always, "try 'mongoexport --help' for more information")

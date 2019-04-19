@@ -103,8 +103,8 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ee7c1675d8d5fc84603d381f49cdef2b09f7eaac3186dd8a54c875712aea84f7"
+  branch = "TOOLS-2269-capture-build-time-variables"
+  digest = "1:518602cda28a50e42670af782ddbc8f26f2c5467bf57621b73e34588bad3943f"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -125,7 +125,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "d6493c6320ec33b072326ebebd12301296bf44eb"
+  revision = "cb0a67afed34221e1cb5b2fe159fd11c34ca5b3f"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"

@@ -138,7 +138,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 }
 
 func getMongofilesWithArgs(args ...string) (*MongoFiles, error) {
-	opts, err := ParseOptions(args)
+	opts, err := ParseOptions(args, "", "")
 	if err != nil {
 		return nil, err
 	}

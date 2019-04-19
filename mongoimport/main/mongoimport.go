@@ -17,8 +17,13 @@ import (
 	"github.com/mongodb/mongo-tools/mongoimport"
 )
 
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
+)
+
 func main() {
-	opts, err := mongoimport.ParseOptions(os.Args[1:])
+	opts, err := mongoimport.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
 		log.Logvf(log.Always, "try 'mongoimport --help' for more information")

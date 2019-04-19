@@ -15,7 +15,6 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -93,12 +92,12 @@ func (prelude *Prelude) Read(in io.Reader) error {
 }
 
 // NewPrelude generates a Prelude using the contents of an intent.Manager.
-func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion string) (*Prelude, error) {
+func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, toolVersion string) (*Prelude, error) {
 	prelude := Prelude{
 		Header: &Header{
 			FormatVersion:         archiveFormatVersion,
 			ServerVersion:         serverVersion,
-			ToolVersion:           options.VersionStr,
+			ToolVersion:           toolVersion,
 			ConcurrentCollections: int32(concurrentColls),
 		},
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),

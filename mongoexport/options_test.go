@@ -38,7 +38,7 @@ func TestParseOptions(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				opts, err := ParseOptions(tc.args)
+				opts, err := ParseOptions(tc.args, "", "")
 
 				success := err == nil
 				if success != tc.expectSuccess {
