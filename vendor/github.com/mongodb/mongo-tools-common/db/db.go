@@ -136,7 +136,6 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to server: %v", err)
