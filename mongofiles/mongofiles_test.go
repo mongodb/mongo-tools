@@ -137,6 +137,18 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 	return &mongofiles, nil
 }
 
+// simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
+// Use this for tests that don't communicate with the server (e.g. options parsing tests)
+func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
+	return &MongoFiles{
+		ToolOptions:    toolOptions,
+		InputOptions:   &InputOptions{},
+		StorageOptions: &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		Command:        command,
+		FileName:       fname,
+	}
+}
+
 func getMongofilesWithArgs(args ...string) (*MongoFiles, error) {
 	opts, err := ParseOptions(args)
 	if err != nil {
@@ -245,8 +257,7 @@ func TestValidArguments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoFiles instance", t, func() {
-		mf, err := simpleMongoFilesInstanceWithFilename("search", "file")
-		So(err, ShouldBeNil)
+		mf := simpleMockMongoFilesInstanceWithFilename("search", "file")
 		Convey("It should error out when no arguments fed", func() {
 			args := []string{}
 			err := mf.ValidateCommand(args)
@@ -608,7 +619,7 @@ func TestDefaultWriteConcern(t *testing.T) {
 	})
 
 	Convey("with no URI and no write concern option", t, func() {
-		mf, err := getMongofilesWithArgs("get", "filename")
+		mf, err := getMongofilesWithArgs("get", "filename", "--port", "33333")
 		So(err, ShouldBeNil)
 		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 	})

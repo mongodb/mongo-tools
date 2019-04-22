@@ -237,7 +237,10 @@ func main() {
 	}
 
 	for _, v := range seedHosts {
-		stat.AddNewNode(v)
+		if err := stat.AddNewNode(v); err != nil {
+			log.Logv(log.Always, err.Error())
+			os.Exit(util.ExitError)
+		}
 	}
 
 	// kick it off
