@@ -141,11 +141,11 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 // Use this for tests that don't communicate with the server (e.g. options parsing tests)
 func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
 	return &MongoFiles{
-		ToolOptions:     toolOptions,
-		InputOptions:    &InputOptions{},
-		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-		Command:         command,
-		FileName:        fname,
+		ToolOptions:    toolOptions,
+		InputOptions:   &InputOptions{},
+		StorageOptions: &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		Command:        command,
+		FileName:       fname,
 	}
 }
 
