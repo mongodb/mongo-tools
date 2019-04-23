@@ -11,8 +11,9 @@ package db
 import (
 	"context"
 	"errors"
-	"go.mongodb.org/mongo-driver/x/network/connection"
 	"time"
+
+	"go.mongodb.org/mongo-driver/x/network/connection"
 
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
@@ -185,6 +186,11 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			Password:      opts.Auth.Password,
 			AuthSource:    opts.GetAuthenticationDatabase(),
 			AuthMechanism: opts.Auth.Mechanism,
+		}
+		// Technically, an empty password is possible, but the tools don't have the
+		// means to easily distinguish and so require a non-empty password.
+		if cred.Password != "" {
+			cred.PasswordSet = true
 		}
 		if opts.Kerberos != nil && cred.AuthMechanism == "GSSAPI" {
 			props := make(map[string]string)
