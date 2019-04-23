@@ -1656,7 +1656,7 @@ buildvariants:
   run_on:
   - linux-64-amzn-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1676,7 +1676,7 @@ buildvariants:
   run_on:
   - amazon2-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1700,7 +1700,7 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1720,7 +1720,7 @@ buildvariants:
   run_on:
   - debian92-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1804,7 +1804,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
-    build_tags: "ssl sasl"
+    build_tags: "ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     arch: "linux/x86_64"
@@ -1829,7 +1829,7 @@ buildvariants:
   run_on:
   - rhel70
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1853,7 +1853,7 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1877,7 +1877,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -1925,7 +1925,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "ssl sasl"
+    build_tags: "ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     arch: "linux/x86_64"
@@ -1950,7 +1950,7 @@ buildvariants:
   run_on:
   - ubuntu1804-test
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -2008,7 +2008,7 @@ buildvariants:
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
     smoke_use_ssl: --use-ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
@@ -2062,7 +2062,7 @@ buildvariants:
     mongo_os: "rhel71"
     mongo_edition: "enterprise"
     mongo_arch: "ppc64le"
-    build_tags: 'ssl sasl'
+    build_tags: 'ssl sasl gssapi'
     resmoke_use_ssl: _ssl
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
@@ -2079,7 +2079,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: 'ssl sasl'
+    build_tags: 'ssl sasl gssapi'
   tasks:
   - name: dist
   - name: replay-dist
@@ -2100,7 +2100,7 @@ buildvariants:
     mongo_os: "rhel67"
     mongo_edition: "enterprise"
     mongo_arch: "s390x"
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -2117,7 +2117,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
   tasks:
   - name: dist
   - name: replay-dist
@@ -2137,7 +2137,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "sasl ssl"
+    build_tags: "sasl gssapi ssl"
     arch: "linux/x86_64"
     args: "-buildmode=default -race"
     excludes: requires_large_ram

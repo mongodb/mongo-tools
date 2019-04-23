@@ -35,6 +35,7 @@ func GetKerberosOptions() (*options.ToolOptions, error) {
 			Host: "ldaptest.10gen.cc",
 			Port: "27017",
 		},
+		URI: &options.URI{},
 	}
 
 	if runtime.GOOS == "windows" {
