@@ -379,8 +379,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 		})
 
 		Convey("error should be thrown if --legacy is specified and input type is not JSON", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
+			imp := NewMockMongoImport()
 			imp.InputOptions.Type = CSV
 			fieldFile := "test.csv"
 			imp.InputOptions.FieldFile = &fieldFile
