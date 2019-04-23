@@ -40,7 +40,7 @@
   // var collCapped = testDB.capped;
 
   // create the withOptions collection
-  var validatorOptions = {'validator': {'phone': { '$type': "string" }}};
+  var validatorOptions = {'validator': {'phone': {'$type': "string"}}};
   testDB.createCollection('withOptions', validatorOptions);
 
   // create the capped collection
