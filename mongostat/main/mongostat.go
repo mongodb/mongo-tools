@@ -244,7 +244,7 @@ func main() {
 	for _, v := range seedHosts {
 		if err := stat.AddNewNode(v); err != nil {
 			log.Logv(log.Always, err.Error())
-			os.Exit(util.ExitError)
+			os.Exit(util.ExitFailure)
 		}
 	}
 
