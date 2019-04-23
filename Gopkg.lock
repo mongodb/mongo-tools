@@ -104,7 +104,7 @@
 
 [[projects]]
   branch = "mongofiles_errors"
-  digest = "1:b6bce36ca633c991debae37e21bb10a8ff73156cd03dce5b244d8d68b8c5fde2"
+  digest = "1:22830fa374196551d2f8f44737d94206e564e5715a0282dd5005b392adcd9f25"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -125,7 +125,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "906660f293ead9d4e6c3972aa03d1cb518475556"
+  revision = "0375a3a0803316191cc7ad6eed7bf5d8093afb5e"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
