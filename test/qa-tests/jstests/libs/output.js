@@ -1,14 +1,5 @@
-var exitCodeSuccess = 0;
-var exitCodeErr = 1;
-// Go reserves exit code 2 for its own use.
-var exitCodeBadOptions = 3;
-var exitCodeStopped = 4;
-
-// NOTE: On Windows, stopMongoProgramByPid doesn't terminate a process in a
-// way that it can control its exit code.
-if (_isWindows()) {
-  exitCodeStopped = exitCodeErr;
-}
+const exitCodeSuccess = 0;
+const exitCodeFailure = 1;
 
 // shellRowRegex matches all lines of shell output
 const shellRowRegex = /^sh\d+\|\s+/;

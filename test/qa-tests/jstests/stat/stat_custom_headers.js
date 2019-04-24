@@ -12,7 +12,7 @@
   var x, rows;
   x = runMongoProgram("mongostat", "--port", port,
     "-o", "host,conn,time", "-O", "metrics.record.moves");
-  assert.eq(x, exitCodeBadOptions, "mongostat should fail with both -o and -O options");
+  assert.eq(x, exitCodeFailure, "mongostat should fail with both -o and -O options");
   clearRawMongoProgramOutput();
 
   // basic -o --humanReadable=false
