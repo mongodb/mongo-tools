@@ -28,19 +28,19 @@
 
   pid = startMongoProgramNoConnect.apply(null, ["mongostat", "--port", toolTest.port].concat(commonToolArgs));
   assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
-  assert.eq(exitCodeStopped, stopMongoProgramByPid(pid), "stopping should cause mongostat exit with a 'stopped' code");
+  assert.eq(exitCodeFailure, stopMongoProgramByPid(pid), "stopping should cause mongostat exit with a 'failure' code");
 
   x = runMongoProgram.apply(null, ["mongostat", "--port", toolTest.port - 1, "--rowcount", 1].concat(commonToolArgs));
   assert.neq(exitCodeSuccess, x, "can't connect causes an error exit code");
 
   x = runMongoProgram.apply(null, ["mongostat", "--rowcount", "-1"].concat(commonToolArgs));
-  assert.eq(exitCodeBadOptions, x, "mongostat --rowcount specified with bad input: negative value");
+  assert.eq(exitCodeFailure, x, "mongostat --rowcount specified with bad input: negative value");
 
   x = runMongoProgram.apply(null, ["mongostat", "--rowcount", "foobar"].concat(commonToolArgs));
-  assert.eq(exitCodeBadOptions, x, "mongostat --rowcount specified with bad input: non-numeric value");
+  assert.eq(exitCodeFailure, x, "mongostat --rowcount specified with bad input: non-numeric value");
 
   x = runMongoProgram.apply(null, ["mongostat", "--host", "badreplset/127.0.0.1:" + toolTest.port, "--rowcount", 1].concat(commonToolArgs));
-  assert.eq(exitCodeErr, x, "--host used with a replica set string for nodes not in a replica set");
+  assert.eq(exitCodeFailure, x, "--host used with a replica set string for nodes not in a replica set");
 
   pid = startMongoProgramNoConnect.apply(null, ["mongostat", "--host", "127.0.0.1:" + toolTest.port].concat(commonToolArgs));
   assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
@@ -54,5 +54,5 @@
   const rows = allDefaultStatRows();
   assert.eq(rows.length, 0, "should stop showing new stat lines, showed " + JSON.stringify(rows) + " instead.");
 
-  assert.eq(exitCodeStopped, stopMongoProgramByPid(pid), "mongostat shouldn't error out when the server goes down");
+  assert.eq(exitCodeFailure, stopMongoProgramByPid(pid), "mongostat should return a failure code when server goes down");
 }());

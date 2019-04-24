@@ -360,7 +360,7 @@ func (restore *MongoRestore) Restore() error {
 		target, err = newActualPath(restore.TargetDirectory)
 		if err != nil {
 			if usedDefaultTarget {
-				log.Logv(log.Always, "see mongorestore --help for usage information")
+				log.Logv(log.Always, util.ShortUsage("mongorestore"))
 			}
 			return fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)
 		}

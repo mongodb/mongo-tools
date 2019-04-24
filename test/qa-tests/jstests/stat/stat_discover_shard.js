@@ -16,5 +16,5 @@
 
   st.stop();
   assert.soon(hasOnlyPorts([]), "stops showing data when hosts come down");
-  assert.eq(exitCodeStopped, stopMongoProgramByPid(pid), "mongostat --discover against a sharded cluster shouldn't error when the cluster goes down");
+  assert.eq(exitCodeFailure, stopMongoProgramByPid(pid), "mongostat --discover against a sharded cluster should error when the cluster goes down");
 }());
