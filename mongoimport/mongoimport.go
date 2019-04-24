@@ -15,7 +15,6 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/tomb.v2"
 
 	"fmt"
@@ -452,11 +451,6 @@ func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
 	return
 }
 
-type flushInserter interface {
-	Insert(doc interface{}) error
-	Flush() error
-}
-
 // runInsertionWorker is a helper to InsertDocuments - it reads document off
 // the read channel and prepares then in batches for insertion into the database
 func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
@@ -466,18 +460,12 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	}
 	collection := session.Database(imp.ToolOptions.DB).Collection(imp.ToolOptions.Collection)
 
-	var inserter flushInserter
-	if imp.IngestOptions.Mode == modeInsert {
-		bufferedInserter := db.NewBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
-		bufferedInserter.SetBypassDocumentValidation(imp.IngestOptions.BypassDocumentValidation)
-		if !imp.IngestOptions.MaintainInsertionOrder {
-			bufferedInserter.Unordered()
-		}
-
-		inserter = bufferedInserter
-	} else {
-		inserter = imp.newUpserter(collection, imp.IngestOptions.BypassDocumentValidation)
+	inserter := db.NewBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, !imp.IngestOptions.StopOnError)
+	inserter.SetBypassDocumentValidation(imp.IngestOptions.BypassDocumentValidation)
+	if !imp.IngestOptions.MaintainInsertionOrder {
+		inserter.Unordered()
 	}
+	inserter.SetUpsert(true)
 
 readLoop:
 	for {
@@ -486,7 +474,8 @@ readLoop:
 			if !alive {
 				break readLoop
 			}
-			err = filterIngestError(imp.IngestOptions.StopOnError, inserter.Insert(document))
+
+			err = filterIngestError(imp.IngestOptions.StopOnError, imp.importDocument(inserter, document))
 			if err != nil {
 				return err
 			}
@@ -512,49 +501,25 @@ readLoop:
 	return filterIngestError(imp.IngestOptions.StopOnError, err)
 }
 
-type upserter struct {
-	imp         *MongoImport
-	collection  *mongo.Collection
-	insertOpts  *driverOpts.InsertOneOptions
-	replaceOpts *driverOpts.ReplaceOptions
-	updateOpts  *driverOpts.UpdateOptions
-}
-
-func (imp *MongoImport) newUpserter(collection *mongo.Collection, bypassDocValidation bool) *upserter {
-	return &upserter{
-		imp:         imp,
-		collection:  collection,
-		insertOpts:  driverOpts.InsertOne().SetBypassDocumentValidation(bypassDocValidation),
-		replaceOpts: driverOpts.Replace().SetBypassDocumentValidation(bypassDocValidation).SetUpsert(true),
-		updateOpts:  driverOpts.Update().SetBypassDocumentValidation(bypassDocValidation).SetUpsert(true),
-	}
-}
-
-// Insert is part of the flushInserter interface and performs
-// upserts or inserts.
-func (up *upserter) Insert(doc interface{}) error {
-	document, ok := doc.(bson.D)
-	if !ok {
-		return fmt.Errorf("expected doc to be of type bson.D")
+func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, document bson.D) error {
+	if imp.IngestOptions.Mode == modeInsert {
+		return inserter.Insert(document)
 	}
 
-	selector := constructUpsertDocument(up.imp.upsertFields, document)
-	var err error
-	if selector == nil { // modeInsert || doc-not-exist
-		log.Logvf(log.Info, "Could not construct selector from %v, falling back to insert mode", up.imp.upsertFields)
-		_, err = up.collection.InsertOne(nil, document, up.insertOpts)
-	} else if up.imp.IngestOptions.Mode == modeUpsert {
-		_, err = up.collection.ReplaceOne(nil, selector, document, up.replaceOpts)
-	} else { // modeMerge
-		_, err = up.collection.UpdateOne(nil, selector, bson.M{"$set": document}, up.updateOpts)
+	// modeUpsert, modeMerge
+	selector := constructUpsertDocument(imp.upsertFields, document)
+	if selector == nil {
+		log.Logvf(log.Info, "Could not construct selector from %v, falling back to insert mode", imp.upsertFields)
+		return inserter.Insert(document)
 	}
-	return err
-}
 
-// Flush is needed so that upserter implements flushInserter, but upserter
-// doesn't buffer anything so we don't need to do anything in Flush.
-func (up *upserter) Flush() error {
-	return nil
+	if imp.IngestOptions.Mode == modeUpsert {
+		return inserter.Replace(selector, document)
+	}
+
+	// modeMerge
+	updateDoc := bson.D{{"$set", document}}
+	return inserter.Update(selector, updateDoc)
 }
 
 func splitInlineHeader(header string) (headers []string) {
