@@ -25,6 +25,7 @@ set_goenv() {
     case $UNAME_S in
         CYGWIN*)
             export CGO_CFLAGS="-D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x06010000"
+            export GOCACHE="C:/windows/temp"
             ;;
         Darwin)
             export CGO_CFLAGS="-mmacosx-version-min=10.11"
