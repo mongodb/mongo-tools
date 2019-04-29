@@ -282,6 +282,11 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			"cannot specify a negative number of insertion workers per collection")
 	}
 
+	if restore.OutputOptions.MaintainInsertionOrder {
+		restore.OutputOptions.StopOnError = true
+		restore.OutputOptions.NumInsertionWorkers = 1
+	}
+
 	if restore.OutputOptions.PreserveUUID {
 		if !restore.OutputOptions.Drop {
 			return fmt.Errorf("cannot specify --preserveUUID without --drop")
@@ -377,7 +382,8 @@ func (restore *MongoRestore) Restore() error {
 	}
 	if restore.NSOptions.Collection != "" &&
 		restore.OutputOptions.NumParallelCollections > 1 &&
-		restore.OutputOptions.NumInsertionWorkers == 1 {
+		restore.OutputOptions.NumInsertionWorkers == 1 &&
+		!restore.OutputOptions.MaintainInsertionOrder {
 		// handle special parallelization case when we are only restoring one collection
 		// by mapping -j to insertion workers rather than parallel collections
 		log.Logvf(log.DebugHigh,
@@ -388,7 +394,6 @@ func (restore *MongoRestore) Restore() error {
 	if restore.InputOptions.Archive != "" {
 		if int(restore.archive.Prelude.Header.ConcurrentCollections) > restore.OutputOptions.NumParallelCollections {
 			restore.OutputOptions.NumParallelCollections = int(restore.archive.Prelude.Header.ConcurrentCollections)
-			restore.OutputOptions.NumInsertionWorkers = int(restore.archive.Prelude.Header.ConcurrentCollections)
 			log.Logvf(log.Always,
 				"setting number of parallel collections to number of parallel collections in archive (%v)",
 				restore.archive.Prelude.Header.ConcurrentCollections,

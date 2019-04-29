@@ -211,3 +211,69 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 
 	})
 }
+
+// test --maintainInsertionOrder and --stopOnError behavior
+func TestMongorestoreMIOSOE(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	client, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	database := client.Database("miodb")
+	coll := database.Collection("mio")
+
+	Convey("default restore ignores dup key errors", t, func() {
+		restore, err := getRestoreWithArgs("testdata/10k1dup10k.bson",
+			CollectionOption, coll.Name(),
+			DBOption, database.Name(),
+			DropOption)
+		So(err, ShouldBeNil)
+		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeFalse)
+
+		err = restore.Restore()
+		So(err, ShouldBeNil)
+
+		count, err := coll.CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 20000)
+	})
+
+	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
+		restore, err := getRestoreWithArgs("testdata/10k1dup10k.bson",
+			CollectionOption, coll.Name(),
+			DBOption, database.Name(),
+			DropOption,
+			MaintainInsertionOrderOption)
+		So(err, ShouldBeNil)
+		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeTrue)
+		So(restore.OutputOptions.NumInsertionWorkers, ShouldEqual, 1)
+
+		err = restore.Restore()
+		So(err, ShouldNotBeNil)
+
+		count, err := coll.CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 10000)
+	})
+
+	Convey("--stopOnError stops on dup key errors", t, func() {
+		restore, err := getRestoreWithArgs("testdata/10k1dup10k.bson",
+			CollectionOption, coll.Name(),
+			DBOption, database.Name(),
+			DropOption,
+			StopOnErrorOption,
+			NumParallelCollectionsOption, "1")
+		So(err, ShouldBeNil)
+		So(restore.OutputOptions.StopOnError, ShouldBeTrue)
+
+		err = restore.Restore()
+		So(err, ShouldNotBeNil)
+
+		count, err := coll.CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldAlmostEqual, 10000, restore.OutputOptions.BulkBufferSize)
+	})
+
+	_ = database.Drop(nil)
+}
