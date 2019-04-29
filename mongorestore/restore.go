@@ -313,7 +313,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				}
 				watchProgressor.Set(file.Pos())
 			}
-			err = bulk.Flush()
+			err := bulk.Flush()
 			if err != nil {
 				if !db.IsConnectionError(err) && !restore.OutputOptions.StopOnError {
 					// Suppress this error since it's not a severe connection error and
