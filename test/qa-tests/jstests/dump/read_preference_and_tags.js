@@ -37,7 +37,7 @@
 
   rs.reconfig(conf);
 
-  runMongoProgram('mongodump', '-vvvv', '--host', "replset/"+primary.host, '--readPreference={mode:"nearest", tags:{use:"secondary1"}}');
+  runMongoProgram('mongodump', '-vvvv', '--host', "replset/"+primary.host, '--readPreference={mode:"nearest", tagSets:[{use:"secondary1"}]}');
 
   var primaryCount = 0;
   var secondaryCount = 0;
