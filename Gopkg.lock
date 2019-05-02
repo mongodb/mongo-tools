@@ -103,7 +103,7 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "TOOLS-2285-readpref-fixes"
+  branch = "master"
   digest = "1:0f7fe0d90dc37cabf4b4d659a3d073d0cf6f3f592552fc0bc4496d6e58a02387"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
