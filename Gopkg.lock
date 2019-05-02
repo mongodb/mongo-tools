@@ -104,7 +104,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ae1534940300acfbddb8a972b0b17d20fe754f26a594d8d9e0e06e31087b7eb5"
+  digest = "1:0f7fe0d90dc37cabf4b4d659a3d073d0cf6f3f592552fc0bc4496d6e58a02387"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -125,7 +125,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "9c6c7b99417fccda7b763f0b7bd709ef46390fd4"
+  revision = "10f1f7c6ab8b0a992aa7cc32c70b21a1a91e2bab"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -319,7 +319,6 @@
     "go.mongodb.org/mongo-driver/mongo/readpref",
     "go.mongodb.org/mongo-driver/mongo/writeconcern",
     "go.mongodb.org/mongo-driver/x/bsonx",
-    "go.mongodb.org/mongo-driver/x/network/connstring",
     "golang.org/x/crypto/ssh/terminal",
     "gopkg.in/mgo.v2/bson",
     "gopkg.in/tomb.v2",

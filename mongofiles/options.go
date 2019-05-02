@@ -111,7 +111,7 @@ func (*StorageOptions) Name() string {
 
 // InputOptions defines the set of options to use in retrieving data from the server.
 type InputOptions struct {
-	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference name or a preference json object"`
+	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference mode (e.g. 'nearest') or a preference json object (e.g. '{mode: \"nearest\", tagSets: [{a: \"b\"}], maxStalenessSeconds: 123}')"`
 }
 
 // Name returns a human-readable group name for input options.
