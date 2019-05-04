@@ -20,7 +20,7 @@ Clone the repo and run `. ./set_goenv.sh` to setup your GOPATH:
 ```
 git clone https://github.com/mongodb/mongo-tools
 cd mongo-tools
-. ./set_gopath.sh
+. ./set_goenv.sh
 ```
 
 Building Tools
