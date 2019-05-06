@@ -475,7 +475,8 @@ readLoop:
 			if !alive {
 				break readLoop
 			}
-			if err := db.FilterError(imp.IngestOptions.StopOnError, imp.importDocument(inserter, document)); err != nil {
+			err := imp.importDocument(inserter, document)
+			if db.FilterError(imp.IngestOptions.StopOnError, err) != nil {
 				return err
 			}
 		case <-imp.Dying():

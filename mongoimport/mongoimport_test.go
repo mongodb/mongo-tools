@@ -7,6 +7,7 @@
 package mongoimport
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,6 +29,7 @@ import (
 const (
 	testDb         = "db"
 	testCollection = "c"
+	mioSoeFile     = "testdata/10k1dup10k.json"
 )
 
 // checkOnlyHasDocuments returns an error if the documents in the test
@@ -882,9 +884,53 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 	})
 }
 
+// generateTestData creates the files used in TestImportMIOSOE
+func generateTestData() error {
+	// If file exists already, don't both regenerating it.
+	if _, err := os.Stat(mioSoeFile); err == nil {
+		return nil
+	}
+
+	f, err := os.Create(mioSoeFile)
+	if err != nil {
+		return err
+	}
+	w := bufio.NewWriter(f)
+
+	// 10k unique _id's
+	for i := 1; i < 10001; i++ {
+		_, err = w.WriteString(fmt.Sprintf("{\"_id\": %v }\n", i))
+		if err != nil {
+			return err
+		}
+	}
+	// 1 duplicate _id
+	_, err = w.WriteString(fmt.Sprintf("{\"_id\": %v }\n", 5))
+	if err != nil {
+		return err
+	}
+
+	// 10k unique _id's
+	for i := 10001; i < 20001; i++ {
+		_, err = w.WriteString(fmt.Sprintf("{\"_id\": %v }\n", i))
+		if err != nil {
+			return err
+		}
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // test --maintainInsertionOrder and --stopOnError behavior
-func TestMongorestoreMIOSOE(t *testing.T) {
+func TestImportMIOSOE(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	if err := generateTestData(); err != nil {
+		t.Fatalf("Could not generate test data: %v", err)
+	}
 
 	client, err := testutil.GetBareSession()
 	if err != nil {
@@ -894,7 +940,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	coll := database.Collection("mio")
 
 	Convey("default restore ignores dup key errors", t, func() {
-		imp, err := getImportWithArgs("testdata/10k1dup10k.json",
+		imp, err := getImportWithArgs(mioSoeFile,
 			"--collection", coll.Name(),
 			"--db", database.Name(),
 			"--drop")
@@ -913,7 +959,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
-		imp, err := getImportWithArgs("testdata/10k1dup10k.json",
+		imp, err := getImportWithArgs(mioSoeFile,
 			"--collection", coll.Name(),
 			"--db", database.Name(),
 			"--drop",
@@ -935,7 +981,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--stopOnError stops on dup key errors", t, func() {
-		imp, err := getImportWithArgs("testdata/10k1dup10k.json",
+		imp, err := getImportWithArgs(mioSoeFile,
 			"--collection", coll.Name(),
 			"--db", database.Name(),
 			"--drop",

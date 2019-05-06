@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"testing"
@@ -19,6 +20,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+)
+
+const (
+	mioSoeFile = "testdata/10k1dup10k.bson"
 )
 
 func init() {
@@ -212,9 +217,66 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 	})
 }
 
+// generateTestData creates the files used in TestMongorestoreMIOSOE
+func generateTestData() error {
+	// If file exists already, don't both regenerating it.
+	if _, err := os.Stat(mioSoeFile); err == nil {
+		return nil
+	}
+
+	f, err := os.Create(mioSoeFile)
+	if err != nil {
+		return err
+	}
+	w := bufio.NewWriter(f)
+
+	// 10k unique _id's
+	for i := 1; i < 10001; i++ {
+		buf, err := bson.Marshal(bson.D{{"_id", i}})
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 1 duplicate _id
+	buf, err := bson.Marshal(bson.D{{"_id", 5}})
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(buf)
+	if err != nil {
+		return err
+	}
+
+	// 10k unique _id's
+	for i := 10001; i < 20001; i++ {
+		buf, err := bson.Marshal(bson.D{{"_id", i}})
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // test --maintainInsertionOrder and --stopOnError behavior
 func TestMongorestoreMIOSOE(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	if err := generateTestData(); err != nil {
+		t.Fatalf("Couldn't generate test data %v", err)
+	}
 
 	client, err := testutil.GetBareSession()
 	if err != nil {
@@ -224,7 +286,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	coll := database.Collection("mio")
 
 	Convey("default restore ignores dup key errors", t, func() {
-		restore, err := getRestoreWithArgs("testdata/10k1dup10k.bson",
+		restore, err := getRestoreWithArgs(mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption)
@@ -240,7 +302,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
-		restore, err := getRestoreWithArgs("testdata/10k1dup10k.bson",
+		restore, err := getRestoreWithArgs(mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption,
@@ -258,7 +320,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--stopOnError stops on dup key errors", t, func() {
-		restore, err := getRestoreWithArgs("testdata/10k1dup10k.bson",
+		restore, err := getRestoreWithArgs(mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption,
