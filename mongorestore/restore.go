@@ -26,24 +26,30 @@ const insertBufferFactor = 16
 
 // Result encapsulates the outcome of a particular restore attempt.
 type Result struct {
-	nSuccess int64
-	nFailure int64
-	err      error
+	Successes int64
+	Failures  int64
+	Err       error
 }
 
 // log pretty-prints the result, associated with restoring the given namespace
 func (result *Result) log(ns string) {
 	log.Logvf(log.Always, "finished restoring %v (%v %v, %v %v)",
-		ns, result.nSuccess, util.Pluralize(int(result.nSuccess), "document", "documents"),
-		result.nFailure, util.Pluralize(int(result.nFailure), "failure", "failures"))
+		ns, result.Successes, util.Pluralize(int(result.Successes), "document", "documents"),
+		result.Failures, util.Pluralize(int(result.Failures), "failure", "failures"))
 }
 
-// combineWith sums the successes and failures from both results and the overwrites the existing err with the err from
+// combineWith sums the successes and failures from both results and the overwrites the existing Err with the Err from
 // the provided result.
 func (result *Result) combineWith(other Result) {
-	result.nSuccess += other.nSuccess
-	result.nFailure += other.nFailure
-	result.err = other.err
+	result.Successes += other.Successes
+	result.Failures += other.Failures
+	result.Err = other.Err
+}
+
+// withErr returns a copy of the current result with the provided error
+func (result Result) withErr(err error) Result {
+	result.Err = err
+	return result
 }
 
 func NewResultFromBulkResult(result *mongo.BulkWriteResult, err error) Result {
@@ -63,22 +69,23 @@ func NewResultFromBulkResult(result *mongo.BulkWriteResult, err error) Result {
 }
 
 // RestoreIntents iterates through all of the intents stored in the IntentManager, and restores them.
-func (restore *MongoRestore) RestoreIntents() error {
+func (restore *MongoRestore) RestoreIntents() Result {
 	log.Logvf(log.DebugLow, "restoring up to %v collections in parallel", restore.OutputOptions.NumParallelCollections)
 
 	if restore.OutputOptions.NumParallelCollections > 0 {
-		errChan := make(chan error)
+		resultChan := make(chan Result)
 
 		// start a goroutine for each job thread
 		for i := 0; i < restore.OutputOptions.NumParallelCollections; i++ {
 			go func(id int) {
+				var workerResult Result
 				log.Logvf(log.DebugHigh, "starting restore routine with id=%v", id)
 				var ioBuf []byte
 				for {
 					intent := restore.manager.Pop()
 					if intent == nil {
 						log.Logvf(log.DebugHigh, "ending restore routine with id=%v, no more work to do", id)
-						errChan <- nil // done
+						resultChan <- workerResult // done
 						return
 					}
 					if fileNeedsIOBuffer, ok := intent.BSONFile.(intents.FileNeedsIOBuffer); ok {
@@ -89,8 +96,9 @@ func (restore *MongoRestore) RestoreIntents() error {
 					}
 					result := restore.RestoreIntent(intent)
 					result.log(intent.Namespace())
-					if result.err != nil {
-						errChan <- fmt.Errorf("%v: %v", intent.Namespace(), result.err)
+					workerResult.combineWith(result)
+					if result.Err != nil {
+						resultChan <- workerResult.withErr(fmt.Errorf("%v: %v", intent.Namespace(), result.Err))
 						return
 					}
 					restore.manager.Finish(intent)
@@ -102,15 +110,20 @@ func (restore *MongoRestore) RestoreIntents() error {
 			}(i)
 		}
 
+		var totalResult Result
+		var totalErr error
 		// wait until all goroutines are done or one of them errors out
 		for i := 0; i < restore.OutputOptions.NumParallelCollections; i++ {
-			if err := <-errChan; err != nil {
-				return err
+			result := <-resultChan
+			totalResult.combineWith(result)
+			if totalErr == nil && totalResult.Err != nil {
+				totalErr = totalResult.Err
 			}
 		}
-		return nil
+		return totalResult.withErr(totalErr)
 	}
 
+	var totalResult Result
 	// single-threaded
 	for {
 		intent := restore.manager.Pop()
@@ -119,13 +132,13 @@ func (restore *MongoRestore) RestoreIntents() error {
 		}
 		result := restore.RestoreIntent(intent)
 		result.log(intent.Namespace())
-		if result.err != nil {
-			log.Logvf(log.Always, "result has err: %v", result.err)
-			return fmt.Errorf("%v: %v", intent.Namespace(), result.err)
+		totalResult.combineWith(result)
+		if result.Err != nil {
+			return totalResult.withErr(fmt.Errorf("%v: %v", intent.Namespace(), result.Err))
 		}
 		restore.manager.Finish(intent)
 	}
-	return nil
+	return totalResult
 }
 
 // RestoreIntent attempts to restore a given intent into MongoDB.
@@ -133,7 +146,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 
 	collectionExists, err := restore.CollectionExists(intent)
 	if err != nil {
-		return Result{err: fmt.Errorf("error reading database: %v", err)}
+		return Result{Err: fmt.Errorf("error reading database: %v", err)}
 	}
 
 	if !restore.OutputOptions.Drop && collectionExists {
@@ -148,7 +161,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 				log.Logvf(log.Info, "dropping collection %v before restoring", intent.Namespace())
 				err = restore.DropCollection(intent)
 				if err != nil {
-					return Result{err: err} // no context needed
+					return Result{Err: err} // no context needed
 				}
 				collectionExists = false
 			}
@@ -176,25 +189,25 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		logMessageSuffix = "using options from metadata"
 		err = intent.MetadataFile.Open()
 		if err != nil {
-			return Result{err: err}
+			return Result{Err: err}
 		}
 		defer intent.MetadataFile.Close()
 
 		log.Logvf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
 		metadataJSON, err := ioutil.ReadAll(intent.MetadataFile)
 		if err != nil {
-			return Result{err: fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)}
+			return Result{Err: fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)}
 		}
 		metadata, err := restore.MetadataFromJSON(metadataJSON)
 		if err != nil {
-			return Result{err: fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)}
+			return Result{Err: fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)}
 		}
 		if metadata != nil {
 			options = metadata.Options
 			indexes = metadata.Indexes
 			if restore.OutputOptions.PreserveUUID {
 				if metadata.UUID == "" {
-					return Result{err: fmt.Errorf("--preserveUUID used but no UUID found in %v", intent.MetadataLocation)}
+					return Result{Err: fmt.Errorf("--preserveUUID used but no UUID found in %v", intent.MetadataLocation)}
 				}
 				uuid = metadata.UUID
 			}
@@ -237,7 +250,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
 		if err != nil {
-			return Result{err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)}
+			return Result{Err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)}
 		}
 	} else {
 		log.Logvf(log.Info, "collection %v already exists - skipping collection create", intent.Namespace())
@@ -247,7 +260,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if intent.BSONFile != nil {
 		err = intent.BSONFile.Open()
 		if err != nil {
-			return Result{err: err}
+			return Result{Err: err}
 		}
 		defer intent.BSONFile.Close()
 
@@ -257,8 +270,8 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		defer bsonSource.Close()
 
 		result = restore.RestoreCollectionToDB(intent.DB, intent.C, bsonSource, intent.BSONFile, intent.Size)
-		if result.err != nil {
-			result.err = fmt.Errorf("error restoring from %v: %v", intent.Location, result.err)
+		if result.Err != nil {
+			result.Err = fmt.Errorf("error restoring from %v: %v", intent.Location, result.Err)
 			return result
 		}
 	}
@@ -268,7 +281,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
 		err = restore.CreateIndexes(intent, indexes)
 		if err != nil {
-			result.err = fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
+			result.Err = fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
 			return result
 		}
 	} else {
@@ -286,7 +299,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 	var termErr error
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
-		return Result{err: fmt.Errorf("error establishing connection: %v", err)}
+		return Result{Err: fmt.Errorf("error establishing connection: %v", err)}
 	}
 
 	collection := session.Database(dbName).Collection(colName)
@@ -338,14 +351,15 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
 			for rawDoc := range docChan {
 				if restore.objCheck {
-					result.err = bson.Unmarshal(rawDoc, &bson.D{})
-					if result.err != nil {
+					result.Err = bson.Unmarshal(rawDoc, &bson.D{})
+					if result.Err != nil {
 						resultChan <- result
 						return
 					}
 				}
 				result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
-				if result.err = db.FilterError(restore.OutputOptions.StopOnError, result.err); result.err != nil {
+				result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+				if result.Err != nil {
 					resultChan <- result
 					return
 				}
@@ -353,8 +367,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			}
 			// flush the remaining docs
 			result.combineWith(NewResultFromBulkResult(bulk.Flush()))
-			result.err = db.FilterError(restore.OutputOptions.StopOnError, result.err)
-			resultChan <- result
+			resultChan <- result.withErr(db.FilterError(restore.OutputOptions.StopOnError, result.Err))
 			return
 		}()
 
@@ -368,18 +381,18 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 	// wait until all insert jobs finish
 	for done := 0; done < maxInsertWorkers; done++ {
 		totalResult.combineWith(<-resultChan)
-		if finalErr == nil && totalResult.err != nil {
-			finalErr = totalResult.err
+		if finalErr == nil && totalResult.Err != nil {
+			finalErr = totalResult.Err
 			close(restore.termChan)
 		}
 	}
 
 	if finalErr != nil {
-		totalResult.err = finalErr
+		totalResult.Err = finalErr
 	} else if err = bsonSource.Err(); err != nil {
-		totalResult.err = fmt.Errorf("reading bson input: %v", err)
+		totalResult.Err = fmt.Errorf("reading bson input: %v", err)
 	} else if termErr != nil {
-		totalResult.err = termErr
+		totalResult.Err = termErr
 	}
 	return totalResult
 }

@@ -74,8 +74,10 @@ func TestMongorestore(t *testing.T) {
 		c1.Drop(nil)
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
-			err = restore.Restore()
-			So(err, ShouldBeNil)
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 100)
+			So(result.Failures, ShouldEqual, 0)
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
@@ -88,8 +90,8 @@ func TestMongorestore(t *testing.T) {
 			So(err, ShouldBeNil)
 			restore.InputReader = bsonFile
 			restore.TargetDirectory = "-"
-			err = restore.Restore()
-			So(err, ShouldBeNil)
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
@@ -119,8 +121,8 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		err = restore.Restore()
-		So(err, ShouldNotBeNil)
+		result := restore.Restore()
+		So(result.Err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "target host does not support --preserveUUID")
 	})
 }
@@ -152,8 +154,8 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
 
-			err = restore.Restore()
-			So(err, ShouldBeNil)
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 5)
@@ -172,9 +174,9 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
 
-			err = restore.Restore()
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "cannot specify --preserveUUID without --drop")
+			result := restore.Restore()
+			So(result.Err, ShouldNotBeNil)
+			So(result.Err.Error(), ShouldContainSubstring, "cannot specify --preserveUUID without --drop")
 		})
 
 		Convey("PreserveUUID with drop preserves UUID", func() {
@@ -188,8 +190,8 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
 
-			err = restore.Restore()
-			So(err, ShouldBeNil)
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 5)
@@ -209,9 +211,9 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
 
-			err = restore.Restore()
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "--preserveUUID used but no UUID found")
+			result := restore.Restore()
+			So(result.Err, ShouldNotBeNil)
+			So(result.Err.Error(), ShouldContainSubstring, "--preserveUUID used but no UUID found")
 		})
 
 	})
@@ -293,8 +295,10 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeFalse)
 
-		err = restore.Restore()
-		So(err, ShouldBeNil)
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Successes, ShouldEqual, 20000)
+		So(result.Failures, ShouldEqual, 1)
 
 		count, err := coll.CountDocuments(nil, bson.M{})
 		So(err, ShouldBeNil)
@@ -311,8 +315,10 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeTrue)
 		So(restore.OutputOptions.NumInsertionWorkers, ShouldEqual, 1)
 
-		err = restore.Restore()
-		So(err, ShouldNotBeNil)
+		result := restore.Restore()
+		So(result.Err, ShouldNotBeNil)
+		So(result.Successes, ShouldEqual, 10000)
+		So(result.Failures, ShouldEqual, 1)
 
 		count, err := coll.CountDocuments(nil, bson.M{})
 		So(err, ShouldBeNil)
@@ -329,8 +335,10 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(restore.OutputOptions.StopOnError, ShouldBeTrue)
 
-		err = restore.Restore()
-		So(err, ShouldNotBeNil)
+		result := restore.Restore()
+		So(result.Err, ShouldNotBeNil)
+		So(result.Successes, ShouldAlmostEqual, 10000, restore.OutputOptions.BulkBufferSize)
+		So(result.Failures, ShouldEqual, 1)
 
 		count, err := coll.CountDocuments(nil, bson.M{})
 		So(err, ShouldBeNil)

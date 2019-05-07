@@ -285,7 +285,12 @@ func CanIgnoreError(err error) bool {
 				return false
 			}
 		}
-		return mongoErr.WriteConcernError == nil
+
+		if mongoErr.WriteConcernError != nil {
+			log.Logvf(log.Always, "write concern error when inserting documents: %v", mongoErr.WriteConcernError)
+			return false
+		}
+		return true
 	case mongo.CommandError:
 		_, ok := ignorableWriteErrorCodes[int(mongoErr.Code)]
 		return ok
