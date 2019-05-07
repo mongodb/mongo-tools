@@ -8,7 +8,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/mongodb/mongo-tools-common/log"
@@ -49,16 +48,16 @@ func main() {
 	}
 	defer m.Close()
 
-	numDocs, err := m.ImportDocuments()
+	numDocs, numFailure, err := m.ImportDocuments()
 	if !opts.Quiet {
 		if err != nil {
 			log.Logvf(log.Always, "Failed: %v", err)
 		}
-		message := fmt.Sprintf("imported 1 document")
-		if numDocs != 1 {
-			message = fmt.Sprintf("imported %v documents", numDocs)
+		if m.ToolOptions.WriteConcern.Acknowledged() {
+			log.Logvf(log.Always, "%v document(s) imported successfully. %v document(s) failed to import.", numDocs, numFailure)
+		} else {
+			log.Logvf(log.Always, "done")
 		}
-		log.Logvf(log.Always, message)
 	}
 	if err != nil {
 		os.Exit(util.ExitFailure)

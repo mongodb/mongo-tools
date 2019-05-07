@@ -49,8 +49,19 @@ func main() {
 	finishedChan := signals.HandleWithInterrupt(restore.HandleInterrupt)
 	defer close(finishedChan)
 
-	if err = restore.Restore(); err != nil {
-		log.Logvf(log.Always, "Failed: %v", err)
+	result := restore.Restore()
+	if result.Err != nil {
+		log.Logvf(log.Always, "Failed: %v", result.Err)
+	}
+
+	if restore.ToolOptions.WriteConcern.Acknowledged() {
+		log.Logvf(log.Always, "%v document(s) restored successfully. %v document(s) failed to restore.", result.Successes, result.Failures)
+	} else {
+		log.Logvf(log.Always, "done")
+	}
+
+	if result.Err != nil {
 		os.Exit(util.ExitFailure)
 	}
+	os.Exit(util.ExitSuccess)
 }

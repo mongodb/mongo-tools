@@ -177,4 +177,46 @@
   assert.eq(0, ret, 'restoring documents should work with bypass document validation set');
   assert.eq(1000, testDB.bar.count(),
     'all documents should be restored with bypass document validation set');
+  testDB.dropDatabase();
+
+  /**
+   * Part 5: Test that restore will stop inserting when getting validation errors if --stopOnError is enabled.
+   */
+  // turn on validation
+  r = testDB.createCollection('bar', {validator: {baz: {$exists: true}}});
+  assert.eq(r, {ok: 1}, 'create collection with validation should work');
+
+  // test that we cannot insert an 'invalid' document
+  r = testDB.bar.insert({num: 10000});
+  assert.eq(r.nInserted, 0, 'invalid documents should not be inserted');
+
+  // restore the 1000 records again with bypassDocumentValidation turned on
+  ret = toolTest.runTool.apply(toolTest, ['restore',
+    '--file', toolTest.extFile,
+    '--db', testDB.toString(),
+    '-c', 'bar',
+    '--stopOnError']
+    .concat(commonToolArgs));
+  assert.neq(0, ret,
+    'restoring documents should report documentation validation errors when using --stopOnError');
+  testDB.dropDatabase();
+
+  /**
+   * Part 6: Test that restore will stop inserting when getting validation errors if --maintainInsertionOrder is enabled.
+   */
+  r = testDB.createCollection('bar', {validator: {baz: {$exists: true}}});
+  assert.eq(r, {ok: 1}, 'create collection with validation should work');
+
+  // test that we cannot insert an 'invalid' document
+  r = testDB.bar.insert({num: 10000});
+  assert.eq(r.nInserted, 0, 'invalid documents should not be inserted');
+
+  // import the 1000 records again with bypassDocumentValidation turned on
+  ret = toolTest.runTool.apply(toolTest, ['restore',
+    '--file', toolTest.extFile,
+    '--db', 'test',
+    '-c', 'bar',
+    '--maintainInsertionOrder']
+    .concat(commonToolArgs));
+  assert.neq(0, ret, 'restoring documents should report documentation validation errors when using --maintainInsertionOrder');
 }());
