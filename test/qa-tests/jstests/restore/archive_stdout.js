@@ -35,9 +35,9 @@
     barData.push({i: i*5});
   }
 
-  // test that slashes in collection names works for archives
+  // test that slashes and percents in collection names works for archives
   const collFoo = "coll/foo";
-  const collBar = "coll/bar";
+  const collBar = "coll%bar";
 
   testDb[collFoo].insertMany(fooData);
   testDb[collBar].insertMany(barData);
