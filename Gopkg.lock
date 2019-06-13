@@ -53,6 +53,20 @@
   revision = "d9eb7a3d35ec988b8585d4a0068e462c27d28380"
 
 [[projects]]
+  digest = "1:ec7c114271a6226a146c64cb0d95348ac85350fde7dbb2564a1911165aa63ced"
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/flags",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = "T"
+  revision = "6f77996f0c42f7b84e5a2b252227263f93432e9b"
+  version = "v0.3.0"
+
+[[projects]]
   digest = "1:f9c618e8c569f950d5cd339a475eaef92e02e5e63d1434fd7e7881bfa5f02901"
   name = "github.com/google/gopacket"
   packages = [
@@ -103,8 +117,8 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:d60f927aee2981fec0cc764cc118f202964b6023ada356e532b6c708e489ec26"
+  branch = "TOOLS-2225-wip"
+  digest = "1:8c2c44281b30b41ed9fbb842e46f59decdbf3a929392a017ade9862a807e167d"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -122,10 +136,11 @@
     "testtype",
     "testutil",
     "text",
+    "txn",
     "util",
   ]
   pruneopts = "T"
-  revision = "4316ec1965c626bbe74458444880c40950565e64"
+  revision = "6092be4c2cc58b28cb4e2b99ee5bd22e0fff2410"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -285,6 +300,7 @@
     "github.com/10gen/llmgo/bson",
     "github.com/10gen/openssl",
     "github.com/3rf/mongo-lint",
+    "github.com/google/go-cmp/cmp",
     "github.com/google/gopacket",
     "github.com/google/gopacket/layers",
     "github.com/google/gopacket/pcap",
@@ -306,6 +322,7 @@
     "github.com/mongodb/mongo-tools-common/testtype",
     "github.com/mongodb/mongo-tools-common/testutil",
     "github.com/mongodb/mongo-tools-common/text",
+    "github.com/mongodb/mongo-tools-common/txn",
     "github.com/mongodb/mongo-tools-common/util",
     "github.com/nsf/termbox-go",
     "github.com/patrickmn/go-cache",

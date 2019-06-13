@@ -63,7 +63,7 @@ func GetExtendedBsonD(doc bson.D) (bson.D, error) {
 			return nil, err
 		}
 		bsonDoc = append(bsonDoc, bson.E{
-			Key:  docElem.Key,
+			Key:   docElem.Key,
 			Value: bsonValue,
 		})
 	}
@@ -79,6 +79,25 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, error) {
 		}
 	}
 	return nil, ErrNoSuchField
+}
+
+// FindIntByKey returns the value of keyName in the document as an int for
+// either int32 or int64 underlying type.
+func FindIntByKey(keyName string, document *bson.D) (int, error) {
+	raw, err := FindValueByKey(keyName, document)
+	if err != nil {
+		return 0, err
+	}
+	switch x := raw.(type) {
+	case int32:
+		return int(x), nil
+	case int64:
+		return int(x), nil
+	case int:
+		return x, nil
+	default:
+		return 0, fmt.Errorf("field '%s' is not an integer type", keyName)
+	}
 }
 
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON
