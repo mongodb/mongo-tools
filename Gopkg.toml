@@ -124,3 +124,7 @@ required = ["github.com/3rf/mongo-lint"]
 [prune]
   go-tests = true
   # unused-packages = true
+
+[[constraint]]
+  name = "github.com/google/go-cmp"
+  version = "0.3.0"

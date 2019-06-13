@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/txn"
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,6 +27,13 @@ import (
 // of many small operations can overflow the maximum command size.
 // Note that ops > 8MB will still be buffered, just as single elements.
 const oplogMaxCommandSize = 1024 * 1024 * 8
+
+type oplogContext struct {
+	progressor *progress.CountProgressor
+	session    *mongo.Client
+	totalOps   int
+	txnBuffer  *txn.Buffer
+}
 
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
@@ -49,18 +57,21 @@ func (restore *MongoRestore) RestoreOplog() error {
 	bsonSource := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(intent.BSONFile))
 	defer bsonSource.Close()
 
-	var totalOps int64
-	var entrySize int
-
-	oplogProgressor := progress.NewCounter(intent.BSONSize)
-	if restore.ProgressManager != nil {
-		restore.ProgressManager.Attach("oplog", oplogProgressor)
-		defer restore.ProgressManager.Detach("oplog")
-	}
-
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
+	}
+
+	oplogCtx := &oplogContext{
+		progressor: progress.NewCounter(intent.BSONSize),
+		txnBuffer:  txn.NewBuffer(),
+		session:    session,
+	}
+	defer oplogCtx.txnBuffer.Stop()
+
+	if restore.ProgressManager != nil {
+		restore.ProgressManager.Attach("oplog", oplogCtx.progressor)
+		defer restore.ProgressManager.Detach("oplog")
 	}
 
 	for {
@@ -68,7 +79,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 		if rawOplogEntry == nil {
 			break
 		}
-		entrySize = len(rawOplogEntry)
+		oplogCtx.progressor.Inc(int64(len(rawOplogEntry)))
 
 		entryAsOplog := db.Oplog{}
 		err = bson.Unmarshal(rawOplogEntry, &entryAsOplog)
@@ -89,28 +100,94 @@ func (restore *MongoRestore) RestoreOplog() error {
 			break
 		}
 
-		entryAsOplog, err = restore.filterUUIDs(entryAsOplog)
+		meta, err := txn.NewMeta(entryAsOplog)
 		if err != nil {
-			return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
+			return fmt.Errorf("error getting op metadata: %v", err)
 		}
 
-		totalOps++
-		oplogProgressor.Inc(int64(entrySize))
-		err = restore.ApplyOps(session, []interface{}{entryAsOplog})
-		if err != nil {
-			return fmt.Errorf("error applying oplog: %v", err)
+		if meta.IsTxn() {
+			err := restore.HandleTxnOp(oplogCtx, meta, entryAsOplog)
+			if err != nil {
+				return fmt.Errorf("error handling transaction oplog entry: %v", err)
+			}
+		} else {
+			err := restore.HandleNonTxnOp(oplogCtx, entryAsOplog)
+			if err != nil {
+				return fmt.Errorf("error applying oplog: %v", err)
+			}
 		}
+
 	}
 	if fileNeedsIOBuffer, ok := intent.BSONFile.(intents.FileNeedsIOBuffer); ok {
 		fileNeedsIOBuffer.ReleaseIOBuffer()
 	}
 
-	log.Logvf(log.Always, "applied %v oplog entries", totalOps)
+	log.Logvf(log.Always, "applied %v oplog entries", oplogCtx.totalOps)
 	if err := bsonSource.Err(); err != nil {
 		return fmt.Errorf("error reading oplog bson input: %v", err)
 	}
 	return nil
 
+}
+
+func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog) error {
+	oplogCtx.totalOps++
+
+	op, err := restore.filterUUIDs(op)
+	if err != nil {
+		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
+	}
+
+	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
+}
+
+func (restore *MongoRestore) HandleTxnOp(oplogCtx *oplogContext, meta txn.Meta, op db.Oplog) error {
+
+	err := oplogCtx.txnBuffer.AddOp(meta, op)
+	if err != nil {
+		return fmt.Errorf("error buffering transaction oplog entry: %v", err)
+	}
+
+	if meta.IsAbort() {
+		err := oplogCtx.txnBuffer.PurgeTxn(meta)
+		if err != nil {
+			return fmt.Errorf("error cleaning up transaction buffer on abort: %v", err)
+		}
+		return nil
+	}
+
+	if !meta.IsCommit() {
+		return nil
+	}
+
+	// From here, we're applying transaction entries
+	ops, errs := oplogCtx.txnBuffer.GetTxnStream(meta)
+
+Loop:
+	for {
+		select {
+		case o, ok := <-ops:
+			if !ok {
+				break Loop
+			}
+			err = restore.HandleNonTxnOp(oplogCtx, o)
+			if err != nil {
+				return fmt.Errorf("error applying transaction op: %v", err)
+			}
+		case err := <-errs:
+			if err != nil {
+				return fmt.Errorf("error replaying transaction: %v", err)
+			}
+			break Loop
+		}
+	}
+
+	err = oplogCtx.txnBuffer.PurgeTxn(meta)
+	if err != nil {
+		return fmt.Errorf("error cleaning up transaction buffer: %v", err)
+	}
+
+	return nil
 }
 
 // ApplyOps is a wrapper for the applyOps database command, we pass in
