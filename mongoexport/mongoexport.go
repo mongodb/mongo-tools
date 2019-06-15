@@ -178,6 +178,17 @@ func (exp *MongoExport) validateSettings() error {
 		return fmt.Errorf("invalid JSON format '%v', choose 'relaxed' or 'canonical'", exp.OutputOpts.JSONFormat)
 	}
 
+	if exp.OutputOpts.HasProjection() {
+		content, err := exp.OutputOpts.GetProjection()
+		if err != nil {
+			return err
+		}
+		_, err2 := getObjectFromByteArg(content)
+		if err2 != nil {
+			return err2
+		}
+	}
+
 	if exp.InputOpts.Query != "" && exp.InputOpts.ForceTableScan {
 		return fmt.Errorf("cannot use --forceTableScan when specifying --query")
 	}
@@ -340,7 +351,18 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		findOpts.SetLimit(exp.InputOpts.Limit)
 	}
 
-	if len(exp.OutputOpts.Fields) > 0 {
+	if exp.OutputOpts.HasProjection() {
+		var err error
+		content, err := exp.OutputOpts.GetProjection()
+		if err != nil {
+			return nil, err
+		}
+		projection, err := getObjectFromByteArg(content)
+		if err != nil {
+			return nil, err
+		}
+		findOpts.SetProjection(projection)
+	} else if len(exp.OutputOpts.Fields) > 0 {
 		findOpts.SetProjection(makeFieldSelector(exp.OutputOpts.Fields))
 	}
 

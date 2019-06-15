@@ -29,6 +29,12 @@ type OutputFormatOptions struct {
 	// FieldFile is a filename that refers to a list of fields to export, 1 per line.
 	FieldFile string `long:"fieldFile" value-name:"<filename>" description:"file with field names - 1 per line"`
 
+	// Projection is an option to directly specify the projection when query.
+	Projection string `long:"projection" value-name:"<json>" description:"projection filter, as a JSON string, e.g., '{x:1, \"y.z\":0}'"`
+
+	// ProjectionFile is a filename that refers to a project filter, json list of fields to export, 1 per line.
+	ProjectionFile string `long:"projectionFile" value-name:"<filename>" description:"path to a file containing a projection filter (JSON)"`
+
 	// Type selects the type of output to export as (json or csv).
 	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"the output format, either json or csv (defaults to 'json')"`
 
@@ -54,6 +60,23 @@ type OutputFormatOptions struct {
 // Name returns a human-readable group name for output format options.
 func (*OutputFormatOptions) Name() string {
 	return "output"
+}
+
+func (outputFormatOptions *OutputFormatOptions) HasProjection() bool {
+	return outputFormatOptions.Projection != "" || outputFormatOptions.ProjectionFile != ""
+}
+
+func (outputFormatOptions *OutputFormatOptions) GetProjection() ([]byte, error) {
+	if outputFormatOptions.Projection != "" {
+		return []byte(outputFormatOptions.Projection), nil
+	} else if outputFormatOptions.ProjectionFile != "" {
+		content, err := ioutil.ReadFile(outputFormatOptions.ProjectionFile)
+		if err != nil {
+			err = fmt.Errorf("error reading projectionFile: %s", err)
+		}
+		return content, err
+	}
+	panic("GetProjection can return valid values only for projection or projectionFile input")
 }
 
 // InputOptions defines the set of options to use in retrieving data from the server.
