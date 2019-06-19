@@ -39,8 +39,10 @@ const (
 type jsonFormat string
 
 const (
-	canonical jsonFormat = "canonical"
-	relaxed              = "relaxed"
+	// Canonical indicates canonical json format
+	Canonical jsonFormat = "canonical"
+	// Relaxed indicates relaxed json format
+	Relaxed = "relaxed"
 )
 
 const (
@@ -174,7 +176,7 @@ func (exp *MongoExport) validateSettings() error {
 		return fmt.Errorf("invalid output type '%v', choose 'json' or 'csv'", exp.OutputOpts.Type)
 	}
 
-	if exp.OutputOpts.JSONFormat != canonical && exp.OutputOpts.JSONFormat != relaxed {
+	if exp.OutputOpts.JSONFormat != Canonical && exp.OutputOpts.JSONFormat != Relaxed {
 		return fmt.Errorf("invalid JSON format '%v', choose 'relaxed' or 'canonical'", exp.OutputOpts.JSONFormat)
 	}
 
