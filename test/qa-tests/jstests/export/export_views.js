@@ -1,4 +1,4 @@
-// @tags: [requires_mongo_34](
+// @tags: [requires_min_mongo_34](
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
