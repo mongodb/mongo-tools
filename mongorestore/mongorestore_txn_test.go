@@ -83,7 +83,7 @@ func TestMongorestoreTxns(t *testing.T) {
 // testdata/transactions.json file.  This tests that different transactions
 // can be cached while continuing processing waiting for a committing entry.
 func createTxnTestDataDir(t *testing.T, data txnTestDataMap) string {
-	opStreams := make([][]db.Oplog, 0)
+	var opStreams [][]db.Oplog
 	for _, v := range data {
 		if len(v.Ops) != 0 {
 			opStreams = append(opStreams, v.Ops)
@@ -164,7 +164,7 @@ func postImageCheck(client *mongo.Client, c *txnTestDataCase) error {
 
 	// Check if all documents were found
 	if len(expected) != 0 {
-		missing := make([]int, 0)
+		var missing []int
 		for i := range expected {
 			missing = append(missing, i)
 		}
