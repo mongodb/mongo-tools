@@ -92,6 +92,19 @@ func (sp *SessionProvider) ServerVersion() (string, error) {
 	return out.Version, nil
 }
 
+func (sp *SessionProvider) ServerVersionArray() (Version, error) {
+	var version Version
+	out := struct{ VersionArray []int32 }{}
+	err := sp.RunString("buildInfo", &out, "admin")
+	if err != nil {
+		return version, err
+	}
+	for i, v := range out.VersionArray {
+		version[i] = int(v)
+	}
+	return version, nil
+}
+
 // DatabaseNames returns a slice containing the names of all the databases on the
 // connected server.
 func (sp *SessionProvider) DatabaseNames() ([]string, error) {
