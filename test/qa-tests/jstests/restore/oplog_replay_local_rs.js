@@ -44,11 +44,6 @@
     .concat(commonToolArgs));
   assert.eq(0, ret, "dump operation failed");
 
-  // Dump original data.
-  testColl.drop();
-  assert.eq(0, testColl.count(), "all original entries should be dropped");
-
-
   // Create the test.op collection.
   testRestoreColl.drop();
   testRestoreDB.createCollection("op");
