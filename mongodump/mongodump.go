@@ -533,7 +533,11 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		// Views have an implied aggregation which does not support snapshot.
 		// These are all a no-op.
 	default:
-		findQuery.Hint = bson.D{{"_id", 1}}
+		// Don't hint autoIndexId:false collections
+		autoIndexId, found := intent.Options["autoIndexId"]
+		if !found || autoIndexId == true {
+			findQuery.Hint = bson.D{{"_id", 1}}
+		}
 	}
 
 	var dumpCount int64
