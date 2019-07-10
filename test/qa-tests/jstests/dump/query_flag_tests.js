@@ -23,7 +23,7 @@
   // Running mongodump with '--query' specified but no '--db' should fail
   var dumpArgs = ['dump',
     '--collection', 'bar',
-    '--query', '"{ x: { $gt:0 } }"']
+    '--query', '{ "x": { "$gt":0 } }']
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
@@ -43,7 +43,7 @@
   // Running mongodump with '--query' specified but no '--collection' should fail
   dumpArgs = ['dump',
     '--db', 'foo',
-    '--query', '"{ x: { $gt:0 } }"']
+    '--query', '"{ "x": { "$gt":0 } }"']
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
   assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
@@ -74,7 +74,7 @@
   // Running mongodump with '--query' should only get matching documents
   resetDbpath(targetPath);
   dumpArgs = ['dump',
-    '--query', '{ x: { $gt:0 } }',
+    '--query', '{ "x": { "$gt":0 } }',
     '--db', 'foo',
     '--collection', 'bar']
     .concat(getDumpTarget(targetPath))
