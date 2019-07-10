@@ -21,7 +21,7 @@ install_test_data = function() {
 // attempt to export fields without NaN
 install_test_data();
 
-t.runTool( "export" , "--out" , t.extFile , "-d" , t.baseName , "-c" , "foo", "-q", "{a:{\"$nin\":[NaN]}}" );
+t.runTool( "export" , "--out" , t.extFile , "-d" , t.baseName , "-c" , "foo", "-q", '{"a":{"$nin":[{"$numberDouble":"NaN"}]}}' );
 
 c.drop();
 assert.eq( 0 , c.count() , "after drop" , "-d" , t.baseName , "-c" , "foo" );
@@ -33,7 +33,7 @@ assert.eq( 2 , c.count() , "after restore 1" );
 // attempt to export fields with NaN
 install_test_data();
 
-t.runTool( "export" , "--out" , t.extFile , "-d" , t.baseName , "-c" , "foo", "-q", "{a:NaN}" );
+t.runTool( "export" , "--out" , t.extFile , "-d" , t.baseName , "-c" , "foo", "-q", '{"a":{"$numberDouble":"NaN"}}' );
 
 c.drop();
 assert.eq( 0 , c.count() , "after drop" , "-d" , t.baseName , "-c" , "foo" );

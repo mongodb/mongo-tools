@@ -33,7 +33,7 @@
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', '{a:3}']
+    '--query', '{"a":3}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -56,7 +56,7 @@
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', "{a:1, c:'1'}"]
+    '--query', '{"a":1, "c":"1"}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -107,7 +107,7 @@
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', "{a:2, 'x.c':'2'}"]
+    '--query', '{"a":2, "x.c":"2"}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -159,7 +159,7 @@
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', '{x:{$gt:Date(1418305949498), $lt:Date(1418305979498)}, y:{$gt:{$date:1418478749498}, $lt:{$date:1418478769498}}}']
+    '--query', '{"x":{"$gt":{"$date":{"$numberLong":"1418305949498"}}, "$lt":{"$date":{"$numberLong":"1418305979498"}}}, "y":{"$gt":{"$date":{"$numberLong":"1418478749498"}}, "$lt":{"$date":{"$numberLong":"1418478769498"}}}}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
@@ -181,7 +181,7 @@
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', '{x:{$gt:ISODate("2014-12-11T13:52:39.3Z"), $lt:ISODate("2014-12-11T13:52:39.5Z")}}']
+    '--query', '{"x":{"$gt":{"$date":"2014-12-11T13:52:39.3Z"}, "$lt":{"$date":"2014-12-11T13:52:39.5Z"}}}']
     .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',

@@ -147,8 +147,8 @@
 
   // test with $ projection and query
   cases = [
-    {query: '{ d: 4 }', field: 'd.$', expected: /[4]/},
-    {query: '{ a: { $gt: 1 } }', field: 'a.$', expected: /[2]/},
+    {query: '{ "d": 4 }', field: 'd.$', expected: /[4]/},
+    {query: '{ "a": { "$gt": 1 } }', field: 'a.$', expected: /[2]/},
     {query: '{ "b.c": -1 }', field: 'b.c.$', expected: /[-1]/},
   ];
 
