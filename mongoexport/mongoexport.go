@@ -305,16 +305,16 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		findOpts.SetSort(sortD)
 	}
 
-	query := map[string]interface{}{}
+	query := bson.D{}
 	if exp.InputOpts != nil && exp.InputOpts.HasQuery() {
 		var err error
 		content, err := exp.InputOpts.GetQuery()
 		if err != nil {
 			return nil, err
 		}
-		query, err = getObjectFromByteArg(content)
+		err = bson.UnmarshalExtJSON(content, false, &query)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error parsing query as Extended JSON: %v", err)
 		}
 	}
 
