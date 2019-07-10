@@ -42,7 +42,7 @@ var testName = 'mongofiles_get';
     assert.eq(actual, expected, 'mismatched md5 sum - expected ' + expected + ' got ' + actual);
 
     // ensure tool runs get_id without error
-    var idAsJSON = fileId.tojson();
+    var idAsJSON = '{ "$oid": "' + fileId.valueOf() + '" }';
     if (_isWindows()) {
       idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
     }
