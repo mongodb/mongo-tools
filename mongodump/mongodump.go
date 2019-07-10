@@ -12,11 +12,9 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/archive"
 	"github.com/mongodb/mongo-tools-common/auth"
-	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
@@ -54,7 +52,7 @@ type MongoDump struct {
 	// useful internals that we don't directly expose as options
 	SessionProvider *db.SessionProvider
 	manager         *intents.Manager
-	query           bson.M
+	query           bson.D
 	oplogCollection string
 	oplogStart      primitive.Timestamp
 	oplogEnd        primitive.Timestamp
@@ -197,26 +195,16 @@ func (dump *MongoDump) Dump() (err error) {
 	dump.shutdownIntentsNotifier = newNotifier()
 
 	if dump.InputOptions.HasQuery() {
-		// parse JSON then convert extended JSON values
-		var asJSON interface{}
 		content, err := dump.InputOptions.GetQuery()
 		if err != nil {
 			return err
 		}
-		err = json.Unmarshal(content, &asJSON)
+		var query bson.D
+		err = bson.UnmarshalExtJSON(content, false, &query)
 		if err != nil {
-			return fmt.Errorf("error parsing query as json: %v", err)
+			return fmt.Errorf("error parsing query as Extended JSON: %v", err)
 		}
-		convertedJSON, err := bsonutil.ConvertLegacyExtJSONValueToBSON(asJSON)
-		if err != nil {
-			return fmt.Errorf("error converting query to bson: %v", err)
-		}
-		asMap, ok := convertedJSON.(map[string]interface{})
-		if !ok {
-			// unlikely to be reached
-			return fmt.Errorf("query is not in proper format")
-		}
-		dump.query = bson.M(asMap)
+		dump.query = query
 	}
 
 	if !dump.SkipUsersAndRoles && dump.OutputOptions.DumpDBUsersAndRoles {

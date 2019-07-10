@@ -214,7 +214,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(file))
 		defer bsonSource.Close()
 
-		var result bson.M
+		var result bson.D
 		for bsonSource.Next(&result) {
 			_, err = collection.InsertOne(nil, result)
 			if err != nil {
@@ -239,7 +239,7 @@ func setUpMongoDumpTestData() error {
 		coll := session.Database(testDB).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
-			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j})
+			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j, "coords": bson.D{{"x", i}, {"y", j}}})
 			if err != nil {
 				return err
 			}
@@ -407,7 +407,7 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 		iter, err := collOriginal.Find(nil, bson.D{})
 		So(err, ShouldBeNil)
 
-		var result bson.M
+		var result bson.D
 		for iter.Next(nil) {
 			iter.Decode(&result)
 			restoredCount, err := collRestore.CountDocuments(nil, result)
@@ -830,5 +830,60 @@ func TestMongoDumpOplog(t *testing.T) {
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
 		})
 
+	})
+}
+
+func TestMongoDumpOrderedQuery(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	Convey("With a MongoDump instance", t, func() {
+		err := setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+		path, err := os.Getwd()
+		So(err, ShouldBeNil)
+		dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+
+		Convey("testing that --query is order-preserving", func() {
+			// If order is not preserved, probabalistically, some of these
+			// loops will fail.
+			for i := 0; i < 100; i++ {
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+
+				md := simpleMongoDumpInstance()
+				md.InputOptions.Query = `{"coords":{"x":0,"y":1}}`
+				md.ToolOptions.Namespace.Collection = testCollectionNames[0]
+				md.ToolOptions.Namespace.DB = testDB
+				md.OutputOptions.Out = "dump"
+				err = md.Init()
+				So(err, ShouldBeNil)
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				dumpBSON := util.ToUniversalPath(filepath.Join(dumpDir, testDB, testCollectionNames[0]+".bson"))
+
+				file, err := os.Open(dumpBSON)
+				So(err, ShouldBeNil)
+
+				bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(file))
+
+				var count int
+				var result bson.M
+				for bsonSource.Next(&result) {
+					count++
+				}
+				So(bsonSource.Err(), ShouldBeNil)
+
+				So(count, ShouldEqual, 1)
+
+				bsonSource.Close()
+				file.Close()
+			}
+		})
+
+		Reset(func() {
+			So(os.RemoveAll(dumpDir), ShouldBeNil)
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+		})
 	})
 }
