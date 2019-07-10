@@ -29,7 +29,7 @@
   assert.eq(4, sourceColl.count());
 
   // export the data, with a query that will match nothing
-  let query = '{"a":3}';
+  var query = '{"a":3}';
   if (_isWindows()) {
     query = '"' + query.replace(/"/g, '\\"') + '"';
   }
