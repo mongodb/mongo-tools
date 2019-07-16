@@ -15,12 +15,13 @@ Report any bugs, improvements, or new feature requests at https://jira.mongodb.o
 
 Setup
 ---------------
-Clone the repo and run `. ./set_goenv.sh` to setup your GOPATH:
+Clone the repo and use `set_goenv.sh` to setup your GOPATH:
 
 ```
 git clone https://github.com/mongodb/mongo-tools
 cd mongo-tools
-. ./set_gopath.sh
+. ./set_goenv.sh # import the functions
+set_goenv # run the main function
 ```
 
 Building Tools
