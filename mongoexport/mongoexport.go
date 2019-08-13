@@ -35,11 +35,11 @@ const (
 	watchProgressorUpdateFrequency = 8000
 )
 
-// jsonFormat is the type for all valid extended JSON formats to output.
-type jsonFormat string
+// JSONFormat is the type for all valid extended JSON formats to output.
+type JSONFormat string
 
 const (
-	canonical jsonFormat = "canonical"
+	canonical JSONFormat = "canonical"
 	relaxed              = "relaxed"
 )
 
