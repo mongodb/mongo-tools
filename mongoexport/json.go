@@ -24,12 +24,12 @@ type JSONExportOutput struct {
 	PrettyOutput bool
 	Out          io.Writer
 	NumExported  int64
-	JSONFormat   jsonFormat
+	JSONFormat   JSONFormat
 }
 
 // NewJSONExportOutput creates a new JSONExportOutput in array mode if specified,
 // configured to write data to the given io.Writer.
-func NewJSONExportOutput(arrayOutput bool, prettyOutput bool, out io.Writer, jsonFormat jsonFormat) *JSONExportOutput {
+func NewJSONExportOutput(arrayOutput bool, prettyOutput bool, out io.Writer, jsonFormat JSONFormat) *JSONExportOutput {
 	return &JSONExportOutput{
 		arrayOutput,
 		prettyOutput,
