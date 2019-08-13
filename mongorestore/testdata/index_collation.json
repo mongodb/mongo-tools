@@ -1,0 +1,69 @@
+{
+   "indexes" : [
+      {
+         "v" : {
+            "$numberInt" : "2"
+         },
+         "ns" : "test.foo",
+         "name" : "_id_",
+         "collation" : {
+            "alternate" : "non-ignorable",
+            "normalization" : false,
+            "caseFirst" : "off",
+            "strength" : {
+               "$numberInt" : "2"
+            },
+            "caseLevel" : false,
+            "numericOrdering" : false,
+            "locale" : "en_US",
+            "backwards" : false,
+            "maxVariable" : "punct",
+            "version" : "57.1"
+         },
+         "key" : {
+            "_id" : {
+               "$numberInt" : "1"
+            }
+         }
+      },
+      {
+         "ns" : "test.foo",
+         "weights" : {
+            "name" : {
+               "$numberInt" : "1"
+            }
+         },
+         "language_override" : "language",
+         "key" : {
+            "_fts" : "text",
+            "_ftsx" : {
+               "$numberInt" : "1"
+            }
+         },
+         "v" : {
+            "$numberInt" : "2"
+         },
+         "name" : "example_text",
+         "textIndexVersion" : {
+            "$numberInt" : "3"
+         },
+         "default_language" : "english"
+      }
+   ],
+   "options" : {
+      "collation" : {
+         "maxVariable" : "punct",
+         "version" : "57.1",
+         "backwards" : false,
+         "locale" : "en_US",
+         "strength" : {
+            "$numberInt" : "2"
+         },
+         "caseLevel" : false,
+         "numericOrdering" : false,
+         "alternate" : "non-ignorable",
+         "caseFirst" : "off",
+         "normalization" : false
+      }
+   }
+}

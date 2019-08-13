@@ -26,7 +26,7 @@ doc:
 
 .PHONY: build-examples
 build-examples:
-	go build $(BUILD_TAGS) ./examples/... ./x/network/examples/...
+	go build $(BUILD_TAGS) ./examples/... ./x/mongo/driver/examples/...
 
 .PHONY: build
 build:
@@ -55,19 +55,27 @@ errcheck:
 
 .PHONY: test
 test:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $(TEST_PKGS)
+	for TEST in $(TEST_PKGS) ; do \
+		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $$TEST ; \
+	done
 
 .PHONY: test-cover
 test-cover:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $(TEST_PKGS)
+	for TEST in $(TEST_PKGS) ; do \
+    	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $$TEST ; \
+    done
 
 .PHONY: test-race
 test-race:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(TEST_PKGS)
+	for TEST in $(TEST_PKGS) ; do \
+    	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(COVER_ARGS) $$TEST ; \
+    done
 
 .PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(TEST_PKGS)
+	for TEST in $(TEST_PKGS) ; do \
+    	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(COVER_ARGS) $$TEST ; \
+    done
 
 .PHONY: update-bson-corpus-tests
 update-bson-corpus-tests:
@@ -109,11 +117,13 @@ vet:
 # Evergreen specific targets
 .PHONY: evg-test
 evg-test:
-	go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $(TEST_PKGS) > test.suite
+	for TEST in $(TEST_PKGS) ; do \
+		go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
+	done
 
 .PHONY: evg-test-auth
 evg-test-auth:
-	go run -tags gssapi ./x/network/examples/count/main.go -uri $(MONGODB_URI)
+	go run -tags gssapi ./x/mongo/driver/examples/count/main.go -uri $(MONGODB_URI)
 
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz

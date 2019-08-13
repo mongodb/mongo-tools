@@ -25,7 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 // ContextDialer makes new network connections
@@ -81,6 +81,7 @@ type ClientOptions struct {
 	Registry               *bsoncodec.Registry
 	ReplicaSet             *string
 	RetryWrites            *bool
+	RetryReads             *bool
 	ServerSelectionTimeout *time.Duration
 	Direct                 *bool
 	SocketTimeout          *time.Duration
@@ -124,7 +125,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.AppName = &cs.AppName
 	}
 
-	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "admin" ||
+	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "" ||
 		cs.Username != "" || cs.PasswordSet {
 		c.Auth = &Credential{
 			AuthMechanism:           cs.AuthMechanism,
@@ -487,6 +488,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.RetryWrites != nil {
 			c.RetryWrites = opt.RetryWrites
 		}
+		if opt.RetryReads != nil {
+			c.RetryReads = opt.RetryReads
+		}
 		if opt.ServerSelectionTimeout != nil {
 			c.ServerSelectionTimeout = opt.ServerSelectionTimeout
 		}
@@ -508,6 +512,7 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.err != nil {
 			c.err = opt.err
 		}
+
 	}
 
 	return c

@@ -33,7 +33,7 @@
 
   // run mongoexport with --query and --queryFile
   ret = toolTest.runTool('export', '--db', 'test', '--collection', 'data',
-    '--query', '{a:1}', '--queryFile', 'jstests/export/testdata/query.json');
+    '--query', '{"a":1}', '--queryFile', 'jstests/export/testdata/query.json');
   assert.neq(0, ret);
 
   // run mongoexport with a --queryFile that doesn't exist

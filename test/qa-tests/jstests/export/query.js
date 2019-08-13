@@ -29,11 +29,15 @@
   assert.eq(4, sourceColl.count());
 
   // export the data, with a query that will match nothing
+  var query = '{"a":3}';
+  if (_isWindows()) {
+    query = '"' + query.replace(/"/g, '\\"') + '"';
+  }
   var ret = toolTest.runTool.apply(toolTest, ['export',
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', '{a:3}']
+    '--query', query]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -52,11 +56,15 @@
   removeFile(exportTarget);
 
   // export the data, with a query matching a single element
+  query = '{"a":1,"c":"1"}';
+  if (_isWindows()) {
+    query = '"' + query.replace(/"/g, '\\"') + '"';
+  }
   ret = toolTest.runTool.apply(toolTest, ['export',
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', "{a:1, c:'1'}"]
+    '--query', query]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -103,11 +111,15 @@
 
 
   // export the data, with a query on an embedded document
+  query = '{"a":2,"x.c":"2"}';
+  if (_isWindows()) {
+    query = '"' + query.replace(/"/g, '\\"') + '"';
+  }
   ret = toolTest.runTool.apply(toolTest, ['export',
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', "{a:2, 'x.c':'2'}"]
+    '--query', query]
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -155,11 +167,15 @@
     x: ISODate("2014-12-11T13:52:39.498Z"),
     y: ISODate("2014-12-13T13:52:39.498Z")
   });
+  query = '{"x":{"$gt":{"$date":{"$numberLong":"1418305949498"}},"$lt":{"$date":{"$numberLong":"1418305979498"}}},"y":{"$gt":{"$date":{"$numberLong":"1418478749498"}},"$lt":{"$date":{"$numberLong":"1418478769498"}}}}';
+  if (_isWindows()) {
+    query = '"' + query.replace(/"/g, '\\"') + '"';
+  }
   ret = toolTest.runTool.apply(toolTest, ['export',
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', '{x:{$gt:Date(1418305949498), $lt:Date(1418305979498)}, y:{$gt:{$date:1418478749498}, $lt:{$date:1418478769498}}}']
+    '--query', query]
     .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
@@ -177,11 +193,15 @@
     x: ISODate("2014-12-11T13:52:39.498Z"),
     y: ISODate("2014-12-13T13:52:39.498Z")
   });
+  query = '{"x":{"$gt":{"$date":"2014-12-11T13:52:39.3Z"},"$lt":{"$date":"2014-12-11T13:52:39.5Z"}}}';
+  if (_isWindows()) {
+    query = '"' + query.replace(/"/g, '\\"') + '"';
+  }
   ret = toolTest.runTool.apply(toolTest, ['export',
     '--out', exportTarget,
     '--db', 'test',
     '--collection', 'source',
-    '--query', '{x:{$gt:ISODate("2014-12-11T13:52:39.3Z"), $lt:ISODate("2014-12-11T13:52:39.5Z")}}']
+    '--query', query]
     .concat(commonToolArgs));
   assert.eq(0, ret);
   ret = toolTest.runTool.apply(toolTest, ['import',
