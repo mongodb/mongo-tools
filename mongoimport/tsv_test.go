@@ -11,13 +11,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestTSVStreamDocument(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a TSV input reader", t, func() {
 		Convey("integer valued strings should be converted tsv1", func() {
 			contents := "1\t2\t3e\n"
@@ -139,7 +139,7 @@ func TestTSVStreamDocument(t *testing.T) {
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			for i := 0; i < len(expectedReads); i++ {
 				for j, readDocument := range <-docChan {
-					So(readDocument.Name, ShouldEqual, expectedReads[i][j].Name)
+					So(readDocument.Key, ShouldEqual, expectedReads[i][j].Key)
 					So(readDocument.Value, ShouldEqual, expectedReads[i][j].Value)
 				}
 			}
@@ -200,7 +200,7 @@ func TestTSVStreamDocument(t *testing.T) {
 }
 
 func TestTSVReadAndValidateHeader(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a TSV input reader", t, func() {
 		Convey("setting the header should read the first line of the TSV", func() {
 			contents := "extraHeader1\textraHeader2\textraHeader3\n"
@@ -213,7 +213,7 @@ func TestTSVReadAndValidateHeader(t *testing.T) {
 }
 
 func TestTSVConvert(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a TSV input reader", t, func() {
 		Convey("calling convert on a TSVConverter should return the expected BSON document", func() {
 			tsvConverter := TSVConverter{

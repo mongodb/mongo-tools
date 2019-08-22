@@ -38,7 +38,7 @@ if (typeof getToolTest === 'undefined') {
   var dumpArgs = ['dump',
     '--db', 'foo',
     '--collection', 'bar',
-    '--query', '{ $where: "sleep(25); return true;" }']
+    '--query', '{ "$where": "sleep(25); return true;" }']
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
 
@@ -49,6 +49,8 @@ if (typeof getToolTest === 'undefined') {
     'error reading from db',
     'error reading collection',
     'connection closed',
+    'Interrupted',
+    'interrupted',
   ];
   assert.soon(function() {
     var output = rawMongoProgramOutput();

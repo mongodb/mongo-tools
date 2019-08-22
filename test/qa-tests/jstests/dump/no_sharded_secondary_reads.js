@@ -39,7 +39,7 @@
   assert.eq(db.a.find({a: 5}).toArray().length, 2);
   // assert that the shell queries happened only on primaries
   profQuery= {ns: "test.a", op: "query"};
-  assert.eq(replDB.system.profile.find().count(profQuery), 3,
+  assert.eq(replDB.system.profile.find(profQuery).count(), 3,
     "three queries should have been logged");
   for (i = 0; i < secondaries.length; i++) {
     assert.eq(secondaries[i].system.profile.find(profQuery).count(), 0,

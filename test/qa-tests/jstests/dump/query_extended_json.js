@@ -18,7 +18,7 @@
       .concat(commonToolArgs);
     assert.eq(toolTest.runTool.apply(toolTest, dumpArgs), 0,
       'mongodump should return exit status 0 when --db, --collection, and ' +
-      '--query are all specified');
+      '--query are all specified: ' + query);
 
     db.dropDatabase();
     db.getSiblingDB('baz').dropDatabase();
@@ -38,7 +38,7 @@
   var d = new Date();
   db.bar.insert({_id: 1, x: d});
   db.bar.insert({_id: 2, x: new Date(2011, 8, 4)});
-  runDumpRestoreWithQuery('{ x: { $date: ' + d.getTime() + ' } }');
+  runDumpRestoreWithQuery('{ "x": { "$date": {"$numberLong": "' + d.getTime() + '"} } }');
 
   assert.eq(1, db.bar.count());
   assert.eq(1, db.bar.findOne()._id);
@@ -48,7 +48,7 @@
   d = new Date();
   db.bar.insert({_id: 1, x: /bacon/i});
   db.bar.insert({_id: 2, x: /bacon/});
-  runDumpRestoreWithQuery('{ x: { $regex: "bacon", $options: "i" } }');
+  runDumpRestoreWithQuery('{ "x": { "$regularExpression": { "pattern": "bacon", "options": "i" }}}');
 
   assert.eq(1, db.bar.count());
   assert.eq(1, db.bar.findOne()._id);
@@ -59,7 +59,7 @@
   db.bar.insert({x: 2});
   var doc = db.bar.findOne();
 
-  runDumpRestoreWithQuery('{ _id: { $oid: "' + doc._id + '" } }');
+  runDumpRestoreWithQuery('{ "_id": { "$oid": "' + doc._id + '" } }');
 
   assert.eq(1, db.bar.count());
   assert.eq(db.bar.findOne()._id.toString(), doc._id.toString());
@@ -68,7 +68,7 @@
   db.bar.drop();
   db.bar.insert({_id: 1, x: MinKey});
   db.bar.insert({_id: 2, x: 1});
-  runDumpRestoreWithQuery('{ x: { $minKey: 1 } }');
+  runDumpRestoreWithQuery('{ "x": { "$minKey": 1 } }');
 
   assert.eq(1, db.bar.count());
   assert.eq(1, db.bar.findOne()._id);
@@ -77,10 +77,7 @@
   db.bar.drop();
   db.bar.insert({_id: 1, x: MaxKey});
   db.bar.insert({_id: 2, x: 1});
-  runDumpRestoreWithQuery('{ x: { $maxKey: 1 } }');
-
-  assert.eq(1, db.bar.count());
-  assert.eq(1, db.bar.findOne()._id);
+  runDumpRestoreWithQuery('{ "x": { "$maxKey": 1 } }');
 
   toolTest.stop();
 }());

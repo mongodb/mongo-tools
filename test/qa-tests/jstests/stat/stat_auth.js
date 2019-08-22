@@ -1,5 +1,5 @@
 (function() {
-  load("jstests/libs/mongostat.js");
+  load("jstests/libs/output.js");
   var port = allocatePort();
   var m = startMongod(
     "--auth",
@@ -26,5 +26,5 @@
   assert.eq(x, exitCodeSuccess, "mongostat should exit successfully with foobar:foobar");
 
   x = runMongoProgram.apply(null, args.concat("--password", "wrong"));
-  assert.eq(x, exitCodeErr, "mongostat should exit with an error exit code with foobar:wrong");
+  assert.eq(x, exitCodeFailure, "mongostat should exit with an error exit code with foobar:wrong");
 }());

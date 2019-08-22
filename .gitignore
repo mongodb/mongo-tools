@@ -13,9 +13,10 @@
 *.temp
 *.zip
 
-*temp*
+/temp*
 
 bin/
+testing_output/
 
 vendor/pkg
 

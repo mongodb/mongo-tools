@@ -17,11 +17,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/tomb.v2"
 )
 
@@ -155,7 +154,7 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 		if val != nil {
 			hasDocumentKey = true
 		}
-		upsertDocument = append(upsertDocument, bson.DocElem{Name: key, Value: val})
+		upsertDocument = append(upsertDocument, bson.E{Key: key, Value: val})
 	}
 	if !hasDocumentKey {
 		return nil
@@ -219,37 +218,20 @@ func getUpsertValue(field string, document bson.D) interface{} {
 	left := field[0:index]
 	subDoc, _ := bsonutil.FindValueByKey(left, &document)
 	if subDoc == nil {
+		log.Logvf(log.DebugHigh, "no subdoc found for '%v'", left)
 		return nil
 	}
-	subDocD, ok := subDoc.(bson.D)
-	if !ok {
+	switch subDoc.(type) {
+	case bson.D:
+		subDocD := subDoc.(bson.D)
+		return getUpsertValue(field[index+1:], subDocD)
+	case *bson.D:
+		subDocD := subDoc.(*bson.D)
+		return getUpsertValue(field[index+1:], *subDocD)
+	default:
+		log.Logvf(log.DebugHigh, "subdoc found for '%v', but couldn't coerce to bson.D", left)
 		return nil
 	}
-	return getUpsertValue(field[index+1:], subDocD)
-}
-
-// filterIngestError accepts a boolean indicating if a non-nil error should be,
-// returned as an actual error.
-//
-// If the error indicates an unreachable server, it returns that immediately.
-//
-// If the error indicates an invalid write concern was passed, it returns nil
-//
-// If the error is not nil, it logs the error. If the error is an io.EOF error -
-// indicating a lost connection to the server, it sets the error as such.
-//
-func filterIngestError(stopOnError bool, err error) error {
-	if err == nil {
-		return nil
-	}
-	if err.Error() == io.EOF.Error() {
-		return fmt.Errorf(db.ErrLostConnection)
-	}
-	if stopOnError || db.IsConnectionError(err) {
-		return err
-	}
-	log.Logvf(log.Always, "error inserting documents: %v", err)
-	return nil
 }
 
 // removeBlankFields takes document and returns a new copy in which
@@ -276,7 +258,7 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 func setNestedValue(key string, value interface{}, document *bson.D) {
 	index := strings.Index(key, ".")
 	if index == -1 {
-		*document = append(*document, bson.DocElem{Name: key, Value: value})
+		*document = append(*document, bson.E{Key: key, Value: value})
 		return
 	}
 	keyName := key[0:index]
@@ -292,7 +274,7 @@ func setNestedValue(key string, value interface{}, document *bson.D) {
 	}
 	setNestedValue(key[index+1:], value, subDocument)
 	if !existingKey {
-		*document = append(*document, bson.DocElem{Name: keyName, Value: subDocument})
+		*document = append(*document, bson.E{Key: keyName, Value: subDocument})
 	}
 }
 
@@ -317,7 +299,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb: importTomb,
+			tomb:                  importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
 		wg.Add(1)
@@ -382,7 +364,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 			if strings.Index(colSpecs[index].Name, ".") != -1 {
 				setNestedValue(colSpecs[index].Name, parsedValue, &document)
 			} else {
-				document = append(document, bson.DocElem{Name: colSpecs[index].Name, Value: parsedValue})
+				document = append(document, bson.E{Key: colSpecs[index].Name, Value: parsedValue})
 			}
 		} else {
 			parsedValue = autoParse(token)
@@ -391,7 +373,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v ('%v') in document #%v",
 					key, index+1, parsedValue, numProcessed)
 			}
-			document = append(document, bson.DocElem{Name: key, Value: parsedValue})
+			document = append(document, bson.E{Key: key, Value: parsedValue})
 		}
 	}
 	return document, nil

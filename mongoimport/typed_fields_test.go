@@ -7,14 +7,14 @@
 package mongoimport
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func init() {
@@ -24,7 +24,7 @@ func init() {
 }
 
 func TestTypedHeaderParser(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Using 'zip.string(),number.double(),foo.auto()'", t, func() {
 		var headers = []string{"zip.string()", "number.double()", "foo.auto()", `bar.date(January 2\, \(2006\))`}
@@ -82,6 +82,7 @@ func TestTypedHeaderParser(t *testing.T) {
 }
 
 func TestAutoHeaderParser(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Using 'zip,number'", t, func() {
 		var headers = []string{"zip", "number", "foo"}
 		var colSpecs = ParseAutoHeaders(headers)
@@ -94,7 +95,7 @@ func TestAutoHeaderParser(t *testing.T) {
 }
 
 func TestFieldParsers(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Using FieldAutoParser", t, func() {
 		var p, _ = NewFieldParser(ctAuto, "")
@@ -377,12 +378,12 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses valid decimal values correctly", func() {
 			for _, ts := range []string{"12235.2355", "42", "0", "-124", "-124.55"} {
-				testVal, err := bson.ParseDecimal128(ts)
+				testVal, err := primitive.ParseDecimal128(ts)
 				So(err, ShouldBeNil)
 				parsedValue, err := p.Parse(ts)
 				So(err, ShouldBeNil)
 
-				So(testVal, ShouldResemble, parsedValue.(bson.Decimal128))
+				So(testVal, ShouldResemble, parsedValue.(primitive.Decimal128))
 			}
 		})
 		Convey("does not parse invalid decimal values", func() {

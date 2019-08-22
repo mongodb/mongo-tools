@@ -13,6 +13,8 @@
   db = primary.getDB('foo'); // eslint-disable-line no-native-reassign
 
   db.bar.insertOne({}, {writeConcern: {w: 3}});
+  db.baz.insertOne({}, {writeConcern: {w: 3}});
+  db.bam.insertOne({}, {writeConcern: {w: 3}});
 
   secondaries.forEach(function(secondary) {
     secondary.getDB('foo').setProfilingLevel(2);
@@ -35,17 +37,24 @@
 
   rs.reconfig(conf);
 
-  runMongoProgram('mongodump', '--host', "replset/"+primary.host, '--readPreference={mode:"nearest", tags:{use:"secondary1"}}');
+  runMongoProgram('mongodump', '-vvvv', '--host', "replset/"+primary.host, '--readPreference={mode:"nearest", tagSets:[{use:"secondary1"}]}');
 
+  var primaryCount = 0;
+  var secondaryCount = 0;
   replset1.nodes.forEach(function(node) {
     var count = node.getDB('foo').system.profile.find().count();
     jsTest.log(node.host+" "+count);
     if (node.host === hostByTag.secondary1) {
       assert.neq(count, 0, node.host);
-    } else {
-      assert.eq(count, 0, node.host);
+      secondaryCount = count;
+    } else if (node.host === primary.host) {
+      primaryCount = count;
     }
   });
+
+  // Some metadata operations run on primary, but we should see more operations run on
+  // secondary with the read preference.
+  assert.gt(secondaryCount, primaryCount);
 
   toolTest.stop();
 }());

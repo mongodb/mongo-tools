@@ -2,7 +2,7 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
-  load("jstests/libs/mongostat.js");
+  load("jstests/libs/output.js");
   load("jstests/libs/extended_assert.js");
   var assert = extendedAssert;
 
@@ -12,7 +12,7 @@
   var x, rows;
   x = runMongoProgram("mongostat", "--port", port,
     "-o", "host,conn,time", "-O", "metrics.record.moves");
-  assert.eq(x, exitCodeBadOptions, "mongostat should fail with both -o and -O options");
+  assert.eq(x, exitCodeFailure, "mongostat should fail with both -o and -O options");
   clearRawMongoProgramOutput();
 
   // basic -o --humanReadable=false
@@ -20,7 +20,7 @@
     "-o", "host,conn,time", "-n", 4, "--humanReadable=false");
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
-    rows = statRows();
+    rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
@@ -34,7 +34,7 @@
     "-o", "host,conn,time", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
-    rows = statRows();
+    rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
@@ -47,7 +47,7 @@
   x = runMongoProgram("mongostat", "--port", port,
     "-O", "host", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  rows = statRows();
+  rows = allShellRows();
   var fields = statFields(rows[0]);
   assert.eq(fields[fields.length-1], "host",
     "first row should end with added 'host' field");
@@ -58,7 +58,7 @@
     "-o", "host=H,conn=C,time=MYTiME", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
-    rows = statRows();
+    rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "H,C,MYTiME",
@@ -72,7 +72,7 @@
     "-o", "host,conn,mem.bits", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
-    rows = statRows();
+    rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,mem.bits",
@@ -90,7 +90,7 @@
     "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
-    rows = statRows();
+    rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,MYCoNN,BiTs",

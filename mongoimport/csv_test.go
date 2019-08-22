@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {
@@ -27,7 +27,7 @@ func init() {
 }
 
 func TestCSVStreamDocument(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a CSV input reader", t, func() {
 		Convey("badly encoded CSV should result in a parsing error", func() {
 			contents := `1, 2, foo"bar`
@@ -123,7 +123,7 @@ func TestCSVStreamDocument(t *testing.T) {
 
 			readDocument := <-docChan
 			So(readDocument[0], ShouldResemble, expectedRead[0])
-			So(readDocument[1].Name, ShouldResemble, expectedRead[1].Name)
+			So(readDocument[1].Key, ShouldResemble, expectedRead[1].Key)
 			So(*readDocument[1].Value.(*bson.D), ShouldResemble, expectedRead[1].Value)
 			So(readDocument[2], ShouldResemble, expectedRead[2])
 			So(readDocument[3], ShouldResemble, expectedRead[3])
@@ -199,7 +199,7 @@ func TestCSVStreamDocument(t *testing.T) {
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			for _, expectedRead := range expectedReads {
 				for i, readDocument := range <-docChan {
-					So(readDocument.Name, ShouldResemble, expectedRead[i].Name)
+					So(readDocument.Key, ShouldResemble, expectedRead[i].Key)
 					So(readDocument.Value, ShouldResemble, expectedRead[i].Value)
 				}
 			}
@@ -208,7 +208,7 @@ func TestCSVStreamDocument(t *testing.T) {
 }
 
 func TestCSVReadAndValidateHeader(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	var err error
 	Convey("With a CSV input reader", t, func() {
 		Convey("setting the header should read the first line of the CSV", func() {
@@ -335,7 +335,7 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 }
 
 func TestCSVConvert(t *testing.T) {
-	testtype.VerifyTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a CSV input reader", t, func() {
 		Convey("calling convert on a CSVConverter should return the expected BSON document", func() {
 			csvConverter := CSVConverter{

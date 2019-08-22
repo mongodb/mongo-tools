@@ -18,7 +18,7 @@
     "jstests/import/testdata/dupes.json",
     "--db", db.getName(),
     "--collection", db.c.getName(),
-    "--stopOnError"]
+    "--stopOnError", "--legacy"]
     .concat(commonToolArgs));
 
   assert.neq(ret, 0,
@@ -30,7 +30,7 @@
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/dupes.json",
     "--db", db.getName(),
-    "--collection", db.c.getName()]
+    "--collection", db.c.getName(), "--legacy"]
     .concat(commonToolArgs));
   assert.eq(ret, 0,
     "duplicate key without --stopOnError should return zero exit code");
