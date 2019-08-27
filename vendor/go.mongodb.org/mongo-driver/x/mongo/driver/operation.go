@@ -24,6 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+const defaultLocalThreshold = 15 * time.Millisecond
+
 var dollarCmd = [...]byte{'.', '$', 'c', 'm', 'd'}
 
 var (
@@ -192,7 +194,7 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		}
 		selector = description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(rp),
-			description.LatencySelector(15 * time.Millisecond),
+			description.LatencySelector(defaultLocalThreshold),
 		})
 	}
 
@@ -361,6 +363,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		switch tt := err.(type) {
 		case WriteCommandError:
+			if e := err.(WriteCommandError); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
+				return ErrUnsupportedStorageEngine
+			}
 			if retryable && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
@@ -406,6 +411,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		case Error:
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
+			}
+			if e := err.(Error); retryable && op.Type == Write && e.UnsupportedStorageEngine() {
+				return ErrUnsupportedStorageEngine
 			}
 			if retryable && tt.Retryable() && retries != 0 {
 				retries--
@@ -830,7 +838,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
 
 	var addedTxnNumber bool
-	if op.Type == Write && client != nil && client.RetryWrite {
+	if op.Type == Write && client.RetryWrite {
 		addedTxnNumber = true
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
