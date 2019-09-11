@@ -328,6 +328,17 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.upsertFields, ShouldResemble, []string{"_id"})
 		})
 
+		Convey("if --mode=delete is used without --upsertFields, _id should be set as "+
+			"the upsert field", func() {
+			imp := NewMockMongoImport()
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.IngestOptions.Mode = modeDelete
+			imp.IngestOptions.UpsertFields = ""
+			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.upsertFields, ShouldResemble, []string{"_id"})
+		})
+
 		Convey("no error should be thrown if all fields in the --upsertFields "+
 			"argument are valid", func() {
 			imp := NewMockMongoImport()
