@@ -139,8 +139,9 @@ type Connection struct {
 	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
 	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
 
-	Timeout             int `long:"dialTimeout" default:"3" hidden:"true" description:"dial timeout in seconds"`
-	TCPKeepAliveSeconds int `long:"TCPKeepAliveSeconds" default:"30" hidden:"true" description:"seconds between TCP keep alives"`
+	Timeout                int `long:"dialTimeout" default:"3" hidden:"true" description:"dial timeout in seconds"`
+	TCPKeepAliveSeconds    int `long:"TCPKeepAliveSeconds" default:"30" hidden:"true" description:"seconds between TCP keep alives"`
+	ServerSelectionTimeout int `long:"serverSelectionTimeout" hidden:"true" description:"seconds to wait for server selection; 0 means driver default"`
 }
 
 // Struct holding ssl-related options

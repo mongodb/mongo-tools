@@ -54,7 +54,11 @@ func main() {
 			log.Logvf(log.Always, "Failed: %v", err)
 		}
 		if m.ToolOptions.WriteConcern.Acknowledged() {
-			log.Logvf(log.Always, "%v document(s) imported successfully. %v document(s) failed to import.", numDocs, numFailure)
+			if opts.Mode == "delete" {
+				log.Logvf(log.Always, "%v document(s) deleted successfully. %v document(s) failed to delete.", numDocs, numFailure)
+			} else {
+				log.Logvf(log.Always, "%v document(s) imported successfully. %v document(s) failed to import.", numDocs, numFailure)
+			}
 		} else {
 			log.Logvf(log.Always, "done")
 		}

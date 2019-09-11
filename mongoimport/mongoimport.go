@@ -38,6 +38,7 @@ const (
 	modeInsert = "insert"
 	modeUpsert = "upsert"
 	modeMerge  = "merge"
+	modeDelete = "delete"
 )
 
 const (
@@ -228,6 +229,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	// double-check mode choices
 	if !(imp.IngestOptions.Mode == modeInsert ||
 		imp.IngestOptions.Mode == modeUpsert ||
+		imp.IngestOptions.Mode == modeDelete ||
 		imp.IngestOptions.Mode == modeMerge) {
 		return fmt.Errorf("invalid --mode argument: %v", imp.IngestOptions.Mode)
 	}
@@ -490,7 +492,7 @@ readLoop:
 
 func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {
 	if result != nil {
-		atomic.AddUint64(&imp.insertionCount, uint64(result.InsertedCount)+uint64(result.ModifiedCount)+uint64(result.UpsertedCount))
+		atomic.AddUint64(&imp.insertionCount, uint64(result.InsertedCount)+uint64(result.ModifiedCount)+uint64(result.UpsertedCount)+uint64(result.DeletedCount))
 	}
 	if bwe, ok := err.(mongo.BulkWriteException); ok {
 		atomic.AddUint64(&imp.failureCount, uint64(len(bwe.WriteErrors)))
@@ -511,6 +513,8 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 			result, err = inserter.Insert(document)
 		} else if imp.IngestOptions.Mode == modeUpsert {
 			result, err = inserter.Replace(selector, document)
+		} else if imp.IngestOptions.Mode == modeDelete {
+			result, err = inserter.Delete(selector, document)
 		} else {
 			// modeMerge
 			updateDoc := bson.D{{"$set", document}}

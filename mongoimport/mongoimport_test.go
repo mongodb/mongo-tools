@@ -754,6 +754,43 @@ func TestImportDocuments(t *testing.T) {
 			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
+		Convey("CSV import with --mode=delete should succeed", func() {
+			// Fist import 3 documetns
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test.csv"
+			fields := "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.MaintainInsertionOrder = true
+			numImported, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numImported, ShouldEqual, 3)
+			So(numFailed, ShouldEqual, 0)
+
+			// Then delete two documents
+			imp, err = NewMongoImport()
+			So(err, ShouldBeNil)
+
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_delete.csv"
+			fields = "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.Mode = modeDelete
+			imp.IngestOptions.StopOnError = true
+			// Must specify upsert fields since option parsing is skipped in tests
+			imp.upsertFields = []string{"_id"}
+			numImported, numFailed, err = imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numImported, ShouldEqual, 2)
+			So(numFailed, ShouldEqual, 0)
+
+			expectedDocuments := []bson.M{
+				{"_id": int32(3), "c": 5.4, "b": "string"},
+			}
+			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+		})
 		Convey("CSV import with --mode=upsert/--upsertFields with duplicate id should succeed "+
 			"even if stopOnError is set", func() {
 			imp, err := NewMongoImport()

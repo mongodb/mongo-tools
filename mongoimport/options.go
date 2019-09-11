@@ -78,7 +78,7 @@ type IngestOptions struct {
 	// "insert": Insert only, skip existing documents.
 	// "upsert": Insert new documents or replace existing ones.
 	// "merge": Insert new documents or modify existing ones; Preserve values in the database that are not overwritten.
-	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" description:"insert: insert only. upsert: insert or replace existing documents. merge: insert or modify existing documents. (default: insert)"`
+	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" choice:"delete" description:"insert: insert only. upsert: insert or replace existing documents. merge: insert or modify existing documents. (default: insert)"`
 
 	Upsert bool `long:"upsert" hidden:"true" description:"(deprecated; same as --mode=upsert) insert or update objects that already exist"`
 
