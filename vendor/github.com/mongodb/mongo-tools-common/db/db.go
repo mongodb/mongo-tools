@@ -24,8 +24,6 @@ import (
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -89,27 +87,6 @@ type SessionProvider struct {
 	client *mongo.Client
 }
 
-// ApplyOpsResponse represents the response from an 'applyOps' command.
-type ApplyOpsResponse struct {
-	Ok     bool   `bson:"ok"`
-	ErrMsg string `bson:"errmsg"`
-}
-
-// Oplog represents a MongoDB oplog document.
-type Oplog struct {
-	Timestamp  primitive.Timestamp `bson:"ts"`
-	HistoryID  int64               `bson:"h"`
-	Version    int                 `bson:"v"`
-	Operation  string              `bson:"op"`
-	Namespace  string              `bson:"ns"`
-	Object     bson.D              `bson:"o"`
-	Query      bson.D              `bson:"o2,omitempty"`
-	UI         *primitive.Binary   `bson:"ui,omitempty"`
-	LSID       bson.Raw            `bson:"lsid,omitempty"`
-	TxnNumber  *int64              `bson:"txnNumber,omitempty"`
-	PrevOpTime bson.Raw            `bson:"prevOpTime,omitempty"`
-}
-
 // Returns a mongo.Client connected to the database server for which the
 // session provider is configured.
 func (sp *SessionProvider) GetSession() (*mongo.Client, error) {
@@ -142,7 +119,11 @@ func (sp *SessionProvider) DB(name string) *mongo.Database {
 func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	// finalize auth options, filling in missing passwords
 	if opts.Auth.ShouldAskForPassword() {
-		opts.Auth.Password = password.Prompt()
+		pass, err := password.Prompt()
+		if err != nil {
+			return nil, fmt.Errorf("error reading password: %v", err)
+		}
+		opts.Auth.Password = pass
 	}
 
 	client, err := configureClient(opts)
@@ -305,6 +286,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 
 	clientopt.SetConnectTimeout(timeout)
 	clientopt.SetSocketTimeout(SocketTimeout * time.Second)
+	if opts.Connection.ServerSelectionTimeout > 0 {
+		clientopt.SetServerSelectionTimeout(time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second)
+	}
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
 
 	clientopt.SetAppName(opts.AppName)
