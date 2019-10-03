@@ -776,7 +776,7 @@ func TestImportDocuments(t *testing.T) {
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete should succeed", func() {
-			// Fist import 3 documetns
+			// Fist import 3 documents
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
 			imp.IngestOptions.Mode = modeInsert
@@ -813,7 +813,7 @@ func TestImportDocuments(t *testing.T) {
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete and --upsertFields should succeed", func() {
-			// Fist import 3 documetns
+			// Fist import 3 documents
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
 			imp.IngestOptions.Mode = modeInsert
@@ -852,7 +852,7 @@ func TestImportDocuments(t *testing.T) {
 		})
 		Convey("CSV import with --mode=delete and --ignoreBlanks should not take any action for "+
 			"documents that have blank values for upsert fields", func() {
-			// Fist import 3 documetns
+			// Fist import 3 documents
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
 			imp.IngestOptions.Mode = modeInsert
