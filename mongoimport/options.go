@@ -73,12 +73,12 @@ type IngestOptions struct {
 	StopOnError bool `long:"stopOnError" description:"halt after encountering any error during importing. By default, mongoimport will attempt to continue through document validation and DuplicateKey errors, but with this option enabled, the tool will stop instead. A small number of documents may be inserted after encountering an error even with this option enabled; use --maintainInsertionOrder to halt immediately after an error"`
 
 	// Modify the import process.
-	// Always insert the documents if they are new (do NOT match --upsertFields).
 	// For existing documents (match --upsertFields) in the database:
 	// "insert": Insert only, skip existing documents.
 	// "upsert": Insert new documents or replace existing ones.
 	// "merge": Insert new documents or modify existing ones; Preserve values in the database that are not overwritten.
-	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" choice:"delete" description:"insert: insert only. upsert: insert or replace existing documents. merge: insert or modify existing documents. (default: insert)"`
+	// "delete": Skip new documents or delete existing ones that match --upsertFields.
+	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" choice:"delete" default:"insert" description:"insert: insert only, skips matching documents. upsert: insert new documents or replace existing documents. merge: insert new documents or modify existing documents. delete: deletes matching documents only. If upsert fields match more than one document, only one document is deleted."`
 
 	Upsert bool `long:"upsert" hidden:"true" description:"(deprecated; same as --mode=upsert) insert or update objects that already exist"`
 
