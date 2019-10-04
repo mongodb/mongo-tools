@@ -116,7 +116,11 @@ func connectionCloseFunc(v interface{}) {
 		return
 	}
 
-	go func() { _ = c.pool.closeConnection(c) }()
+	go func() {
+		// wait for connection to finish trying to connect
+		_ = c.wait()
+		_ = c.pool.closeConnection(c)
+	}()
 }
 
 // connectionInitFunc returns an init function for the resource pool that will make new connections for this pool
@@ -125,6 +129,9 @@ func (p *pool) connectionInitFunc() interface{} {
 	if err != nil {
 		return nil
 	}
+
+	go c.connect(context.Background())
+
 	return c
 }
 
@@ -321,6 +328,23 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 
 	connVal := p.conns.Get()
 	if c, ok := connVal.(*connection); ok && connVal != nil {
+		// call connect if not connected
+		if atomic.LoadInt32(&c.connected) == initialized {
+			c.connect(ctx)
+		}
+
+		err := c.wait()
+		if err != nil {
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:    event.GetFailed,
+					Address: p.address.String(),
+					Reason:  event.ReasonConnectionErrored,
+				})
+			}
+			return nil, err
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
@@ -343,6 +367,21 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 		return nil, ctx.Err()
 	default:
 		c, reason, err := p.makeNewConnection(ctx)
+
+		if err != nil {
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:    event.GetFailed,
+					Address: p.address.String(),
+					Reason:  reason,
+				})
+			}
+			return nil, err
+		}
+
+		c.connect(ctx)
+		// wait for conn to be connected
+		err = c.wait()
 		if err != nil {
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
@@ -378,10 +417,14 @@ func (p *pool) closeConnection(c *connection) error {
 	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
 		return nil // We're closing an already closed connection
 	}
-	err := c.nc.Close()
-	if err != nil {
-		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to closeConnection net.Conn"}
+
+	if c.nc != nil {
+		err := c.nc.Close()
+		if err != nil {
+			return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to close net.Conn"}
+		}
 	}
+
 	return nil
 }
 

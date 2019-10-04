@@ -117,8 +117,7 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "TOOLS-2268"
-  digest = "1:8bcac204bd4cb5a2a4ae48efc428ed410d1f518a6bd4a42e3c45577a5c330de2"
+  digest = "1:15134378955985b475423e44d65f293b6ffc0c94a465584f40c314b1804ffa2e"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -140,7 +139,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "ddd51491d882972e74a2ef2be93d554fa59b2cd6"
+  revision = "b921bbd1fe24fc55e78c59d7dc52ae2fd8b895c5"
+  version = "v1.0.1"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -155,6 +155,14 @@
   packages = ["."]
   pruneopts = "T"
   revision = "1881a9bccb818787f68c52bfba648c6cf34c34fa"
+
+[[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:c6ee5f0b23f2bc65fa69e006e0afd8e516d4c601573701cc700e3f492654b55c"
@@ -202,7 +210,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:207b4c02dd8fc1faa365190f1d3da571d67797387765e1f19080bda3b13a78a8"
+  digest = "1:01366e87ecd7aa9f366f9729f7dbf33463bbc58978081958249d8304abf4742b"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -229,6 +237,8 @@
     "x/mongo/driver/connstring",
     "x/mongo/driver/description",
     "x/mongo/driver/dns",
+    "x/mongo/driver/mongocrypt",
+    "x/mongo/driver/mongocrypt/options",
     "x/mongo/driver/operation",
     "x/mongo/driver/session",
     "x/mongo/driver/topology",
@@ -236,8 +246,7 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "T"
-  revision = "d42ea7239f0db8a61e77191b9f2730a922459042"
-  version = "v1.1.0"
+  revision = "7490fa5f89ee53bf642ba1969494987bc39a9918"
 
 [[projects]]
   digest = "1:0f2b2cb9f84318c0f71fed3087ff9ac370370f842469b71b00348c3d72a19b44"

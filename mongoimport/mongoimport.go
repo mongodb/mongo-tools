@@ -331,8 +331,8 @@ func (fsp *fileSizeProgressor) Progress() (int64, int64) {
 }
 
 // ImportDocuments is used to write input data to the database. It returns the
-// number of documents successfully imported to the appropriate namespace and
-// any error encountered in doing this
+// number of documents successfully imported to the appropriate namespace,
+// the number of failures, and any error encountered in doing this
 func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 	source, fileSize, err := imp.getSourceReader()
 	if err != nil {
@@ -370,7 +370,9 @@ func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 
 // importDocuments is a helper to ImportDocuments and does all the ingestion
 // work by taking data from the inputReader source and writing it to the
-// appropriate namespace
+// appropriate namespace. It returns the number of documents successfully
+// imported to the appropriate namespace, the number of failures, and any error
+// encountered in doing this
 func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64, error) {
 	session, err := imp.SessionProvider.GetSession()
 	if err != nil {

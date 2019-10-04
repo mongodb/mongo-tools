@@ -50,9 +50,6 @@ const (
 	DefaultTestPort = "33333"
 )
 
-// Hard coded socket timeout in seconds
-const SocketTimeout = 600
-
 const (
 	ErrLostConnection     = "lost connection to server"
 	ErrNoReachableServers = "no reachable servers"
@@ -119,7 +116,11 @@ func (sp *SessionProvider) DB(name string) *mongo.Database {
 func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	// finalize auth options, filling in missing passwords
 	if opts.Auth.ShouldAskForPassword() {
-		opts.Auth.Password = password.Prompt()
+		pass, err := password.Prompt()
+		if err != nil {
+			return nil, fmt.Errorf("error reading password: %v", err)
+		}
+		opts.Auth.Password = pass
 	}
 
 	client, err := configureClient(opts)
@@ -278,10 +279,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if err := uriOpts.Validate(); err != nil {
 		return nil, fmt.Errorf("error parsing options from URI: %v", err)
 	}
-	timeout := time.Duration(opts.Timeout) * time.Second
 
-	clientopt.SetConnectTimeout(timeout)
-	clientopt.SetSocketTimeout(SocketTimeout * time.Second)
+	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
+	clientopt.SetSocketTimeout(time.Duration(opts.SocketTimeout) * time.Second)
 	if opts.Connection.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second)
 	}
