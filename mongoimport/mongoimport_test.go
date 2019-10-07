@@ -1001,6 +1001,27 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(n, ShouldEqual, 1)
 		})
+		Convey("CSV import with array dot notation should import into an array", func() {
+			// TODO: test with and without header/field file
+
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_arrays.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.IngestOptions.Mode = modeInsert
+
+			numImported, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numImported, ShouldEqual, 1)
+			So(numFailed, ShouldEqual, 0)
+
+			expectedDocuments := []bson.M{
+				{"_id": int32(1), "b": []int32{1, 2, 3}, "c": []bson.M{bson.M{"foo": int32(42)}, bson.M{"foo": int32(84)}}},
+			}
+			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+		})
 	})
 }
 

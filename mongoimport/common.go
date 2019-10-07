@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -262,6 +263,32 @@ func setNestedValue(key string, value interface{}, document *bson.D) {
 		return
 	}
 	keyName := key[0:index]
+	// here we want to find out if the next part of the key, a.b or a.b.c is a number
+	// Might want to do something more lightweight than a regex here
+	re := regexp.MustCompile("^[0-9]+")
+	keyPart := re.FindString(keyName)
+
+	if keyPart == "" {
+		// Regular key
+
+		subDocument := &bson.D{}
+		elem, err := bsonutil.FindValueByKey(keyName, document)
+		if err != nil { // no such key in the document
+			elem = nil
+		}
+		var existingKey bool
+		if elem != nil {
+			subDocument = elem.(*bson.D)
+			existingKey = true
+		}
+		setNestedValue(key[index+1:], value, subDocument)
+		if !existingKey {
+			*document = append(*document, bson.E{Key: keyName, Value: subDocument})
+		}
+	} else {
+		// numeric key
+	}
+
 	subDocument := &bson.D{}
 	elem, err := bsonutil.FindValueByKey(keyName, document)
 	if err != nil { // no such key in the document
@@ -299,7 +326,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb:                  importTomb,
+			tomb: importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
 		wg.Add(1)
