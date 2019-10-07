@@ -38,6 +38,7 @@ const (
 	modeInsert = "insert"
 	modeUpsert = "upsert"
 	modeMerge  = "merge"
+	modeDelete = "delete"
 )
 
 const (
@@ -48,10 +49,10 @@ const (
 // MongoImport is a container for the user-specified options and
 // internal state used for running mongoimport.
 type MongoImport struct {
-	// insertionCount keeps track of how many documents have successfully
-	// been inserted into the database
+	// processedCount keeps track of how many documents have successfully
+	// been processed (inserted, upserted, merged, or deleted)
 	// updated atomically, aligned at the beginning of the struct
-	insertionCount uint64
+	processedCount uint64
 
 	// failureCount keeps track of how many documents have failed to be inserted into the database.
 	// Should be updated atomically.
@@ -228,6 +229,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	// double-check mode choices
 	if !(imp.IngestOptions.Mode == modeInsert ||
 		imp.IngestOptions.Mode == modeUpsert ||
+		imp.IngestOptions.Mode == modeDelete ||
 		imp.IngestOptions.Mode == modeMerge) {
 		return fmt.Errorf("invalid --mode argument: %v", imp.IngestOptions.Mode)
 	}
@@ -329,8 +331,8 @@ func (fsp *fileSizeProgressor) Progress() (int64, int64) {
 }
 
 // ImportDocuments is used to write input data to the database. It returns the
-// number of documents successfully imported to the appropriate namespace and
-// any error encountered in doing this
+// number of documents successfully imported to the appropriate namespace,
+// the number of failures, and any error encountered in doing this
 func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 	source, fileSize, err := imp.getSourceReader()
 	if err != nil {
@@ -368,8 +370,10 @@ func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 
 // importDocuments is a helper to ImportDocuments and does all the ingestion
 // work by taking data from the inputReader source and writing it to the
-// appropriate namespace
-func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported uint64, numFailed uint64, retErr error) {
+// appropriate namespace. It returns the number of documents successfully
+// imported to the appropriate namespace, the number of failures, and any error
+// encountered in doing this
+func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64, error) {
 	session, err := imp.SessionProvider.GetSession()
 	if err != nil {
 		return 0, 0, err
@@ -415,9 +419,9 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (numImported ui
 	}()
 
 	e1 := channelQuorumError(processingErrChan, 2)
-	insertionCount := atomic.LoadUint64(&imp.insertionCount)
+	processedCount := atomic.LoadUint64(&imp.processedCount)
 	failureCount := atomic.LoadUint64(&imp.failureCount)
-	return insertionCount, failureCount, e1
+	return processedCount, failureCount, e1
 }
 
 // ingestDocuments accepts a channel from which it reads documents to be inserted
@@ -490,7 +494,7 @@ readLoop:
 
 func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {
 	if result != nil {
-		atomic.AddUint64(&imp.insertionCount, uint64(result.InsertedCount)+uint64(result.ModifiedCount)+uint64(result.UpsertedCount))
+		atomic.AddUint64(&imp.processedCount, uint64(result.InsertedCount)+uint64(result.ModifiedCount)+uint64(result.UpsertedCount)+uint64(result.DeletedCount))
 	}
 	if bwe, ok := err.(mongo.BulkWriteException); ok {
 		atomic.AddUint64(&imp.failureCount, uint64(len(bwe.WriteErrors)))
@@ -501,26 +505,43 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 	var result *mongo.BulkWriteResult
 	var err error
 
+	selector := constructUpsertDocument(imp.upsertFields, document)
+
 	if imp.IngestOptions.Mode == modeInsert {
 		result, err = inserter.Insert(document)
-	} else {
-		// modeUpsert, modeMerge
-		selector := constructUpsertDocument(imp.upsertFields, document)
+	} else if imp.IngestOptions.Mode == modeUpsert {
 		if selector == nil {
-			log.Logvf(log.Info, "Could not construct selector from %v, falling back to insert mode", imp.upsertFields)
-			result, err = inserter.Insert(document)
-		} else if imp.IngestOptions.Mode == modeUpsert {
-			result, err = inserter.Replace(selector, document)
+			imp.fallbackToInsert(inserter, document)
 		} else {
-			// modeMerge
+			result, err = inserter.Replace(selector, document)
+		}
+	} else if imp.IngestOptions.Mode == modeMerge {
+		if selector == nil {
+			imp.fallbackToInsert(inserter, document)
+		} else {
 			updateDoc := bson.D{{"$set", document}}
 			result, err = inserter.Update(selector, updateDoc)
 		}
+	} else if imp.IngestOptions.Mode == modeDelete {
+		if selector == nil {
+			log.Logvf(log.Info, "Could not construct selector from %v, skipping document", imp.upsertFields)
+		} else {
+			result, err = inserter.Delete(selector, document)
+		}
+	} else {
+		err = fmt.Errorf("Invalid mode: %v", imp.IngestOptions.Mode)
 	}
+
 	// Update success and failure counts
 	imp.updateCounts(result, err)
 
 	return err
+}
+
+func (imp *MongoImport) fallbackToInsert(inserter *db.BufferedBulkInserter, document bson.D) (result *mongo.BulkWriteResult, err error) {
+	log.Logvf(log.Info, "Could not construct selector from %v, falling back to insert mode", imp.upsertFields)
+	result, err = inserter.Insert(document)
+	return
 }
 
 func splitInlineHeader(header string) (headers []string) {

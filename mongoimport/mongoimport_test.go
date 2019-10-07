@@ -328,6 +328,17 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.upsertFields, ShouldResemble, []string{"_id"})
 		})
 
+		Convey("if --mode=delete is used without --upsertFields, _id should be set as "+
+			"the upsert field", func() {
+			imp := NewMockMongoImport()
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.IngestOptions.Mode = modeDelete
+			imp.IngestOptions.UpsertFields = ""
+			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.upsertFields, ShouldResemble, []string{"_id"})
+		})
+
 		Convey("no error should be thrown if all fields in the --upsertFields "+
 			"argument are valid", func() {
 			imp := NewMockMongoImport()
@@ -548,49 +559,53 @@ func TestImportDocuments(t *testing.T) {
 			"CSV data lines should be imported correctly", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
 			fields := "a,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.IngestOptions.WriteConcern = "majority"
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			So(numFailed, ShouldEqual, 0)
 		})
 		Convey("an error should be thrown for JSON import on test data that is "+
 			"JSON array", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.File = "testdata/test_array.json"
 			imp.IngestOptions.WriteConcern = "majority"
-			numImported, _, err := imp.ImportDocuments()
+			numProcessed, _, err := imp.ImportDocuments()
 			So(err, ShouldNotBeNil)
-			So(numImported, ShouldEqual, 0)
+			So(numProcessed, ShouldEqual, 0)
 		})
 		Convey("TOOLS-247: no error should be thrown for JSON import on test "+
 			"data and all documents should be imported correctly", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.File = "testdata/test_plain2.json"
 			imp.IngestOptions.WriteConcern = "majority"
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 10)
+			So(numProcessed, ShouldEqual, 10)
 			So(numFailed, ShouldEqual, 0)
 		})
 		Convey("CSV import with --ignoreBlanks should import only non-blank fields", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test_blanks.csv"
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.IngestOptions.IgnoreBlanks = true
 
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			So(numFailed, ShouldEqual, 0)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2)},
@@ -602,14 +617,15 @@ func TestImportDocuments(t *testing.T) {
 		Convey("CSV import without --ignoreBlanks should include blanks", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test_blanks.csv"
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(numFailed, ShouldEqual, 0)
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": ""},
 				{"_id": int32(5), "b": "", "c": "6e"},
@@ -620,16 +636,17 @@ func TestImportDocuments(t *testing.T) {
 		Convey("no error should be thrown for CSV import on test data with --upsertFields", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.IngestOptions.UpsertFields = "b,c"
 			imp.IngestOptions.MaintainInsertionOrder = true
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(numFailed, ShouldEqual, 0)
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": int32(3)},
 				{"_id": int32(3), "b": 5.4, "c": "string"},
@@ -641,6 +658,7 @@ func TestImportDocuments(t *testing.T) {
 			"--stopOnError. Only documents before error should be imported", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
 			fields := "_id,b,c"
@@ -648,9 +666,9 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.StopOnError = true
 			imp.IngestOptions.MaintainInsertionOrder = true
 			imp.IngestOptions.WriteConcern = "majority"
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			So(numFailed, ShouldEqual, 0)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": int32(3)},
@@ -662,15 +680,15 @@ func TestImportDocuments(t *testing.T) {
 		Convey("CSV import with duplicate _id's should not error if --stopOnError is not set", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
-
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test_duplicate.csv"
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.IngestOptions.StopOnError = false
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 4)
+			So(numProcessed, ShouldEqual, 4)
 			So(numFailed, ShouldEqual, 1)
 
 			expectedDocuments := []bson.M{
@@ -685,6 +703,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey("no error should be thrown for CSV import on test data with --drop", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
 			fields := "_id,b,c"
@@ -692,10 +711,10 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.Drop = true
 			imp.IngestOptions.MaintainInsertionOrder = true
 			imp.IngestOptions.WriteConcern = "majority"
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(numFailed, ShouldEqual, 0)
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": int32(3)},
 				{"_id": int32(3), "b": 5.4, "c": "string"},
@@ -706,14 +725,15 @@ func TestImportDocuments(t *testing.T) {
 		Convey("CSV import on test data with --headerLine should succeed", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.InputOptions.HeaderLine = true
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 2)
+			So(numProcessed, ShouldEqual, 2)
 			So(numFailed, ShouldEqual, 0)
 		})
 		Convey("EOF should be thrown for CSV import with --headerLine if file is empty", func() {
@@ -723,32 +743,148 @@ func TestImportDocuments(t *testing.T) {
 
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = csvFile.Name()
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.InputOptions.HeaderLine = true
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldEqual, io.EOF)
-			So(numImported, ShouldEqual, 0)
+			So(numProcessed, ShouldEqual, 0)
 			So(numFailed, ShouldEqual, 0)
 		})
 		Convey("CSV import with --mode=upsert and --upsertFields should succeed", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
-
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
 			fields := "_id,c,b"
 			imp.InputOptions.Fields = &fields
 			imp.IngestOptions.UpsertFields = "_id"
 			imp.IngestOptions.MaintainInsertionOrder = true
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 3)
+			So(numProcessed, ShouldEqual, 3)
 			So(numFailed, ShouldEqual, 0)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "c": int32(2), "b": int32(3)},
+				{"_id": int32(3), "c": 5.4, "b": "string"},
+				{"_id": int32(5), "c": int32(6), "b": int32(6)},
+			}
+			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+		})
+		Convey("CSV import with --mode=delete should succeed", func() {
+			// First import 3 documents
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test.csv"
+			fields := "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.MaintainInsertionOrder = true
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 3)
+			So(numFailed, ShouldEqual, 0)
+
+			// Then delete two documents
+			imp, err = NewMongoImport()
+			So(err, ShouldBeNil)
+
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_delete.csv"
+			fields = "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.Mode = modeDelete
+			imp.IngestOptions.StopOnError = true
+			// Must specify upsert fields since option parsing is skipped in tests
+			imp.upsertFields = []string{"_id"}
+			numProcessed, numFailed, err = imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 2)
+			So(numFailed, ShouldEqual, 0)
+
+			expectedDocuments := []bson.M{
+				{"_id": int32(3), "c": 5.4, "b": "string"},
+			}
+			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+		})
+		Convey("CSV import with --mode=delete and --upsertFields should succeed", func() {
+			// First import 3 documents
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test.csv"
+			fields := "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.MaintainInsertionOrder = true
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 3)
+			So(numFailed, ShouldEqual, 0)
+
+			// Then delete two documents
+			imp, err = NewMongoImport()
+			So(err, ShouldBeNil)
+
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_delete.csv"
+			fields = "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.Mode = modeDelete
+			imp.IngestOptions.StopOnError = true
+			// Must specify upsert fields since option parsing is skipped in tests
+			imp.upsertFields = []string{"b", "c"}
+			numProcessed, numFailed, err = imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 1)
+			So(numFailed, ShouldEqual, 0)
+
+			expectedDocuments := []bson.M{
+				{"_id": int32(3), "c": 5.4, "b": "string"},
+				{"_id": int32(5), "c": int32(6), "b": int32(6)},
+			}
+			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+		})
+		Convey("CSV import with --mode=delete and --ignoreBlanks should not take any action for "+
+			"documents that have blank values for upsert fields", func() {
+			// First import 3 documents
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test.csv"
+			fields := "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.MaintainInsertionOrder = true
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 3)
+			So(numFailed, ShouldEqual, 0)
+
+			// Then delete two documents
+			imp, err = NewMongoImport()
+			So(err, ShouldBeNil)
+
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_delete_with_blanks.csv"
+			fields = "_id,c,b"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.Mode = modeDelete
+			imp.IngestOptions.IgnoreBlanks = true
+			imp.IngestOptions.StopOnError = true
+			// Must specify upsert fields since option parsing is skipped in tests
+			imp.upsertFields = []string{"c"}
+			numProcessed, numFailed, err = imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 1)
+			So(numFailed, ShouldEqual, 0)
+
+			expectedDocuments := []bson.M{
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
@@ -765,9 +901,9 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.Mode = modeUpsert
 			imp.IngestOptions.StopOnError = true
 			imp.upsertFields = []string{"_id"}
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 5)
+			So(numProcessed, ShouldEqual, 5)
 			So(numFailed, ShouldEqual, 0)
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": int32(3)},
@@ -781,6 +917,7 @@ func TestImportDocuments(t *testing.T) {
 			"duplicate _id if --stopOnError is set", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test_duplicate.csv"
 			fields := "_id,b,c"
@@ -803,6 +940,7 @@ func TestImportDocuments(t *testing.T) {
 			"is a JSON array without passing --jsonArray", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.File = "testdata/test_array.json"
 			imp.IngestOptions.WriteConcern = "1"
 			numInserted, _, err := imp.ImportDocuments()
@@ -819,6 +957,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey("an error should be thrown for invalid CSV import on test data", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
+			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test_bad.csv"
 			fields := "_id,b,c"
@@ -838,9 +977,9 @@ func TestImportDocuments(t *testing.T) {
 			imp.InputOptions.HeaderLine = true
 			imp.IngestOptions.Mode = modeUpsert
 			imp.upsertFields = []string{"level1.level2.key1"}
-			numImported, numFailed, err := imp.ImportDocuments()
+			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 1)
+			So(numProcessed, ShouldEqual, 1)
 			So(numFailed, ShouldEqual, 0)
 			n, err := countDocuments(imp.SessionProvider)
 			So(err, ShouldBeNil)
@@ -854,9 +993,9 @@ func TestImportDocuments(t *testing.T) {
 			imp.InputOptions.HeaderLine = true
 			imp.IngestOptions.Mode = modeUpsert
 			imp.upsertFields = []string{"level1.level2.key1"}
-			numImported, numFailed, err = imp.ImportDocuments()
+			numProcessed, numFailed, err = imp.ImportDocuments()
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 1)
+			So(numProcessed, ShouldEqual, 1)
 			So(numFailed, ShouldEqual, 0)
 			n, err = countDocuments(imp.SessionProvider)
 			So(err, ShouldBeNil)
