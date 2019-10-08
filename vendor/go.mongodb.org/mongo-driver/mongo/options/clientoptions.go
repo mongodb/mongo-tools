@@ -25,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
@@ -91,14 +90,12 @@ type ClientOptions struct {
 	TLSConfig              *tls.Config
 	WriteConcern           *writeconcern.WriteConcern
 	ZlibLevel              *int
-	AutoEncryptionOptions  *AutoEncryptionOptions
 
 	err error
 
-	// These options are for internal use only and should not be set. They are deprecated and are
-	// not part of the stability guarantee. They may be removed in the future.
+	// Adds an option for internal use only and should not be set. This option is deprecated and is
+	// not part of the stability guarantee. It may be removed in the future.
 	AuthenticateToAnything *bool
-	Deployment             driver.Deployment
 }
 
 // Client creates a new ClientOptions instance.
@@ -414,12 +411,6 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 	return c
 }
 
-// SetRetryReads specifies whether the client has retryable reads enabled.
-func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
-	c.RetryReads = &b
-	return c
-}
-
 // SetServerSelectionTimeout specifies a timeout in milliseconds to block for server selection.
 func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOptions {
 	c.ServerSelectionTimeout = &d
@@ -450,12 +441,6 @@ func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOp
 func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 	c.ZlibLevel = &level
 
-	return c
-}
-
-// SetAutoEncryptionOptions specifies options used to configure automatic encryption.
-func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
-	c.AutoEncryptionOptions = opts
 	return c
 }
 
@@ -547,12 +532,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ZlibLevel != nil {
 			c.ZlibLevel = opt.ZlibLevel
-		}
-		if opt.AutoEncryptionOptions != nil {
-			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
-		}
-		if opt.Deployment != nil {
-			c.Deployment = opt.Deployment
 		}
 		if opt.err != nil {
 			c.err = opt.err

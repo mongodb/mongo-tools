@@ -41,14 +41,6 @@
   version = "v4.20"
 
 [[projects]]
-  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
-  version = "v0.8.1"
-
-[[projects]]
   digest = "1:237af0cf68bac89e21af72e6cd6b64f388854895e75f82ad08c6c011e1a8286c"
   name = "github.com/smartystreets/assertions"
   packages = [
@@ -89,7 +81,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:43a982fb7d68d8bc923ece6671e1d4536245813e6d46f4d0932f056533eb2af7"
+  digest = "1:27e22fe552475e0b843c0bffe24e6bc5c55cb4c5d68d119b8c79af08b1903bb4"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -115,8 +107,6 @@
     "x/mongo/driver/connstring",
     "x/mongo/driver/description",
     "x/mongo/driver/dns",
-    "x/mongo/driver/mongocrypt",
-    "x/mongo/driver/mongocrypt/options",
     "x/mongo/driver/operation",
     "x/mongo/driver/session",
     "x/mongo/driver/topology",
@@ -124,7 +114,8 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "7490fa5f89ee53bf642ba1969494987bc39a9918"
+  revision = "1261197350f3ad46a907489aee7ecc49b39efb82"
+  version = "v1.1.2"
 
 [[projects]]
   digest = "1:79784b4d6789bbd40f17a9d204051bdd887d889acbbdc24ed8263b3dca28dfbf"

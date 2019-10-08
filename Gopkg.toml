@@ -27,17 +27,13 @@
 # mongo-lint is a custom linter that is not called in any of the go code.
 required = ["github.com/3rf/mongo-lint"]
 
-[[override]]
-  name = "go.mongodb.org/mongo-driver"
-  revision = "7490fa5f89ee53bf642ba1969494987bc39a9918"
-
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  version = "^v1.0.0"
+  version = "^v1.0.2"
 
 [[constraint]]
   name = "go.mongodb.org/mongo-driver"
-  version = "^v1.1.0"
+  version = "^v1.1.2"
 
 [[constraint]]
   name = "github.com/10gen/escaper"
