@@ -259,32 +259,32 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 // two functions work together to set elements nested in documents and arrays.
 // This is the strategy of setNestedValue/setNestedArrayValue:
 //
-// 		1. setNestedValue is called first. The first part of the field is treated as
-//		   a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
-//		   interpreted as a document key (which would only happen at the top level of a
-//		   BSON document being imported).
+// 1. setNestedValue is called first. The first part of the field is treated as
+//    a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
+//    interpreted as a document key (which would only happen at the top level of a
+//    BSON document being imported).
 //
-//		2. If there is only one field part, the value will be set for the field in the document.
+// 2. If there is only one field part, the value will be set for the field in the document.
 //
-// 		3. setNestedValue will call setNestedArrayValue if the next part of the
-//		   field is a natural number (which implies the value is an element of an array).
-//		   Otherwise, it will call itself. If a document or array already exists for the field,
-// 		   a reference to that document or array will be passed to setNestedValue or
-// 	       setNestedArrayValue respectively. If no value exists, a new document or array is
-// 		   created, added to the document, and a reference is passed to those functions.
+// 3. setNestedValue will call setNestedArrayValue if the next part of the
+//    field is a natural number (which implies the value is an element of an array).
+//    Otherwise, it will call itself. If a document or array already exists for the field,
+//    a reference to that document or array will be passed to setNestedValue or
+//    setNestedArrayValue respectively. If no value exists, a new document or array is
+//    created, added to the document, and a reference is passed to those functions.
 //
-// 		4. If setNestedArrayValue has been called, the first part of the field is an array index.
-//		   If there is only one field part, setNestedArrayValue will append the provided value to the
-//		   provided array. This is only if the size of the array is equal to the index (meaning
-//		   elements of the array must be added sequentially: 0, 1, 2,...).
+// 4. If setNestedArrayValue has been called, the first part of the field is an array index.
+//    If there is only one field part, setNestedArrayValue will append the provided value to the
+//    provided array. This is only if the size of the array is equal to the index (meaning
+//    elements of the array must be added sequentially: 0, 1, 2,...).
 //
-//		5. setNestedArrayValue will call setNestedValue if the next part of the
-//		   field is not a natural number (which implies the value is a document).
-//		   setNestedArrayValue will call itself if the next part of the field is a natural number.
-//		   If a document or array already exists at that index in the array, a reference to that
-// 		   document or array will be passed to setNestedValue or setNestedArrayValue respectively.
-// 		   If no value exists, a new document or array is created, added to the array, and a reference
-//		   is passed to those functions.
+// 5. setNestedArrayValue will call setNestedValue if the next part of the
+//    field is not a natural number (which implies the value is a document).
+//    setNestedArrayValue will call itself if the next part of the field is a natural number.
+//    If a document or array already exists at that index in the array, a reference to that
+//    document or array will be passed to setNestedValue or setNestedArrayValue respectively.
+//    If no value exists, a new document or array is created, added to the array, and a reference
+//    is passed to those functions.
 func setNestedValue(field string, value interface{}, document *bson.D) error {
 	fieldParts := strings.Split(field, ".")
 
