@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"regexp"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -253,56 +253,180 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 	return newDocument
 }
 
-// setNestedValue takes a nested field - in the form "a.b.c" -
-// its associated value, and a document. It then assigns that
-// value to the appropriate nested field within the document
-func setNestedValue(key string, value interface{}, document *bson.D) {
-	index := strings.Index(key, ".")
-	if index == -1 {
-		*document = append(*document, bson.E{Key: key, Value: value})
-		return
+// setNestedValue takes a nested field - in the form "a.b.c" - its associated value,
+// and a document. It then assigns that value to the appropriate nested field within
+// the document. setNestedValue is mutually recursive with setNestedArrayValue. The
+// two functions work together to set elements nested in documents and arrays.
+// This is the strategy of setNestedValue/setNestedArrayValue:
+//
+// 		1. setNestedValue is called first. The first part of the field is treated as
+//		   a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
+//		   interpreted as a document key (which would only happen at the top level of a
+//		   BSON document being imported).
+//
+//		2. If there is only one field part, the value will be set for the field in the document.
+//
+// 		3. setNestedValue will call setNestedArrayValue if the next part of the
+//		   field is a natural number (which implies the value is an element of an array).
+//		   Otherwise, it will call itself. If a document or array already exists for the field,
+// 		   a reference to that document or array will be passed to setNestedValue or
+// 	       setNestedArrayValue respectively. If no value exists, a new document or array is
+// 		   created, added to the document, and a reference is passed to those functions.
+//
+// 		4. If setNestedArrayValue has been called, the first part of the field is an array index.
+//		   If there is only one field part, setNestedArrayValue will append the provided value to the
+//		   provided array. This is only if the size of the array is equal to the index (meaning
+//		   elements of the array must be added sequentially: 0, 1, 2,...).
+//
+//		5. setNestedArrayValue will call setNestedValue if the next part of the
+//		   field is not a natural number (which implies the value is a document).
+//		   setNestedArrayValue will call itself if the next part of the field is a natural number.
+//		   If a document or array already exists at that index in the array, a reference to that
+// 		   document or array will be passed to setNestedValue or setNestedArrayValue respectively.
+// 		   If no value exists, a new document or array is created, added to the array, and a reference
+//		   is passed to those functions.
+func setNestedValue(field string, value interface{}, document *bson.D) error {
+	fieldParts := strings.Split(field, ".")
+
+	if len(fieldParts) == 1 {
+		*document = append(*document, bson.E{Key: fieldParts[0], Value: value})
+		return nil
 	}
-	keyName := key[0:index]
-	// here we want to find out if the next part of the key, a.b or a.b.c is a number
-	// Might want to do something more lightweight than a regex here
-	re := regexp.MustCompile("^[0-9]+")
-	keyPart := re.FindString(keyName)
 
-	if keyPart == "" {
-		// Regular key
-
-		subDocument := &bson.D{}
-		elem, err := bsonutil.FindValueByKey(keyName, document)
-		if err != nil { // no such key in the document
-			elem = nil
-		}
-		var existingKey bool
-		if elem != nil {
-			subDocument = elem.(*bson.D)
-			existingKey = true
-		}
-		setNestedValue(key[index+1:], value, subDocument)
-		if !existingKey {
-			*document = append(*document, bson.E{Key: keyName, Value: subDocument})
+	if isNatNum(fieldParts[1]) {
+		// next part of the field refers to an array
+		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
+		if err != nil {
+			// element doesn't already exist
+			subArray := &bson.A{}
+			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			if err != nil {
+				return err
+			}
+			*document = append(*document, bson.E{Key: fieldParts[0], Value: subArray})
+		} else {
+			// element already exists
+			// check the element is an array
+			subArray, ok := elem.(*bson.A)
+			if !ok {
+				return fmt.Errorf("Expected document element to be an array, "+
+					"but element has already been set as a document or other value: %#v", elem)
+			}
+			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
-		// numeric key
+		// next part of the field refers to a document
+		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
+		if err != nil { // element doesn't already exist
+			subDocument := &bson.D{}
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			if err != nil {
+				return err
+			}
+			*document = append(*document, bson.E{Key: fieldParts[0], Value: subDocument})
+		} else {
+			// element already exists
+			// check the element is a document
+			subDocument, ok := elem.(*bson.D)
+			if !ok {
+				return fmt.Errorf("Expected document element to be an document, "+
+					"but element has already been set as another value: %#v", elem)
+			}
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	subDocument := &bson.D{}
-	elem, err := bsonutil.FindValueByKey(keyName, document)
-	if err != nil { // no such key in the document
-		elem = nil
+	return nil
+}
+
+// setNestedArrayValue takes a nested field, its associated value, and an array.
+// It then assigns that value to  the appropriate nested field within the array.
+// setNestedArrayValue is mutually recursive with setNestedValue. The two functions
+// work together to set elements nested in documents and arrays. See the documentation
+// of setNestedValue for more information.
+func setNestedArrayValue(field string, value interface{}, array *bson.A) error {
+	fieldParts := strings.Split(field, ".")
+
+	// The first part of the field should be an index of an array
+	idx, err := strconv.Atoi(fieldParts[0])
+	if err != nil {
+		return err
 	}
-	var existingKey bool
-	if elem != nil {
-		subDocument = elem.(*bson.D)
-		existingKey = true
+
+	v := reflect.ValueOf(*array)
+
+	if len(fieldParts) == 1 {
+		if v.Len() != idx {
+			return fmt.Errorf("Trying to add value to array at index %d, but array is %d elements long. "+
+				"Array indices in fields must start from 0 and increase sequentially.", idx, v.Len())
+		}
+
+		*array = append(*array, value)
+		return nil
 	}
-	setNestedValue(key[index+1:], value, subDocument)
-	if !existingKey {
-		*document = append(*document, bson.E{Key: keyName, Value: subDocument})
+
+	if isNatNum(fieldParts[1]) {
+		// next part of the field refers to an array
+		if v.Len() > idx {
+			// the index already exists in array
+			// check the element is an array
+			subArray, ok := (*array)[idx].(*bson.A)
+			if !ok {
+				return fmt.Errorf("Expected array element to be a sub-array, "+
+					"but element has already been set as a document or other value: %#v", (*array)[idx])
+			}
+			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			if err != nil {
+				return err
+			}
+		} else {
+			// the element at idx doesn't exist yet
+			subArray := &bson.A{}
+			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			if err != nil {
+				return err
+			}
+			*array = append(*array, subArray)
+		}
+	} else {
+		// next part of the field refers to a document
+		if v.Len() > idx {
+			// the index already exists in array
+			// check the element is an document
+			subDocument, ok := (*array)[idx].(*bson.D)
+			if !ok {
+				return fmt.Errorf("Expected array element to be a document, "+
+					"but element has already been set as another value: %#v", (*array)[idx])
+			}
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			if err != nil {
+				return err
+			}
+		} else {
+			// the element at idx doesn't exist yet
+			subDocument := &bson.D{}
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			if err != nil {
+				return err
+			}
+			*array = append(*array, subDocument)
+		}
 	}
+	return nil
+}
+
+// isNatNum returns true if the string can be parsed as a natural number (including 0)
+func isNatNum(s string) bool {
+	if num, err := strconv.Atoi(s); err == nil && num >= 0 {
+		return true
+	}
+	return false
 }
 
 // streamDocuments concurrently processes data gotten from the inputChan
@@ -389,7 +513,12 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				}
 			}
 			if strings.Index(colSpecs[index].Name, ".") != -1 {
-				setNestedValue(colSpecs[index].Name, parsedValue, &document)
+				// setNestedValue will set a subdocument to the key
+				// 0
+				err = setNestedValue(colSpecs[index].Name, parsedValue, &document)
+				if err != nil {
+					return nil, fmt.Errorf("can't set value for key %s: %s", colSpecs[index].Name, err)
+				}
 			} else {
 				document = append(document, bson.E{Key: colSpecs[index].Name, Value: parsedValue})
 			}
@@ -429,6 +558,10 @@ func validateFields(fields []string) error {
 		// NOTE: since fields is sorted, this check ensures that no field
 		// is incompatible with another one that occurs further down the list.
 		// meant to prevent cases where we have fields like "a" and "a.c"
+
+		// TODO: Add a check here for incompatible fields:
+		// a and a.0
+		// a.b and a.0
 		for _, latterField := range fieldsCopy[index+1:] {
 			// NOTE: this means we will not support imports that have fields that
 			// include e.g. a, a.b

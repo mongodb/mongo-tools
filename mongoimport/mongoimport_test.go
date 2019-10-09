@@ -1001,28 +1001,139 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(n, ShouldEqual, 1)
 		})
-		Convey("CSV import with array dot notation should import into an array", func() {
-			// TODO: test with and without header/field file
+		Convey("With --useArrayIndexFields: Top-level numerical fields should be document keys",
+			nestedFieldsTestHelper(
+				"_id,0,1\n1,2,3",
+				[]bson.M{
+					{"_id": int32(1), "0": int32(2), "1": int32(3)},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should insert nested document",
+			nestedFieldsTestHelper(
+				"_id,a.a,a.b\n1,2,3",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.M{"a": int32(2), "b": int32(3)}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should insert an array",
+			nestedFieldsTestHelper(
+				"_id,a.0,a.1\n1,2,3",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.A{int32(2), int32(3)}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should insert an array of documents",
+			nestedFieldsTestHelper(
+				"_id,a.0.a,a.0.b,a.1.a\n1,2,3,4",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.A{bson.M{"a": int32(2), "b": int32(3)}, bson.M{"a": int32(4)}}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should insert an array of arrays",
+			nestedFieldsTestHelper(
+				"_id,a.0.0,a.0.1,a.1.0\n1,2,3,4",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.A{bson.A{int32(2), int32(3)}, bson.A{int32(4)}}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should insert an array when top-level key is \"0\"",
+			nestedFieldsTestHelper(
+				"_id,0.0,0.1\n1,2,3",
+				[]bson.M{
+					{"_id": int32(1), "0": bson.A{int32(2), int32(3)}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should insert an array in a document in an array",
+			nestedFieldsTestHelper(
+				"_id,a.0.a.0,a.0.a.1\n1,2,3",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.A{bson.M{"a": bson.A{int32(2), int32(3)}}}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Should be able to make changes to document in an array once document has been created",
+			nestedFieldsTestHelper(
+				"_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.A{bson.M{"a": int32(2), "b": int32(4)}, bson.M{"a": int32(3)}}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: If an array element is blank in the csv file, an empty string should be inserted",
+			nestedFieldsTestHelper(
+				"_id,a.0,a.1,a.2\n1,2,,4",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.A{int32(2), "", int32(4)}},
+				},
+			),
+		)
+		Convey("With --useArrayIndexFields: Duplicate fields should throw an error",
+			nestedFieldsTestHelper(
+				"_id,a.0,a.0\n1,2,3",
+				nil,
+			),
+		)
+		Convey("With --useArrayIndexFields: Array fields not starting at 0 should throw an error",
+			nestedFieldsTestHelper(
+				"_id,a.1,a.0\n1,2,3",
+				nil,
+			),
+		)
+		Convey("With --useArrayIndexFields: Array fields skipping an index should throw an error",
+			nestedFieldsTestHelper(
+				"_id,a.0,a.2\n1,2,3",
+				nil,
+			),
+		)
+		Convey("With --useArrayIndexFields: Array field should thorw an error if value has already been set as document",
+			nestedFieldsTestHelper(
+				"_id,a.a,a.0\n1,2,3",
+				nil,
+			),
+		)
+		Convey("With --useArrayIndexFields: Document field should thorw an error if value has already been set as array",
+			nestedFieldsTestHelper(
+				"_id,a.0,a.a\n1,2,3",
+				nil,
+			),
+		)
+	})
+}
 
-			imp, err := NewMongoImport()
+func nestedFieldsTestHelper(data string, expectedDocuments []bson.M) func() {
+	return func() {
+		err := ioutil.WriteFile("/tmp/data.csv", []byte(data), 0644)
+		So(err, ShouldBeNil)
+		defer func() {
+			err = os.Remove("/tmp/data.csv")
 			So(err, ShouldBeNil)
+		}()
 
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_arrays.csv"
-			imp.InputOptions.HeaderLine = true
-			imp.IngestOptions.Mode = modeInsert
+		imp, err := NewMongoImport()
+		So(err, ShouldBeNil)
 
-			numImported, numFailed, err := imp.ImportDocuments()
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "/tmp/data.csv"
+		imp.InputOptions.HeaderLine = true
+		imp.IngestOptions.Mode = modeInsert
+
+		numImported, numFailed, err := imp.ImportDocuments()
+		if expectedDocuments == nil {
+			So(err, ShouldNotBeNil)
+		} else {
 			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, 1)
+			So(numImported, ShouldEqual, len(expectedDocuments))
 			So(numFailed, ShouldEqual, 0)
 
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": []int32{1, 2, 3}, "c": []bson.M{bson.M{"foo": int32(42)}, bson.M{"foo": int32(84)}}},
-			}
 			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-	})
+		}
+	}
 }
 
 // Regression test for TOOLS-1694 to prevent issue from TOOLS-1115
