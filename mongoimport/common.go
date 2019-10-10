@@ -572,22 +572,23 @@ func validateFields(fields []string, useArrayIndexFields bool) error {
 		}
 
 		if useArrayIndexFields {
-			// Check for incompatible fields: a.n, a.b (where n = 0,1,2,...)
-			// NOTE: We must scan the whole array of fields since some fields could
-			// come before numbers if they start with symbols
-			// TODO: This doesn't catch incompatible fields of the form: a.n.b, a.b
+			// Check for incompatible fields: a.n.c, a.b.c (where n = 0,1,2,...)
+			// NOTE: We must scan the whole fieldsCopy array since some fields could
+			// come before fields with numbers if key parts start with symbols
 			fieldParts := strings.Split(field, ".")
-			numParts := len(fieldParts)
-			lastPart := fieldParts[numParts-1]
-			fieldPrefix := strings.Join(fieldParts[:numParts-1], ".")
-
-			if numParts > 1 && isNatNum(lastPart) {
-				for _, otherField := range fieldsCopy {
-					if strings.HasPrefix(otherField, fieldPrefix) {
-						otherFieldParts := strings.Split(otherField, ".")
-						if !isNatNum(otherFieldParts[numParts-1]) {
+			for _, otherField := range fieldsCopy {
+				otherFieldParts := strings.Split(otherField, ".")
+				numOtherFieldParts := len(otherFieldParts)
+				for i, part := range fieldParts {
+					if i == numOtherFieldParts {
+						// Out of bounds of otherFieldParts
+						break
+					}
+					if otherFieldParts[i] != part {
+						if !(isNatNum(otherFieldParts[i]) == isNatNum(part)) {
 							return fmt.Errorf("fields '%v' and '%v' are incompatible", field, otherField)
 						}
+						break
 					}
 				}
 			}
