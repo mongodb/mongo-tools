@@ -449,7 +449,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb: importTomb,
+			tomb:                  importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
 		wg.Add(1)

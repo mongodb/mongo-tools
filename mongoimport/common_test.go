@@ -436,7 +436,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -458,7 +458,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -494,12 +494,12 @@ func TestDoSequentialStreaming(t *testing.T) {
 			{
 				unprocessedDataChan:   workerInputChannel[0],
 				processedDocumentChan: workerOutputChannel[0],
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			},
 			{
 				unprocessedDataChan:   workerInputChannel[1],
 				processedDocumentChan: workerOutputChannel[1],
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			},
 		}
 		Convey("documents moving through the input channel should be processed and returned in sequence", func() {
