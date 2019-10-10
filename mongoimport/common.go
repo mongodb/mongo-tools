@@ -255,9 +255,9 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 
 // setNestedValue takes a nested field - in the form "a.b.c" - its associated value,
 // and a document. It then assigns that value to the appropriate nested field within
-// the document. setNestedValue is mutually recursive with setNestedArrayValue. The
-// two functions work together to set elements nested in documents and arrays.
-// This is the strategy of setNestedValue/setNestedArrayValue:
+// the document. If useArrayIndexFields is set to true, setNestedValue is mutually
+// recursive with setNestedArrayValue. The two functions work together to set elements
+// nested in documents and arrays. This is the strategy of setNestedValue/setNestedArrayValue:
 //
 // 1. setNestedValue is called first. The first part of the field is treated as
 //    a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
@@ -278,14 +278,13 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 //    provided array. This is only if the size of the array is equal to the index (meaning
 //    elements of the array must be added sequentially: 0, 1, 2,...).
 //
-// 5. setNestedArrayValue will call setNestedValue if the next part of the
-//    field is not a natural number (which implies the value is a document).
-//    setNestedArrayValue will call itself if the next part of the field is a natural number.
-//    If a document or array already exists at that index in the array, a reference to that
-//    document or array will be passed to setNestedValue or setNestedArrayValue respectively.
-//    If no value exists, a new document or array is created, added to the array, and a reference
-//    is passed to those functions.
-func setNestedValue(field string, value interface{}, document *bson.D) error {
+// 5. setNestedArrayValue will call setNestedValue if the next part of the field is not a
+//    natural number (which implies the value is a document). setNestedArrayValue will call
+//    itself if the next part of the field is a natural number. If a document or array already
+//    exists at that index in the array, a reference to that document or array will be passed
+//    to setNestedValue or setNestedArrayValue respectively. If no value exists, a new document
+//    or array is created, added to the array, and a reference is passed to those functions.
+func setNestedValue(field string, value interface{}, document *bson.D, useArrayIndexFields bool) error {
 	fieldParts := strings.Split(field, ".")
 
 	if len(fieldParts) == 1 {
@@ -293,7 +292,7 @@ func setNestedValue(field string, value interface{}, document *bson.D) error {
 		return nil
 	}
 
-	if isNatNum(fieldParts[1]) {
+	if useArrayIndexFields && isNatNum(fieldParts[1]) {
 		// next part of the field refers to an array
 		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
 		if err != nil {
@@ -322,7 +321,7 @@ func setNestedValue(field string, value interface{}, document *bson.D) error {
 		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
 		if err != nil { // element doesn't already exist
 			subDocument := &bson.D{}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, useArrayIndexFields)
 			if err != nil {
 				return err
 			}
@@ -335,7 +334,7 @@ func setNestedValue(field string, value interface{}, document *bson.D) error {
 				return fmt.Errorf("Expected document element to be an document, "+
 					"but element has already been set as another value: %#v", elem)
 			}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, useArrayIndexFields)
 			if err != nil {
 				return err
 			}
@@ -404,14 +403,14 @@ func setNestedArrayValue(field string, value interface{}, array *bson.A) error {
 				return fmt.Errorf("Expected array element to be a document, "+
 					"but element has already been set as another value: %#v", (*array)[idx])
 			}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, true)
 			if err != nil {
 				return err
 			}
 		} else {
 			// the element at idx doesn't exist yet
 			subDocument := &bson.D{}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument)
+			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, true)
 			if err != nil {
 				return err
 			}
@@ -484,7 +483,7 @@ func (coercionError) Error() string { return "coercionError" }
 
 // tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
-func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool) (bson.D, error) {
+func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool, useArrayIndexFields bool) (bson.D, error) {
 	log.Logvf(log.DebugHigh, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
@@ -513,9 +512,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				}
 			}
 			if strings.Index(colSpecs[index].Name, ".") != -1 {
-				// setNestedValue will set a subdocument to the key
-				// 0
-				err = setNestedValue(colSpecs[index].Name, parsedValue, &document)
+				err = setNestedValue(colSpecs[index].Name, parsedValue, &document, useArrayIndexFields)
 				if err != nil {
 					return nil, fmt.Errorf("can't set value for key %s: %s", colSpecs[index].Name, err)
 				}
@@ -537,7 +534,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 
 // validateFields takes a slice of fields and returns an error if the fields
 // are invalid, returns nil otherwise
-func validateFields(fields []string) error {
+func validateFields(fields []string, useArrayIndexFields bool) error {
 	fieldsCopy := make([]string, len(fields), len(fields))
 	copy(fieldsCopy, fields)
 	sort.Sort(sort.StringSlice(fieldsCopy))
@@ -560,7 +557,6 @@ func validateFields(fields []string) error {
 		// meant to prevent cases where we have fields like "a" and "a.c"
 
 		// TODO: Add a check here for incompatible fields:
-		// a and a.0
 		// a.b and a.0
 		for _, latterField := range fieldsCopy[index+1:] {
 			// NOTE: this means we will not support imports that have fields that
@@ -574,13 +570,35 @@ func validateFields(fields []string) error {
 				return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, latterField)
 			}
 		}
+
+		if useArrayIndexFields {
+			// Check for incompatible fields: a.n, a.b (where n = 0,1,2,...)
+			// NOTE: We must scan the whole array of fields since some fields could
+			// come before numbers if they start with symbols
+			// TODO: This doesn't catch incompatible fields of the form: a.n.b, a.b
+			fieldParts := strings.Split(field, ".")
+			numParts := len(fieldParts)
+			lastPart := fieldParts[numParts-1]
+			fieldPrefix := strings.Join(fieldParts[:numParts-1], ".")
+
+			if numParts > 1 && isNatNum(lastPart) {
+				for _, otherField := range fieldsCopy {
+					if strings.HasPrefix(otherField, fieldPrefix) {
+						otherFieldParts := strings.Split(otherField, ".")
+						if !isNatNum(otherFieldParts[numParts-1]) {
+							return fmt.Errorf("fields '%v' and '%v' are incompatible", field, otherField)
+						}
+					}
+				}
+			}
+		}
 	}
 	return nil
 }
 
 // validateReaderFields is a helper to validate fields for input readers
-func validateReaderFields(fields []string) error {
-	if err := validateFields(fields); err != nil {
+func validateReaderFields(fields []string, useArrayIndexFields bool) error {
+	if err := validateFields(fields, useArrayIndexFields); err != nil {
 		return err
 	}
 	if len(fields) == 1 {

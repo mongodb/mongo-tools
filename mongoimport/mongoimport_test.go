@@ -1121,6 +1121,7 @@ func nestedFieldsTestHelper(data string, expectedDocuments []bson.M) func() {
 		imp.InputOptions.Type = CSV
 		imp.InputOptions.File = "/tmp/data.csv"
 		imp.InputOptions.HeaderLine = true
+		imp.InputOptions.UseArrayIndexFields = true
 		imp.IngestOptions.Mode = modeInsert
 
 		numImported, numFailed, err := imp.ImportDocuments()

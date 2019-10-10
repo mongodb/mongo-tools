@@ -31,7 +31,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"b", int32(2)},
 				{"c", "3e"},
 			}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -51,7 +51,7 @@ func TestTSVStreamDocument(t *testing.T) {
 			}
 			fileHandle, err := os.Open("testdata/test_bom.tsv")
 			So(err, ShouldBeNil)
-			r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 2)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -70,7 +70,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", `"cccc,cccc"`},
 				{"field3", "d"},
 			}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -89,7 +89,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", "3e"},
 				{"field3", " may"},
 			}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -109,7 +109,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"c", "Inline"},
 				{"d", int32(14)},
 			}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -134,7 +134,7 @@ func TestTSVStreamDocument(t *testing.T) {
 					{"c", int32(6)},
 				},
 			}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, len(expectedReads))
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			for i := 0; i < len(expectedReads); i++ {
@@ -163,7 +163,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				{"b", `"`},
 				{"c", int32(6)},
 			}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 2)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedReadOne)
@@ -190,7 +190,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				}
 				fileHandle, err := os.Open("testdata/test.tsv")
 				So(err, ShouldBeNil)
-				r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false)
+				r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 				docChan := make(chan bson.D, 50)
 				So(r.StreamDocument(true, docChan), ShouldBeNil)
 				So(<-docChan, ShouldResemble, expectedReadOne)
@@ -205,7 +205,7 @@ func TestTSVReadAndValidateHeader(t *testing.T) {
 		Convey("setting the header should read the first line of the TSV", func() {
 			contents := "extraHeader1\textraHeader2\textraHeader3\n"
 			colSpecs := []ColumnSpec{}
-			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false)
+			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 		})
