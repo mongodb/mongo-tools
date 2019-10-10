@@ -116,7 +116,7 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 
 	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
 	if util.TimestampGreaterThan(oldestOplogEntry.Timestamp, ts) {
-		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is older than %v",
+		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is newer than %v",
 			oldestOplogEntry.Timestamp, ts)
 		return false, nil
 	}
