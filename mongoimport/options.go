@@ -49,7 +49,7 @@ type InputOptions struct {
 	// Indicates that the legacy extended JSON format should be used to parse JSON documents. Defaults to false.
 	Legacy bool `long:"legacy" default:"false" description:"use the legacy extended JSON format"`
 
-	UseArrayIndexFields bool `long:"useArrayIndexFields" default:"false" description:"indicates that field names include array indexes that should be used to construct arrays during import (e.g. foo.0,foo.1). Indexes must start from 0 and increase sequentially (foo.1,foo.0 would fail)."`
+	UseArrayIndexFields bool `long:"useArrayIndexFields" default:"false" description:"indicates that field names may include array indexes that should be used to construct arrays during import (e.g. foo.0,foo.1). Indexes must start from 0 and increase sequentially (foo.1,foo.0 would fail)."`
 }
 
 // Name returns a description of the InputOptions struct.

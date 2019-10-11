@@ -32,9 +32,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("badly encoded CSV should result in a parsing error", func() {
 			contents := `1, 2, foo"bar`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
@@ -43,9 +43,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("escaped quotes are parsed correctly", func() {
 			contents := `1, 2, "foo""bar"`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
@@ -54,9 +54,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("multiple escaped quotes separated by whitespace parsed correctly", func() {
 			contents := `1, 2, "foo"" ""bar"`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			expectedRead := bson.D{
 				{"a", int32(1)},
@@ -71,9 +71,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("integer valued strings should be converted", func() {
 			contents := `1, 2, " 3e"`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			expectedRead := bson.D{
 				{"a", int32(1)},
@@ -88,9 +88,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("extra fields should be prefixed with 'field'", func() {
 			contents := `1, 2f , " 3e" , " may"`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			expectedRead := bson.D{
 				{"a", int32(1)},
@@ -106,9 +106,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("nested CSV fields should be imported properly", func() {
 			contents := `1, 2f , " 3e" , " may"`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b.c", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b.c", new(FieldAutoParser), pgAutoCast, "auto", []string{"b", "c"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			b := bson.D{{"c", "2f"}}
 			expectedRead := bson.D{
@@ -131,9 +131,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("whitespace separated quoted strings are still an error", func() {
 			contents := `1, 2, "foo"  "bar"`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
@@ -142,9 +142,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("nested CSV fields causing header collisions should error", func() {
 			contents := `1, 2f , " 3e" , " may", june`
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b.c", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b.c", new(FieldAutoParser), pgAutoCast, "auto", []string{"b", "c"}},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 1)
@@ -154,9 +154,9 @@ func TestCSVStreamDocument(t *testing.T) {
 			"values", func() {
 			contents := "1, 2, 3\n4, 5, 6"
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			expectedReadOne := bson.D{
 				{"a", int32(1)},
@@ -177,9 +177,9 @@ func TestCSVStreamDocument(t *testing.T) {
 		Convey("valid CSV input file that starts with the UTF-8 BOM should "+
 			"not raise an error", func() {
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			expectedReads := []bson.D{
 				{
@@ -295,9 +295,9 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			"the existing column specs", func() {
 			contents := "extraHeader1,extraHeader2,extraHeader3"
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
@@ -309,9 +309,9 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 		Convey("plain CSV input file sources should be parsed correctly and "+
 			"subsequent imports should parse correctly", func() {
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			expectedReadOne := bson.D{
 				{"a", int32(1)},
@@ -340,9 +340,9 @@ func TestCSVConvert(t *testing.T) {
 		Convey("calling convert on a CSVConverter should return the expected BSON document", func() {
 			csvConverter := CSVConverter{
 				colSpecs: []ColumnSpec{
-					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+					{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 				},
 				data:  []string{"a", "b", "c"},
 				index: uint64(0),

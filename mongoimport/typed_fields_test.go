@@ -7,9 +7,10 @@
 package mongoimport
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -34,20 +35,20 @@ func TestTypedHeaderParser(t *testing.T) {
 		Convey("with parse grace: auto", func() {
 			colSpecs, err = ParseTypedHeaders(headers, pgAutoCast)
 			So(colSpecs, ShouldResemble, []ColumnSpec{
-				{"zip", new(FieldStringParser), pgAutoCast, "string"},
-				{"number", new(FieldDoubleParser), pgAutoCast, "double"},
-				{"foo", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"bar", &FieldDateParser{"January 2, (2006)"}, pgAutoCast, "date"},
+				{"zip", new(FieldStringParser), pgAutoCast, "string", []string{"zip"}},
+				{"number", new(FieldDoubleParser), pgAutoCast, "double", []string{"number"}},
+				{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
+				{"bar", &FieldDateParser{"January 2, (2006)"}, pgAutoCast, "date", []string{"bar"}},
 			})
 			So(err, ShouldBeNil)
 		})
 		Convey("with parse grace: skipRow", func() {
 			colSpecs, err = ParseTypedHeaders(headers, pgSkipRow)
 			So(colSpecs, ShouldResemble, []ColumnSpec{
-				{"zip", new(FieldStringParser), pgSkipRow, "string"},
-				{"number", new(FieldDoubleParser), pgSkipRow, "double"},
-				{"foo", new(FieldAutoParser), pgSkipRow, "auto"},
-				{"bar", &FieldDateParser{"January 2, (2006)"}, pgSkipRow, "date"},
+				{"zip", new(FieldStringParser), pgSkipRow, "string", []string{"zip"}},
+				{"number", new(FieldDoubleParser), pgSkipRow, "double", []string{"number"}},
+				{"foo", new(FieldAutoParser), pgSkipRow, "auto", []string{"foo"}},
+				{"bar", &FieldDateParser{"January 2, (2006)"}, pgSkipRow, "date", []string{"bar"}},
 			})
 			So(err, ShouldBeNil)
 		})
@@ -87,9 +88,9 @@ func TestAutoHeaderParser(t *testing.T) {
 		var headers = []string{"zip", "number", "foo"}
 		var colSpecs = ParseAutoHeaders(headers)
 		So(colSpecs, ShouldResemble, []ColumnSpec{
-			{"zip", new(FieldAutoParser), pgAutoCast, "auto"},
-			{"number", new(FieldAutoParser), pgAutoCast, "auto"},
-			{"foo", new(FieldAutoParser), pgAutoCast, "auto"},
+			{"zip", new(FieldAutoParser), pgAutoCast, "auto", []string{"zip"}},
+			{"number", new(FieldAutoParser), pgAutoCast, "auto", []string{"number"}},
+			{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
 		})
 	})
 }

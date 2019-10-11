@@ -41,7 +41,7 @@ type CSVInputReader struct {
 	// ignoreBlanks is whether empty fields should be ignored
 	ignoreBlanks bool
 
-	// useArrayIndexFields is wheter field names include array indexes
+	// useArrayIndexFields is whether field names include array indexes
 	useArrayIndexFields bool
 }
 

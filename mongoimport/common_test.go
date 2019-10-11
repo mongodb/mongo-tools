@@ -29,45 +29,45 @@ var (
 	csvConverters = []CSVConverter{
 		{
 			colSpecs: []ColumnSpec{
-				{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+				{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 			},
 			data:  []string{"a", "b", "c"},
 			index: index,
 		},
 		{
 			colSpecs: []ColumnSpec{
-				{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field6", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field4", new(FieldAutoParser), pgAutoCast, "auto", []string{"field4"}},
+				{"field5", new(FieldAutoParser), pgAutoCast, "auto", []string{"field5"}},
+				{"field6", new(FieldAutoParser), pgAutoCast, "auto", []string{"field6"}},
 			},
 			data:  []string{"d", "e", "f"},
 			index: index,
 		},
 		{
 			colSpecs: []ColumnSpec{
-				{"field7", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field8", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field9", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field7", new(FieldAutoParser), pgAutoCast, "auto", []string{"field7"}},
+				{"field8", new(FieldAutoParser), pgAutoCast, "auto", []string{"field8"}},
+				{"field9", new(FieldAutoParser), pgAutoCast, "auto", []string{"field9"}},
 			},
 			data:  []string{"d", "e", "f"},
 			index: index,
 		},
 		{
 			colSpecs: []ColumnSpec{
-				{"field10", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field11", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field12", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field10", new(FieldAutoParser), pgAutoCast, "auto", []string{"field10"}},
+				{"field11", new(FieldAutoParser), pgAutoCast, "auto", []string{"field11"}},
+				{"field12", new(FieldAutoParser), pgAutoCast, "auto", []string{"field12"}},
 			},
 			data:  []string{"d", "e", "f"},
 			index: index,
 		},
 		{
 			colSpecs: []ColumnSpec{
-				{"field13", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field14", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field15", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"field13", new(FieldAutoParser), pgAutoCast, "auto", []string{"field13"}},
+				{"field14", new(FieldAutoParser), pgAutoCast, "auto", []string{"field14"}},
+				{"field15", new(FieldAutoParser), pgAutoCast, "auto", []string{"field15"}},
 			},
 			data:  []string{"d", "e", "f"},
 			index: index,
@@ -239,7 +239,7 @@ func TestSetNestedValue(t *testing.T) {
 		Convey("ensure top level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.E{"c", 4}
-			setNestedValue("c", 4, testDocument, false)
+			setNestedValue([]string{"c"}, 4, testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2], ShouldResemble, expectedDocument)
@@ -247,7 +247,7 @@ func TestSetNestedValue(t *testing.T) {
 		Convey("ensure new nested top-level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.D{{"b", "4"}}
-			setNestedValue("c.b", "4", testDocument, false)
+			setNestedValue([]string{"c", "b"}, "4", testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2].Key, ShouldResemble, "c")
@@ -256,7 +256,7 @@ func TestSetNestedValue(t *testing.T) {
 		Convey("ensure existing nested level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
-			setNestedValue("b.d", 9, testDocument, false)
+			setNestedValue([]string{"b", "d"}, 9, testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
@@ -266,12 +266,12 @@ func TestSetNestedValue(t *testing.T) {
 			testDocument := &currentDocument
 			expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
 			expectedDocumentTwo := bson.E{"f", 23}
-			setNestedValue("b.d", 9, testDocument, false)
+			setNestedValue([]string{"b", "d"}, 9, testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
 			So(*newDocument[1].Value.(*bson.D), ShouldResemble, expectedDocumentOne)
-			setNestedValue("f", 23, testDocument, false)
+			setNestedValue([]string{"f"}, 23, testDocument, false)
 			newDocument = *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2], ShouldResemble, expectedDocumentTwo)
@@ -323,9 +323,9 @@ func TestTokensToBSON(t *testing.T) {
 		Convey("the expected ordered BSON should be produced for the given"+
 			"column specs and tokens", func() {
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			tokens := []string{"1", "2", "hello"}
 			expectedDocument := bson.D{
@@ -340,9 +340,9 @@ func TestTokensToBSON(t *testing.T) {
 		Convey("if there are more tokens than fields, additional fields should be prefixed"+
 			" with 'fields' and an index indicating the header number", func() {
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
 			expectedDocument := bson.D{
@@ -358,9 +358,9 @@ func TestTokensToBSON(t *testing.T) {
 		})
 		Convey("an error should be thrown if duplicate headers are found", func() {
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 			}
 			tokens := []string{"1", "2", "hello", "mongodb", "user"}
 			_, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
@@ -368,9 +368,9 @@ func TestTokensToBSON(t *testing.T) {
 		})
 		Convey("fields with nested values should be set appropriately", func() {
 			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto"},
-				{"c.a", new(FieldAutoParser), pgAutoCast, "auto"},
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c.a", new(FieldAutoParser), pgAutoCast, "auto", []string{"c", "a"}},
 			}
 			tokens := []string{"1", "2", "hello"}
 			c := bson.D{
@@ -401,18 +401,18 @@ func TestProcessDocuments(t *testing.T) {
 		csvConverters := []CSVConverter{
 			{
 				colSpecs: []ColumnSpec{
-					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field3", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+					{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 				},
 				data:  []string{"a", "b", "c"},
 				index: index,
 			},
 			{
 				colSpecs: []ColumnSpec{
-					{"field4", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field5", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field6", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field4", new(FieldAutoParser), pgAutoCast, "auto", []string{"field4"}},
+					{"field5", new(FieldAutoParser), pgAutoCast, "auto", []string{"field5"}},
+					{"field6", new(FieldAutoParser), pgAutoCast, "auto", []string{"field6"}},
 				},
 				data:  []string{"d", "e", "f"},
 				index: index,
@@ -436,7 +436,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb:                  &tomb.Tomb{},
+				tomb: &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -458,7 +458,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb:                  &tomb.Tomb{},
+				tomb: &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -494,12 +494,12 @@ func TestDoSequentialStreaming(t *testing.T) {
 			{
 				unprocessedDataChan:   workerInputChannel[0],
 				processedDocumentChan: workerOutputChannel[0],
-				tomb:                  &tomb.Tomb{},
+				tomb: &tomb.Tomb{},
 			},
 			{
 				unprocessedDataChan:   workerInputChannel[1],
 				processedDocumentChan: workerOutputChannel[1],
-				tomb:                  &tomb.Tomb{},
+				tomb: &tomb.Tomb{},
 			},
 		}
 		Convey("documents moving through the input channel should be processed and returned in sequence", func() {
@@ -547,8 +547,8 @@ func TestStreamDocuments(t *testing.T) {
 			// stream in some documents - create duplicate headers to simulate an error
 			csvConverter := CSVConverter{
 				colSpecs: []ColumnSpec{
-					{"field1", new(FieldAutoParser), pgAutoCast, "auto"},
-					{"field2", new(FieldAutoParser), pgAutoCast, "auto"},
+					{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+					{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
 				},
 				data:  []string{"a", "b", "c"},
 				index: uint64(0),

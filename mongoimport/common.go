@@ -284,9 +284,7 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 //    exists at that index in the array, a reference to that document or array will be passed
 //    to setNestedValue or setNestedArrayValue respectively. If no value exists, a new document
 //    or array is created, added to the array, and a reference is passed to those functions.
-func setNestedValue(field string, value interface{}, document *bson.D, useArrayIndexFields bool) error {
-	fieldParts := strings.Split(field, ".")
-
+func setNestedValue(fieldParts []string, value interface{}, document *bson.D, useArrayIndexFields bool) error {
 	if len(fieldParts) == 1 {
 		*document = append(*document, bson.E{Key: fieldParts[0], Value: value})
 		return nil
@@ -298,7 +296,7 @@ func setNestedValue(field string, value interface{}, document *bson.D, useArrayI
 		if err != nil {
 			// element doesn't already exist
 			subArray := &bson.A{}
-			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
 			if err != nil {
 				return err
 			}
@@ -311,7 +309,7 @@ func setNestedValue(field string, value interface{}, document *bson.D, useArrayI
 				return fmt.Errorf("Expected document element to be an array, "+
 					"but element has already been set as a document or other value: %#v", elem)
 			}
-			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
 			if err != nil {
 				return err
 			}
@@ -321,7 +319,7 @@ func setNestedValue(field string, value interface{}, document *bson.D, useArrayI
 		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
 		if err != nil { // element doesn't already exist
 			subDocument := &bson.D{}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, useArrayIndexFields)
+			err = setNestedValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
 			if err != nil {
 				return err
 			}
@@ -334,7 +332,7 @@ func setNestedValue(field string, value interface{}, document *bson.D, useArrayI
 				return fmt.Errorf("Expected document element to be an document, "+
 					"but element has already been set as another value: %#v", elem)
 			}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, useArrayIndexFields)
+			err = setNestedValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
 			if err != nil {
 				return err
 			}
@@ -349,13 +347,12 @@ func setNestedValue(field string, value interface{}, document *bson.D, useArrayI
 // setNestedArrayValue is mutually recursive with setNestedValue. The two functions
 // work together to set elements nested in documents and arrays. See the documentation
 // of setNestedValue for more information.
-func setNestedArrayValue(field string, value interface{}, array *bson.A) error {
-	fieldParts := strings.Split(field, ".")
+func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) error {
 
 	// The first part of the field should be an index of an array
 	idx, err := strconv.Atoi(fieldParts[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("setNestedArrayValue expected an integer field, but instead received %s", fieldParts[0])
 	}
 
 	v := reflect.ValueOf(*array)
@@ -380,14 +377,14 @@ func setNestedArrayValue(field string, value interface{}, array *bson.A) error {
 				return fmt.Errorf("Expected array element to be a sub-array, "+
 					"but element has already been set as a document or other value: %#v", (*array)[idx])
 			}
-			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
 			if err != nil {
 				return err
 			}
 		} else {
 			// the element at idx doesn't exist yet
 			subArray := &bson.A{}
-			err = setNestedArrayValue(strings.Join(fieldParts[1:], "."), value, subArray)
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
 			if err != nil {
 				return err
 			}
@@ -403,14 +400,14 @@ func setNestedArrayValue(field string, value interface{}, array *bson.A) error {
 				return fmt.Errorf("Expected array element to be a document, "+
 					"but element has already been set as another value: %#v", (*array)[idx])
 			}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, true)
+			err = setNestedValue(fieldParts[1:], value, subDocument, true)
 			if err != nil {
 				return err
 			}
 		} else {
 			// the element at idx doesn't exist yet
 			subDocument := &bson.D{}
-			err = setNestedValue(strings.Join(fieldParts[1:], "."), value, subDocument, true)
+			err = setNestedValue(fieldParts[1:], value, subDocument, true)
 			if err != nil {
 				return err
 			}
@@ -449,7 +446,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb:                  importTomb,
+			tomb: importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
 		wg.Add(1)
@@ -511,8 +508,8 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 						numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
 				}
 			}
-			if strings.Index(colSpecs[index].Name, ".") != -1 {
-				err = setNestedValue(colSpecs[index].Name, parsedValue, &document, useArrayIndexFields)
+			if len(colSpecs[index].NameParts) > 1 {
+				err = setNestedValue(colSpecs[index].NameParts, parsedValue, &document, useArrayIndexFields)
 				if err != nil {
 					return nil, fmt.Errorf("can't set value for key %s: %s", colSpecs[index].Name, err)
 				}
@@ -555,9 +552,6 @@ func validateFields(fields []string, useArrayIndexFields bool) error {
 		// NOTE: since fields is sorted, this check ensures that no field
 		// is incompatible with another one that occurs further down the list.
 		// meant to prevent cases where we have fields like "a" and "a.c"
-
-		// TODO: Add a check here for incompatible fields:
-		// a.b and a.0
 		for _, latterField := range fieldsCopy[index+1:] {
 			// NOTE: this means we will not support imports that have fields that
 			// include e.g. a, a.b

@@ -1091,13 +1091,13 @@ func TestImportDocuments(t *testing.T) {
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: Array field should thorw an error if value has already been set as document",
+		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
 			nestedFieldsTestHelper(
 				"_id,a.a,a.0\n1,2,3",
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: Document field should thorw an error if value has already been set as array",
+		Convey("With --useArrayIndexFields: Document field should throw an error if value has already been set as array",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.a\n1,2,3",
 				nil,
