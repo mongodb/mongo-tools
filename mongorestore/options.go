@@ -65,21 +65,22 @@ func (*InputOptions) Name() string {
 
 // OutputOptions command line argument long names
 const (
-	DropOption                     = "--drop"
-	DryRunOption                   = "--dryRun"
-	WriteConcernOption             = "--writeConcern"
-	NoIndexRestoreOption           = "--noIndexRestore"
-	NoOptionsRestoreOption         = "--noOptionsRestore"
-	KeepIndexVersionOption         = "--keepIndexVersion"
-	MaintainInsertionOrderOption   = "--maintainInsertionOrder"
-	NumParallelCollectionsOption   = "--numParallelCollections"
-	NumInsertionWorkersOption      = "--numInsertionWorkersPerCollection"
-	StopOnErrorOption              = "--stopOnError"
-	BypassDocumentValidationOption = "--bypassDocumentValidation"
-	PreserveUUIDOption             = "--preserveUUID"
-	TempUsersCollOption            = "--tempUsersColl"
-	TempRolesCollOption            = "--tempRolesColl"
-	BulkBufferSizeOption           = "--batchSize"
+	DropOption                      = "--drop"
+	DryRunOption                    = "--dryRun"
+	WriteConcernOption              = "--writeConcern"
+	NoIndexRestoreOption            = "--noIndexRestore"
+	IgnoreInvalidIndexOptionsOption = "--ignoreInvalidIndexOptions"
+	NoOptionsRestoreOption          = "--noOptionsRestore"
+	KeepIndexVersionOption          = "--keepIndexVersion"
+	MaintainInsertionOrderOption    = "--maintainInsertionOrder"
+	NumParallelCollectionsOption    = "--numParallelCollections"
+	NumInsertionWorkersOption       = "--numInsertionWorkersPerCollection"
+	StopOnErrorOption               = "--stopOnError"
+	BypassDocumentValidationOption  = "--bypassDocumentValidation"
+	PreserveUUIDOption              = "--preserveUUID"
+	TempUsersCollOption             = "--tempUsersColl"
+	TempRolesCollOption             = "--tempRolesColl"
+	BulkBufferSizeOption            = "--batchSize"
 )
 
 // OutputOptions defines the set of options for restoring dump data.
@@ -88,19 +89,20 @@ type OutputOptions struct {
 	DryRun bool `long:"dryRun" description:"view summary without importing anything. recommended with verbosity"`
 
 	// By default mongorestore uses a write concern of 'majority'.
-	WriteConcern             string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
-	NoIndexRestore           bool   `long:"noIndexRestore" description:"don't restore indexes"`
-	NoOptionsRestore         bool   `long:"noOptionsRestore" description:"don't restore collection options"`
-	KeepIndexVersion         bool   `long:"keepIndexVersion" description:"don't update index version"`
-	MaintainInsertionOrder   bool   `long:"maintainInsertionOrder" description:"restore the documents in the order of their appearance in the input source. By default the insertions will be performed in an arbitrary order. Setting this flag also enables the behavior of --stopOnError and restricts NumInsertionWorkersPerCollection to 1."`
-	NumParallelCollections   int    `long:"numParallelCollections" short:"j" description:"number of collections to restore in parallel" default:"4" default-mask:"-"`
-	NumInsertionWorkers      int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection" default:"1" default-mask:"-"`
-	StopOnError              bool   `long:"stopOnError" description:"halt after encountering any error during insertion. By default, mongorestore will attempt to continue through document validation and DuplicateKey errors, but with this option enabled, the tool will stop instead. A small number of documents may be inserted after encountering an error even with this option enabled; use --maintainInsertionOrder to halt immediately after an error"`
-	BypassDocumentValidation bool   `long:"bypassDocumentValidation" description:"bypass document validation"`
-	PreserveUUID             bool   `long:"preserveUUID" description:"preserve original collection UUIDs (off by default, requires drop)"`
-	TempUsersColl            string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
-	TempRolesColl            string `long:"tempRolesColl" default:"temproles" hidden:"true"`
-	BulkBufferSize           int    `long:"batchSize" default:"1000" hidden:"true"`
+	WriteConcern              string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
+	NoIndexRestore            bool   `long:"noIndexRestore" description:"don't restore indexes"`
+	IgnoreInvalidIndexOptions bool   `long:"ignoreInvalidIndexOptions" description:"Ignores invalid options in index specifications" hidden:"true"`
+	NoOptionsRestore          bool   `long:"noOptionsRestore" description:"don't restore collection options"`
+	KeepIndexVersion          bool   `long:"keepIndexVersion" description:"don't update index version"`
+	MaintainInsertionOrder    bool   `long:"maintainInsertionOrder" description:"restore the documents in the order of their appearance in the input source. By default the insertions will be performed in an arbitrary order. Setting this flag also enables the behavior of --stopOnError and restricts NumInsertionWorkersPerCollection to 1."`
+	NumParallelCollections    int    `long:"numParallelCollections" short:"j" description:"number of collections to restore in parallel" default:"4" default-mask:"-"`
+	NumInsertionWorkers       int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection" default:"1" default-mask:"-"`
+	StopOnError               bool   `long:"stopOnError" description:"halt after encountering any error during insertion. By default, mongorestore will attempt to continue through document validation and DuplicateKey errors, but with this option enabled, the tool will stop instead. A small number of documents may be inserted after encountering an error even with this option enabled; use --maintainInsertionOrder to halt immediately after an error"`
+	BypassDocumentValidation  bool   `long:"bypassDocumentValidation" description:"bypass document validation"`
+	PreserveUUID              bool   `long:"preserveUUID" description:"preserve original collection UUIDs (off by default, requires drop)"`
+	TempUsersColl             string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
+	TempRolesColl             string `long:"tempRolesColl" default:"temproles" hidden:"true"`
+	BulkBufferSize            int    `long:"batchSize" default:"1000" hidden:"true"`
 }
 
 // Name returns a human-readable group name for output options.

@@ -25,6 +25,33 @@ import (
 
 const insertBufferFactor = 16
 
+var indexOptions = map[string]bool{
+	"bits": true,
+	"min":  true,
+	"max":  true,
+	"coarsestIndexedLevel": true,
+	"finestIndexedLevel":   true,
+	"2dsphereIndexVersion": true,
+	"background":           true,
+	"collation":            true,
+	"default_language":     true,
+	"dropDups":             true,
+	"expireAfterSeconds":   true,
+	"bucketSize":           true,
+	"name":                 true,
+	"v":                    true,
+	"key":                  true,
+	"language_override":    true,
+	"ns":                   true,
+	"partialFilterExpression": true,
+	"wildcardProjection":      true,
+	"sparse":                  true,
+	"storageEngine":           true,
+	"textIndexVersion":        true,
+	"unique":                  true,
+	"weights":                 true,
+}
+
 // Result encapsulates the outcome of a particular restore attempt.
 type Result struct {
 	Successes int64
@@ -289,6 +316,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	// finally, add indexes
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
+		if restore.OutputOptions.IgnoreInvalidIndexOptions {
+			indexes = stripInvalidOptions(indexes)
+		}
 		err = restore.CreateIndexes(intent, indexes, hasNonSimpleCollation)
 		if err != nil {
 			result.Err = fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
@@ -299,6 +329,17 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	return result
+}
+
+func stripInvalidOptions(indexes []IndexDocument) []IndexDocument {
+	for i, index := range indexes {
+		for key := range index.Options {
+			if _, ok := indexOptions[key]; !ok {
+				delete(indexes[i].Options, key)
+			}
+		}
+	}
+	return indexes
 }
 
 // RestoreCollectionToDB pipes the given BSON data into the database.
