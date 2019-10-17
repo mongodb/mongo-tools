@@ -201,7 +201,7 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 		return "", err
 	}
 
-	return crt.Subject.CommonName, nil
+	return crt.ToRDNSequence().String(), nil
 }
 
 // addCACertFromFile adds a root CA certificate to the configuration given a path
