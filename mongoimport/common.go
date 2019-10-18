@@ -27,6 +27,13 @@ import (
 
 type ParseGrace int
 
+// FieldInfo contains information about field names. It is used in validateFields.
+type FieldInfo struct {
+	position int
+	field    string
+	parts    []string
+}
+
 const (
 	pgAutoCast ParseGrace = iota
 	pgSkipField
@@ -290,7 +297,7 @@ func setNestedValue(fieldParts []string, value interface{}, document *bson.D, us
 		return nil
 	}
 
-	if useArrayIndexFields && isNatNum(fieldParts[1]) {
+	if _, ok := isNatNum(fieldParts[1]); useArrayIndexFields && ok {
 		// next part of the field refers to an array
 		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
 		if err != nil {
@@ -360,14 +367,14 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 	if len(fieldParts) == 1 {
 		if v.Len() != idx {
 			return fmt.Errorf("Trying to add value to array at index %d, but array is %d elements long. "+
-				"Array indices in fields must start from 0 and increase sequentially.", idx, v.Len())
+				"Array indices in fields must start from 0 and increase sequentially", idx, v.Len())
 		}
 
 		*array = append(*array, value)
 		return nil
 	}
 
-	if isNatNum(fieldParts[1]) {
+	if _, ok := isNatNum(fieldParts[1]); ok {
 		// next part of the field refers to an array
 		if v.Len() > idx {
 			// the index already exists in array
@@ -417,12 +424,19 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 	return nil
 }
 
-// isNatNum returns true if the string can be parsed as a natural number (including 0)
-func isNatNum(s string) bool {
-	if num, err := strconv.Atoi(s); err == nil && num >= 0 {
-		return true
+// isNatNum returns a number and true if the string can be parsed as a natural number (including 0)
+// The first byte of the string must be a number from 1-9. So "001" would not be parsed.
+// Neither would phone numbers such as "+15558675309"
+func isNatNum(s string) (int, bool) {
+	if len(s) > 1 && s[0] == byte('0') { // don't allow 0 prefixes
+		return 0, false
 	}
-	return false
+	if s[0] >= byte('0') && s[0] <= byte('9') { // filter out symbols like +
+		if num, err := strconv.Atoi(s); err == nil && num >= 0 {
+			return num, true
+		}
+	}
+	return 0, false
 }
 
 // streamDocuments concurrently processes data gotten from the inputChan
@@ -530,13 +544,37 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 }
 
 // validateFields takes a slice of fields and returns an error if the fields
-// are invalid, returns nil otherwise
-func validateFields(fields []string, useArrayIndexFields bool) error {
-	fieldsCopy := make([]string, len(fields), len(fields))
-	copy(fieldsCopy, fields)
-	sort.Sort(sort.StringSlice(fieldsCopy))
+// are invalid, returns nil otherwise. Fields are invalid in the following cases:
+//
+//     (1). A field contains an invalid series of characters
+//     (2). Two fields are the same (e.g. a,a)
+//     (3). One field implies there is a value, another implies there is a document (e.g. a,a.b)
+//
+// In the case that --useArrayIndexFields is set, fields are also invalid in the following cases:
+//
+//     (4). One field implies there is a value, another implies there is an array (e.g. a,a.0). This
+//          check is covered by the check for number 2.
+//     (5). One field implies that there is a document, another implies there is an array.
+//          (e.g. a.b,a.0 or a.b.c,a.0.c)
+//     (6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
+//     (7). Array indexes are out of order (e.g. a.1,a.0 or a.0.b,a.1,a.0.c)
+//     (8). An array is missing an index (e.g. a.0,a.2)
+func validateFields(inputFields []string, useArrayIndexFields bool) error {
+	fields := make([]FieldInfo, len(inputFields), len(inputFields))
+	for i, f := range inputFields {
+		fields[i] = FieldInfo{i, f, strings.Split(f, ".")}
+	}
 
-	for index, field := range fieldsCopy {
+	// By using the FieldInfo type, once fields are sorted alphabetically, we maintain the
+	// information about the original position of fields. This is used to check that array
+	// indexes aren't out of order. Sorting the list of fields means for each field we only
+	// have to compare it against two other fields at most to ensure validity of the whole set.
+	sort.Slice(fields, func(i, j int) bool { return fields[i].field < fields[j].field })
+
+	for index, fieldInfo := range fields {
+		field := fieldInfo.field
+
+		// Here we check validity for case (1).
 		if strings.HasSuffix(field, ".") {
 			return fmt.Errorf("field '%v' cannot end with a '.'", field)
 		}
@@ -549,44 +587,168 @@ func validateFields(fields []string, useArrayIndexFields bool) error {
 		if strings.Contains(field, "..") {
 			return fmt.Errorf("field '%v' cannot contain consecutive '.' characters", field)
 		}
-		// NOTE: since fields is sorted, this check ensures that no field
-		// is incompatible with another one that occurs further down the list.
-		// meant to prevent cases where we have fields like "a" and "a.c"
-		for _, latterField := range fieldsCopy[index+1:] {
-			// NOTE: this means we will not support imports that have fields that
-			// include e.g. a, a.b
-			if strings.HasPrefix(latterField, field+".") {
-				return fmt.Errorf("fields '%v' and '%v' are incompatible", field, latterField)
+
+		if index+1 < len(fields) {
+			// For each field except the last, we check that the next field does not
+			// contain the current field as a prefix. Since fields is sorted, this checks
+			// case (3) and case (4).
+			nextField := fields[index+1].field
+
+			if strings.HasPrefix(nextField, field+".") {
+				return fmt.Errorf("fields '%v' and '%v' are incompatible", field, nextField)
 			}
-			// NOTE: this means we will not support imports that have fields like
-			// a, a - since this is invalid in MongoDB
-			if field == latterField {
-				return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, latterField)
+
+			// This checks case (2).
+			if field == nextField {
+				return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, nextField)
 			}
 		}
 
 		if useArrayIndexFields {
-			// Check for incompatible fields: a.n.c, a.b.c (where n = 0,1,2,...)
-			// NOTE: We must scan the whole fieldsCopy array since some fields could
-			// come before fields with numbers if key parts start with symbols
-			fieldParts := strings.Split(field, ".")
-			for _, otherField := range fieldsCopy {
-				otherFieldParts := strings.Split(otherField, ".")
-				numOtherFieldParts := len(otherFieldParts)
-				for i, part := range fieldParts {
-					if i == numOtherFieldParts {
-						// Out of bounds of otherFieldParts
-						break
-					}
-					if otherFieldParts[i] != part {
-						if !(isNatNum(otherFieldParts[i]) == isNatNum(part)) {
-							return fmt.Errorf("fields '%v' and '%v' are incompatible", field, otherField)
-						}
-						break
-					}
-				}
+			var nextFieldInfo *FieldInfo
+			var previousFieldInfo *FieldInfo
+			if index+1 < len(fields) {
+				nextFieldInfo = &fields[index+1]
+			}
+			if index != 0 {
+				previousFieldInfo = &fields[index-1]
+			}
+			// This checks cases (5), (6), (7), and (8). This is achieved by comparing each field against the
+			// next field and the previous field in the sorted list.
+			err := validateFieldsUsingArrayIndexes(&fieldInfo, nextFieldInfo, previousFieldInfo, index, len(fields))
+			if err != nil {
+				return err
 			}
 		}
+	}
+	return nil
+}
+
+// validateFieldsUsingArrayIndexes is a helper function foe validateFields. It checks for
+// cases (5), (6), (7), and (8). See validateFields for more information on the cases being checked.
+func validateFieldsUsingArrayIndexes(fieldInfo *FieldInfo, nextFieldInfo *FieldInfo, previousFieldInfo *FieldInfo, fieldIndex int, numFields int) (err error) {
+	fieldParts := fieldInfo.parts
+	field := fieldInfo.field
+
+	for i, part := range fieldParts {
+		if i == 0 {
+			// We don't need to do any checks at the root of the document.
+			// This is because at the root of the document, numerical keys
+			// aren't treated as array indexes.
+			// i.e. the CSV `0\nhello` transforms to BSON `{"0": "hello"}``
+			continue
+		}
+
+		// Only conduct checks if field part is a natural number (and therefore an array index)
+		if num, ok := isNatNum(part); ok {
+			if fieldIndex+1 < numFields {
+				// Check against the next field if we're not already at the last field.
+				// When we check against the next field, we're checking for cases (5), (7), and (8):
+				// Case (5) is only partially covered, the rest of case (5) is covered by checkAgainstPreviousField.
+				err = checkAgainstNextField(fieldInfo, nextFieldInfo, num, i)
+				if err != nil {
+					return err
+				}
+			}
+			if fieldIndex != 0 {
+				// Check against the previous field if we aren't currently looking at the first field.
+				// When we check against the previous field, we're checking for cases (5), (6), and (8).
+				// Case (5) is partially covered, the rest of case (5) is covered by checkAgainstNextField.
+				// Case (8) was covered by checkAgainstNextField running on the previous field, so this is an extra check.
+				err = checkAgainstPreviousField(fieldInfo, previousFieldInfo, num, i)
+				if err != nil {
+					return err
+				}
+			} else {
+				if num != 0 {
+					// Can't have non-zero index in very first value, this violates case (6).
+					return fmt.Errorf("Array indexes must start from 0. No index found before index '%v' in field '%v'", part, field)
+				}
+			}
+
+		}
+	}
+	return nil
+}
+
+// checkAgainstNextField performs some validity checks against the next field. It checks the following cases:
+//
+// - case (5): The current field part implies an array but the same part in the next field implies a document.
+// - case (7): Array indexes are out of order. Although the index in the next field is sequential,
+//             its position in the source is before the index in the current field.
+// - case (8): The next index isn't sequential.
+//
+// See validateFields for more information on the cases being checked.
+func checkAgainstNextField(fieldInfo *FieldInfo, nextFieldInfo *FieldInfo, num int, partPos int) error {
+	field := fieldInfo.field
+	fieldParts := fieldInfo.parts
+	nextField := nextFieldInfo.field
+	nextFieldParts := nextFieldInfo.parts
+
+	if len(nextFieldParts) < partPos+1 {
+		// If the next field has fewer field parts than the current field, they can't be inconsistent.
+		// Note, we can infer this because the fields are sorted.
+		return nil
+	}
+	if strings.Join(nextFieldParts[:partPos], ".") == strings.Join(fieldParts[:partPos], ".") {
+		if nextNum, ok := isNatNum(nextFieldParts[partPos]); ok {
+			if nextNum != num+1 && nextNum != num {
+				// Case (8)
+				return fmt.Errorf("field '%v' contains an array index that does not increase sequentially from field '%v'. "+
+					"Array indexes in fields must start from 0 and increase sequentially", nextField, field)
+			}
+			if nextNum == num+1 && fieldInfo.position > nextFieldInfo.position {
+				// Case (7)
+				return fmt.Errorf("field '%v' comes before field '%v'. Array indexes must increase sequentially", nextField, field)
+			}
+		} else {
+			// Case (5)
+			return fmt.Errorf("fields '%v' and '%v' are incompatible", field, nextField)
+		}
+	}
+	return nil
+}
+
+// checkAgainstPreviousField performs some validity checks against the last field. It checks the following cases:
+//
+// - case (5): The current field part implies an array but the same part in the last field implies a document.
+//   This case can only happen when a document key gets sorted before natural numbers. So this is if a key
+//   begins with special characters whose values are less than \x30 ('0') such as '\', '-', '!', '(', etc.
+// - case (6): If the previous field doesn't share a prefix with the current field, this must be the first time
+//   we are encountering an array. If the index isn't 0 we should throw an error.
+// - case (8): We check the previous field's index is one less than the current field. This check was already done by
+//   checkAgainstNextField on the previous iteration. The check is included here for an extra layer of defense.
+//
+// See validateFields for more information on the cases being checked.
+func checkAgainstPreviousField(fieldInfo *FieldInfo, previousFieldInfo *FieldInfo, num int, partPos int) error {
+	field := fieldInfo.field
+	fieldParts := fieldInfo.parts
+	previousField := previousFieldInfo.field
+	previousFieldParts := previousFieldInfo.parts
+
+	if len(previousFieldParts) < partPos+1 {
+		// If the previous field has fewer field parts than the current field, they can't be inconsistent at the current partPos.
+		// However, it also means this is the first time we are encountering this array (since fields are sorted).
+		// This the index at the current partPos should be 0 or else it's invalid due to case (6).
+		if num != 0 {
+			return fmt.Errorf("Array indexes must start from 0. No index found before index '%v' in field '%v'", num, field)
+		}
+		return nil
+	}
+	if strings.Join(previousFieldParts[:partPos], ".") == strings.Join(fieldParts[:partPos], ".") {
+		if lastNum, ok := isNatNum(previousFieldParts[partPos]); ok {
+			if num != 0 && lastNum != num-1 && lastNum != num {
+				// Looks back to check case (8)
+				return fmt.Errorf("field '%v' contains an array index that does not increase sequentially from field '%v'. "+
+					"Array indexes in fields must start from 0 and increase sequentially", field, previousField)
+			}
+		} else {
+			// Case (5)
+			return fmt.Errorf("fields '%v' and '%v' are incompatible", field, previousField)
+		}
+	} else if num != 0 {
+		// Case (6)
+		return fmt.Errorf("Array indexes must start from 0. No index found before index '%v' in field '%v'", num, field)
 	}
 	return nil
 }

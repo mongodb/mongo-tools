@@ -1007,6 +1007,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "0": int32(2), "1": int32(3)},
 				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Should insert nested document",
@@ -1015,6 +1016,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "a": bson.M{"a": int32(2), "b": int32(3)}},
 				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Should insert an array",
@@ -1023,6 +1025,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{int32(2), int32(3)}},
 				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Should insert an array of documents",
@@ -1031,6 +1034,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{bson.M{"a": int32(2), "b": int32(3)}, bson.M{"a": int32(4)}}},
 				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Should insert an array of arrays",
@@ -1039,6 +1043,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{bson.A{int32(2), int32(3)}, bson.A{int32(4)}}},
 				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Should insert an array when top-level key is \"0\"",
@@ -1047,6 +1052,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "0": bson.A{int32(2), int32(3)}},
 				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Should insert an array in a document in an array",
@@ -1055,14 +1061,7 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{bson.M{"a": bson.A{int32(2), int32(3)}}}},
 				},
-			),
-		)
-		Convey("With --useArrayIndexFields: Should be able to make changes to document in an array once document has been created",
-			nestedFieldsTestHelper(
-				"_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
-				[]bson.M{
-					{"_id": int32(1), "a": bson.A{bson.M{"a": int32(2), "b": int32(4)}, bson.M{"a": int32(3)}}},
-				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: If an array element is blank in the csv file, an empty string should be inserted",
@@ -1071,42 +1070,122 @@ func TestImportDocuments(t *testing.T) {
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{int32(2), "", int32(4)}},
 				},
+				nil,
+			),
+		)
+		Convey("With --useArrayIndexFields: An number with leading zeros should be interpreted as a document key, not an index",
+			nestedFieldsTestHelper(
+				"_id,a.0001\n1,2",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.M{"0001": int32(2)}},
+				},
+				nil,
+			),
+		)
+		Convey("With --useArrayIndexFields: An number with leading plus should be interpreted as a document key, not an index",
+			nestedFieldsTestHelper(
+				"_id,a.+15558675309\n1,2",
+				[]bson.M{
+					{"_id": int32(1), "a": bson.M{"+15558675309": int32(2)}},
+				},
+				nil,
 			),
 		)
 		Convey("With --useArrayIndexFields: Duplicate fields should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.0\n1,2,3",
 				nil,
+				fmt.Errorf("fields cannot be identical: 'a.0' and 'a.0'"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array fields not starting at 0 should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.1,a.0\n1,2,3",
 				nil,
+				fmt.Errorf("field 'a.1' comes before field 'a.0'. Array indexes must increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array fields skipping an index should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.2\n1,2,3",
 				nil,
+				fmt.Errorf("field 'a.2' contains an array index that does not increase sequentially from field 'a.0'. Array indexes in fields must start from 0 and increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
 			nestedFieldsTestHelper(
 				"_id,a.a,a.0\n1,2,3",
 				nil,
+				fmt.Errorf("fields 'a.0' and 'a.a' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as document (deep object)",
+			nestedFieldsTestHelper(
+				"_id,a.a.a.a,a.a.0.a\n1,2,3",
+				nil,
+				fmt.Errorf("fields 'a.a.0.a' and 'a.a.a.a' are incompatible"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Document field should throw an error if value has already been set as array",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.a\n1,2,3",
 				nil,
+				fmt.Errorf("fields 'a.0' and 'a.a' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Document field should throw an error if value has already been set as array (deep object)",
+			nestedFieldsTestHelper(
+				"_id,a.a.a.0,a.a.a.a\n1,2,3",
+				nil,
+				fmt.Errorf("fields 'a.a.a.0' and 'a.a.a.a' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as value",
+			nestedFieldsTestHelper(
+				"_id,a,a.0\n1,2,3",
+				nil,
+				fmt.Errorf("fields 'a' and 'a.0' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as value (deep object)",
+			nestedFieldsTestHelper(
+				"_id,a.a.a,a.a.a.0\n1,2,3",
+				nil,
+				fmt.Errorf("fields 'a.a.a' and 'a.a.a.0' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Array field should be incompatible with a document field starting with a symbol that is sorted before 0",
+			nestedFieldsTestHelper(
+				"_id,a./,a.0\n1,2,3",
+				nil,
+				fmt.Errorf("fields 'a.0' and 'a./' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Indexes in fields must start from 0",
+			nestedFieldsTestHelper(
+				"_id,a,b.1\n1,2,3",
+				nil,
+				fmt.Errorf("Array indexes must start from 0. No index found before index '1' in field 'b.1'"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Indexes in fields must start from 0 (last field same length)",
+			nestedFieldsTestHelper(
+				"_id,a.b,b.1\n1,2,3",
+				nil,
+				fmt.Errorf("Array indexes must start from 0. No index found before index '1' in field 'b.1'"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Array indexes must be in order (nested)",
+			nestedFieldsTestHelper(
+				"_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
+				nil,
+				fmt.Errorf("field 'a.1.a' comes before field 'a.0.b'. Array indexes must increase sequentially"),
 			),
 		)
 	})
 }
 
-func nestedFieldsTestHelper(data string, expectedDocuments []bson.M) func() {
+func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr error) func() {
 	return func() {
 		err := ioutil.WriteFile("/tmp/data.csv", []byte(data), 0644)
 		So(err, ShouldBeNil)
@@ -1127,6 +1206,7 @@ func nestedFieldsTestHelper(data string, expectedDocuments []bson.M) func() {
 		numImported, numFailed, err := imp.ImportDocuments()
 		if expectedDocuments == nil {
 			So(err, ShouldNotBeNil)
+			So(err, ShouldResemble, expectedErr)
 		} else {
 			So(err, ShouldBeNil)
 			So(numImported, ShouldEqual, len(expectedDocuments))
