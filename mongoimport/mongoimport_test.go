@@ -1158,7 +1158,7 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a./,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.0' and 'a./' are incompatible"),
+				fmt.Errorf("fields 'a./' and 'a.0' are incompatible"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Indexes in fields must start from 0",
