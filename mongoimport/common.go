@@ -11,8 +11,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -260,23 +258,23 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 	return newDocument
 }
 
-// setNestedValue takes a nested field - in the form "a.b.c" - its associated value,
+// setNestedDocumentValue takes a nested field - in the form "a.b.c" - its associated value,
 // and a document. It then assigns that value to the appropriate nested field within
-// the document. If useArrayIndexFields is set to true, setNestedValue is mutually
+// the document. If useArrayIndexFields is set to true, setNestedDocumentValue is mutually
 // recursive with setNestedArrayValue. The two functions work together to set elements
-// nested in documents and arrays. This is the strategy of setNestedValue/setNestedArrayValue:
+// nested in documents and arrays. This is the strategy of setNestedDocumentValue/setNestedArrayValue:
 //
-// 1. setNestedValue is called first. The first part of the field is treated as
+// 1. setNestedDocumentValue is called first. The first part of the field is treated as
 //    a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
 //    interpreted as a document key (which would only happen at the top level of a
 //    BSON document being imported).
 //
 // 2. If there is only one field part, the value will be set for the field in the document.
 //
-// 3. setNestedValue will call setNestedArrayValue if the next part of the
+// 3. setNestedDocumentValue will call setNestedArrayValue if the next part of the
 //    field is a natural number (which implies the value is an element of an array).
 //    Otherwise, it will call itself. If a document or array already exists for the field,
-//    a reference to that document or array will be passed to setNestedValue or
+//    a reference to that document or array will be passed to setNestedDocumentValue or
 //    setNestedArrayValue respectively. If no value exists, a new document or array is
 //    created, added to the document, and a reference is passed to those functions.
 //
@@ -285,13 +283,13 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 //    provided array. This is only if the size of the array is equal to the index (meaning
 //    elements of the array must be added sequentially: 0, 1, 2,...).
 //
-// 5. setNestedArrayValue will call setNestedValue if the next part of the field is not a
+// 5. setNestedArrayValue will call setNestedDocumentValue if the next part of the field is not a
 //    natural number (which implies the value is a document). setNestedArrayValue will call
 //    itself if the next part of the field is a natural number. If a document or array already
 //    exists at that index in the array, a reference to that document or array will be passed
-//    to setNestedValue or setNestedArrayValue respectively. If no value exists, a new document
+//    to setNestedDocumentValue or setNestedArrayValue respectively. If no value exists, a new document
 //    or array is created, added to the array, and a reference is passed to those functions.
-func setNestedValue(fieldParts []string, value interface{}, document *bson.D, useArrayIndexFields bool) error {
+func setNestedDocumentValue(fieldParts []string, value interface{}, document *bson.D, useArrayIndexFields bool) (err error) {
 	if len(fieldParts) == 1 {
 		*document = append(*document, bson.E{Key: fieldParts[0], Value: value})
 		return nil
@@ -326,7 +324,7 @@ func setNestedValue(fieldParts []string, value interface{}, document *bson.D, us
 		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
 		if err != nil { // element doesn't already exist
 			subDocument := &bson.D{}
-			err = setNestedValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
 			if err != nil {
 				return err
 			}
@@ -339,7 +337,7 @@ func setNestedValue(fieldParts []string, value interface{}, document *bson.D, us
 				return fmt.Errorf("Expected document element to be an document, "+
 					"but element has already been set as another value: %#v", elem)
 			}
-			err = setNestedValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
 			if err != nil {
 				return err
 			}
@@ -351,23 +349,21 @@ func setNestedValue(fieldParts []string, value interface{}, document *bson.D, us
 
 // setNestedArrayValue takes a nested field, its associated value, and an array.
 // It then assigns that value to  the appropriate nested field within the array.
-// setNestedArrayValue is mutually recursive with setNestedValue. The two functions
+// setNestedArrayValue is mutually recursive with setNestedDocumentValue. The two functions
 // work together to set elements nested in documents and arrays. See the documentation
-// of setNestedValue for more information.
-func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) error {
+// of setNestedDocumentValue for more information.
+func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) (err error) {
 
 	// The first part of the field should be an index of an array
-	idx, err := strconv.Atoi(fieldParts[0])
-	if err != nil {
+	idx, ok := isNatNum(fieldParts[0])
+	if !ok {
 		return fmt.Errorf("setNestedArrayValue expected an integer field, but instead received %s", fieldParts[0])
 	}
 
-	v := reflect.ValueOf(*array)
-
 	if len(fieldParts) == 1 {
-		if v.Len() != idx {
+		if idx != len(*array) {
 			return fmt.Errorf("Trying to add value to array at index %d, but array is %d elements long. "+
-				"Array indices in fields must start from 0 and increase sequentially", idx, v.Len())
+				"Array indices in fields must start from 0 and increase sequentially", idx, len(*array))
 		}
 
 		*array = append(*array, value)
@@ -376,7 +372,7 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 
 	if _, ok := isNatNum(fieldParts[1]); ok {
 		// next part of the field refers to an array
-		if v.Len() > idx {
+		if idx < len(*array) {
 			// the index already exists in array
 			// check the element is an array
 			subArray, ok := (*array)[idx].(*bson.A)
@@ -399,7 +395,7 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 		}
 	} else {
 		// next part of the field refers to a document
-		if v.Len() > idx {
+		if idx < len(*array) {
 			// the index already exists in array
 			// check the element is an document
 			subDocument, ok := (*array)[idx].(*bson.D)
@@ -407,14 +403,14 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 				return fmt.Errorf("Expected array element to be a document, "+
 					"but element has already been set as another value: %#v", (*array)[idx])
 			}
-			err = setNestedValue(fieldParts[1:], value, subDocument, true)
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, true)
 			if err != nil {
 				return err
 			}
 		} else {
 			// the element at idx doesn't exist yet
 			subDocument := &bson.D{}
-			err = setNestedValue(fieldParts[1:], value, subDocument, true)
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, true)
 			if err != nil {
 				return err
 			}
@@ -460,7 +456,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb: importTomb,
+			tomb:                  importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
 		wg.Add(1)
@@ -523,7 +519,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				}
 			}
 			if len(colSpecs[index].NameParts) > 1 {
-				err = setNestedValue(colSpecs[index].NameParts, parsedValue, &document, useArrayIndexFields)
+				err = setNestedDocumentValue(colSpecs[index].NameParts, parsedValue, &document, useArrayIndexFields)
 				if err != nil {
 					return nil, fmt.Errorf("can't set value for key %s: %s", colSpecs[index].Name, err)
 				}
@@ -552,27 +548,14 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 //
 // In the case that --useArrayIndexFields is set, fields are also invalid in the following cases:
 //
-//     (4). One field implies there is a value, another implies there is an array (e.g. a,a.0). This
-//          check is covered by the check for number 2.
+//     (4). One field implies there is a value, another implies there is an array (e.g. a,a.0).
 //     (5). One field implies that there is a document, another implies there is an array.
 //          (e.g. a.b,a.0 or a.b.c,a.0.c)
 //     (6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
 //     (7). Array indexes are out of order (e.g. a.1,a.0 or a.0.b,a.1,a.0.c)
 //     (8). An array is missing an index (e.g. a.0,a.2)
 func validateFields(inputFields []string, useArrayIndexFields bool) error {
-	fields := make([]FieldInfo, len(inputFields))
-	for i, f := range inputFields {
-		fields[i] = FieldInfo{i, f, strings.Split(f, ".")}
-	}
-
-	// By using the FieldInfo type, once fields are sorted alphabetically, we maintain the
-	// information about the original position of fields. This is used to check that array
-	// indexes aren't out of order. Sorting the list of fields means for each field we only
-	// have to compare it against two other fields at most to ensure validity of the whole set.
-	sort.Slice(fields, func(i, j int) bool { return fields[i].field < fields[j].field })
-
-	for index, fieldInfo := range fields {
-		field := fieldInfo.field
+	for _, field := range inputFields {
 
 		// Here we check validity for case (1).
 		if strings.HasSuffix(field, ".") {
@@ -587,125 +570,196 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 		if strings.Contains(field, "..") {
 			return fmt.Errorf("field '%v' cannot contain consecutive '.' characters", field)
 		}
+	}
+	// This checks all other cases by building attempting to build a legal tree of fields.
+	// If useArrayIndexFields is set, the tree contains arrays of subtrees.
+	fieldTree := make(map[string]interface{})
 
-		if index+1 < len(fields) {
-			// For each field except the last, we check that the next field does not
-			// contain the current field as a prefix. Since fields is sorted, this checks
-			// case (3) and case (4).
-			nextField := fields[index+1].field
-
-			if strings.HasPrefix(nextField, field+".") {
-				return fmt.Errorf("fields '%v' and '%v' are incompatible", field, nextField)
-			}
-
-			// This checks case (2).
-			if field == nextField {
-				return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, nextField)
-			}
-		}
-
-		if useArrayIndexFields {
-			var nextFieldInfo FieldInfo
-			if index+1 < len(fields) {
-				nextFieldInfo = fields[index+1]
-			}
-			// This checks cases (5), (6), (7), and (8). This is achieved by comparing each field against the
-			// next field in the sorted list.
-			err := validateFieldsUsingArrayIndexes(fieldInfo, nextFieldInfo, index, len(fields))
-			if err != nil {
-				return err
-			}
+	for _, field := range inputFields {
+		fieldParts := strings.Split(field, ".")
+		err := addFieldToTree(fieldParts, 0, &fieldTree, useArrayIndexFields)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-// validateFieldsUsingArrayIndexes is a helper function for validateFields. It checks for
-// cases (5), (6), (7), and (8). See validateFields for more information on the cases being checked.
-func validateFieldsUsingArrayIndexes(fieldInfo FieldInfo, nextFieldInfo FieldInfo, fieldIndex int, numFields int) (err error) {
-	fieldParts := fieldInfo.parts
-	field := fieldInfo.field
+// addFieldToTree is a recursive function that builds up a tree of fields. It is used to check
+// that fields are compatible with each other. When useArrayIndexFields is set, it is mutually recursive
+// with addFieldToArray(). It closely mimics the behaviour of setNestedDocumentValue(). See validateFields()
+// for more information on the validity checks that are made when constructing a tree of fields.
+func addFieldToTree(fieldParts []string, partIndex int, tree *map[string]interface{}, useArrayIndexFields bool) (err error) {
+	value, exists := (*tree)[fieldParts[partIndex]]
 
-	// First, check each part in the current field against the corresponding part in the next field.
-	for i, part := range fieldParts {
-		if i == 0 {
-			// We don't need to do any checks at the root of the document.
-			// This is because at the root of the document, numerical keys
-			// aren't treated as array indexes.
-			// i.e. the CSV `0\nhello` transforms to BSON `{"0": "hello"}``
-			continue
+	if exists {
+		if len(fieldParts[partIndex:]) == 1 {
+			// fields are the same - case (2)
+			return fmt.Errorf("fields cannot be identical: '%v' and '%v'", strings.Join(fieldParts, "."), strings.Join(fieldParts, "."))
+		} else if value == true {
+			// case (3)
+			return fmt.Errorf("fields '%v' and '%v' are incompatible",
+				strings.Join(fieldParts, "."),
+				strings.Join(fieldParts[:partIndex+1], "."))
 		}
+	}
 
-		if fieldIndex+1 < numFields && len(nextFieldInfo.parts) >= i+1 {
-			// Check against the next field if we're not already at the last field.
-			// We're checking for cases (5), (6), (7), and (8).
-			// If the next field has fewer field parts than the current field,
-			// the check isn't performed since they can't be inconsistent.
-			// Note, we can infer this because the fields are sorted.
-			err = checkAgainstNextField(fieldInfo, nextFieldInfo, i)
+	if len(fieldParts[partIndex:]) == 1 {
+		(*tree)[fieldParts[partIndex]] = true
+		return nil
+	}
+
+	// Now determine the type of the next part of the field
+	partIndex++
+	if _, ok := isNatNum(fieldParts[partIndex]); useArrayIndexFields && ok {
+		if !exists {
+			subArray := &[]interface{}{}
+			err = addFieldToArray(fieldParts, partIndex, subArray)
 			if err != nil {
 				return err
 			}
-		}
-		if num, isNum := isNatNum(fieldParts[i]); isNum && fieldIndex == 0 && num != 0 {
-			// Can't have non-zero index in very first value, this violates case (6).
-			return fmt.Errorf("Array indexes must start from 0. No index found before index '%v' in field '%v'", part, field)
-		}
-	}
-
-	// Second, if the next field has more parts than the current field, loop through
-	// the next field parts and make sure that if they are a number, they are 0.
-	if fieldIndex+1 < numFields {
-		nextField := nextFieldInfo.field
-		nextFieldParts := nextFieldInfo.parts
-
-		if len(fieldParts) < len(nextFieldParts) {
-			for _, nextPart := range nextFieldParts[len(fieldParts):] {
-				nextNum, nextIsNum := isNatNum(nextPart)
-				if nextIsNum && nextNum != 0 {
-					// Case (6)
-					return fmt.Errorf("Array indexes must start from 0. No index found before index '%v' in field '%v'", nextNum, nextField)
-				}
+			(*tree)[fieldParts[0]] = subArray
+		} else {
+			subArray, ok := value.(*[]interface{})
+			if !ok {
+				// case (5) or (4)
+				return fmt.Errorf("fields '%v' and '%v' are incompatible",
+					strings.Join(fieldParts[:partIndex], ".")+findFirstField(value),
+					strings.Join(fieldParts, "."))
 			}
-		}
-	}
-
-	return nil
-}
-
-// checkAgainstNextField performs some validity checks against the next field.
-// See validateFields for more information on the cases being checked.
-func checkAgainstNextField(fieldInfo FieldInfo, nextFieldInfo FieldInfo, partPos int) error {
-	field := fieldInfo.field
-	fieldParts := fieldInfo.parts
-	nextField := nextFieldInfo.field
-	nextFieldParts := nextFieldInfo.parts
-
-	nextNum, nextIsNum := isNatNum(nextFieldParts[partPos])
-	if strings.Join(nextFieldParts[:partPos], ".") == strings.Join(fieldParts[:partPos], ".") {
-		num, isNum := isNatNum(fieldParts[partPos])
-
-		if isNum && nextIsNum {
-			if nextNum != num+1 && nextNum != num {
-				// Case (8)
-				return fmt.Errorf("field '%v' contains an array index that does not increase sequentially from field '%v'. "+
-					"Array indexes in fields must start from 0 and increase sequentially", nextField, field)
+			err = addFieldToArray(fieldParts, partIndex, subArray)
+			if err != nil {
+				return err
 			}
-			if nextNum == num+1 && fieldInfo.position > nextFieldInfo.position {
-				// Case (7)
-				return fmt.Errorf("field '%v' comes before field '%v'. Array indexes must increase sequentially", nextField, field)
-			}
-		} else if isNum != nextIsNum {
-			// Case (5)
-			return fmt.Errorf("fields '%v' and '%v' are incompatible", field, nextField)
 		}
 	} else {
-		if nextIsNum && nextNum != 0 {
-			// Case (6)
-			return fmt.Errorf("Array indexes must start from 0. No index found before index '%v' in field '%v'", nextNum, nextField)
+		if !exists {
+			subTree := &map[string]interface{}{}
+			err = addFieldToTree(fieldParts, partIndex, subTree, useArrayIndexFields)
+			if err != nil {
+				return err
+			}
+			(*tree)[fieldParts[0]] = subTree
+		} else {
+			subTree, ok := value.(*map[string]interface{})
+			if !ok {
+				// case (5) or (4)
+				return fmt.Errorf("fields '%v' and '%v' are incompatible",
+					strings.Join(fieldParts[:partIndex], ".")+findFirstField(value),
+					strings.Join(fieldParts, "."))
+			}
+			err = addFieldToTree(fieldParts, partIndex, subTree, useArrayIndexFields)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+
+}
+
+// addFieldToArray is used with addFieldToTree() to build a valid tree of fields.
+func addFieldToArray(fieldParts []string, partIndex int, array *[]interface{}) (err error) {
+	// The first part of the field should be an index of an array
+	idx, ok := isNatNum(fieldParts[partIndex])
+	if !ok {
+		// We shouldn't ever get here
+		return fmt.Errorf("addFieldToArray expected an integer field, but instead received %s", fieldParts[0])
+	}
+
+	if len(fieldParts[partIndex:]) == 1 {
+		// We're at the terminus of a field so we have to check if we can append to the array
+		if idx < len(*array) {
+			// case (2)
+			return fmt.Errorf("fields cannot be identical: '%v' and '%v'",
+				strings.Join(fieldParts, "."), strings.Join(fieldParts, "."))
+		} else if idx > len(*array) {
+
+			if len(*array) == 0 {
+				// case (6) or (7)
+				return fmt.Errorf("array indexes must start from 0. No index found before index '%v' in field '%v'",
+					idx, strings.Join(fieldParts, "."))
+			}
+			// case (7) and (8)
+			return fmt.Errorf("field '%v' contains an array index that does not increase sequentially from field '%v.%d'. "+
+				"Array indexes in fields must start from 0 and increase sequentially",
+				strings.Join(fieldParts, "."),
+				strings.Join(fieldParts[:partIndex], "."),
+				(len(*array) - 1))
+		}
+
+		*array = append(*array, true)
+		return nil
+	}
+
+	partIndex++
+	if _, ok := isNatNum(fieldParts[partIndex]); ok {
+		// next part of the field refers to an array
+		if idx < len(*array) {
+			// the index already exists in array
+			// check the element is an array
+			subArray, ok := (*array)[idx].(*[]interface{})
+			if !ok {
+				return fmt.Errorf("fields '%v' and '%v' are incompatible",
+					strings.Join(fieldParts[:partIndex], ".")+findFirstField((*array)[idx]),
+					strings.Join(fieldParts, "."))
+			}
+			err = addFieldToArray(fieldParts, partIndex, subArray)
+			if err != nil {
+				return err
+			}
+		} else {
+			// the element at idx doesn't exist yet
+			subArray := &[]interface{}{}
+			err = addFieldToArray(fieldParts, partIndex, subArray)
+			if err != nil {
+				return err
+			}
+			*array = append(*array, subArray)
+		}
+	} else {
+		// next part of the field refers to a document
+		if idx < len(*array) {
+			// the index already exists in array
+			// check the element is an document
+			subTree, ok := (*array)[idx].(*map[string]interface{})
+			if !ok {
+				return fmt.Errorf("fields '%v' and '%v' are incompatible",
+					strings.Join(fieldParts[:partIndex], ".")+findFirstField((*array)[idx]),
+					strings.Join(fieldParts, "."))
+			}
+			err = addFieldToTree(fieldParts, partIndex, subTree, true)
+			if err != nil {
+				return err
+			}
+		} else {
+			// the element at idx doesn't exist yet
+			subTree := &map[string]interface{}{}
+			err = addFieldToTree(fieldParts, partIndex, subTree, true)
+			if err != nil {
+				return err
+			}
+			*array = append(*array, subTree)
+		}
+	}
+	return nil
+
+}
+
+// findFirstField is used as a helper for constructing error messages
+// when building a tree of fields. It returns the path to the left-most leaf in a tree.
+func findFirstField(i interface{}) string {
+	switch v := i.(type) {
+	case bool:
+		return ""
+	case *[]interface{}:
+		return ".0" + findFirstField((*v)[0])
+	case *map[string]interface{}:
+		for k, v := range *v {
+			return "." + k + findFirstField(v)
+		}
+	}
+	return ""
 }
 
 // validateReaderFields is a helper to validate fields for input readers
