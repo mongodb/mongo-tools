@@ -577,7 +577,7 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 
 	for _, field := range inputFields {
 		fieldParts := strings.Split(field, ".")
-		err := addFieldToTree(fieldParts, 0, &fieldTree, useArrayIndexFields)
+		_, err := addFieldToTree(fieldParts, 0, fieldTree, useArrayIndexFields)
 		if err != nil {
 			return err
 		}
@@ -589,160 +589,156 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 // that fields are compatible with each other. When useArrayIndexFields is set, it is mutually recursive
 // with addFieldToArray(). It closely mimics the behaviour of setNestedDocumentValue(). See validateFields()
 // for more information on the validity checks that are made when constructing a tree of fields.
-func addFieldToTree(fieldParts []string, partIndex int, tree *map[string]interface{}, useArrayIndexFields bool) (err error) {
-	value, exists := (*tree)[fieldParts[partIndex]]
+func addFieldToTree(fieldParts []string, partIndex int, tree map[string]interface{}, useArrayIndexFields bool) (map[string]interface{}, error) {
+	value, exists := tree[fieldParts[partIndex]]
 
 	if exists {
 		if len(fieldParts[partIndex:]) == 1 {
 			// fields are the same - case (2)
-			return fmt.Errorf("fields cannot be identical: '%v' and '%v'", strings.Join(fieldParts, "."), strings.Join(fieldParts, "."))
+			return nil, fmt.Errorf("fields cannot be identical: '%v' and '%v'", strings.Join(fieldParts, "."), strings.Join(fieldParts, "."))
 		} else if value == true {
 			// case (3)
-			return fmt.Errorf("fields '%v' and '%v' are incompatible",
+			return nil, fmt.Errorf("fields '%v' and '%v' are incompatible",
 				strings.Join(fieldParts, "."),
 				strings.Join(fieldParts[:partIndex+1], "."))
 		}
 	}
 
 	if len(fieldParts[partIndex:]) == 1 {
-		(*tree)[fieldParts[partIndex]] = true
-		return nil
+		tree[fieldParts[partIndex]] = true
+		return tree, nil
 	}
 
 	// Now determine the type of the next part of the field
 	partIndex++
 	if _, ok := isNatNum(fieldParts[partIndex]); useArrayIndexFields && ok {
-		if !exists {
-			subArray := &[]interface{}{}
-			err = addFieldToArray(fieldParts, partIndex, subArray)
-			if err != nil {
-				return err
-			}
-			(*tree)[fieldParts[0]] = subArray
-		} else {
-			subArray, ok := value.(*[]interface{})
+		var subArray []interface{}
+		if exists {
+			subArray, ok = value.([]interface{})
 			if !ok {
 				// case (5) or (4)
-				return fmt.Errorf("fields '%v' and '%v' are incompatible",
+				return nil, fmt.Errorf("fields '%v' and '%v' are incompatible",
 					strings.Join(fieldParts[:partIndex], ".")+findFirstField(value),
 					strings.Join(fieldParts, "."))
 			}
-			err = addFieldToArray(fieldParts, partIndex, subArray)
-			if err != nil {
-				return err
-			}
+		} else {
+			subArray = make([]interface{}, 0)
 		}
+		subArray, err := addFieldToArray(fieldParts, partIndex, subArray)
+		if err != nil {
+			return nil, err
+		}
+		tree[fieldParts[0]] = subArray
 	} else {
-		if !exists {
-			subTree := &map[string]interface{}{}
-			err = addFieldToTree(fieldParts, partIndex, subTree, useArrayIndexFields)
-			if err != nil {
-				return err
-			}
-			(*tree)[fieldParts[0]] = subTree
-		} else {
-			subTree, ok := value.(*map[string]interface{})
+		var subTree map[string]interface{}
+		if exists {
+			subTree, ok = value.(map[string]interface{})
 			if !ok {
 				// case (5) or (4)
-				return fmt.Errorf("fields '%v' and '%v' are incompatible",
+				return nil, fmt.Errorf("fields '%v' and '%v' are incompatible",
 					strings.Join(fieldParts[:partIndex], ".")+findFirstField(value),
 					strings.Join(fieldParts, "."))
 			}
-			err = addFieldToTree(fieldParts, partIndex, subTree, useArrayIndexFields)
-			if err != nil {
-				return err
-			}
+		} else {
+			subTree = make(map[string]interface{})
 		}
+		subTree, err := addFieldToTree(fieldParts, partIndex, subTree, useArrayIndexFields)
+		if err != nil {
+			return nil, err
+		}
+		tree[fieldParts[0]] = subTree
 	}
-	return nil
+	return tree, nil
 
 }
 
 // addFieldToArray is used with addFieldToTree() to build a valid tree of fields.
-func addFieldToArray(fieldParts []string, partIndex int, array *[]interface{}) (err error) {
+func addFieldToArray(fieldParts []string, partIndex int, array []interface{}) ([]interface{}, error) {
 	// The first part of the field should be an index of an array
 	idx, ok := isNatNum(fieldParts[partIndex])
 	if !ok {
 		// We shouldn't ever get here
-		return fmt.Errorf("addFieldToArray expected an integer field, but instead received %s", fieldParts[0])
+		return nil, fmt.Errorf("addFieldToArray expected an integer field, but instead received %s", fieldParts[0])
 	}
 
 	if len(fieldParts[partIndex:]) == 1 {
 		// We're at the terminus of a field so we have to check if we can append to the array
-		if idx < len(*array) {
+		if idx < len(array) {
 			// case (2)
-			return fmt.Errorf("fields cannot be identical: '%v' and '%v'",
+			return nil, fmt.Errorf("fields cannot be identical: '%v' and '%v'",
 				strings.Join(fieldParts, "."), strings.Join(fieldParts, "."))
-		} else if idx > len(*array) {
+		} else if idx > len(array) {
 
-			if len(*array) == 0 {
+			if len(array) == 0 {
 				// case (6) or (7)
-				return fmt.Errorf("array indexes must start from 0. No index found before index '%v' in field '%v'",
+				return nil, fmt.Errorf("array indexes must start from 0. No index found before index '%v' in field '%v'",
 					idx, strings.Join(fieldParts, "."))
 			}
 			// case (7) and (8)
-			return fmt.Errorf("field '%v' contains an array index that does not increase sequentially from field '%v.%d'. "+
+			return nil, fmt.Errorf("field '%v' contains an array index that does not increase sequentially from field '%v.%d'. "+
 				"Array indexes in fields must start from 0 and increase sequentially",
 				strings.Join(fieldParts, "."),
 				strings.Join(fieldParts[:partIndex], "."),
-				(len(*array) - 1))
+				(len(array) - 1))
 		}
 
-		*array = append(*array, true)
-		return nil
+		array = append(array, true)
+		return array, nil
 	}
 
 	partIndex++
 	if _, ok := isNatNum(fieldParts[partIndex]); ok {
 		// next part of the field refers to an array
-		if idx < len(*array) {
+		if idx < len(array) {
 			// the index already exists in array
 			// check the element is an array
-			subArray, ok := (*array)[idx].(*[]interface{})
+			subArray, ok := array[idx].([]interface{})
 			if !ok {
-				return fmt.Errorf("fields '%v' and '%v' are incompatible",
-					strings.Join(fieldParts[:partIndex], ".")+findFirstField((*array)[idx]),
+				return nil, fmt.Errorf("fields '%v' and '%v' are incompatible",
+					strings.Join(fieldParts[:partIndex], ".")+findFirstField((array)[idx]),
 					strings.Join(fieldParts, "."))
 			}
-			err = addFieldToArray(fieldParts, partIndex, subArray)
+			subArray, err := addFieldToArray(fieldParts, partIndex, subArray)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			array[idx] = subArray
 		} else {
 			// the element at idx doesn't exist yet
-			subArray := &[]interface{}{}
-			err = addFieldToArray(fieldParts, partIndex, subArray)
+			subArray := make([]interface{}, 0)
+			subArray, err := addFieldToArray(fieldParts, partIndex, subArray)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			*array = append(*array, subArray)
+			array = append(array, subArray)
 		}
 	} else {
 		// next part of the field refers to a document
-		if idx < len(*array) {
+		if idx < len(array) {
 			// the index already exists in array
 			// check the element is an document
-			subTree, ok := (*array)[idx].(*map[string]interface{})
+			subTree, ok := array[idx].(map[string]interface{})
 			if !ok {
-				return fmt.Errorf("fields '%v' and '%v' are incompatible",
-					strings.Join(fieldParts[:partIndex], ".")+findFirstField((*array)[idx]),
+				return nil, fmt.Errorf("fields '%v' and '%v' are incompatible",
+					strings.Join(fieldParts[:partIndex], ".")+findFirstField((array)[idx]),
 					strings.Join(fieldParts, "."))
 			}
-			err = addFieldToTree(fieldParts, partIndex, subTree, true)
+			subTree, err := addFieldToTree(fieldParts, partIndex, subTree, true)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			array[idx] = subTree
 		} else {
 			// the element at idx doesn't exist yet
-			subTree := &map[string]interface{}{}
-			err = addFieldToTree(fieldParts, partIndex, subTree, true)
+			subTree := make(map[string]interface{})
+			subTree, err := addFieldToTree(fieldParts, partIndex, subTree, true)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			*array = append(*array, subTree)
+			array = append(array, subTree)
 		}
 	}
-	return nil
+	return array, nil
 
 }
 
@@ -752,10 +748,10 @@ func findFirstField(i interface{}) string {
 	switch v := i.(type) {
 	case bool:
 		return ""
-	case *[]interface{}:
-		return ".0" + findFirstField((*v)[0])
-	case *map[string]interface{}:
-		for k, v := range *v {
+	case []interface{}:
+		return ".0" + findFirstField(v[0])
+	case map[string]interface{}:
+		for k, v := range v {
 			return "." + k + findFirstField(v)
 		}
 	}

@@ -227,7 +227,7 @@ func TestConstructUpsertDocument(t *testing.T) {
 	})
 }
 
-func TestSetNestedValue(t *testing.T) {
+func TestSetNestedDocumentValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a field, its value, and an existing BSON document...", t, func() {
@@ -239,7 +239,7 @@ func TestSetNestedValue(t *testing.T) {
 		Convey("ensure top level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.E{"c", 4}
-			setNestedValue([]string{"c"}, 4, testDocument, false)
+			setNestedDocumentValue([]string{"c"}, 4, testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2], ShouldResemble, expectedDocument)
@@ -247,7 +247,7 @@ func TestSetNestedValue(t *testing.T) {
 		Convey("ensure new nested top-level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.D{{"b", "4"}}
-			setNestedValue([]string{"c", "b"}, "4", testDocument, false)
+			setNestedDocumentValue([]string{"c", "b"}, "4", testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2].Key, ShouldResemble, "c")
@@ -256,7 +256,7 @@ func TestSetNestedValue(t *testing.T) {
 		Convey("ensure existing nested level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
-			setNestedValue([]string{"b", "d"}, 9, testDocument, false)
+			setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
@@ -266,12 +266,12 @@ func TestSetNestedValue(t *testing.T) {
 			testDocument := &currentDocument
 			expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
 			expectedDocumentTwo := bson.E{"f", 23}
-			setNestedValue([]string{"b", "d"}, 9, testDocument, false)
+			setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
 			So(*newDocument[1].Value.(*bson.D), ShouldResemble, expectedDocumentOne)
-			setNestedValue([]string{"f"}, 23, testDocument, false)
+			setNestedDocumentValue([]string{"f"}, 23, testDocument, false)
 			newDocument = *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2], ShouldResemble, expectedDocumentTwo)
@@ -436,7 +436,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -458,7 +458,7 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -494,12 +494,12 @@ func TestDoSequentialStreaming(t *testing.T) {
 			{
 				unprocessedDataChan:   workerInputChannel[0],
 				processedDocumentChan: workerOutputChannel[0],
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			},
 			{
 				unprocessedDataChan:   workerInputChannel[1],
 				processedDocumentChan: workerOutputChannel[1],
-				tomb: &tomb.Tomb{},
+				tomb:                  &tomb.Tomb{},
 			},
 		}
 		Convey("documents moving through the input channel should be processed and returned in sequence", func() {
