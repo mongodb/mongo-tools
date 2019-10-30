@@ -212,8 +212,8 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 		return err
 	}
 
-	UUID, supportsUUID := collInfo.Info["uuid"]
-	UUID, ok := UUID.(primitive.Binary)
+	collectionUUID, supportsUUID := collInfo.Info["uuid"]
+	UUID, ok := collectionUUID.(primitive.Binary)
 	if !ok {
 		fmt.Errorf("error creating indexes for collection %v: (InvalidUUID) uuid must be a 16-byte binary field with UUID (4) subtype", intent.C)
 	}
