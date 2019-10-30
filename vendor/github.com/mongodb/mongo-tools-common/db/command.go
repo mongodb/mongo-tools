@@ -261,11 +261,11 @@ func (sp *SessionProvider) RunApplyOpsCreateIndex(C, DB string, index bson.D, UU
 	// If index version was removed, add it back in
 	_, err := bsonutil.FindValueByKey("v", &index)
 	if err != nil {
-		index = append(index, bson.E{"v", 1})
+		index = append(index, bson.E{Key: "v", Value: 1})
 	}
 
 	if supportsUUID {
-		o := append(index, bson.E{"createIndexes", C})
+		o := append(bson.D{{Key: "createIndexes", Value: C}}, index...)
 
 		op = Oplog{
 			Operation: "c",
@@ -281,7 +281,7 @@ func (sp *SessionProvider) RunApplyOpsCreateIndex(C, DB string, index bson.D, UU
 		}
 	}
 
-	err = sp.Run(bson.D{{"applyOps", []Oplog{op}}}, result, DB)
+	err = sp.Run(bson.D{{Key: "applyOps", Value: []Oplog{op}}}, result, DB)
 	if err != nil {
 		return fmt.Errorf("error building index: %v", err)
 	}
