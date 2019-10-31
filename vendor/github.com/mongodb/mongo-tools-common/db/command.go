@@ -255,23 +255,25 @@ func ApplyFlags(opts *mopt.FindOneOptions, flags int) {
 // RunApplyOpsCreateIndex will create index using applyOps.
 // For versions that support collection UUIDs (<3.6) it uses an insert to system indexes.
 // Later versions use the createIndexes command.
-func (sp *SessionProvider) RunApplyOpsCreateIndex(C, DB string, index bson.D, UUID primitive.Binary, supportsUUID bool, result *interface{}) error {
+func (sp *SessionProvider) RunApplyOpsCreateIndex(C, DB string, index bson.D, UUID *primitive.Binary, result *interface{}) error {
 	var op Oplog
 
-	// If index version was removed, add it back in
+	// Add an index version if it is missing. An index version could be missing because
+	// a tool stripped it out (e.g. mongorestore strips out versions before attempting createIndex)
+	// or because the index came from an oplog entry from versions <3.4.
 	_, err := bsonutil.FindValueByKey("v", &index)
 	if err != nil {
 		index = append(index, bson.E{Key: "v", Value: 1})
 	}
 
-	if supportsUUID {
+	if UUID != nil {
 		o := append(bson.D{{Key: "createIndexes", Value: C}}, index...)
 
 		op = Oplog{
 			Operation: "c",
 			Namespace: fmt.Sprintf("%s.$cmd", DB),
 			Object:    o,
-			UI:        &UUID,
+			UI:        UUID,
 		}
 	} else {
 		op = Oplog{
