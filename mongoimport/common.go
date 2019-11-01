@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -586,7 +585,7 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 
 	for _, field := range inputFields {
 		fieldParts := strings.Split(field, ".")
-		_, err := addFieldToTree(fieldParts, field, 0, fieldTree, useArrayIndexFields)
+		_, err := addFieldToTree(fieldParts, field, "", fieldTree, useArrayIndexFields)
 		if err != nil {
 			return err
 		}
@@ -598,8 +597,13 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 // that fields are compatible with each other. When useArrayIndexFields is set, it is mutually recursive
 // with addFieldToArray(). It closely mimics the behaviour of setNestedDocumentValue(). See validateFields()
 // for more information on the validity checks that are made when constructing a tree of fields.
-func addFieldToTree(fieldParts []string, fullField string, fullFieldIndex int, tree map[string]interface{}, useArrayIndexFields bool) (map[string]interface{}, error) {
+func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, tree map[string]interface{}, useArrayIndexFields bool) (map[string]interface{}, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
+	if fieldPrefix == "" {
+		fieldPrefix = head
+	} else {
+		fieldPrefix += "." + head
+	}
 
 	value, exists := tree[head]
 
@@ -609,7 +613,7 @@ func addFieldToTree(fieldParts []string, fullField string, fullFieldIndex int, t
 			return nil, identicalError(fullField)
 		}
 		// case (3)
-		return nil, incompatibleError(fullField, fullFieldIndex, value)
+		return nil, incompatibleError(fullField, fieldPrefix, value)
 	}
 
 	if len(fieldParts) == 1 {
@@ -625,12 +629,12 @@ func addFieldToTree(fieldParts []string, fullField string, fullFieldIndex int, t
 			subArray, ok = value.([]interface{})
 			if !ok {
 				// case (5) or (4)
-				return nil, incompatibleError(fullField, fullFieldIndex, value)
+				return nil, incompatibleError(fullField, fieldPrefix, value)
 			}
 		} else {
 			subArray = make([]interface{}, 0)
 		}
-		subArray, err := addFieldToArray(tail, fullField, fullFieldIndex+1, subArray)
+		subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
 		if err != nil {
 			return nil, err
 		}
@@ -641,12 +645,12 @@ func addFieldToTree(fieldParts []string, fullField string, fullFieldIndex int, t
 			subTree, ok = value.(map[string]interface{})
 			if !ok {
 				// case (5) or (4)
-				return nil, incompatibleError(fullField, fullFieldIndex, value)
+				return nil, incompatibleError(fullField, fieldPrefix, value)
 			}
 		} else {
 			subTree = make(map[string]interface{})
 		}
-		subTree, err := addFieldToTree(tail, fullField, fullFieldIndex+1, subTree, useArrayIndexFields)
+		subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, useArrayIndexFields)
 		if err != nil {
 			return nil, err
 		}
@@ -657,11 +661,12 @@ func addFieldToTree(fieldParts []string, fullField string, fullFieldIndex int, t
 }
 
 // addFieldToArray is used with addFieldToTree() to build a valid tree of fields.
-func addFieldToArray(fieldParts []string, fullField string, fullFieldIndex int, array []interface{}) ([]interface{}, error) {
+func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, array []interface{}) ([]interface{}, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
+	fieldPrefix += "." + head
 
 	// The first part of the field should be an index of an array
-	idx, ok := isNatNum(head)
+	headIndex, ok := isNatNum(head)
 	if !ok {
 		// We shouldn't ever get here
 		panic(fmt.Sprintf("addFieldToArray expected an integer field, but instead received %s", fieldParts[0]))
@@ -669,35 +674,35 @@ func addFieldToArray(fieldParts []string, fullField string, fullFieldIndex int, 
 
 	if len(fieldParts) == 1 {
 		// We're at the terminus of a field so we have to check if we can append to the array
-		if idx == len(array) {
+		if headIndex == len(array) {
 			array = append(array, true)
 			return array, nil
 		}
 		return nil, indexError(fullField)
 	}
 
-	if idx > len(array) {
+	if headIndex > len(array) {
 		return nil, indexError(fullField)
 	}
 
 	if _, ok := isNatNum(tail[0]); ok {
 		// next part of the field refers to an array
-		if idx < len(array) {
+		if headIndex < len(array) {
 			// the index already exists in array
 			// check the element is an array
-			subArray, ok := array[idx].([]interface{})
+			subArray, ok := array[headIndex].([]interface{})
 			if !ok {
-				return nil, incompatibleError(fullField, fullFieldIndex, array[idx])
+				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
 			}
-			subArray, err := addFieldToArray(tail, fullField, fullFieldIndex+1, subArray)
+			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
 			if err != nil {
 				return nil, err
 			}
-			array[idx] = subArray
+			array[headIndex] = subArray
 		} else {
-			// the element at idx doesn't exist yet
+			// the element at headIndex doesn't exist yet
 			subArray := make([]interface{}, 0)
-			subArray, err := addFieldToArray(tail, fullField, fullFieldIndex+1, subArray)
+			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
 			if err != nil {
 				return nil, err
 			}
@@ -705,22 +710,22 @@ func addFieldToArray(fieldParts []string, fullField string, fullFieldIndex int, 
 		}
 	} else {
 		// next part of the field refers to a document
-		if idx < len(array) {
+		if headIndex < len(array) {
 			// the index already exists in array
 			// check the element is an document
-			subTree, ok := array[idx].(map[string]interface{})
+			subTree, ok := array[headIndex].(map[string]interface{})
 			if !ok {
-				return nil, incompatibleError(fullField, fullFieldIndex, array[idx])
+				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
 			}
-			subTree, err := addFieldToTree(tail, fullField, fullFieldIndex+1, subTree, true)
+			subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, true)
 			if err != nil {
 				return nil, err
 			}
-			array[idx] = subTree
+			array[headIndex] = subTree
 		} else {
-			// the element at idx doesn't exist yet
+			// the element at headIndex doesn't exist yet
 			subTree := make(map[string]interface{})
-			subTree, err := addFieldToTree(tail, fullField, fullFieldIndex+1, subTree, true)
+			subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, true)
 			if err != nil {
 				return nil, err
 			}
@@ -747,16 +752,8 @@ func findFirstField(i interface{}) string {
 	return ""
 }
 
-func incompatibleError(field string, fullFieldIndex int, value interface{}) error {
-	// This matches fullFieldIndex+1 field parts. E.g. if the field is a.b.c.d
-	// and fullFieldIndex is 1 (representing b), this will match "a.b.".
-	// This gives us a field path up to the location of value in the tree. Then
-	// findFirstField will find the field name of the first leaf node in value.
-	re := regexp.MustCompile(fmt.Sprintf(`^(.+?\.){%d}`, fullFieldIndex+1))
-	s := re.FindString(field)
-	s = s[:len(s)-1] // get rid of the trailing "."
-	field2 := s + findFirstField(value)
-
+func incompatibleError(field string, fieldPrefix string, value interface{}) error {
+	field2 := fieldPrefix + findFirstField(value)
 	return fmt.Errorf("fields '%v' and '%v' are incompatible", field2, field)
 }
 
