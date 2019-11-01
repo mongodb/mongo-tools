@@ -1113,21 +1113,28 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a.0,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields cannot be identical: 'a.0' and 'a.0'"),
+				fmt.Errorf("array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array fields not starting at 0 should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.1,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("array indexes must start from 0. No index found before index '1' in field 'a.1'"),
+				fmt.Errorf("array index error with field 'a.1': array indexes in fields must start from 0 and increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array fields skipping an index should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.2\n1,2,3",
 				nil,
-				fmt.Errorf("field 'a.2' contains an array index that does not increase sequentially from field 'a.0'. Array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf("array index error with field 'a.2': array indexes in fields must start from 0 and increase sequentially"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Array fields with sub documents skipping an index should throw an error",
+			nestedFieldsTestHelper(
+				"_id,a.0.a,a.2.a\n1,2,3",
+				nil,
+				fmt.Errorf("array index error with field 'a.2': array indexes in fields must start from 0 and increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
@@ -1162,14 +1169,14 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.0' and 'a' are incompatible"),
+				fmt.Errorf("fields 'a' and 'a.0' are incompatible"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as value (deep object)",
 			nestedFieldsTestHelper(
 				"_id,a.a.a,a.a.a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a.a.0' and 'a.a.a' are incompatible"),
+				fmt.Errorf("fields 'a.a.a' and 'a.a.a.0' are incompatible"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array field should be incompatible with a document field starting with a symbol that is sorted before 0",
@@ -1183,14 +1190,14 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a,b.1\n1,2,3",
 				nil,
-				fmt.Errorf("array indexes must start from 0. No index found before index '1' in field 'b.1'"),
+				fmt.Errorf("array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Indexes in fields must start from 0 (last field same length)",
 			nestedFieldsTestHelper(
 				"_id,a.b,b.1\n1,2,3",
 				nil,
-				fmt.Errorf("array indexes must start from 0. No index found before index '1' in field 'b.1'"),
+				fmt.Errorf("array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Fields that are the same should throw an error (no arrays)",
@@ -1219,6 +1226,13 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.0.0,a.0.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.0.0' and 'a.0.a' are incompatible"),
+			),
+		)
+		Convey("With --useArrayIndexFields: Incompatible fields should throw error (one long, one short)",
+			nestedFieldsTestHelper(
+				"_id,a.a.a.a,a.a\n1,2,3",
+				nil,
+				fmt.Errorf("fields 'a.a.a.a' and 'a.a' are incompatible"),
 			),
 		)
 	})
