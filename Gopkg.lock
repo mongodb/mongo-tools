@@ -117,7 +117,6 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "TOOLS-2379-applyops"
   digest = "1:4ffe935ddc2743723505564047fbda58fe60a24277d13201026fb1bcfac030d5"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
@@ -140,7 +139,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "3e8bf19dd3a0a61314f30ea9e64b6aa0f32af232"
+  revision = "5dccb91cc6726e9d5d365a578cfcd2563606c9ed"
+  version = "v1.2.3"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
