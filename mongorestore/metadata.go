@@ -47,6 +47,23 @@ type IndexDocument struct {
 	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
 }
 
+// BSON converts IndexDocument to bson.D
+func (index *IndexDocument) BSON() bson.D {
+	o := bson.D{
+		{"key", index.Key},
+	}
+
+	for k, v := range index.Options {
+		o = append(o, bson.E{k, v})
+	}
+
+	if index.PartialFilterExpression != nil {
+		o = append(o, bson.E{"partialFilterExpression", index.PartialFilterExpression})
+	}
+
+	return o
+}
+
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable
 // collection options and indexes for restoring collections.
 func (restore *MongoRestore) MetadataFromJSON(jsonBytes []byte) (*Metadata, error) {
@@ -187,34 +204,31 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 	if err == nil {
 		return nil
 	}
-	if err.Error() != "no such cmd: createIndexes" {
-		return fmt.Errorf("createIndex error: %v", err)
+
+	log.Logv(log.Info, "\tcreateIndexes command failed, attemping legacy index insertion")
+
+	collInfo, err := db.GetCollectionInfo(session.Database(intent.DB).Collection(intent.C))
+	if err != nil {
+		return err
 	}
 
-	// if we're here, the connected server does not support the command, so we fall back
-	log.Logv(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
-	for _, idx := range indexes {
-		log.Logvf(log.Info, "\tmanually creating index %v", idx.Options["name"])
-		err = restore.LegacyInsertIndex(intent, idx)
-		if err != nil {
-			return fmt.Errorf("error creating index %v: %v", idx.Options["name"], err)
+	var uuid *primitive.Binary
+	val, ok := collInfo.Info["uuid"]
+	if ok {
+		uuidVal, ok := val.(primitive.Binary)
+		if !ok {
+			return fmt.Errorf("error creating indexes for collection %v: (InvalidUUID) uuid must be a 16-byte binary field with UUID (4) subtype", intent.C)
 		}
-	}
-	return nil
-}
-
-// LegacyInsertIndex takes in an intent and an index document and attempts to
-// create the index on the "system.indexes" collection.
-func (restore *MongoRestore) LegacyInsertIndex(intent *intents.Intent, index IndexDocument) error {
-	session, err := restore.SessionProvider.GetSession()
-	if err != nil {
-		return fmt.Errorf("error establishing connection: %v", err)
+		uuid = &uuidVal
 	}
 
-	indexCollection := session.Database(intent.DB).Collection("system.indexes")
-	_, err = indexCollection.InsertOne(nil, index)
-	if err != nil {
-		return fmt.Errorf("insert error: %v", err)
+	for _, index := range indexes {
+		log.Logvf(log.Info, "\tmanually creating index %v", index.Options["name"])
+		var result interface{}
+		err = restore.SessionProvider.RunApplyOpsCreateIndex(intent.C, intent.DB, index.BSON(), uuid, &result)
+		if err != nil {
+			return fmt.Errorf("error creating index %v: %v", index.Options["name"], err)
+		}
 	}
 
 	return nil
