@@ -552,7 +552,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 //     (5). One field implies that there is a document, another implies there is an array.
 //          (e.g. a.b,a.0 or a.b.c,a.0.c)
 //     (6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
-//     (7). Array indexes are out of order (e.g. a.1,a.0 or a.0.b,a.1,a.0.c)
+//     (7). Array indexes are out of order (e.g. a.0,a.2,a.1)
 //     (8). An array is missing an index (e.g. a.0,a.2)
 func validateFields(inputFields []string, useArrayIndexFields bool) error {
 	for _, field := range inputFields {
@@ -607,28 +607,31 @@ func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, t
 
 	value, exists := tree[head]
 
-	if exists && len(fieldParts) == 1 {
+	if exists && len(tail) == 0 {
 		if value == true {
-			// fields are the same - case (2)
+			// case (2): fields are the same
 			return nil, identicalError(fullField)
 		}
-		// case (3)
+		// case (3) or (4): this field path implies a value but a document or an array already exists at this point
 		return nil, incompatibleError(fullField, fieldPrefix, value)
 	}
 
-	if len(fieldParts) == 1 {
+	if len(tail) == 0 {
 		tree[head] = true
 		return tree, nil
 	}
 
-	// Now determine the type of the next part of the field
-
+	// At this point, `value` either represents an existing sub-document or sub-array in the tree or doesn't exist.
+	// The tail is not empty which means there is a sub-field and we need to recurse.
+	// We determine the type implied by the next field in the tail (either document or array).
+	// If the head value exists we check the compatibility of the next field with that value.
+	// If it doesn't exist we create an empty structure of the appropriate type.
 	if _, ok := isNatNum(tail[0]); useArrayIndexFields && ok {
 		var subArray []interface{}
 		if exists {
 			subArray, ok = value.([]interface{})
 			if !ok {
-				// case (5) or (4)
+				// case (4) or (5): We expect value to be an array but it is a map or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, value)
 			}
 		} else {
@@ -644,7 +647,7 @@ func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, t
 		if exists {
 			subTree, ok = value.(map[string]interface{})
 			if !ok {
-				// case (5) or (4)
+				// case (3) or (5): We expect value to be a map but it is a slice or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, value)
 			}
 		} else {
@@ -669,22 +672,29 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 	headIndex, ok := isNatNum(head)
 	if !ok {
 		// We shouldn't ever get here
-		panic(fmt.Sprintf("addFieldToArray expected an integer field, but instead received %s", fieldParts[0]))
+		panic(fmt.Sprintf("addFieldToArray expected a natural number field, but instead received %s", fieldParts[0]))
 	}
 
-	if len(fieldParts) == 1 {
+	if len(tail) == 0 {
 		// We're at the terminus of a field so we have to check if we can append to the array
 		if headIndex == len(array) {
 			array = append(array, true)
 			return array, nil
 		}
+		// headIndex > len(array) => case (6), (7), or (8): headIndex isn't the next index in the array
+		// headIndex < len(array) => case (2), (3), or (4): the element in the array is already set to another value, document, or array
 		return nil, indexError(fullField)
 	}
 
+	// case (6), (7), or (8): headIndex isn't the next index in the array
 	if headIndex > len(array) {
 		return nil, indexError(fullField)
 	}
 
+	// The tail is not empty which means there is a sub-field and we need to recurse.
+	// We determine the type implied by the next field in the tail (either document or array).
+	// If array[headIndex] exists we check the compatibility of the next field with that value.
+	// If it doesn't exist we create an empty structure of the appropriate type.
 	if _, ok := isNatNum(tail[0]); ok {
 		// next part of the field refers to an array
 		if headIndex < len(array) {
@@ -692,6 +702,7 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 			// check the element is an array
 			subArray, ok := array[headIndex].([]interface{})
 			if !ok {
+				// case (4) or (5): We expect array[headIndex] to be an array but it is a map or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
 			}
 			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
@@ -715,6 +726,7 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 			// check the element is an document
 			subTree, ok := array[headIndex].(map[string]interface{})
 			if !ok {
+				// case (3) or (5): We expect array[headIndex] to be a map but it is a slice or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
 			}
 			subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, true)
@@ -736,8 +748,8 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 
 }
 
-// findFirstField is used as a helper for constructing error messages
-// when building a tree of fields. It returns the path to the left-most leaf in a tree.
+// findFirstField is used as a helper for constructing error messages when building a tree of fields.
+// It returns the path to the left-most leaf in a tree.
 func findFirstField(i interface{}) string {
 	switch v := i.(type) {
 	case bool:
