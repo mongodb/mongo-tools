@@ -11,12 +11,13 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/mongodb/mongo-tools/mongoimport/dateconv"
 )
@@ -77,6 +78,7 @@ type ColumnSpec struct {
 	Parser     FieldParser
 	ParseGrace ParseGrace
 	TypeName   string
+	NameParts  []string
 }
 
 // ColumnNames maps a ColumnSpec slice to their associated names
@@ -104,7 +106,8 @@ func ParseTypedHeader(header string, parseGrace ParseGrace) (f ColumnSpec, err e
 	if err != nil {
 		return
 	}
-	return ColumnSpec{match[1], p, parseGrace, match[2]}, nil
+	nameParts := strings.Split(match[1], ".")
+	return ColumnSpec{match[1], p, parseGrace, match[2], nameParts}, nil
 }
 
 // ParseTypedHeaders performs ParseTypedHeader on each item, returning an
@@ -125,7 +128,8 @@ func ParseTypedHeaders(headers []string, parseGrace ParseGrace) (fs []ColumnSpec
 func ParseAutoHeaders(headers []string) (fs []ColumnSpec) {
 	fs = make([]ColumnSpec, len(headers))
 	for i, f := range headers {
-		fs[i] = ColumnSpec{f, new(FieldAutoParser), pgAutoCast, "auto"}
+		nameParts := strings.Split(f, ".")
+		fs[i] = ColumnSpec{f, new(FieldAutoParser), pgAutoCast, "auto", nameParts}
 	}
 	return
 }

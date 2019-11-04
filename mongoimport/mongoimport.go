@@ -214,7 +214,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			return fmt.Errorf("can not use --upsertFields with --mode=insert")
 		}
 		imp.upsertFields = strings.Split(imp.IngestOptions.UpsertFields, ",")
-		if err := validateFields(imp.upsertFields); err != nil {
+		if err := validateFields(imp.upsertFields, imp.InputOptions.UseArrayIndexFields); err != nil {
 			return fmt.Errorf("invalid --upsertFields argument: %v", err)
 		}
 	} else if imp.IngestOptions.Mode != modeInsert {
@@ -588,7 +588,7 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	// header fields validation can only happen once we have an input reader
 	if !imp.InputOptions.HeaderLine {
-		if err = validateReaderFields(ColumnNames(colSpecs)); err != nil {
+		if err = validateReaderFields(ColumnNames(colSpecs), imp.InputOptions.UseArrayIndexFields); err != nil {
 			return nil, err
 		}
 	}
@@ -597,9 +597,9 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
 	if imp.InputOptions.Type == CSV {
-		return NewCSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
+		return NewCSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks, imp.InputOptions.UseArrayIndexFields), nil
 	} else if imp.InputOptions.Type == TSV {
-		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks), nil
+		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks, imp.InputOptions.UseArrayIndexFields), nil
 	}
 	return NewJSONInputReader(imp.InputOptions.JSONArray, imp.InputOptions.Legacy, in, imp.IngestOptions.NumDecodingWorkers), nil
 }
