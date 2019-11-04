@@ -686,8 +686,10 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 		return nil, indexError(fullField)
 	}
 
-	// case (6), (7), or (8): headIndex isn't the next index in the array
+	// If tail is not empty, we're either adding a new item to array, or we're adding a field to an item
+	// currently in array. Therefore headIndex cannot be > len(array).
 	if headIndex > len(array) {
+		// case (6), (7), or (8): headIndex isn't the next index in the array
 		return nil, indexError(fullField)
 	}
 
