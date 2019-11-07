@@ -78,7 +78,7 @@ if ( typeof _threadInject != "undefined" ){
     }
     
     // Helper class for running tests in parallel.  It assembles a set of tests
-    // and then calls assert.parallelests to run them.
+    // and then calls assert.parallelTests to run them.
     ParallelTester = function() {
         assert.neq(db.getMongo().writeMode(), "legacy", "wrong shell write mode")
         this.params = new Array();
@@ -114,7 +114,6 @@ if ( typeof _threadInject != "undefined" ){
         
         // some tests can't run in parallel with most others
         var skipTests = makeKeys([ "dbadmin.js",
-                                   "repair.js",
                                    "cursor8.js",
                                    "recstore.js",
                                    "extent.js",

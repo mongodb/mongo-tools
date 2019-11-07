@@ -6,6 +6,14 @@
 
 package mongoimport
 
+import (
+	"fmt"
+
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+)
+
 var Usage = `<options> <file>
 
 Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport reads from stdin.
@@ -30,13 +38,18 @@ type InputOptions struct {
 	JSONArray bool `long:"jsonArray" description:"treat input source as a JSON array"`
 
 	// Indicates how to handle type coercion failures
-	ParseGrace string `long:"parseGrace" value-name:"<grace>" default:"stop" description:"controls behavior when type coercion fails - one of: autoCast, skipField, skipRow, stop (defaults to 'stop')"`
+	ParseGrace string `long:"parseGrace" value-name:"<grace>" default:"stop" description:"controls behavior when type coercion fails - one of: autoCast, skipField, skipRow, stop"`
 
 	// Specifies the file type to import. The default format is JSON, but it’s possible to import CSV and TSV files.
-	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"input format to import: json, csv, or tsv (defaults to 'json')"`
+	Type string `long:"type" value-name:"<type>" default:"json" default-mask:"-" description:"input format to import: json, csv, or tsv"`
 
 	// Indicates that field names include type descriptions
-	ColumnsHaveTypes bool `long:"columnsHaveTypes" description:"indicated that the field list (from --fields, --fieldsFile, or --headerline) specifies types; They must be in the form of '<colName>.<type>(<arg>)'. The type can be one of: auto, binary, bool, date, date_go, date_ms, date_oracle, decimal, double, int32, int64, string. For each of the date types, the argument is a datetime layout string. For the binary type, the argument can be one of: base32, base64, hex. All other types take an empty argument. Only valid for CSV and TSV imports. e.g. zipcode.string(), thumbnail.binary(base64)"`
+	ColumnsHaveTypes bool `long:"columnsHaveTypes" description:"indicates that the field list (from --fields, --fieldsFile, or --headerline) specifies types; They must be in the form of '<colName>.<type>(<arg>)'. The type can be one of: auto, binary, boolean, date, date_go, date_ms, date_oracle, decimal, double, int32, int64, string. For each of the date types, the argument is a datetime layout string. For the binary type, the argument can be one of: base32, base64, hex. All other types take an empty argument. Only valid for CSV and TSV imports. e.g. zipcode.string(), thumbnail.binary(base64)"`
+
+	// Indicates that the legacy extended JSON format should be used to parse JSON documents. Defaults to false.
+	Legacy bool `long:"legacy" default:"false" description:"use the legacy extended JSON format"`
+
+	UseArrayIndexFields bool `long:"useArrayIndexFields" default:"false" description:"indicates that field names may include array indexes that should be used to construct arrays during import (e.g. foo.0,foo.1). Indexes must start from 0 and increase sequentially (foo.1,foo.0 would fail)."`
 }
 
 // Name returns a description of the InputOptions struct.
@@ -53,21 +66,22 @@ type IngestOptions struct {
 	IgnoreBlanks bool `long:"ignoreBlanks" description:"ignore fields with empty values in CSV and TSV"`
 
 	// Indicates that documents will be inserted in the order of their appearance in the input source.
-	MaintainInsertionOrder bool `long:"maintainInsertionOrder" description:"insert documents in the order of their appearance in the input source"`
+	MaintainInsertionOrder bool `long:"maintainInsertionOrder" description:"insert the documents in the order of their appearance in the input source. By default the insertions will be performed in an arbitrary order. Setting this flag also enables the behavior of --stopOnError and restricts NumInsertionWorkers to 1."`
 
 	// Sets the number of insertion routines to use
-	NumInsertionWorkers int `short:"j" value-name:"<number>" long:"numInsertionWorkers" description:"number of insert operations to run concurrently (defaults to 1)" default:"1" default-mask:"-"`
+	NumInsertionWorkers int `short:"j" value-name:"<number>" long:"numInsertionWorkers" description:"number of insert operations to run concurrently" default:"1" default-mask:"-"`
 
 	// Forces mongoimport to halt the import operation at the first insert or upsert error.
-	StopOnError bool `long:"stopOnError" description:"stop importing at first insert/upsert error"`
+	StopOnError bool `long:"stopOnError" description:"halt after encountering any error during importing. By default, mongoimport will attempt to continue through document validation and DuplicateKey errors, but with this option enabled, the tool will stop instead. A small number of documents may be inserted after encountering an error even with this option enabled; use --maintainInsertionOrder to halt immediately after an error"`
 
 	// Modify the import process.
-	// Always insert the documents if they are new (do NOT match --upsertFields).
 	// For existing documents (match --upsertFields) in the database:
-	// "insert": Insert only, skip exisiting documents.
+	// "insert": Insert only, skip existing documents.
 	// "upsert": Insert new documents or replace existing ones.
 	// "merge": Insert new documents or modify existing ones; Preserve values in the database that are not overwritten.
-	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" description:"insert: insert only. upsert: insert or replace existing documents. merge: insert or modify existing documents. defaults to insert"`
+	// "delete": Skip new documents or delete existing ones that match --upsertFields.
+	// We don't set `default: insert` here since we need to be able to set mode to upsert if --mode isn't set and --upsertFields is set.
+	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" choice:"delete" description:"insert: insert only, skips matching documents. upsert: insert new documents or replace existing documents. merge: insert new documents or modify existing documents. delete: deletes matching documents only. If upsert fields match more than one document, only one document is deleted. (default: insert)"`
 
 	Upsert bool `long:"upsert" hidden:"true" description:"(deprecated; same as --mode=upsert) insert or update objects that already exist"`
 
@@ -91,4 +105,44 @@ type IngestOptions struct {
 // Name returns a description of the IngestOptions struct.
 func (_ *IngestOptions) Name() string {
 	return "ingest"
+}
+
+// Options contains all the possible options that can be used to configure mongoimport.
+type Options struct {
+	*options.ToolOptions
+	*InputOptions
+	*IngestOptions
+	ParsedArgs []string
+}
+
+// ParseOptions reads command line arguments and converts them into options used to configure mongoimport.
+func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
+	opts := options.New("mongoimport", versionStr, gitCommit, Usage,
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
+	inputOpts := &InputOptions{}
+	ingestOpts := &IngestOptions{}
+	opts.AddOptions(inputOpts)
+	opts.AddOptions(ingestOpts)
+	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
+
+	args, err := opts.ParseArgs(rawArgs)
+	if err != nil {
+		return Options{}, err
+	}
+
+	log.SetVerbosity(opts.Verbosity)
+	opts.URI.LogUnsupportedOptions()
+
+	wc, err := db.NewMongoWriteConcern(ingestOpts.WriteConcern, opts.URI.ParsedConnString())
+	if err != nil {
+		return Options{}, fmt.Errorf("error constructing write concern: %v", err)
+	}
+	opts.WriteConcern = wc
+
+	return Options{
+		opts,
+		inputOpts,
+		ingestOpts,
+		args,
+	}, nil
 }

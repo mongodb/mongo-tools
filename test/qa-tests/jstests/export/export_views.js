@@ -1,4 +1,4 @@
-// @tags: [requires_mongo_34](
+// @tags: [requires_min_mongo_34](
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
@@ -64,13 +64,13 @@
   var ret;
 
   ret = toolTest.runTool.apply(toolTest, ['export', '-o', exportTarget, '-d', dbName, '-c', 'citiesCA']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'export should succeed');
 
   db.dropDatabase();
 
   ret = toolTest.runTool.apply(toolTest, ['import', exportTarget, '-d', dbName, '-c', 'CACities']
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq(0, ret, 'export should succeed');
 
   assert.eq(4, db.CACities.count(), 'restored view should have correct number of rows');

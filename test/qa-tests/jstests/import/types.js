@@ -34,15 +34,15 @@
   assert.eq(0, db1.c.count(), "setup1");
   db1.c.save(testDoc);
   toolTest.runTool.apply(toolTest, ["export",
-      "--out", toolTest.extFile,
-      "-d", toolTest.baseName,
-      "-c", db1.c.getName()]
+    "--out", toolTest.extFile,
+    "-d", toolTest.baseName,
+    "-c", db1.c.getName()]
     .concat(commonToolArgs));
 
   toolTest.runTool.apply(toolTest, ["import",
-      "--file", toolTest.extFile,
-      "--db", "imported",
-      "--collection", "testcoll2"]
+    "--file", toolTest.extFile,
+    "--db", "imported",
+    "--collection", "testcoll2"]
     .concat(commonToolArgs));
   var postImportDoc = db1.c.getDB().getSiblingDB("imported").testcoll2.findOne();
 
@@ -58,27 +58,26 @@
       // so accept either the original function or its serialization
       try {
         assert.eq(testDoc[docKey], postImportDoc[docKey],
-            "function does not directly match");
+          "function does not directly match");
       } catch (e) {
         assert.eq({code: String(testDoc[docKey])}, postImportDoc[docKey],
-            "serialized function does not match");
+          "serialized function does not match");
       }
       continue;
     }
     assert.eq(testDoc[docKey], postImportDoc[docKey],
-        "imported field " + docKey + " does not match original");
+      "imported field " + docKey + " does not match original");
   }
-
-  // DBPointer should turn into a DBRef with a $ref field and hte $id field being an ObjectId. It will not convert back to a DBPointer.
 
   var oid = ObjectId();
   var irregularObjects = {
     _id: ObjectId(),
-    a: DBPointer('namespace', oid),
+    a: DBRef('namespace', oid),
     b: NumberInt("5"),
     c: NumberLong("5000"),
     d: 5,
     e: 9223372036854775,
+    f: DBPointer('namespace', oid),
   };
 
   db1.c.drop();
@@ -86,15 +85,15 @@
   assert.eq(0, db1.c.count(), "setup1");
   db1.c.save(irregularObjects);
   toolTest.runTool.apply(toolTest, ["export",
-      "--out", toolTest.extFile,
-      "-d", toolTest.baseName,
-      "-c", db1.c.getName()]
+    "--out", toolTest.extFile,
+    "-d", toolTest.baseName,
+    "-c", db1.c.getName()]
     .concat(commonToolArgs));
 
   toolTest.runTool.apply(toolTest, ["import",
-      "--file", toolTest.extFile,
-      "--db", "imported",
-      "--collection", "testcoll3"]
+    "--file", toolTest.extFile,
+    "--db", "imported",
+    "--collection", "testcoll3"]
     .concat(commonToolArgs));
   postImportDoc = db1.c.getDB().getSiblingDB("imported").testcoll3.findOne();
 

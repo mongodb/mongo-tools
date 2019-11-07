@@ -11,11 +11,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/signals"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/signals"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongodump"
 )
 
@@ -24,9 +24,14 @@ const (
 	progressBarWaitTime = time.Second * 3
 )
 
+var (
+	VersionStr = "built-without-version-string"
+	GitCommit  = "build-without-git-commit"
+)
+
 func main() {
 	// initialize command-line opts
-	opts := options.New("mongodump", mongodump.Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
+	opts := options.New("mongodump", VersionStr, GitCommit, mongodump.Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 
 	inputOpts := &mongodump.InputOptions{}
 	opts.AddOptions(inputOpts)
@@ -37,14 +42,14 @@ func main() {
 	args, err := opts.ParseArgs(os.Args[1:])
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, "try 'mongodump --help' for more information")
-		os.Exit(util.ExitBadOptions)
+		log.Logvf(log.Always, util.ShortUsage("mongodump"))
+		os.Exit(util.ExitFailure)
 	}
 
 	if len(args) > 0 {
 		log.Logvf(log.Always, "positional arguments not allowed: %v", args)
-		log.Logvf(log.Always, "try 'mongodump --help' for more information")
-		os.Exit(util.ExitBadOptions)
+		log.Logvf(log.Always, util.ShortUsage("mongodump"))
+		os.Exit(util.ExitFailure)
 	}
 
 	// print help, if specified
@@ -80,14 +85,11 @@ func main() {
 
 	if err = dump.Init(); err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)
-		os.Exit(util.ExitError)
+		os.Exit(util.ExitFailure)
 	}
 
 	if err = dump.Dump(); err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)
-		if err == util.ErrTerminated {
-			os.Exit(util.ExitKill)
-		}
-		os.Exit(util.ExitError)
+		os.Exit(util.ExitFailure)
 	}
 }

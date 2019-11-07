@@ -3,27 +3,39 @@
 (function() {
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
+  load("jstests/libs/output.js");
 
-  var x = _runMongoProgram("bsondump", "--type=json", "jstests/bson/testdata/all_types.bson");
+  const doc = {
+    "double": {"$numberDouble": "2.0"},
+    "string": "hi",
+    "doc": {"x": {"$numberInt": "1"}},
+    "arr": [{"$numberInt": "1"}, {"$numberInt": "2"}],
+    "binary": {"$binary": {"base64": "//8=", "subType": "00"}},
+    "oid": {"$oid": "507f1f77bcf86cd799439011"},
+    "bool": true,
+    "date": {"$date": {"$numberLong": "978312200000"}},
+    "code": {"$code": "hi", "$scope": {"x": {"$numberInt": "1"}}},
+    "ts": {"$timestamp": {"t": 1, "i": 2}},
+    "int32": {"$numberInt": "5"},
+    "int64": {"$numberLong": "6"},
+    "dec": {"$numberDecimal": "1.2E+10"},
+    "minkey": {"$minKey": 1},
+    "maxkey": {"$maxKey": 1},
+    "regex": {"$regularExpression": {"pattern": "^abc", "options": "imx"}},
+    "symbol": {"$symbol": "i am a symbol"},
+    "undefined": {"$undefined": true},
+    "dbpointer": {"$dbPointer": {"$ref": "some.namespace", "$id": {"$oid": "507f1f77bcf86cd799439011"}}},
+    "null": null
+  };
+
+  const x = _runMongoProgram("bsondump", "--type=json", "jstests/bson/testdata/all_in_one_doc.bson");
   assert.eq(x, 0, "bsondump should exit successfully with 0");
 
-  assert.strContains.soon("20 objects found", rawMongoProgramOutput,
-      "should print out all top-level documents from the test data");
+  assert.strContains.soon("1 objects found", rawMongoProgramOutput,
+    "should print out all top-level documents from the test data");
 
-  var results = rawMongoProgramOutput();
-  assert.strContains("$binary", results, "bson type 'binary' should be present in the debug output");
-  assert.strContains("$date", results, "bson type 'date' should be present in the debug output");
-  assert.strContains("$timestamp", results, "bson type 'timestamp' should be present in the debug output");
-  assert.strContains("$regex", results, "bson type 'regex' should be present in the debug output");
-  assert.strContains("$oid", results, "bson type 'oid' should be present in the debug output");
-  assert.strContains("$undefined", results, "bson type 'undefined' should be present in the debug output");
-  assert.strContains("$minKey", results, "bson type 'min' should be present in the debug output");
-  assert.strContains("$maxKey", results, "bson type 'max' should be present in the debug output");
-  assert.strContains("$numberLong", results, "bson type 'long' should be present in the debug output");
-  assert.strContains("$ref", results, "bson type 'dbref' should be present in the debug output");
-  assert.strContains("$id", results, "bson type 'dbref' should be present in the debug output");
-  assert.strContains("$code", results, "bson type 'javascript' should be present in the debug output");
-  assert.strContains("null", results, "bson type 'null' should be present in the debug output");
-  assert.strContains("true", results, "bson type 'true' should be present in the debug output");
-  assert.strContains("false", results, "bson type 'false' should be present in the debug output");
+  // get row of output containing the json
+  const results = filterShellRows(rawMongoProgramOutput(), row => row.indexOf("$oid") !== -1);
+  assert.eq(results.length, 1);
+  assert.eq(JSON.parse(results[0]), doc);
 }());

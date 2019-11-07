@@ -47,12 +47,15 @@
       .concat(getRestoreTarget(dumpTarget))
       .concat(commonToolArgs));
     assert.eq(exitCode, ret, name);
+  }
+
+  function testSetup() {
     dbOne.dropDatabase();
   }
 
   function noConnectTest() {
     return startMongoProgramNoConnect.apply(null, ['mongorestore',
-        '--writeConcern={w:3}', '--host', st.s.host]
+      '--writeConcern={w:3}', '--host', st.s.host]
       .concat(getRestoreTarget(dumpTarget))
       .concat(commonToolArgs));
   }
@@ -62,7 +65,7 @@
 
   // load and run the write concern suite
   load('jstests/libs/wc_framework.js');
-  runWCTest("mongorestore", rs, toolTest, writeConcernTestFunc, noConnectTest);
+  runWCTest("mongorestore", rs, toolTest, writeConcernTestFunc, noConnectTest, testSetup);
 
   dbOne.dropDatabase();
   rs.stopSet();

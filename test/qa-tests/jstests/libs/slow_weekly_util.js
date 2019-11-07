@@ -6,10 +6,9 @@ SlowWeeklyMongod = function(name) {
   this.start = new Date();
 
   this.conn = startMongodEmpty(
-      "--port", this.port,
-      "--dbpath", MongoRunner.dataPath + this.name,
-      "--smallfiles",
-      "--nojournal");
+    "--port", this.port,
+    "--dbpath", MongoRunner.dataPath + this.name,
+    "--nojournal");
 };
 
 SlowWeeklyMongod.prototype.getDB = function(name) {

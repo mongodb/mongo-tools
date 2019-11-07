@@ -18,7 +18,7 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	bson "github.com/10gen/llmgo/bson"
-	"github.com/mongodb/mongo-tools/common/json"
+	"github.com/mongodb/mongo-tools/legacy/json"
 )
 
 var (
@@ -258,7 +258,7 @@ func extractErrorsFromDoc(doc *bson.D) []error {
 	return errors
 }
 
-// readCStringFromReader reads a null turminated string from an io.Reader.
+// readCStringFromReader reads a null terminated string from an io.Reader.
 func readCStringFromReader(r io.Reader) ([]byte, error) {
 	var b []byte
 	var n [1]byte
@@ -416,6 +416,9 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 	case int32: // NumberInt
 		return json.NumberInt(v), nil
 
+	case uint8: // NumberInt
+		return json.NumberInt(v), nil
+
 	case float64:
 		return json.NumberFloat(v), nil
 
@@ -456,6 +459,21 @@ func ConvertBSONValueToJSON(x interface{}) (interface{}, error) {
 			}
 		}
 		return json.JavaScript{v.Code, scope}, nil
+
+	case mgo.MsgSection:
+		out := map[string]interface{}{
+			"payloadType": v.PayloadType,
+			"payload":     v.Data,
+		}
+		return ConvertBSONValueToJSON(out)
+
+	case mgo.PayloadType1:
+		out := map[string]interface{}{
+			"size":       v.Size,
+			"identifier": v.Identifier,
+			"documents":  v.Docs,
+		}
+		return ConvertBSONValueToJSON(out)
 
 	default:
 		switch x {
@@ -560,7 +578,7 @@ func bsonToWriter(writer io.Writer, in interface{}) error {
 	return nil
 }
 
-// bufferWaiter is a channel-like structure which only recieves a buffer
+// bufferWaiter is a channel-like structure which only receives a buffer
 // from its channel once on the first Get() call, then yields the same
 // buffer upon subsequent Get() calls.
 type bufferWaiter struct {

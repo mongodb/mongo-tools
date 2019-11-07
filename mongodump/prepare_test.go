@@ -7,14 +7,15 @@
 package mongodump
 
 import (
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	"github.com/mongodb/mongo-tools-common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSkipCollection(t *testing.T) {
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a mongodump that excludes collections 'test' and 'fake'"+
 		" and excludes prefixes 'pre-' and 'no'", t, func() {
@@ -54,4 +55,42 @@ func TestSkipCollection(t *testing.T) {
 		})
 	})
 
+}
+
+type testTable struct {
+	db     string
+	coll   string
+	output bool
+}
+
+func TestShouldSkipSystemNamespace(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	tests := []testTable{
+		{
+			db:     "test",
+			coll:   "system",
+			output: false,
+		},
+		{
+			db:     "test",
+			coll:   "system.nonsense",
+			output: true,
+		},
+		{
+			db:     "test",
+			coll:   "system.js",
+			output: false,
+		},
+		{
+			db:     "test",
+			coll:   "test",
+			output: false,
+		},
+	}
+
+	for _, testVals := range tests {
+		if shouldSkipSystemNamespace(testVals.db, testVals.coll) != testVals.output {
+			t.Errorf("%s.%s should have been %v but failed\n", testVals.db, testVals.coll, testVals.output)
+		}
+	}
 }

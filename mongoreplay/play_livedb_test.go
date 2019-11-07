@@ -15,6 +15,7 @@ import (
 
 	mgo "github.com/10gen/llmgo"
 	"github.com/10gen/llmgo/bson"
+	"github.com/mongodb/mongo-tools/legacy/testtype"
 )
 
 const (
@@ -112,6 +113,9 @@ func getPrimaryPort(session *mgo.Session) (string, error) {
 }
 
 func TestMain(m *testing.M) {
+	if !testtype.HasTestType(testtype.MongoReplayTestType) {
+		os.Exit(0)
+	}
 	err := setConnectionURL()
 	if err != nil {
 		panic(err)
@@ -131,6 +135,7 @@ func TestMain(m *testing.M) {
 // completed. It then checks its BufferedStatCollector to ensure the inserts
 // match what we expected
 func TestOpInsertLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -182,7 +187,7 @@ func TestOpInsertLiveDB(t *testing.T) {
 	result := testDoc{}
 
 	// iterate over the results of the query and ensure they match expected documents
-	t.Log("Querying database to ensure insert occured successfully")
+	t.Log("Querying database to ensure insert occurred successfully")
 	for iter.Next(&result) {
 		t.Logf("Query result: %#v\n", result)
 		if result.DocumentNumber != ind {
@@ -229,6 +234,7 @@ func TestOpInsertLiveDB(t *testing.T) {
 // verify they were completed. It then checks its BufferedStatCollector to
 // ensure the update matches what we expected.
 func TestUpdateOpLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -306,7 +312,7 @@ func TestUpdateOpLiveDB(t *testing.T) {
 	}{}
 
 	// iterate over the results of the query and ensure they match expected documents
-	t.Log("Querying database to ensure insert occured successfully")
+	t.Log("Querying database to ensure insert occurred successfully")
 	for iter.Next(&result) {
 		t.Logf("Query result: %#v\n", result)
 		if result.DocumentNumber != ind {
@@ -345,6 +351,7 @@ func TestUpdateOpLiveDB(t *testing.T) {
 // It generates inserts and queries and sends them to the main execution of mongoreplay.
 // TestQueryOp then examines a BufferedStatCollector to ensure the queries executed as expected
 func TestQueryOpLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -429,6 +436,7 @@ func TestQueryOpLiveDB(t *testing.T) {
 // based on the original query. It then Uses a BufferedStatCollector to ensure
 // the getmores executed as expected
 func TestOpGetMoreLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -452,11 +460,12 @@ func TestOpGetMoreLiveDB(t *testing.T) {
 
 // TestOpGetMoreMultiCursorLiveDB tests the functionality of getmores using
 // multiple cursors against a live database. It generates a series of inserts
-// followed by two seperate queries. It then uses each of those queries to
+// followed by two separate queries. It then uses each of those queries to
 // generate multiple getmores. TestOpGetMoreMultiCursorLiveDB uses a
 // BufferedStatCollector to ensure that each getmore played against the database
-// is executed and recieves the response expected
+// is executed and receives the response expected
 func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -570,12 +579,13 @@ func TestOpGetMoreMultiCursorLiveDB(t *testing.T) {
 
 // TestOpKillCursorsLiveDB tests the functionality of killcursors using multiple
 // cursors against a live database. It generates a series of inserts followed
-// by two seperate queries. It then uses each of those queries to generate
+// by two separate queries. It then uses each of those queries to generate
 // multiple getmores. Finally, it runs a killcursors op and one getmore for
 // each killed cursor TestOpKillCursorsLiveDB uses a BufferedStatCollector to
 // ensure that each killcursors played against the database is executed and
-// recieves the response expected
+// receives the response expected
 func TestOpKillCursorsLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -696,6 +706,7 @@ func TestOpKillCursorsLiveDB(t *testing.T) {
 	}
 }
 func TestCommandOpInsertLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -745,7 +756,7 @@ func TestCommandOpInsertLiveDB(t *testing.T) {
 	result := testDoc{}
 
 	// iterate over the results of the query and ensure they match expected documents
-	t.Log("Querying database to ensure insert occured successfully")
+	t.Log("Querying database to ensure insert occurred successfully")
 	for iter.Next(&result) {
 		t.Logf("Query result: %#v\n", result)
 		if result.DocumentNumber != ind {
@@ -781,120 +792,126 @@ func TestCommandOpInsertLiveDB(t *testing.T) {
 	}
 }
 
-func TestCommandOpFindLiveDB(t *testing.T) {
-	if err := teardownDB(); err != nil {
-		t.Error(err)
-	}
-	if isMongosTestServer {
-		t.Skipf("Skipping OpCommand test against mongos")
-	}
+// OP_COMMAND isn't supported on 4.2 so these tests are commented
+// out.  When TOOLS-2327 is done (testing on more server versions),
+// these tests can be restored, protected by a version check.
 
-	insertName := "LiveDB CommandOp Find Test"
-	numInserts := 20
-	numFinds := 4
-	generator := newRecordedOpGenerator()
-	go func() {
-		defer close(generator.opChan)
-		// generate numInsert inserts and feed them to the opChan for tape
-		for i := 0; i < numFinds; i++ {
-			t.Logf("Generating %d inserts\n", numInserts/numFinds)
-			err := generator.generateInsertHelper(fmt.Sprintf("%s: %d", insertName, i), i*(numInserts/numFinds), numInserts/numFinds)
-			if err != nil {
-				t.Error(err)
-			}
-		}
-		// generate numFinds queries and feed them to the opChan for play
-		t.Logf("Generating %d finds\n", numFinds)
-		for j := 0; j < numFinds; j++ {
-			filter := bson.D{{"name", fmt.Sprintf("%s: %d", insertName, j)}}
-			err := generator.generateCommandFind(filter, 0, 0)
-			if err != nil {
-				t.Error(err)
-			}
-		}
-		// generate another query that tests a different field
-		filter := bson.D{{"success", true}}
-		err := generator.generateCommandFind(filter, 0, 0)
-		if err != nil {
-			t.Error(err)
-		}
-	}()
+// func TestCommandOpFindLiveDB(t *testing.T) {
+// 	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
+// 	if err := teardownDB(); err != nil {
+// 		t.Error(err)
+// 	}
+// 	if isMongosTestServer {
+// 		t.Skipf("Skipping OpCommand test against mongos")
+// 	}
 
-	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
-	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
-	replaySession, err := mgo.Dial(currentTestURL)
-	if err != nil {
-		t.Errorf("Error connecting to test server: %v", err)
-	}
-	context := NewExecutionContext(statCollector, replaySession, &ExecutionOptions{})
+// 	insertName := "LiveDB CommandOp Find Test"
+// 	numInserts := 20
+// 	numFinds := 4
+// 	generator := newRecordedOpGenerator()
+// 	go func() {
+// 		defer close(generator.opChan)
+// 		// generate numInsert inserts and feed them to the opChan for tape
+// 		for i := 0; i < numFinds; i++ {
+// 			t.Logf("Generating %d inserts\n", numInserts/numFinds)
+// 			err := generator.generateInsertHelper(fmt.Sprintf("%s: %d", insertName, i), i*(numInserts/numFinds), numInserts/numFinds)
+// 			if err != nil {
+// 				t.Error(err)
+// 			}
+// 		}
+// 		// generate numFinds queries and feed them to the opChan for play
+// 		t.Logf("Generating %d finds\n", numFinds)
+// 		for j := 0; j < numFinds; j++ {
+// 			filter := bson.D{{"name", fmt.Sprintf("%s: %d", insertName, j)}}
+// 			err := generator.generateCommandFind(filter, 0, 0)
+// 			if err != nil {
+// 				t.Error(err)
+// 			}
+// 		}
+// 		// generate another query that tests a different field
+// 		filter := bson.D{{"success", true}}
+// 		err := generator.generateCommandFind(filter, 0, 0)
+// 		if err != nil {
+// 			t.Error(err)
+// 		}
+// 	}()
 
-	// run mongoreplay's Play loop with the stubbed objects
-	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
-	err = Play(context, generator.opChan, testSpeed, 1, 10)
-	if err != nil {
-		t.Errorf("Error Playing traffic: %v\n", err)
-	}
-	t.Log("Completed mongoreplay playback of generated traffic")
+// 	statCollector, _ := newStatCollector(testCollectorOpts, "format", true, true)
+// 	statRec := statCollector.StatRecorder.(*BufferedStatRecorder)
+// 	replaySession, err := mgo.Dial(currentTestURL)
+// 	if err != nil {
+// 		t.Errorf("Error connecting to test server: %v", err)
+// 	}
+// 	context := NewExecutionContext(statCollector, replaySession, &ExecutionOptions{})
 
-	t.Log("Examining collected stats to ensure they match expected")
-	opType := "op_command"
-	ns := "mongoreplay"
-	numReturned := 5
-	// loop over the BufferedStatCollector for each of the numFinds queries
-	// created, and ensure that they match what we expected mongoreplay to have
-	// executed
-	for i := 0; i < numFinds; i++ {
-		stat := statRec.Buffer[numInserts+i]
-		t.Logf("Stat result: %#v\n", stat)
-		if stat.OpType != opType ||
-			stat.Ns != ns ||
-			stat.NumReturned != numReturned {
-			t.Errorf("CommandOp Find Not Matched expected OpType: %s, Ns: %s, NumReturned: %d ---- found OpType: %s, Ns: %s, NumReturned: %d\n",
-				opType, ns, numReturned, stat.OpType, stat.Ns, stat.NumReturned)
-		}
-	}
-	stat := statRec.Buffer[numInserts+numFinds]
-	t.Logf("Stat result: %#v\n", stat)
-	// ensure that the last query that was making a query on the 'success' field
-	// executed as expected
-	if stat.OpType != opType ||
-		stat.Ns != ns ||
-		stat.NumReturned != 20 {
-		t.Errorf("CommandOp Find Not Matched expected OpType: %s, Ns: %s, NumReturned: %d ---- found OpType: %s, Ns: %s, NumReturned: %d\n",
-			opType, ns, 20, stat.OpType, stat.Ns, stat.NumReturned)
-	}
-	if err := teardownDB(); err != nil {
-		t.Error(err)
-	}
+// 	// run mongoreplay's Play loop with the stubbed objects
+// 	t.Logf("Beginning mongoreplay playback of generated traffic against host: %v\n", currentTestURL)
+// 	err = Play(context, generator.opChan, testSpeed, 1, 10)
+// 	if err != nil {
+// 		t.Errorf("Error Playing traffic: %v\n", err)
+// 	}
+// 	t.Log("Completed mongoreplay playback of generated traffic")
 
-}
+// 	t.Log("Examining collected stats to ensure they match expected")
+// 	opType := "op_command"
+// 	ns := "mongoreplay"
+// 	numReturned := 5
+// 	// loop over the BufferedStatCollector for each of the numFinds queries
+// 	// created, and ensure that they match what we expected mongoreplay to have
+// 	// executed
+// 	for i := 0; i < numFinds; i++ {
+// 		stat := statRec.Buffer[numInserts+i]
+// 		t.Logf("Stat result: %#v\n", stat)
+// 		if stat.OpType != opType ||
+// 			stat.Ns != ns ||
+// 			stat.NumReturned != numReturned {
+// 			t.Errorf("CommandOp Find Not Matched expected OpType: %s, Ns: %s, NumReturned: %d ---- found OpType: %s, Ns: %s, NumReturned: %d\n",
+// 				opType, ns, numReturned, stat.OpType, stat.Ns, stat.NumReturned)
+// 		}
+// 	}
+// 	stat := statRec.Buffer[numInserts+numFinds]
+// 	t.Logf("Stat result: %#v\n", stat)
+// 	// ensure that the last query that was making a query on the 'success' field
+// 	// executed as expected
+// 	if stat.OpType != opType ||
+// 		stat.Ns != ns ||
+// 		stat.NumReturned != 20 {
+// 		t.Errorf("CommandOp Find Not Matched expected OpType: %s, Ns: %s, NumReturned: %d ---- found OpType: %s, Ns: %s, NumReturned: %d\n",
+// 			opType, ns, 20, stat.OpType, stat.Ns, stat.NumReturned)
+// 	}
+// 	if err := teardownDB(); err != nil {
+// 		t.Error(err)
+// 	}
 
-func TestCommandOpGetMoreLiveDB(t *testing.T) {
-	if isMongosTestServer {
-		t.Skipf("Skipping OpCommand test against mongos")
-	}
-	if err := teardownDB(); err != nil {
-		t.Error(err)
-	}
-	generator := newRecordedOpGenerator()
-	insertName := "LiveDB CommandGetmore Test"
+// }
 
-	gmHelperNames := getmoreHelperNames{
-		findOpType:         "op_command",
-		findCommandName:    "find",
-		getmoreOpType:      "op_command",
-		getmoreCommandName: "getMore",
-		namespace:          "mongoreplay",
-		insertName:         insertName,
-	}
+// func TestCommandOpGetMoreLiveDB(t *testing.T) {
+// 	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
+// 	if isMongosTestServer {
+// 		t.Skipf("Skipping OpCommand test against mongos")
+// 	}
+// 	if err := teardownDB(); err != nil {
+// 		t.Error(err)
+// 	}
+// 	generator := newRecordedOpGenerator()
+// 	insertName := "LiveDB CommandGetmore Test"
 
-	getmoreTestHelper(t, gmHelperNames, generator.opChan, generator.generateInsertHelper,
-		generator.generateCommandGetMore, generator.generateCommandReply, generator.generateCommandFind)
+// 	gmHelperNames := getmoreHelperNames{
+// 		findOpType:         "op_command",
+// 		findCommandName:    "find",
+// 		getmoreOpType:      "op_command",
+// 		getmoreCommandName: "getMore",
+// 		namespace:          "mongoreplay",
+// 		insertName:         insertName,
+// 	}
 
-	if err := teardownDB(); err != nil {
-		t.Error(err)
-	}
-}
+// 	getmoreTestHelper(t, gmHelperNames, generator.opChan, generator.generateInsertHelper,
+// 		generator.generateCommandGetMore, generator.generateCommandReply, generator.generateCommandFind)
+
+// 	if err := teardownDB(); err != nil {
+// 		t.Error(err)
+// 	}
+// }
 
 // TestMsgOpInsertLiveDB tests the functionality of mongoreplay replaying inserts
 // against a live database Generates 20 recorded inserts and passes them to the
@@ -902,6 +919,7 @@ func TestCommandOpGetMoreLiveDB(t *testing.T) {
 // completed. It then checks its BufferedStatCollector to ensure the inserts
 // match what we expected
 func TestMsgOpInsertLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -948,7 +966,7 @@ func TestMsgOpInsertLiveDB(t *testing.T) {
 	result := testDoc{}
 
 	// iterate over the results of the query and ensure they match expected documents
-	t.Log("Querying database to ensure insert occured successfully")
+	t.Log("Querying database to ensure insert occurred successfully")
 	for iter.Next(&result) {
 		t.Logf("Query result: %#v\n", result)
 		if result.DocumentNumber != ind {
@@ -983,6 +1001,7 @@ func TestMsgOpInsertLiveDB(t *testing.T) {
 }
 
 func TestMsgOpGetMoreLiveDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	if err := teardownDB(); err != nil {
 		t.Error(err)
 	}
@@ -1028,6 +1047,7 @@ func getmoreTestHelper(t *testing.T,
 	getmoreFunc getmoreGeneratorFunc,
 	replyFunc replyGeneratorFunc,
 	findFunc findGeneratorFunc) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 
 	var requestID int32 = 2
 	numInserts := 20

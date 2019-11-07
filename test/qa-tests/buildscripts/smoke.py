@@ -253,8 +253,6 @@ class mongod(NullMongod):
             argv += ["--replSet", "foo", "--oplogSize", "511"]
         if self.kwargs.get('no_journal'):
             argv += ['--nojournal']
-        if self.kwargs.get('no_preallocj'):
-            argv += ['--nopreallocj']
         if self.kwargs.get('auth'):
             argv += ['--auth', '--setParameter', 'enableLocalhostAuthBypass=false']
             authMechanism = self.kwargs.get('authMechanism', 'SCRAM-SHA-1')
@@ -697,8 +695,6 @@ def runTest(test, result):
 
 
     if argv[0].endswith( 'dbtest' ) or argv[0].endswith( 'dbtest.exe' ):
-        if no_preallocj :
-            argv = argv + [ '--nopreallocj' ]
         if temp_path:
             argv = argv + [ '--tempPath', temp_path ]
 
@@ -1343,9 +1339,6 @@ def main():
     parser.add_option('--nojournal', dest='no_journal', default=False,
                       action="store_true",
                       help='Do not turn on journaling in tests')
-    parser.add_option('--nopreallocj', dest='no_preallocj', default=False,
-                      action="store_true",
-                      help='Do not preallocate journal files in tests')
     parser.add_option('--auth', dest='auth', default=False,
                       action="store_true",
                       help='Run standalone mongods in tests with authentication enabled')

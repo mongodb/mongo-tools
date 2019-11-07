@@ -30,10 +30,10 @@
 
   // Import the data into the destination collection to check correctness.
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'bsondump',
-      '--type', 'json']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'bsondump',
+    '--type', 'json']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -55,10 +55,10 @@
 
   // Import the data into the destination collection to check correctness.
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'bsondump',
-      '--type', 'json']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'bsondump',
+    '--type', 'json']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

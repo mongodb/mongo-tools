@@ -22,20 +22,23 @@
   function writeConcernTestFunc(exitCode, writeConcern, name) {
     jsTest.log(name);
     ret = toolTest.runTool.apply(toolTest, ['files',
-        '-vvvvv',
-        '-d', 'dbOne']
+      '-vvvvv',
+      '-d', 'dbOne']
       .concat(writeConcern)
       .concat(commonToolArgs)
       .concat(['put', 'jstests/files/testdata/files1.txt']));
     assert.eq(exitCode, ret, name);
+  }
+
+  function testSetup() {
     dbOne.dropDatabase();
   }
 
   function noConnectTest() {
     return startMongoProgramNoConnect.apply(null, ['mongofiles',
-        '-d', 'dbOne',
-        '--writeConcern={w:3}',
-        '--host', rs.getPrimary().host]
+      '-d', 'dbOne',
+      '--writeConcern={w:3}',
+      '--host', rs.getPrimary().host]
       .concat(commonToolArgs)
       .concat(['put', 'jstests/files/testdata/files1.txt']));
   }
@@ -45,7 +48,7 @@
 
   // load and run the write concern suite
   load('jstests/libs/wc_framework.js');
-  runWCTest("mongofiles", rs, toolTest, writeConcernTestFunc, noConnectTest);
+  runWCTest("mongofiles", rs, toolTest, writeConcernTestFunc, noConnectTest, testSetup);
 
   dbOne.dropDatabase();
   rs.stopSet();

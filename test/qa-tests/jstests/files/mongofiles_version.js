@@ -12,10 +12,10 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        '--version']
+      '--port', conn.port,
+      '--version']
       .concat(passthrough.args)),
-      0, '--version failed');
+    0, '--version failed');
 
     t.stop();
   };

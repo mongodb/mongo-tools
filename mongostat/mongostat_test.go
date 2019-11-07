@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
 	. "github.com/smartystreets/goconvey/convey"
@@ -33,7 +33,7 @@ func readBSONFile(file string, t *testing.T) (stat *status.ServerStatus) {
 }
 
 func TestStatLine(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	defaultHeaders := make([]string, len(line.CondHeaders))
 	for i, h := range line.CondHeaders {
@@ -103,7 +103,7 @@ func TestStatLine(t *testing.T) {
 }
 
 func TestIsMongos(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	runCheck := func(process string) bool {
 		return status.IsMongos(&status.ServerStatus{

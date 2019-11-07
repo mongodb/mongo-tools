@@ -16,10 +16,10 @@ var testName = 'mongofiles_get';
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        'put', filesToInsert[0]]
+      '--port', conn.port,
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 1 failed');
+    0, 'put 1 failed');
 
     // ensure the file was inserted
     assert.eq(1, db.fs.files.count(), 'unexpected fs.files count 1');
@@ -29,11 +29,11 @@ var testName = 'mongofiles_get';
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', getFile,
-          'get', filesToInsert[0]]
+      '--port', conn.port,
+      '--local', getFile,
+      'get', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'get failed');
+    0, 'get failed');
 
     // ensure the retrieved file is exactly the same as that inserted
     var actual = md5sumFile(filesToInsert[0]);
@@ -42,16 +42,16 @@ var testName = 'mongofiles_get';
     assert.eq(actual, expected, 'mismatched md5 sum - expected ' + expected + ' got ' + actual);
 
     // ensure tool runs get_id without error
-    var idAsJSON = fileId.tojson();
+    var idAsJSON = '{"$oid":"' + fileId.valueOf() + '"}';
     if (_isWindows()) {
       idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
     }
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', getFile,
-          'get_id', idAsJSON]
+      '--port', conn.port,
+      '--local', getFile,
+      'get_id', idAsJSON]
       .concat(passthrough.args)),
-        0, 'get_id failed');
+    0, 'get_id failed');
     expected = md5sumFile(getFile);
     assert.eq(actual, expected, 'mismatched md5 sum on _id - expected ' + expected + ' got ' + actual);
 
@@ -60,14 +60,14 @@ var testName = 'mongofiles_get';
 
     // test getting to stdout
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--local', '-',
-          'get', filesToInsert[0]]
+      '--port', conn.port,
+      '--local', '-',
+      'get', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'get stdout failed');
+    0, 'get stdout failed');
     var expectedContent = "this is a text file";
     assert.strContains.soon(expectedContent, rawMongoProgramOutput,
-        "stdout get didn't match expected file content");
+      "stdout get didn't match expected file content");
 
     t.stop();
   };

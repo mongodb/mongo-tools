@@ -17,12 +17,12 @@
   db.c.insert({x: 1});
   assert.eq(db.c.count(), 1, "collection count should be 1 at setup");
   var ret = toolTest.runTool.apply(toolTest, ["import",
-      "--file", "jstests/import/testdata/csv_header.csv",
-      "--type=csv",
-      "--db", db.getName(),
-      "--collection", db.c.getName(),
-      "--headerline",
-      "--drop"]
+    "--file", "jstests/import/testdata/csv_header.csv",
+    "--type=csv",
+    "--db", db.getName(),
+    "--collection", db.c.getName(),
+    "--headerline",
+    "--drop"]
     .concat(commonToolArgs));
 
   // test csv file contains 3 docs and collection should have been dropped, so the doc we inserted
@@ -34,12 +34,12 @@
   // --drop on a non-existent collection should not cause error
   db.c.drop();
   ret = toolTest.runTool.apply(toolTest, ["import",
-      "--file", "jstests/import/testdata/csv_header.csv",
-      "--type=csv",
-      "--db", db.getName(),
-      "--collection", db.c.getName(),
-      "--headerline",
-      "--drop"]
+    "--file", "jstests/import/testdata/csv_header.csv",
+    "--type=csv",
+    "--db", db.getName(),
+    "--collection", db.c.getName(),
+    "--headerline",
+    "--drop"]
     .concat(commonToolArgs));
   assert.eq(ret, 0);
   assert.eq(db.c.count(), 3);

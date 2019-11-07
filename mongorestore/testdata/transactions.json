@@ -1,0 +1,395 @@
+{
+    "not transaction": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"i","ns":"txntest.a","o":{"_id":0,"x":0},
+                "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}
+            }
+        ],
+        "ns": "txntest.a",
+        "postimage": [
+            {"_id":0,"x":0}
+        ]
+    },
+    "applyops not transaction": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.b","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"u","ns":"txntest.b","o":{"$set":{"x":1}},"o2":{"_id":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ]
+                }
+            }
+        ],
+        "ns": "txntest.b",
+        "postimage": [
+            {"_id":0,"x":1}
+        ]
+    },
+    "small, unprepared": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.c","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"u","ns":"txntest.c","o":{"$set":{"x":1}},"o2":{"_id":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"d","ns":"txntest.c","o":{"_id":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ]
+                },
+                "lsid":{"id":{"$binary":{"base64":"CK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            }
+        ],
+        "ns": "txntest.c",
+        "postimage": [
+            {"_id":0,"x":1}
+        ]
+    },
+    "large, unprepared": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.d","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.d","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"DK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.d","o":{"_id":2,"x":2},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.d","o":{"_id":3,"x":3},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"DK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":3}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.d","o":{"_id":4,"x":4},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.d","o":{"_id":5,"x":5},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "count":6
+                },
+                "lsid":{"id":{"$binary":{"base64":"DK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"}}
+            }
+        ],
+        "ns": "txntest.d",
+        "postimage": [
+            {"_id":0,"x":0},
+            {"_id":1,"x":1},
+            {"_id":2,"x":2},
+            {"_id":3,"x":3},
+            {"_id":4,"x":4},
+            {"_id":5,"x":5}
+        ]
+    },
+    "small, prepared, committed": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.e","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.e","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"u","ns":"txntest.e","o":{"$set":{"x":1}},"o2":{"_id":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"d","ns":"txntest.e","o":{"_id":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "prepare":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"EK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":20}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                            "commitTransaction":1,
+                            "commitTimestamp":{"$timestamp":{"t":1515616500,"i":11}}
+                },
+                "lsid":{"id":{"$binary":{"base64":"EK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"} }
+            }
+        ],
+        "ns": "txntest.e",
+        "postimage": [
+            {"_id":0,"x":1}
+        ]
+    },
+    "small, prepared, aborted": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.f","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.f","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.f","o":{"_id":2,"x":2},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"u","ns":"txntest.f","o":{"$set":{"x":1}},"o2":{"_id":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"d","ns":"txntest.f","o":{"_id":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "prepare":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"FK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":20}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{"abortTransaction":1 },
+                "lsid":{"id":{"$binary":{"base64":"FK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"} }
+            }
+        ],
+        "ns": "txntest.f",
+        "postimage": []
+    },
+    "large, prepared, committed": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.g","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":2,"x":2},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"GK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.g","o":{"_id":3,"x":3},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":4,"x":4},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":5,"x":5},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"GK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":3}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.g","o":{"_id":6,"x":6},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":7,"x":7},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":8,"x":8},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.g","o":{"_id":9,"x":9},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "prepare":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"GK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":20}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                            "commitTransaction":1,
+                            "commitTimestamp":{"$timestamp":{"t":1515616500,"i":11}}
+                },
+                "lsid":{"id":{"$binary":{"base64":"GK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"} }
+            }
+        ],
+        "ns": "txntest.g",
+        "postimage": [
+            {"_id":0,"x":0},
+            {"_id":1,"x":1},
+            {"_id":2,"x":2},
+            {"_id":3,"x":3},
+            {"_id":4,"x":4},
+            {"_id":5,"x":5},
+            {"_id":6,"x":6},
+            {"_id":7,"x":7},
+            {"_id":8,"x":8},
+            {"_id":9,"x":9}
+        ]
+    },
+    "large, prepared, aborted": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.h","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.h","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.h","o":{"_id":2,"x":2},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"HK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.h","o":{"_id":3,"x":3},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.h","o":{"_id":4,"x":4},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.h","o":{"_id":5,"x":5},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"HK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":3}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.h","o":{"_id":6,"x":6},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.h","o":{"_id":7,"x":7},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.h","o":{"_id":8,"x":8},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "prepare":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"HK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":20}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{"abortTransaction":1 },
+                "lsid":{"id":{"$binary":{"base64":"HK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"} }
+            }
+        ],
+        "ns": "txntest.h",
+        "postimage": []
+    },
+    "large, unprepared, incomplete": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.i","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.i","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"IK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            },
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":2}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.i","o":{"_id":2,"x":2},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.i","o":{"_id":3,"x":3},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.i","o":{"_id":4,"x":4},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "partialTxn":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"IK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"}}
+            }
+        ],
+        "ns": "txntest.i",
+        "postimage": []
+    },
+    "small, prepared, incomplete": {
+        "ops": [
+            {
+                "ts":{"$timestamp":{"t":1515616500,"i":1}},"t":{"$numberLong":"1"},
+                "op":"c","ns":"admin.$cmd",
+                "o":{
+                    "applyOps":[
+                        {"op":"i","ns":"txntest.j","o":{"_id":0,"x":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"i","ns":"txntest.j","o":{"_id":1,"x":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"u","ns":"txntest.j","o":{"$set":{"x":1}},"o2":{"_id":0},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}},
+                        {"op":"d","ns":"txntest.j","o":{"_id":1},
+                          "ui":{"$binary":{"base64":"4p4kSLicSracQeNvveXz3g==","subType":"04"}}}
+                    ],
+                    "prepare":true
+                },
+                "lsid":{"id":{"$binary":{"base64":"JK+8+nZ+Eem9p6vK9BEt9g==","subType":"04"}}},"txnNumber":{"$numberLong":"1"},
+                "prevOpTime":{"ts":{"$timestamp":{"t":0,"i":0}},"t":{"$numberLong":"-1"}}
+            }
+        ],
+        "ns": "txntest.j",
+        "postimage": []
+    }
+}

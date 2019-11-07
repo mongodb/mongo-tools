@@ -1,10 +1,9 @@
 // mongofiles_list.js; tests the mongofiles list option by doing the following:
 //
 // 1. Inserts the mongod/mongo binaries using mongofiles put
-// 2. Checks that the actual md5 of the file matches what's stored in the database
-// 3. Runs the mongofiles list command to view all files stored.
-// 4. Ensures that all the files inserted and returned.
-// 5. Ensures that the returned list matches thae actual filesToInsert[0] and size of
+// 2. Runs the mongofiles list command to view all files stored.
+// 3. Ensures that all the files inserted and returned.
+// 4. Ensures that the returned list matches the actual filesToInsert[0] and size of
 //    files inserted.
 var testName = 'mongofiles_list';
 (function() {
@@ -16,16 +15,15 @@ var testName = 'mongofiles_list';
   var putFile = function(passthrough, conn, file) {
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        'put', file]
+      '--port', conn.port,
+      'put', file]
       .concat(passthrough.args)),
-      0, 'put for ' + file + 'failed');
+    0, 'put for ' + file + 'failed');
     var db = conn.getDB('test');
     var fileObj = db.fs.files.findOne({
       filename: file,
     });
     assert(fileObj, 'could not find put file ' + file);
-    assert.eq(md5sumFile(file), fileObj.md5, file + ' md5 did not match - expected ' + md5sumFile(file) + ' got ' + fileObj.md5);
     return fileObj.length;
   };
 
@@ -51,8 +49,8 @@ var testName = 'mongofiles_list';
 
     // ensure tool runs without error
     var pid = startMongoProgramNoConnect.apply(this, ['mongofiles',
-        '--port', conn.port,
-        '--quiet', 'list']
+      '--port', conn.port,
+      '--quiet', 'list']
       .concat(passthrough.args));
     assert.eq(waitProgram(pid), 0, 'list command failed but was expected to succeed');
 

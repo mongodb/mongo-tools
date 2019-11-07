@@ -1,5 +1,5 @@
 (function() {
-  var bsondumpArgs = ['bsondump', '--type=json', 'jstests/bson/testdata/all_types.bson'];
+  var bsondumpArgs = ['bsondump', '--failpoints', 'SlowBSONDump', '--type=json', 'jstests/bson/testdata/all_types.bson'];
   var ddArgs = ['dd', 'count=1000000', 'bs=1024', 'of=/dev/null'];
   if (_isWindows()) {
     bsondumpArgs[0] += '.exe';

@@ -37,30 +37,30 @@
 
   // export the data
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', toolTest.extFile,
-      '-d', 'test',
-      '-c', 'bar']
+    '--out', toolTest.extFile,
+    '-d', 'test',
+    '-c', 'bar']
     .concat(commonToolArgs));
   assert.eq(0, ret, 'export should run successfully');
 
   testDB.dropDatabase();
   assert.eq(0, testDB.bar.count(),
-      'after dropping the database, no documents should be seen');
+    'after dropping the database, no documents should be seen');
 
   // sanity check that we can import the data without validation
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', toolTest.extFile,
-      '--db', 'test',
-      '-c', 'bar']
+    '--file', toolTest.extFile,
+    '--db', 'test',
+    '-c', 'bar']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   assert.eq(1000, testDB.bar.count(),
-      'after import, the documents should be seen again');
+    'after import, the documents should be seen again');
 
   testDB.dropDatabase();
   assert.eq(0, testDB.bar.count(),
-      'after dropping the database, no documents should be seen');
+    'after dropping the database, no documents should be seen');
 
   // turn on validation
   var r = testDB.createCollection('bar', {validator: {baz: {$exists: true}}});
@@ -72,12 +72,12 @@
 
   // import the 1000 records of which only 500 are valid
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', toolTest.extFile,
-      '--db', 'test',
-      '-c', 'bar']
+    '--file', toolTest.extFile,
+    '--db', 'test',
+    '-c', 'bar']
     .concat(commonToolArgs));
   assert.eq(0, ret,
-      'import against a collection with validation on still succeeds');
+    'import against a collection with validation on still succeeds');
 
   assert.eq(500, testDB.bar.count(), 'only the valid documents are imported');
 
@@ -98,13 +98,56 @@
 
   // import the 1000 records again with bypassDocumentValidation turned on
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', toolTest.extFile,
-      '--db', 'test',
-      '-c', 'bar',
-      '--bypassDocumentValidation']
+    '--file', toolTest.extFile,
+    '--db', 'test',
+    '-c', 'bar',
+    '--bypassDocumentValidation']
     .concat(commonToolArgs));
   assert.eq(0, ret,
-      'importing documents should work with bypass document validation set');
+    'importing documents should work with bypass document validation set');
   assert.eq(1000, testDB.bar.count(),
-      'all documents should be imported with bypass document validation set');
+    'all documents should be imported with bypass document validation set');
+
+  testDB.dropDatabase();
+  /**
+   * Part 3: Test that import will stop inserting when getting validation errors if --stopOnError is enabled.
+   */
+  // turn on validation
+  r = testDB.createCollection('bar', {validator: {baz: {$exists: true}}});
+  assert.eq(r, {ok: 1}, 'create collection with validation should work');
+
+  // test that we cannot insert an 'invalid' document
+  r = testDB.bar.insert({num: 10000});
+  assert.eq(r.nInserted, 0, 'invalid documents should not be inserted');
+
+  // import the 1000 records again with bypassDocumentValidation turned on
+  ret = toolTest.runTool.apply(toolTest, ['import',
+    '--file', toolTest.extFile,
+    '--db', 'test',
+    '-c', 'bar',
+    '--stopOnError']
+    .concat(commonToolArgs));
+  assert.neq(0, ret,
+    'importing documents should report documentation validation errors when using --stopOnError');
+
+  testDB.dropDatabase();
+
+  /**
+   * Part 4: Test that import will stop inserting when getting validation errors if --maintainInsertionOrder is enabled.
+   */
+  r = testDB.createCollection('bar', {validator: {baz: {$exists: true}}});
+  assert.eq(r, {ok: 1}, 'create collection with validation should work');
+
+  // test that we cannot insert an 'invalid' document
+  r = testDB.bar.insert({num: 10000});
+  assert.eq(r.nInserted, 0, 'invalid documents should not be inserted');
+
+  // import the 1000 records again with bypassDocumentValidation turned on
+  ret = toolTest.runTool.apply(toolTest, ['import',
+    '--file', toolTest.extFile,
+    '--db', 'test',
+    '-c', 'bar',
+    '--maintainInsertionOrder']
+    .concat(commonToolArgs));
+  assert.neq(0, ret, 'importing documents should report documentation validation errors when using --maintainInsertionOrder');
 }());

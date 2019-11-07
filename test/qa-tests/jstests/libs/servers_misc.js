@@ -3,7 +3,7 @@
  * Run a mongod process.
  *
  * After initializing a MongodRunner, you must call start() on it.
- * @param {int} port port to run db on, use allocatePorts(num) to requision
+ * @param {int} port port to run db on, use allocatePorts(num) to requisition
  * @param {string} dbpath path to use
  * @param {boolean} peer pass in false (DEPRECATED, was used for replica pair host)
  * @param {boolean} arbiter pass in false (DEPRECATED, was used for replica pair host)
@@ -31,10 +31,9 @@ MongodRunner.prototype.start = function(reuseData) {
     args.push("mongod");
   }
   args.push(
-      "--port", this.port_,
-      "--dbpath", this.dbpath_,
-      "--noprealloc",
-      "--smallfiles");
+    "--port", this.port_,
+    "--dbpath", this.dbpath_
+  );
   if (!this.options_.no_bind) {
     args.push("--bind_ip", "127.0.0.1");
   }
@@ -76,8 +75,6 @@ ToolTest.prototype.startDB = function(coll) {
   var options = {
     port: this.port,
     dbpath: this.dbpath,
-    noprealloc: "",
-    smallfiles: "",
     bind_ip: "127.0.0.1",
   };
 
@@ -125,9 +122,9 @@ ToolTest.prototype.runTool = function() {
 
   if (this.useSSL) {
     a = a.concat(["--ssl",
-        "--sslPEMKeyFile", "jstests/libs/server.pem",
-        "--sslCAFile", "jstests/libs/ca.pem",
-        "--sslAllowInvalidHostnames"]);
+      "--sslPEMKeyFile", "jstests/libs/server.pem",
+      "--sslCAFile", "jstests/libs/ca.pem",
+      "--sslAllowInvalidHostnames"]);
   }
 
   if (!hasdbpath) {
@@ -174,17 +171,12 @@ ReplTest.prototype.getOptions = function(master, extra, putBinaryFirst, norepl) 
   if (putBinaryFirst) {
     a.push("mongod");
   }
-  a.push("--noprealloc",
-      "--bind_ip", "127.0.0.1",
-      "--smallfiles",
-      "--port", this.getPort(master),
-      "--dbpath", this.getPath(master));
-
+  a.push(
+    "--bind_ip", "127.0.0.1",
+    "--port", this.getPort(master),
+    "--dbpath", this.getPath(master));
   if (jsTestOptions().noJournal) {
     a.push("--nojournal");
-  }
-  if (jsTestOptions().noJournalPrealloc) {
-    a.push("--nopreallocj");
   }
   if (jsTestOptions().keyFile) {
     a.push("--keyFile", jsTestOptions().keyFile);

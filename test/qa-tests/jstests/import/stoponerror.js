@@ -15,25 +15,25 @@
   db.c.insert({_id: 1234, b: "000000", c: 222});
   assert.eq(db.c.count(), 1, "collection count should be 1 at setup");
   var ret = toolTest.runTool.apply(toolTest, ["import", "--file",
-      "jstests/import/testdata/dupes.json",
-      "--db", db.getName(),
-      "--collection", db.c.getName(),
-      "--stopOnError"]
+    "jstests/import/testdata/dupes.json",
+    "--db", db.getName(),
+    "--collection", db.c.getName(),
+    "--stopOnError", "--legacy"]
     .concat(commonToolArgs));
 
   assert.neq(ret, 0,
-      "duplicate key with --stopOnError should return nonzero exit code");
+    "duplicate key with --stopOnError should return nonzero exit code");
 
   // drop it, try again without stop on error
   db.c.drop();
   db.c.insert({_id: 1234, b: "000000", c: 222});
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
-      "jstests/import/testdata/dupes.json",
-      "--db", db.getName(),
-      "--collection", db.c.getName()]
+    "jstests/import/testdata/dupes.json",
+    "--db", db.getName(),
+    "--collection", db.c.getName(), "--legacy"]
     .concat(commonToolArgs));
   assert.eq(ret, 0,
-      "duplicate key without --stopOnError should return zero exit code");
+    "duplicate key without --stopOnError should return zero exit code");
   assert.docEq(db.c.findOne({_id: 1234}), {_id: 1234, b: "000000", c: 222});
 
   toolTest.stop();

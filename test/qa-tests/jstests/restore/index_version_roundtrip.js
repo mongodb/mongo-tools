@@ -1,4 +1,4 @@
-// @tags: [requires_mongo_34](
+// @tags: [requires_min_mongo_34](
 (function() {
 
   if (typeof getToolTest === 'undefined') {
@@ -44,7 +44,7 @@
     }
   }));
 
-  // create an aditional index to verify non _id indexes work
+  // create an additional index to verify non _id indexes work
   assert.commandWorked(testDB.coll1.ensureIndex({a: 1}, {v: 1}));
   assert.commandWorked(testDB.coll2.ensureIndex({a: 1}, {v: 2}));
 

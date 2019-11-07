@@ -34,20 +34,25 @@
     fooData.push({i: i});
     barData.push({i: i*5});
   }
-  testDb.foo.insertMany(fooData);
-  testDb.bar.insertMany(barData);
-  assert.eq(500, testDb.foo.count(), 'foo should have our test documents');
-  assert.eq(500, testDb.bar.count(), 'bar should have our test documents');
+
+  // test that slashes and percents in collection names works for archives
+  const collFoo = "coll/foo";
+  const collBar = "coll%bar";
+
+  testDb[collFoo].insertMany(fooData);
+  testDb[collBar].insertMany(barData);
+  assert.eq(500, testDb[collFoo].count(), '"' + collFoo + '" should have our test documents');
+  assert.eq(500, testDb[collBar].count(), '"' + collBar + '" should have our test documents');
 
   var ret = runProgram('bash', '-c', dumpArgs.concat('|', restoreArgs).join(' '));
   assert.eq(0, ret, "bash execution should succeed");
 
   for (i = 0; i < 500; i++) {
-    assert.eq(1, testDb.foo.find({i: i}).count(), 'document #'+i+' not in foo');
-    assert.eq(1, testDb.bar.find({i: i*5}).count(), 'document #'+i+' not in bar');
+    assert.eq(1, testDb[collFoo].find({i: i}).count(), 'document #'+i+' not in "' + collFoo + '"');
+    assert.eq(1, testDb[collBar].find({i: i*5}).count(), 'document #'+i+' not in "' + collBar + '"');
   }
-  assert.eq(500, testDb.foo.count(), 'foo should have our test documents');
-  assert.eq(500, testDb.bar.count(), 'bar should have our test documents');
+  assert.eq(500, testDb[collFoo].count(), '"' + collFoo + '" should have our test documents');
+  assert.eq(500, testDb[collBar].count(), '"' + collBar + '" should have our test documents');
 
   testDb.dropDatabase();
   toolTest.stop();

@@ -16,11 +16,11 @@
 
   // export it with pretty
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', "pretty.json",
-      '--db', 'test',
-      '--collection', 'source',
-      '--pretty',
-      '--jsonArray']
+    '--out', "pretty.json",
+    '--db', 'test',
+    '--collection', 'source',
+    '--pretty',
+    '--jsonArray']
     .concat(commonToolArgs));
   assert.eq(0, ret);
   parsed = JSON.parse(cat('pretty.json'));

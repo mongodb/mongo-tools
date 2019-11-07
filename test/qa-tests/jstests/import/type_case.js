@@ -17,77 +17,77 @@
   assert.eq(2, db1.c.count(), "setup2");
 
   toolTest.runTool("export",
-      "--out", toolTest.extFile,
-      "-d", toolTest.baseName,
-      "-c", db1.c.getName());
+    "--out", toolTest.extFile,
+    "-d", toolTest.baseName,
+    "-c", db1.c.getName());
 
   // also make a CSV version of it
   toolTest.runTool("export",
-      "--out", toolTest.extFile + ".csv",
-      "-d", toolTest.baseName,
-      "-c", db1.c.getName(),
-      "--csv",
-      "--fields", "a,b,c");
+    "--out", toolTest.extFile + ".csv",
+    "-d", toolTest.baseName,
+    "-c", db1.c.getName(),
+    "--csv",
+    "--fields", "a,b,c");
   db1.c.drop();
   assert.eq(0, db1.c.count(), "after drop", "-d", toolTest.baseName, "-c", "foo");
 
   // verify that the normal sane case works
   var ret = toolTest.runTool("import",
-      "--file", toolTest.extFile,
-      "-d", "test",
-      "-c", "test");
+    "--file", toolTest.extFile,
+    "-d", "test",
+    "-c", "test");
   assert.eq(ret, 0);
 
   // verify that the a lower case json type works
   ret = toolTest.runTool("import",
-      "--file", toolTest.extFile,
-      "-d", "test",
-      "-c", "test",
-      "--type=json");
+    "--file", toolTest.extFile,
+    "-d", "test",
+    "-c", "test",
+    "--type=json");
   assert.eq(ret, 0);
 
   // verify that the a upper case json type works
   ret = toolTest.runTool("import",
-      "--file", toolTest.extFile,
-      "-d", "test",
-      "-c", "test",
-      "--type=JSON");
+    "--file", toolTest.extFile,
+    "-d", "test",
+    "-c", "test",
+    "--type=JSON");
   assert.eq(ret, 0);
 
-  // verify that the a csv type specifier failes to load a json file
+  // verify that the a csv type specifier fails to load a json file
   ret = toolTest.runTool("import",
-      "--file", toolTest.extFile,
-      "-d", "test",
-      "-c", "test",
-      "--type=csv",
-      "-f", "a,b,c");
+    "--file", toolTest.extFile,
+    "-d", "test",
+    "-c", "test",
+    "--type=csv",
+    "-f", "a,b,c");
   assert.eq(ret, 1);
 
   // verify that the a lower case csv type works
   ret = toolTest.runTool("import",
-      "--file", toolTest.extFile+".csv",
-      "-d", "test",
-      "-c", "test",
-      "--type=csv",
-      "-f", "a,b,c");
+    "--file", toolTest.extFile+".csv",
+    "-d", "test",
+    "-c", "test",
+    "--type=csv",
+    "-f", "a,b,c");
   assert.eq(ret, 0);
 
   // verify that the a upper case csv type works
   ret = toolTest.runTool("import",
-      "--file", toolTest.extFile+".csv",
-      "-d", "test",
-      "-c", "test",
-      "--type=CSV",
-      "-f", "a,b,c");
+    "--file", toolTest.extFile+".csv",
+    "-d", "test",
+    "-c", "test",
+    "--type=CSV",
+    "-f", "a,b,c");
   assert.eq(ret, 0);
 
   // verify that the a mixed case csv type works
   ret = toolTest.runTool("import",
-      "--file", toolTest.extFile+".csv",
-      "-d", "test",
-      "-c", "test",
-      "--type=cSv",
-      "-f", "a,b,c");
+    "--file", toolTest.extFile+".csv",
+    "-d", "test",
+    "-c", "test",
+    "--type=cSv",
+    "-f", "a,b,c");
   assert.eq(ret, 0);
 
   var testDb = db1.c.getDB().getSiblingDB("test");

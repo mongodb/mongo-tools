@@ -11,21 +11,26 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/tomb.v2"
 )
 
 type ParseGrace int
+
+// FieldInfo contains information about field names. It is used in validateFields.
+type FieldInfo struct {
+	position int
+	field    string
+	parts    []string
+}
 
 const (
 	pgAutoCast ParseGrace = iota
@@ -155,7 +160,7 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 		if val != nil {
 			hasDocumentKey = true
 		}
-		upsertDocument = append(upsertDocument, bson.DocElem{Name: key, Value: val})
+		upsertDocument = append(upsertDocument, bson.E{Key: key, Value: val})
 	}
 	if !hasDocumentKey {
 		return nil
@@ -219,37 +224,20 @@ func getUpsertValue(field string, document bson.D) interface{} {
 	left := field[0:index]
 	subDoc, _ := bsonutil.FindValueByKey(left, &document)
 	if subDoc == nil {
+		log.Logvf(log.DebugHigh, "no subdoc found for '%v'", left)
 		return nil
 	}
-	subDocD, ok := subDoc.(bson.D)
-	if !ok {
+	switch subDoc.(type) {
+	case bson.D:
+		subDocD := subDoc.(bson.D)
+		return getUpsertValue(field[index+1:], subDocD)
+	case *bson.D:
+		subDocD := subDoc.(*bson.D)
+		return getUpsertValue(field[index+1:], *subDocD)
+	default:
+		log.Logvf(log.DebugHigh, "subdoc found for '%v', but couldn't coerce to bson.D", left)
 		return nil
 	}
-	return getUpsertValue(field[index+1:], subDocD)
-}
-
-// filterIngestError accepts a boolean indicating if a non-nil error should be,
-// returned as an actual error.
-//
-// If the error indicates an unreachable server, it returns that immediately.
-//
-// If the error indicates an invalid write concern was passed, it returns nil
-//
-// If the error is not nil, it logs the error. If the error is an io.EOF error -
-// indicating a lost connection to the server, it sets the error as such.
-//
-func filterIngestError(stopOnError bool, err error) error {
-	if err == nil {
-		return nil
-	}
-	if err.Error() == io.EOF.Error() {
-		return fmt.Errorf(db.ErrLostConnection)
-	}
-	if stopOnError || db.IsConnectionError(err) {
-		return err
-	}
-	log.Logvf(log.Always, "error inserting documents: %v", err)
-	return nil
 }
 
 // removeBlankFields takes document and returns a new copy in which
@@ -270,30 +258,181 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 	return newDocument
 }
 
-// setNestedValue takes a nested field - in the form "a.b.c" -
-// its associated value, and a document. It then assigns that
-// value to the appropriate nested field within the document
-func setNestedValue(key string, value interface{}, document *bson.D) {
-	index := strings.Index(key, ".")
-	if index == -1 {
-		*document = append(*document, bson.DocElem{Name: key, Value: value})
-		return
+// setNestedDocumentValue takes a nested field - in the form "a.b.c" - its associated value,
+// and a document. It then assigns that value to the appropriate nested field within
+// the document. If useArrayIndexFields is set to true, setNestedDocumentValue is mutually
+// recursive with setNestedArrayValue. The two functions work together to set elements
+// nested in documents and arrays. This is the strategy of setNestedDocumentValue/setNestedArrayValue:
+//
+// 1. setNestedDocumentValue is called first. The first part of the field is treated as
+//    a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
+//    interpreted as a document key (which would only happen at the top level of a
+//    BSON document being imported).
+//
+// 2. If there is only one field part, the value will be set for the field in the document.
+//
+// 3. setNestedDocumentValue will call setNestedArrayValue if the next part of the
+//    field is a natural number (which implies the value is an element of an array).
+//    Otherwise, it will call itself. If a document or array already exists for the field,
+//    a reference to that document or array will be passed to setNestedDocumentValue or
+//    setNestedArrayValue respectively. If no value exists, a new document or array is
+//    created, added to the document, and a reference is passed to those functions.
+//
+// 4. If setNestedArrayValue has been called, the first part of the field is an array index.
+//    If there is only one field part, setNestedArrayValue will append the provided value to the
+//    provided array. This is only if the size of the array is equal to the index (meaning
+//    elements of the array must be added sequentially: 0, 1, 2,...).
+//
+// 5. setNestedArrayValue will call setNestedDocumentValue if the next part of the field is not a
+//    natural number (which implies the value is a document). setNestedArrayValue will call
+//    itself if the next part of the field is a natural number. If a document or array already
+//    exists at that index in the array, a reference to that document or array will be passed
+//    to setNestedDocumentValue or setNestedArrayValue respectively. If no value exists, a new document
+//    or array is created, added to the array, and a reference is passed to those functions.
+func setNestedDocumentValue(fieldParts []string, value interface{}, document *bson.D, useArrayIndexFields bool) (err error) {
+	if len(fieldParts) == 1 {
+		*document = append(*document, bson.E{Key: fieldParts[0], Value: value})
+		return nil
 	}
-	keyName := key[0:index]
-	subDocument := &bson.D{}
-	elem, err := bsonutil.FindValueByKey(keyName, document)
-	if err != nil { // no such key in the document
-		elem = nil
+
+	if _, ok := isNatNum(fieldParts[1]); useArrayIndexFields && ok {
+		// next part of the field refers to an array
+		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
+		if err != nil {
+			// element doesn't already exist
+			subArray := &bson.A{}
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
+			if err != nil {
+				return err
+			}
+			*document = append(*document, bson.E{Key: fieldParts[0], Value: subArray})
+		} else {
+			// element already exists
+			// check the element is an array
+			subArray, ok := elem.(*bson.A)
+			if !ok {
+				return fmt.Errorf("Expected document element to be an array, "+
+					"but element has already been set as a document or other value: %#v", elem)
+			}
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// next part of the field refers to a document
+		elem, err := bsonutil.FindValueByKey(fieldParts[0], document)
+		if err != nil { // element doesn't already exist
+			subDocument := &bson.D{}
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
+			if err != nil {
+				return err
+			}
+			*document = append(*document, bson.E{Key: fieldParts[0], Value: subDocument})
+		} else {
+			// element already exists
+			// check the element is a document
+			subDocument, ok := elem.(*bson.D)
+			if !ok {
+				return fmt.Errorf("Expected document element to be an document, "+
+					"but element has already been set as another value: %#v", elem)
+			}
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, useArrayIndexFields)
+			if err != nil {
+				return err
+			}
+		}
 	}
-	var existingKey bool
-	if elem != nil {
-		subDocument = elem.(*bson.D)
-		existingKey = true
+
+	return nil
+}
+
+// setNestedArrayValue takes a nested field, its associated value, and an array.
+// It then assigns that value to  the appropriate nested field within the array.
+// setNestedArrayValue is mutually recursive with setNestedDocumentValue. The two functions
+// work together to set elements nested in documents and arrays. See the documentation
+// of setNestedDocumentValue for more information.
+func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) (err error) {
+
+	// The first part of the field should be an index of an array
+	idx, ok := isNatNum(fieldParts[0])
+	if !ok {
+		return fmt.Errorf("setNestedArrayValue expected an integer field, but instead received %s", fieldParts[0])
 	}
-	setNestedValue(key[index+1:], value, subDocument)
-	if !existingKey {
-		*document = append(*document, bson.DocElem{Name: keyName, Value: subDocument})
+
+	if len(fieldParts) == 1 {
+		if idx != len(*array) {
+			return fmt.Errorf("Trying to add value to array at index %d, but array is %d elements long. "+
+				"Array indices in fields must start from 0 and increase sequentially", idx, len(*array))
+		}
+
+		*array = append(*array, value)
+		return nil
 	}
+
+	if _, ok := isNatNum(fieldParts[1]); ok {
+		// next part of the field refers to an array
+		if idx < len(*array) {
+			// the index already exists in array
+			// check the element is an array
+			subArray, ok := (*array)[idx].(*bson.A)
+			if !ok {
+				return fmt.Errorf("Expected array element to be a sub-array, "+
+					"but element has already been set as a document or other value: %#v", (*array)[idx])
+			}
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
+			if err != nil {
+				return err
+			}
+		} else {
+			// the element at idx doesn't exist yet
+			subArray := &bson.A{}
+			err = setNestedArrayValue(fieldParts[1:], value, subArray)
+			if err != nil {
+				return err
+			}
+			*array = append(*array, subArray)
+		}
+	} else {
+		// next part of the field refers to a document
+		if idx < len(*array) {
+			// the index already exists in array
+			// check the element is an document
+			subDocument, ok := (*array)[idx].(*bson.D)
+			if !ok {
+				return fmt.Errorf("Expected array element to be a document, "+
+					"but element has already been set as another value: %#v", (*array)[idx])
+			}
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, true)
+			if err != nil {
+				return err
+			}
+		} else {
+			// the element at idx doesn't exist yet
+			subDocument := &bson.D{}
+			err = setNestedDocumentValue(fieldParts[1:], value, subDocument, true)
+			if err != nil {
+				return err
+			}
+			*array = append(*array, subDocument)
+		}
+	}
+	return nil
+}
+
+// isNatNum returns a number and true if the string can be parsed as a natural number (including 0)
+// The first byte of the string must be a number from 1-9. So "001" would not be parsed.
+// Neither would phone numbers such as "+15558675309"
+func isNatNum(s string) (int, bool) {
+	if len(s) > 1 && s[0] == byte('0') { // don't allow 0 prefixes
+		return 0, false
+	}
+	if s[0] >= byte('0') && s[0] <= byte('9') { // filter out symbols like +
+		if num, err := strconv.Atoi(s); err == nil && num >= 0 {
+			return num, true
+		}
+	}
+	return 0, false
 }
 
 // streamDocuments concurrently processes data gotten from the inputChan
@@ -317,7 +456,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb: importTomb,
+			tomb:                  importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
 		wg.Add(1)
@@ -351,7 +490,7 @@ func (coercionError) Error() string { return "coercionError" }
 
 // tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
-func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool) (bson.D, error) {
+func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool, useArrayIndexFields bool) (bson.D, error) {
 	log.Logvf(log.DebugHigh, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
@@ -379,10 +518,13 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 						numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
 				}
 			}
-			if strings.Index(colSpecs[index].Name, ".") != -1 {
-				setNestedValue(colSpecs[index].Name, parsedValue, &document)
+			if len(colSpecs[index].NameParts) > 1 {
+				err = setNestedDocumentValue(colSpecs[index].NameParts, parsedValue, &document, useArrayIndexFields)
+				if err != nil {
+					return nil, fmt.Errorf("can't set value for key %s: %s", colSpecs[index].Name, err)
+				}
 			} else {
-				document = append(document, bson.DocElem{Name: colSpecs[index].Name, Value: parsedValue})
+				document = append(document, bson.E{Key: colSpecs[index].Name, Value: parsedValue})
 			}
 		} else {
 			parsedValue = autoParse(token)
@@ -391,20 +533,31 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v ('%v') in document #%v",
 					key, index+1, parsedValue, numProcessed)
 			}
-			document = append(document, bson.DocElem{Name: key, Value: parsedValue})
+			document = append(document, bson.E{Key: key, Value: parsedValue})
 		}
 	}
 	return document, nil
 }
 
 // validateFields takes a slice of fields and returns an error if the fields
-// are invalid, returns nil otherwise
-func validateFields(fields []string) error {
-	fieldsCopy := make([]string, len(fields), len(fields))
-	copy(fieldsCopy, fields)
-	sort.Sort(sort.StringSlice(fieldsCopy))
+// are invalid, returns nil otherwise. Fields are invalid in the following cases:
+//
+//     (1). A field contains an invalid series of characters
+//     (2). Two fields are the same (e.g. a,a)
+//     (3). One field implies there is a value, another implies there is a document (e.g. a,a.b)
+//
+// In the case that --useArrayIndexFields is set, fields are also invalid in the following cases:
+//
+//     (4). One field implies there is a value, another implies there is an array (e.g. a,a.0).
+//     (5). One field implies that there is a document, another implies there is an array.
+//          (e.g. a.b,a.0 or a.b.c,a.0.c)
+//     (6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
+//     (7). Array indexes are out of order (e.g. a.0,a.2,a.1)
+//     (8). An array is missing an index (e.g. a.0,a.2)
+func validateFields(inputFields []string, useArrayIndexFields bool) error {
+	for _, field := range inputFields {
 
-	for index, field := range fieldsCopy {
+		// Here we check validity for case (1).
 		if strings.HasSuffix(field, ".") {
 			return fmt.Errorf("field '%v' cannot end with a '.'", field)
 		}
@@ -417,28 +570,218 @@ func validateFields(fields []string) error {
 		if strings.Contains(field, "..") {
 			return fmt.Errorf("field '%v' cannot contain consecutive '.' characters", field)
 		}
-		// NOTE: since fields is sorted, this check ensures that no field
-		// is incompatible with another one that occurs further down the list.
-		// meant to prevent cases where we have fields like "a" and "a.c"
-		for _, latterField := range fieldsCopy[index+1:] {
-			// NOTE: this means we will not support imports that have fields that
-			// include e.g. a, a.b
-			if strings.HasPrefix(latterField, field+".") {
-				return fmt.Errorf("fields '%v' and '%v' are incompatible", field, latterField)
-			}
-			// NOTE: this means we will not support imports that have fields like
-			// a, a - since this is invalid in MongoDB
-			if field == latterField {
-				return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, latterField)
-			}
+	}
+
+	// This checks all other cases by attempting to build a legal tree of fields.
+	// Each node in the tree corresponds to field parts split by '.' so that each
+	// field is represented by a branch in the tree. The last part of a field is a terminal node.
+	// A branch terminates when the value at the leaf node is set to true.
+	// The tree is represented by a map[string]interface{}, where the interface{} can
+	// be another map or a bool. If useArrayIndexFields is set, the interface{} can also be
+	// a slice of interfaces which could be maps, bools, or other slices.
+	// The tree is equivalent to the structure of the BSON document that
+	// would be constructed by the list of fields provided.
+	fieldTree := make(map[string]interface{})
+
+	for _, field := range inputFields {
+		fieldParts := strings.Split(field, ".")
+		_, err := addFieldToTree(fieldParts, field, "", fieldTree, useArrayIndexFields)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
+// addFieldToTree is a recursive function that builds up a tree of fields. It is used to check
+// that fields are compatible with each other. When useArrayIndexFields is set, it is mutually recursive
+// with addFieldToArray(). It closely mimics the behaviour of setNestedDocumentValue(). See validateFields()
+// for more information on the validity checks that are made when constructing a tree of fields.
+func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, tree map[string]interface{}, useArrayIndexFields bool) (map[string]interface{}, error) {
+	head, tail := fieldParts[0], fieldParts[1:]
+	if fieldPrefix == "" {
+		fieldPrefix = head
+	} else {
+		fieldPrefix += "." + head
+	}
+
+	value, exists := tree[head]
+
+	if exists && len(tail) == 0 {
+		if value == true {
+			// case (2): fields are the same
+			return nil, identicalError(fullField)
+		}
+		// case (3) or (4): this field path implies a value but a document or an array already exists at this point
+		return nil, incompatibleError(fullField, fieldPrefix, value)
+	}
+
+	if len(tail) == 0 {
+		tree[head] = true
+		return tree, nil
+	}
+
+	// At this point, `value` either represents an existing sub-document or sub-array in the tree or doesn't exist.
+	// The tail is not empty which means there is a sub-field and we need to recurse.
+	// We determine the type implied by the next field in the tail (either document or array).
+	// If the head value exists we check the compatibility of the next field with that value.
+	// If it doesn't exist we create an empty structure of the appropriate type.
+	if _, ok := isNatNum(tail[0]); useArrayIndexFields && ok {
+		var subArray []interface{}
+		if exists {
+			subArray, ok = value.([]interface{})
+			if !ok {
+				// case (4) or (5): We expect value to be an array but it is a map or boolean instead
+				return nil, incompatibleError(fullField, fieldPrefix, value)
+			}
+		} else {
+			subArray = make([]interface{}, 0)
+		}
+		subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
+		if err != nil {
+			return nil, err
+		}
+		tree[head] = subArray
+	} else {
+		var subTree map[string]interface{}
+		if exists {
+			subTree, ok = value.(map[string]interface{})
+			if !ok {
+				// case (3) or (5): We expect value to be a map but it is a slice or boolean instead
+				return nil, incompatibleError(fullField, fieldPrefix, value)
+			}
+		} else {
+			subTree = make(map[string]interface{})
+		}
+		subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, useArrayIndexFields)
+		if err != nil {
+			return nil, err
+		}
+		tree[head] = subTree
+	}
+	return tree, nil
+
+}
+
+// addFieldToArray is used with addFieldToTree() to build a valid tree of fields.
+func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, array []interface{}) ([]interface{}, error) {
+	head, tail := fieldParts[0], fieldParts[1:]
+	fieldPrefix += "." + head
+
+	// The first part of the field should be an index of an array
+	headIndex, ok := isNatNum(head)
+	if !ok {
+		// We shouldn't ever get here
+		panic(fmt.Sprintf("addFieldToArray expected a natural number field, but instead received %s", fieldParts[0]))
+	}
+
+	if len(tail) == 0 {
+		// We're at the terminus of a field so we have to check if we can append to the array
+		if headIndex == len(array) {
+			array = append(array, true)
+			return array, nil
+		}
+		// headIndex > len(array) => case (6), (7), or (8): headIndex isn't the next index in the array
+		// headIndex < len(array) => case (2), (3), or (4): the element in the array is already set to another value, document, or array
+		return nil, indexError(fullField)
+	}
+
+	// If tail is not empty, we're either adding a new item to array, or we're adding a field to an item
+	// currently in array. Therefore headIndex cannot be > len(array).
+	if headIndex > len(array) {
+		// case (6), (7), or (8): headIndex isn't the next index in the array
+		return nil, indexError(fullField)
+	}
+
+	// The tail is not empty which means there is a sub-field and we need to recurse.
+	// We determine the type implied by the next field in the tail (either document or array).
+	// If array[headIndex] exists we check the compatibility of the next field with that value.
+	// If it doesn't exist we create an empty structure of the appropriate type.
+	if _, ok := isNatNum(tail[0]); ok {
+		// next part of the field refers to an array
+		if headIndex < len(array) {
+			// the index already exists in array
+			// check the element is an array
+			subArray, ok := array[headIndex].([]interface{})
+			if !ok {
+				// case (4) or (5): We expect array[headIndex] to be an array but it is a map or boolean instead
+				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
+			}
+			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
+			if err != nil {
+				return nil, err
+			}
+			array[headIndex] = subArray
+		} else {
+			// the element at headIndex doesn't exist yet
+			subArray := make([]interface{}, 0)
+			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
+			if err != nil {
+				return nil, err
+			}
+			array = append(array, subArray)
+		}
+	} else {
+		// next part of the field refers to a document
+		if headIndex < len(array) {
+			// the index already exists in array
+			// check the element is an document
+			subTree, ok := array[headIndex].(map[string]interface{})
+			if !ok {
+				// case (3) or (5): We expect array[headIndex] to be a map but it is a slice or boolean instead
+				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
+			}
+			subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, true)
+			if err != nil {
+				return nil, err
+			}
+			array[headIndex] = subTree
+		} else {
+			// the element at headIndex doesn't exist yet
+			subTree := make(map[string]interface{})
+			subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, true)
+			if err != nil {
+				return nil, err
+			}
+			array = append(array, subTree)
+		}
+	}
+	return array, nil
+
+}
+
+// findFirstField is used as a helper for constructing error messages when building a tree of fields.
+// It returns the path to the left-most leaf in a tree.
+func findFirstField(i interface{}) string {
+	switch v := i.(type) {
+	case bool:
+		return ""
+	case []interface{}:
+		return ".0" + findFirstField(v[0])
+	case map[string]interface{}:
+		for k, v := range v {
+			return "." + k + findFirstField(v)
+		}
+	}
+	return ""
+}
+
+func incompatibleError(field string, fieldPrefix string, value interface{}) error {
+	field2 := fieldPrefix + findFirstField(value)
+	return fmt.Errorf("fields '%v' and '%v' are incompatible", field2, field)
+}
+
+func identicalError(field string) error {
+	return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, field)
+}
+
+func indexError(field string) error {
+	return fmt.Errorf("array index error with field '%v': array indexes in fields must start from 0 and increase sequentially", field)
+}
+
 // validateReaderFields is a helper to validate fields for input readers
-func validateReaderFields(fields []string) error {
-	if err := validateFields(fields); err != nil {
+func validateReaderFields(fields []string, useArrayIndexFields bool) error {
+	if err := validateFields(fields, useArrayIndexFields); err != nil {
 		return err
 	}
 	if len(fields) == 1 {

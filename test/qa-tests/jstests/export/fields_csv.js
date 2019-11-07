@@ -29,21 +29,21 @@
 
   // export the data, specifying only one field
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--csv',
-      '--fields', 'a']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--csv',
+    '--fields', 'a']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
-    // import the data into the destination collection
+  // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest',
-      '--type', 'csv',
-      '--fields', 'a,b,c']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest',
+    '--type', 'csv',
+    '--fields', 'a,b,c']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -59,21 +59,21 @@
 
   // export the data, specifying all fields
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--csv',
-      '--fields', 'a,b,c']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--csv',
+    '--fields', 'a,b,c']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest',
-      '--type', 'csv',
-      '--fields', 'a,b,c']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest',
+    '--type', 'csv',
+    '--fields', 'a,b,c']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -124,20 +124,20 @@
 
   // use the following fields as filters:
   var cases = [
-      {field: 'd.e.2', expected: /6/}, // specify nested field with array value
-      {field: 'e.0.0', expected: /foo/}, // specify nested field with numeric array value
-      {field: 'b,d.1,e.1.3', expected: /2,5,3/}, // specify varying levels of field nesting
+    {field: 'd.e.2', expected: /6/}, // specify nested field with array value
+    {field: 'e.0.0', expected: /foo/}, // specify nested field with numeric array value
+    {field: 'b,d.1,e.1.3', expected: /2,5,3/}, // specify varying levels of field nesting
   ];
 
   var output;
 
   for (var i = 0; i < cases.length; i++) {
     ret = toolTest.runTool.apply(toolTest, ['export',
-        '--fields', cases[i].field,
-        '--out', exportTarget,
-        '--db', 'test',
-        '--collection', 'source',
-        '--csv']
+      '--fields', cases[i].field,
+      '--out', exportTarget,
+      '--db', 'test',
+      '--collection', 'source',
+      '--csv']
       .concat(commonToolArgs));
     assert.eq(0, ret);
     output = cat(exportTarget);
@@ -147,19 +147,19 @@
 
   // test with $ projection and query
   cases = [
-      {query: '{ d: 4 }', field: 'd.$', expected: /[4]/},
-      {query: '{ a: { $gt: 1 } }', field: 'a.$', expected: /[2]/},
-      {query: '{ "b.c": -1 }', field: 'b.c.$', expected: /[-1]/},
+    {query: '{ "d": 4 }', field: 'd.$', expected: /[4]/},
+    {query: '{ "a": { "$gt": 1 } }', field: 'a.$', expected: /[2]/},
+    {query: '{ "b.c": -1 }', field: 'b.c.$', expected: /[-1]/},
   ];
 
   for (i = 0; i < cases.length; i++) {
     ret = toolTest.runTool.apply(toolTest, ['export',
-        '--query', cases[i].query,
-        '--fields', cases[i].field,
-        '--out', exportTarget,
-        '--db', 'test',
-        '--collection', 'source',
-        '--csv']
+      '--query', cases[i].query,
+      '--fields', cases[i].field,
+      '--out', exportTarget,
+      '--db', 'test',
+      '--collection', 'source',
+      '--csv']
       .concat(commonToolArgs));
     assert.eq(0, ret);
     output = cat(exportTarget);

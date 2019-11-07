@@ -11,13 +11,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/util"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/txn"
+	"github.com/mongodb/mongo-tools-common/util"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // oplogMaxCommandSize sets the maximum size for multiple buffered ops in the
@@ -25,6 +27,13 @@ import (
 // of many small operations can overflow the maximum command size.
 // Note that ops > 8MB will still be buffered, just as single elements.
 const oplogMaxCommandSize = 1024 * 1024 * 8
+
+type oplogContext struct {
+	progressor *progress.CountProgressor
+	session    *mongo.Client
+	totalOps   int
+	txnBuffer  *txn.Buffer
+}
 
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
@@ -48,28 +57,32 @@ func (restore *MongoRestore) RestoreOplog() error {
 	bsonSource := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(intent.BSONFile))
 	defer bsonSource.Close()
 
-	rawOplogEntry := &bson.Raw{}
-
-	var totalOps int64
-	var entrySize int
-
-	oplogProgressor := progress.NewCounter(intent.BSONSize)
-	if restore.ProgressManager != nil {
-		restore.ProgressManager.Attach("oplog", oplogProgressor)
-		defer restore.ProgressManager.Detach("oplog")
-	}
-
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	defer session.Close()
 
-	for bsonSource.Next(rawOplogEntry) {
-		entrySize = len(rawOplogEntry.Data)
+	oplogCtx := &oplogContext{
+		progressor: progress.NewCounter(intent.BSONSize),
+		txnBuffer:  txn.NewBuffer(),
+		session:    session,
+	}
+	defer oplogCtx.txnBuffer.Stop()
+
+	if restore.ProgressManager != nil {
+		restore.ProgressManager.Attach("oplog", oplogCtx.progressor)
+		defer restore.ProgressManager.Detach("oplog")
+	}
+
+	for {
+		rawOplogEntry := bsonSource.LoadNext()
+		if rawOplogEntry == nil {
+			break
+		}
+		oplogCtx.progressor.Inc(int64(len(rawOplogEntry)))
 
 		entryAsOplog := db.Oplog{}
-		err = bson.Unmarshal(rawOplogEntry.Data, &entryAsOplog)
+		err = bson.Unmarshal(rawOplogEntry, &entryAsOplog)
 		if err != nil {
 			return fmt.Errorf("error reading oplog: %v", err)
 		}
@@ -87,36 +100,105 @@ func (restore *MongoRestore) RestoreOplog() error {
 			break
 		}
 
-		// TODO: TOOLS-1817 will add support for conditionally keeping UUIDS
-		entryAsOplog, err = filterUUIDs(entryAsOplog)
+		meta, err := txn.NewMeta(entryAsOplog)
 		if err != nil {
-			return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
+			return fmt.Errorf("error getting op metadata: %v", err)
 		}
 
-		totalOps++
-		oplogProgressor.Inc(int64(entrySize))
-		err = restore.ApplyOps(session, []interface{}{entryAsOplog})
-		if err != nil {
-			return fmt.Errorf("error applying oplog: %v", err)
+		if meta.IsTxn() {
+			err := restore.HandleTxnOp(oplogCtx, meta, entryAsOplog)
+			if err != nil {
+				return fmt.Errorf("error handling transaction oplog entry: %v", err)
+			}
+		} else {
+			err := restore.HandleNonTxnOp(oplogCtx, entryAsOplog)
+			if err != nil {
+				return fmt.Errorf("error applying oplog: %v", err)
+			}
 		}
+
 	}
 	if fileNeedsIOBuffer, ok := intent.BSONFile.(intents.FileNeedsIOBuffer); ok {
 		fileNeedsIOBuffer.ReleaseIOBuffer()
 	}
 
-	log.Logvf(log.Info, "applied %v ops", totalOps)
+	log.Logvf(log.Always, "applied %v oplog entries", oplogCtx.totalOps)
+	if err := bsonSource.Err(); err != nil {
+		return fmt.Errorf("error reading oplog bson input: %v", err)
+	}
 	return nil
 
 }
 
+func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog) error {
+	oplogCtx.totalOps++
+
+	op, err := restore.filterUUIDs(op)
+	if err != nil {
+		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
+	}
+
+	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
+}
+
+func (restore *MongoRestore) HandleTxnOp(oplogCtx *oplogContext, meta txn.Meta, op db.Oplog) error {
+
+	err := oplogCtx.txnBuffer.AddOp(meta, op)
+	if err != nil {
+		return fmt.Errorf("error buffering transaction oplog entry: %v", err)
+	}
+
+	if meta.IsAbort() {
+		err := oplogCtx.txnBuffer.PurgeTxn(meta)
+		if err != nil {
+			return fmt.Errorf("error cleaning up transaction buffer on abort: %v", err)
+		}
+		return nil
+	}
+
+	if !meta.IsCommit() {
+		return nil
+	}
+
+	// From here, we're applying transaction entries
+	ops, errs := oplogCtx.txnBuffer.GetTxnStream(meta)
+
+Loop:
+	for {
+		select {
+		case o, ok := <-ops:
+			if !ok {
+				break Loop
+			}
+			err = restore.HandleNonTxnOp(oplogCtx, o)
+			if err != nil {
+				return fmt.Errorf("error applying transaction op: %v", err)
+			}
+		case err := <-errs:
+			if err != nil {
+				return fmt.Errorf("error replaying transaction: %v", err)
+			}
+			break Loop
+		}
+	}
+
+	err = oplogCtx.txnBuffer.PurgeTxn(meta)
+	if err != nil {
+		return fmt.Errorf("error cleaning up transaction buffer: %v", err)
+	}
+
+	return nil
+}
+
 // ApplyOps is a wrapper for the applyOps database command, we pass in
 // a session to avoid opening a new connection for a few inserts at a time.
-func (restore *MongoRestore) ApplyOps(session *mgo.Session, entries []interface{}) error {
-	res := bson.M{}
-	err := session.Run(bson.D{{"applyOps", entries}}, &res)
-	if err != nil {
+func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface{}) error {
+	singleRes := session.Database("admin").RunCommand(nil, bson.D{{"applyOps", entries}})
+	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}
+	res := bson.M{}
+	singleRes.Decode(&res)
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("applyOps command: %v", res["errmsg"])
 	}
@@ -126,28 +208,28 @@ func (restore *MongoRestore) ApplyOps(session *mgo.Session, entries []interface{
 
 // TimestampBeforeLimit returns true if the given timestamp is allowed to be
 // applied to mongorestore's target database.
-func (restore *MongoRestore) TimestampBeforeLimit(ts bson.MongoTimestamp) bool {
-	if restore.oplogLimit == 0 {
+func (restore *MongoRestore) TimestampBeforeLimit(ts primitive.Timestamp) bool {
+	if restore.oplogLimit.T == 0 && restore.oplogLimit.I == 0 {
 		// always valid if there is no --oplogLimit set
 		return true
 	}
-	return ts < restore.oplogLimit
+	return util.TimestampGreaterThan(restore.oplogLimit, ts)
 }
 
 // ParseTimestampFlag takes in a string the form of <time_t>:<ordinal>,
 // where <time_t> is the seconds since the UNIX epoch, and <ordinal> represents
 // a counter of operations in the oplog that occurred in the specified second.
 // It parses this timestamp string and returns a bson.MongoTimestamp type.
-func ParseTimestampFlag(ts string) (bson.MongoTimestamp, error) {
+func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 	var seconds, increment int
 	timestampFields := strings.Split(ts, ":")
 	if len(timestampFields) > 2 {
-		return 0, fmt.Errorf("too many : characters")
+		return primitive.Timestamp{}, fmt.Errorf("too many : characters")
 	}
 
 	seconds, err := strconv.Atoi(timestampFields[0])
 	if err != nil {
-		return 0, fmt.Errorf("error parsing timestamp seconds: %v", err)
+		return primitive.Timestamp{}, fmt.Errorf("error parsing timestamp seconds: %v", err)
 	}
 
 	// parse the increment field if it exists
@@ -155,7 +237,7 @@ func ParseTimestampFlag(ts string) (bson.MongoTimestamp, error) {
 		if len(timestampFields[1]) > 0 {
 			increment, err = strconv.Atoi(timestampFields[1])
 			if err != nil {
-				return 0, fmt.Errorf("error parsing timestamp increment: %v", err)
+				return primitive.Timestamp{}, fmt.Errorf("error parsing timestamp increment: %v", err)
 			}
 		} else {
 			// handle the case where the user writes "<time_t>:" with no ordinal
@@ -163,18 +245,37 @@ func ParseTimestampFlag(ts string) (bson.MongoTimestamp, error) {
 		}
 	}
 
-	timestamp := (int64(seconds) << 32) | int64(increment)
-	return bson.MongoTimestamp(timestamp), nil
+	return primitive.Timestamp{T: uint32(seconds), I: uint32(increment)}, nil
+}
+
+// Server versions 3.6.0-3.6.8 and 4.0.0-4.0.2 require a 'ui' field
+// in the createIndexes command.
+func (restore *MongoRestore) needsCreateIndexWorkaround() bool {
+	sv := restore.serverVersion
+	if (sv.GTE(db.Version{3, 6, 0}) && sv.LTE(db.Version{3, 6, 8})) ||
+		(sv.GTE(db.Version{4, 0, 0}) && sv.LTE(db.Version{4, 0, 2})) {
+		return true
+	}
+	return false
 }
 
 // filterUUIDs removes 'ui' entries from ops, including nested applyOps ops.
-func filterUUIDs(op db.Oplog) (db.Oplog, error) {
+// It also modifies ops that rely on 'ui'.
+func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 	// Remove UUIDs from oplog entries
-	op.UI = nil
+	if !restore.OutputOptions.PreserveUUID {
+		op.UI = nil
+
+		// The createIndexes oplog command requires 'ui' for some server versions, so
+		// in that case we fall back to an old-style system.indexes insert.
+		if op.Operation == "c" && op.Object[0].Key == "createIndexes" && restore.needsCreateIndexWorkaround() {
+			return convertCreateIndexToIndexInsert(op)
+		}
+	}
 
 	// Check for and filter nested applyOps ops
 	if op.Operation == "c" && isApplyOpsCmd(op.Object) {
-		filtered, err := newFilteredApplyOps(op.Object)
+		filtered, err := restore.newFilteredApplyOps(op.Object)
 		if err != nil {
 			return db.Oplog{}, err
 		}
@@ -184,10 +285,38 @@ func filterUUIDs(op db.Oplog) (db.Oplog, error) {
 	return op, nil
 }
 
+// convertCreateIndexToIndexInsert converts from new-style create indexes
+// command to old style special index insert.
+func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
+	dbName, _ := util.SplitNamespace(op.Namespace)
+
+	cmdValue := op.Object[0].Value
+	collName, ok := cmdValue.(string)
+	if !ok {
+		return db.Oplog{}, fmt.Errorf("unknown format for createIndexes")
+	}
+
+	indexSpec := op.Object[1:]
+	if len(indexSpec) < 3 {
+		return db.Oplog{}, fmt.Errorf("unknown format for createIndexes, index spec " +
+			"must have at least \"v\", \"key\", and \"name\" fields")
+	}
+
+	// createIndexes does not include the "ns" field but index inserts
+	// do. Add it as the third field, after "v", "key", and "name".
+	ns := bson.D{{"ns", fmt.Sprintf("%s.%s", dbName, collName)}}
+	indexSpec = append(indexSpec[:3], append(ns, indexSpec[3:]...)...)
+	op.Object = indexSpec
+	op.Namespace = fmt.Sprintf("%s.system.indexes", dbName)
+	op.Operation = "i"
+
+	return op, nil
+}
+
 // isApplyOpsCmd returns true if a document seems to be an applyOps command.
-func isApplyOpsCmd(cmd bson.RawD) bool {
+func isApplyOpsCmd(cmd bson.D) bool {
 	for _, v := range cmd {
-		if v.Name == "applyOps" {
+		if v.Key == "applyOps" {
 			return true
 		}
 	}
@@ -196,7 +325,7 @@ func isApplyOpsCmd(cmd bson.RawD) bool {
 
 // newFilteredApplyOps iterates over nested ops in an applyOps document and
 // returns a new applyOps document that omits the 'ui' field from nested ops.
-func newFilteredApplyOps(cmd bson.RawD) (bson.RawD, error) {
+func (restore *MongoRestore) newFilteredApplyOps(cmd bson.D) (bson.D, error) {
 	ops, err := unwrapNestedApplyOps(cmd)
 	if err != nil {
 		return nil, err
@@ -204,7 +333,7 @@ func newFilteredApplyOps(cmd bson.RawD) (bson.RawD, error) {
 
 	filtered := make([]db.Oplog, len(ops))
 	for i, v := range ops {
-		filtered[i], err = filterUUIDs(v)
+		filtered[i], err = restore.filterUUIDs(v)
 		if err != nil {
 			return nil, err
 		}
@@ -223,10 +352,10 @@ type nestedApplyOps struct {
 	ApplyOps []db.Oplog `bson:"applyOps"`
 }
 
-// unwrapNestedApplyOps converts a RawD to a typed data structure.
+// unwrapNestedApplyOps converts a bson.D to a typed data structure.
 // Unfortunately, we're forced to convert by marshaling to bytes and
-// unmarshaling.
-func unwrapNestedApplyOps(doc bson.RawD) ([]db.Oplog, error) {
+// unmarshalling.
+func unwrapNestedApplyOps(doc bson.D) ([]db.Oplog, error) {
 	// Doc to bytes
 	bs, err := bson.Marshal(doc)
 	if err != nil {
@@ -243,10 +372,10 @@ func unwrapNestedApplyOps(doc bson.RawD) ([]db.Oplog, error) {
 	return cmd.ApplyOps, nil
 }
 
-// wrapNestedApplyOps converts a typed data structure to a RawD.
+// wrapNestedApplyOps converts a typed data structure to a bson.D.
 // Unfortunately, we're forced to convert by marshaling to bytes and
-// unmarshaling.
-func wrapNestedApplyOps(ops []db.Oplog) (bson.RawD, error) {
+// unmarshalling.
+func wrapNestedApplyOps(ops []db.Oplog) (bson.D, error) {
 	cmd := &nestedApplyOps{ApplyOps: ops}
 
 	// Typed data to bytes
@@ -256,7 +385,7 @@ func wrapNestedApplyOps(ops []db.Oplog) (bson.RawD, error) {
 	}
 
 	// Bytes to doc
-	var doc bson.RawD
+	var doc bson.D
 	err = bson.Unmarshal(raw, &doc)
 	if err != nil {
 		return nil, fmt.Errorf("cannot reunmarshal nested applyOps op: %s", err)

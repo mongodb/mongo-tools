@@ -1,6 +1,6 @@
 (function() {
   if (typeof getToolTest === 'undefined') {
-    load('jstests/configs/replset_single_28.config.js');
+    load('jstests/configs/replset_single_28_tinyoplog.config.js');
   }
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
@@ -22,7 +22,11 @@
     bigObj.x += 'bacon';
   }
 
+  // get collection initialized before we start
+  db.bar.insert(bigObj);
+
   var dumpArgs = ['mongodump',
+    '-vv',
     '--oplog',
     '--failpoints', 'PauseBeforeDumping',
     '--host', toolTest.m.host]

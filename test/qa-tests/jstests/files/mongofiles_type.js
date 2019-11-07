@@ -16,11 +16,11 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error with a non-empty --type argument
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--port', conn.port,
-        '-t', contentType,
-        'put', filesToInsert[0]]
+      '--port', conn.port,
+      '-t', contentType,
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put failed when it should have succeeded 1');
+    0, 'put failed when it should have succeeded 1');
 
     var fileObj = db.fs.files.findOne({
       filename: filesToInsert[0]
@@ -28,7 +28,7 @@ load('jstests/files/util/mongofiles_common.js');
 
     assert(fileObj, 'did not find expected GridFS file - ' + filesToInsert[0]);
 
-    assert.eq(fileObj.contentType, contentType, 'unexpected content type - found ' + fileObj.contentType + ' but expected ' + contentType);
+    assert.eq(fileObj.metadata.contentType, contentType, 'unexpected content type - found ' + fileObj.contentType + ' but expected ' + contentType);
 
     // ensure tool runs without error with empty --type argument on linux
     // and fails on windows
@@ -37,11 +37,11 @@ load('jstests/files/util/mongofiles_common.js');
       comparison = 'neq';
     }
     assert[comparison](runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          '--type', '',
-          'put', filesToInsert[1]]
+      '--port', conn.port,
+      '--type', '',
+      'put', filesToInsert[1]]
       .concat(passthrough.args)),
-        0, 'put failed unexpectedly');
+    0, 'put failed unexpectedly');
 
     if (!_isWindows()) {
       fileObj = db.fs.files.findOne({

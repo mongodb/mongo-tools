@@ -8,16 +8,18 @@ package mongoexport
 
 import (
 	"bytes"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"strings"
 	"testing"
+
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/json"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools-common/testutil"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestKerberos(t *testing.T) {
-	testutil.VerifyTestType(t, testutil.KerberosTestType)
+	testtype.SkipUnlessTestType(t, testtype.KerberosTestType)
 
 	Convey("Should be able to run mongoexport with Kerberos auth", t, func() {
 		opts, err := testutil.GetKerberosOptions()
@@ -28,7 +30,7 @@ func TestKerberos(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		export := MongoExport{
-			ToolOptions:     *opts,
+			ToolOptions:     opts,
 			OutputOpts:      &OutputFormatOptions{},
 			InputOpts:       &InputOptions{},
 			SessionProvider: sessionProvider,

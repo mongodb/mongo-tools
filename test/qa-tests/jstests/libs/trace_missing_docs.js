@@ -21,6 +21,9 @@ function traceMissingDoc(coll, doc, mongos) {
   // Project out the shard key
   var shardKey = {};
   for (var k in shardKeyPatt) {
+    if (!shardKeyPatt.hasOwnProperty(k)) {
+      continue;
+    }
     if (doc[k] === undefined || docs[k] === null) {
       jsTest.log("Shard key " + tojson(shardKey)
           + " not found in doc " + tojson(doc)

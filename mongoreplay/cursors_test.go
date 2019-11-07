@@ -7,6 +7,7 @@
 package mongoreplay
 
 import (
+	"github.com/mongodb/mongo-tools/legacy/testtype"
 	"sync"
 	"testing"
 	"time"
@@ -18,9 +19,10 @@ import (
 // playback. It then calls SetCursor to simulate setting this CursorID from live
 // traffic. Finally, it gets the cursor from the preprocessCursorManager to
 // ensure the cursorID has been remapped correctly. It uses a select statement
-// to establish a timeout incase the goroutine running GetCursor has not
+// to establish a timeout in case the goroutine running GetCursor has not
 // returned because the cursorID was not set properly.
 func TestFetchingCursorFromPreprocessManager(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	fileCursor := int64(1234)
 	wireCursor := int64(4567)
 	// Make a cursorManager
@@ -72,6 +74,7 @@ func TestFetchingCursorFromPreprocessManager(t *testing.T) {
 // function. Finally, it verifies that the predefined cursorID was set in the
 // manager.
 func TestPreprocessingFileWithOpCommand(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	requestID := int32(1234)
 	testCursorID := int64(4567)
 
@@ -116,6 +119,7 @@ func TestPreprocessingFileWithOpCommand(t *testing.T) {
 // newPreprocessCursorManager function. Finally, it verifies that the predefined
 // cursorID was set in the manager.
 func TestPreprocessingFile(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	requestID := int32(1234)
 	testCursorID := int64(4567)
 
@@ -157,6 +161,7 @@ func TestPreprocessingFile(t *testing.T) {
 // block execution on a call to GetCursor if the corresponding live cursorID has
 // not been found to a cursorID that was mapped during preprocessing.
 func TestBlockOnUnresolvedCursor(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	fileCursor := int64(1234)
 	liveCursor := int64(4567)
 
@@ -189,7 +194,7 @@ func TestBlockOnUnresolvedCursor(t *testing.T) {
 
 		t.Log("Verifying that successChan not closed before cursor was set")
 		// Verify that its successChan is not closed, which indicates that
-		// GetCuror would block
+		// GetCursor would block
 		select {
 		case <-cursorInfo.successChan:
 			t.Error("successChan closed before mapping was complete")
@@ -224,6 +229,7 @@ func TestBlockOnUnresolvedCursor(t *testing.T) {
 // be skipped. This 'out of order' may be caused by severe packet lose during
 // traffic capture and would result in total deadlock of the program.
 func TestSkipOutOfOrderCursor(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	requestID := int32(1234)
 	testCursorID := int64(4567)
 	generator := newRecordedOpGenerator()
@@ -277,6 +283,7 @@ func TestSkipOutOfOrderCursor(t *testing.T) {
 // TestSkipMarkFailed verifies that fetching a cursorID stops blocking if the op
 // that was supposed to create the cursor it was waiting on fails to execute.
 func TestSkipOnMarkFailed(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.MongoReplayTestType)
 	requestID := int32(1234)
 	testCursorID := int64(4567)
 	generator := newRecordedOpGenerator()

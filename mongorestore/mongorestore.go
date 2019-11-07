@@ -15,18 +15,23 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
-	"github.com/mongodb/mongo-tools/common/archive"
-	"github.com/mongodb/mongo-tools/common/auth"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/progress"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/archive"
+	"github.com/mongodb/mongo-tools-common/auth"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/progress"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+const (
+	progressBarLength   = 24
+	progressBarWaitTime = time.Second * 3
 )
 
 // MongoRestore is a container for the user-specified options and
@@ -47,10 +52,9 @@ type MongoRestore struct {
 
 	// other internal state
 	manager *intents.Manager
-	safety  *mgo.Safe
 
 	objCheck         bool
-	oplogLimit       bson.MongoTimestamp
+	oplogLimit       primitive.Timestamp
 	isMongos         bool
 	useWriteCommands bool
 	authVersions     authVersionPair
@@ -74,9 +78,71 @@ type MongoRestore struct {
 	// Reader to take care of BSON input if not reading from the local filesystem.
 	// This is initialized to os.Stdin if unset.
 	InputReader io.Reader
+
+	// Server version for version-specific behavior
+	serverVersion db.Version
 }
 
 type collectionIndexes map[string][]IndexDocument
+
+// New initializes an instance of MongoRestore according to the provided options.
+func New(opts Options) (*MongoRestore, error) {
+	provider, err := db.NewSessionProvider(*opts.ToolOptions)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to host: %v", err)
+	}
+
+	serverVersion, err := provider.ServerVersionArray()
+	if err != nil {
+		return nil, fmt.Errorf("error getting server version: %v", err)
+	}
+
+	// start up the progress bar manager
+	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, true)
+	progressManager.Start()
+
+	restore := &MongoRestore{
+		ToolOptions:     opts.ToolOptions,
+		OutputOptions:   opts.OutputOptions,
+		InputOptions:    opts.InputOptions,
+		NSOptions:       opts.NSOptions,
+		TargetDirectory: opts.TargetDirectory,
+		SessionProvider: provider,
+		ProgressManager: progressManager,
+		serverVersion:   serverVersion,
+	}
+
+	return restore, nil
+}
+
+// SupportsCollectionUUID was removed from common/db/command.go, so copied to here
+func SupportsCollectionUUID(sp *db.SessionProvider) (bool, error) {
+	session, err := sp.GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	collInfo, err := db.GetCollectionInfo(session.Database("admin").Collection("system.version"))
+	if err != nil {
+		return false, err
+	}
+
+	// On FCV 3.6+, admin.system.version will have a UUID
+	if collInfo != nil && collInfo.GetUUID() != "" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// Close ends any connections and cleans up other internal state.
+func (restore *MongoRestore) Close() {
+	restore.SessionProvider.Close()
+	barWriter, ok := restore.ProgressManager.(*progress.BarWriter)
+	if ok { // should always be ok
+		barWriter.Stop()
+	}
+}
 
 // ParseAndValidateOptions returns a non-nil error if user-supplied options are invalid.
 func (restore *MongoRestore) ParseAndValidateOptions() error {
@@ -146,16 +212,15 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 
 	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
-	restore.safety, err = db.BuildWriteConcern(restore.OutputOptions.WriteConcern, nodeType,
-		restore.ToolOptions.URI.ParsedConnString())
-	if err != nil {
-		return fmt.Errorf("error parsing write concern: %v", err)
-	}
 
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
 		// these are only okay if restoring from a bson file
-		_, fileType := restore.getInfoFromFilename(restore.TargetDirectory)
+		_, fileType, err := restore.getInfoFromFilename(restore.TargetDirectory)
+		if err != nil {
+			return err
+		}
+
 		if fileType != BSONFileType {
 			log.Logvf(log.Always, "the --db and --collection args should only be used when "+
 				"restoring from a BSON file. Other uses are deprecated and will not exist "+
@@ -226,6 +291,25 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			"cannot specify a negative number of insertion workers per collection")
 	}
 
+	if restore.OutputOptions.MaintainInsertionOrder {
+		restore.OutputOptions.StopOnError = true
+		restore.OutputOptions.NumInsertionWorkers = 1
+	}
+
+	if restore.OutputOptions.PreserveUUID {
+		if !restore.OutputOptions.Drop {
+			return fmt.Errorf("cannot specify --preserveUUID without --drop")
+		}
+
+		ok, err := SupportsCollectionUUID(restore.SessionProvider)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("target host does not support --preserveUUID")
+		}
+	}
+
 	// a single dash signals reading from stdin
 	if restore.TargetDirectory == "-" {
 		if restore.InputOptions.Archive != "" {
@@ -244,12 +328,12 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 }
 
 // Restore runs the mongorestore program.
-func (restore *MongoRestore) Restore() error {
+func (restore *MongoRestore) Restore() Result {
 	var target archive.DirLike
 	err := restore.ParseAndValidateOptions()
 	if err != nil {
 		log.Logvf(log.DebugLow, "got error from options parsing: %v", err)
-		return err
+		return Result{Err: err}
 	}
 
 	// Build up all intents to be restored
@@ -262,7 +346,7 @@ func (restore *MongoRestore) Restore() error {
 		if restore.archive == nil {
 			archiveReader, err := restore.getArchiveReader()
 			if err != nil {
-				return err
+				return Result{Err: err}
 			}
 			restore.archive = &archive.Reader{
 				In:      archiveReader,
@@ -271,14 +355,14 @@ func (restore *MongoRestore) Restore() error {
 		}
 		err = restore.archive.Prelude.Read(restore.archive.In)
 		if err != nil {
-			return err
+			return Result{Err: err}
 		}
 		log.Logvf(log.DebugLow, `archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
 		log.Logvf(log.DebugLow, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
 		log.Logvf(log.DebugLow, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
 		target, err = restore.archive.Prelude.NewPreludeExplorer()
 		if err != nil {
-			return err
+			return Result{Err: err}
 		}
 	} else if restore.TargetDirectory != "-" {
 		var usedDefaultTarget bool
@@ -290,16 +374,16 @@ func (restore *MongoRestore) Restore() error {
 		target, err = newActualPath(restore.TargetDirectory)
 		if err != nil {
 			if usedDefaultTarget {
-				log.Logv(log.Always, "see mongorestore --help for usage information")
+				log.Logv(log.Always, util.ShortUsage("mongorestore"))
 			}
-			return fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)
+			return Result{Err: fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)}
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
 			log.Logv(log.DebugLow, "mongorestore target is a file, not a directory")
 			err = restore.handleBSONInsteadOfDirectory(restore.TargetDirectory)
 			if err != nil {
-				return err
+				return Result{Err: err}
 			}
 		} else {
 			log.Logv(log.DebugLow, "mongorestore target is a directory, not a file")
@@ -307,7 +391,8 @@ func (restore *MongoRestore) Restore() error {
 	}
 	if restore.NSOptions.Collection != "" &&
 		restore.OutputOptions.NumParallelCollections > 1 &&
-		restore.OutputOptions.NumInsertionWorkers == 1 {
+		restore.OutputOptions.NumInsertionWorkers == 1 &&
+		!restore.OutputOptions.MaintainInsertionOrder {
 		// handle special parallelization case when we are only restoring one collection
 		// by mapping -j to insertion workers rather than parallel collections
 		log.Logvf(log.DebugHigh,
@@ -318,7 +403,6 @@ func (restore *MongoRestore) Restore() error {
 	if restore.InputOptions.Archive != "" {
 		if int(restore.archive.Prelude.Header.ConcurrentCollections) > restore.OutputOptions.NumParallelCollections {
 			restore.OutputOptions.NumParallelCollections = int(restore.archive.Prelude.Header.ConcurrentCollections)
-			restore.OutputOptions.NumInsertionWorkers = int(restore.archive.Prelude.Header.ConcurrentCollections)
 			log.Logvf(log.Always,
 				"setting number of parallel collections to number of parallel collections in archive (%v)",
 				restore.archive.Prelude.Header.ConcurrentCollections,
@@ -362,26 +446,26 @@ func (restore *MongoRestore) Restore() error {
 		err = restore.CreateAllIntents(target)
 	}
 	if err != nil {
-		return fmt.Errorf("error scanning filesystem: %v", err)
+		return Result{Err: fmt.Errorf("error scanning filesystem: %v", err)}
 	}
 
 	if restore.isMongos && restore.manager.HasConfigDBIntent() && restore.NSOptions.DB == "" {
-		return fmt.Errorf("cannot do a full restore on a sharded system - " +
-			"remove the 'config' directory from the dump directory first")
+		return Result{Err: fmt.Errorf("cannot do a full restore on a sharded system - " +
+			"remove the 'config' directory from the dump directory first")}
 	}
 
 	if restore.InputOptions.OplogFile != "" {
 		err = restore.CreateIntentForOplog()
 		if err != nil {
-			return fmt.Errorf("error reading oplog file: %v", err)
+			return Result{Err: fmt.Errorf("error reading oplog file: %v", err)}
 		}
 	}
 	if restore.InputOptions.OplogReplay && restore.manager.Oplog() == nil {
-		return fmt.Errorf("no oplog file to replay; make sure you run mongodump with --oplog")
+		return Result{Err: fmt.Errorf("no oplog file to replay; make sure you run mongodump with --oplog")}
 	}
 	if restore.manager.GetOplogConflict() {
-		return fmt.Errorf("cannot provide both an oplog.bson file and an oplog file with --oplogFile, " +
-			"nor can you provide both a local/oplog.rs.bson and a local/oplog.$main.bson file.")
+		return Result{Err: fmt.Errorf("cannot provide both an oplog.bson file and an oplog file with --oplogFile, " +
+			"nor can you provide both a local/oplog.rs.bson and a local/oplog.$main.bson file")}
 	}
 
 	conflicts := restore.manager.GetDestinationConflicts()
@@ -389,12 +473,12 @@ func (restore *MongoRestore) Restore() error {
 		for _, conflict := range conflicts {
 			log.Logvf(log.Always, "%s", conflict.Error())
 		}
-		return fmt.Errorf("cannot restore with conflicting namespace destinations")
+		return Result{Err: fmt.Errorf("cannot restore with conflicting namespace destinations")}
 	}
 
 	if restore.OutputOptions.DryRun {
 		log.Logvf(log.Always, "dry run completed")
-		return nil
+		return Result{}
 	}
 
 	demuxFinished := make(chan interface{})
@@ -422,7 +506,7 @@ func (restore *MongoRestore) Restore() error {
 			}
 			intent := restore.manager.IntentForNamespace(ns)
 			if intent == nil {
-				return fmt.Errorf("no intent for collection in archive: %v", ns)
+				return Result{Err: fmt.Errorf("no intent for collection in archive: %v", ns)}
 			}
 			if intent.IsSystemIndexes() ||
 				intent.IsUsers() ||
@@ -446,23 +530,23 @@ func (restore *MongoRestore) Restore() error {
 		log.Logv(log.Info, "comparing auth version of the dump directory and target server")
 		restore.authVersions.Dump, err = restore.GetDumpAuthVersion()
 		if err != nil {
-			return fmt.Errorf("error getting auth version from dump: %v", err)
+			return Result{Err: fmt.Errorf("error getting auth version from dump: %v", err)}
 		}
 		restore.authVersions.Server, err = auth.GetAuthVersion(restore.SessionProvider)
 		if err != nil {
-			return fmt.Errorf("error getting auth version of server: %v", err)
+			return Result{Err: fmt.Errorf("error getting auth version of server: %v", err)}
 		}
 		err = restore.ValidateAuthVersions()
 		if err != nil {
-			return fmt.Errorf(
+			return Result{Err: fmt.Errorf(
 				"the users and roles collections in the dump have an incompatible auth version with target server: %v",
-				err)
+				err)}
 		}
 	}
 
 	err = restore.LoadIndexesFromBSON()
 	if err != nil {
-		return fmt.Errorf("restore error: %v", err)
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
 
 	// Restore the regular collections
@@ -477,15 +561,16 @@ func (restore *MongoRestore) Restore() error {
 
 	restore.termChan = make(chan struct{})
 
-	if err := restore.RestoreIntents(); err != nil {
-		return err
+	result := restore.RestoreIntents()
+	if result.Err != nil {
+		return result
 	}
 
 	// Restore users/roles
 	if restore.ShouldRestoreUsersAndRoles() {
 		err = restore.RestoreUsersOrRoles(restore.manager.Users(), restore.manager.Roles())
 		if err != nil {
-			return fmt.Errorf("restore error: %v", err)
+			return result.withErr(fmt.Errorf("restore error: %v", err))
 		}
 	}
 
@@ -493,18 +578,16 @@ func (restore *MongoRestore) Restore() error {
 	if restore.InputOptions.OplogReplay {
 		err = restore.RestoreOplog()
 		if err != nil {
-			return fmt.Errorf("restore error: %v", err)
+			return result.withErr(fmt.Errorf("restore error: %v", err))
 		}
 	}
 
-	defer log.Logv(log.Always, "done")
-
 	if restore.InputOptions.Archive != "" {
 		<-demuxFinished
-		return demuxErr
+		return result.withErr(demuxErr)
 	}
 
-	return nil
+	return result
 }
 
 func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {

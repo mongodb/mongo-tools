@@ -29,19 +29,19 @@
 
   // export the data, specifying only one field
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--fields', 'a']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--fields', 'a']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest',
-      '--type', 'json']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest',
+    '--type', 'json']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
@@ -57,19 +57,19 @@
 
   // export the data, specifying all fields
   ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--fields', 'a,b,c']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--fields', 'a,b,c']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data into the destination collection
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest',
-      '--type', 'json']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest',
+    '--type', 'json']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

@@ -8,16 +8,18 @@ package mongodump
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/mongodb/mongo-tools/common/archive"
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools-common/archive"
+	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/util"
 )
 
 type NilPos struct{}
@@ -135,10 +137,10 @@ func (f *stdoutFile) Close() error {
 	return nil
 }
 
-// isReservedSystemNamespace returns true when a namespace (database +
+// shouldSkipSystemNamespace returns true when a namespace (database +
 // collection name) match certain reserved system namespaces that must
 // not be dumped.
-func (dump *MongoDump) isReservedSystemNamespace(dbName, collName string) bool {
+func shouldSkipSystemNamespace(dbName, collName string) bool {
 	// ignore <db>.system.* except for admin; ignore other specific
 	// collections in config and admin databases used for 3.6 features.
 	switch dbName {
@@ -147,10 +149,13 @@ func (dump *MongoDump) isReservedSystemNamespace(dbName, collName string) bool {
 			return true
 		}
 	case "config":
-		if collName == "transactions" || collName == "system.sessions" {
+		if collName == "transactions" || collName == "system.sessions" || collName == "transaction_coordinators" {
 			return true
 		}
 	default:
+		if collName == "system.js" {
+			return false
+		}
 		if strings.HasPrefix(collName, "system.") {
 			return true
 		}
@@ -188,10 +193,8 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 	} else {
 		root = dump.OutputOptions.Out
 	}
-	if dbName == "" {
-		return filepath.Join(root, colName)
-	}
-	return filepath.Join(root, dbName, colName)
+
+	return filepath.Join(root, dbName, util.EscapeCollectionName(colName))
 }
 
 func checkStringForPathSeparator(s string, c *rune) bool {
@@ -269,9 +272,8 @@ func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	collOptions, err := db.GetCollectionInfo(session.DB(dbName).C(colName))
+	collOptions, err := db.GetCollectionInfo(session.Database(dbName).Collection(colName))
 	if err != nil {
 		return fmt.Errorf("error getting collection options: %v", err)
 	}
@@ -304,16 +306,23 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			// if archive mode, then the output should be written using an output
 			// muxer.
 			intent.BSONFile = &archive.MuxIn{Intent: intent, Mux: dump.archive.Mux}
+			if dump.OutputOptions.Archive == "-" {
+				intent.Location = "archive on stdout"
+			} else {
+				intent.Location = fmt.Sprintf("archive '%v'", dump.OutputOptions.Archive)
+			}
 		} else if dump.OutputOptions.ViewsAsCollections || !ci.IsView() {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
 			var c rune
-			if checkStringForPathSeparator(ci.Name, &c) || checkStringForPathSeparator(dbName, &c) {
-				return nil, fmt.Errorf(`"%v.%v" contains a path separator '%c' `+
-					`and can't be dumped to the filesystem`, dbName, ci.Name, c)
+			if checkStringForPathSeparator(dbName, &c) {
+				return nil, fmt.Errorf(`database "%v" contains a path separator '%c' `+
+					`and can't be dumped to the filesystem`, dbName, c)
 			}
+
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
+			intent.Location = path
 		} else {
 			// otherwise, it's a view and the options specify not dumping a view
 			// so don't dump it.
@@ -349,8 +358,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	if err != nil {
 		return nil, err
 	}
-	defer session.Close()
-	count, err := session.DB(dbName).C(ci.Name).Count()
+	count, err := session.Database(dbName).Collection(ci.Name).EstimatedDocumentCount(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("error counting %v: %v", intent.Namespace(), err)
 	}
@@ -367,23 +375,20 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	if err != nil {
 		return err
 	}
-	defer session.Close()
 
-	colsIter, usesFullNames, err := db.GetCollections(session.DB(dbName), "")
+	colsIter, err := db.GetCollections(session.Database(dbName), "")
 	if err != nil {
 		return fmt.Errorf("error getting collections for database `%v`: %v", dbName, err)
 	}
+	defer colsIter.Close(context.Background())
 
-	collInfo := &db.CollectionInfo{}
-	for colsIter.Next(collInfo) {
-		if usesFullNames {
-			collName, err := db.StripDBFromNamespace(collInfo.Name, dbName)
-			if err != nil {
-				return err
-			}
-			collInfo.Name = collName
+	for colsIter.Next(nil) {
+		collInfo := &db.CollectionInfo{}
+		err = colsIter.Decode(collInfo)
+		if err != nil {
+			return fmt.Errorf("error decoding collection info: %v", err)
 		}
-		if dump.isReservedSystemNamespace(dbName, collInfo.Name) {
+		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
 			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
 			continue
 		}
@@ -419,7 +424,7 @@ func (dump *MongoDump) CreateAllIntents() error {
 			continue
 		}
 		if err := dump.CreateIntentsForDatabase(dbName); err != nil {
-			return err
+			return fmt.Errorf("error creating intents for database %s: %v", dbName, err)
 		}
 	}
 	return nil

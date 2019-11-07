@@ -41,10 +41,10 @@
       if (jsTestOptions().useSSL) {
         if (argArray.indexOf('--sslMode') < 0) {
           argArray.push(
-              '--sslMode', 'requireSSL',
-              '--sslPEMKeyFile', 'jstests/libs/server.pem',
-              '--sslCAFile', 'jstests/libs/ca.pem',
-              '--sslWeakCertificateValidation');
+            '--sslMode', 'requireSSL',
+            '--sslPEMKeyFile', 'jstests/libs/server.pem',
+            '--sslCAFile', 'jstests/libs/ca.pem',
+            '--sslWeakCertificateValidation');
         }
       }
       _startMongod.apply(null, argArray);
@@ -419,8 +419,8 @@
             fullArgs.push(temp);
           }
         } else if (k === "setParameter" && isObject(o[k])) {
-            // If the value associated with the setParameter option is an object, we want
-            // to add all key-value pairs in that object as separate --setParameters.
+          // If the value associated with the setParameter option is an object, we want
+          // to add all key-value pairs in that object as separate --setParameters.
           for (var l = 0; l < Object.keys(o[k]).length; l++) {
             var paramKey = Object.keys(o[k])[l];
             addOptionsToFullArgs(k, "" + paramKey + "=" + o[k][paramKey]);
@@ -524,7 +524,7 @@
 
     // Default for waitForConnect is true
     opts.waitForConnect = (waitForConnect === undefined || waitForConnect === null) ?
-        true : waitForConnect;
+      true : waitForConnect;
 
     if (jsTestOptions().useSSL) {
       opts.sslMode = opts.sslMode || "requireSSL";
@@ -575,7 +575,7 @@
   MongoRunner.mongodOptions = function(opts) {
     opts = MongoRunner.mongoOptions(opts);
     opts.dbpath = MongoRunner.toRealDir(opts.dbpath || "$dataDir/mongod-$port",
-                                         opts.pathOpts);
+      opts.pathOpts);
     opts.pathOpts = Object.merge(opts.pathOpts, {dbpath: opts.dbpath});
 
     if (!opts.logFile && opts.useLogFiles) {
@@ -586,10 +586,6 @@
 
     if (opts.logFile !== undefined) {
       opts.logpath = opts.logFile;
-    }
-
-    if (jsTestOptions().noJournalPrealloc || opts.noJournalPrealloc) {
-      opts.nopreallocj = "";
     }
 
     if (jsTestOptions().noJournal || opts.noJournal) {
@@ -640,7 +636,7 @@
 
     if (!opts.logFile && opts.useLogFiles) {
       opts.logFile = MongoRunner.toRealFile("$dataDir/mongos-$configdb-$port.log",
-                                               opts.pathOpts);
+        opts.pathOpts);
     } else if (opts.logFile) {
       opts.logFile = MongoRunner.toRealFile(opts.logFile, opts.pathOpts);
     }
@@ -905,10 +901,10 @@
       if (jsTestOptions().useSSL) {
         if (argArray.indexOf('--sslMode') < 0) {
           argArray.push(
-              '--sslMode', 'requireSSL',
-              '--sslPEMKeyFile', 'jstests/libs/server.pem',
-              '--sslCAFile', 'jstests/libs/ca.pem',
-              '--sslWeakCertificateValidation');
+            '--sslMode', 'requireSSL',
+            '--sslPEMKeyFile', 'jstests/libs/server.pem',
+            '--sslCAFile', 'jstests/libs/ca.pem',
+            '--sslWeakCertificateValidation');
         }
       }
 
@@ -1015,7 +1011,7 @@
 
           print("Could not start mongo program at " + port + ", process ended");
 
-                // Break out
+          // Break out
           m = null;
           return true;
         }
@@ -1033,17 +1029,17 @@
     if (jsTestOptions().auth) {
       args = args.slice(1);
       args.unshift(progName,
-                      '-u', jsTestOptions().authUser,
-                      '-p', jsTestOptions().authPassword,
-                      '--authenticationDatabase=admin'
-                    );
+        '-u', jsTestOptions().authUser,
+        '-p', jsTestOptions().authPassword,
+        '--authenticationDatabase=admin'
+      );
     }
 
     if (jsTestOptions().useSSL) {
       args.push("--ssl",
-          "--sslPEMKeyFile", "jstests/libs/client.pem",
-          "--sslCAFile", "jstests/libs/ca.pem",
-          "--sslAllowInvalidHostnames");
+        "--sslPEMKeyFile", "jstests/libs/client.pem",
+        "--sslCAFile", "jstests/libs/ca.pem",
+        "--sslAllowInvalidHostnames");
     }
 
     if (progName === 'mongo' && !_useWriteCommandsDefault()) {
@@ -1065,16 +1061,16 @@
     if (jsTestOptions().auth) {
       args = args.slice(1);
       args.unshift(progName,
-          '-u', jsTestOptions().authUser,
-          '-p', jsTestOptions().authPassword,
-          '--authenticationDatabase=admin');
+        '-u', jsTestOptions().authUser,
+        '-p', jsTestOptions().authPassword,
+        '--authenticationDatabase=admin');
     }
 
     if (jsTestOptions().useSSL) {
       args.push("--ssl",
-          "--sslPEMKeyFile", "jstests/libs/client.pem",
-          "--sslCAFile", "jstests/libs/ca.pem",
-          "--sslAllowInvalidHostnames");
+        "--sslPEMKeyFile", "jstests/libs/client.pem",
+        "--sslCAFile", "jstests/libs/ca.pem",
+        "--sslAllowInvalidHostnames");
     }
 
     if (progName === 'mongo' && !_useWriteCommandsDefault()) {

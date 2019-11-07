@@ -29,16 +29,16 @@ if (typeof getToolTest === 'undefined') {
     return assert(false, 'Can\'t run shutdownServer() on replica set ' +
       'without auth!');
   }
-    // On sharded and standalone, kill the server
+  // On sharded and standalone, kill the server
   var koShell = startParallelShell(
-      'sleep(1000); ' +
+    'sleep(1000); ' +
       (toolTest.authCommand || '') +
       'db.getSiblingDB(\'admin\').shutdownServer({ force: true });');
 
   var dumpArgs = ['dump',
-      '--db', 'foo',
-      '--collection', 'bar',
-      '--query', '{ $where: "sleep(25); return true;" }']
+    '--db', 'foo',
+    '--collection', 'bar',
+    '--query', '{ "$where": "sleep(25); return true;" }']
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
 
@@ -49,6 +49,8 @@ if (typeof getToolTest === 'undefined') {
     'error reading from db',
     'error reading collection',
     'connection closed',
+    'Interrupted',
+    'interrupted',
   ];
   assert.soon(function() {
     var output = rawMongoProgramOutput();

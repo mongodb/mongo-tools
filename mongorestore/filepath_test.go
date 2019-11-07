@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	commonOpts "github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools-common/intents"
+	"github.com/mongodb/mongo-tools-common/log"
+	"github.com/mongodb/mongo-tools-common/options"
+	commonOpts "github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -62,7 +62,7 @@ func TestCreateAllIntents(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
@@ -126,7 +126,7 @@ func TestCreateIntentsForDB(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
@@ -174,6 +174,7 @@ func TestCreateIntentsForDB(t *testing.T) {
 }
 
 func TestCreateIntentsRenamed(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a test MongoRestore", t, func() {
 		mr := newMongoRestore()
 		mr.renamer, _ = ns.NewRenamer([]string{"db1.*"}, []string{"db4.test.*"})
@@ -209,7 +210,7 @@ func TestCreateIntentsRenamed(t *testing.T) {
 
 func TestHandlingBSON(t *testing.T) {
 	var mr *MongoRestore
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
@@ -249,7 +250,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
 
-	testutil.VerifyTestType(t, testutil.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		buff = bytes.Buffer{}

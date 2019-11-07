@@ -37,7 +37,7 @@
   ret = toolTest.runTool.apply(toolTest, ['restore'].concat(getRestoreTarget(dumpTarget)));
   assert.eq(0, ret);
 
-  // make sure the restore completed succesfully
+  // make sure the restore completed successfully
   assert.eq(50, testColl.count());
 
   // success

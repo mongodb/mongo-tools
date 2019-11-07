@@ -52,7 +52,7 @@ var extendedAssert;
           doassert = builtin_doassert;
         } catch (e) {
           doassert = builtin_doassert;
-        // Make it fail
+          // Make it fail
           assertFunc(expected, actualFunc(), msg);
         }
       };

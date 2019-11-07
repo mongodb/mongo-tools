@@ -39,28 +39,24 @@
   // var collWithoutOptions = testDB.withoutOptions;
   // var collCapped = testDB.capped;
 
-  // create the noPadding collection
-  var noPaddingOptions = {noPadding: true};
-  testDB.createCollection('withOptions', noPaddingOptions);
+  // create the withOptions collection
+  var validatorOptions = {'validator': {'phone': {'$type': "string"}}};
+  testDB.createCollection('withOptions', validatorOptions);
 
   // create the capped collection
-  var cappedOptions = {capped: true, size: 4096, autoIndexId: true};
+  var cappedOptions = {capped: true, size: 4096};
   testDB.createCollection('capped', cappedOptions);
 
   // insert some data into all three collections
   ['withOptions', 'withoutOptions', 'capped'].forEach(function(collName) {
     var data = [];
     for (var i = 0; i < 50; i++) {
-      data.push({_id: i});
+      data.push({_id: i, phone: "abc"});
     }
     testDB[collName].insertMany(data);
     // sanity check the insertions worked
     assert.eq(50, testDB[collName].count());
   });
-
-  // add options to the appropriate collection
-  cmdRet = testDB.runCommand({'collMod': 'withOptions', usePowerOf2Sizes: true});
-  assert.eq(1, cmdRet.ok);
 
   // store the default options, because they change based on storage engine
   var baseCappedOptionsFromDB = extractCollectionOptions(testDB, 'capped');
@@ -89,10 +85,6 @@
 
   // make sure the options were restored correctly
   var cappedOptionsFromDB = extractCollectionOptions(testDB, 'capped');
-  // Restore no longer honors autoIndexId.
-  if (!cappedOptionsFromDB.hasOwnProperty('autoIndexId')) {
-    cappedOptionsFromDB.autoIndexId = true;
-  }
   assert.eq(baseCappedOptionsFromDB, cappedOptionsFromDB);
   var withOptionsFromDB = extractCollectionOptions(testDB, 'withOptions');
   assert.eq(baseWithOptionsFromDB, withOptionsFromDB);

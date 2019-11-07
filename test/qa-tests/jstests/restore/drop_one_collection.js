@@ -70,8 +70,8 @@
 
   // restore with --drop and --collection
   ret = toolTest.runTool.apply(toolTest, ['restore', '--drop',
-      '--db', 'source',
-      '--collection', 'coll1']
+    '--db', 'source',
+    '--collection', 'coll1']
     .concat(getRestoreTarget(dumpTarget+'/source/coll1.bson'))
     .concat(commonToolArgs));
   assert.eq(0, ret);

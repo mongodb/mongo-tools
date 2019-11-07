@@ -30,21 +30,21 @@
 
   // export the data, specifying nested fields to export
   var ret = toolTest.runTool.apply(toolTest, ['export',
-      '--out', exportTarget,
-      '--db', 'test',
-      '--collection', 'source',
-      '--csv',
-      '--fields', 'a,b.d.e,x.y']
+    '--out', exportTarget,
+    '--db', 'test',
+    '--collection', 'source',
+    '--csv',
+    '--fields', 'a,b.d.e,x.y']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // import the data
   ret = toolTest.runTool.apply(toolTest, ['import',
-      '--file', exportTarget,
-      '--db', 'test',
-      '--collection', 'dest',
-      '--type', 'csv',
-      '--headerline']
+    '--file', exportTarget,
+    '--db', 'test',
+    '--collection', 'dest',
+    '--type', 'csv',
+    '--headerline']
     .concat(commonToolArgs));
   assert.eq(0, ret);
 

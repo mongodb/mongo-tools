@@ -13,38 +13,38 @@ load('jstests/files/util/mongofiles_common.js');
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--db', 'otherdb',
-        '--port', conn.port,
-        '--host', 'localhost',
-        'put', filesToInsert[0]]
+      '--db', 'otherdb',
+      '--port', conn.port,
+      '--host', 'localhost',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 1 failed');
+    0, 'put 1 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-        '--db', 'otherdb',
-        '--port', conn.port,
-        '--host', 'localhost',
-        'put', filesToInsert[0]]
+      '--db', 'otherdb',
+      '--port', conn.port,
+      '--host', 'localhost',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-      0, 'put 2 failed');
+    0, 'put 2 failed');
 
     // ensure the files were inserted into the right db
     assert.eq(2, db.getCollection('fs.files').count(), 'unexpected fs.files count 1');
 
     // test short form
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '-d', 'otherdb',
-          '--port', conn.port,
-          '--host', 'localhost',
-          'put', filesToInsert[0]]
+      '-d', 'otherdb',
+      '--port', conn.port,
+      '--host', 'localhost',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'put 3 failed');
+    0, 'put 3 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '-d', 'otherdb',
-          '--port', conn.port,
-          '--host', 'localhost',
-          'put', filesToInsert[0]]
+      '-d', 'otherdb',
+      '--port', conn.port,
+      '--host', 'localhost',
+      'put', filesToInsert[0]]
       .concat(passthrough.args)),
-        0, 'put 4 failed');
+    0, 'put 4 failed');
 
     // ensure the file was inserted into the right db
     assert.eq(4, db.getCollection('fs.files').count(), 'unexpected fs.files count 2s');

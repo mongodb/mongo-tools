@@ -94,8 +94,11 @@ func getOpstream(cfg OpStreamSettings) (*packetHandlerContext, error) {
 			return nil, fmt.Errorf("error setting packet filter expression: %v", err)
 		}
 	}
+	assemblerOptions := AssemblerOptions{
+		MaxBufferedPagesTotal: cfg.MaxBufferedPages,
+	}
 
-	h := NewPacketHandler(pcapHandle)
+	h := NewPacketHandler(pcapHandle, assemblerOptions)
 	h.Verbose = userInfoLogger.isInVerbosity(DebugLow)
 
 	toolDebugLogger.Logvf(Info, "Created packet buffer size %d", cfg.PacketBufSize)
@@ -118,6 +121,9 @@ func (record *RecordCommand) ValidateParams(args []string) error {
 	if record.OpStreamSettings.CaptureBufSize == 0 {
 		// default capture buffer size to 2 MiB (same as libpcap)
 		record.OpStreamSettings.CaptureBufSize = 2 * 1024
+	}
+	if record.OpStreamSettings.MaxBufferedPages < 0 {
+		return fmt.Errorf("bufferedPagesMax cannot be less than 0")
 	}
 	return nil
 }
@@ -166,7 +172,7 @@ func Record(ctx *packetHandlerContext,
 		var fail error
 		for op := range ctx.mongoOpStream.Ops {
 			// since we don't currently have a way to shutdown packetHandler.Handle()
-			// continue to read from ctx.mongoOpStream.Ops even after a faltal error
+			// continue to read from ctx.mongoOpStream.Ops even after a fatal error
 			if fail != nil {
 				toolDebugLogger.Logvf(DebugHigh, "not recording op because of record error %v", fail)
 				continue
