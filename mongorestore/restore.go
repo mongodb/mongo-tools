@@ -337,24 +337,17 @@ func convertLegacyIndexes(indexes []IndexDocument) []IndexDocument {
 		for j, elem := range index.Key {
 			switch elem.Value {
 			case true:
-				md := bsonutil.MarshalD(indexes[i].Key)
-				indexJSON, err := md.MarshalJSON()
-				if err != nil {
-					indexJSON = []byte("<error formatting index>")
-				}
 				indexes[i].Key[j].Value = 1
-				log.Logvf(log.Always, "convertLegacyIndexes: converting the legacy vaule of '%s' from '%s' to '%s' in index '%s'", indexes[i].Key[j].Key, "true", "1", string(indexJSON))
+				log.Logvf(log.Always, "convertLegacyIndexes: converting the legacy vaule of '%s' from '%s' to '%s' in index '%s' on collection '%s'",
+					indexes[i].Key[j].Key, "true", "1", indexes[i].Options["name"], indexes[i].Options["ns"])
 			}
 		}
 
 		for key := range index.Options {
 			if _, ok := validIndexOptions[key]; !ok {
-				optionsJSON, err := bson.MarshalExtJSON(indexes[i].Options, true, false)
-				if err != nil {
-					optionsJSON = []byte("<error formatting index>")
-				}
 				delete(indexes[i].Options, key)
-				log.Logvf(log.Always, "convertLegacyIndexes: removing invalid option '%v' from index options '%v'", key, string(optionsJSON))
+				log.Logvf(log.Always, "convertLegacyIndexes: removing invalid option '%s' from index '%s' on collection '%s",
+					key, indexes[i].Options["name"], indexes[i].Options["ns"])
 			}
 		}
 	}
