@@ -25,24 +25,25 @@ import (
 
 const insertBufferFactor = 16
 
-var indexOptions = map[string]bool{
-	"bits": true,
-	"min":  true,
-	"max":  true,
-	"coarsestIndexedLevel": true,
-	"finestIndexedLevel":   true,
-	"2dsphereIndexVersion": true,
-	"background":           true,
-	"collation":            true,
-	"default_language":     true,
-	"dropDups":             true,
-	"expireAfterSeconds":   true,
-	"bucketSize":           true,
-	"name":                 true,
-	"v":                    true,
-	"key":                  true,
-	"language_override":    true,
-	"ns":                   true,
+// validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
+var validIndexOptions = map[string]bool{
+	"bits":                    true,
+	"min":                     true,
+	"max":                     true,
+	"coarsestIndexedLevel":    true,
+	"finestIndexedLevel":      true,
+	"2dsphereIndexVersion":    true,
+	"background":              true,
+	"collation":               true,
+	"default_language":        true,
+	"dropDups":                true,
+	"expireAfterSeconds":      true,
+	"bucketSize":              true,
+	"name":                    true,
+	"v":                       true,
+	"key":                     true,
+	"language_override":       true,
+	"ns":                      true,
 	"partialFilterExpression": true,
 	"wildcardProjection":      true,
 	"sparse":                  true,
@@ -316,8 +317,8 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	// finally, add indexes
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
-		if restore.OutputOptions.IgnoreInvalidIndexOptions {
-			indexes = stripInvalidOptions(indexes)
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			indexes = convertLegacyIndexes(indexes)
 		}
 		err = restore.CreateIndexes(intent, indexes, hasNonSimpleCollation)
 		if err != nil {
@@ -331,11 +332,28 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func stripInvalidOptions(indexes []IndexDocument) []IndexDocument {
+func convertLegacyIndexes(indexes []IndexDocument) []IndexDocument {
 	for i, index := range indexes {
+		for j, elem := range index.Key {
+			switch elem.Value {
+			case true:
+				indexString, err := bson.MarshalExtJSON(indexes[i].Key[j], true, false)
+				if err != nil {
+
+				}
+				indexes[i].Key[j].Value = 1
+				log.Logvf(log.Always, "convertLegacyIndexes: converting %v to %v", indexString, indexString)
+			}
+		}
+
 		for key := range index.Options {
-			if _, ok := indexOptions[key]; !ok {
+			if _, ok := validIndexOptions[key]; !ok {
+				optionsString, err := bson.MarshalExtJSON(indexes[i].Options, true, false)
+				if err != nil {
+
+				}
 				delete(indexes[i].Options, key)
+				log.Logvf(log.Always, "convertLegacyIndexes: removing invalid option %v from index options %v", optionsString, optionsString)
 			}
 		}
 	}

@@ -391,7 +391,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 		args = []string{
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
-			IgnoreInvalidIndexOptionsOption, "true",
+			ConvertLegacyIndexesOption, "true",
 		}
 
 		restore, err = getRestoreWithArgs(args...)
