@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -27,30 +28,29 @@ const insertBufferFactor = 16
 
 // validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
 var validIndexOptions = map[string]bool{
-	"bits":                    true,
-	"min":                     true,
-	"max":                     true,
-	"coarsestIndexedLevel":    true,
-	"finestIndexedLevel":      true,
 	"2dsphereIndexVersion":    true,
 	"background":              true,
+	"bits":                    true,
+	"bucketSize":              true,
+	"coarsestIndexedLevel":    true,
 	"collation":               true,
 	"default_language":        true,
-	"dropDups":                true,
 	"expireAfterSeconds":      true,
-	"bucketSize":              true,
-	"name":                    true,
-	"v":                       true,
+	"finestIndexedLevel":      true,
 	"key":                     true,
 	"language_override":       true,
+	"max":                     true,
+	"min":                     true,
+	"name":                    true,
 	"ns":                      true,
 	"partialFilterExpression": true,
-	"wildcardProjection":      true,
 	"sparse":                  true,
 	"storageEngine":           true,
 	"textIndexVersion":        true,
 	"unique":                  true,
+	"v":                       true,
 	"weights":                 true,
+	"wildcardProjection":      true,
 }
 
 // Result encapsulates the outcome of a particular restore attempt.
@@ -318,7 +318,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = convertLegacyIndexes(indexes)
+			convertLegacyIndexes(indexes)
 		}
 		err = restore.CreateIndexes(intent, indexes, hasNonSimpleCollation)
 		if err != nil {
@@ -332,26 +332,87 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func convertLegacyIndexes(indexes []IndexDocument) []IndexDocument {
-	for i, index := range indexes {
-		for j, elem := range index.Key {
-			switch elem.Value {
-			case true:
-				indexes[i].Key[j].Value = 1
-				log.Logvf(log.Always, "convertLegacyIndexes: converting the legacy vaule of '%s' from '%s' to '%s' in index '%s' on collection '%s'",
-					indexes[i].Key[j].Key, "true", "1", indexes[i].Options["name"], indexes[i].Options["ns"])
-			}
-		}
+func convertLegacyIndexes(indexes []IndexDocument) {
+	for _, index := range indexes {
+		convertLegacyIndexKeys(index)
+		convertLegacyIndexOptions(index)
+	}
+}
 
-		for key := range index.Options {
-			if _, ok := validIndexOptions[key]; !ok {
-				delete(indexes[i].Options, key)
-				log.Logvf(log.Always, "convertLegacyIndexes: removing invalid option '%s' from index '%s' on collection '%s",
-					key, indexes[i].Options["name"], indexes[i].Options["ns"])
+func convertLegacyIndexKeys(index IndexDocument) {
+	var converted bool
+	originalJSONString := createExtJSONString(index.Key)
+	for j, elem := range index.Key {
+		switch v := elem.Value.(type) {
+		case int32, int64, float64:
+			// Only convert 0 value
+			if v == 0 {
+				index.Key[j].Value = 1
+				converted = true
 			}
+		case primitive.Decimal128:
+			if isZero(v) {
+				index.Key[j].Value = 1
+				converted = true
+			}
+		case string:
+			// Only convert an empty string
+			if v == "" {
+				index.Key[j].Value = 1
+				converted = true
+			}
+		default:
+			// Convert all types that aren't strings or numbers
+			index.Key[j].Value = 1
+			converted = true
 		}
 	}
-	return indexes
+	if converted {
+		newJSONString := createExtJSONString(index.Key)
+		log.Logvf(log.Always, "convertLegacyIndexes: converted index values '%s' to '%s' on collection '%s'",
+			originalJSONString, newJSONString, index.Options["ns"])
+	}
+}
+
+func isZero(num primitive.Decimal128) bool {
+	h, l := num.GetBytes()
+	if l != 0 {
+		return false
+	}
+	for i := uint64(0); i < 49; i++ {
+		if h&(1<<i) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func convertLegacyIndexOptions(index IndexDocument) {
+	var converted bool
+	originalJSONString := createExtJSONString(index.Options)
+	for key := range index.Options {
+		if _, ok := validIndexOptions[key]; !ok {
+			delete(index.Options, key)
+			converted = true
+		}
+	}
+	if converted {
+		newJSONString := createExtJSONString(index.Options)
+		log.Logvf(log.Always, "convertLegacyIndexes: converted index options '%s' to '%s'",
+			originalJSONString, newJSONString)
+	}
+}
+
+func createExtJSONString(doc interface{}) string {
+	// by default return "<unable to format document>"" since we don't
+	// want to throw an error when formatting informational messages.
+	// An error would be inconsequential.
+	JSONString := "<unable to format document>"
+	JSONBytes, err := bson.MarshalExtJSON(doc, false, false)
+	if err == nil {
+		JSONString = string(JSONBytes)
+	}
+	return JSONString
 }
 
 // RestoreCollectionToDB pipes the given BSON data into the database.
