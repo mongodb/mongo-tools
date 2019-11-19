@@ -351,9 +351,14 @@ func convertLegacyIndexKeys(index IndexDocument) {
 				converted = true
 			}
 		case primitive.Decimal128:
-			if isZero(v) {
-				index.Key[j].Value = 1
-				converted = true
+			// Note, this doesn't catch Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
+			// These values are so unlikely we just ignore them
+			zeroVal, err := primitive.ParseDecimal128("0")
+			if err == nil {
+				if v == zeroVal {
+					index.Key[j].Value = 1
+					converted = true
+				}
 			}
 		case string:
 			// Only convert an empty string
@@ -372,19 +377,6 @@ func convertLegacyIndexKeys(index IndexDocument) {
 		log.Logvf(log.Always, "convertLegacyIndexes: converted index values '%s' to '%s' on collection '%s'",
 			originalJSONString, newJSONString, index.Options["ns"])
 	}
-}
-
-func isZero(num primitive.Decimal128) bool {
-	h, l := num.GetBytes()
-	if l != 0 {
-		return false
-	}
-	for i := uint64(0); i < 49; i++ {
-		if h&(1<<i) != 0 {
-			return false
-		}
-	}
-	return true
 }
 
 func convertLegacyIndexOptions(index IndexDocument) {
