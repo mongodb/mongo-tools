@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/testutil"
+	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
@@ -34,7 +35,7 @@ const (
 
 // checkOnlyHasDocuments returns an error if the documents in the test
 // collection don't exactly match those that are passed in
-func checkOnlyHasDocuments(sessionProvider db.SessionProvider, expectedDocuments []bson.M) error {
+func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocuments []bson.M) error {
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		return err
@@ -612,7 +613,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(5), "c": "6e"},
 				{"_id": int32(7), "b": int32(8), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import without --ignoreBlanks should include blanks", func() {
 			imp, err := NewMongoImport()
@@ -631,7 +632,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(5), "b": "", "c": "6e"},
 				{"_id": int32(7), "b": int32(8), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("no error should be thrown for CSV import on test data with --upsertFields", func() {
 			imp, err := NewMongoImport()
@@ -652,7 +653,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("no error should be thrown for CSV import on test data with "+
 			"--stopOnError. Only documents before error should be imported", func() {
@@ -675,7 +676,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with duplicate _id's should not error if --stopOnError is not set", func() {
 			imp, err := NewMongoImport()
@@ -698,7 +699,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(8), "b": int32(6), "c": int32(6)},
 			}
 			// all docs except the one with duplicate _id - should be imported
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("no error should be thrown for CSV import on test data with --drop", func() {
 			imp, err := NewMongoImport()
@@ -720,7 +721,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import on test data with --headerLine should succeed", func() {
 			imp, err := NewMongoImport()
@@ -773,7 +774,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete should succeed", func() {
 			// First import 3 documents
@@ -810,7 +811,7 @@ func TestImportDocuments(t *testing.T) {
 			expectedDocuments := []bson.M{
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete and --upsertFields should succeed", func() {
 			// First import 3 documents
@@ -848,7 +849,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete and --ignoreBlanks should not take any action for "+
 			"documents that have blank values for upsert fields", func() {
@@ -888,7 +889,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=upsert/--upsertFields with duplicate id should succeed "+
 			"even if stopOnError is set", func() {
@@ -911,7 +912,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(5), "b": int32(6), "c": int32(9)},
 				{"_id": int32(8), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("an error should be thrown for CSV import on test data with "+
 			"duplicate _id if --stopOnError is set", func() {
@@ -934,7 +935,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("an error should be thrown for JSON import on test data that "+
 			"is a JSON array without passing --jsonArray", func() {
@@ -1240,10 +1241,10 @@ func TestImportDocuments(t *testing.T) {
 
 func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr error) func() {
 	return func() {
-		err := ioutil.WriteFile("/tmp/data.csv", []byte(data), 0644)
+		err := ioutil.WriteFile(util.ToUniversalPath("./temp_test_data.csv"), []byte(data), 0644)
 		So(err, ShouldBeNil)
 		defer func() {
-			err = os.Remove("/tmp/data.csv")
+			err = os.Remove(util.ToUniversalPath("./temp_test_data.csv"))
 			So(err, ShouldBeNil)
 		}()
 
@@ -1251,7 +1252,7 @@ func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr
 		So(err, ShouldBeNil)
 
 		imp.InputOptions.Type = CSV
-		imp.InputOptions.File = "/tmp/data.csv"
+		imp.InputOptions.File = "./temp_test_data.csv"
 		imp.InputOptions.HeaderLine = true
 		imp.InputOptions.UseArrayIndexFields = true
 		imp.IngestOptions.Mode = modeInsert
@@ -1265,7 +1266,7 @@ func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr
 			So(numImported, ShouldEqual, len(expectedDocuments))
 			So(numFailed, ShouldEqual, 0)
 
-			So(checkOnlyHasDocuments(*imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		}
 	}
 }

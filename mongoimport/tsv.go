@@ -85,12 +85,11 @@ func (r *TSVInputReader) ReadAndValidateHeader() (err error) {
 	if err != nil {
 		return err
 	}
+	var headerFields []string
 	for _, field := range strings.Split(header, tokenSeparator) {
-		r.colSpecs = append(r.colSpecs, ColumnSpec{
-			Name:   strings.TrimRight(field, "\r\n"),
-			Parser: new(FieldAutoParser),
-		})
+		headerFields = append(headerFields, strings.TrimRight(field, "\r\n"))
 	}
+	r.colSpecs = ParseAutoHeaders(headerFields)
 	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
