@@ -432,11 +432,6 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 
 		db := session.Database("admin")
 
-		defer func() {
-			db.Collection("system.users").Drop(nil)
-			db.Collection("system.roles").Drop(nil)
-		}()
-
 		Convey("Restoring users and roles should drop tempusers and temproles", func() {
 			restore.TargetDirectory = "testdata/usersdump"
 			result := restore.Restore()
