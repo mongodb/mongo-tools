@@ -39,9 +39,9 @@ const (
 type JSONFormat string
 
 const (
-  // Canonical indicates canonical json format
+	// Canonical indicates canonical json format
 	Canonical JSONFormat = "canonical"
-  // Relaxed indicates relaxed json format
+	// Relaxed indicates relaxed json format
 	Relaxed JSONFormat = "relaxed"
 )
 
@@ -324,11 +324,16 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	if err != nil {
 		return nil, err
 	}
-	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	db := session.Database(exp.ToolOptions.Namespace.DB)
+	// shouldTableScan is true if the user asks us to force a table scan or if the collection is
+	// stored in wired tiger. In wired tiger, index scans are slower than collection scans, so we
+	// avoid them.
+	shouldTableScan := exp.InputOpts.ForceTableScan || isWiredTiger(db, exp.ToolOptions.Namespace.Collection)
+	coll := db.Collection(exp.ToolOptions.Namespace.Collection)
 
 	// don't snapshot if we've been asked not to,
 	// or if we cannot because  we are querying, sorting, or if the collection is a view
-	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" &&
+	if !shouldTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" &&
 		!exp.collInfo.IsView() && !exp.collInfo.IsSystemCollection() {
 
 		// Don't hint autoIndexId:false collections

@@ -511,15 +511,20 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	if err != nil {
 		return err
 	}
-	findQuery := &db.DeferredQuery{Coll: session.Database(intent.DB).Collection(intent.C)}
+	mongoDB := session.Database(intent.DB)
+	coll := mongoDB.Collection(intent.C)
+	findQuery := &db.DeferredQuery{Coll: coll}
 	switch {
 	case len(dump.query) > 0:
 		findQuery.Filter = dump.query
-	case dump.OutputOptions.ViewsAsCollections || dump.InputOptions.TableScan || intent.IsSpecialCollection() || intent.IsOplog():
+	case dump.OutputOptions.ViewsAsCollections || dump.InputOptions.TableScan || intent.IsSpecialCollection() ||
+		intent.IsOplog() || isWiredTiger(mongoDB, intent.C):
 		// ---forceTablesScan runs the query without snapshot enabled
 		// The system.profile collection has no index on _id so can't be hinted.
 		// Views have an implied aggregation which does not support snapshot.
 		// These are all a no-op.
+		// Lastly, wired tiger performs collection scans more efficiently than index scans, so skip
+		// the hint if the collection is wired tiger.
 	default:
 		// Don't hint autoIndexId:false collections
 		autoIndexId, found := intent.Options["autoIndexId"]

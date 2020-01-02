@@ -7,8 +7,12 @@
 package mongodump
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var Usage = `<options>
@@ -65,4 +69,29 @@ type OutputOptions struct {
 // Name returns a human-readable group name for output options.
 func (*OutputOptions) Name() string {
 	return "output"
+}
+
+// isWiredTiger returns whether the storage engine is WiredTiger. Returns false
+// if the storage engine type cannot be determined for some reason.
+func isWiredTiger(database *mongo.Database, collectionName string) bool {
+	const wiredTiger = "wiredTiger"
+
+	if database == nil {
+		return false
+	}
+
+	var collStats map[string]interface{}
+
+	singleRes := database.RunCommand(context.Background(), bson.M{"collStats": collectionName})
+
+	if err := singleRes.Err(); err == nil {
+		if err = singleRes.Decode(&collStats); err != nil {
+			return false
+		}
+
+		_, ok := collStats[wiredTiger]
+		return ok
+	}
+
+	return false
 }
