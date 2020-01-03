@@ -324,12 +324,12 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	if err != nil {
 		return nil, err
 	}
-	db := session.Database(exp.ToolOptions.Namespace.DB)
+	intendedDB := session.Database(exp.ToolOptions.Namespace.DB)
 	// shouldTableScan is true if the user asks us to force a table scan or if the collection is
 	// stored in wired tiger. In wired tiger, index scans are slower than collection scans, so we
 	// avoid them.
-	shouldTableScan := exp.InputOpts.ForceTableScan || isWiredTiger(db, exp.ToolOptions.Namespace.Collection)
-	coll := db.Collection(exp.ToolOptions.Namespace.Collection)
+	shouldTableScan := exp.InputOpts.ForceTableScan || db.IsWiredTiger(intendedDB, exp.ToolOptions.Namespace.Collection)
+	coll := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
 
 	// don't snapshot if we've been asked not to,
 	// or if we cannot because  we are querying, sorting, or if the collection is a view

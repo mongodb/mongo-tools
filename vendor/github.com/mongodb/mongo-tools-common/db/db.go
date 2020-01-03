@@ -24,6 +24,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -409,6 +410,31 @@ func CanIgnoreError(err error) bool {
 		return true
 	case mongo.CommandError:
 		_, ok := ignorableWriteErrorCodes[int(mongoErr.Code)]
+		return ok
+	}
+
+	return false
+}
+
+// IsWiredTiger returns whether the storage engine is WiredTiger. Also returns false
+// if the storage engine type cannot be determined for some reason.
+func IsWiredTiger(database *mongo.Database, collectionName string) bool {
+	const wiredTiger = "wiredTiger"
+
+	if database == nil {
+		return false
+	}
+
+	var collStats map[string]interface{}
+
+	singleRes := database.RunCommand(context.Background(), bson.M{"collStats": collectionName})
+
+	if err := singleRes.Err(); err == nil {
+		if err = singleRes.Decode(&collStats); err != nil {
+			return false
+		}
+
+		_, ok := collStats[wiredTiger]
 		return ok
 	}
 

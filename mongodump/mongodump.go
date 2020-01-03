@@ -511,14 +511,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	if err != nil {
 		return err
 	}
-	mongoDB := session.Database(intent.DB)
-	coll := mongoDB.Collection(intent.C)
+	intendedDB := session.Database(intent.DB)
+	coll := intendedDB.Collection(intent.C)
 	findQuery := &db.DeferredQuery{Coll: coll}
 	switch {
 	case len(dump.query) > 0:
 		findQuery.Filter = dump.query
 	case dump.OutputOptions.ViewsAsCollections || dump.InputOptions.TableScan || intent.IsSpecialCollection() ||
-		intent.IsOplog() || isWiredTiger(mongoDB, intent.C):
+		intent.IsOplog() || db.IsWiredTiger(intendedDB, intent.C):
 		// ---forceTablesScan runs the query without snapshot enabled
 		// The system.profile collection has no index on _id so can't be hinted.
 		// Views have an implied aggregation which does not support snapshot.

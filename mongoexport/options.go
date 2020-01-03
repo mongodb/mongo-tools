@@ -7,15 +7,12 @@
 package mongoexport
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var Usage = `<options>
@@ -146,29 +143,4 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		inputOpts,
 		args,
 	}, nil
-}
-
-// isWiredTiger returns whether the storage engine is WiredTiger. Returns false
-// if the storage engine type cannot be determined for some reason.
-func isWiredTiger(database *mongo.Database, collectionName string) bool {
-	const wiredTiger = "wiredTiger"
-
-	if database == nil {
-		return false
-	}
-
-	var collStats map[string]interface{}
-
-	singleRes := database.RunCommand(context.Background(), bson.M{"collStats": collectionName})
-
-	if err := singleRes.Err(); err == nil {
-		if err = singleRes.Decode(&collStats); err != nil {
-			return false
-		}
-
-		_, ok := collStats[wiredTiger]
-		return ok
-	}
-
-	return false
 }
