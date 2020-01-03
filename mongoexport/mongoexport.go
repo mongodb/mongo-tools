@@ -343,7 +343,6 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		}
 	}
 
-	fmt.Printf("%#v\n", findOpts)
 	if exp.InputOpts != nil {
 		findOpts.SetSkip(exp.InputOpts.Skip)
 	}
