@@ -19,6 +19,9 @@
   var testDB = toolTest.db.getSiblingDB('test');
   var testColl = testDB.data;
 
+  // whether or not this is wiredTiger, this will effect some results
+  var isWiredTiger = testDB.serverStatus().storageEngine.name == "wiredTiger";
+
   // insert some data
   var data = [];
   for (var i = 0; i < 50; i++) {
@@ -47,11 +50,20 @@
   var queries = profilingColl.find({op: 'query', ns: 'test.data'}).toArray();
 
   // there should only be one query so far, and it should have snapshot set (or equivalent).
+  // if we are using wiredTiger, the hint should not be set.
   assert.eq(1, queries.length);
-  if (queries[0].command === undefined) {
-    assert.eq(true, queries[0].query.$snapshot || queries[0].query.snapshot || queries[0].query.hint._id);
+  if (!isWiredTiger) {
+    if (queries[0].command === undefined) {
+      assert.eq(true, queries[0].query.$snapshot || queries[0].query.snapshot || queries[0].query.hint._id);
+    } else {
+      assert.eq(true, queries[0].command.snapshot || queries[0].command.hint._id === 1);
+    }
   } else {
-    assert.eq(true, queries[0].command.snapshot || queries[0].command.hint._id === 1);
+    if (queries[1].command === undefined) {
+      assert(!queries[1].query['$snapshot'] && !queries[1].query.hint);
+    } else {
+      assert.eq(true, !queries[1].command.snapshot && !queries[1].command.hint);
+    }
   }
 
   // remove the export file
@@ -71,6 +83,7 @@
 
   // there should be two queries, and the second one should not have snapshot set (or equivalent).
   assert.eq(2, queries.length);
+  // the results here should be the same regardless of storage engine.
   if (queries[1].command === undefined) {
     assert(!queries[1].query['$snapshot'] && !queries[1].query.hint);
   } else {
@@ -113,6 +126,7 @@
 
   // there should be 3 queries and the last one should not have snapshot set (or equivalent).
   assert.eq(3, queries.length);
+  // the results should be the same regardless of storage engine.
   if (queries[2].command === undefined) {
     assert(!queries[2].query['$snapshot'] && !queries[1].query.hint);
   } else {
