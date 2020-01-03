@@ -1,0 +1,1 @@
+{"options":{},"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_","ns":"admin.system.roles"},{"v":{"$numberInt":"2"},"unique":true,"key":{"role":{"$numberInt":"1"},"db":{"$numberInt":"1"}},"name":"role_1_db_1","ns":"admin.system.roles"}],"uuid":"868beed2223341ca97fb379227bb283a"}
