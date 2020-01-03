@@ -398,17 +398,17 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		}
 
 		// make sure we always drop the temporary collection
-		defer func(arg loopArg) {
+		defer func(cleanupArg loopArg) {
 			session, e := restore.SessionProvider.GetSession()
 			if e != nil {
 				// logging errors here because this has no way of returning that doesn't mask other errors
-				log.Logvf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", arg.tempCollectionName, e)
+				log.Logvf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
 				return
 			}
-			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", arg.tempCollectionName)
-			e = session.Database("admin").Collection(arg.tempCollectionName).Drop(nil)
+			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", cleanupArg.tempCollectionName)
+			e = session.Database("admin").Collection(cleanupArg.tempCollectionName).Drop(nil)
 			if e != nil {
-				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", arg.tempCollectionName, e)
+				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
 			}
 		}(arg)
 		userTargetDB = arg.intent.DB
