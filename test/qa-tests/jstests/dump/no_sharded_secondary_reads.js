@@ -12,6 +12,9 @@
   var db = conn.getDB("test");
   var replDB = replTest.getPrimary().getDB("test");
 
+  // whether or not this is wiredTiger, this will effect some results
+  var isWiredTiger = replDB.serverStatus().storageEngine.name == "wiredTiger";
+
   db.a.insert({a: 1});
   db.a.insert({a: 2});
   db.a.insert({a: 3});
@@ -51,23 +54,28 @@
   runMongoProgram("mongodump", "--host", st.s.host, "-vvvv");
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
   printjson(replDB.system.profile.find(profQuery).toArray());
-  assert.eq(replDB.system.profile.find({
-    ns: "test.a",
-    op: "query",
-    $or: [
-      // 4.0
-      {"command.hint._id": 1},
+  if (!isWiredTiger) {
+    assert.eq(replDB.system.profile.find({
+      ns: "test.a",
+      op: "query",
+      $or: [
+        // 4.0
+        {"command.hint._id": 1},
 
-      // 3.6 schema
-      {"command.$snapshot": true},
-      {"command.snapshot": true},
+        // 3.6 schema
+        {"command.$snapshot": true},
+        {"command.snapshot": true},
 
-      // 3.4 and previous schema
-      {"query.$snapshot": true},
-      {"query.snapshot": true},
-      {"query.hint._id": 1},
-    ]
-  }).count(), 1);
+        // 3.4 and previous schema
+        {"query.$snapshot": true},
+        {"query.snapshot": true},
+        {"query.hint._id": 1},
+      ]
+    }).count(), 1);
+  } else {
+    // in a wire tiger stored database, we should not have snapshot or query hint set.
+    assert.eq(replDB.system.profile.find(profQuery).count(), 1);
+  }
   // make sure the secondaries saw 0 queries
   for (i = 0; i < secondaries.length; i++) {
     print("checking secondary " + i);
