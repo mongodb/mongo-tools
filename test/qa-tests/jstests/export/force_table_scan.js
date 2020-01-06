@@ -59,9 +59,9 @@
       assert.eq(true, queries[0].command.snapshot || queries[0].command.hint._id === 1);
     }
   } else if (queries[0].command === undefined) {
-      assert(!queries[0].query['$snapshot'] && !queries[0].query.hint);
+    assert(!queries[0].query['$snapshot'] && !queries[0].query.hint);
   } else {
-      assert.eq(true, !queries[0].command.snapshot && !queries[0].command.hint);
+    assert.eq(true, !queries[0].command.snapshot && !queries[0].command.hint);
   }
 
   // remove the export file
