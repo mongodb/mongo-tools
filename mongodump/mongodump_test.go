@@ -898,7 +898,6 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 
 	createCmd := bson.D{
 		{"create", collName},
-		{"autoIndexId", false},
 	}
 	var r2 bson.M
 	err = sessionProvider.Run(createCmd, &r2, dbName)
