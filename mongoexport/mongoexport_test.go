@@ -165,8 +165,9 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		t.Fatalf("Failed to get session: %v", err)
 	}
 
-	collName := "tools-1952"
+	collName := "tools-1952-export"
 	dbName := "test"
+	ns := dbName + "." + collName
 
 	dbStruct := session.Database(dbName)
 
@@ -215,7 +216,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 			// snapshot, depending on the version.
 			c, err := profileCollection.Find(context.Background(),
 				bson.D{
-					{"ns", "test.tools-1952"},
+					{"ns", ns},
 					{"op", "query"},
 					{"$or", []interface{}{
 						// 4.0+
@@ -232,11 +233,24 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 			)
 			So(err, ShouldBeNil)
 			// There should be exactly one query that matches.
-			i := 0
-			for c.Next(context.Background()) {
-				i++
-			}
-			So(i, ShouldEqual, 1)
+			So(testutil.CountCursorResults(c), ShouldEqual, 1)
+		} else {
+			// If we are using wired tiger, we should be hinting $natural.
+			c, err := profileCollection.Find(context.Background(),
+				bson.D{
+					{"ns", ns},
+					{"op", "query"},
+					{"$or", []interface{}{
+						// 3.6+
+						bson.D{{"command.hint.$natural", 1}},
+						// 3.4 and previous
+						bson.D{{"query.hint.$natural", 1}},
+					}},
+				},
+			)
+			So(err, ShouldBeNil)
+			// There should be exactly one query that matches.
+			So(testutil.CountCursorResults(c), ShouldEqual, 1)
 		}
 	})
 }

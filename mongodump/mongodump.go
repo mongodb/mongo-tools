@@ -57,6 +57,7 @@ type MongoDump struct {
 	oplogStart      primitive.Timestamp
 	oplogEnd        primitive.Timestamp
 	isMongos        bool
+	isWiredTiger    bool
 	authVersion     int
 	archive         *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
@@ -157,6 +158,8 @@ func (dump *MongoDump) Init() error {
 	}
 
 	dump.manager = intents.NewIntentManager()
+
+	dump.isWiredTiger = db.IsWiredTiger(dump.SessionProvider.DB(dump.ToolOptions.Namespace.DB), dump.ToolOptions.Namespace.Collection)
 	return nil
 }
 
@@ -517,8 +520,9 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	switch {
 	case len(dump.query) > 0:
 		findQuery.Filter = dump.query
-	case dump.OutputOptions.ViewsAsCollections || dump.InputOptions.TableScan || intent.IsSpecialCollection() ||
-		intent.IsOplog() || db.IsWiredTiger(intendedDB, intent.C):
+	case !dump.OutputOptions.ViewsAsCollections && (dump.isWiredTiger || dump.InputOptions.TableScan):
+		findQuery.Hint = bson.D{{"$natural", 1}}
+	case dump.OutputOptions.ViewsAsCollections || intent.IsSpecialCollection() || intent.IsOplog():
 		// ---forceTablesScan runs the query without snapshot enabled
 		// The system.profile collection has no index on _id so can't be hinted.
 		// Views have an implied aggregation which does not support snapshot.

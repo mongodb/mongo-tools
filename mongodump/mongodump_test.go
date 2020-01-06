@@ -887,8 +887,9 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		t.Fatalf("Failed to get session: %v", err)
 	}
 
-	collName := "tools-1952"
+	collName := "tools-1952-dump"
 	dbName := "test"
+	ns := dbName + "." + collName
 
 	var r1 bson.M
 
@@ -902,7 +903,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	var r2 bson.M
 	err = sessionProvider.Run(createCmd, &r2, dbName)
 	if err != nil {
-		t.Fatalf("Error creating capped, no-autoIndexId collection: %v", err)
+		t.Fatalf("Error creating collection: %v", err)
 	}
 
 	// Check whether we are using WiredTiger.
@@ -935,7 +936,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 			// snapshot, depending on the version.
 			c, err := profileCollection.Find(context.Background(),
 				bson.D{
-					{"ns", "test.tools-1952"},
+					{"ns", ns},
 					{"op", "query"},
 					{"$or", []interface{}{
 						// 4.0+
@@ -957,6 +958,23 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 				i++
 			}
 			So(i, ShouldEqual, 1)
+		} else {
+			// If we are using wired tiger, we should be hinting $natural.
+			c, err := profileCollection.Find(context.Background(),
+                 bson.D{
+                     {"ns", ns},
+                     {"op", "query"},
+                     {"$or", []interface{}{
+                         // 3.6+
+                         bson.D{{"command.hint.$natural", 1}},
+                         // 3.4 and previous
+                         bson.D{{"query.hint.$natural", 1}},
+                     }},
+                 },
+             )
+             So(err, ShouldBeNil)
+             // There should be exactly one query that matches.
+             So(testutil.CountCursorResults(c), ShouldEqual, 1)
 		}
 	})
 }

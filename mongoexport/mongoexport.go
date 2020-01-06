@@ -341,6 +341,8 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		if !found || autoIndexId == true {
 			findOpts.SetHint(bson.D{{"_id", 1}})
 		}
+	} else if len(query) == 0 {
+		findOpts.SetHint(bson.D{{"$natural", 1}})
 	}
 
 	if exp.InputOpts != nil {
