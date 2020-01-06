@@ -920,7 +920,6 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 
 	profileCollection := dbStruct.Collection("system.profile")
 
-
 	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
 		md := simpleMongoDumpInstance()
 		md.ToolOptions.Namespace.Collection = collName
@@ -931,34 +930,34 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		err = md.Dump()
 		So(err, ShouldBeNil)
 
-	    if !isWiredTiger {
-            // If we are not using wired tiger, we should be hinting an index or using a
-            // snapshot, depending on the version.
-            c, err := profileCollection.Find(context.Background(),
-            bson.D{
-                {"ns", "test.tools-1952"},
-                {"op", "query"},
-                {"$or", []interface{}{
-                    // 4.0+
-                    bson.D{{"command.hint._id", 1}},
-                    // 3.6
-                    bson.D{{"command.$nsapshot", true}},
-                    bson.D{{"command.snapshot", true}},
-                    // 3.4 and previous
-                    bson.D{{"query.$snapshot", true}},
-                    bson.D{{"query.snapshot", true}},
-                    bson.D{{"query.hint._id", 1}},
-                  }},
-              },
-          )
-          So(err, ShouldBeNil)
-          // There should be exactly one query that matches.
-		  i := 0
-          for ; c.Next(context.Background()) ; {
-              i++
-          }
-          So(i, ShouldEqual, 1)
-      }
+		if !isWiredTiger {
+			// If we are not using wired tiger, we should be hinting an index or using a
+			// snapshot, depending on the version.
+			c, err := profileCollection.Find(context.Background(),
+				bson.D{
+					{"ns", "test.tools-1952"},
+					{"op", "query"},
+					{"$or", []interface{}{
+						// 4.0+
+						bson.D{{"command.hint._id", 1}},
+						// 3.6
+						bson.D{{"command.$nsapshot", true}},
+						bson.D{{"command.snapshot", true}},
+						// 3.4 and previous
+						bson.D{{"query.$snapshot", true}},
+						bson.D{{"query.snapshot", true}},
+						bson.D{{"query.hint._id", 1}},
+					}},
+				},
+			)
+			So(err, ShouldBeNil)
+			// There should be exactly one query that matches.
+			i := 0
+			for c.Next(context.Background()) {
+				i++
+			}
+			So(i, ShouldEqual, 1)
+		}
 	})
 }
 
