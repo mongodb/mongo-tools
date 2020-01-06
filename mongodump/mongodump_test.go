@@ -873,7 +873,7 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 }
 
 // Test dumping a collection while respecting no index scan for wired tiger.
-func TestMongoDumpTOOLS2174(t *testing.T) {
+func TestMongoDumpTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
