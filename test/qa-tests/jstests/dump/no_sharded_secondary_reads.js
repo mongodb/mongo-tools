@@ -13,7 +13,7 @@
   var replDB = replTest.getPrimary().getDB("test");
 
   // whether or not this is wiredTiger, this will effect some results
-  var isWiredTiger = replDB.serverStatus().storageEngine.name == "wiredTiger";
+  var isWiredTiger = replDB.serverStatus().storageEngine.name === "wiredTiger";
 
   db.a.insert({a: 1});
   db.a.insert({a: 2});

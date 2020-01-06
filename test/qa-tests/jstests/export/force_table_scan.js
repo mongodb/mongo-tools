@@ -20,7 +20,7 @@
   var testColl = testDB.data;
 
   // whether or not this is wiredTiger, this will effect some results
-  var isWiredTiger = testDB.serverStatus().storageEngine.name == "wiredTiger";
+  var isWiredTiger = testDB.serverStatus().storageEngine.name === "wiredTiger";
 
   // insert some data
   var data = [];
