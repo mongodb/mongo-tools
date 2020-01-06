@@ -8,6 +8,7 @@ package mongoexport
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -145,5 +146,74 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 		out := &bytes.Buffer{}
 		_, err = me.Export(out)
 		So(err, ShouldBeNil)
+	})
+}
+
+// Test exporting a collection, _id should only be hinted iff
+// this is not a wired tiger collection.
+func TestMongoExportTOOLS1952(t *testing.T) {
+	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+
+	collName := "tools-1952"
+	dbName := "test"
+
+	dbStruct := session.Database(dbName)
+
+	var r1 bson.M
+	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+
+	createCmd := bson.D{
+		{"create", collName},
+	}
+	var r2 bson.M
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Error creating collection: %v", err)
+	}
+
+	// Check whether we are using WiredTiger.
+	isWiredTiger := db.IsWiredTiger(dbStruct, collName)
+
+	// Turn on profiling.
+	profileCmd := bson.D{
+		{"profile", 2},
+	}
+	err = sessionProvider.Run(profileCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Failed to turn on profiling: %v", err)
+	}
+
+	profileCollection := dbStruct.Collection("system.profile")
+
+
+	Convey("testing exporting a collection", t, func() {
+		opts := simpleMongoExportOpts()
+		opts.Collection = collName
+		opts.DB = dbName
+
+		me, err := New(opts)
+		So(err, ShouldBeNil)
+		defer me.Close()
+		out := &bytes.Buffer{}
+		_, err = me.Export(out)
+		So(err, ShouldBeNil)
+
+		if isWiredTiger {
+			c, _ := profileCollection.Find(context.Background(), nil)
+			t.Fatalf("wired tiger %v", c)
+		} else {
+			t.Fatalf("not wired tiger")
+		}
 	})
 }

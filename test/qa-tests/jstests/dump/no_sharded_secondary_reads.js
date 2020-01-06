@@ -54,7 +54,7 @@
   runMongoProgram("mongodump", "--host", st.s.host, "-vvvv");
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
   printjson(replDB.system.profile.find(profQuery).toArray());
-  // in a wire tiger stored database, we should not have snapshot or query hint set.
+  // in a wired tiger stored database, we should not have snapshot or query hint set.
   // so this assertion is redundant with line 55 when isWiredTiger is true.
   if (!isWiredTiger) {
     assert.eq(replDB.system.profile.find({
