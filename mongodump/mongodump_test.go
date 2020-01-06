@@ -872,6 +872,97 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 	})
 }
 
+// Test dumping a collection while respecting no index scan for wired tiger.
+func TestMongoDumpTOOLS2174(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+
+	collName := "tools-1952"
+	dbName := "test"
+
+	var r1 bson.M
+
+	dbStruct := session.Database(dbName)
+
+	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+
+	createCmd := bson.D{
+		{"create", collName},
+		{"autoIndexId", false},
+	}
+	var r2 bson.M
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Error creating capped, no-autoIndexId collection: %v", err)
+	}
+
+	// Check whether we are using WiredTiger.
+	isWiredTiger := db.IsWiredTiger(dbStruct, collName)
+
+	// Turn on profiling.
+	profileCmd := bson.D{
+		{"profile", 2},
+	}
+
+	err = sessionProvider.Run(profileCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Failed to turn on profiling: %v", err)
+	}
+
+	profileCollection := dbStruct.Collection("system.profile")
+
+
+	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
+		md := simpleMongoDumpInstance()
+		md.ToolOptions.Namespace.Collection = collName
+		md.ToolOptions.Namespace.DB = dbName
+		md.OutputOptions.Out = "dump"
+		err = md.Init()
+		So(err, ShouldBeNil)
+		err = md.Dump()
+		So(err, ShouldBeNil)
+
+	    if !isWiredTiger {
+            // If we are not using wired tiger, we should be hinting an index or using a
+            // snapshot, depending on the version.
+            c, err := profileCollection.Find(context.Background(),
+            bson.D{
+                {"ns", "test.tools-1952"},
+                {"op", "query"},
+                {"$or", []interface{}{
+                    // 4.0+
+                    bson.D{{"command.hint._id", 1}},
+                    // 3.6
+                    bson.D{{"command.$nsapshot", true}},
+                    bson.D{{"command.snapshot", true}},
+                    // 3.4 and previous
+                    bson.D{{"query.$snapshot", true}},
+                    bson.D{{"query.snapshot", true}},
+                    bson.D{{"query.hint._id", 1}},
+                  }},
+              },
+          )
+          So(err, ShouldBeNil)
+          // There should be exactly one query that matches.
+		  i := 0
+          for ; c.Next(context.Background()) ; {
+              i++
+          }
+          So(i, ShouldEqual, 1)
+      }
+	})
+}
+
 func TestMongoDumpOrderedQuery(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)

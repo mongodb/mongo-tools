@@ -176,6 +176,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	createCmd := bson.D{
 		{"create", collName},
 	}
+
 	var r2 bson.M
 	err = sessionProvider.Run(createCmd, &r2, dbName)
 	if err != nil {
@@ -189,6 +190,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	profileCmd := bson.D{
 		{"profile", 2},
 	}
+
 	err = sessionProvider.Run(profileCmd, &r2, dbName)
 	if err != nil {
 		t.Fatalf("Failed to turn on profiling: %v", err)
@@ -228,8 +230,9 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 					bson.D{{"query.hint._id", 1}},
 				}},
 			},
-			)
+	    )
 		So(err, ShouldBeNil)
+		// There should be exactly one query that matches.
 		i := 0
 		for ; c.Next(context.Background()) ; {
 			i++
