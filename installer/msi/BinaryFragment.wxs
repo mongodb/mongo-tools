@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2020-Present MongoDB Inc. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="BIN">
+	    <?if $(var.Platform)=x64 ?>
+	       <?define win64Flag = "yes" ?>
+	    <?else ?>
+	       <?define win64Flag = "no" ?>
+	    <?endif ?>
+       <Component Guid="{02DA3AB6-9773-4B13-9D02-7874FE99050D}" Id="RegKeys" Win64="$(var.win64Flag)">
+           <RegistryKey ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes" Id="MongoDBKey" Key="SOFTWARE\MongoDB\[ProductName]" Root="HKLM" />
+           <RegistryValue Id="Version" Key="SOFTWARE\MongoDB\[ProductName]"  Name="Version" Root="HKLM" Type="string" Value="[ProductVersion]" />
+       </Component>
+       <Component Guid="{C01C3018-0321-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="bsondump"  Name="bsondump.exe" Source="bsondump.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0322-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongodump"  Name="mongodump.exe" Source="mongodump.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0323-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongoexport"  Name="mongoexport.exe" Source="mongoexport.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0324-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongofiles"  Name="mongofiles.exe" Source="mongofiles.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0325-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongoimport"  Name="mongoimport.exe" Source="mongoimport.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0326-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongoreplay"  Name="mongoreplay.exe" Source="mongoreplay.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0327-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongorestore"  Name="mongorestore.exe" Source="mongorestore.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0328-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongostat"  Name="mongostat.exe" Source="mongostat.exe" />
+       </Component>
+       <Component Guid="{C01C3018-0329-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="mongotop"  Name="mongotop.exe" Source="mongotop.exe" />
+       </Component>
+      </DirectoryRef>
+      <ComponentGroup Id="base">
+          <ComponentRef Id="RegKeys" />
+          <ComponentRef Id="bsondump" />
+          <ComponentRef Id="mongodump" />
+          <ComponentRef Id="mongoexport" />
+          <ComponentRef Id="mongofiles" />
+          <ComponentRef Id="mongoimport" />
+          <ComponentRef Id="mongoreplay" />
+          <ComponentRef Id="mongorestore" />
+          <ComponentRef Id="mongostat" />
+          <ComponentRef Id="mongotop" />
+       </ComponentGroup>
+  </Fragment>
+</Wix>

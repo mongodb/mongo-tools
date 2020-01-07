@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2018-Present MongoDB Inc. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <UI Id="MongoWixUI">
+            <UIRef Id="WixUI_FeatureTree" />
+        </UI>
+    </Fragment>
+</Wix>
