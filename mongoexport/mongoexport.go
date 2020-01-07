@@ -325,15 +325,18 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		return nil, err
 	}
 	intendedDB := session.Database(exp.ToolOptions.Namespace.DB)
-	// shouldTableScan is true if the user asks us to force a table scan or if the collection is
-	// stored in wired tiger. In wired tiger, index scans are slower than collection scans, so we
-	// avoid them.
-	shouldTableScan := exp.InputOpts.ForceTableScan || db.IsWiredTiger(intendedDB, exp.ToolOptions.Namespace.Collection)
+	// shouldHintId is true iff the storage engine is MMAPV1 and the user did not specify
+	// --forceTableScan.
+	shouldHintId := db.IsMMAPV1(intendedDB, exp.ToolOptions.Namespace.Collection) &&
+		(exp.InputOpts == nil || !exp.InputOpts.ForceTableScan)
+	// noSorting is true if the user did not ask for sorting.
+	noSorting := exp.InputOpts == nil || exp.InputOpts.Sort == ""
 	coll := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
 
-	// don't snapshot if we've been asked not to,
-	// or if we cannot because  we are querying, sorting, or if the collection is a view
-	if !shouldTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" &&
+	// we want to hit _id if shouldHintId is true, and there is no query, and
+	// there is no sorting, as hinting is not needed if there is a query or sorting.
+	// we also do not want to hint for system collections or views.
+	if shouldHintId && len(query) == 0 && noSorting &&
 		!exp.collInfo.IsView() && !exp.collInfo.IsSystemCollection() {
 
 		// Don't hint autoIndexId:false collections
@@ -341,8 +344,6 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		if !found || autoIndexId == true {
 			findOpts.SetHint(bson.D{{"_id", 1}})
 		}
-	} else if len(query) == 0 {
-		findOpts.SetHint(bson.D{{"$natural", 1}})
 	}
 
 	if exp.InputOpts != nil {

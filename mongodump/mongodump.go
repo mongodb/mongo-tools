@@ -34,6 +34,14 @@ import (
 	"time"
 )
 
+type storageEngineType int
+
+const (
+	storageEngineUnknown = 0
+	storageEngineMMAPV1 = 1
+	storageEngineModern = 2
+)
+
 const defaultPermissions = 0755
 
 // MongoDump is a container for the user-specified options and
@@ -57,7 +65,7 @@ type MongoDump struct {
 	oplogStart      primitive.Timestamp
 	oplogEnd        primitive.Timestamp
 	isMongos        bool
-	isWiredTiger    bool
+	storageEngine   storageEngineType
 	authVersion     int
 	archive         *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
@@ -124,6 +132,11 @@ func (dump *MongoDump) ValidateOptions() error {
 // Init performs preliminary setup operations for MongoDump.
 func (dump *MongoDump) Init() error {
 	log.Logvf(log.DebugHigh, "initializing mongodump object")
+
+	// this would be default, but explicit setting protects us from any
+	// redefinition of the constants.
+	dump.storageEngine = storageEngineUnknown
+
 	err := dump.ValidateOptions()
 	if err != nil {
 		return fmt.Errorf("bad option: %v", err)
@@ -159,7 +172,6 @@ func (dump *MongoDump) Init() error {
 
 	dump.manager = intents.NewIntentManager()
 
-	dump.isWiredTiger = db.IsWiredTiger(dump.SessionProvider.DB(dump.ToolOptions.Namespace.DB), dump.ToolOptions.Namespace.Collection)
 	return nil
 }
 
@@ -516,21 +528,22 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	}
 	intendedDB := session.Database(intent.DB)
 	coll := intendedDB.Collection(intent.C)
+	if dump.storageEngine == storageEngineUnknown {
+		if db.IsMMAPV1(intendedDB, intent.C) {
+			dump.storageEngine = storageEngineMMAPV1
+		} else {
+			dump.storageEngine = storageEngineModern
+		}
+	}
+
 	findQuery := &db.DeferredQuery{Coll: coll}
 	switch {
 	case len(dump.query) > 0:
 		findQuery.Filter = dump.query
-	case !dump.OutputOptions.ViewsAsCollections && (dump.isWiredTiger || dump.InputOptions.TableScan):
-		findQuery.Hint = bson.D{{"$natural", 1}}
-	case dump.OutputOptions.ViewsAsCollections || intent.IsSpecialCollection() || intent.IsOplog():
-		// ---forceTablesScan runs the query without snapshot enabled
-		// The system.profile collection has no index on _id so can't be hinted.
-		// Views have an implied aggregation which does not support snapshot.
-		// These are all a no-op.
-		// Lastly, wired tiger performs collection scans more efficiently than index scans, so skip
-		// the hint if the collection is wired tiger.
-	default:
-		// Don't hint autoIndexId:false collections
+	// we only want to hint _id when the storage engine is MMAPV1 and this isn't a view, a
+	// special collection, the oplog, and the user is not asking to force table scans.
+	case dump.storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
+		!dump.OutputOptions.ViewsAsCollections && !intent.IsSpecialCollection() && !intent.IsOplog():
 		autoIndexId, found := intent.Options["autoIndexId"]
 		if !found || autoIndexId == true {
 			findQuery.Hint = bson.D{{"_id", 1}}

@@ -12,8 +12,8 @@
   var db = conn.getDB("test");
   var replDB = replTest.getPrimary().getDB("test");
 
-  // whether or not this is wiredTiger, this will effect some results
-  var isWiredTiger = replDB.serverStatus().storageEngine.name === "wiredTiger";
+  // whether or not this is mmapv1, this will effect some results
+  var isMMAPV1 = replDB.serverStatus().storageEngine.name === "mmapv1";
 
   db.a.insert({a: 1});
   db.a.insert({a: 2});
@@ -54,9 +54,8 @@
   runMongoProgram("mongodump", "--host", st.s.host, "-vvvv");
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
   printjson(replDB.system.profile.find(profQuery).toArray());
-  // in a wired tiger stored database, we should not have snapshot or query hint set.
-  // so this assertion is redundant with line 55 when isWiredTiger is true.
-  if (!isWiredTiger) {
+  // in a mmapv1 stored database, we should snapshot or have a query hint set.
+  if (isMMAPV1) {
     assert.eq(replDB.system.profile.find({
       ns: "test.a",
       op: "query",

@@ -152,7 +152,7 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 // Test exporting a collection, _id should only be hinted iff
 // this is not a wired tiger collection.
 func TestMongoExportTOOLS1952(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
@@ -184,8 +184,8 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		t.Fatalf("Error creating collection: %v", err)
 	}
 
-	// Check whether we are using WiredTiger.
-	isWiredTiger := db.IsWiredTiger(dbStruct, collName)
+	// Check whether we are using MMAPV1.
+	isMMAPV1 := db.IsMMAPV1(dbStruct, collName)
 
 	// Turn on profiling.
 	profileCmd := bson.D{
@@ -211,46 +211,34 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		_, err = me.Export(out)
 		So(err, ShouldBeNil)
 
-		if !isWiredTiger {
-			// If we are not using wired tiger, we should be hinting an index or using a
-			// snapshot, depending on the version.
-			c, err := profileCollection.Find(context.Background(),
-				bson.D{
-					{"ns", ns},
-					{"op", "query"},
-					{"$or", []interface{}{
-						// 4.0+
-						bson.D{{"command.hint._id", 1}},
-						// 3.6
-						bson.D{{"command.$nsapshot", true}},
-						bson.D{{"command.snapshot", true}},
-						// 3.4 and previous
-						bson.D{{"query.$snapshot", true}},
-						bson.D{{"query.snapshot", true}},
-						bson.D{{"query.hint._id", 1}},
-					}},
-				},
-			)
-			So(err, ShouldBeNil)
-			// There should be exactly one query that matches.
-			So(testutil.CountCursorResults(c), ShouldEqual, 1)
+		// If we are using mmapv1, we should be hinting an index or using a
+		// snapshot, depending on the version.
+		c, err := profileCollection.Find(context.Background(),
+			bson.D{
+				{"ns", ns},
+				{"op", "query"},
+				{"$or", []interface{}{
+					// 4.0+
+					bson.D{{"command.hint._id", 1}},
+					// 3.6
+					bson.D{{"command.$nsapshot", true}},
+					bson.D{{"command.snapshot", true}},
+					// 3.4 and previous
+					bson.D{{"query.$snapshot", true}},
+					bson.D{{"query.snapshot", true}},
+					bson.D{{"query.hint._id", 1}},
+				}},
+			},
+		)
+		So(err, ShouldBeNil)
+		count := testutil.CountCursorResults(c)
+		if isMMAPV1 {
+			// There should be exactly one query that matches in MMAPV1
+			So(count, ShouldEqual, 1)
 		} else {
-			// If we are using wired tiger, we should be hinting $natural.
-			c, err := profileCollection.Find(context.Background(),
-				bson.D{
-					{"ns", ns},
-					{"op", "query"},
-					{"$or", []interface{}{
-						// 3.6+
-						bson.D{{"command.hint.$natural", 1}},
-						// 3.4 and previous
-						bson.D{{"query.hint.$natural", 1}},
-					}},
-				},
-			)
-			So(err, ShouldBeNil)
-			// There should be exactly one query that matches.
-			So(testutil.CountCursorResults(c), ShouldEqual, 1)
+			// In modern storage engines, there should be no hints, so there
+			// should be 0 matches.
+			So(count, ShouldEqual, 0)
 		}
 	})
 }
