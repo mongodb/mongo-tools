@@ -333,7 +333,7 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	noSorting := exp.InputOpts == nil || exp.InputOpts.Sort == ""
 	coll := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
 
-	// we want to hit _id if shouldHintId is true, and there is no query, and
+	// we want to hint _id if shouldHintId is true, and there is no query, and
 	// there is no sorting, as hinting is not needed if there is a query or sorting.
 	// we also do not want to hint for system collections or views.
 	if shouldHintId && len(query) == 0 && noSorting &&

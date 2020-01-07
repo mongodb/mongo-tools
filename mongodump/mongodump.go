@@ -528,6 +528,11 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	}
 	intendedDB := session.Database(intent.DB)
 	coll := intendedDB.Collection(intent.C)
+	// The storage engine cannot change from namespace to namespace,
+	// so we set it the first time we reach here, using a namespace we
+	// know must exist. If the storage engine is not mmapv1, we assume it
+	// is some modern storage engine that does not need to use an index
+	// scan for correctness.
 	if dump.storageEngine == storageEngineUnknown {
 		if db.IsMMAPV1(intendedDB, intent.C) {
 			dump.storageEngine = storageEngineMMAPV1
