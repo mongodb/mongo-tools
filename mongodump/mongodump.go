@@ -38,8 +38,8 @@ type storageEngineType int
 
 const (
 	storageEngineUnknown = 0
-	storageEngineMMAPV1 = 1
-	storageEngineModern = 2
+	storageEngineMMAPV1  = 1
+	storageEngineModern  = 2
 )
 
 const defaultPermissions = 0755

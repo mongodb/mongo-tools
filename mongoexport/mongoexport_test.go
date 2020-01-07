@@ -152,7 +152,7 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 // Test exporting a collection, _id should only be hinted iff
 // this is not a wired tiger collection.
 func TestMongoExportTOOLS1952(t *testing.T) {
-	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
