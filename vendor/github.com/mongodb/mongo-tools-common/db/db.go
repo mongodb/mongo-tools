@@ -416,31 +416,6 @@ func CanIgnoreError(err error) bool {
 	return false
 }
 
-// IsWiredTiger returns whether the storage engine is WiredTiger. Also returns false
-// if the storage engine type cannot be determined for some reason.
-func IsWiredTiger(database *mongo.Database, collectionName string) bool {
-	const wiredTiger = "wiredTiger"
-
-	if database == nil {
-		return false
-	}
-
-	var collStats map[string]interface{}
-
-	singleRes := database.RunCommand(context.Background(), bson.M{"collStats": collectionName})
-
-	if err := singleRes.Err(); err == nil {
-		if err = singleRes.Decode(&collStats); err != nil {
-			return false
-		}
-
-		_, ok := collStats[wiredTiger]
-		return ok
-	}
-
-	return false
-}
-
 // IsMMAPV1 returns whether the storage engine is MMAPV1. Also returns false
 // if the storage engine type cannot be determined for some reason.
 func IsMMAPV1(database *mongo.Database, collectionName string) bool {
