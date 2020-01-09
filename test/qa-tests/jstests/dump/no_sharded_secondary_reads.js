@@ -55,7 +55,7 @@
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
   printjson(replDB.system.profile.find(profQuery).toArray());
 
-  let hintCount = replDB.system.profile.find({
+  var hintCount = replDB.system.profile.find({
     ns: "test.a",
     op: "query",
     $or: [
