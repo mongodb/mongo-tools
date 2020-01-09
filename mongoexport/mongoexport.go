@@ -325,10 +325,13 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		return nil, err
 	}
 	intendedDB := session.Database(exp.ToolOptions.Namespace.DB)
+	isMMAPV1, err := db.IsMMAPV1(intendedDB, exp.ToolOptions.Namespace.Collection)
+	if err != nil {
+		return nil, err
+	}
 	// shouldHintId is true iff the storage engine is MMAPV1 and the user did not specify
 	// --forceTableScan.
-	shouldHintId := db.IsMMAPV1(intendedDB, exp.ToolOptions.Namespace.Collection) &&
-		(exp.InputOpts == nil || !exp.InputOpts.ForceTableScan)
+	shouldHintId := isMMAPV1 &&	(exp.InputOpts == nil || !exp.InputOpts.ForceTableScan)
 	// noSorting is true if the user did not ask for sorting.
 	noSorting := exp.InputOpts == nil || exp.InputOpts.Sort == ""
 	coll := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)

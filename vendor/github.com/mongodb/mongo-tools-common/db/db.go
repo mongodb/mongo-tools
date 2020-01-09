@@ -418,27 +418,23 @@ func CanIgnoreError(err error) bool {
 
 // IsMMAPV1 returns whether the storage engine is MMAPV1. Also returns false
 // if the storage engine type cannot be determined for some reason.
-func IsMMAPV1(database *mongo.Database, collectionName string) bool {
+func IsMMAPV1(database *mongo.Database, collectionName string) (bool, error) {
 	// mmapv1 does not announce itself like other storage engines. Instead,
 	// we check for the key 'numExtents', which only occurs on MMAPV1.
 	const numExtents = "numExtents"
-
-	if database == nil {
-		return false
-	}
 
 	var collStats map[string]interface{}
 
 	singleRes := database.RunCommand(context.Background(), bson.M{"collStats": collectionName})
 
-	if err := singleRes.Err(); err == nil {
-		if err = singleRes.Decode(&collStats); err != nil {
-			return false
-		}
-
-		_, ok := collStats[numExtents]
-		return ok
+	if err := singleRes.Err(); err != nil {
+		return false, err
 	}
 
-	return false
+	if err := singleRes.Decode(&collStats); err != nil {
+		return false, err
+	}
+
+	_, ok := collStats[numExtents]
+	return ok, nil
 }
