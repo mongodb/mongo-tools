@@ -327,7 +327,8 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	intendedDB := session.Database(exp.ToolOptions.Namespace.DB)
 	isMMAPV1, err := db.IsMMAPV1(intendedDB, exp.ToolOptions.Namespace.Collection)
 	if err != nil {
-		return nil, err
+		log.Logvf(log.Always, 
+			"failed to determine storage engine, an mmapv1 storage engine could result in inconsistent export results, error was: %v", err)
 	}
 	// shouldHintId is true iff the storage engine is MMAPV1 and the user did not specify
 	// --forceTableScan.
