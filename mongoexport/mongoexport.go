@@ -327,8 +327,16 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	intendedDB := session.Database(exp.ToolOptions.Namespace.DB)
 	isMMAPV1, err := db.IsMMAPV1(intendedDB, exp.ToolOptions.Namespace.Collection)
 	if err != nil {
-		log.Logvf(log.Always, 
-			"failed to determine storage engine, an mmapv1 storage engine could result in inconsistent export results, error was: %v", err)
+		// if we failed to determine storage engine, there is a good change it is because this
+		// collection is a view. We only want to warn if this collection is not a view, since
+		// storage engine does not affect consistency for scans of views.
+		collection := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
+		collectionInfo, err := db.GetCollectionInfo(collection)
+		if err != nil || !collectionInfo.IsView() {
+			log.Logvf(log.Always,
+				"failed to determine storage engine, an mmapv1 storage engine could"+
+					" result in inconsistent export results, error was: %v", err)
+		}
 	}
 	// shouldHintId is true iff the storage engine is MMAPV1 and the user did not specify
 	// --forceTableScan.

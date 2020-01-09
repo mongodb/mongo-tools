@@ -533,14 +533,18 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// know must exist. If the storage engine is not mmapv1, we assume it
 	// is some modern storage engine that does not need to use an index
 	// scan for correctness.
-	if dump.storageEngine == storageEngineUnknown {
+	// If ViewsAsCollections is set, all the collections will be views, and collStats will fail,
+	// so we skip this. Perhaps more importantly, storage engine does not affect consistency when
+	// dumping views.
+	if dump.storageEngine == storageEngineUnknown && !dump.OutputOptions.ViewsAsCollections {
 		// storageEngineModern denotes any storage engine that is not MMAPV1. For such storage
 		// engines we assume that collection scans are consistent.
 		dump.storageEngine = storageEngineModern
 		isMMAPV1, err := db.IsMMAPV1(intendedDB, intent.C)
 		if err != nil {
 			log.Logvf(log.Always,
-				"failed to determine storage engine, an mmapv1 storage engine could result in inconsistent dump results, error was: %v", err)
+				"failed to determine storage engine, an mmapv1 storage engine could result in"+
+					" inconsistent dump results, error was: %v", err)
 		} else if isMMAPV1 {
 			dump.storageEngine = storageEngineMMAPV1
 		}
