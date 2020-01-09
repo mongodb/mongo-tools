@@ -185,7 +185,10 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	}
 
 	// Check whether we are using MMAPV1.
-	isMMAPV1 := db.IsMMAPV1(dbStruct, collName)
+	isMMAPV1, err := db.IsMMAPV1(dbStruct, collName)
+	if err != nil {
+		t.Fatalf("Failed to determine storage engine %v", err)
+	}
 
 	// Turn on profiling.
 	profileCmd := bson.D{
