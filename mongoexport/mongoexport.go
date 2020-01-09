@@ -331,7 +331,7 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	}
 	// shouldHintId is true iff the storage engine is MMAPV1 and the user did not specify
 	// --forceTableScan.
-	shouldHintId := isMMAPV1 &&	(exp.InputOpts == nil || !exp.InputOpts.ForceTableScan)
+	shouldHintId := isMMAPV1 && (exp.InputOpts == nil || !exp.InputOpts.ForceTableScan)
 	// noSorting is true if the user did not ask for sorting.
 	noSorting := exp.InputOpts == nil || exp.InputOpts.Sort == ""
 	coll := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)

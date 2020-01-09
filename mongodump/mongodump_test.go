@@ -935,21 +935,21 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		c, err := profileCollection.Find(context.Background(),
-		bson.D{
-			{"ns", ns},
-			{"op", "query"},
-			{"$or", []interface{}{
-				// 4.0+
-				bson.D{{"command.hint._id", 1}},
-				// 3.6
-				bson.D{{"command.$nsapshot", true}},
-				bson.D{{"command.snapshot", true}},
-				// 3.4 and previous
-				bson.D{{"query.$snapshot", true}},
-				bson.D{{"query.snapshot", true}},
-				bson.D{{"query.hint._id", 1}},
-			}},
-		},
+			bson.D{
+				{"ns", ns},
+				{"op", "query"},
+				{"$or", []interface{}{
+					// 4.0+
+					bson.D{{"command.hint._id", 1}},
+					// 3.6
+					bson.D{{"command.$nsapshot", true}},
+					bson.D{{"command.snapshot", true}},
+					// 3.4 and previous
+					bson.D{{"query.$snapshot", true}},
+					bson.D{{"query.snapshot", true}},
+					bson.D{{"query.hint._id", 1}},
+				}},
+			},
 		)
 		So(err, ShouldBeNil)
 		count := testutil.CountCursorResults(c)
