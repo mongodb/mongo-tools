@@ -88,6 +88,9 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 			if !bsonSource.Next(&indexDocument) {
 				break
 			}
+			if restore.OutputOptions.FixDottedHashedIndexes {
+				fixDottedHashedIndex(indexDocument)
+			}
 			namespace := indexDocument.Options["ns"].(string)
 			dbCollectionIndexes[dbname][stripDBFromNS(namespace)] =
 				append(dbCollectionIndexes[dbname][stripDBFromNS(namespace)], indexDocument)

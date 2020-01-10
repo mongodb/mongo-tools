@@ -487,3 +487,100 @@ func TestKnownCollections(t *testing.T) {
 		})
 	})
 }
+
+
+func TestFixHashedIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("Test MongoRestore with hashed indexes and --fixHashedIndexes", t, func() {
+		args := []string{
+			FixHashedIndexesOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		session, _ = restore.SessionProvider.GetSession()
+		db := session.Database("test")
+		defer func() {
+			db.Collection("hashedIndexes").Drop(nil)
+		}()
+
+		type indexRes struct {
+			Key bson.D
+		}
+
+		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
+			restore.TargetDirectory = "testdata/hashedIndexdump"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			var namespaceExistsInCache bool
+			if cols, ok := restore.knownCollections["test"]; ok {
+				for _, collName := range cols {
+					if collName == "hashedIndexes" {
+						namespaceExistsInCache = true
+					}
+				}
+			}
+			So(namespaceExistsInCache, ShouldBeTrue)
+			indexes := db.Collection("hashedIndexes").Indexes()
+			c, err := indexes.List(context.Background())
+			So(err, ShouldBeNil)
+			var res indexRes
+
+			for ; c.Next(context.Background()); {
+				err := c.Decode(&res)
+				So(err, ShouldBeNil)
+				key := res.Key[0]
+				So(key.Key, ShouldEqual, "a.b")
+				So(key.Value, ShouldEqual, 1)
+			}
+		})
+	})
+
+	Convey("Test MongoRestore with hashed indexes without --fixHashedIndexes", t, func() {
+		args := []string{}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		session, _ = restore.SessionProvider.GetSession()
+		db := session.Database("test")
+		defer func() {
+			db.Collection("hashedIndexes").Drop(nil)
+		}()
+
+		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
+			restore.TargetDirectory = "testdata/hashedIndexdump"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			var namespaceExistsInCache bool
+			if cols, ok := restore.knownCollections["test"]; ok {
+				for _, collName := range cols {
+					if collName == "hashedIndexes" {
+						namespaceExistsInCache = true
+					}
+				}
+			}
+			So(namespaceExistsInCache, ShouldBeTrue)
+			indexes := db.Collection("hashedIndexes").Indexes()
+			c, err := indexes.List(context.Background())
+			So(err, ShouldBeNil)
+			var res indexRes
+
+			for ; c.Next(context.Background()); {
+				err := c.Decode(&res)
+				So(err, ShouldBeNil)
+				key := res.Key[0]
+				So(key.Key, ShouldEqual, "a.b")
+				So(key.Value, ShouldEqual, "hashed")
+			}
+		})
+	})
+}
