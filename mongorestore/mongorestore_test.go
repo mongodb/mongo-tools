@@ -520,7 +520,7 @@ func TestFixHashedIndexes(t *testing.T) {
 			So(result.Err, ShouldBeNil)
 
 			var namespaceExistsInCache bool
-			if cols, ok := restore.knownCollections["test"]; ok {
+			if cols, ok := restore.knownCollections["testdata"]; ok {
 				for _, collName := range cols {
 					if collName == "hashedIndexes" {
 						namespaceExistsInCache = true
@@ -561,7 +561,7 @@ func TestFixHashedIndexes(t *testing.T) {
 			So(result.Err, ShouldBeNil)
 
 			var namespaceExistsInCache bool
-			if cols, ok := restore.knownCollections["test"]; ok {
+			if cols, ok := restore.knownCollections["testdata"]; ok {
 				for _, collName := range cols {
 					if collName == "hashedIndexes" {
 						namespaceExistsInCache = true
