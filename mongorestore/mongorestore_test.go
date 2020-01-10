@@ -537,9 +537,13 @@ func TestFixHashedIndexes(t *testing.T) {
 			for ; c.Next(context.Background()); {
 				err := c.Decode(&res)
 				So(err, ShouldBeNil)
-				key := res.Key[0]
-				So(key.Key, ShouldEqual, "a.b")
-				So(key.Value, ShouldEqual, 1)
+				for _, key := range res.Key {
+					if key.Key == "a.b" {
+						So(key.Value, ShouldEqual, 1)
+					} else if key.Key != "_id" {
+						t.Fatalf("Unexepected Index: %v", key.Key)
+					}
+				}
 			}
 		})
 	})
@@ -579,9 +583,13 @@ func TestFixHashedIndexes(t *testing.T) {
 			for ; c.Next(context.Background()); {
 				err := c.Decode(&res)
 				So(err, ShouldBeNil)
-				key := res.Key[0]
-				So(key.Key, ShouldEqual, "a.b")
-				So(key.Value, ShouldEqual, "hashed")
+				for _, key := range res.Key {
+					if key.Key == "a.b" {
+						So(key.Value, ShouldEqual, "hashed")
+					} else if key.Key != "_id" {
+						t.Fatalf("Unexepected Index: %v", key.Key)
+					}
+				}
 			}
 		})
 	})
