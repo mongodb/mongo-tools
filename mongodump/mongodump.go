@@ -528,6 +528,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	}
 	intendedDB := session.Database(intent.DB)
 	coll := intendedDB.Collection(intent.C)
+	// it is safer to assume that a collection is a view, if we cannot determine that it is not.
+	isView := true
+	// failure to get CollectionInfo should not cause the function to exit. We only use this to
+	// determine if a collection is a view.
+	collInfo, err := db.GetCollectionInfo(coll)
+	if err != nil {
+		isView = collInfo.IsView()
+	}
 	// The storage engine cannot change from namespace to namespace,
 	// so we set it the first time we reach here, using a namespace we
 	// know must exist. If the storage engine is not mmapv1, we assume it
@@ -536,7 +544,10 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// If ViewsAsCollections is set, all the collections will be views, and collStats will fail,
 	// so we skip this. Perhaps more importantly, storage engine does not affect consistency when
 	// dumping views.
-	if dump.storageEngine == storageEngineUnknown && !dump.OutputOptions.ViewsAsCollections {
+	if dump.storageEngine == storageEngineUnknown && !isView {
+		if err != nil {
+			return err
+		}
 		// storageEngineModern denotes any storage engine that is not MMAPV1. For such storage
 		// engines we assume that collection scans are consistent.
 		dump.storageEngine = storageEngineModern
@@ -557,7 +568,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// we only want to hint _id when the storage engine is MMAPV1 and this isn't a view, a
 	// special collection, the oplog, and the user is not asking to force table scans.
 	case dump.storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
-		!dump.OutputOptions.ViewsAsCollections && !intent.IsSpecialCollection() && !intent.IsOplog():
+		!isView && !intent.IsSpecialCollection() && !intent.IsOplog():
 		autoIndexId, found := intent.Options["autoIndexId"]
 		if !found || autoIndexId == true {
 			findQuery.Hint = bson.D{{"_id", 1}}
