@@ -496,9 +496,13 @@ func TestFixHashedIndexes(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
+	type indexRes struct {
+		Key bson.D
+	}
+
 	Convey("Test MongoRestore with hashed indexes and --fixHashedIndexes", t, func() {
 		args := []string{
-			FixHashedIndexesOption,
+			FixDottedHashedIndexesOption,
 		}
 
 		restore, err := getRestoreWithArgs(args...)
@@ -509,10 +513,6 @@ func TestFixHashedIndexes(t *testing.T) {
 		defer func() {
 			db.Collection("hashedIndexes").Drop(nil)
 		}()
-
-		type indexRes struct {
-			Key bson.D
-		}
 
 		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
 			restore.TargetDirectory = "testdata/hashedIndexdump"

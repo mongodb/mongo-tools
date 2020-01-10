@@ -81,7 +81,7 @@ const (
 	TempUsersCollOption            = "--tempUsersColl"
 	TempRolesCollOption            = "--tempRolesColl"
 	BulkBufferSizeOption           = "--batchSize"
-	FixDottedHashIndexesOption     = "--fixDottedHashIndex"
+	FixDottedHashedIndexesOption   = "--fixDottedHashIndex"
 )
 
 // OutputOptions defines the set of options for restoring dump data.
