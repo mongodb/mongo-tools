@@ -510,9 +510,11 @@ func TestFixHashedIndexes(t *testing.T) {
 
 		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("test")
+
 		defer func() {
 			db.Collection("hashedIndexes").Drop(nil)
 		}()
+		db.Collection("hashedIndexes").Drop(nil)
 
 		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
 			restore.TargetDirectory = "testdata/hashedIndexes.bson"
@@ -551,9 +553,11 @@ func TestFixHashedIndexes(t *testing.T) {
 
 		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("test")
+
 		defer func() {
 			db.Collection("hashedIndexes").Drop(nil)
 		}()
+		db.Collection("hashedIndexes").Drop(nil)
 
 		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
 			restore.TargetDirectory = "testdata/hashedIndexes.bson"
