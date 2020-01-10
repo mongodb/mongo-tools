@@ -515,7 +515,7 @@ func TestFixHashedIndexes(t *testing.T) {
 		}()
 
 		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
-			restore.TargetDirectory = "testdata/hashedIndexdump"
+			restore.TargetDirectory = "testdata/hashedIndexes.bson"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
@@ -556,7 +556,7 @@ func TestFixHashedIndexes(t *testing.T) {
 		}()
 
 		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
-			restore.TargetDirectory = "testdata/hashedIndexdump"
+			restore.TargetDirectory = "testdata/hashedIndexes.bson"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
