@@ -714,7 +714,7 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 			array[headIndex] = subArray
 		} else {
 			// the element at headIndex doesn't exist yet
-			subArray := make([]interface{}, 0)
+			var subArray []interface{}
 			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
 			if err != nil {
 				return nil, err

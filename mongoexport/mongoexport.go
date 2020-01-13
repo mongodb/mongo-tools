@@ -39,9 +39,9 @@ const (
 type JSONFormat string
 
 const (
-  // Canonical indicates canonical json format
+	// Canonical indicates canonical json format
 	Canonical JSONFormat = "canonical"
-  // Relaxed indicates relaxed json format
+	// Relaxed indicates relaxed json format
 	Relaxed JSONFormat = "relaxed"
 )
 
@@ -324,11 +324,31 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 	if err != nil {
 		return nil, err
 	}
-	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	intendedDB := session.Database(exp.ToolOptions.Namespace.DB)
+	isMMAPV1, err := db.IsMMAPV1(intendedDB, exp.ToolOptions.Namespace.Collection)
+	if err != nil {
+		// if we failed to determine storage engine, there is a good change it is because this
+		// collection is a view. We only want to warn if this collection is not a view, since
+		// storage engine does not affect consistency for scans of views.
+		collection := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
+		collectionInfo, err := db.GetCollectionInfo(collection)
+		if err != nil || !collectionInfo.IsView() {
+			log.Logvf(log.Always,
+				"failed to determine storage engine, an mmapv1 storage engine could"+
+					" result in inconsistent export results, error was: %v", err)
+		}
+	}
+	// shouldHintId is true iff the storage engine is MMAPV1 and the user did not specify
+	// --forceTableScan.
+	shouldHintId := isMMAPV1 && (exp.InputOpts == nil || !exp.InputOpts.ForceTableScan)
+	// noSorting is true if the user did not ask for sorting.
+	noSorting := exp.InputOpts == nil || exp.InputOpts.Sort == ""
+	coll := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
 
-	// don't snapshot if we've been asked not to,
-	// or if we cannot because  we are querying, sorting, or if the collection is a view
-	if !exp.InputOpts.ForceTableScan && len(query) == 0 && exp.InputOpts != nil && exp.InputOpts.Sort == "" &&
+	// we want to hint _id if shouldHintId is true, and there is no query, and
+	// there is no sorting, as hinting is not needed if there is a query or sorting.
+	// we also do not want to hint for system collections or views.
+	if shouldHintId && len(query) == 0 && noSorting &&
 		!exp.collInfo.IsView() && !exp.collInfo.IsSystemCollection() {
 
 		// Don't hint autoIndexId:false collections
