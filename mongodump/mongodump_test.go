@@ -934,7 +934,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		err = md.Dump()
 		So(err, ShouldBeNil)
 
-		c, err := profileCollection.Find(context.Background(),
+		count, err := profileCollection.CountDocuments(context.Background(),
 			bson.D{
 				{"ns", ns},
 				{"op", "query"},
@@ -952,7 +952,6 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 			},
 		)
 		So(err, ShouldBeNil)
-		count := testutil.CountCursorResults(c)
 		if isMMAPV1 {
 			// There should be exactly one query that matches.
 			So(count, ShouldEqual, 1)

@@ -168,12 +168,3 @@ func MergeOplogStreams(input [][]db.Oplog) []db.Oplog {
 
 	return ops
 }
-
-// CountCursorResults counts number of results in a cursor.
-func CountCursorResults(c *mongo.Cursor) int {
-	i := 0
-	for c.Next(context.Background()) {
-		i++
-	}
-	return i
-}
