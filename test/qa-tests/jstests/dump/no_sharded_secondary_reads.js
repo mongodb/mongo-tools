@@ -12,6 +12,9 @@
   var db = conn.getDB("test");
   var replDB = replTest.getPrimary().getDB("test");
 
+  // whether or not this is mmapv1, this will effect some results
+  var isMMAPV1 = replDB.serverStatus().storageEngine.name === "mmapv1";
+
   db.a.insert({a: 1});
   db.a.insert({a: 2});
   db.a.insert({a: 3});
@@ -51,7 +54,8 @@
   runMongoProgram("mongodump", "--host", st.s.host, "-vvvv");
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
   printjson(replDB.system.profile.find(profQuery).toArray());
-  assert.eq(replDB.system.profile.find({
+
+  var hintCount = replDB.system.profile.find({
     ns: "test.a",
     op: "query",
     $or: [
@@ -67,7 +71,14 @@
       {"query.snapshot": true},
       {"query.hint._id": 1},
     ]
-  }).count(), 1);
+  }).count();
+  // in a mmapv1 stored database, we should snapshot or have a query hint set.
+  if (isMMAPV1) {
+    assert.eq(hintCount, 1);
+  } else {
+    assert.eq(hintCount, 0);
+  }
+
   // make sure the secondaries saw 0 queries
   for (i = 0; i < secondaries.length; i++) {
     print("checking secondary " + i);
