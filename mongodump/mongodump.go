@@ -541,9 +541,8 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// know must exist. If the storage engine is not mmapv1, we assume it
 	// is some modern storage engine that does not need to use an index
 	// scan for correctness.
-	// If ViewsAsCollections is set, all the collections will be views, and collStats will fail,
-	// so we skip this. Perhaps more importantly, storage engine does not affect consistency when
-	// dumping views.
+	// We cannot determine the storage engine, if this collection is a view,
+	// so we skip attempting to deduce the storage engine.
 	if dump.storageEngine == storageEngineUnknown && !isView {
 		if err != nil {
 			return err
