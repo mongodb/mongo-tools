@@ -8,7 +8,6 @@
 package testutil
 
 import (
-	"context"
 	"math/rand"
 	"os"
 	"strconv"
