@@ -515,20 +515,11 @@ func TestFixHashedIndexes(t *testing.T) {
 			db.Collection("hashedIndexes").Drop(nil)
 		}()
 
-		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
+		Convey("Once collection hashedIndexes has been restored, it should exist in restore.knownCollections", func() {
 			restore.TargetDirectory = "testdata/hashedIndexes.bson"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			var namespaceExistsInCache bool
-			if cols, ok := restore.knownCollections["testdata"]; ok {
-				for _, collName := range cols {
-					if collName == "hashedIndexes" {
-						namespaceExistsInCache = true
-					}
-				}
-			}
-			So(namespaceExistsInCache, ShouldBeTrue)
 			indexes := db.Collection("hashedIndexes").Indexes()
 			c, err := indexes.List(context.Background())
 			So(err, ShouldBeNil)
@@ -540,6 +531,8 @@ func TestFixHashedIndexes(t *testing.T) {
 				for _, key := range res.Key {
 					if key.Key == "a.b" {
 						So(key.Value, ShouldEqual, 1)
+					} else if key.Key == "b" {
+						So(key.Value, ShouldEqual, "hashed")
 					} else if key.Key != "_id" {
 						t.Fatalf("Unexepected Index: %v", key.Key)
 					}
@@ -566,15 +559,6 @@ func TestFixHashedIndexes(t *testing.T) {
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			var namespaceExistsInCache bool
-			if cols, ok := restore.knownCollections["testdata"]; ok {
-				for _, collName := range cols {
-					if collName == "hashedIndexes" {
-						namespaceExistsInCache = true
-					}
-				}
-			}
-			So(namespaceExistsInCache, ShouldBeTrue)
 			indexes := db.Collection("hashedIndexes").Indexes()
 			c, err := indexes.List(context.Background())
 			So(err, ShouldBeNil)
@@ -585,6 +569,8 @@ func TestFixHashedIndexes(t *testing.T) {
 				So(err, ShouldBeNil)
 				for _, key := range res.Key {
 					if key.Key == "a.b" {
+						So(key.Value, ShouldEqual, "hashed")
+					} else if key.Key == "b" {
 						So(key.Value, ShouldEqual, "hashed")
 					} else if key.Key != "_id" {
 						t.Fatalf("Unexepected Index: %v", key.Key)
