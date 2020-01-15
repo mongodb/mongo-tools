@@ -488,7 +488,6 @@ func TestKnownCollections(t *testing.T) {
 	})
 }
 
-
 func TestFixHashedIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
@@ -515,7 +514,7 @@ func TestFixHashedIndexes(t *testing.T) {
 			db.Collection("hashedIndexes").Drop(nil)
 		}()
 
-		Convey("Once collection hashedIndexes has been restored, it should exist in restore.knownCollections", func() {
+		Convey("The index for a.b should be changed from 'hashed' to 1, since it is dotted", func() {
 			restore.TargetDirectory = "testdata/hashedIndexes.bson"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -525,14 +524,16 @@ func TestFixHashedIndexes(t *testing.T) {
 			So(err, ShouldBeNil)
 			var res indexRes
 
-			for ; c.Next(context.Background()); {
+			for c.Next(context.Background()) {
 				err := c.Decode(&res)
 				So(err, ShouldBeNil)
 				for _, key := range res.Key {
-					if key.Key == "a.b" {
-						So(key.Value, ShouldEqual, 1)
-					} else if key.Key == "b" {
+					if key.Key == "b" {
 						So(key.Value, ShouldEqual, "hashed")
+					} else if key.Key == "a.a" {
+						So(key.Value, ShouldEqual, 1)
+					} else if key.Key == "a.b" {
+						So(key.Value, ShouldEqual, 1)
 					} else if key.Key != "_id" {
 						t.Fatalf("Unexepected Index: %v", key.Key)
 					}
@@ -554,7 +555,7 @@ func TestFixHashedIndexes(t *testing.T) {
 			db.Collection("hashedIndexes").Drop(nil)
 		}()
 
-		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
+		Convey("All indexes should be unchanged", func() {
 			restore.TargetDirectory = "testdata/hashedIndexes.bson"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -564,13 +565,15 @@ func TestFixHashedIndexes(t *testing.T) {
 			So(err, ShouldBeNil)
 			var res indexRes
 
-			for ; c.Next(context.Background()); {
+			for c.Next(context.Background()) {
 				err := c.Decode(&res)
 				So(err, ShouldBeNil)
 				for _, key := range res.Key {
-					if key.Key == "a.b" {
+					if key.Key == "b" {
 						So(key.Value, ShouldEqual, "hashed")
-					} else if key.Key == "b" {
+					} else if key.Key == "a.a" {
+						So(key.Value, ShouldEqual, 1)
+					} else if key.Key == "a.b" {
 						So(key.Value, ShouldEqual, "hashed")
 					} else if key.Key != "_id" {
 						t.Fatalf("Unexepected Index: %v", key.Key)
