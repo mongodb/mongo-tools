@@ -701,6 +701,49 @@ functions:
       content_type: application/octet-stream
       display_name: ${tool}
 
+  "create release artifacts":
+    # build release artifacts
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          . ./set_goenv.sh
+          GOROOT="" set_goenv || exit
+          export EVG_PLATFORM=${_platform}
+          go run release/release.go build-archive
+
+    # upload individual release artifacts to task page
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - src/github.com/mongodb/mongo-tools/mongodb-cli-tools-*
+        remote_file: mongo-tools/pkgs/${build_id}/
+        content_type: application/octet-stream
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Release Artifact - "
+
+    # pack all release artifacts into a tarball and upload them to one
+    # place so that they can be more easily downloaded by the sign task
+    - command: archive.targz_pack
+      params:
+        target: src/github.com/mongodb/mongo-tools/upload.tgz
+        source_dir: src/github.com/mongodb/mongo-tools
+        include:
+          - "./mongodb-cli-tools-*"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/mongodb/mongo-tools/upload.tgz
+        remote_file: mongo-tools/pkgs/${build_id}/all-release-artifacts.tgz
+        content_type: application/x-gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: All Release Artifacts (.tgz)
+
   "fetch source" :
     - command: shell.exec
       params:
@@ -975,6 +1018,7 @@ tasks:
     - func: "upload tool"
       vars:
         tool: mongotop
+    - func: "create release artifacts"
 
 - name: integration-4.0
   commands:
@@ -1720,6 +1764,7 @@ buildvariants:
   - amazon1-2018-test
   expansions:
     build_tags: ""
+    _platform: amazon1
   tasks:
   - name: dist
   - name: replay-dist
@@ -1730,6 +1775,7 @@ buildvariants:
   - amazon1-2018-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: amazon1
   tasks:
   - name: dist
   - name: replay-dist
@@ -1740,6 +1786,7 @@ buildvariants:
   - amazon2-test
   expansions:
     build_tags: ""
+    _platform: amazon2
   tasks:
   - name: dist
   - name: replay-dist
@@ -1750,6 +1797,7 @@ buildvariants:
   - amazon2-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: amazon2
   tasks:
   - name: dist
   - name: replay-dist
@@ -1764,6 +1812,7 @@ buildvariants:
   - debian81-test
   expansions:
     build_tags: ""
+    _platform: debian81
   tasks:
   - name: dist
   - name: replay-dist
@@ -1774,6 +1823,7 @@ buildvariants:
   - debian81-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: debian81
   tasks:
   - name: dist
   - name: replay-dist
@@ -1784,6 +1834,7 @@ buildvariants:
   - debian92-test
   expansions:
     build_tags: ""
+    _platform: debian92
   tasks:
   - name: dist
   - name: replay-dist
@@ -1794,6 +1845,7 @@ buildvariants:
   - debian92-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: debian92
   tasks:
   - name: dist
   - name: replay-dist
@@ -1813,6 +1865,7 @@ buildvariants:
     mongo_target: "osx-ssl"
     arch: "osx/x86_64"
     excludes: requires_many_files
+    _platform: macos1014
   tasks: *macos_tasks
 
 - name: macOS-1014-ssl
@@ -1827,6 +1880,7 @@ buildvariants:
     arch: "osx/x86_64"
     build_tags: "ssl"
     excludes: requires_many_files
+    _platform: macos1014
   tasks: *macos_ssl_tasks
 
 #######################################
@@ -1846,6 +1900,7 @@ buildvariants:
     arch: "linux/x86_64"
     integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+    _platform: rhel62
   tasks: *rhel_x86_64_tasks
 
 - name: rhel62-ssl
@@ -1865,6 +1920,7 @@ buildvariants:
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     integration_test_args: "integration,ssl"
     USE_SSL: "true"
+    _platform: rhel62
 
   tasks: *rhel_x86_64_ssl_tasks
 
@@ -1885,6 +1941,7 @@ buildvariants:
     run_kinit: true
     integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+    _platform: rhel62
   tasks: *rhel_x86_64_enterprise_tasks
 
 - name: rhel70
@@ -1893,6 +1950,7 @@ buildvariants:
   - rhel70-small
   expansions:
     build_tags: ""
+    _platform: rhel70
   tasks:
   - name: dist
   - name: replay-dist
@@ -1903,6 +1961,7 @@ buildvariants:
   - rhel70-small
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: rhel70
   tasks:
   - name: dist
   - name: replay-dist
@@ -1917,6 +1976,7 @@ buildvariants:
   - suse12-test
   expansions:
     build_tags: ""
+    _platform: suse12
   tasks:
   - name: dist
   - name: replay-dist
@@ -1927,6 +1987,7 @@ buildvariants:
   - suse12-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: suse12
   tasks:
   - name: dist
   - name: replay-dist
@@ -1941,6 +2002,7 @@ buildvariants:
   - ubuntu1404-test
   expansions:
     build_tags: ""
+    _platform: ubuntu1404
   tasks:
   - name: dist
   - name: replay-dist
@@ -1951,6 +2013,7 @@ buildvariants:
   - ubuntu1404-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: ubuntu1404
   tasks:
   - name: dist
   - name: replay-dist
@@ -1968,6 +2031,7 @@ buildvariants:
     arch: "linux/x86_64"
     integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+    _platform: ubuntu1604
   tasks: *ubuntu_x86_64_tasks
 
 - name: ubuntu1604-ssl
@@ -1987,6 +2051,7 @@ buildvariants:
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     integration_test_args: "integration,ssl"
     USE_SSL: "true"
+    _platform: ubuntu1604
   tasks: *ubuntu_x86_64_ssl_tasks
 
 - name: ubuntu1604-enterprise
@@ -2006,6 +2071,7 @@ buildvariants:
     run_kinit: true
     integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+    _platform: ubuntu1604
   tasks: *ubuntu_x86_64_enterprise_tasks
 
 - name: ubuntu1804
@@ -2014,6 +2080,7 @@ buildvariants:
   - ubuntu1804-test
   expansions:
     build_tags: ""
+    _platform: ubuntu1804
   tasks:
   - name: dist
   - name: replay-dist
@@ -2024,6 +2091,7 @@ buildvariants:
   - ubuntu1804-test
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: ubuntu1804
   tasks:
   - name: dist
   - name: replay-dist
@@ -2047,6 +2115,7 @@ buildvariants:
     arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration"
+    _platform: windowsVS2017
   tasks: *windows_64_tasks
 
 - name: windows-64-ssl
@@ -2069,6 +2138,7 @@ buildvariants:
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration,ssl"
     USE_SSL: "true"
+    _platform: windowsVS2017
   tasks: *windows_64_ssl_tasks
 
 - name: windows-64-enterprise
@@ -2091,6 +2161,7 @@ buildvariants:
     arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     integration_test_args: "integration"
+    _platform: windowsVS2017
   tasks: *windows_64_enterprise_tasks
 
 #######################################
@@ -2118,6 +2189,7 @@ buildvariants:
     edition: ssl
     integration_test_args: integration
     USE_SSL: "true"
+    _platform: ubuntu1604-arm
   tasks: *ubuntu1604_arm64_ssl_tasks
 
 # MongoDB 4.2+
@@ -2141,6 +2213,7 @@ buildvariants:
     edition: ssl
     integration_test_args: integration
     USE_SSL: "true"
+    _platform: ubuntu1804-arm
   tasks: *ubuntu1804_arm64_ssl_tasks
 
 #######################################
@@ -2167,6 +2240,7 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     integration_test_args: integration
+    _platform: rhel71-ppc
   tasks: *rhel71_ppc64le_enterprise_tasks
 
 # MongoDB 3.4 - 4.0
@@ -2178,6 +2252,7 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: 'ssl sasl gssapi'
+    _platform: ubuntu1604-ppc
   tasks:
   - name: dist
   - name: replay-dist
@@ -2191,6 +2266,7 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: 'ssl sasl gssapi'
+    _platform: ubuntu1804-ppc
   tasks:
   - name: dist
   - name: replay-dist
@@ -2219,6 +2295,7 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     integration_test_args: integration
+    _platform: rhel67-zseries
   tasks: *rhel67_s390x_enterprise_tasks
 
 - name: rhel72-s390x-enterprise
@@ -2229,6 +2306,7 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: rhel72-zseries
   tasks:
   - name: dist
   - name: replay-dist
@@ -2241,6 +2319,7 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: ubuntu1604-zseries
   tasks:
   - name: dist
   - name: replay-dist
@@ -2253,6 +2332,7 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl gssapi ssl"
+    _platform: ubuntu1804-zseries
   tasks:
   - name: dist
   - name: replay-dist
@@ -2277,5 +2357,6 @@ buildvariants:
     args: "-buildmode=default -race"
     excludes: requires_large_ram
     integration_test_args: integration
+    _platform: ubuntu1604-zseries
   tasks: *ubuntu_x86_64_race_tasks
 
