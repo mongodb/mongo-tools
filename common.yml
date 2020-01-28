@@ -13,6 +13,8 @@ mongo_tools_variables:
   mongo_tools_task_lists:
     mac_task_list: &macos_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -44,6 +46,8 @@ mongo_tools_variables:
       - name: replay-dist
     rhel_x86_64_task_list: &rhel_x86_64_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -103,6 +107,8 @@ mongo_tools_variables:
       # - name: replay-replay_test-4.2
     ubuntu_x86_64_task_list: &ubuntu_x86_64_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -177,6 +183,8 @@ mongo_tools_variables:
       # - name: replay-replay_test-4.2
     windows_64_task_list: &windows_64_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -248,6 +256,8 @@ mongo_tools_variables:
       - name: native-cert-ssl-current
     rhel71_ppc64le_enterprise_task_list: &rhel71_ppc64le_enterprise_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -271,6 +281,8 @@ mongo_tools_variables:
       # - name: replay-replay_test-4.2
     rhel67_s390x_enterprise_task_list: &rhel67_s390x_enterprise_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -295,6 +307,8 @@ mongo_tools_variables:
       # - name: replay-replay_test-4.2
     ubuntu1604_arm64_ssl_task_list: &ubuntu1604_arm64_ssl_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: qa-tests-3.4
@@ -303,6 +317,8 @@ mongo_tools_variables:
       - name: replay-dist
     ubuntu1804_arm64_ssl_task_list: &ubuntu1804_arm64_ssl_tasks
       - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-dump-restore-with-archiving-current
@@ -738,11 +754,32 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/github.com/mongodb/mongo-tools/upload.tgz
-        remote_file: mongo-tools/pkgs/${build_id}/all-release-artifacts.tgz
+        remote_file: mongo-tools/task/dist/${build_id}/all-release-artifacts.tgz
         content_type: application/x-gzip
         bucket: mciuploads
         permissions: public-read
         display_name: All Release Artifacts (.tgz)
+
+  "fetch dist release artifacts":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongo-tools/task/dist/${build_id}/all-release-artifacts.tgz
+        extract_to: src/github.com/mongodb/mongo-tools/
+        bucket: mciuploads
+
+  "upload signed release artifacts":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - src/github.com/mongodb/mongo-tools/mongodb-cli-tools-*
+        remote_file: mongo-tools/task/sign/${build_id}/
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
 
   "fetch source" :
     - command: shell.exec
@@ -1019,6 +1056,17 @@ tasks:
       vars:
         tool: mongotop
     - func: "create release artifacts"
+
+# Regardless of the buildvariant, the sign task must be run on a
+# distro that has the notary client available. We will use
+# amazon1-2018-test for this purpose. The notary client is not
+# available on all distros, which is why sign must be a separate task.
+- name: sign
+  depends_on:
+    - name: dist
+  commands:
+    - func: "fetch dist release artifacts"
+    - func: "upload signed release artifacts"
 
 - name: integration-4.0
   commands:
@@ -1768,6 +1816,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: amazonlinux64-enterprise
   display_name: Amazon Linux 64 Enterprise
@@ -1790,6 +1840,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: amazon2-enterprise
   display_name: Amazon Linux 64 v2 Enterprise
@@ -1816,6 +1868,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: debian81-enterprise
   display_name: Debian 8.1 Enterprise
@@ -1838,6 +1892,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: debian92-enterprise
   display_name: Debian 9.2 Enterprise
@@ -1954,6 +2010,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: rhel70-enterprise
   display_name: RHEL 7.0 Enterprise
@@ -1980,6 +2038,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: suse12-enterprise
   display_name: SUSE 12 Enterprise
@@ -2006,6 +2066,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: ubuntu1404-enterprise
   display_name: Ubuntu 14.04 Enterprise
@@ -2084,6 +2146,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: ubuntu1804-enterprise
   display_name: Ubuntu 18.04 Enterprise
@@ -2256,6 +2320,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le-enterprise
@@ -2270,6 +2336,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 #######################################
 #     Z (s390x) Buildvariants         #
@@ -2310,6 +2378,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: ubuntu1604-s390x-enterprise
   display_name: ZAP s390x Ubuntu 16.04 Enterprise
@@ -2323,6 +2393,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 - name: ubuntu1804-s390x-enterprise
   display_name: ZAP s390x Ubuntu 18.04 Enterprise
@@ -2336,6 +2408,8 @@ buildvariants:
   tasks:
   - name: dist
   - name: replay-dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 #######################################
 #     Experimental Buildvariants      #
