@@ -257,6 +257,29 @@ func setUpMongoDumpTestData() error {
 	return nil
 }
 
+func setUpDBView() error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	collName := "coll1"
+	dbName := testDB
+
+	pipeline := []bson.M{bson.M{"$project": bson.M{"b": "$a"}}}
+	createCmd := bson.D{
+		{"create", "test view"},
+		{"viewOn", collName},
+		{"pipeline", pipeline},
+	}
+	var r2 bson.D
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // backgroundInsert inserts into random collections until provided done
 // channel is closed.  The function closes the ready channel to signal that
 // background insertion has started.  When the done channel is closed, the
@@ -1022,5 +1045,60 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 			So(os.RemoveAll(dumpDir), ShouldBeNil)
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
 		})
+	})
+}
+
+func TestMongoDumpViewsAsCollections(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	Convey("With a MongoDump instance", t, func() {
+		err := setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		err = setUpDBView()
+		So(err, ShouldBeNil)
+
+		Convey("testing that the dumped directory contains information about indexes", func() {
+
+			md := simpleMongoDumpInstance()
+			md.ToolOptions.Namespace.DB = testDB
+			md.OutputOptions.Out = "dump"
+			md.OutputOptions.ViewsAsCollections = true
+
+			err = md.Init()
+			So(err, ShouldBeNil)
+
+			err = md.Dump()
+			So(err, ShouldBeNil)
+
+			path, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			So(fileDirExists(dumpDir), ShouldBeTrue)
+			So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+			Convey("having one metadata file per read-only view", func() {
+				c1, err := countNonIndexBSONFiles(dumpDBDir)
+				So(err, ShouldBeNil)
+
+				c2, err := countMetaDataFiles(dumpDBDir)
+				So(err, ShouldBeNil)
+
+				So(c1, ShouldEqual, c2)
+
+			})
+
+			Reset(func() {
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			})
+		})
+
+		Reset(func() {
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+		})
+
 	})
 }
