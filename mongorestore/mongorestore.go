@@ -221,7 +221,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			return err
 		}
 
-		if fileType != BSONFileType {
+		if fileType != BSONFileType && restore.InputOptions.Archive != "" {
 			log.Logvf(log.Always, "the --db and --collection args should only be used when "+
 				"restoring from a BSON file. Other uses are deprecated and will not exist "+
 				"in the future; use --nsInclude instead")
