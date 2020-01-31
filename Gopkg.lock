@@ -2,35 +2,6 @@
 
 
 [[projects]]
-  digest = "1:0fa31abb24eb9fb04d85d4872cc7526035b1b5dfa4f6a03644cfdabe79b5fbb1"
-  name = "github.com/10gen/escaper"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "17fe61c658dcbdcbf246c783f4f7dc97efde3a8b"
-
-[[projects]]
-  digest = "1:ce468ed868c85187d86cf35327e6560c515c45077e787140ce37226515cdc42e"
-  name = "github.com/10gen/llmgo"
-  packages = [
-    ".",
-    "bson",
-    "internal/sasl",
-    "internal/scram",
-  ]
-  pruneopts = "T"
-  revision = "afcced55e92d9b6b93ccf32508238c08cfbaddb8"
-
-[[projects]]
-  digest = "1:70d6415a756d8180faa29c99dd08a37cab123c04d6c0d01d885ccc7d612a93b3"
-  name = "github.com/10gen/openssl"
-  packages = [
-    ".",
-    "utils",
-  ]
-  pruneopts = "T"
-  revision = "fc9a1d560ec3549c695198fe39b9de7f89a7503d"
-
-[[projects]]
   digest = "1:d9d83b3d983f3e6f78baf83e19666facd3377e81acde31f7db8a6fcd31eae009"
   name = "github.com/3rf/mongo-lint"
   packages = ["."]
@@ -44,6 +15,47 @@
   pruneopts = "T"
   revision = "8fdb579680349497546a04291cedfff98a7829a0"
   version = "v1.4.4"
+
+[[projects]]
+  digest = "1:42ad88cf90b3fcd2fa1d101f59ec2c2b1274484d7c7dda2c1ad29200b0cc7bc1"
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    ".",
+    "aws",
+    "aws/arn",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/credentials",
+    "aws/endpoints",
+    "aws/request",
+    "aws/signer/v4",
+    "internal/context",
+    "internal/ini",
+    "internal/s3err",
+    "internal/sdkio",
+    "internal/sdkmath",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "internal/strings",
+    "internal/sync/singleflight",
+    "private/protocol",
+    "private/protocol/eventstream",
+    "private/protocol/eventstream/eventstreamapi",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/restxml",
+    "private/protocol/xml/xmlutil",
+    "service/s3",
+    "service/s3/internal/arn",
+    "service/s3/s3iface",
+    "service/s3/s3manager",
+  ]
+  pruneopts = "T"
+  revision = "2ff90b519baf8ee626cf6c3d451d54664ac72345"
+  version = "v1.29.11"
 
 [[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
@@ -75,18 +87,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:f9c618e8c569f950d5cd339a475eaef92e02e5e63d1434fd7e7881bfa5f02901"
-  name = "github.com/google/gopacket"
-  packages = [
-    ".",
-    "layers",
-    "pcap",
-    "tcpassembly",
-  ]
-  pruneopts = "T"
-  revision = "7edef24d642a09d18efcf1e00a9dc2d4c6342c82"
-
-[[projects]]
   branch = "master"
   digest = "1:4cbb75bd3317ea6f590834c19dc22d13fb406c0629905bd17c28ee2c22637bf1"
   name = "github.com/gopherjs/gopherjs"
@@ -95,19 +95,19 @@
   revision = "3e4dfb77656c424b6d1196a4d5fed0fcf63677cc"
 
 [[projects]]
-  digest = "1:8e9ae4fedb2abb5267f2cd69f8d3010e6c464a9c51d1fa1f9d192c0757ac691a"
-  name = "github.com/howeyc/gopass"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "44476384cd4721b68705e72f19e95d1a3a504370"
-
-[[projects]]
   digest = "1:3f222a291d2810bdeccb8ba10af58fd087269863c8196f7754cfa0de098a2b56"
   name = "github.com/jessevdk/go-flags"
   packages = ["."]
   pruneopts = "T"
   revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
   version = "v1.4.0"
+
+[[projects]]
+  digest = "1:b3f2dea8fe8eadb5833f7c8a2ef35dae07308bf7a4d0fee7f37774314e1964d3"
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "c2b33e84"
 
 [[projects]]
   digest = "1:4b63210654b1f2b664f74ec434a1bb1cb442b3d75742cc064a10808d1cca6361"
@@ -159,13 +159,6 @@
   revision = "0723e7c3d0a317dea811f0fbe4d6edd81908c971"
 
 [[projects]]
-  digest = "1:fc61a390fb0ad4b97e31cd1040b91ed02f7ed175f55285efa7a4d10ae208282b"
-  name = "github.com/patrickmn/go-cache"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "1881a9bccb818787f68c52bfba648c6cf34c34fa"
-
-[[projects]]
   digest = "1:9e1d37b58d17113ec3cb5608ac0382313c5b59470b94ed97d0976e69c7022314"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -194,13 +187,6 @@
   ]
   pruneopts = "T"
   revision = "bf58a9a1291224109919756b4dcc469c670cc7e4"
-
-[[projects]]
-  digest = "1:7e8f154e6a411458c05d33ed6676ca6b4c0757743a14f37ebc25b2fcc2f50d9c"
-  name = "github.com/spacemonkeygo/spacelog"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "f936fb050dc6b5fe4a96b485a6f069e8bdc59aeb"
 
 [[projects]]
   branch = "master"
@@ -314,18 +300,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/10gen/escaper",
-    "github.com/10gen/llmgo",
-    "github.com/10gen/llmgo/bson",
-    "github.com/10gen/openssl",
     "github.com/3rf/mongo-lint",
+    "github.com/aws/aws-sdk-go",
+    "github.com/aws/aws-sdk-go/aws",
+    "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/google/go-cmp/cmp",
-    "github.com/google/gopacket",
-    "github.com/google/gopacket/layers",
-    "github.com/google/gopacket/pcap",
-    "github.com/google/gopacket/tcpassembly",
-    "github.com/howeyc/gopass",
-    "github.com/jessevdk/go-flags",
     "github.com/mongodb/mongo-tools-common/archive",
     "github.com/mongodb/mongo-tools-common/auth",
     "github.com/mongodb/mongo-tools-common/bsonutil",
@@ -344,7 +323,6 @@
     "github.com/mongodb/mongo-tools-common/txn",
     "github.com/mongodb/mongo-tools-common/util",
     "github.com/nsf/termbox-go",
-    "github.com/patrickmn/go-cache",
     "github.com/smartystreets/goconvey/convey",
     "go.mongodb.org/mongo-driver/bson",
     "go.mongodb.org/mongo-driver/bson/bsontype",
@@ -356,7 +334,6 @@
     "go.mongodb.org/mongo-driver/mongo/readpref",
     "go.mongodb.org/mongo-driver/mongo/writeconcern",
     "go.mongodb.org/mongo-driver/x/bsonx",
-    "golang.org/x/crypto/ssh/terminal",
     "gopkg.in/mgo.v2/bson",
     "gopkg.in/tomb.v2",
   ]

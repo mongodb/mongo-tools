@@ -629,6 +629,14 @@ functions:
         permissions: public-read
         content_type: application/octet-stream
 
+  "upload release packages":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          go run release/release.go upload-release
+
   "fetch source" :
     - command: shell.exec
       params:
@@ -746,6 +754,10 @@ pre:
           export EVG_IS_PATCH='${is_patch}'
           export EVG_BUILD_ID='${build_id}'
           export EVG_VARIANT='${build_variant}'
+          export EVG_USER='${evg_user}'
+          export EVG_KEY='${evg_key}'
+          export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
+          export AWS_SECRET_ACCESS_KEY='${release_aws_secret}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -870,6 +882,15 @@ tasks:
   commands:
     - func: "fetch dist release artifacts"
     - func: "upload signed release artifacts"
+
+- name: release-s3
+  depends_on:
+    - name: sign
+      variant: '*'
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "upload release packages"
 
 - name: integration-3.6
   commands:
@@ -1454,6 +1475,17 @@ buildvariants:
   - name: lint-go
   - name: lint-js
   - name: vet
+
+#######################################
+#     Release Manager Buildvariant    #
+#######################################
+
+- name: release
+  display_name: 'Release Manager'
+  run_on:
+  - amazon1-2018-test
+  tasks:
+  - name: release-s3
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
