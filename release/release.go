@@ -9,14 +9,19 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/release/aws"
 	"github.com/mongodb/mongo-tools/release/env"
+	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
+	"github.com/mongodb/mongo-tools/release/version"
 )
 
 // These are the binaries that are part of mongo-tools, relative
@@ -42,10 +47,29 @@ func main() {
 	// don't prefix log messages with anything
 	log.SetFlags(0)
 
-	if len(os.Args) != 2 {
-		log.Fatal("please provide exactly one subcommand name")
+	var cmd string
+	var v version.Version
+	var err error
+
+	switch len(os.Args) {
+	case 1:
+		log.Fatal("please provide a subcommand")
+	case 2:
+		cmd = os.Args[1]
+		v, err = version.GetCurrent()
+		if err != nil {
+			log.Fatalf("failed to get version: %v", err)
+		}
+
+	case 3:
+		cmd = os.Args[1]
+		v, err = version.GetFromRev(os.Args[2])
+		if err != nil {
+			log.Fatalf("failed to get version: %v", err)
+		}
+	default:
+		log.Fatalf("expected one or two arguments, got %d", len(os.Args))
 	}
-	cmd := os.Args[1]
 
 	switch cmd {
 	case "build-archive":
@@ -57,6 +81,8 @@ func main() {
 		fmt.Print(getVersion())
 	case "list-deps":
 		listLinuxDeps()
+	case "upload-release":
+		uploadRelease(v)
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -92,6 +118,11 @@ func getVersion() string {
 		desc += "-patch"
 	}
 	return desc
+}
+
+func isTaggedRelease(rev string) bool {
+	_, err := run("git", "describe", "--exact", rev)
+	return err == nil
 }
 
 func getReleaseName() string {
@@ -627,6 +658,19 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
+func downloadFile(url, dst string) {
+	out, err := os.Create(dst)
+	check(err, "create release file")
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	check(err, "download release file")
+	defer resp.Body.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	check(err, "write release file from http body")
+}
+
 func getRPMVersion(version string) string {
 	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
 	rLabel := strings.Split(version, "-")[0]
@@ -774,5 +818,93 @@ func buildZip() {
 		src := filepath.Join(".", "bin", binName)
 		dst := filepath.Join(releaseName, "bin", binName+".exe")
 		addToZip(zw, dst, src)
+	}
+}
+
+func uploadRelease(v version.Version) {
+	if env.EvgIsPatch() {
+		fmt.Println("current build is a patch; not uploading a release")
+	}
+
+	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	check(err, "get evergreen tasks")
+
+	signTasks := []evergreen.Task{}
+	for _, task := range tasks {
+		if task.IsPatch() || task.DisplayName != "sign" {
+			continue
+		}
+
+		_, knownVariant := platform.GetByVariant(task.Variant)
+		if !knownVariant {
+			log.Fatalf("found sign task with unknown variant '%s'\n", task.Variant)
+		}
+
+		signTasks = append(signTasks, task)
+	}
+
+	if len(signTasks) != platform.Count() {
+		log.Fatalf(
+			"found %d sign tasks, but expected %d release platforms",
+			len(signTasks), platform.Count(),
+		)
+	}
+
+	for _, task := range signTasks {
+		fmt.Printf("\ngetting artifacts for %s\n", task.Variant)
+		pf, ok := platform.GetByVariant(task.Variant)
+		if !ok {
+			panic("unreachable") // should have been caught in previous block
+		}
+
+		artifacts, err := evergreen.GetArtifactsForTask(task.TaskID)
+		check(err, "getting artifacts list")
+
+		if len(artifacts) != len(pf.ArtifactExtensions()) {
+			log.Fatalf(
+				"expected %d artifacts but found %d for %s",
+				len(pf.ArtifactExtensions()), len(artifacts), task.Variant,
+			)
+		}
+
+		awsClient, err := aws.GetClient()
+		check(err, "get aws client")
+
+		for _, a := range artifacts {
+			fmt.Println(a.URL)
+
+			ext := path.Ext(a.URL)
+			unstableFile := fmt.Sprintf(
+				"mongodb-database-tools-%s-%s-unstable%s",
+				pf.Name, pf.Arch, ext,
+			)
+
+			stableFile := fmt.Sprintf(
+				"mongodb-database-tools-%s-%s-%s%s",
+				pf.Name, pf.Arch, v, ext,
+			)
+
+			latestStableFile := fmt.Sprintf(
+				"mongodb-database-tools-%s-%s-latest-stable%s",
+				pf.Name, pf.Arch, ext,
+			)
+
+			fmt.Printf("  downloading %s\n", a.URL)
+			downloadFile(a.URL, unstableFile)
+			if v.IsStable {
+				copyFile(unstableFile, stableFile)
+				copyFile(unstableFile, latestStableFile)
+			}
+
+			fmt.Printf("    uploading to %s\n", unstableFile)
+			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
+			if v.IsStable {
+				fmt.Printf("    uploading to %s\n", stableFile)
+				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
+				fmt.Printf("    uploading to %s\n", latestStableFile)
+				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
+			}
+		}
+
 	}
 }

@@ -62,6 +62,10 @@ func GetByVariant(variant string) (Platform, bool) {
 	return p, ok
 }
 
+func Count() int {
+	return len(platforms)
+}
+
 func (p Platform) DebianArch() string {
 	if p.Pkg != PkgDeb {
 		panic("called DebianArch on non-debian platform")
@@ -75,6 +79,18 @@ func (p Platform) DebianArch() string {
 	default:
 		return p.Arch
 	}
+}
+
+func (p Platform) ArtifactExtensions() []string {
+	switch p.OS {
+	case OSLinux:
+		return []string{"tgz", p.Pkg}
+	case OSMac:
+		return []string{"tgz"}
+	case OSWindows:
+		return []string{"zip", "msi"}
+	}
+	panic("unreachable")
 }
 
 var platformsByVariant map[string]Platform

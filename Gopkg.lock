@@ -9,6 +9,55 @@
   revision = "3550fdcf1f43b89aaeabaa4559eaae6dc4407e42"
 
 [[projects]]
+  digest = "1:7c1116c6cd1c74152d61c02d64e4a3269d6f7744efb3fd5571f29169797c9a73"
+  name = "github.com/DataDog/zstd"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "8fdb579680349497546a04291cedfff98a7829a0"
+  version = "v1.4.4"
+
+[[projects]]
+  digest = "1:42ad88cf90b3fcd2fa1d101f59ec2c2b1274484d7c7dda2c1ad29200b0cc7bc1"
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    ".",
+    "aws",
+    "aws/arn",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/credentials",
+    "aws/endpoints",
+    "aws/request",
+    "aws/signer/v4",
+    "internal/context",
+    "internal/ini",
+    "internal/s3err",
+    "internal/sdkio",
+    "internal/sdkmath",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "internal/strings",
+    "internal/sync/singleflight",
+    "private/protocol",
+    "private/protocol/eventstream",
+    "private/protocol/eventstream/eventstreamapi",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/restxml",
+    "private/protocol/xml/xmlutil",
+    "service/s3",
+    "service/s3/internal/arn",
+    "service/s3/s3iface",
+    "service/s3/s3manager",
+  ]
+  pruneopts = "T"
+  revision = "2ff90b519baf8ee626cf6c3d451d54664ac72345"
+  version = "v1.29.11"
+
+[[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
   name = "github.com/go-stack/stack"
   packages = ["."]
@@ -52,6 +101,13 @@
   pruneopts = "T"
   revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
   version = "v1.4.0"
+
+[[projects]]
+  digest = "1:b3f2dea8fe8eadb5833f7c8a2ef35dae07308bf7a4d0fee7f37774314e1964d3"
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "c2b33e84"
 
 [[projects]]
   digest = "1:4b63210654b1f2b664f74ec434a1bb1cb442b3d75742cc064a10808d1cca6361"
@@ -260,6 +316,9 @@
   analyzer-version = 1
   input-imports = [
     "github.com/3rf/mongo-lint",
+    "github.com/aws/aws-sdk-go",
+    "github.com/aws/aws-sdk-go/aws",
+    "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/google/go-cmp/cmp",
     "github.com/mongodb/mongo-tools-common/archive",
     "github.com/mongodb/mongo-tools-common/auth",
