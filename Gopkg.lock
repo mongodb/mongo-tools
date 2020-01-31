@@ -9,7 +9,6 @@
   revision = "3550fdcf1f43b89aaeabaa4559eaae6dc4407e42"
 
 [[projects]]
-<<<<<<< HEAD
   digest = "1:7c1116c6cd1c74152d61c02d64e4a3269d6f7744efb3fd5571f29169797c9a73"
   name = "github.com/DataDog/zstd"
   packages = ["."]
@@ -59,8 +58,6 @@
   version = "v1.29.11"
 
 [[projects]]
-=======
->>>>>>> TOOLS-2460 Attempt to parse positional arguments as URIs
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
   name = "github.com/go-stack/stack"
   packages = ["."]

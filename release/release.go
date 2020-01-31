@@ -116,6 +116,11 @@ func isTaggedRelease(rev string) bool {
 	return err == nil
 }
 
+func isTaggedRelease(rev string) bool {
+	_, err := run("git", "describe", "--exact", rev)
+	return err == nil
+}
+
 func getReleaseName() string {
 	p, err := platform.GetFromEnv()
 	check(err, "get platform")
@@ -657,6 +662,42 @@ func downloadFile(url, dst string) {
 	check(err, "write release file from http body")
 }
 
+func getRPMVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
+	rLabel := strings.Split(version, "-")[0]
+	if rLabel[0] == 'r' {
+		return rLabel[1:]
+	}
+	return rLabel
+}
+
+func getRPMRelease(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to g7f57f9a2
+	// will return 1 if nothing is specified, because rpm
+	// expects _something_.
+	parts := strings.Split(version, "-")
+	if len(parts) < 2 {
+		return "1"
+	}
+	return parts[1]
+}
+
+func getDebVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2-39-g7f57f9a2
+	if version[0] == 'r' {
+		return version[1:]
+	}
+	return version
+}
+
+	resp, err := http.Get(url)
+	check(err, "download release file")
+	defer resp.Body.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	check(err, "write release file from http body")
+}
+
 func computeMD5(filename string) string {
 	content, err := ioutil.ReadFile(filename)
 	check(err, "reading file during md5 summing")
@@ -823,8 +864,9 @@ func uploadRelease(v version.Version) {
 		check(err, "get aws client")
 
 		for _, a := range artifacts {
-			ext := path.Ext(a.URL)
+			fmt.Println(a.URL)
 
+			ext := path.Ext(a.URL)
 			unstableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-unstable%s",
 				pf.Name, pf.Arch, ext,
@@ -842,17 +884,17 @@ func uploadRelease(v version.Version) {
 
 			fmt.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
-			if v.IsStable() {
+			if v.IsStable {
 				copyFile(unstableFile, stableFile)
 				copyFile(unstableFile, latestStableFile)
 			}
 
-			fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
+			fmt.Printf("    uploading to %s\n", unstableFile)
 			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
-			if v.IsStable() {
-				fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
+			if v.IsStable {
+				fmt.Printf("    uploading to %s\n", stableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
-				fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
+				fmt.Printf("    uploading to %s\n", latestStableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
 			}
 		}

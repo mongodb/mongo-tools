@@ -55,7 +55,6 @@ func (a *AWS) UploadFile(bucket, objPath, filename string) error {
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
 		Body:   file,
 	})
 	if err != nil {
