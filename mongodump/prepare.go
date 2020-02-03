@@ -328,6 +328,11 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			// so don't dump it.
 			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
 		}
+
+		if dump.OutputOptions.ViewsAsCollections && ci.IsView() {
+			delete(intent.Options, "viewOn")
+			delete(intent.Options, "pipeline")
+		}
 		//Set the MetadataFile path.
 		if !intent.IsSystemIndexes() {
 			if dump.OutputOptions.Archive != "" {

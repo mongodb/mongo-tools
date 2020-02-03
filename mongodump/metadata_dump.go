@@ -60,7 +60,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 		return err
 	}
 
-	if intent.IsView() {
+	if dump.OutputOptions.ViewsAsCollections {
 		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a view", intent.Namespace())
 	} else {
 		// get the indexes
