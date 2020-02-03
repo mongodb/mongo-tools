@@ -727,7 +727,7 @@ functions:
           GOROOT="" set_goenv || exit
           export EVG_PLATFORM=${_platform}
           go run release/release.go build-archive
-          go run release/release.go build-installer
+          go run release/release.go build-msi
 
     # upload individual release artifacts to task page
     - command: s3.put

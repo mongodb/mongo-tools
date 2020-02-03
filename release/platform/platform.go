@@ -39,7 +39,7 @@ func IsWindows() (bool, error) {
 	}
 
 	switch p.Name {
-	case "windowsVS2017":
+	case "windowsVS2017", "win32":
 		return true, nil
 	default:
 		return false, nil

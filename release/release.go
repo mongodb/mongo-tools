@@ -178,12 +178,13 @@ func buildMSI() error {
 		return err
 	}
     wixPath := buildPath("C:", "wixtools", "bin")
-	wisUiExtPath := buildPath(wixPath, "WixUIExtension.dll")
+	wixUIExtPath := buildPath(wixPath, "WixUIExtension.dll")
 	projectName := "MongoDB Tools"
 	sourceDir := cwd
 	resourceDir := cwd
 	binDir := cwd
 	objDir := buildPath(cwd, "objs")
+	arch := "x64"
 
 	version := getVersion()
 
@@ -191,62 +192,60 @@ func buildMSI() error {
 		return fmt.Errorf("upgradeCode in release.go must be updated")
 	}
 
-//# upgrade code needs to change everytime we
-//# rev the minor version (1.0 -> 1.1). That way, we
-//# will allow multiple minor versions to be installed
-//# side-by-side.
-//if ([double]$version -gt 49.0) {
-//    throw "You must change the upgrade code for a minor revision.
-//Once that is done, change the version number above to
-//account for the next revision that will require being
-//upgradeable. Make sure to change both x64 and x86 upgradeCode"
-//}
-//
-//$upgradeCode = 
-//$Arch = "x64"
-//
-//# compile wxs into .wixobjs
-//& $WixPath\candle.exe -wx `
-//    -dProductId="*" `
-//    -dPlatform="$Arch" `
-//    -dUpgradeCode="$upgradeCode" `
-//    -dVersion="$version" `
-//    -dVersionLabel="$VersionLabel" `
-//    -dProjectName="$ProjectName" `
-//    -dSourceDir="$sourceDir" `
-//    -dResourceDir="$resourceDir" `
-//    -dSslDir="$binDir" `
-//    -dBinaryDir="$binDir" `
-//    -dTargetDir="$objDir" `
-//    -dTargetExt=".msi" `
-//    -dTargetFileName="release" `
-//    -dOutDir="$objDir" `
-//    -dConfiguration="Release" `
-//    -arch "$Arch" `
-//    -out "$objDir" `
-//    -ext "$wixUiExt" `
-//    "$resourceDir\Product.wxs" `
-//    "$resourceDir\FeatureFragment.wxs" `
-//    "$resourceDir\BinaryFragment.wxs" `
-//    "$resourceDir\LicensingFragment.wxs" `
-//    "$resourceDir\UIFragment.wxs"
-//
-//if(-not $?) {
-//    exit 1
-//}
-//
-//$artifactsDir = pwd
-//
-//# link wixobjs into an msi
-//& $WixPath\light.exe -wx `
-//    -cultures:en-us `
-//    -out "$artifactsDir\mongodb-tools-$VersionLabel-win-x86-64.msi" `
-//    -ext "$wixUiExt" `
-//    $objDir\Product.wixobj `
-//    $objDir\FeatureFragment.wixobj `
-//    $objDir\BinaryFragment.wixobj `
-//    $objDir\LicensingFragment.wixobj `
-//    $objDir\UIFragment.wixobj
+	candle := buildPath(wixPath, "candle.exe")
+	out, err := run(candle, "-wx",
+		`-dProductId="*"`,
+		`-dPlatform="$Arch"`,
+		`-dUpgradeCode="$upgradeCode"`,
+		`-dVersion="$version"`,
+		`-dVersionLabel=` + version,
+		`-dProjectName=` + projectName,
+		`-dSourceDir=` + sourceDir,
+		`-dResourceDir=` + resourceDir,
+		`-dSslDir=` + binDir,
+		`-dBinaryDir=` + binDir,
+		`-dTargetDir=` + objDir,
+		`-dTargetExt=".msi"`,
+		`-dTargetFileName="release"`,
+		`-dOutDir=` + objDir,
+		`-dConfiguration="Release"`,
+		`-arch ` + arch,
+		`-out ` + objDir,
+		`-ext ` + wixUIExtPath,
+		`Product.wxs`,
+		`FeatureFragment.wxs`,
+		`BinaryFragment.wxs`,
+		`LicensingFragment.wxs`,
+		`UIFragment.wxs`,
+	)
+
+	if err != nil {
+		log.Fatalf("%v", out)
+		return err
+	}
+
+	output := "mongodb-cli-tools-" + version + "-win-x86-64.msi"
+	light := buildPath(wixPath, "light.exe")
+	out, err = run(light, "-wx",
+   		`-cultures:en-us`,
+  	 	`-out ` + output,
+		`-ext ` + wixUIExtPath,
+		`Product.wixobj`,
+		`FeatureFragment.wixobj`,
+  		`BinaryFragment.wixobj`,
+  		`LicensingFragment.wixobj`,
+  		`UIFragment.wixobj`,
+	)
+	if err != nil {
+		log.Fatalf("%v", out)
+		return err
+	}
+
+	// Copy to top level directory so we can upload it.
+	os.Link(
+		output,
+		buildPath("..", output),
+	)
 	return nil
 }
 
