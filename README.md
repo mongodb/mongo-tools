@@ -68,3 +68,7 @@ See our [Contributor's Guide](CONTRIBUTING.md).
 Documentation
 ---------------
 See the MongoDB packages [documentation](http://docs.mongodb.org/master/reference/program/).
+
+JIRA Integration
+--------------------
+We have it!
