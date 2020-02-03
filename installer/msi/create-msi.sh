@@ -1,50 +1,32 @@
 #!/bin/bash
 # Copyright (c) 2020-Present MongoDB Inc.
 
-# shellcheck source=prepare-shell.sh
-. "$(dirname "$0")/prepare-shell.sh"
+MDBTools_VER="$(cat ./VERSION.txt)"
 
-(
-  if [ "$PLATFORM_NAME" != windows ]; then
-      exit 0
-  fi
+# clear MSI_BUILD_DIR
+MSI_BUILD_DIR="$PROJECT_ROOT/msi_build")
+rm -rf "$MSI_BUILD_DIR"
+mkdir -p "$MSI_BUILD_DIR"
 
-  PREFIX=mongodb-tools-"$MDBTools_VER"-win-x86-64
+cd "$MSI_BUILD_DIR"
 
-  # clear MSI_BUILD_DIR
-  rm -rf "$MSI_BUILD_DIR"
-  mkdir -p "$MSI_BUILD_DIR"
+# copy msi sources to current directory
+cp -R "$PROJECT_ROOT/installer/msi/"* ./
 
-  cd "$MSI_BUILD_DIR"
+# copy README.md from the PROJECT_ROOT
+cp "$PROJECT_ROOT/README.md" ./
 
-  # copy msi sources to current directory
-  cp -R "$PROJECT_ROOT/installer/msi/"* ./
+# copy bin dir.
+cp "$PROJECT_ROOT"/bin/* ./
 
-  # copy bin dir to appropriate location
-  cp "$PROJECT_ROOT"/bin/* ./
+# copy openssl dlls.
+cp "/cygdrive/c/openssl/bin/*.dll" ./
 
-  if [ "$PLATFORM_ARCH" = "64" ]; then
-         arch="x64"
-  else
-         arch="x86"
-  fi
-
-  "$POWERSHELL" \
-          -NoProfile \
-          -NoLogo \
-          -NonInteractive \
-          -ExecutionPolicy ByPass \
-          -File ./build-msi.ps1 \
-          -Arch "$arch" \
-          -VersionLabel "$MDBTools_VER"
-
-  # clear PKG_DIR
-  rm -rf "$PKG_DIR"
-  mkdir -p "$PKG_DIR"
-
-  # copy the msi to PKG_DIR
-  cp release.msi "$PKG_DIR"/mongodb-tools.msi
-) > $LOG_FILE 2>&1
-
-print_exit_msg
-
+POWERSHELL='C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe' # 64-bit powershell
+"$POWERSHELL" \
+        -NoProfile \
+        -NoLogo \
+        -NonInteractive \
+        -ExecutionPolicy ByPass \
+        -File ./build-msi.ps1 \
+        -VersionLabel "$MDBTools_VER"

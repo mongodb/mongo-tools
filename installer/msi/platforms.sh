@@ -56,6 +56,7 @@ win64)
     # make sure binaries we use in our scripts are available in the PATH
     DEVENV_PATH='/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/Common7/IDE'
     CMAKE_PATH='/cygdrive/c/cmake/bin'
+    POWERSHELL='C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe' # 64-bit powershell
     WIX_PATH='/cygdrive/c/wixtools/bin'
 	OPENSSL_PATH='/cygdrive/c/openssl/bin'
     ;;

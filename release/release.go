@@ -15,6 +15,9 @@ import (
 	"github.com/mongodb/mongo-tools/release/platform"
 )
 
+// The wix upgradeCode must be updated when the minor version changes.
+var upgradeCode string = "56c0fda6-289a-4fd0-a539-6711864146ba"
+
 func main() {
 	// don't prefix log messages with anything
 	log.SetFlags(0)
@@ -27,7 +30,14 @@ func main() {
 	switch cmd {
 	case "build-archive":
 		buildArchive()
-	case "build-installer":
+	case "build-msi":
+		err := buildMSI()
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
+	case "build-rpm":
+		log.Fatal("not implemented")
+	case "build-deb":
 		log.Fatal("not implemented")
 	case "build-linux":
 		log.Fatal("not implemented")
@@ -51,6 +61,24 @@ var staticFiles = []string{
 	"LICENSE.md",
 	"README.md",
 	"THIRD-PARTY-NOTICES",
+}
+
+var opensslDLLs = []string{
+	"ssleay.dll",
+	"libeay.dll",
+}
+
+var msiFiles = []string {
+	"Banner_Tools.bmp",
+	"BinaryFragment.wxs",
+	"Dialog.bmp",
+	"Dialog_Tools.bmp",
+	"FeatureFragment.wxs",
+	"Installer_Icon_16x16.ico",
+	"Installer_Icon_32x32.ico",
+	"LicensingFragment.wxs",
+	"Product.wxs",
+	"UIFragment.wxs",
 }
 
 func check(err error, format ...interface{}) {
@@ -96,6 +124,130 @@ func buildArchive() {
 	} else {
 		buildTarball()
 	}
+}
+
+func buildPath(parts ...string) string {
+	return strings.Join(parts, string(os.PathSeparator))
+}
+
+func buildMSI() error {
+	win, err := platform.IsWindows()
+	check(err, "check platform type")
+	if !win {
+		return nil
+	}
+
+	// set up build directory.
+	msiBuildDir := "msi_build"
+	os.RemoveAll(msiBuildDir)
+	os.MkdirAll(msiBuildDir, os.ModePerm)
+	os.Chdir(msiBuildDir)
+	oldCwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	// we'll want to go back to the original directory, just in case.
+	defer os.Chdir(oldCwd)
+
+	// make links to opensslDLLs. They need to be in this directory for Wix.
+	for _, name := range opensslDLLs {
+		os.Link(
+			buildPath("C:", "openssl", "bin", name),
+			name,
+		)
+	}
+
+	// make links to all the staticFiles. They need to be in this
+	// directory for Wix.
+	for _, name := range staticFiles {
+		os.Link(
+			buildPath("..", name),
+			name,
+		)
+	}
+
+	for _, name := range msiFiles {
+		os.Link(
+			buildPath("..", "installer", "msi", name),
+			name,
+		)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+    wixPath := buildPath("C:", "wixtools", "bin")
+	wisUiExtPath := buildPath(wixPath, "WixUIExtension.dll")
+	projectName := "MongoDB Tools"
+	sourceDir := cwd
+	resourceDir := cwd
+	binDir := cwd
+	objDir := buildPath(cwd, "objs")
+
+	version := getVersion()
+
+	if version > "r49.0" {
+		return fmt.Errorf("upgradeCode in release.go must be updated")
+	}
+
+//# upgrade code needs to change everytime we
+//# rev the minor version (1.0 -> 1.1). That way, we
+//# will allow multiple minor versions to be installed
+//# side-by-side.
+//if ([double]$version -gt 49.0) {
+//    throw "You must change the upgrade code for a minor revision.
+//Once that is done, change the version number above to
+//account for the next revision that will require being
+//upgradeable. Make sure to change both x64 and x86 upgradeCode"
+//}
+//
+//$upgradeCode = 
+//$Arch = "x64"
+//
+//# compile wxs into .wixobjs
+//& $WixPath\candle.exe -wx `
+//    -dProductId="*" `
+//    -dPlatform="$Arch" `
+//    -dUpgradeCode="$upgradeCode" `
+//    -dVersion="$version" `
+//    -dVersionLabel="$VersionLabel" `
+//    -dProjectName="$ProjectName" `
+//    -dSourceDir="$sourceDir" `
+//    -dResourceDir="$resourceDir" `
+//    -dSslDir="$binDir" `
+//    -dBinaryDir="$binDir" `
+//    -dTargetDir="$objDir" `
+//    -dTargetExt=".msi" `
+//    -dTargetFileName="release" `
+//    -dOutDir="$objDir" `
+//    -dConfiguration="Release" `
+//    -arch "$Arch" `
+//    -out "$objDir" `
+//    -ext "$wixUiExt" `
+//    "$resourceDir\Product.wxs" `
+//    "$resourceDir\FeatureFragment.wxs" `
+//    "$resourceDir\BinaryFragment.wxs" `
+//    "$resourceDir\LicensingFragment.wxs" `
+//    "$resourceDir\UIFragment.wxs"
+//
+//if(-not $?) {
+//    exit 1
+//}
+//
+//$artifactsDir = pwd
+//
+//# link wixobjs into an msi
+//& $WixPath\light.exe -wx `
+//    -cultures:en-us `
+//    -out "$artifactsDir\mongodb-tools-$VersionLabel-win-x86-64.msi" `
+//    -ext "$wixUiExt" `
+//    $objDir\Product.wixobj `
+//    $objDir\FeatureFragment.wixobj `
+//    $objDir\BinaryFragment.wixobj `
+//    $objDir\LicensingFragment.wixobj `
+//    $objDir\UIFragment.wixobj
+	return nil
 }
 
 func addToTarball(tw *tar.Writer, dst, src string) {
