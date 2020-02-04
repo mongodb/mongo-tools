@@ -15,8 +15,53 @@ import (
 	"github.com/mongodb/mongo-tools/release/platform"
 )
 
-// The wix upgradeCode must be updated when the minor version changes.
-var upgradeCode string = "56c0fda6-289a-4fd0-a539-6711864146ba"
+// The msi msiUpgradeCode must be updated when the minor version changes.
+var msiUpgradeCode string = "56c0fda6-289a-4fd0-a539-6711864146ba"
+
+// These are the binaries that are part of mongo-tools, relative
+// to the location of this go file.
+var binariesPath string = filepath.Join("..", "bin")
+var binaries = []string{
+	"bsondump",
+	"mongodump",
+	"mongoexport",
+	"mongofiles",
+	"mongoimport",
+	"mongorestore",
+	"mongostat",
+	"mongotop",
+}
+
+// These are the meta-text files that are part of mongo-tools, relative
+// to the location of this go file.
+var staticFilesPath string = ".."
+var staticFiles = []string{
+	"LICENSE.md",
+	"README.md",
+	"THIRD-PARTY-NOTICES",
+}
+
+// note that the os.Link function does not allow for drive letters on Windows, absolute paths
+// must be specified with a leading os.PathSeparator.
+var saslDLLsPath string = string(os.PathSeparator) + filepath.Join("sasl", "bin")
+var saslDLLs = []string{
+	"libsasl.dll",
+}
+
+// location of the necessary data files to build the msi.
+var msiFilesPath string = filepath.Join("..", "installer", "msi")
+var msiFiles = []string{
+	"Banner_Tools.bmp",
+	"BinaryFragment.wxs",
+	"Dialog.bmp",
+	"Dialog_Tools.bmp",
+	"FeatureFragment.wxs",
+	"Installer_Icon_16x16.ico",
+	"Installer_Icon_32x32.ico",
+	"LicensingFragment.wxs",
+	"Product.wxs",
+	"UIFragment.wxs",
+}
 
 func main() {
 	// don't prefix log messages with anything
@@ -46,41 +91,6 @@ func main() {
 	}
 }
 
-var binaries = []string{
-	"bsondump",
-	"mongodump",
-	"mongoexport",
-	"mongofiles",
-	"mongoimport",
-	"mongorestore",
-	"mongostat",
-	"mongotop",
-}
-
-var staticFiles = []string{
-	"LICENSE.md",
-	"README.md",
-	"THIRD-PARTY-NOTICES",
-}
-
-var opensslDLLs = []string{
-	"ssleay.dll",
-	"libeay.dll",
-}
-
-var msiFiles = []string{
-	"Banner_Tools.bmp",
-	"BinaryFragment.wxs",
-	"Dialog.bmp",
-	"Dialog_Tools.bmp",
-	"FeatureFragment.wxs",
-	"Installer_Icon_16x16.ico",
-	"Installer_Icon_32x32.ico",
-	"LicensingFragment.wxs",
-	"Product.wxs",
-	"UIFragment.wxs",
-}
-
 func check(err error, format ...interface{}) {
 	if err == nil {
 		return
@@ -94,6 +104,8 @@ func check(err error, format ...interface{}) {
 }
 
 func run(name string, args ...string) (string, error) {
+fmt.Println(name)
+fmt.Println(args)
 	cmd := exec.Command(name, args...)
 	out, err := cmd.Output()
 	return strings.TrimSpace(string(out)), err
@@ -126,10 +138,6 @@ func buildArchive() {
 	}
 }
 
-func buildPath(parts ...string) string {
-	return strings.Join(parts, string(os.PathSeparator))
-}
-
 func buildMSI() error {
 	win, err := platform.IsWindows()
 	check(err, "check platform type")
@@ -150,27 +158,46 @@ func buildMSI() error {
 	defer os.Chdir(oldCwd)
 
 	// make links to opensslDLLs. They need to be in this directory for Wix.
-	for _, name := range opensslDLLs {
-		os.Link(
-			buildPath("C:", "openssl", "bin", name),
+	for _, name := range saslDLLs{
+		err := os.Link(
+			filepath.Join(saslDLLsPath, name),
 			name,
 		)
+		if err != nil {
+			return err
+		}
 	}
 
 	// make links to all the staticFiles. They need to be in this
 	// directory for Wix.
 	for _, name := range staticFiles {
-		os.Link(
-			buildPath("..", name),
+		err := os.Link(
+			filepath.Join(staticFilesPath, name),
 			name,
 		)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, name := range msiFiles {
-		os.Link(
-			buildPath("..", "installer", "msi", name),
+		err := os.Link(
+			filepath.Join(msiFilesPath, name),
 			name,
 		)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, name := range binaries {
+		err := os.Link(
+			filepath.Join(binariesPath, name) + ".exe",
+			name + ".exe",
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	cwd, err := os.Getwd()
@@ -179,33 +206,27 @@ func buildMSI() error {
 	}
 	// Wix requires the directories to end with a separator.
 	cwd += string(os.PathSeparator)
-	wixPath := buildPath("C:", "wixtools", "bin")
-	wixUIExtPath := buildPath(wixPath, "WixUIExtension.dll")
+	wixPath := string(os.PathSeparator) + filepath.Join("wixtools", "bin")
+	wixUIExtPath := filepath.Join(wixPath, "WixUIExtension.dll")
 	projectName := "MongoDB Tools"
 	sourceDir := cwd
 	resourceDir := cwd
 	binDir := cwd
-	objDir := buildPath(cwd, "objs") + string(os.PathSeparator)
+	objDir := filepath.Join(cwd, "objs") + string(os.PathSeparator)
 	arch := "x64"
 
 	version := getVersion()
 
 	if version > "r49.0" {
-		return fmt.Errorf("upgradeCode in release.go must be updated")
+		return fmt.Errorf("msiUpgradeCode in release.go must be updated")
 	}
 
-	files, err := filepath.Glob("*")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("!!!!!!", files)
-
-	candle := buildPath(wixPath, "candle.exe")
+	candle := filepath.Join(wixPath, "candle.exe")
 	out, err := run(candle,
 		"-wx",
 		`-dProductId=*`,
 		`-dPlatform=x64`,
-		`-dUpgradeCode=`+upgradeCode,
+		`-dUpgradeCode=`+msiUpgradeCode,
 		`-dVersion=49.0.0`,
 		`-dVersionLabel=`+version,
 		`-dProjectName=`+projectName,
@@ -227,6 +248,8 @@ func buildMSI() error {
 		`LicensingFragment.wxs`,
 		`UIFragment.wxs`,
 	)
+fmt.Println(err)
+fmt.Println(filepath.Glob("*"))
 
 	if err != nil {
 		log.Fatalf("%v", out)
@@ -234,17 +257,17 @@ func buildMSI() error {
 	}
 
 	output := "mongodb-cli-tools-" + version + "-win-x86-64.msi"
-	light := buildPath(wixPath, "light.exe")
+	light := filepath.Join(wixPath, "light.exe")
 	out, err = run(light,
 		"-wx",
 		`-cultures:en-us`,
 		`-out `, output,
 		`-ext `, wixUIExtPath,
 		`Product.wixobj`,
-		buildPath(objDir, `FeatureFragment.wixobj`),
-		buildPath(objDir, `BinaryFragment.wixobj`),
-		buildPath(objDir, `LicensingFragment.wixobj`),
-		buildPath(objDir, `UIFragment.wixobj`),
+		filepath.Join(objDir, `FeatureFragment.wixobj`),
+		filepath.Join(objDir, `BinaryFragment.wixobj`),
+		filepath.Join(objDir, `LicensingFragment.wixobj`),
+		filepath.Join(objDir, `UIFragment.wixobj`),
 	)
 	if err != nil {
 		log.Fatalf("%v", out)
@@ -254,7 +277,7 @@ func buildMSI() error {
 	// Copy to top level directory so we can upload it.
 	os.Link(
 		output,
-		buildPath("..", output),
+		filepath.Join("..", output),
 	)
 	return nil
 }

@@ -39,11 +39,8 @@
        <Component Guid="{C01C3018-0329-458D-925D-73E70FE680D3}" Id="liba" Win64="$(var.win64Flag)">
             <File DiskId="1" Id="mongotop"  Name="mongotop.exe" Source="mongotop.exe" />
        </Component>
-       <Component Guid="{31B5C201-AA0F-4BF2-BBE4-72A69DC74E9D}" Id="ssleay" SharedDllRefCount="yes" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="ssleay32.dll"  Name="ssleay32.dll" Source="ssleay32.dll" />
-       </Component>
-       <Component Guid="{64E00C58-C418-465D-8F67-D00758E79448}" Id="libeay" SharedDllRefCount="yes" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="libeay32.dll"  Name="libeay32.dll" Source="libeay32.dll" />
+       <Component Guid="{31B5C201-AA0F-4BF2-BBE4-72A69DC74E9D}" Id="libsasl" SharedDllRefCount="yes" Win64="$(var.win64Flag)">
+            <File DiskId="1" Id="libsasl.dll"  Name="libsasl.dll" Source="libsasl.dll" />
        </Component>
       </DirectoryRef>
       <ComponentGroup Id="base">
@@ -57,8 +54,7 @@
           <ComponentRef Id="mongorestore" />
           <ComponentRef Id="mongostat" />
           <ComponentRef Id="mongotop" />
-          <ComponentRef Id="ssleay" />
-          <ComponentRef Id="libeay" />
+          <ComponentRef Id="libsasl" />
        </ComponentGroup>
   </Fragment>
 </Wix>
