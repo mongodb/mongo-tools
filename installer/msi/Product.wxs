@@ -50,7 +50,7 @@
 
         <!-- UI related -->
         <WixVariable Id="WixUIDialogBmp" Value="$(var.ResourceDir)\Dialog.bmp" />
-        <WixVariable Id="WixUIBannerBmp" Value="$(var.ResourceDir)\Banner.bmp" />
+        <WixVariable Id="WixUIBannerBmp" Value="$(var.ResourceDir)\Banner_Tools.bmp" />
         <WixVariable Id="WixUIInfoIco" Value="$(var.ResourceDir)\Installer_Icon_32x32.ico" />
         <WixVariable Id="WixUIExclamationIco" Value="$(var.ResourceDir)\Installer_Icon_32x32.ico" />
 

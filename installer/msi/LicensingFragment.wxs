@@ -5,8 +5,8 @@
     <DirectoryRef Id="INSTALLLOCATION">
       <Component Id="c_License" Guid="30eaf4aa-4fe1-4d19-96c9-69c061da6e8c">
         <File Id="f_License"
-              Name="LICENSE"
-              Source="$(var.SourceDir)\LICENSE"
+              Name="LICENSE.md"
+              Source="$(var.SourceDir)\LICENSE.md"
               DiskId ="1"/>
       </Component>
       <Component Id="c_Thirdparty" Guid="4e08bb54-a96b-40b4-9cc0-082351b8da4b">
@@ -18,7 +18,7 @@
       <Component Id="c_Readme" Guid="f40564ba-a569-4567-895b-f720b816638b">
         <File Id="f_Readme"
               Name="README"
-              Source="$(var.SourceDir)\README"
+              Source="$(var.SourceDir)\README.md"
               DiskId ="1"/>
       </Component>
     </DirectoryRef>
@@ -29,6 +29,6 @@
       <ComponentRef Id="c_License"/>
     </ComponentGroup>
 
-    <WixVariable Id="WixUILicense" Value="$(var.ResourceDir)\LICENSE" />
+    <WixVariable Id="WixUILicense" Value="$(var.ResourceDir)\LICENSE.md" />
   </Fragment>
 </Wix>

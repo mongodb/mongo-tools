@@ -104,8 +104,6 @@ func check(err error, format ...interface{}) {
 }
 
 func run(name string, args ...string) (string, error) {
-fmt.Println(name)
-fmt.Println(args)
 	cmd := exec.Command(name, args...)
 	out, err := cmd.Output()
 	return strings.TrimSpace(string(out)), err
@@ -144,6 +142,7 @@ func buildMSI() error {
 	if !win {
 		return nil
 	}
+	log.Printf("building msi installer\n")
 
 	// set up build directory.
 	msiBuildDir := "msi_build"
@@ -248,8 +247,6 @@ func buildMSI() error {
 		`LicensingFragment.wxs`,
 		`UIFragment.wxs`,
 	)
-fmt.Println(err)
-fmt.Println(filepath.Glob("*"))
 
 	if err != nil {
 		log.Fatalf("%v", out)
@@ -261,9 +258,9 @@ fmt.Println(filepath.Glob("*"))
 	out, err = run(light,
 		"-wx",
 		`-cultures:en-us`,
-		`-out `, output,
-		`-ext `, wixUIExtPath,
-		`Product.wixobj`,
+		`-out`, output,
+		`-ext`, wixUIExtPath,
+		filepath.Join(objDir, `Product.wixobj`),
 		filepath.Join(objDir, `FeatureFragment.wixobj`),
 		filepath.Join(objDir, `BinaryFragment.wixobj`),
 		filepath.Join(objDir, `LicensingFragment.wixobj`),
