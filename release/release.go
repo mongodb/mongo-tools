@@ -241,10 +241,10 @@ func buildMSI() error {
 		`-out `, output,
 		`-ext `, wixUIExtPath,
 		`Product.wixobj`,
-		`FeatureFragment.wixobj`,
-		`BinaryFragment.wixobj`,
-		`LicensingFragment.wixobj`,
-		`UIFragment.wixobj`,
+		buildPath(objDir, `FeatureFragment.wixobj`),
+		buildPath(objDir, `BinaryFragment.wixobj`),
+		buildPath(objDir, `LicensingFragment.wixobj`),
+		buildPath(objDir, `UIFragment.wixobj`),
 	)
 	if err != nil {
 		log.Fatalf("%v", out)
