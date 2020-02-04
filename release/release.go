@@ -203,10 +203,10 @@ func buildMSI() error {
 	candle := buildPath(wixPath, "candle.exe")
 	out, err := run(candle,
 		"-wx",
-		`-dProductId="MongoTools"`,
+		`-dProductId=*`,
 		`-dPlatform=x64`,
 		`-dUpgradeCode=`+upgradeCode,
-		`-dVersion=`+version,
+		`-dVersion=49.0.0`,
 		`-dVersionLabel=`+version,
 		`-dProjectName=`+projectName,
 		`-dSourceDir=`+sourceDir,
