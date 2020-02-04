@@ -68,7 +68,7 @@ var opensslDLLs = []string{
 	"libeay.dll",
 }
 
-var msiFiles = []string {
+var msiFiles = []string{
 	"Banner_Tools.bmp",
 	"BinaryFragment.wxs",
 	"Dialog.bmp",
@@ -177,7 +177,7 @@ func buildMSI() error {
 	if err != nil {
 		return err
 	}
-    wixPath := buildPath("C:", "wixtools", "bin")
+	wixPath := buildPath("C:", "wixtools", "bin")
 	wixUIExtPath := buildPath(wixPath, "WixUIExtension.dll")
 	projectName := "MongoDB Tools"
 	sourceDir := cwd
@@ -198,20 +198,20 @@ func buildMSI() error {
 		`-dPlatform="$Arch"`,
 		`-dUpgradeCode="$upgradeCode"`,
 		`-dVersion="$version"`,
-		`-dVersionLabel=` + version,
-		`-dProjectName=` + projectName,
-		`-dSourceDir=` + sourceDir,
-		`-dResourceDir=` + resourceDir,
-		`-dSslDir=` + binDir,
-		`-dBinaryDir=` + binDir,
-		`-dTargetDir=` + objDir,
+		`-dVersionLabel=`+version,
+		`-dProjectName=`+projectName,
+		`-dSourceDir=`+sourceDir,
+		`-dResourceDir=`+resourceDir,
+		`-dSslDir=`+binDir,
+		`-dBinaryDir=`+binDir,
+		`-dTargetDir=`+objDir,
 		`-dTargetExt=".msi"`,
 		`-dTargetFileName="release"`,
-		`-dOutDir=` + objDir,
+		`-dOutDir=`+objDir,
 		`-dConfiguration="Release"`,
-		`-arch ` + arch,
-		`-out ` + objDir,
-		`-ext ` + wixUIExtPath,
+		`-arch=`+arch,
+		`-out=`+objDir,
+		`-ext=`+wixUIExtPath,
 		`Product.wxs`,
 		`FeatureFragment.wxs`,
 		`BinaryFragment.wxs`,
@@ -227,14 +227,14 @@ func buildMSI() error {
 	output := "mongodb-cli-tools-" + version + "-win-x86-64.msi"
 	light := buildPath(wixPath, "light.exe")
 	out, err = run(light, "-wx",
-   		`-cultures:en-us`,
-  	 	`-out ` + output,
-		`-ext ` + wixUIExtPath,
+		`-cultures:en-us`,
+		`-out=`+output,
+		`-ext=`+wixUIExtPath,
 		`Product.wixobj`,
 		`FeatureFragment.wixobj`,
-  		`BinaryFragment.wixobj`,
-  		`LicensingFragment.wixobj`,
-  		`UIFragment.wixobj`,
+		`BinaryFragment.wixobj`,
+		`LicensingFragment.wixobj`,
+		`UIFragment.wixobj`,
 	)
 	if err != nil {
 		log.Fatalf("%v", out)
