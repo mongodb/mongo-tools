@@ -177,13 +177,15 @@ func buildMSI() error {
 	if err != nil {
 		return err
 	}
+	// Wix requires the directories to end with a separator.
+	cwd += string(os.PathSeparator)
 	wixPath := buildPath("C:", "wixtools", "bin")
 	wixUIExtPath := buildPath(wixPath, "WixUIExtension.dll")
 	projectName := "MongoDB Tools"
 	sourceDir := cwd
 	resourceDir := cwd
 	binDir := cwd
-	objDir := buildPath(cwd, "objs")
+	objDir := buildPath(cwd, "objs") + string(os.PathSeparator)
 	arch := "x64"
 
 	version := getVersion()
@@ -192,12 +194,19 @@ func buildMSI() error {
 		return fmt.Errorf("upgradeCode in release.go must be updated")
 	}
 
+	files, err := filepath.Glob("*")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("!!!!!!", files)
+
 	candle := buildPath(wixPath, "candle.exe")
-	out, err := run(candle, "-wx",
-		`-dProductId="*"`,
-		`-dPlatform="$Arch"`,
-		`-dUpgradeCode="$upgradeCode"`,
-		`-dVersion="$version"`,
+	out, err := run(candle,
+		"-wx",
+		`-dProductId="MongoTools"`,
+		`-dPlatform=x64`,
+		`-dUpgradeCode=`+upgradeCode,
+		`-dVersion=`+version,
 		`-dVersionLabel=`+version,
 		`-dProjectName=`+projectName,
 		`-dSourceDir=`+sourceDir,
@@ -209,9 +218,9 @@ func buildMSI() error {
 		`-dTargetFileName="release"`,
 		`-dOutDir=`+objDir,
 		`-dConfiguration="Release"`,
-		`-arch=`+arch,
-		`-out=`+objDir,
-		`-ext=`+wixUIExtPath,
+		`-arch`, arch,
+		`-out`, objDir,
+		`-ext`, wixUIExtPath,
 		`Product.wxs`,
 		`FeatureFragment.wxs`,
 		`BinaryFragment.wxs`,
@@ -226,10 +235,11 @@ func buildMSI() error {
 
 	output := "mongodb-cli-tools-" + version + "-win-x86-64.msi"
 	light := buildPath(wixPath, "light.exe")
-	out, err = run(light, "-wx",
+	out, err = run(light,
+		"-wx",
 		`-cultures:en-us`,
-		`-out=`+output,
-		`-ext=`+wixUIExtPath,
+		`-out `, output,
+		`-ext `, wixUIExtPath,
 		`Product.wixobj`,
 		`FeatureFragment.wixobj`,
 		`BinaryFragment.wixobj`,
