@@ -215,13 +215,19 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
-		// these are only okay if restoring from a bson file
+		// log a deprecation message if restoring from a directory, or
+		// from a non-bson file with the --archive option
 		_, fileType, err := restore.getInfoFromFilename(restore.TargetDirectory)
 		if err != nil {
 			return err
 		}
 
-		if fileType != BSONFileType {
+		isDir := false
+		if target, err := newActualPath(restore.TargetDirectory); err == nil {
+			isDir = target.IsDir()
+		}
+		
+		if isDir || (fileType != BSONFileType && restore.InputOptions.Archive != "") {
 			log.Logvf(log.Always, "the --db and --collection args should only be used when "+
 				"restoring from a BSON file. Other uses are deprecated and will not exist "+
 				"in the future; use --nsInclude instead")
