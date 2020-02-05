@@ -192,8 +192,8 @@ func buildMSI() error {
 
 	for _, name := range binaries {
 		err := os.Link(
-			filepath.Join(binariesPath, name) + ".exe",
-			name + ".exe",
+			filepath.Join(binariesPath, name),
+			name,
 		)
 		if err != nil {
 			return err

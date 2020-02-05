@@ -13,28 +13,28 @@
            <RegistryValue Id="Version" Key="SOFTWARE\MongoDB\[ProductName]"  Name="Version" Root="HKLM" Type="string" Value="[ProductVersion]" />
        </Component>
        <Component Guid="{C01C3018-0321-458D-925D-73E70FE680D3}" Id="bsondump" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="bsondump"  Name="bsondump.exe" Source="bsondump.exe" />
+            <File DiskId="1" Id="bsondump"  Name="bsondump" Source="bsondump" />
        </Component>
        <Component Guid="{C01C3018-0322-458D-925D-73E70FE680D3}" Id="mongodump" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongodump"  Name="mongodump.exe" Source="mongodump.exe" />
+            <File DiskId="1" Id="mongodump"  Name="mongodump" Source="mongodump" />
        </Component>
        <Component Guid="{C01C3018-0323-458D-925D-73E70FE680D3}" Id="mongoexport" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongoexport"  Name="mongoexport.exe" Source="mongoexport.exe" />
+            <File DiskId="1" Id="mongoexport"  Name="mongoexport" Source="mongoexport" />
        </Component>
        <Component Guid="{C01C3018-0324-458D-925D-73E70FE680D3}" Id="mongofiles" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongofiles"  Name="mongofiles.exe" Source="mongofiles.exe" />
+            <File DiskId="1" Id="mongofiles"  Name="mongofiles" Source="mongofiles" />
        </Component>
        <Component Guid="{C01C3018-0325-458D-925D-73E70FE680D3}" Id="mongoimport" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongoimport"  Name="mongoimport.exe" Source="mongoimport.exe" />
+            <File DiskId="1" Id="mongoimport"  Name="mongoimport" Source="mongoimport" />
        </Component>
        <Component Guid="{C01C3018-0327-458D-925D-73E70FE680D3}" Id="mongorestore" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongorestore"  Name="mongorestore.exe" Source="mongorestore.exe" />
+            <File DiskId="1" Id="mongorestore"  Name="mongorestore" Source="mongorestore" />
        </Component>
        <Component Guid="{C01C3018-0328-458D-925D-73E70FE680D3}" Id="mongostat" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongostat"  Name="mongostat.exe" Source="mongostat.exe" />
+            <File DiskId="1" Id="mongostat"  Name="mongostat" Source="mongostat" />
        </Component>
        <Component Guid="{C01C3018-0329-458D-925D-73E70FE680D3}" Id="mongotop" Win64="$(var.win64Flag)">
-            <File DiskId="1" Id="mongotop"  Name="mongotop.exe" Source="mongotop.exe" />
+            <File DiskId="1" Id="mongotop"  Name="mongotop" Source="mongotop" />
        </Component>
        <Component Guid="{31B5C201-AA0F-4BF2-BBE4-72A69DC74E9D}" Id="libsasl" SharedDllRefCount="yes" Win64="$(var.win64Flag)">
             <File DiskId="1" Id="libsasl.dll"  Name="libsasl.dll" Source="libsasl.dll" />
