@@ -64,6 +64,7 @@ var msiFiles = []string{
 	"FeatureFragment.wxs",
 	"Installer_Icon_16x16.ico",
 	"Installer_Icon_32x32.ico",
+	"LICENSE.rtf",
 	"LicensingFragment.wxs",
 	"Product.wxs",
 	"UIFragment.wxs",
