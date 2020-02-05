@@ -32,11 +32,17 @@ var binaries = []string{
 	"mongotop",
 }
 
-// These are the meta-text files that are part of mongo-tools, relative
-// to the location of this go file.
-var staticFilesPath string = ".."
 var staticFiles = []string{
 	"LICENSE.md",
+	"README.md",
+	"THIRD-PARTY-NOTICES",
+}
+
+// These are the meta-text files that are part of mongo-tools, relative
+// to the location of this go file. We have to use an rtf verison of the
+// license, so we do not include the static files.
+var msiStaticFilesPath string = ".."
+var msiStaticFiles = []string{
 	"README.md",
 	"THIRD-PARTY-NOTICES",
 }
@@ -170,9 +176,9 @@ func buildMSI() error {
 
 	// make links to all the staticFiles. They need to be in this
 	// directory for Wix.
-	for _, name := range staticFiles {
+	for _, name := range msiStaticFiles {
 		err := os.Link(
-			filepath.Join(staticFilesPath, name),
+			filepath.Join(msiStaticFilesPath, name),
 			name,
 		)
 		if err != nil {
@@ -193,7 +199,7 @@ func buildMSI() error {
 	for _, name := range binaries {
 		err := os.Link(
 			filepath.Join(binariesPath, name),
-			name,
+			name + ".exe",
 		)
 		if err != nil {
 			return err
