@@ -156,9 +156,10 @@ func buildMSI() error {
 	// we'll want to go back to the original directory, just in case.
 	defer os.Chdir(oldCwd)
 
-	// make links to opensslDLLs. They need to be in this directory for Wix.
+	// Copy sasldlls. They need to be in this directory for Wix. Linking will
+	// not work as the dlls are on a different file system.
 	for _, name := range saslDLLs{
-		err := os.Link(
+		err := copyFile(
 			filepath.Join(saslDLLsPath, name),
 			name,
 		)
@@ -277,6 +278,20 @@ func buildMSI() error {
 		filepath.Join("..", output),
 	)
 	return nil
+}
+
+func copyFile(src, dst string) error {
+	file, err := os.Open(src)
+	check(err, "open src")
+	defer file.Close()
+
+	out, err := os.Create(dst)
+	check(err, "create dst")
+	defer out.Close()
+
+	_, err = io.Copy(out, file)
+	check(err, "copy src -> dst")
+	return out.Close()
 }
 
 func addToTarball(tw *tar.Writer, dst, src string) {
