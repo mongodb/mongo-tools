@@ -16,11 +16,10 @@ import (
 )
 
 // The msi msiUpgradeCode must be updated when the minor version changes.
-var msiUpgradeCode string = "56c0fda6-289a-4fd0-a539-6711864146ba"
+var msiUpgradeCode = "56c0fda6-289a-4fd0-a539-6711864146ba"
 
 // These are the binaries that are part of mongo-tools, relative
 // to the location of this go file.
-var binariesPath string = filepath.Join("..", "bin")
 var binaries = []string{
 	"bsondump",
 	"mongodump",
@@ -38,38 +37,6 @@ var staticFiles = []string{
 	"THIRD-PARTY-NOTICES",
 }
 
-// These are the meta-text files that are part of mongo-tools, relative
-// to the location of this go file. We have to use an rtf verison of the
-// license, so we do not include the static files.
-var msiStaticFilesPath string = ".."
-var msiStaticFiles = []string{
-	"README.md",
-	"THIRD-PARTY-NOTICES",
-}
-
-// note that the os.Link function does not allow for drive letters on Windows, absolute paths
-// must be specified with a leading os.PathSeparator.
-var saslDLLsPath string = string(os.PathSeparator) + filepath.Join("sasl", "bin")
-var saslDLLs = []string{
-	"libsasl.dll",
-}
-
-// location of the necessary data files to build the msi.
-var msiFilesPath string = filepath.Join("..", "installer", "msi")
-var msiFiles = []string{
-	"Banner_Tools.bmp",
-	"BinaryFragment.wxs",
-	"Dialog.bmp",
-	"Dialog_Tools.bmp",
-	"FeatureFragment.wxs",
-	"Installer_Icon_16x16.ico",
-	"Installer_Icon_32x32.ico",
-	"LICENSE.rtf",
-	"LicensingFragment.wxs",
-	"Product.wxs",
-	"UIFragment.wxs",
-}
-
 func main() {
 	// don't prefix log messages with anything
 	log.SetFlags(0)
@@ -83,10 +50,7 @@ func main() {
 	case "build-archive":
 		buildArchive()
 	case "build-msi":
-		err := buildMSI()
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
+		buildMSI()
 	case "build-rpm":
 		log.Fatal("not implemented")
 	case "build-deb":
@@ -143,36 +107,67 @@ func buildArchive() {
 	}
 }
 
-func buildMSI() error {
+func buildMSI() {
 	win, err := platform.IsWindows()
 	check(err, "check platform type")
 	if !win {
-		return nil
+		return
 	}
+
+	binariesPath := filepath.Join("..", "bin")
+	msiStaticFilesPath := ".."
+	// note that the file functions do not allow for drive letters on Windows, absolute paths
+	// must be specified with a leading os.PathSeparator.
+	saslDLLsPath := string(os.PathSeparator) + filepath.Join("sasl", "bin")
+	msiFilesPath := filepath.Join("..", "installer", "msi")
+
+	// These are the meta-text files that are part of mongo-tools, relative
+	// to the location of this go file. We have to use an rtf verison of the
+	// license, so we do not include the static files.
+	var msiStaticFiles = []string{
+		"README.md",
+		"THIRD-PARTY-NOTICES",
+	}
+
+	var saslDLLs = []string{
+		"libsasl.dll",
+	}
+
+	// location of the necessary data files to build the msi.
+	var msiFiles = []string{
+		"Banner_Tools.bmp",
+		"BinaryFragment.wxs",
+		"Dialog.bmp",
+		"Dialog_Tools.bmp",
+		"FeatureFragment.wxs",
+		"Installer_Icon_16x16.ico",
+		"Installer_Icon_32x32.ico",
+		"LICENSE.rtf",
+		"LicensingFragment.wxs",
+		"Product.wxs",
+		"UIFragment.wxs",
+	}
+
 	log.Printf("building msi installer\n")
 
 	// set up build directory.
 	msiBuildDir := "msi_build"
-	os.RemoveAll(msiBuildDir)
-	os.MkdirAll(msiBuildDir, os.ModePerm)
-	os.Chdir(msiBuildDir)
+	check(os.RemoveAll(msiBuildDir), "removeAll "+msiBuildDir)
+	check(os.MkdirAll(msiBuildDir, os.ModePerm), "mkdirAll "+msiBuildDir)
+	check(os.Chdir(msiBuildDir), "cd to "+msiBuildDir)
 	oldCwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
 	// we'll want to go back to the original directory, just in case.
 	defer os.Chdir(oldCwd)
+	check(err, "get current directory")
 
 	// Copy sasldlls. They need to be in this directory for Wix. Linking will
 	// not work as the dlls are on a different file system.
-	for _, name := range saslDLLs{
+	for _, name := range saslDLLs {
 		err := copyFile(
 			filepath.Join(saslDLLsPath, name),
 			name,
 		)
-		if err != nil {
-			return err
-		}
+		check(err, "copy sasl dlls into "+msiBuildDir)
 	}
 
 	// make links to all the staticFiles. They need to be in this
@@ -182,9 +177,7 @@ func buildMSI() error {
 			filepath.Join(msiStaticFilesPath, name),
 			name,
 		)
-		if err != nil {
-			return err
-		}
+		check(err, "link msi static files into "+msiBuildDir)
 	}
 
 	for _, name := range msiFiles {
@@ -192,26 +185,19 @@ func buildMSI() error {
 			filepath.Join(msiFilesPath, name),
 			name,
 		)
-		if err != nil {
-			return err
-		}
+		check(err, "link msi creation files into "+msiBuildDir)
 	}
 
 	for _, name := range binaries {
 		err := os.Link(
 			filepath.Join(binariesPath, name),
-			name + ".exe",
+			name+".exe",
 		)
-		if err != nil {
-			return err
-		}
+		check(err, "link binary files into "+msiBuildDir)
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
 	// Wix requires the directories to end with a separator.
+	cwd := msiBuildDir
 	cwd += string(os.PathSeparator)
 	wixPath := string(os.PathSeparator) + filepath.Join("wixtools", "bin")
 	wixUIExtPath := filepath.Join(wixPath, "WixUIExtension.dll")
@@ -224,8 +210,9 @@ func buildMSI() error {
 
 	version := getVersion()
 
-	if version > "r49.0" {
-		return fmt.Errorf("msiUpgradeCode in release.go must be updated")
+	lastVersion := "r49.0"
+	if version > lastVersion {
+		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be up-to-date, last version = "+lastVersion)
 	}
 
 	candle := filepath.Join(wixPath, "candle.exe")
@@ -256,10 +243,7 @@ func buildMSI() error {
 		`UIFragment.wxs`,
 	)
 
-	if err != nil {
-		log.Fatalf("%v", out)
-		return err
-	}
+	check(err, "run candle.exe\n"+out)
 
 	output := "mongodb-cli-tools-" + version + "-win-x86-64.msi"
 	light := filepath.Join(wixPath, "light.exe")
@@ -274,17 +258,13 @@ func buildMSI() error {
 		filepath.Join(objDir, `LicensingFragment.wixobj`),
 		filepath.Join(objDir, `UIFragment.wixobj`),
 	)
-	if err != nil {
-		log.Fatalf("%v", out)
-		return err
-	}
+	check(err, "run light.exe\n"+out)
 
 	// Copy to top level directory so we can upload it.
-	os.Link(
+	check(os.Link(
 		output,
 		filepath.Join("..", output),
-	)
-	return nil
+	), "linking output for s3 upload")
 }
 
 func copyFile(src, dst string) error {

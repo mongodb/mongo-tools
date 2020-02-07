@@ -3,19 +3,19 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Fragment>
     <DirectoryRef Id="INSTALLLOCATION">
-      <Component Id="c_License" Guid="30eaf4aa-4fe1-4d19-96c9-69c061da6e8c">
+      <Component Id="c_License" Guid="bc29be2b-637b-42ac-b60a-92fac066010c">
         <File Id="f_License"
               Name="LICENSE.rtf"
               Source="$(var.SourceDir)\LICENSE.rtf"
               DiskId ="1"/>
       </Component>
-      <Component Id="c_Thirdparty" Guid="4e08bb54-a96b-40b4-9cc0-082351b8da4b">
+      <Component Id="c_Thirdparty" Guid="d176d2d7-d601-45ac-8f94-f60c3f3a2ecf">
         <File Id="f_Thirdparty"
               Name="THIRD-PARTY-NOTICES"
               Source="$(var.SourceDir)\THIRD-PARTY-NOTICES"
               DiskId ="1"/>
       </Component>
-      <Component Id="c_Readme" Guid="f40564ba-a569-4567-895b-f720b816638b">
+      <Component Id="c_Readme" Guid="b1773010-44e7-462a-b586-0fe5056fb087">
         <File Id="f_Readme"
               Name="README"
               Source="$(var.SourceDir)\README.md"

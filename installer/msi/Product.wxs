@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright (c) 2020-Present MongoDB Inc. -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-    <Product Id="$(var.ProductId)" 
-           Name="!(wix.ProductName)" 
-           Language="1033" 
-           Version="$(var.Version)" 
+    <Product Id="$(var.ProductId)"
+           Name="!(wix.ProductName)"
+           Language="1033"
+           Version="$(var.Version)"
            Manufacturer="MongoDB Inc."
            UpgradeCode="$(var.UpgradeCode)">
 
-	<?if $(var.Platform)=x64 ?>
-            <Package InstallerVersion="301" Compressed="yes" Platform="x64" />
-	<?else ?>
-            <Package InstallerVersion="301" Compressed="yes" Platform="x86"  />
-	<?endif ?>
+        <Package InstallerVersion="301" Compressed="yes" Platform="x64" />
 
         <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
         <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -20,7 +16,6 @@
         <WixVariable Id="InstallFolder" Value="$(var.Version)" />
         <WixVariable Id="ProductName" Value="$(var.ProjectName) $(var.VersionLabel)" />
 
-	<?if $(var.Platform)=x64 ?>
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFiles64Folder">
                 <Directory Id="MongoDB" Name="MongoDB">
@@ -32,19 +27,6 @@
                 </Directory>
             </Directory>
         </Directory>
-	<?else ?>
-        <Directory Id="TARGETDIR" Name="SourceDir">
-            <Directory Id="ProgramFilesFolder">
-                <Directory Id="MongoDB" Name="MongoDB">
-                    <Directory Id="Project" Name="Tools">
-                        <Directory Id="INSTALLLOCATION" Name="!(wix.InstallFolder)">
-                            <Directory Id="BIN" Name="bin" />
-                        </Directory>
-                    </Directory>
-                </Directory>
-            </Directory>
-        </Directory>
-	<?endif ?>
 
         <FeatureGroupRef Id="fg_All" />
 
