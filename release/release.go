@@ -15,9 +15,6 @@ import (
 	"github.com/mongodb/mongo-tools/release/platform"
 )
 
-// The msi msiUpgradeCode must be updated when the minor version changes.
-var msiUpgradeCode = "56c0fda6-289a-4fd0-a539-6711864146ba"
-
 // These are the binaries that are part of mongo-tools, relative
 // to the location of this go file.
 var binaries = []string{
@@ -51,10 +48,6 @@ func main() {
 		buildArchive()
 	case "build-msi":
 		buildMSI()
-	case "build-rpm":
-		log.Fatal("not implemented")
-	case "build-deb":
-		log.Fatal("not implemented")
 	case "build-linux":
 		log.Fatal("not implemented")
 	default:
@@ -114,9 +107,12 @@ func buildMSI() {
 		return
 	}
 
+	// The msi msiUpgradeCode must be updated when the minor version changes.
+	msiUpgradeCode := "56c0fda6-289a-4fd0-a539-6711864146ba"
+
 	binariesPath := filepath.Join("..", "bin")
 	msiStaticFilesPath := ".."
-	// note that the file functions do not allow for drive letters on Windows, absolute paths
+	// Note that the file functions do not allow for drive letters on Windows, absolute paths
 	// must be specified with a leading os.PathSeparator.
 	saslDLLsPath := string(os.PathSeparator) + filepath.Join("sasl", "bin")
 	msiFilesPath := filepath.Join("..", "installer", "msi")
@@ -209,11 +205,13 @@ func buildMSI() {
 	objDir := filepath.Join(cwd, "objs") + string(os.PathSeparator)
 	arch := "x64"
 
-	version := getVersion()
+	release := getVersion()
+	wixVersion := getWixVersion(release)
+	versionLabel := getVersionLabel(release)
 
-	lastVersion := "r49.0"
-	if version > lastVersion {
-		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be up-to-date, last version = "+lastVersion)
+	lastVersionLabel := "49"
+	if versionLabel > lastVersionLabel {
+		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be up-to-date, last version = "+lastVersionLabel)
 	}
 
 	candle := filepath.Join(wixPath, "candle.exe")
@@ -222,8 +220,8 @@ func buildMSI() {
 		`-dProductId=*`,
 		`-dPlatform=x64`,
 		`-dUpgradeCode=`+msiUpgradeCode,
-		`-dVersion=49.0.0`,
-		`-dVersionLabel=`+version,
+		`-dVersion=`+wixVersion,
+		`-dVersionLabel=`+versionLabel,
 		`-dProjectName=`+projectName,
 		`-dSourceDir=`+sourceDir,
 		`-dResourceDir=`+resourceDir,
@@ -246,7 +244,7 @@ func buildMSI() {
 
 	check(err, "run candle.exe\n"+out)
 
-	output := "mongodb-cli-tools-" + version + "-win-x86-64.msi"
+	output := getReleaseName() + ".msi"
 	light := filepath.Join(wixPath, "light.exe")
 	out, err = run(light,
 		"-wx",
@@ -280,6 +278,24 @@ func copyFile(src, dst string) error {
 	_, err = io.Copy(out, file)
 	check(err, "copy src -> dst")
 	return out.Close()
+}
+
+func getWixVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
+	rLabel := strings.Split(version, "-")[0]
+	if rLabel[0] == 'r' {
+		return rLabel[1:]
+	}
+	return rLabel
+}
+
+func getVersionLabel(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49
+	rLabel := strings.Split(version, ".")[0]
+	if rLabel[0] == 'r' {
+		return rLabel[1:]
+	}
+	return rLabel
 }
 
 func addToTarball(tw *tar.Writer, dst, src string) {

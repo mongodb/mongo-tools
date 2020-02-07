@@ -13,7 +13,7 @@
         <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
         <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
-        <WixVariable Id="InstallFolder" Value="$(var.Version)" />
+        <WixVariable Id="InstallFolder" Value="$(var.VersionLabel)" />
         <WixVariable Id="ProductName" Value="$(var.ProjectName) $(var.VersionLabel)" />
 
         <Directory Id="TARGETDIR" Name="SourceDir">
