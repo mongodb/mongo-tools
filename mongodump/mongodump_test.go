@@ -1059,7 +1059,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 		err = setUpDBView()
 		So(err, ShouldBeNil)
 
-		Convey("testing that the dumped directory contains information about indexes", func() {
+		Convey("testing that the dumped directory contains information about metadata", func() {
 
 			md := simpleMongoDumpInstance()
 			md.ToolOptions.Namespace.DB = testDB
@@ -1088,6 +1088,58 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(c1, ShouldEqual, c2)
+
+			})
+
+			Reset(func() {
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			})
+		})
+
+		Reset(func() {
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+		})
+
+	})
+}
+
+func TestMongoDumpViews(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	Convey("With a MongoDump instance", t, func() {
+		err := setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		err = setUpDBView()
+		So(err, ShouldBeNil)
+
+		Convey("testing that the dumped directory contains information about metadata", func() {
+
+			md := simpleMongoDumpInstance()
+			md.ToolOptions.Namespace.DB = testDB
+			md.OutputOptions.Out = "dump"
+
+			err = md.Init()
+			So(err, ShouldBeNil)
+
+			err = md.Dump()
+			So(err, ShouldBeNil)
+
+			path, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			So(fileDirExists(dumpDir), ShouldBeTrue)
+			So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+			Convey("having one metadata file per view", func() {
+
+				c1, err := countMetaDataFiles(dumpDBDir)
+				So(err, ShouldBeNil)
+
+				So(c1, ShouldBeGreaterThan, 0)
 
 			})
 
