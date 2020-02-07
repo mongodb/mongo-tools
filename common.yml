@@ -27,12 +27,6 @@ mongo_tools_variables:
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
-      - name: unit
-    macos_ssl_task_list: &macos_ssl_tasks
-      - name: dist
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-unstable
       - name: native-cert-ssl-current
       - name: unit
     rhel_x86_64_task_list: &rhel_x86_64_tasks
@@ -43,6 +37,8 @@ mongo_tools_variables:
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
+      # Disabled due to TOOLS-2119
+      # - name: kerberos
       - name: legacy30
       - name: lint-go
       - name: format-go
@@ -55,30 +51,9 @@ mongo_tools_variables:
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
+      - name: native-cert-ssl-current
       - name: unit
       - name: vet
-    rhel_x86_64_ssl_task_list: &rhel_x86_64_ssl_tasks
-      - name: dist
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-unstable
-      - name: native-cert-ssl-current
-    rhel_x86_64_enterprise_task_list: &rhel_x86_64_enterprise_tasks
-      - name: dist
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      # Disabled due to TOOLS-2119
-      # - name: kerberos
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-unstable
-      - name: native-cert-ssl-current
     ubuntu_x86_64_task_list: &ubuntu_x86_64_tasks
       - name: dist
       - name: sign
@@ -87,6 +62,7 @@ mongo_tools_variables:
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: kerberos
       - name: lint-go
       - name: format-go
       - name: lint-js
@@ -98,29 +74,9 @@ mongo_tools_variables:
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
+      - name: native-cert-ssl-current
       - name: unit
       - name: vet
-    ubuntu_x86_64_ssl_task_list: &ubuntu_x86_64_ssl_tasks
-      - name: dist
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-unstable
-      - name: native-cert-ssl-current
-    ubuntu_x86_64_enterprise_task_list: &ubuntu_x86_64_enterprise_tasks
-      - name: dist
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: kerberos
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-unstable
-      - name: native-cert-ssl-current
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
       - name: integration-4.0
@@ -140,46 +96,6 @@ mongo_tools_variables:
       - name: integration-4.2-auth
         distros:
         - windows-64-vs2017-test
-      - name: qa-tests-3.2
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-3.4
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-3.6
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-4.0
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-4.2
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-dump-restore-with-archiving-current
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-dump-restore-with-gzip-current
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-unstable
-      - name: unit
-    windows_64_ssl_task_list: &windows_64_ssl_tasks
-      - name: dist
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-unstable
-      - name: native-cert-ssl-current
-      - name: unit
-    windows_64_enterprise_task_list: &windows_64_enterprise_tasks
-      - name: dist
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.2
-      - name: integration-4.2-auth
       - name: kerberos
         distros:
         - windows-64-vs2017-test
@@ -198,12 +114,16 @@ mongo_tools_variables:
       - name: qa-tests-4.2
         distros:
         - windows-64-vs2017-test
-      - name: qa-tests-unstable
+      - name: qa-dump-restore-with-archiving-current
         distros:
         - windows-64-vs2017-test
+      - name: qa-dump-restore-with-gzip-current
+        distros:
+        - windows-64-vs2017-test
+      - name: qa-tests-unstable
       - name: unit
       - name: native-cert-ssl-current
-    rhel71_ppc64le_enterprise_task_list: &rhel71_ppc64le_enterprise_tasks
+    rhel71_ppc64le_task_list: &rhel71_ppc64le_tasks
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
@@ -220,7 +140,7 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-    rhel67_s390x_enterprise_task_list: &rhel67_s390x_enterprise_tasks
+    rhel67_s390x_task_list: &rhel67_s390x_tasks
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
@@ -238,7 +158,7 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-    ubuntu1604_arm64_ssl_task_list: &ubuntu1604_arm64_ssl_tasks
+    ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
@@ -247,7 +167,7 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-    ubuntu1804_arm64_ssl_task_list: &ubuntu1804_arm64_ssl_tasks
+    ubuntu1804_arm64_task_list: &ubuntu1804_arm64_tasks
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
@@ -1501,44 +1421,24 @@ buildvariants:
   run_on:
   - amazon1-2018-test
   expansions:
-    build_tags: ""
+    build_tags: "sasl gssapi ssl"
     _platform: amazon1
   tasks:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: amazonlinux64-enterprise
-  display_name: Amazon Linux 64 Enterprise
-  run_on:
-  - amazon1-2018-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: amazon1
-  tasks:
-  - name: dist
 
 - name: amazon2
   display_name: Amazon Linux 64 v2
   run_on:
   - amazon2-test
   expansions:
-    build_tags: ""
+    build_tags: "sasl gssapi ssl"
     _platform: amazon2
   tasks:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: amazon2-enterprise
-  display_name: Amazon Linux 64 v2 Enterprise
-  run_on:
-  - amazon2-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: amazon2
-  tasks:
-  - name: dist
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1549,44 +1449,24 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    build_tags: ""
+    build_tags: "sasl gssapi ssl"
     _platform: debian81
   tasks:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: debian81-enterprise
-  display_name: Debian 8.1 Enterprise
-  run_on:
-  - debian81-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: debian81
-  tasks:
-  - name: dist
 
 - name: debian92
   display_name: Debian 9.2
   run_on:
   - debian92-test
   expansions:
-    build_tags: ""
+    build_tags: "sasl gssapi ssl"
     _platform: debian92
   tasks:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: debian92-enterprise
-  display_name: Debian 9.2 Enterprise
-  run_on:
-  - debian92-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: debian92
-  tasks:
-  - name: dist
 
 #######################################
 #           macOS Buildvariant        #
@@ -1597,29 +1477,18 @@ buildvariants:
   run_on:
   - macos-1014
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "osx"
-    mongo_target: "osx-ssl"
-    arch: "osx/x86_64"
-    excludes: requires_many_files
-    _platform: macos1014
-  tasks: *macos_tasks
-
-- name: macOS-1014-ssl
-  display_name: MacOS 10.14 SSL
-  run_on:
-  - macos-1014
-  expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     arch: "osx/x86_64"
-    build_tags: "ssl"
     excludes: requires_many_files
+    build_tags: "ssl sasl gssapi"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    USE_SSL: "true"
     _platform: macos1014
-  tasks: *macos_ssl_tasks
+  tasks: *macos_tasks
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -1630,45 +1499,8 @@ buildvariants:
   run_on:
   - rhel62-small
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "rhel62"
-    mongo_edition: "targeted"
-    build_tags: ""
-    arch: "linux/x86_64"
-    integration_test_args: integration
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    _platform: rhel62
-  tasks: *rhel_x86_64_tasks
-
-- name: rhel62-ssl
-  display_name: RHEL 6.2 SSL
-  run_on:
-  - rhel62-small
-  expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
-    mongo_os: "rhel62"
-    mongo_edition: "enterprise"
-    build_tags: "ssl"
-    edition: ssl
-    arch: "linux/x86_64"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    integration_test_args: "integration,ssl"
-    USE_SSL: "true"
-    _platform: rhel62
-
-  tasks: *rhel_x86_64_ssl_tasks
-
-- name: rhel62-enterprise
-  display_name: RHEL 6.2 Enterprise
-  run_on:
-  - rhel62-small
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
     build_tags: "ssl sasl gssapi"
@@ -1677,25 +1509,13 @@ buildvariants:
     arch: "linux/x86_64"
     edition: enterprise
     run_kinit: true
-    integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     _platform: rhel62
-  tasks: *rhel_x86_64_enterprise_tasks
+    USE_SSL: "true"
+  tasks: *rhel_x86_64_tasks
 
 - name: rhel70
   display_name: RHEL 7.0
-  run_on:
-  - rhel70-small
-  expansions:
-    build_tags: ""
-    _platform: rhel70
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-
-- name: rhel70-enterprise
-  display_name: RHEL 7.0 Enterprise
   run_on:
   - rhel70-small
   expansions:
@@ -1703,6 +1523,8 @@ buildvariants:
     _platform: rhel70
   tasks:
   - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1713,22 +1535,12 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    build_tags: ""
+    build_tags: "sasl gssapi ssl"
     _platform: suse12
   tasks:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: suse12-enterprise
-  display_name: SUSE 12 Enterprise
-  run_on:
-  - suse12-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: suse12
-  tasks:
-  - name: dist
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1739,66 +1551,20 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
-    build_tags: ""
+    build_tags: "sasl gssapi ssl"
     _platform: ubuntu1404
   tasks:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
 
-- name: ubuntu1404-enterprise
-  display_name: Ubuntu 14.04 Enterprise
-  run_on:
-  - ubuntu1404-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1404
-  tasks:
-  - name: dist
-
 - name: ubuntu1604
   display_name: Ubuntu 16.04
   run_on:
   - ubuntu1604-test
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "ubuntu1604"
-    mongo_edition: "targeted"
-    build_tags: ""
-    arch: "linux/x86_64"
-    integration_test_args: integration
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    _platform: ubuntu1604
-  tasks: *ubuntu_x86_64_tasks
-
-- name: ubuntu1604-ssl
-  display_name: Ubuntu 16.04 SSL
-  run_on:
-  - ubuntu1604-test
-  expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
-    mongo_os: "ubuntu1604"
-    mongo_edition: "enterprise"
-    build_tags: "ssl"
-    edition: ssl
-    arch: "linux/x86_64"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    integration_test_args: "integration,ssl"
-    USE_SSL: "true"
-    _platform: ubuntu1604
-  tasks: *ubuntu_x86_64_ssl_tasks
-
-- name: ubuntu1604-enterprise
-  display_name: Ubuntu 16.04 Enterprise
-  run_on:
-  - ubuntu1604-test
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
     build_tags: "ssl sasl gssapi"
@@ -1807,25 +1573,13 @@ buildvariants:
     arch: "linux/x86_64"
     edition: enterprise
     run_kinit: true
-    integration_test_args: integration
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+    USE_SSL: "true"
     _platform: ubuntu1604
-  tasks: *ubuntu_x86_64_enterprise_tasks
+  tasks: *ubuntu_x86_64_tasks
 
 - name: ubuntu1804
   display_name: Ubuntu 18.04
-  run_on:
-  - ubuntu1804-test
-  expansions:
-    build_tags: ""
-    _platform: ubuntu1804
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-
-- name: ubuntu1804-enterprise
-  display_name: Ubuntu 18.04 Enterprise
   run_on:
   - ubuntu1804-test
   expansions:
@@ -1833,6 +1587,8 @@ buildvariants:
     _platform: ubuntu1804
   tasks:
   - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
 
 #######################################
 #        Windows Buildvariants        #
@@ -1841,51 +1597,10 @@ buildvariants:
 - name: windows-64
   display_name: Windows 64-bit
   run_on:
-  - windows-64-vs2017-test
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "windows-64"
-    mongo_target: "windows_x86_64-2008plus-ssl"
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    excludes: requires_large_ram
-    extension: .exe
-    arch: "win32/x86_64"
-    preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
-    integration_test_args: "integration"
-    _platform: windowsVS2017
-  tasks: *windows_64_tasks
-
-- name: windows-64-ssl
-  display_name: Windows 64-bit SSL
-  run_on:
   - windows-64-vs2017-compile
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
-    mongo_os: "windows-64"
-    mongo_target: "windows_x86_64-2008plus-ssl"
-    build_tags: "ssl"
-    edition: ssl
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    excludes: requires_large_ram,requires_mongo_24
-    extension: .exe
-    arch: "win32/x86_64"
-    preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
-    integration_test_args: "integration,ssl"
-    USE_SSL: "true"
-    _platform: windowsVS2017
-  tasks: *windows_64_ssl_tasks
-
-- name: windows-64-enterprise
-  display_name: Windows 64-bit Enterprise
-  run_on:
-  - windows-64-vs2017-compile
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
@@ -1898,17 +1613,17 @@ buildvariants:
     extension: .exe
     arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
-    integration_test_args: "integration"
+    USE_SSL: "true"
     _platform: windowsVS2017
-  tasks: *windows_64_enterprise_tasks
+  tasks: *windows_64_tasks
 
 #######################################
 #        ARM Buildvariants            #
 #######################################
 
 # MongoDB 3.4 - 4.0
-- name: ubuntu1604-arm64-ssl
-  display_name: ZAP ARM64 Ubuntu 16.04 SSL
+- name: ubuntu1604-arm64
+  display_name: ZAP ARM64 Ubuntu 16.04
   run_on:
   - ubuntu1604-arm64-small
   stepback: false
@@ -1925,14 +1640,13 @@ buildvariants:
     resmoke_args: -j 2
     arch: "linux/arm64"
     edition: ssl
-    integration_test_args: integration
     USE_SSL: "true"
     _platform: ubuntu1604-arm
-  tasks: *ubuntu1604_arm64_ssl_tasks
+  tasks: *ubuntu1604_arm64_tasks
 
 # MongoDB 4.2+
-- name: ubuntu1804-arm64-ssl
-  display_name: ZAP ARM64 Ubuntu 18.04 SSL
+- name: ubuntu1804-arm64
+  display_name: ZAP ARM64 Ubuntu 18.04
   run_on:
   - ubuntu1804-arm64-test
   stepback: false
@@ -1949,17 +1663,16 @@ buildvariants:
     resmoke_args: -j 2
     arch: "linux/arm64"
     edition: ssl
-    integration_test_args: integration
     USE_SSL: "true"
     _platform: ubuntu1804-arm
-  tasks: *ubuntu1804_arm64_ssl_tasks
+  tasks: *ubuntu1804_arm64_tasks
 
 #######################################
 #        Power Buildvariants          #
 #######################################
 
-- name: rhel71-ppc64le-enterprise
-  display_name: ZAP PPC64LE RHEL 7.1 Enterprise
+- name: rhel71-ppc64le
+  display_name: ZAP PPC64LE RHEL 7.1
   run_on:
   - rhel71-power8-test
   stepback: false
@@ -1977,13 +1690,12 @@ buildvariants:
     arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
-    integration_test_args: integration
     _platform: rhel71-ppc
-  tasks: *rhel71_ppc64le_enterprise_tasks
+  tasks: *rhel71_ppc64le_tasks
 
 # MongoDB 3.4 - 4.0
-- name: ubuntu1604-ppc64le-enterprise
-  display_name: ZAP PPC64LE Ubuntu 16.04 Enterprise
+- name: ubuntu1604-ppc64le
+  display_name: ZAP PPC64LE Ubuntu 16.04
   run_on:
   - ubuntu1604-power8-test
   stepback: false
@@ -1997,8 +1709,8 @@ buildvariants:
     run_on: amazon1-2018-test
 
 # MongoDB 4.2+
-- name: ubuntu1804-ppc64le-enterprise
-  display_name: ZAP PPC64LE Ubuntu 18.04 Enterprise
+- name: ubuntu1804-ppc64le
+  display_name: ZAP PPC64LE Ubuntu 18.04
   run_on:
   - ubuntu1804-power8-test
   stepback: false
@@ -2015,8 +1727,8 @@ buildvariants:
 #     Z (s390x) Buildvariants         #
 #######################################
 
-- name: rhel67-s390x-enterprise
-  display_name: ZAP s390x RHEL 6.7 Enterprise
+- name: rhel67-s390x
+  display_name: ZAP s390x RHEL 6.7
   run_on:
   - rhel67-zseries-test
   stepback: false
@@ -2034,12 +1746,11 @@ buildvariants:
     arch: "linux/s390x"
     edition: enterprise
     run_kinit: true
-    integration_test_args: integration
     _platform: rhel67-zseries
-  tasks: *rhel67_s390x_enterprise_tasks
+  tasks: *rhel67_s390x_tasks
 
-- name: rhel72-s390x-enterprise
-  display_name: ZAP s390x RHEL 7.2 Enterprise
+- name: rhel72-s390x
+  display_name: ZAP s390x RHEL 7.2
   run_on:
   - rhel72-zseries-test
   stepback: false
@@ -2052,8 +1763,8 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
 
-- name: ubuntu1604-s390x-enterprise
-  display_name: ZAP s390x Ubuntu 16.04 Enterprise
+- name: ubuntu1604-s390x
+  display_name: ZAP s390x Ubuntu 16.04
   run_on:
   - ubuntu1604-zseries-small
   stepback: false
@@ -2066,8 +1777,8 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
 
-- name: ubuntu1804-s390x-enterprise
-  display_name: ZAP s390x Ubuntu 18.04 Enterprise
+- name: ubuntu1804-s390x
+  display_name: ZAP s390x Ubuntu 18.04
   run_on:
   - ubuntu1804-zseries-test
   stepback: false
@@ -2099,7 +1810,6 @@ buildvariants:
     arch: "linux/x86_64"
     args: "-buildmode=default -race"
     excludes: requires_large_ram
-    integration_test_args: integration
     _platform: ubuntu1604-zseries
   tasks: *ubuntu_x86_64_race_tasks
 
