@@ -197,8 +197,9 @@ func buildMSI() {
 	}
 
 	// Wix requires the directories to end with a separator.
-	cwd := msiBuildDir
-	cwd += string(os.PathSeparator)
+	cwd, err := os.Getwd()
+	check(err, "getwd")
+	cwd += "\\"
 	wixPath := string(os.PathSeparator) + filepath.Join("wixtools", "bin")
 	wixUIExtPath := filepath.Join(wixPath, "WixUIExtension.dll")
 	projectName := "MongoDB Tools"
