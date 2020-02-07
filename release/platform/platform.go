@@ -120,7 +120,7 @@ var platforms = map[string]Platform{
 		Arch: "s390x",
 	},
 	"rhel72-zseries": {
-		Name: "rhel67",
+		Name: "rhel72",
 		Arch: "s390x",
 	},
 	"ubuntu1604-zseries": {
