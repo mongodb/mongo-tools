@@ -371,10 +371,9 @@ func buildZip() {
 	}
 
 	for _, binName := range binaries {
-		binName = binName + ".exe"
 		log.Printf("adding %s binary to zip\n", binName)
 		src := filepath.Join(".", "bin", binName)
-		dst := filepath.Join(releaseName, "bin", binName)
+		dst := filepath.Join(releaseName, "bin", binName + ".exe")
 		addToZip(zw, dst, src)
 	}
 }
