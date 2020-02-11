@@ -124,7 +124,7 @@ func buildRPM() {
 }
 
 func buildDeb() {
-	binariesPath := filepath.Join("..", "bin")
+	mdt := "mongo-database-tools"
 
 	// set up build directory.
 	debBuildDir := "deb_build"
@@ -135,8 +135,6 @@ func buildDeb() {
 	// we'll want to go back to the original directory, just in case.
 	defer os.Chdir(oldCwd)
 	check(err, "get current directory")
-
-	releaseName := getReleaseName()
 
 	log.Printf("building data.tar.gz archive\n")
 
@@ -157,9 +155,12 @@ func buildDeb() {
 	// ./usr/share/doc/releaseName/README.md
 	// ....
 	createDataTgz := func() {
-		archiveFile, err := os.Create("data.tar.gz")
-		check(err, "create data.tar.gz")
+		binariesPath := filepath.Join("..", "bin")
+		data := "data"
+		archiveFile, err := os.Create(data + ".tar.gz")
+		check(err, "create " + data + ".tar.gz")
 		defer archiveFile.Close()
+
 		gw := gzip.NewWriter(archiveFile)
 		defer gw.Close()
 
@@ -168,16 +169,16 @@ func buildDeb() {
 
 		// Add binaries.
 		for _, binName := range binaries {
-			log.Printf("adding %s binary to data.tar.gz\n", binName)
+			log.Printf("adding %s binary to %s.tar.gz\n", data, binName)
 			src := filepath.Join(binariesPath, binName)
 			dst := filepath.Join("usr", "bin", binName)
 			addToTarball(tw, dst, src)
 		}
 		// Add static files.
 		for _, file := range staticFiles {
-			log.Printf("adding %s static file to data.tar.gz\n", file)
+			log.Printf("adding %s static file to %s.tar.gz\n", data, file)
 			src := filepath.Join("..", file)
-			dst := filepath.Join("usr", "share", "doc", releaseName, file)
+			dst := filepath.Join("usr", "share", "doc", mdt, file)
 			addToTarball(tw, dst, src)
 		}
 	}
@@ -186,21 +187,41 @@ func buildDeb() {
 	// write the control.tar.gz files, which contains meta information about the package
 	// and the data to be installed:
 	// control -- metadata
-	// md5sums -- sums for all files
+	// md5sums (optional) -- sums for all files
 	// postinst (optional) -- post install script, we don't need this
-	// prerm (optional) -- removing old documentation, we don't need this
+	// prerm (optional) -- removing old documentation
 	createControlTgz := func() {
-		archiveFile, err := os.Create("control.tar.gz")
-		check(err, "create control.tar.gz")
+		control := "control"
+		staticControlFiles := []string{
+			"control",
+			"postinst",
+			"prerm",
+		}
+
+		archiveFile, err := os.Create(control + ".tar.gz")
+		check(err, "create " + control + ".tar.gz")
 		defer archiveFile.Close()
+
 		gw := gzip.NewWriter(archiveFile)
-		tw := tar.NewWriter(gw)
-		defer tw.Close()
 		defer gw.Close()
 
+		tw := tar.NewWriter(gw)
+		defer tw.Close()
+
+		for _, file := range staticControlFiles {
+			// add the static control files.
+			log.Printf("adding %s file to %s.tar.gz\n", file, "control")
+			addToTarball(tw, file, filepath.Join("..", "installer", "deb", file))
+		}
+
+		// create the md5sums file.
+
+		// add the md5sums file to the control.tar.gz file.
 	}
 
 	createControlTgz()
+
+	// releaseName := getReleaseName()
 }
 
 func buildMSI() {
