@@ -13,6 +13,7 @@ Description: The Mongo Tools package provides tools for working with the MongoDB
 Homepage: http://mms.mongodb.com
 Provides: mongodb-database-tools
 Conflicts: mongodb-database-tools
+Depends: libc6 libgssapi-krb5-2 libkrb5-3 libk5crypto3 libcom-err2 libkrb5support0 libkeyutils1
 Replaces: mongodb-database-tools
 Section: database
 Priority: optional

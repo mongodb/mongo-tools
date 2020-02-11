@@ -48,8 +48,8 @@ func main() {
 		buildArchive()
 	case "build-msi":
 		buildMSI()
-	case "build-linux":
-		log.Fatal("not implemented")
+	case "build-linux-packages":
+		buildLinuxPackages()
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -98,6 +98,34 @@ func buildArchive() {
 	} else {
 		buildTarball()
 	}
+}
+
+func buildLinuxPackages() {
+	linux, err := platform.IsLinux()
+	check(err, "check platform type")
+	if !linux {
+		return
+	}
+
+	p, err := platform.Get()
+	check(err, "get platform")
+	platformName := p.Name
+	if platform.IsRPM(platformName) {
+		buildRPM()
+	} else if platform.IsDeb(platformName) {
+		buildDeb()
+	} else {
+		check(fmt.Errorf("linux platform type is neither deb nor rpm based",
+			"linux platform type is neither deb nor rpm based: " + platformName))
+	}
+}
+
+func buildRPM() {
+
+}
+
+func buildDeb() {
+
 }
 
 func buildMSI() {
