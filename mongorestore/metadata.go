@@ -288,6 +288,12 @@ func (restore *MongoRestore) createCollectionWithApplyOps(session *mongo.Client,
 }
 
 func createCollectionCommand(intent *intents.Intent, options bson.D) bson.D {
+	for i, elem := range options {
+		if elem.Key == "autoIndexId" {
+			options[i].Value = true
+			log.Logvf(log.Always, "autoIndexId: false is not allowed in server version 4.2.0. Changing to autoIndexId: true.")
+		}
+	}
 	return append(bson.D{{"create", intent.C}}, options...)
 }
 

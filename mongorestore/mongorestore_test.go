@@ -583,3 +583,37 @@ func TestFixHashedIndexes(t *testing.T) {
 		})
 	})
 }
+
+func TestDeprecatedAutoIndexId(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	type indexRes struct {
+		Key bson.D
+	}
+
+	Convey("Test MongoRestore with hashed indexes and --fixHashedIndexes", t, func() {
+		args := []string{
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		session, _ = restore.SessionProvider.GetSession()
+		db := session.Database("testdata")
+
+		defer func() {
+			db.Collection("autoIndexId").Drop(nil)
+		}()
+
+		Convey("{autoIndexId: false} should be ignored and mongorestore should be successful", func() {
+			restore.TargetDirectory = "testdata/autoindexid/test/test_auto_idx.bson"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+		})
+	})
+}
