@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2020-Present MongoDB Inc. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="$(var.ProductId)"
+           Name="!(wix.ProductName)"
+           Language="1033"
+           Version="$(var.Version)"
+           Manufacturer="MongoDB Inc."
+           UpgradeCode="$(var.UpgradeCode)">
+
+        <Package InstallerVersion="301" Compressed="yes" Platform="x64" />
+
+        <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+        <WixVariable Id="InstallFolder" Value="$(var.VersionLabel)" />
+        <WixVariable Id="ProductName" Value="$(var.ProjectName) $(var.VersionLabel)" />
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="MongoDB" Name="MongoDB">
+                    <Directory Id="Project" Name="Tools">
+                        <Directory Id="INSTALLLOCATION" Name="!(wix.InstallFolder)">
+                            <Directory Id="BIN" Name="bin" />
+                        </Directory>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <FeatureGroupRef Id="fg_All" />
+
+        <!-- UI related -->
+        <WixVariable Id="WixUIDialogBmp" Value="$(var.ResourceDir)\Dialog.bmp" />
+        <WixVariable Id="WixUIBannerBmp" Value="$(var.ResourceDir)\Banner_Tools.bmp" />
+        <WixVariable Id="WixUIInfoIco" Value="$(var.ResourceDir)\Installer_Icon_32x32.ico" />
+        <WixVariable Id="WixUIExclamationIco" Value="$(var.ResourceDir)\Installer_Icon_32x32.ico" />
+
+        <Property Id="ARPPRODUCTICON" Value="MongoDBIcon" />
+        <Property Id="ARPHELPLINK" Value="http://www.mongodb.com/" />
+        <Property Id="ARPURLINFOABOUT" Value="https://jira.mongodb.org" />
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLLOCATION" />
+
+        <Icon Id="MongoDBIcon" SourceFile="Installer_Icon_32x32.ico" />
+
+        <UIRef Id="MongoWixUI" />
+    </Product>
+</Wix>

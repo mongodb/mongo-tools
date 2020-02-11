@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2020-Present MongoDB Inc. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="BIN">
+       <Component Guid="{B29DD39F-1ECE-4202-B015-1D749F776962}" Id="RegKeys" Win64="yes">
+           <RegistryKey ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes" Id="MongoDBKey" Key="SOFTWARE\MongoDB\[ProductName]" Root="HKLM" />
+           <RegistryValue Id="Version" Key="SOFTWARE\MongoDB\[ProductName]"  Name="Version" Root="HKLM" Type="string" Value="[ProductVersion]" />
+       </Component>
+       <Component Guid="{B38068DF-1511-47DF-8ADD-9D8F45A98789}" Id="bsondump" Win64="yes">
+            <File DiskId="1" Id="bsondump.exe"  Name="bsondump.exe" Source="bsondump.exe" />
+       </Component>
+       <Component Guid="{639F621D-13E7-4094-ABC4-DD6D1795A029}" Id="mongodump" Win64="yes">
+            <File DiskId="1" Id="mongodump.exe"  Name="mongodump.exe" Source="mongodump.exe" />
+       </Component>
+       <Component Guid="{DA17907E-6BDF-46A5-845E-237B09BB8B05}" Id="mongoexport" Win64="yes">
+            <File DiskId="1" Id="mongoexport.exe"  Name="mongoexport.exe" Source="mongoexport.exe" />
+       </Component>
+       <Component Guid="{DD083E8F-8098-4FD4-A6C3-B66EA5D3ADF4}" Id="mongofiles" Win64="yes">
+            <File DiskId="1" Id="mongofiles.exe"  Name="mongofiles.exe" Source="mongofiles.exe" />
+       </Component>
+       <Component Guid="{B62C0A74-53B7-4F56-A92A-5FB7F0ADDCD2}" Id="mongoimport" Win64="yes">
+            <File DiskId="1" Id="mongoimport.exe"  Name="mongoimport.exe" Source="mongoimport.exe" />
+       </Component>
+       <Component Guid="{60039F2C-AD84-4DE9-80C1-65FDE21B91AE}" Id="mongorestore" Win64="yes">
+            <File DiskId="1" Id="mongorestore.exe"  Name="mongorestore.exe" Source="mongorestore.exe" />
+       </Component>
+       <Component Guid="{5D1457D2-5696-4A34-9C3B-58EAEE2D80D7}" Id="mongostat" Win64="yes">
+            <File DiskId="1" Id="mongostat.exe"  Name="mongostat.exe" Source="mongostat.exe" />
+       </Component>
+       <Component Guid="{A234055C-9F7D-4738-B1A3-FAF3B85D3302}" Id="mongotop" Win64="yes">
+            <File DiskId="1" Id="mongotop.exe"  Name="mongotop.exe" Source="mongotop.exe" />
+       </Component>
+	   <Component Guid="{50EE4D70-D68B-4D02-A55C-DDA8F7AAFB25}" Id="libsasl" SharedDllRefCount="yes" Win64="yes">
+            <File DiskId="1" Id="libsasl.dll"  Name="libsasl.dll" Source="libsasl.dll" />
+       </Component>
+      </DirectoryRef>
+      <ComponentGroup Id="base">
+          <ComponentRef Id="RegKeys" />
+          <ComponentRef Id="bsondump" />
+          <ComponentRef Id="mongodump" />
+          <ComponentRef Id="mongoexport" />
+          <ComponentRef Id="mongofiles" />
+          <ComponentRef Id="mongoimport" />
+          <ComponentRef Id="mongorestore" />
+          <ComponentRef Id="mongostat" />
+          <ComponentRef Id="mongotop" />
+          <ComponentRef Id="libsasl" />
+       </ComponentGroup>
+  </Fragment>
+</Wix>

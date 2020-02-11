@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2020-Present MongoDB Inc. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <FeatureGroup Id="fg_All">
+      <Feature Id="ProductAll"
+               Title="!(wix.ProductName)"
+               Description="!(wix.ProductName)"
+               Level="1"
+               ConfigurableDirectory="INSTALLLOCATION">
+        <ComponentGroupRef Id="base" />
+	<ComponentGroupRef Id="cg_License" />
+      </Feature>
+    </FeatureGroup>
+  </Fragment>
+</Wix>

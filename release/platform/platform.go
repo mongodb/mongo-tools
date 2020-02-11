@@ -32,6 +32,7 @@ func Get() (Platform, error) {
 	return pf, nil
 }
 
+// IsWindows returns true if the current host is a Windows host.
 func IsWindows() (bool, error) {
 	p, err := Get()
 	if err != nil {
@@ -39,7 +40,7 @@ func IsWindows() (bool, error) {
 	}
 
 	switch p.Name {
-	case "windowsVS2017":
+	case "win32":
 		return true, nil
 	default:
 		return false, nil
