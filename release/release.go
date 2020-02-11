@@ -46,9 +46,8 @@ func main() {
 	switch cmd {
 	case "build-archive":
 		buildArchive()
-	case "build-msi":
+	case "build-packages":
 		buildMSI()
-	case "build-linux-packages":
 		buildLinuxPackages()
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
@@ -125,7 +124,83 @@ func buildRPM() {
 }
 
 func buildDeb() {
+	binariesPath := filepath.Join("..", "bin")
 
+	// set up build directory.
+	debBuildDir := "deb_build"
+	check(os.RemoveAll(debBuildDir), "removeAll "+debBuildDir)
+	check(os.MkdirAll(debBuildDir, os.ModePerm), "mkdirAll "+debBuildDir)
+	check(os.Chdir(debBuildDir), "cd to "+debBuildDir)
+	oldCwd, err := os.Getwd()
+	// we'll want to go back to the original directory, just in case.
+	defer os.Chdir(oldCwd)
+	check(err, "get current directory")
+
+	releaseName := getReleaseName()
+
+	log.Printf("building data.tar.gz archive\n")
+
+	// write the debian-binary file, a file which only contains 2.0\n
+	createDebianBinary := func() {
+		f, err := os.Create("debian-binary")
+		defer f.Close()
+		check(err, "create debian-binary")
+		_, err = f.WriteString("2.0\n")
+		check(err, "write to debian-binary")
+	}
+	createDebianBinary()
+
+	// write the data.tar.gz file, which contains the data to write to the disk in the position
+	// it must go on the disk:
+	// ./usr/bin/bsondump
+	// ./usr/bin/mongo*
+	// ./usr/share/doc/releaseName/README.md
+	// ....
+	createDataTgz := func() {
+		archiveFile, err := os.Create("data.tar.gz")
+		check(err, "create data.tar.gz")
+		defer archiveFile.Close()
+		gw := gzip.NewWriter(archiveFile)
+		defer gw.Close()
+
+		tw := tar.NewWriter(gw)
+		defer tw.Close()
+
+		// Add binaries.
+		for _, binName := range binaries {
+			log.Printf("adding %s binary to data.tar.gz\n", binName)
+			src := filepath.Join(binariesPath, binName)
+			dst := filepath.Join("usr", "bin", binName)
+			addToTarball(tw, dst, src)
+		}
+		// Add static files.
+		for _, file := range staticFiles {
+			log.Printf("adding %s static file to data.tar.gz\n", file)
+			src := filepath.Join("..", file)
+			dst := filepath.Join("usr", "share", "doc", releaseName, file)
+			addToTarball(tw, dst, src)
+		}
+	}
+	createDataTgz()
+
+	// write the control.tar.gz files, which contains meta information about the package
+	// and the data to be installed:
+	// control -- metadata
+	// md5sums -- sums for all files
+	// postinst (optional) -- post install script, we don't need this
+	// prerm (optional) -- removing old documentation, we don't need this
+	createControlTgz := func() {
+		archiveFile, err := os.Create("control.tar.gz")
+		check(err, "create control.tar.gz")
+		defer archiveFile.Close()
+		gw := gzip.NewWriter(archiveFile)
+		tw := tar.NewWriter(gw)
+		defer tw.Close()
+		defer gw.Close()
+
+	}
+
+	createControlTgz()
 }
 
 func buildMSI() {
