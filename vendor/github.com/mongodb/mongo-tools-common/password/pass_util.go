@@ -25,11 +25,11 @@ func IsTerminal() bool {
 }
 
 func GetPass() (string, error) {
-	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+	oldState, err := terminal.MakeRaw(0)
 	if err != nil {
 		return "", err
 	}
-	defer terminal.Restore(int(os.Stdin.Fd()), oldState)
+	defer terminal.Restore(0, oldState)
 
 	screen := struct {
 		io.Reader
