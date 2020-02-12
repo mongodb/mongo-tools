@@ -127,6 +127,8 @@ func buildRPM() {
 
 func buildDeb() {
 	mdt := "mongo-database-tools"
+	releaseName := getReleaseName()
+
 
 	// set up build directory.
 	debBuildDir := "deb_build"
@@ -134,66 +136,67 @@ func buildDeb() {
 	check(os.MkdirAll(debBuildDir, os.ModePerm), "mkdirAll "+debBuildDir)
 	check(os.Chdir(debBuildDir), "cd to "+debBuildDir)
 	oldCwd, err := os.Getwd()
-	// we'll want to go back to the original directory, just in case.
-	defer os.Chdir(oldCwd)
 	check(err, "get current directory")
+	defer os.Chdir(oldCwd)
+	// we'll want to go back to the original directory, just in case.
+	// build the release dir.
+	// The goal here is to set up  directory with the following structure:
+	// releaseName/
+	// |----- DEBIAN/
+	// |        |----- control
+	// |        |----- postinst
+	// |        |----- prerm
+	// |        |----- md5sums
+	// |------ usr/
+	//          |-- bin/
+	//          |    |--- bsondump
+	//          |    |--- mongo*
+	//          |-- share/
+	//                 |---- doc/
+	//                        |----- mongo-database-tools/
+	//                                         |--- staticFiles
 
-	log.Printf("building data.tar.gz archive\n")
+	log.Printf("create deb directory tree\n")
 
-	debianBinaryFile := "debian-binary"
-	// write the debian-binary file, a file which only contains 2.0\n
-	createDebianBinary := func() {
-		f, err := os.Create(debianBinaryFile)
-		check(err, "create " + debianBinaryFile)
-		defer f.Close()
-		_, err = f.WriteString("2.0\n")
-		check(err, "write to " + debianBinaryFile)
-	}
-	createDebianBinary()
+	// create DEBIAN dir
+	controlDir := filepath.Join(releaseName, "DEBIAN")
+	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll " + controlDir)
+
+	// create usr/bin and usr/share/doc
+	binDir := filepath.Join(releaseName, "usr", "bin")
+	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll " + binDir)
+	docDir := filepath.Join(releaseName, "usr", "share", "doc", mdt)
+	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll " + docDir)
 
 	md5sums := make(map[string]string)
 	// We use the order just to make sure the md5sums are always in the same order.
 	// This probably doesn't matter, but it looks nicer for anyone inspecting the md5sums file.
 	md5sumsOrder := make([]string, 0, len(binaries) + len(staticFiles))
-	// write the data.tar.gz file, which contains the data to write to the disk in the position
-	// it must go on the disk:
-	// ./usr/bin/bsondump
-	// ./usr/bin/mongo*
-	// ./usr/share/doc/releaseName/README.md
-	// ....
-	dataFile := "data"
-	createDataTgz := func() {
+	logCopy := func(src, dst string) {
+			log.Printf("copying %s to %s\n", src, dst)
+	}
+	// Copy over the data files.
+	{
 		binariesPath := filepath.Join("..", "bin")
-		archiveFile, err := os.Create(dataFile + ".tar.gz")
-		check(err, "create " + dataFile + ".tar.gz")
-		defer archiveFile.Close()
-
-		gw := gzip.NewWriter(archiveFile)
-		defer gw.Close()
-
-		tw := tar.NewWriter(gw)
-		defer tw.Close()
-
 		// Add binaries.
 		for _, binName := range binaries {
-			log.Printf("adding %s binary to %s.tar.gz\n", binName, dataFile)
 			src := filepath.Join(binariesPath, binName)
-			dst := filepath.Join("usr", "bin", binName)
-			addToTarball(tw, dst, src)
+			dst := filepath.Join(binDir, binName)
+			logCopy(src, dst)
+			os.Link(src, dst)
 			md5sums[dst] = computeMD5(src)
 			md5sumsOrder = append(md5sumsOrder, dst)
 		}
 		// Add static files.
 		for _, file := range staticFiles {
-			log.Printf("adding %s static file to %s.tar.gz\n", file, dataFile)
 			src := filepath.Join("..", file)
-			dst := filepath.Join("usr", "share", "doc", mdt, file)
-			addToTarball(tw, dst, src)
+			dst := filepath.Join(docDir, file)
+			logCopy(src, dst)
+			os.Link(src, dst)
 			md5sums[dst] = computeMD5(src)
 			md5sumsOrder = append(md5sumsOrder, dst)
 		}
 	}
-	createDataTgz()
 
 	controlFile := "control"
 	createControlFile := func () {
@@ -233,51 +236,41 @@ func buildDeb() {
 	}
 	createMD5Sums()
 
-	// write the control.tar.gz files, which contains meta information about the package
-	// and the data to be installed:
+	// Copy the control files to our controlDir
 	// control -- metadata
 	// md5sums (optional) -- sums for all files
 	// postinst (optional) -- post install script, we don't need this
 	// prerm (optional) -- removing old documentation
-	createControlTgz := func() {
+	{
 		staticControlFiles := []string{
 			"postinst",
 			"prerm",
 		}
+		// add the control file.
+		dst := filepath.Join(controlDir, controlFile)
+		logCopy(controlFile, dst)
+		os.Link(controlFile, dst)
 
-		archiveFile, err := os.Create(controlFile + ".tar.gz")
-		check(err, "create " + controlFile + ".tar.gz")
-		defer archiveFile.Close()
+		// add the md5sumsFile.
+		dst = filepath.Join(controlDir, md5sumsFile)
+		logCopy(md5sumsFile, dst)
+		os.Link(md5sumsFile, dst)
 
-		gw := gzip.NewWriter(archiveFile)
-		defer gw.Close()
-
-		tw := tar.NewWriter(gw)
-		defer tw.Close()
-
-
-		// add the control file 
-		log.Printf("adding %s file to %s.tar.gz\n", md5sumsFile, controlFile)
-		addToTarball(tw, controlFile, controlFile)
-
-		// add the md5sums file to the control.tar.gz file.
-		log.Printf("adding %s file to %s.tar.gz\n", md5sumsFile, controlFile)
-		addToTarball(tw, md5sumsFile, md5sumsFile)
 
 		// add the static control files.
 		for _, file := range staticControlFiles {
 			// add the static control files.
-			log.Printf("adding %s file to %s.tar.gz\n", file, controlFile)
-			addToTarball(tw, file, filepath.Join("..", "installer", "deb", file))
+			src := filepath.Join("..", "installer", "deb", file)
+			dst = filepath.Join(controlDir, file)
+			logCopy(src, dst)
+			os.Link(src, dst)
 		}
 	}
-	createControlTgz()
 
-	releaseName := getReleaseName()
 	output := releaseName + ".deb"
 	// create the .deb file.
-	out, err := run("ar", "rcs", output, debianBinaryFile, controlFile + ".tar.gz", dataFile + ".tar.gz")
-	check(err, "run ar\n"+out)
+	out, err := run("dpkg", "-b", releaseName, output)
+	check(err, "run dpkg\n"+out)
 	// Copy to top level directory so we can upload it.
 	check(os.Link(
 		output,
