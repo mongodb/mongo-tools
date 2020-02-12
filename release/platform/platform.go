@@ -75,6 +75,8 @@ func IsRPM(platformName string) bool {
 func DebianArch(arch string) string {
 	switch arch {
 	case "x86_64": return "amd64"
+	case "ppc64le": return "ppc64el"
+	// other archs are the same name on Debian.
 	default: return arch
 	}
 }
