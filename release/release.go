@@ -4,8 +4,10 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"crypto/md5"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -138,27 +140,32 @@ func buildDeb() {
 
 	log.Printf("building data.tar.gz archive\n")
 
+	debianBinaryFile := "debian-binary"
 	// write the debian-binary file, a file which only contains 2.0\n
 	createDebianBinary := func() {
-		f, err := os.Create("debian-binary")
+		f, err := os.Create(debianBinaryFile)
+		check(err, "create " + debianBinaryFile)
 		defer f.Close()
-		check(err, "create debian-binary")
 		_, err = f.WriteString("2.0\n")
-		check(err, "write to debian-binary")
+		check(err, "write to " + debianBinaryFile)
 	}
 	createDebianBinary()
 
+	md5sums := make(map[string]string)
+	// We use the order just to make sure the md5sums are always in the same order.
+	// This probably doesn't matter, but it looks nicer for anyone inspecting the md5sums file.
+	md5sumsOrder := make([]string, 0, len(binaries) + len(staticFiles))
 	// write the data.tar.gz file, which contains the data to write to the disk in the position
 	// it must go on the disk:
 	// ./usr/bin/bsondump
 	// ./usr/bin/mongo*
 	// ./usr/share/doc/releaseName/README.md
 	// ....
+	dataFile := "data"
 	createDataTgz := func() {
 		binariesPath := filepath.Join("..", "bin")
-		data := "data"
-		archiveFile, err := os.Create(data + ".tar.gz")
-		check(err, "create " + data + ".tar.gz")
+		archiveFile, err := os.Create(dataFile + ".tar.gz")
+		check(err, "create " + dataFile + ".tar.gz")
 		defer archiveFile.Close()
 
 		gw := gzip.NewWriter(archiveFile)
@@ -169,20 +176,62 @@ func buildDeb() {
 
 		// Add binaries.
 		for _, binName := range binaries {
-			log.Printf("adding %s binary to %s.tar.gz\n", data, binName)
+			log.Printf("adding %s binary to %s.tar.gz\n", binName, dataFile)
 			src := filepath.Join(binariesPath, binName)
 			dst := filepath.Join("usr", "bin", binName)
 			addToTarball(tw, dst, src)
+			md5sums[dst] = computeMD5(src)
+			md5sumsOrder = append(md5sumsOrder, dst)
 		}
 		// Add static files.
 		for _, file := range staticFiles {
-			log.Printf("adding %s static file to %s.tar.gz\n", data, file)
+			log.Printf("adding %s static file to %s.tar.gz\n", file, dataFile)
 			src := filepath.Join("..", file)
 			dst := filepath.Join("usr", "share", "doc", mdt, file)
 			addToTarball(tw, dst, src)
+			md5sums[dst] = computeMD5(src)
+			md5sumsOrder = append(md5sumsOrder, dst)
 		}
 	}
 	createDataTgz()
+
+	controlFile := "control"
+	createControlFile := func () {
+		f, err := os.Create(controlFile)
+		check(err, "create control")
+		defer f.Close()
+
+		// get the control file content.
+		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "deb", "control"))
+		content := string(contentBytes)
+		check(err, "reading control file content")
+		content = strings.Replace(content, "@TOOLS_VERSION@", getDebVersion(getVersion()), 1)
+		p, err := platform.Get()
+		check(err, "get platform")
+		content = strings.Replace(content, "@ARCHITECTURE@", platform.DebianArch(p.Arch), 1)
+		f.WriteString(content)
+	}
+	createControlFile()
+
+	md5sumsFile := "md5sums"
+	createMD5Sums := func () {
+		f, err := os.Create(md5sumsFile)
+		check(err, "create md5sums")
+		defer f.Close()
+		os.Chmod(md5sumsFile, 0644)
+		// create the md5sums file.
+		for _, path := range md5sumsOrder {
+			md5sum, ok := md5sums[path]
+			if !ok {
+				check(fmt.Errorf("could not find md5sum, this is a code mistake"), "find md5sum")
+			}
+			_, err = f.WriteString(md5sum + " ")
+			check(err, "write md5sum to md5sums")
+			_, err = f.WriteString(path + "\n")
+			check(err, "write path to md5sums")
+		}
+	}
+	createMD5Sums()
 
 	// write the control.tar.gz files, which contains meta information about the package
 	// and the data to be installed:
@@ -191,15 +240,13 @@ func buildDeb() {
 	// postinst (optional) -- post install script, we don't need this
 	// prerm (optional) -- removing old documentation
 	createControlTgz := func() {
-		control := "control"
 		staticControlFiles := []string{
-			"control",
 			"postinst",
 			"prerm",
 		}
 
-		archiveFile, err := os.Create(control + ".tar.gz")
-		check(err, "create " + control + ".tar.gz")
+		archiveFile, err := os.Create(controlFile + ".tar.gz")
+		check(err, "create " + controlFile + ".tar.gz")
 		defer archiveFile.Close()
 
 		gw := gzip.NewWriter(archiveFile)
@@ -208,20 +255,34 @@ func buildDeb() {
 		tw := tar.NewWriter(gw)
 		defer tw.Close()
 
-		for _, file := range staticControlFiles {
-			// add the static control files.
-			log.Printf("adding %s file to %s.tar.gz\n", file, "control")
-			addToTarball(tw, file, filepath.Join("..", "installer", "deb", file))
-		}
 
-		// create the md5sums file.
+		// add the control file 
+		log.Printf("adding %s file to %s.tar.gz\n", md5sumsFile, controlFile)
+		addToTarball(tw, controlFile, controlFile)
 
 		// add the md5sums file to the control.tar.gz file.
-	}
+		log.Printf("adding %s file to %s.tar.gz\n", md5sumsFile, controlFile)
+		addToTarball(tw, md5sumsFile, md5sumsFile)
 
+		// add the static control files.
+		for _, file := range staticControlFiles {
+			// add the static control files.
+			log.Printf("adding %s file to %s.tar.gz\n", file, controlFile)
+			addToTarball(tw, file, filepath.Join("..", "installer", "deb", file))
+		}
+	}
 	createControlTgz()
 
-	// releaseName := getReleaseName()
+	releaseName := getReleaseName()
+	output := releaseName + ".deb"
+	// create the .deb file.
+	out, err := run("ar", "rcs", output, debianBinaryFile, controlFile + ".tar.gz", dataFile + ".tar.gz")
+	check(err, "run ar\n"+out)
+	// Copy to top level directory so we can upload it.
+	check(os.Link(
+		output,
+		filepath.Join("..", output),
+	), "linking output for s3 upload")
 }
 
 func buildMSI() {
@@ -404,6 +465,14 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
+func getDebVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2-39-g7f57f9a2
+	if version[0] == 'r' {
+		return version[1:]
+	}
+	return version
+}
+
 func getWixVersion(version string) string {
 	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
 	rLabel := strings.Split(version, "-")[0]
@@ -422,6 +491,12 @@ func getVersionLabel(version string) string {
 	return rLabel
 }
 
+func computeMD5(filename string) string {
+	content, err := ioutil.ReadFile(filename)
+	check(err, "reading file during md5 summing")
+	return fmt.Sprintf("%x", md5.Sum([]byte(content)))
+}
+
 func addToTarball(tw *tar.Writer, dst, src string) {
 	file, err := os.Open(src)
 	check(err, "open file")
@@ -433,7 +508,7 @@ func addToTarball(tw *tar.Writer, dst, src string) {
 	header := &tar.Header{
 		Name: dst,
 		Size: stat.Size(),
-		Mode: 0755,
+		Mode: int64(stat.Mode()),
 	}
 
 	err = tw.WriteHeader(header)

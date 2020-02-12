@@ -72,6 +72,13 @@ func IsRPM(platformName string) bool {
 	return ok
 }
 
+func DebianArch(arch string) string {
+	switch arch {
+	case "x86_64": return "amd64"
+	default: return arch
+	}
+}
+
 var platforms = map[string]Platform{
 	"amazon1": {
 		Name: "amazon1",

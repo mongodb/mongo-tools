@@ -1,14 +1,16 @@
 Package: mongodb-database-tools
-Version: @TOOLS_VERSION@-@PACKAGE_VERSION@
+Version: @TOOLS_VERSION@
 Architecture: @ARCHITECTURE@
 Maintainer: TODO <todo@mongodb.com>
-Description: The Mongo Tools package provides tools for working with the MongoDB server: 
+Description: mongodb-database-tools package provides tools for working with the MongoDB server: 
  *bsondump - display BSON files in a human-readable format
  *mongoimport - Convert data from JSON, TSV or CSV and insert them into a collection
  *mongoexport - Write an existing collection to CSV or JSON format
- *mongodump/mongorestore - Dump MongoDB backups to disk in .BSON format, or restore them to a live database
+ *mongodump/mongorestore - Dump MongoDB backups to disk in .BSON format, 
+    or restore them to a live database
  *mongostate - Monitor live MongoDB servers, replica sets, or sharded clusters
- *mongofiles - Read, write, delete, or update files in GridFS (see: http://docs.mongodb.org/manual/core/gridfs/)
+ *mongofiles - Read, write, delete, or update files in GridFS 
+    (see: http://docs.mongodb.org/manual/core/gridfs/)
  *mongotop - Monitor read/write activity on a mongo server
 Homepage: http://mms.mongodb.com
 Provides: mongodb-database-tools
