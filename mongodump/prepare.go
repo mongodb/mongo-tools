@@ -328,20 +328,21 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			// so don't dump it.
 			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
 		}
-		//Set the MetadataFile path.
+
 		if dump.OutputOptions.ViewsAsCollections && ci.IsView() {
-			log.Logvf(log.DebugLow, "not dumping metadata for %v.%v because it is a view", dbName, ci.Name)
-		} else {
-			if !intent.IsSystemIndexes() {
-				if dump.OutputOptions.Archive != "" {
-					intent.MetadataFile = &archive.MetadataFile{
-						Intent: intent,
-						Buffer: &bytes.Buffer{},
-					}
-				} else {
-					path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name+".metadata.json"))
-					intent.MetadataFile = &realMetadataFile{path: path, intent: intent}
+			delete(intent.Options, "viewOn")
+			delete(intent.Options, "pipeline")
+		}
+		//Set the MetadataFile path.
+		if !intent.IsSystemIndexes() {
+			if dump.OutputOptions.Archive != "" {
+				intent.MetadataFile = &archive.MetadataFile{
+					Intent: intent,
+					Buffer: &bytes.Buffer{},
 				}
+			} else {
+				path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name+".metadata.json"))
+				intent.MetadataFile = &realMetadataFile{path: path, intent: intent}
 			}
 		}
 	}
