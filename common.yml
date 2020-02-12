@@ -188,10 +188,6 @@ mongo_tools_variables:
     ssl: &mongod_ssl_startup_args
       mongod_args: "--sslMode requireSSL --sslCAFile testdata/certs/ca.pem --sslPEMKeyFile testdata/certs/server.pem"
       mongod_port: 33333
-    # Set storage engine as mmapv1 for 32 bit variants because WiredTiger requires 64 bit support.
-    win32: &mongod_win32_startup_args
-      mongod_args: "--storageEngine=mmapv1"
-      mongod_port: 33333
 
   mongo_arguments:
     default: &mongo_default_startup_args
@@ -574,10 +570,7 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          . ./set_goenv.sh
-          GOROOT="" set_goenv || exit
-          export EVG_PLATFORM=${_platform}
-          set -o errexit
+          ${_set_shell_env}
           go run release/release.go build-archive
           go run release/release.go build-packages
 
@@ -587,7 +580,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-          - src/github.com/mongodb/mongo-tools/mongodb-*
+          - src/github.com/mongodb/mongo-tools/release.*
         remote_file: mongo-tools/pkgs/${build_id}/
         content_type: application/octet-stream
         bucket: mciuploads
@@ -601,7 +594,7 @@ functions:
         target: src/github.com/mongodb/mongo-tools/upload.tgz
         source_dir: src/github.com/mongodb/mongo-tools
         include:
-          - "./mongodb-cli-tools-*"
+          - "./release.*"
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -628,7 +621,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-          - src/github.com/mongodb/mongo-tools/mongodb-cli-tools-*
+          - src/github.com/mongodb/mongo-tools/release.*
         remote_file: mongo-tools/task/sign/${build_id}/
         bucket: mciuploads
         permissions: public-read
@@ -741,6 +734,23 @@ pre:
         ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
         rm -rf src /data/db/*
         exit 0
+  - command: shell.exec
+    params:
+      script: |
+        cat <<EOT > expansions.yml
+        _set_shell_env: |
+          . ./set_goenv.sh
+          GOROOT="" set_goenv
+          export EVG_IS_PATCH='${is_patch}'
+          export EVG_BUILD_ID='${build_id}'
+          export EVG_VARIANT='${build_variant}'
+          set -o xtrace
+          set -o verbose
+          set -o errexit
+        EOT
+  - command: expansions.update
+    params:
+      file: expansions.yml
 
 post:
     # attach.results works for jstests, gotest.parse_files for golang tests
@@ -1447,13 +1457,12 @@ buildvariants:
 #     Amazon x86_64 Buildvariants     #
 #######################################
 
-- name: amazonlinux64
+- name: amazon
   display_name: Amazon Linux 64
   run_on:
   - amazon1-2018-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: amazon1
   tasks:
   - name: dist
   - name: sign
@@ -1465,7 +1474,6 @@ buildvariants:
   - amazon2-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: amazon2
   tasks:
   - name: dist
   - name: sign
@@ -1481,7 +1489,6 @@ buildvariants:
   - debian81-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: debian81
   tasks:
   - name: dist
   - name: sign
@@ -1493,7 +1500,6 @@ buildvariants:
   - debian92-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: debian92
   tasks:
   - name: dist
   - name: sign
@@ -1503,7 +1509,7 @@ buildvariants:
 #           macOS Buildvariant        #
 #######################################
 
-- name: macOS-1014
+- name: macos
   display_name: MacOS 10.14
   run_on:
   - macos-1014
@@ -1512,13 +1518,11 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     mongo_os: "osx"
     mongo_target: "osx-ssl"
-    arch: "osx/x86_64"
     excludes: requires_many_files
     build_tags: "ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     USE_SSL: "true"
-    _platform: macos1014
   tasks: *macos_tasks
 
 #######################################
@@ -1537,11 +1541,9 @@ buildvariants:
     build_tags: "ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
-    arch: "linux/x86_64"
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    _platform: rhel62
     USE_SSL: "true"
   tasks: *rhel_x86_64_tasks
 
@@ -1551,7 +1553,6 @@ buildvariants:
   - rhel70-small
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: rhel70
   tasks:
   - name: dist
   - name: sign
@@ -1567,7 +1568,6 @@ buildvariants:
   - suse12-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: suse12
   tasks:
   - name: dist
   - name: sign
@@ -1583,7 +1583,6 @@ buildvariants:
   - ubuntu1404-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1404
   tasks:
   - name: dist
   - name: sign
@@ -1601,12 +1600,10 @@ buildvariants:
     build_tags: "ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
-    arch: "linux/x86_64"
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     USE_SSL: "true"
-    _platform: ubuntu1604
   tasks: *ubuntu_x86_64_tasks
 
 - name: ubuntu1804
@@ -1615,7 +1612,6 @@ buildvariants:
   - ubuntu1804-test
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1804
   tasks:
   - name: dist
   - name: sign
@@ -1625,7 +1621,7 @@ buildvariants:
 #        Windows Buildvariants        #
 #######################################
 
-- name: windows-64
+- name: windows
   display_name: Windows 64-bit
   run_on:
   - windows-64-vs2017-compile
@@ -1642,10 +1638,8 @@ buildvariants:
     excludes: requires_large_ram,requires_mongo_24
     edition: enterprise
     extension: .exe
-    arch: "win32/x86_64"
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     USE_SSL: "true"
-    _platform: windowsVS2017
   tasks: *windows_64_tasks
 
 #######################################
@@ -1669,10 +1663,8 @@ buildvariants:
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
-    arch: "linux/arm64"
     edition: ssl
     USE_SSL: "true"
-    _platform: ubuntu1604-arm
   tasks: *ubuntu1604_arm64_tasks
 
 # MongoDB 4.2+
@@ -1692,10 +1684,8 @@ buildvariants:
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
-    arch: "linux/arm64"
     edition: ssl
     USE_SSL: "true"
-    _platform: ubuntu1804-arm
   tasks: *ubuntu1804_arm64_tasks
 
 #######################################
@@ -1718,10 +1708,8 @@ buildvariants:
     resmoke_use_ssl: _ssl
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    arch: "linux/ppc64le"
     edition: enterprise
     run_kinit: true
-    _platform: rhel71-ppc
   tasks: *rhel71_ppc64le_tasks
 
 # MongoDB 3.4 - 4.0
@@ -1733,7 +1721,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: 'ssl sasl gssapi'
-    _platform: ubuntu1604-ppc
   tasks:
   - name: dist
   - name: sign
@@ -1748,7 +1735,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: 'ssl sasl gssapi'
-    _platform: ubuntu1804-ppc
   tasks:
   - name: dist
   - name: sign
@@ -1774,10 +1760,8 @@ buildvariants:
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
-    arch: "linux/s390x"
     edition: enterprise
     run_kinit: true
-    _platform: rhel67-zseries
   tasks: *rhel67_s390x_tasks
 
 - name: rhel72-s390x
@@ -1788,7 +1772,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: rhel72-zseries
   tasks:
   - name: dist
   - name: sign
@@ -1802,7 +1785,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1604-zseries
   tasks:
   - name: dist
   - name: sign
@@ -1816,7 +1798,6 @@ buildvariants:
   batchtime: 10080 # weekly
   expansions:
     build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1804-zseries
   tasks:
   - name: dist
   - name: sign
@@ -1838,9 +1819,7 @@ buildvariants:
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
     build_tags: "sasl gssapi ssl"
-    arch: "linux/x86_64"
     args: "-buildmode=default -race"
     excludes: requires_large_ram
-    _platform: ubuntu1604-zseries
   tasks: *ubuntu_x86_64_race_tasks
 

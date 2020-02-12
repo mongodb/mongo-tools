@@ -83,7 +83,7 @@ set_goenv() {
 }
 
 print_ldflags() {
-    VersionStr="$(git describe)"
+    VersionStr="$(go run release/release.go get-version)"
     GitCommit="$(git rev-parse HEAD)"
     importpath="main"
     echo "-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.GitCommit=${GitCommit}"
