@@ -2,7 +2,17 @@ package platform
 
 import (
 	"fmt"
-	"os"
+
+	"github.com/mongodb/mongo-tools/release/env"
+)
+
+const (
+	OSWindows = "windows"
+	OSLinux   = "linux"
+	OSMac     = "mac"
+
+	PkgDeb = "deb"
+	PkgRPM = "rpm"
 )
 
 // Platform represents a platform (a combination of OS, distro,
@@ -12,180 +22,185 @@ import (
 type Platform struct {
 	Name string
 	Arch string
+	OS   string
+	Pkg  string
 }
 
-const evgPlatformVar = "EVG_PLATFORM"
+func (p Platform) Variant() string {
+	if p.Arch == "x86_64" {
+		return p.Name
+	}
+	return fmt.Sprintf("%s-%s", p.Name, p.Arch)
+}
+
+const evgVariantVar = "EVG_VARIANT"
 
 // Get returns the Platform for this host, based on the value of
-// EVG_PLATFORM. It returns an error if EVG_PLATFORM is unset or set
+// EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set
 // to an unknown value.
-func Get() (Platform, error) {
-	evgPlatform := os.Getenv(evgPlatformVar)
-	if evgPlatform == "" {
-		return Platform{}, fmt.Errorf("%s not set", evgPlatformVar)
+func GetFromEnv() (Platform, error) {
+	variant, err := env.EvgVariant()
+	if err != nil {
+		return Platform{}, err
 	}
 
-	pf, ok := platforms[evgPlatform]
+	pf, ok := GetByVariant(variant)
 	if !ok {
-		return Platform{}, fmt.Errorf("unknown evg platform id %q", evgPlatform)
+		return Platform{}, fmt.Errorf("unknown evg variant %q", variant)
 	}
 	return pf, nil
 }
 
-// IsWindows returns true if the current host is a Windows host.
-func IsWindows() (bool, error) {
-	p, err := Get()
-	if err != nil {
-		return false, err
+func GetByVariant(variant string) (Platform, bool) {
+	if platformsByVariant == nil {
+		platformsByVariant = make(map[string]Platform)
+		for _, p := range platforms {
+			platformsByVariant[p.Variant()] = p
+		}
 	}
-
-	switch p.Name {
-	case "win32":
-		return true, nil
-	default:
-		return false, nil
-	}
+	p, ok := platformsByVariant[variant]
+	return p, ok
 }
 
-// IsLinux returns true if the current host is a Linux host.
-func IsLinux() (bool, error) {
-	p, err := Get()
-	if err != nil {
-		return false, err
+func (p Platform) DebianArch() string {
+	if p.Pkg != PkgDeb {
+		panic("called DebianArch on non-debian platform")
 	}
-
-	switch p.Name {
-	case "win32", "macos":
-		return false, nil
-	default:
-		return true, nil
-	}
-}
-
-func IsDeb(platformName string) bool {
-	_, ok := debPlatformNames[platformName]
-	return ok
-}
-
-func IsRPM(platformName string) bool {
-	_, ok := rpmPlatformNames[platformName]
-	return ok
-}
-
-func DebianArch(arch string) string {
-	switch arch {
+	switch p.Arch {
 	case "x86_64":
 		return "amd64"
 	case "ppc64le":
 		return "ppc64el"
 	// other archs are the same name on Debian.
 	default:
-		return arch
+		return p.Arch
 	}
 }
 
-var platforms = map[string]Platform{
-	"amazon1": {
-		Name: "amazon1",
+var platformsByVariant map[string]Platform
+var platforms = []Platform{
+	{
+		Name: "amazon",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"amazon2": {
+	{
 		Name: "amazon2",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"debian81": {
-		Name: "debian8",
+	{
+		Name: "debian81",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"debian92": {
-		Name: "debian9",
+	{
+		Name: "debian92",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"macos1014": {
+	{
 		Name: "macos",
 		Arch: "x86_64",
+		OS:   OSMac,
 	},
-	"rhel62": {
+	{
 		Name: "rhel62",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"rhel70": {
+	{
 		Name: "rhel70",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"suse12": {
+	{
 		Name: "suse12",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"ubuntu1404": {
+	{
 		Name: "ubuntu1404",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"ubuntu1604": {
+	{
 		Name: "ubuntu1604",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"ubuntu1804": {
+	{
 		Name: "ubuntu1804",
 		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"windowsVS2017": {
-		Name: "win32",
+	{
+		Name: "windows",
 		Arch: "x86_64",
+		OS:   OSWindows,
 	},
-	"ubuntu1604-arm": {
+	{
 		Name: "ubuntu1604",
 		Arch: "arm64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"ubuntu1804-arm": {
+	{
 		Name: "ubuntu1804",
 		Arch: "arm64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"rhel71-ppc": {
+	{
 		Name: "rhel71",
 		Arch: "ppc64le",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"ubuntu1604-ppc": {
+	{
 		Name: "ubuntu1604",
 		Arch: "ppc64le",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"ubuntu1804-ppc": {
+	{
 		Name: "ubuntu1804",
 		Arch: "ppc64le",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"rhel67-zseries": {
+	{
 		Name: "rhel67",
 		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"rhel72-zseries": {
+	{
 		Name: "rhel72",
 		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
 	},
-	"ubuntu1604-zseries": {
+	{
 		Name: "ubuntu1604",
 		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-	"ubuntu1804-zseries": {
+	{
 		Name: "ubuntu1804",
 		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
-}
-
-var debPlatformNames = map[string]struct{}{
-	"debian8":    {},
-	"debian9":    {},
-	"ubuntu1404": {},
-	"ubuntu1604": {},
-	"ubuntu1804": {},
-}
-
-var rpmPlatformNames = map[string]struct{}{
-	"amazon1": {},
-	"amazon2": {},
-	"rhel62":  {},
-	"rhel67":  {},
-	"rhel70":  {},
-	"rhel71":  {},
-	"rhel72":  {},
-	"suse12":  {},
 }

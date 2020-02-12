@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/platform"
 )
 
@@ -52,6 +53,8 @@ func main() {
 	case "build-packages":
 		buildMSI()
 		buildLinuxPackages()
+	case "get-version":
+		fmt.Print(getVersion())
 	case "list-deps":
 		listLinuxDeps()
 	default:
@@ -74,17 +77,25 @@ func check(err error, format ...interface{}) {
 func run(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	out, err := cmd.Output()
+	if err != nil {
+		if exerr, ok := err.(*exec.ExitError); ok {
+			err = fmt.Errorf("ExitError: %v. Stderr: %q", err, string(exerr.Stderr))
+		}
+	}
 	return strings.TrimSpace(string(out)), err
 }
 
 func getVersion() string {
-	desc, err := run("git", "describe")
+	desc, err := run("git", "describe", "--dirty")
 	check(err, "git describe")
+	if env.EvgIsPatch() {
+		desc += "-patch"
+	}
 	return desc
 }
 
 func getReleaseName() string {
-	p, err := platform.Get()
+	p, err := platform.GetFromEnv()
 	check(err, "get platform")
 	version := getVersion()
 
@@ -95,9 +106,9 @@ func getReleaseName() string {
 }
 
 func buildArchive() {
-	win, err := platform.IsWindows()
-	check(err, "check platform type")
-	if win {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+	if pf.OS == platform.OSWindows {
 		buildZip()
 	} else {
 		buildTarball()
@@ -105,33 +116,35 @@ func buildArchive() {
 }
 
 func listLinuxDeps() {
-	linux, err := platform.IsLinux()
-	check(err, "check platform type")
-	if !linux {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	if pf.OS != platform.OSLinux {
 		return
 	}
 
-	p, err := platform.Get()
 	check(err, "get platform")
-	platformName := p.Name
 	libraryPaths := getLibraryPaths()
 	deps := make(map[string]struct{})
-	if platform.IsRPM(platformName) {
+
+	switch pf.Pkg {
+	case platform.PkgRPM:
 		for _, libPath := range libraryPaths {
 			out, err := run("rpm", "-q", "--whatprovides", libPath)
 			check(err, "rpm -q --whatprovides "+libPath+": "+out)
 			deps[strings.Trim(out, " \t\n")] = struct{}{}
 		}
-	} else if platform.IsDeb(platformName) {
+	case platform.PkgDeb:
 		for _, libPath := range libraryPaths {
 			out, err := run("dpkg", "-S", libPath)
 			check(err, "dpkg -S "+libPath+": "+out)
 			sp := strings.Split(out, ":")
 			deps[strings.Trim(sp[0], " \t\n")] = struct{}{}
 		}
-	} else {
-		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
+	default:
+		log.Fatalf("linux platform %q is neither deb nor rpm based", pf.Name)
 	}
+
 	orderedDeps := make([]string, 0, len(deps))
 	for dep := range deps {
 		orderedDeps = append(orderedDeps, dep)
@@ -162,21 +175,19 @@ func getLibraryPaths() []string {
 }
 
 func buildLinuxPackages() {
-	linux, err := platform.IsLinux()
-	check(err, "check platform type")
-	if !linux {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+	if pf.OS != platform.OSLinux {
 		return
 	}
 
-	p, err := platform.Get()
-	check(err, "get platform")
-	platformName := p.Name
-	if platform.IsRPM(platformName) {
+	switch pf.Pkg {
+	case platform.PkgRPM:
 		buildRPM()
-	} else if platform.IsDeb(platformName) {
+	case platform.PkgDeb:
 		buildDeb()
-	} else {
-		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
+	default:
+		log.Fatalf("found linux platform with no Pkg value: %+v", pf)
 	}
 }
 
@@ -243,7 +254,7 @@ func buildRPM() {
 	}
 	createTar()
 
-	p, err := platform.Get()
+	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
 	specFile := mdt + ".spec"
 
@@ -262,26 +273,29 @@ func buildRPM() {
 		check(err, "reading spec file content")
 		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
 		content = strings.Replace(content, "@TOOLS_RELEASE@", rpmRelease, -1)
-		content = strings.Replace(content, "@ARCHITECTURE@", p.Arch, -1)
+		content = strings.Replace(content, "@ARCHITECTURE@", pf.Arch, -1)
 		_, err = f.WriteString(content)
 		check(err, "write content to spec file")
 	}
 	createSpecFile()
 
-	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + p.Arch + ".rpm"
+	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + pf.Arch + ".rpm"
 	outputPath := filepath.Join(home, "rpmbuild", "RPMS", outputFile)
 	// create the .deb file.
-	log.Printf("running: rmpbuild -bb %s\n", specFile)
+	log.Printf("running: rpmbuild -bb %s\n", specFile)
 	out, err := run("rpmbuild", "-bb", specFile)
 	check(err, "rpmbuild\n"+out)
 	// Copy to top level directory so we can upload it.
 	check(copyFile(
 		outputPath,
-		filepath.Join("..", outputFile),
+		filepath.Join("../release.rpm"),
 	), "linking output for s3 upload")
 }
 
 func buildDeb() {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
 	mdt := "mongodb-database-tools"
 	releaseName := getReleaseName()
 
@@ -364,9 +378,8 @@ func buildDeb() {
 		content := string(contentBytes)
 		check(err, "reading control file content")
 		content = strings.Replace(content, "@TOOLS_VERSION@", getDebVersion(getVersion()), -1)
-		p, err := platform.Get()
-		check(err, "get platform")
-		content = strings.Replace(content, "@ARCHITECTURE@", platform.DebianArch(p.Arch), 1)
+
+		content = strings.Replace(content, "@ARCHITECTURE@", pf.DebianArch(), 1)
 		_, err = f.WriteString(content)
 		check(err, "write content to control file")
 	}
@@ -424,20 +437,20 @@ func buildDeb() {
 
 	output := releaseName + ".deb"
 	// create the .deb file.
-	log.Printf("running: dpkg -b %s %s", releaseName, output)
-	out, err := run("dpkg", "-b", releaseName, output)
+	log.Printf("running: dpkg -D1 -b %s %s", releaseName, output)
+	out, err := run("dpkg", "-D1", "-b", releaseName, output)
 	check(err, "run dpkg\n"+out)
 	// Copy to top level directory so we can upload it.
 	check(os.Link(
 		output,
-		filepath.Join("..", output),
+		filepath.Join("../release.deb"),
 	), "linking output for s3 upload")
 }
 
 func buildMSI() {
-	win, err := platform.IsWindows()
-	check(err, "check platform type")
-	if !win {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+	if pf.OS != platform.OSWindows {
 		return
 	}
 
@@ -578,7 +591,7 @@ func buildMSI() {
 
 	check(err, "run candle.exe\n"+out)
 
-	output := getReleaseName() + ".msi"
+	output := "release.msi"
 	light := filepath.Join(wixPath, "light.exe")
 	out, err = run(light,
 		"-wx",
@@ -690,8 +703,7 @@ func addToTarball(tw *tar.Writer, dst, src string) {
 func buildTarball() {
 	log.Printf("building tarball archive\n")
 
-	releaseName := getReleaseName()
-	archiveFile, err := os.Create(releaseName + ".tgz")
+	archiveFile, err := os.Create("release.tgz")
 	check(err, "create archive file")
 	defer archiveFile.Close()
 
@@ -700,6 +712,8 @@ func buildTarball() {
 
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
+
+	releaseName := getReleaseName()
 
 	for _, name := range staticFiles {
 		log.Printf("adding %s to tarball\n", name)
@@ -739,13 +753,14 @@ func addToZip(zw *zip.Writer, dst, src string) {
 func buildZip() {
 	log.Printf("building zip archive\n")
 
-	releaseName := getReleaseName()
-	archiveFile, err := os.Create(releaseName + ".zip")
+	archiveFile, err := os.Create("release.zip")
 	check(err, "create archive file")
 	defer archiveFile.Close()
 
 	zw := zip.NewWriter(archiveFile)
 	defer zw.Close()
+
+	releaseName := getReleaseName()
 
 	for _, name := range staticFiles {
 		log.Printf("adding %s to zip\n", name)
