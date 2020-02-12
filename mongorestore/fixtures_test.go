@@ -8,13 +8,13 @@ package mongorestore
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools/legacy/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -53,7 +53,7 @@ func (tcd testCollData) SplitNS() (string, string) {
 	if len(ns) != 2 {
 		panic(fmt.Sprintf("invalid namespace '%s'", tcd.ns))
 	}
-	return ns[0], util.EscapeCollectionName(ns[1])
+	return ns[0], url.PathEscape(ns[1])
 }
 
 // Mkdir ensures the db part of the collection namespace exists as a directory.

@@ -8,7 +8,6 @@ MongoDB Tools
  - **mongostat** - _Monitor live MongoDB servers, replica sets, or sharded clusters_
  - **mongofiles** - _Read, write, delete, or update files in [GridFS](http://docs.mongodb.org/manual/core/gridfs/)_
  - **mongotop** - _Monitor read/write activity on a mongo server_
- - **mongoreplay** - _Capture, observe, and replay traffic for MongoDB_
 
 
 Report any bugs, improvements, or new feature requests at https://jira.mongodb.org/browse/TOOLS

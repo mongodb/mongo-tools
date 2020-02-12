@@ -28,14 +28,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
       - name: unit
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2107
-      # - name: replay-replay_test-4.2
     macos_ssl_task_list: &macos_ssl_tasks
       - name: dist
       - name: qa-tests-4.0
@@ -43,7 +35,6 @@ mongo_tools_variables:
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
       - name: unit
-      - name: replay-dist
     rhel_x86_64_task_list: &rhel_x86_64_tasks
       - name: dist
       - name: sign
@@ -66,14 +57,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-archiving-current
       - name: unit
       - name: vet
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2116
-      # - name: replay-replay_test-4.2
     rhel_x86_64_ssl_task_list: &rhel_x86_64_ssl_tasks
       - name: dist
       - name: integration-4.0
@@ -84,7 +67,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
     rhel_x86_64_enterprise_task_list: &rhel_x86_64_enterprise_tasks
       - name: dist
       - name: integration-4.0
@@ -97,14 +79,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2116
-      # - name: replay-replay_test-4.2
     ubuntu_x86_64_task_list: &ubuntu_x86_64_tasks
       - name: dist
       - name: sign
@@ -126,14 +100,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-archiving-current
       - name: unit
       - name: vet
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2108
-      # - name: replay-replay_test-4.2
     ubuntu_x86_64_ssl_task_list: &ubuntu_x86_64_ssl_tasks
       - name: dist
       - name: integration-4.0
@@ -144,7 +110,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
     ubuntu_x86_64_enterprise_task_list: &ubuntu_x86_64_enterprise_tasks
       - name: dist
       - name: integration-4.0
@@ -156,14 +121,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2108
-      # - name: replay-replay_test-4.2
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
       - name: integration-4.0
@@ -173,14 +130,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: unit
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2108
-      # - name: replay-replay_test-4.2
     windows_64_task_list: &windows_64_tasks
       - name: dist
       - name: sign
@@ -271,14 +220,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2108
-      # - name: replay-replay_test-4.2
     rhel67_s390x_enterprise_task_list: &rhel67_s390x_enterprise_tasks
       - name: dist
       - name: sign
@@ -297,14 +238,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
-      - name: replay-sanity_check-4.2
-      - name: replay-go_test-4.2
-      - name: replay-auth_test-4.2
-      - name: replay-sharded_test-4.2
-      - name: replay-repl_test-4.2
-      # Disabled due to TOOLS-2108
-      # - name: replay-replay_test-4.2
     ubuntu1604_arm64_ssl_task_list: &ubuntu1604_arm64_ssl_tasks
       - name: dist
       - name: sign
@@ -314,7 +247,6 @@ mongo_tools_variables:
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
-      - name: replay-dist
     ubuntu1804_arm64_ssl_task_list: &ubuntu1804_arm64_ssl_tasks
       - name: dist
       - name: sign
@@ -326,7 +258,6 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
-      - name: replay-dist
 
 
 ## Common mongodb arguments
@@ -806,51 +737,6 @@ functions:
           set -e
           mkdir -p bin
 
-  "upload archive" :
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/${filename}
-      remote_file: mongo-tools/mongoreplay/archive/${build_id}/${filename}
-      bucket: mciuploads
-      permissions: public-read
-      content_type: application/gzip
-      display_name: ${filename}
-
-  "create timeseries" :
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        git clone git@github.com:10gen/support-tools
-        sudo pip install argparse python-dateutil pytz
-        python support-tools/timeseries/timeseries.py /data/mongoreplay/diagnostic.data --html timeseries.html
-
-  "upload timeseries" :
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/timeseries.html
-      remote_file: mongo-tools/mongoreplay/timeseries/${build_id}/timeseries.html
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/html
-      display_name: timeseries.html
-
-  "fetch pcap" :
-      command: s3.get
-      params:
-        bucket: boxes.10gen.com
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: src/github.com/mongodb/mongo-tools/mongoreplay/testPcap/${pcapFname}
-        remote_file: build/mongotape/${pcapFname}
-
   "fetch ftdc" :
   - command: shell.exec
     type: test
@@ -924,24 +810,6 @@ functions:
           set -v
           set -e
           ./bin/mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
-
-  "run replay go_test" :
-  - command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        . ./set_goenv.sh
-        GOROOT="" set_goenv || exit
-        
-        if [ "${TESTING_REPLAY}" = "true" ]; then
-            export TOOLS_TESTING_REPLAY="true"
-        fi
-        ${environment_vars} go test $(buildflags) -ldflags "$(print_ldflags)" ${additional_args} -v > ${filename}.suite
-
 
 pre:
   - command: shell.exec
@@ -1223,7 +1091,7 @@ tasks:
           set -e
           . ./set_goenv.sh
           GOROOT="" set_goenv || exit
-          retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* legacy/*);
+          retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
 
 - name: lint-js
@@ -1620,187 +1488,7 @@ tasks:
           set -x
           set -v
           set -e
-          go tool vet bsondump legacy mongo*
-
-- name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "build tool"
-    vars:
-      tool: mongoreplay
-  - func: "upload tool"
-    vars:
-      tool: mongoreplay
-  - func: "build tool"
-
-- name: replay-sanity_check-4.2
-  depends_on:
-  - name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "fetch tool"
-    vars:
-      tool: mongoreplay
-  - func: "download mongod"
-    vars:
-      mongo_version: "4.2"
-  - func: "start mongod"
-  - func: "wait for mongod to be ready"
-  - command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        chmod +x bin/mongoreplay
-        echo "Running sanity check"
-        PATH=$PATH:$PWD/bin ./mongoreplay/sanity_check.sh -p ${mongod_port}
-
-- name: replay-go_test-4.2
-  depends_on:
-  - name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "fetch tool"
-    vars:
-      tool: mongoreplay
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_multi_channel.pcap
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_single_channel.pcap
-  - func: "download mongod"
-    vars:
-      mongo_version: "4.2"
-  - func: "start mongod"
-  - func: "wait for mongod to be ready"
-  - func: "run replay go_test"
-    vars:
-        filename: playtest
-        environment_vars: DB_PORT=${mongod_port}
-        additional_args: github.com/mongodb/mongo-tools/mongoreplay
-        TESTING_REPLAY: true
-
-- name: replay-sharded_test-4.2
-  depends_on:
-  - name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "fetch tool"
-    vars:
-      tool: mongoreplay
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_multi_channel.pcap
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_single_channel.pcap
-  - func: "download mongod"
-    vars:
-      mongo_version: "4.2"
-  - func: "create sharded_cluster"
-  - func: "run replay go_test"
-    vars:
-        filename: sharded
-        environment_vars: DB_PORT=${mongod_port}
-        additional_args: github.com/mongodb/mongo-tools/mongoreplay --run "LiveDB"
-        TESTING_REPLAY: true
-
-- name: replay-auth_test-4.2
-  depends_on:
-  - name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "fetch tool"
-    vars:
-      tool: mongoreplay
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_multi_channel.pcap
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_single_channel.pcap
-  - func: "download mongod"
-    vars:
-      mongo_version: "4.2"
-  - func: "start mongod"
-    vars:
-        additional_args: --auth
-  - func: "wait for mongod to be ready"
-  - func: "create auth_user"
-    vars:
-        mongod_port: ${mongod_port}
-  - func: "run replay go_test"
-    vars:
-        filename: authtest
-        environment_vars: AUTH=1 DB_PORT=${mongod_port}
-        additional_args: github.com/mongodb/mongo-tools/mongoreplay --run "(LiveDB)|(Authed)"
-        TESTING_REPLAY: true
-
-- name: replay-repl_test-4.2
-  depends_on:
-  - name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "fetch tool"
-    vars:
-      tool: mongoreplay
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_multi_channel.pcap
-  - func: "fetch pcap"
-    vars:
-      pcapFname: getmore_single_channel.pcap
-  - func: "download mongod"
-    vars:
-      mongo_version: "4.2"
-  - func: "create repl_set"
-    vars:
-        mongod_port: ${mongod_port}
-  - func: "run replay go_test"
-    vars:
-        filename: repltest
-        environment_vars: DB_PORT=${mongod_port}
-        additional_args: github.com/mongodb/mongo-tools/mongoreplay --run "LiveDB"
-        TESTING_REPLAY: true
-
-- name: replay-replay_test-4.2
-  depends_on:
-  - name: replay-dist
-  commands:
-  - func: "fetch source"
-  - func: "fetch tool"
-    vars:
-      tool: mongoreplay
-  - func: "download mongod"
-    vars:
-      mongo_version: "4.2"
-  - func: "fetch ftdc"
-  - command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        chmod +x bin/mongoreplay
-        echo "Running replay test"
-        PATH=$PATH:$PWD/bin:$PWD/vendor/bin ./mongoreplay/replay_test.sh --verbose --explicit --keep
-  - command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        tar czf replay.tar.gz tmp.*
-  - func: "upload archive"
-    vars:
-      filename: replay.tar.gz
-  - func: "create timeseries"
-  - func: "upload timeseries"
+          go tool vet bsondump mongo*
 
 buildvariants:
 
@@ -1817,7 +1505,6 @@ buildvariants:
     _platform: amazon1
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -1830,7 +1517,6 @@ buildvariants:
     _platform: amazon1
   tasks:
   - name: dist
-  - name: replay-dist
 
 - name: amazon2
   display_name: Amazon Linux 64 v2
@@ -1841,7 +1527,6 @@ buildvariants:
     _platform: amazon2
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -1854,7 +1539,6 @@ buildvariants:
     _platform: amazon2
   tasks:
   - name: dist
-  - name: replay-dist
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1869,7 +1553,6 @@ buildvariants:
     _platform: debian81
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -1882,7 +1565,6 @@ buildvariants:
     _platform: debian81
   tasks:
   - name: dist
-  - name: replay-dist
 
 - name: debian92
   display_name: Debian 9.2
@@ -1893,7 +1575,6 @@ buildvariants:
     _platform: debian92
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -1906,7 +1587,6 @@ buildvariants:
     _platform: debian92
   tasks:
   - name: dist
-  - name: replay-dist
 
 #######################################
 #           macOS Buildvariant        #
@@ -2011,7 +1691,6 @@ buildvariants:
     _platform: rhel70
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2024,7 +1703,6 @@ buildvariants:
     _platform: rhel70
   tasks:
   - name: dist
-  - name: replay-dist
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -2039,7 +1717,6 @@ buildvariants:
     _platform: suse12
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2052,7 +1729,6 @@ buildvariants:
     _platform: suse12
   tasks:
   - name: dist
-  - name: replay-dist
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -2067,7 +1743,6 @@ buildvariants:
     _platform: ubuntu1404
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2080,7 +1755,6 @@ buildvariants:
     _platform: ubuntu1404
   tasks:
   - name: dist
-  - name: replay-dist
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -2147,7 +1821,6 @@ buildvariants:
     _platform: ubuntu1804
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2160,7 +1833,6 @@ buildvariants:
     _platform: ubuntu1804
   tasks:
   - name: dist
-  - name: replay-dist
 
 #######################################
 #        Windows Buildvariants        #
@@ -2321,7 +1993,6 @@ buildvariants:
     _platform: ubuntu1604-ppc
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2337,7 +2008,6 @@ buildvariants:
     _platform: ubuntu1804-ppc
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2379,7 +2049,6 @@ buildvariants:
     _platform: rhel72-zseries
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2394,7 +2063,6 @@ buildvariants:
     _platform: ubuntu1604-zseries
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
@@ -2409,7 +2077,6 @@ buildvariants:
     _platform: ubuntu1804-zseries
   tasks:
   - name: dist
-  - name: replay-dist
   - name: sign
     run_on: amazon1-2018-test
 
