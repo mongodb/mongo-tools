@@ -624,7 +624,7 @@ func TestRandom(t *testing.T) {
 			panic(err)
 		}
 
-		Convey("{autoIndexId: false} should be flipped to true iff server version >= 4.0", func() {
+		Convey("{autoIndexId: false} should be flipped to true if server version >= 4.0", func() {
 			if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 				So(collInfo.Options["autoIndexId"], ShouldBeTrue)
 			} else {
