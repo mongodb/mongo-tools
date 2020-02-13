@@ -122,48 +122,7 @@ func buildLinuxPackages() {
 }
 
 func buildRPM() {
-	mdt := "mongo-database-tools"
-	releaseName := getReleaseName()
-
-
-	// set up build directory.
-	rpmBuildDir := "rpm_build"
-	check(os.RemoveAll(rpmBuildDir), "removeAll "+rpmBuildDir)
-	check(os.MkdirAll(rpmBuildDir, os.ModePerm), "mkdirAll "+rpmBuildDir)
-	check(os.Chdir(rpmBuildDir), "cd to "+rpmBuildDir)
-	oldCwd, err := os.Getwd()
-	check(err, "get current directory")
-	defer os.Chdir(oldCwd)
-	// we'll want to go back to the original directory, just in case.
-	// build the release dir.
-	// The goal here is to set up  directory with the following structure:
-	// rpmbuild/
-	// |----- RPMS/
-	// |----- SRPMS/
-	// |----- BUILD/
-	// |----- SOURCES/
-	// |         |----- tar gz archive of:
-	//                       |------ usr/
-	//                       |-- bin/
-	//                       |    |--- bsondump
-	//                       |    |--- mongo*
-	//                       |-- share/
-	//                              |---- doc/
-	//                                     |----- mongo-database-tools/
-	//                                                      |--- staticFiles
-	// |----- SPECS/
-
-	log.Printf("create rpm directory tree\n")
-
-	// create DEBIAN dir
-	controlDir := filepath.Join(releaseName, "DEBIAN")
-	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll " + controlDir)
-
-	// create usr/bin and usr/share/doc
-	binDir := filepath.Join(releaseName, "usr", "bin")
-	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll " + binDir)
-	docDir := filepath.Join(releaseName, "usr", "share", "doc", mdt)
-	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll " + docDir)
+	// no op
 }
 
 func buildDeb() {
