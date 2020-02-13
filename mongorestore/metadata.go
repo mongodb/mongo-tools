@@ -259,7 +259,7 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 }
 
 func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
-	if restore.serverVersion.GTE(db.Version{4,0,0}) {
+	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 		restore.UpdateAutoIndexId(options)
 	}
 	command := createCollectionCommand(intent, options)
@@ -280,7 +280,7 @@ func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, 
 }
 
 func (restore *MongoRestore) createCollectionWithApplyOps(session *mongo.Client, intent *intents.Intent, options bson.D, uuidHex string) error {
-	if restore.serverVersion.GTE(db.Version{4,0,0}) {
+	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 		restore.UpdateAutoIndexId(options)
 	}
 

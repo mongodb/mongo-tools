@@ -584,7 +584,7 @@ func TestFixHashedIndexes(t *testing.T) {
 	})
 }
 
-func TestRandom( t *testing.T) {
+func TestRandom(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.TODO()
 
