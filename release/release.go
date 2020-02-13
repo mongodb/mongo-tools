@@ -116,8 +116,7 @@ func buildLinuxPackages() {
 	} else if platform.IsDeb(platformName) {
 		buildDeb()
 	} else {
-		check(fmt.Errorf("linux platform type is neither deb nor rpm based"),
-			"linux platform type is neither deb nor rpm based: " + platformName)
+		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
 	}
 }
 

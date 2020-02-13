@@ -8,14 +8,14 @@ Description: mongodb-database-tools package provides tools for working with the 
  *mongoexport - Write an existing collection to CSV or JSON format
  *mongodump/mongorestore - Dump MongoDB backups to disk in .BSON format, 
     or restore them to a live database
- *mongostate - Monitor live MongoDB servers, replica sets, or sharded clusters
+ *mongostat - Monitor live MongoDB servers, replica sets, or sharded clusters
  *mongofiles - Read, write, delete, or update files in GridFS 
     (see: http://docs.mongodb.org/manual/core/gridfs/)
  *mongotop - Monitor read/write activity on a mongo server
 Homepage: http://mms.mongodb.com
 Depends: libc6, libgssapi-krb5-2, libkrb5-3, libk5crypto3, libcom-err2, libkrb5support0, libkeyutils1
 Provides: mongodb-database-tools
-Conflicts: mongodb-database-tools
-Replaces: mongodb-database-tools
+Conflicts: mongodb-database-tools, mongodb-org-tools
+Replaces: mongodb-database-tools, mongodb-org-tools
 Section: database
 Priority: optional
