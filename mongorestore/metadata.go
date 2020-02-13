@@ -229,17 +229,6 @@ func (restore *MongoRestore) LegacyInsertIndex(intent *intents.Intent, index Ind
 	return nil
 }
 
-// UpdateAutoIndexId updates {autoIndexId: false} to {autoIndexId: true} if the server version is
-// >= 4.0 and the database is not `local`.
-func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
-	for i, elem := range options {
-		if elem.Key == "autoIndexId" && elem.Value == false && restore.NSOptions.DB != "local" {
-			options[i].Value = true
-			log.Logvf(log.Always, "{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.")
-		}
-	}
-}
-
 // CreateCollection creates the collection specified in the intent with the
 // given options.
 func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bson.D, uuid string) error {
@@ -258,10 +247,22 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 
 }
 
-func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
-	if restore.serverVersion.GTE(db.Version{4,0,0}) {
-		restore.UpdateAutoIndexId(options)
+// UpdateAutoIndexId updates {autoIndexId: false} to {autoIndexId: true} if the server version is
+// >= 4.0 and the database is not `local`.
+func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
+	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+		for i, elem := range options {
+			if elem.Key == "autoIndexId" && elem.Value == false && restore.NSOptions.DB != "local" {
+				options[i].Value = true
+				log.Logvf(log.Always, "{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.")
+			}
+		}
 	}
+}
+
+func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
+	restore.UpdateAutoIndexId(options)
+
 	command := createCollectionCommand(intent, options)
 
 	// If there is no error, the result doesnt matter
@@ -280,9 +281,7 @@ func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, 
 }
 
 func (restore *MongoRestore) createCollectionWithApplyOps(session *mongo.Client, intent *intents.Intent, options bson.D, uuidHex string) error {
-	if restore.serverVersion.GTE(db.Version{4,0,0}) {
-		restore.UpdateAutoIndexId(options)
-	}
+	restore.UpdateAutoIndexId(options)
 
 	command := createCollectionCommand(intent, options)
 	uuid, err := hex.DecodeString(uuidHex)
