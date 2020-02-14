@@ -584,9 +584,9 @@ func TestFixHashedIndexes(t *testing.T) {
 	})
 }
 
-func TestRandom(t *testing.T) {
+func TestAutoIndexId(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -643,7 +643,7 @@ func TestRandom(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		restore.TargetDirectory = "local/test_auto_idx.bson"
+		restore.TargetDirectory = "testdata/local/test_auto_idx.bson"
 		result := restore.Restore()
 		So(result.Err, ShouldBeNil)
 
@@ -665,7 +665,7 @@ func TestRandom(t *testing.T) {
 		}
 
 		Convey("{autoIndexId: false} should never be flipped to true", func() {
-			if restore.serverVersion.LTE(db.Version{4, 2, 0}) {
+			if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 				So(collInfo.Options["autoIndexId"], ShouldBeFalse)
 			}
 		})
