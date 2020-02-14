@@ -584,7 +584,7 @@ func TestFixHashedIndexes(t *testing.T) {
 	})
 }
 
-func TestAutoIndexId(t *testing.T) {
+func TestAutoIndexIdLocalDB(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
 
@@ -593,50 +593,11 @@ func TestAutoIndexId(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
-	Convey("Test MongoRestore with {autoIndexId: false} in a non-local database's collection", t, func() {
-		dbName := session.Database("testdata")
-
-		defer dbName.Collection("test_auto_idx").Drop(ctx) // drop the collection to clean up resources
-
-		var args []string
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-
-		restore.TargetDirectory = "testdata/test_auto_idx.bson"
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-
-		// Find the collection
-		filter := bson.D{{"name", "test_auto_idx"}}
-		cursor, err := session.Database("testdata").ListCollections(ctx, filter)
-		if err != nil {
-			panic(err)
-		}
-		defer cursor.Close(ctx)
-		if !cursor.Next(ctx) {
-			panic("no matching collection found")
-		}
-		var collInfo struct {
-			Options bson.M
-		}
-		if err = cursor.Decode(&collInfo); err != nil {
-			panic(err)
-		}
-
-		Convey("{autoIndexId: false} should be flipped to true if server version >= 4.0", func() {
-			if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-				So(collInfo.Options["autoIndexId"], ShouldBeTrue)
-			} else {
-				So(collInfo.Options["autoIndexId"], ShouldBeFalse)
-			}
-		})
-	})
-
 	Convey("Test MongoRestore with {autoIndexId: false} in a local database's collection", t, func() {
 		dbName := session.Database("local")
 
-		defer dbName.Collection("test_auto_idx").Drop(ctx) // drop the collection to clean up resources
+		// Drop the collection to clean up resources
+		defer dbName.Collection("test_auto_idx").Drop(ctx)
 
 		var args []string
 
@@ -650,24 +611,117 @@ func TestAutoIndexId(t *testing.T) {
 		// Find the collection
 		filter := bson.D{{"name", "test_auto_idx"}}
 		cursor, err := session.Database("local").ListCollections(ctx, filter)
-		if err != nil {
-			panic(err)
-		}
+		So(err, ShouldBeNil)
+
 		defer cursor.Close(ctx)
-		if !cursor.Next(ctx) {
-			panic("no matching collection found")
-		}
+
+		documentExists := cursor.Next(ctx)
+		So(documentExists, ShouldBeTrue)
+
 		var collInfo struct {
 			Options bson.M
 		}
-		if err = cursor.Decode(&collInfo); err != nil {
-			panic(err)
-		}
+		err = cursor.Decode(&collInfo)
+		So(err, ShouldBeNil)
 
-		Convey("{autoIndexId: false} should never be flipped to true", func() {
+		Convey("{autoIndexId: false} should not be flipped to true", func() {
 			if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 				So(collInfo.Options["autoIndexId"], ShouldBeFalse)
 			}
+		})
+	})
+}
+
+func TestAutoIndexIdNonLocalDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("Test MongoRestore with {autoIndexId: false} in a non-local database's collection", t, func() {
+		Convey("Do not set --preserveUUID", func() {
+			dbName := session.Database("testdata")
+
+			// Drop the collection to clean up resources
+			defer dbName.Collection("test_auto_idx").Drop(ctx)
+
+			var args []string
+
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			restore.TargetDirectory = "testdata/test_auto_idx.bson"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			// Find the collection
+			filter := bson.D{{"name", "test_auto_idx"}}
+			cursor, err := session.Database("testdata").ListCollections(ctx, filter)
+			So(err, ShouldBeNil)
+
+			defer cursor.Close(ctx)
+
+			documentExists := cursor.Next(ctx)
+			So(documentExists, ShouldBeTrue)
+
+			var collInfo struct {
+				Options bson.M
+			}
+			err = cursor.Decode(&collInfo)
+			So(err, ShouldBeNil)
+
+			Convey("{autoIndexId: false} should be flipped to true if server version >= 4.0", func() {
+				if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+					So(collInfo.Options["autoIndexId"], ShouldBeTrue)
+				} else {
+					So(collInfo.Options["autoIndexId"], ShouldBeFalse)
+				}
+			})
+		})
+		Convey("Set --preserveUUID", func() {
+			dbName := session.Database("testdata")
+
+			// Drop the collection to clean up resources
+			defer dbName.Collection("test_auto_idx").Drop(ctx)
+
+			args := []string{
+				PreserveUUIDOption, "1",
+				DropOption,
+			}
+
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			restore.TargetDirectory = "testdata/test_auto_idx.bson"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			// Find the collection
+			filter := bson.D{{"name", "test_auto_idx"}}
+			cursor, err := session.Database("testdata").ListCollections(ctx, filter)
+			So(err, ShouldBeNil)
+
+			defer cursor.Close(ctx)
+
+			documentExists := cursor.Next(ctx)
+			So(documentExists, ShouldBeTrue)
+
+			var collInfo struct {
+				Options bson.M
+			}
+			err = cursor.Decode(&collInfo)
+			So(err, ShouldBeNil)
+
+			Convey("{autoIndexId: false} should be flipped to true if server version >= 4.0", func() {
+				if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+					So(collInfo.Options["autoIndexId"], ShouldBeTrue)
+				} else {
+					So(collInfo.Options["autoIndexId"], ShouldBeFalse)
+				}
+			})
 		})
 	})
 }
