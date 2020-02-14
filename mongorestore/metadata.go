@@ -260,7 +260,6 @@ func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
 	}
 }
 
-
 func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
 	restore.UpdateAutoIndexId(options)
 
