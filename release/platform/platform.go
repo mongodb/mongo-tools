@@ -47,6 +47,43 @@ func IsWindows() (bool, error) {
 	}
 }
 
+// IsLinux returns true if the current host is a Linux host.
+func IsLinux() (bool, error) {
+	p, err := Get()
+	if err != nil {
+		return false, err
+	}
+
+	switch p.Name {
+	case "win32", "macos":
+		return false, nil
+	default:
+		return true, nil
+	}
+}
+
+func IsDeb(platformName string) bool {
+	_, ok := debPlatformNames[platformName]
+	return ok
+}
+
+func IsRPM(platformName string) bool {
+	_, ok := rpmPlatformNames[platformName]
+	return ok
+}
+
+func DebianArch(arch string) string {
+	switch arch {
+	case "x86_64":
+		return "amd64"
+	case "ppc64le":
+		return "ppc64el"
+	// other archs are the same name on Debian.
+	default:
+		return arch
+	}
+}
+
 var platforms = map[string]Platform{
 	"amazon1": {
 		Name: "amazon1",
@@ -132,4 +169,23 @@ var platforms = map[string]Platform{
 		Name: "ubuntu1804",
 		Arch: "s390x",
 	},
+}
+
+var debPlatformNames = map[string]struct{}{
+	"debian8":    {},
+	"debian9":    {},
+	"ubuntu1404": {},
+	"ubuntu1604": {},
+	"ubuntu1804": {},
+}
+
+var rpmPlatformNames = map[string]struct{}{
+	"amazon1": {},
+	"amazon2": {},
+	"rhel62":  {},
+	"rhel67":  {},
+	"rhel70":  {},
+	"rhel71":  {},
+	"rhel72":  {},
+	"suse12":  {},
 }

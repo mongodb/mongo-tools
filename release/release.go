@@ -4,8 +4,10 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"crypto/md5"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -46,10 +48,9 @@ func main() {
 	switch cmd {
 	case "build-archive":
 		buildArchive()
-	case "build-msi":
+	case "build-packages":
 		buildMSI()
-	case "build-linux":
-		log.Fatal("not implemented")
+		buildLinuxPackages()
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -98,6 +99,184 @@ func buildArchive() {
 	} else {
 		buildTarball()
 	}
+}
+
+func buildLinuxPackages() {
+	linux, err := platform.IsLinux()
+	check(err, "check platform type")
+	if !linux {
+		return
+	}
+
+	p, err := platform.Get()
+	check(err, "get platform")
+	platformName := p.Name
+	if platform.IsRPM(platformName) {
+		buildRPM()
+	} else if platform.IsDeb(platformName) {
+		buildDeb()
+	} else {
+		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
+	}
+}
+
+func buildRPM() {
+	// no op
+}
+
+func buildDeb() {
+	mdt := "mongo-database-tools"
+	releaseName := getReleaseName()
+
+
+	// set up build directory.
+	debBuildDir := "deb_build"
+	check(os.RemoveAll(debBuildDir), "removeAll "+debBuildDir)
+	check(os.MkdirAll(debBuildDir, os.ModePerm), "mkdirAll "+debBuildDir)
+	check(os.Chdir(debBuildDir), "cd to "+debBuildDir)
+	oldCwd, err := os.Getwd()
+	check(err, "get current directory")
+	defer os.Chdir(oldCwd)
+	// we'll want to go back to the original directory, just in case.
+	// build the release dir.
+	// The goal here is to set up  directory with the following structure:
+	// releaseName/
+	// |----- DEBIAN/
+	// |        |----- control
+	// |        |----- postinst
+	// |        |----- prerm
+	// |        |----- md5sums
+	// |------ usr/
+	//          |-- bin/
+	//          |    |--- bsondump
+	//          |    |--- mongo*
+	//          |-- share/
+	//                 |---- doc/
+	//                        |----- mongo-database-tools/
+	//                                         |--- staticFiles
+
+	log.Printf("create deb directory tree\n")
+
+	// create DEBIAN dir
+	controlDir := filepath.Join(releaseName, "DEBIAN")
+	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll " + controlDir)
+
+	// create usr/bin and usr/share/doc
+	binDir := filepath.Join(releaseName, "usr", "bin")
+	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll " + binDir)
+	docDir := filepath.Join(releaseName, "usr", "share", "doc", mdt)
+	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll " + docDir)
+
+	md5sums := make(map[string]string)
+	// We use the order just to make sure the md5sums are always in the same order.
+	// This probably doesn't matter, but it looks nicer for anyone inspecting the md5sums file.
+	md5sumsOrder := make([]string, 0, len(binaries) + len(staticFiles))
+	logCopy := func(src, dst string) {
+			log.Printf("copying %s to %s\n", src, dst)
+	}
+	// Copy over the data files.
+	{
+		binariesPath := filepath.Join("..", "bin")
+		// Add binaries.
+		for _, binName := range binaries {
+			src := filepath.Join(binariesPath, binName)
+			dst := filepath.Join(binDir, binName)
+			logCopy(src, dst)
+			check(os.Link(src, dst), "link file")
+			md5sums[dst] = computeMD5(src)
+			md5sumsOrder = append(md5sumsOrder, dst)
+		}
+		// Add static files.
+		for _, file := range staticFiles {
+			src := filepath.Join("..", file)
+			dst := filepath.Join(docDir, file)
+			logCopy(src, dst)
+			check(os.Link(src, dst), "link file")
+			md5sums[dst] = computeMD5(src)
+			md5sumsOrder = append(md5sumsOrder, dst)
+		}
+	}
+
+	controlFile := "control"
+	createControlFile := func () {
+		f, err := os.Create(controlFile)
+		check(err, "create control")
+		defer f.Close()
+
+		// get the control file content.
+		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "deb", "control"))
+		content := string(contentBytes)
+		check(err, "reading control file content")
+		content = strings.Replace(content, "@TOOLS_VERSION@", getDebVersion(getVersion()), -1)
+		p, err := platform.Get()
+		check(err, "get platform")
+		content = strings.Replace(content, "@ARCHITECTURE@", platform.DebianArch(p.Arch), 1)
+		_, err = f.WriteString(content)
+		check(err, "write content to control file")
+	}
+	createControlFile()
+
+	md5sumsFile := "md5sums"
+	createMD5Sums := func () {
+		f, err := os.Create(md5sumsFile)
+		check(err, "create md5sums")
+		defer f.Close()
+		os.Chmod(md5sumsFile, 0644)
+		// create the md5sums file.
+		for _, path := range md5sumsOrder {
+			md5sum, ok := md5sums[path]
+			if !ok {
+				log.Fatalf("could not find md5sum for " + path)
+			}
+			_, err = f.WriteString(md5sum + " ")
+			check(err, "write md5sum to md5sums")
+			_, err = f.WriteString(path + "\n")
+			check(err, "write path to md5sums")
+		}
+	}
+	createMD5Sums()
+
+	// Copy the control files to our controlDir
+	// control -- metadata
+	// md5sums (optional) -- sums for all files
+	// postinst (optional) -- post install script, we don't need this
+	// prerm (optional) -- removing old documentation
+	{
+		staticControlFiles := []string{
+			"postinst",
+			"prerm",
+		}
+		// add the control file.
+		dst := filepath.Join(controlDir, controlFile)
+		logCopy(controlFile, dst)
+		check(os.Link(controlFile, dst), "link file")
+
+		// add the md5sumsFile.
+		dst = filepath.Join(controlDir, md5sumsFile)
+		logCopy(md5sumsFile, dst)
+		check(os.Link(md5sumsFile, dst), "link file")
+
+
+		// add the static control files.
+		for _, file := range staticControlFiles {
+			// add the static control files.
+			src := filepath.Join("..", "installer", "deb", file)
+			dst = filepath.Join(controlDir, file)
+			logCopy(src, dst)
+			check(os.Link(src, dst), "link file")
+		}
+	}
+
+	output := releaseName + ".deb"
+	// create the .deb file.
+	log.Printf("running: dpkg -b %s %s", releaseName, output)
+	out, err := run("dpkg", "-b", releaseName, output)
+	check(err, "run dpkg\n"+out)
+	// Copy to top level directory so we can upload it.
+	check(os.Link(
+		output,
+		filepath.Join("..", output),
+	), "linking output for s3 upload")
 }
 
 func buildMSI() {
@@ -280,6 +459,14 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
+func getDebVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2-39-g7f57f9a2
+	if version[0] == 'r' {
+		return version[1:]
+	}
+	return version
+}
+
 func getWixVersion(version string) string {
 	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
 	rLabel := strings.Split(version, "-")[0]
@@ -298,6 +485,12 @@ func getVersionLabel(version string) string {
 	return rLabel
 }
 
+func computeMD5(filename string) string {
+	content, err := ioutil.ReadFile(filename)
+	check(err, "reading file during md5 summing")
+	return fmt.Sprintf("%x", md5.Sum([]byte(content)))
+}
+
 func addToTarball(tw *tar.Writer, dst, src string) {
 	file, err := os.Open(src)
 	check(err, "open file")
@@ -309,7 +502,7 @@ func addToTarball(tw *tar.Writer, dst, src string) {
 	header := &tar.Header{
 		Name: dst,
 		Size: stat.Size(),
-		Mode: 0755,
+		Mode: int64(stat.Mode()),
 	}
 
 	err = tw.WriteHeader(header)
