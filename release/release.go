@@ -207,7 +207,7 @@ func buildDeb() {
 		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "deb", "control"))
 		content := string(contentBytes)
 		check(err, "reading control file content")
-		content = strings.Replace(content, "@TOOLS_VERSION@", getDebVersion(getVersion()), 1)
+		content = strings.Replace(content, "@TOOLS_VERSION@", getDebVersion(getVersion()), -1)
 		p, err := platform.Get()
 		check(err, "get platform")
 		content = strings.Replace(content, "@ARCHITECTURE@", platform.DebianArch(p.Arch), 1)
@@ -269,6 +269,7 @@ func buildDeb() {
 
 	output := releaseName + ".deb"
 	// create the .deb file.
+	log.Printf("running: dpkg -b %s %s", releaseName, output)
 	out, err := run("dpkg", "-b", releaseName, output)
 	check(err, "run dpkg\n"+out)
 	// Copy to top level directory so we can upload it.
