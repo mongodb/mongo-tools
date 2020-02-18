@@ -121,11 +121,107 @@ func buildLinuxPackages() {
 }
 
 func buildRPM() {
-	// no op
+	mdt := "mongodb-database-tools"
+	//releaseName := getReleaseName()
+
+
+	// set up build directory.
+	log.Printf("create rpm directory tree\n")
+	rpmBuildDir := "rpm_build"
+	check(os.RemoveAll(rpmBuildDir), "removeAll "+rpmBuildDir)
+	check(os.MkdirAll(rpmBuildDir, os.ModePerm), "mkdirAll "+rpmBuildDir)
+	check(os.Chdir(rpmBuildDir), "cd to "+rpmBuildDir)
+	oldCwd, err := os.Getwd()
+	check(err, "get current directory")
+	defer os.Chdir(oldCwd)
+	// we'll want to go back to the original directory, just in case.
+	// build the release dir.
+	// The goal here is to set up  directory with the following structure:
+	// rpmbuild/
+	// |----- SOURCES/
+	// |         |----- mongodb-database-tools.tar.gz:
+	//                       |
+	//                      mongodb-database-tools/
+	//                               |------ usr/
+	//                               |-- bin/
+	//                               |    |--- bsondump
+	//                               |    |--- mongo*
+	//                               |-- share/
+	//                                      |---- doc/
+	//                                             |----- mongodb-database-tools/
+	//                                                              |--- staticFiles
+
+	home := os.Getenv("HOME")
+	// create tar file
+	log.Printf("tarring necessary files")
+	createTar := func() {
+		staticFilesPath := ".."
+		binariesPath := filepath.Join("..", "bin")
+		sources := filepath.Join(home, "rpmbuild", "SOURCES")
+		check(os.MkdirAll(sources, os.ModePerm), "create " + sources)
+		archiveFile, err := os.Create(filepath.Join(sources, mdt + ".tar.gz"))
+		check(err, "create archive file")
+		defer archiveFile.Close()
+
+		gw := gzip.NewWriter(archiveFile)
+		defer gw.Close()
+
+		tw := tar.NewWriter(gw)
+		defer tw.Close()
+
+		for _, name := range staticFiles {
+			log.Printf("adding %s to tarball\n", name)
+			src := filepath.Join(staticFilesPath, name)
+			dst := filepath.Join(mdt, "usr", "share", "doc", mdt, name)
+			addToTarball(tw, dst, src)
+		}
+
+		for _, name := range binaries {
+			log.Printf("adding %s to tarball\n", name)
+			src := filepath.Join(binariesPath, name)
+			dst := filepath.Join(mdt, "usr", "bin", name)
+			addToTarball(tw, dst, src)
+		}
+	}
+	createTar()
+
+	p, err := platform.Get()
+	check(err, "get platform")
+	specFile := mdt + ".spec"
+
+	rpmVersion := getRPMVersion(getVersion())
+	createSpecFile := func() {
+		log.Printf("create spec file")
+		f, err := os.Create(specFile)
+		check(err, "create spec")
+		defer f.Close()
+
+		// get the control file content.
+		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "rpm", specFile))
+		content := string(contentBytes)
+		check(err, "reading spec file content")
+		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
+		content = strings.Replace(content, "@ARCHITECTURE@", p.Arch, 1)
+		_, err = f.WriteString(content)
+		check(err, "write content to spec file")
+	}
+	createSpecFile()
+
+	outputFile := mdt + "-" + rpmVersion + "-2." + p.Arch + ".rpm"
+	outputPath := filepath.Join(home, "rpmbuild", "RPMS", p.Arch, outputFile)
+	// create the .deb file.
+	log.Printf("running: rmbuild -bb %s", specFile)
+	out, err := run("rpmbuild", "-bb", specFile)
+	check(err, "rpmbuild\n"+out)
+	// Copy to top level directory so we can upload it.
+	check(os.Link(
+		outputPath,
+		filepath.Join("..", outputFile),
+	), "linking output for s3 upload")
 }
 
 func buildDeb() {
-	mdt := "mongo-database-tools"
+	mdt := "mongodb-database-tools"
 	releaseName := getReleaseName()
 
 
@@ -152,7 +248,7 @@ func buildDeb() {
 	//          |    |--- mongo*
 	//          |-- share/
 	//                 |---- doc/
-	//                        |----- mongo-database-tools/
+	//                        |----- mongodb-database-tools/
 	//                                         |--- staticFiles
 
 	log.Printf("create deb directory tree\n")
@@ -457,6 +553,15 @@ func copyFile(src, dst string) error {
 	_, err = io.Copy(out, file)
 	check(err, "copy src -> dst")
 	return out.Close()
+}
+
+func getRPMVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
+	rLabel := strings.Split(version, "-")[0]
+	if rLabel[0] == 'r' {
+		return rLabel[1:]
+	}
+	return rLabel
 }
 
 func getDebVersion(version string) string {
