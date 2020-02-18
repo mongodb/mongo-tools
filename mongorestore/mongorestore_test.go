@@ -624,11 +624,7 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 		err = cursor.Decode(&collInfo)
 		So(err, ShouldBeNil)
 
-		Convey("{autoIndexId: false} should not be flipped to true", func() {
-			if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-				So(collInfo.Options["autoIndexId"], ShouldBeFalse)
-			}
-		})
+		So(collInfo.Options["autoIndexId"], ShouldBeFalse)
 	})
 }
 
