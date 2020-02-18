@@ -147,6 +147,7 @@ func (restore *MongoRestore) RestoreIntents() Result {
 			totalResult.combineWith(result)
 			if totalErr == nil && totalResult.Err != nil {
 				totalErr = totalResult.Err
+				return totalResult.withErr(totalErr)
 			}
 		}
 		return totalResult.withErr(totalErr)
