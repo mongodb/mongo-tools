@@ -122,7 +122,6 @@ func buildLinuxPackages() {
 
 func buildRPM() {
 	mdt := "mongodb-database-tools"
-	//releaseName := getReleaseName()
 
 
 	// set up build directory.
