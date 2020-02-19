@@ -153,7 +153,7 @@ func buildRPM() {
 
 	home := os.Getenv("HOME")
 	// create tar file
-	log.Printf("tarring necessary files")
+	log.Printf("tarring necessary files\n")
 	createTar := func() {
 		staticFilesPath := ".."
 		binariesPath := filepath.Join("..", "bin")
