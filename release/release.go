@@ -209,7 +209,7 @@ func buildRPM() {
 	outputFile := mdt + "-" + rpmVersion + "-2." + p.Arch + ".rpm"
 	outputPath := filepath.Join(home, "rpmbuild", "RPMS", p.Arch, outputFile)
 	// create the .deb file.
-	log.Printf("running: rmbuild -bb %s", specFile)
+	log.Printf("running: rmbuild -bb %s\n", specFile)
 	out, err := run("rpmbuild", "-bb", specFile)
 	check(err, "rpmbuild\n"+out)
 	// Copy to top level directory so we can upload it.
