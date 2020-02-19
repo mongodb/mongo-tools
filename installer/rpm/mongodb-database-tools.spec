@@ -17,7 +17,7 @@ mongodb-database-tools package provides tools for working with the MongoDB serve
  *mongoexport - Write an existing collection to CSV or JSON format
  *mongodump/mongorestore - Dump MongoDB backups to disk in .BSON format, 
     or restore them to a live database
- *mongostate - Monitor live MongoDB servers, replica sets, or sharded clusters
+ *mongostat - Monitor live MongoDB servers, replica sets, or sharded clusters
  *mongofiles - Read, write, delete, or update files in GridFS 
     (see: http://docs.mongodb.org/manual/core/gridfs/)
  *mongotop - Monitor read/write activity on a mongo server
