@@ -191,7 +191,7 @@ func buildRPM() {
 
 	rpmVersion := getRPMVersion(getVersion())
 	createSpecFile := func() {
-		log.Printf("create spec file")
+		log.Printf("create spec file\n")
 		f, err := os.Create(specFile)
 		check(err, "create spec")
 		defer f.Close()
