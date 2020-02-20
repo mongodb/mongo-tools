@@ -122,7 +122,7 @@ func buildLinuxPackages() {
 
 func buildRPM() {
 	mdt := "mongodb-database-tools"
-
+	home := os.Getenv("HOME")
 
 	// set up build directory.
 	log.Printf("create rpm directory tree\n")
@@ -150,15 +150,14 @@ func buildRPM() {
 	//                                             |----- mongodb-database-tools/
 	//                                                              |--- staticFiles
 
-	home := os.Getenv("HOME")
 	// create tar file
 	log.Printf("tarring necessary files\n")
 	createTar := func() {
 		staticFilesPath := ".."
 		binariesPath := filepath.Join("..", "bin")
 		sources := filepath.Join(home, "rpmbuild", "SOURCES")
-		check(os.MkdirAll(sources, os.ModePerm), "create " + sources)
-		archiveFile, err := os.Create(filepath.Join(sources, mdt + ".tar.gz"))
+		check(os.MkdirAll(sources, os.ModePerm), "create "+sources)
+		archiveFile, err := os.Create(filepath.Join(sources, mdt+".tar.gz"))
 		check(err, "create archive file")
 		defer archiveFile.Close()
 
@@ -188,7 +187,9 @@ func buildRPM() {
 	check(err, "get platform")
 	specFile := mdt + ".spec"
 
-	rpmVersion := getRPMVersion(getVersion())
+	versionStr := getVersion()
+	rpmVersion := getRPMVersion(versionStr)
+	rpmRelease := getRPMRelease(versionStr)
 	createSpecFile := func() {
 		log.Printf("create spec file\n")
 		f, err := os.Create(specFile)
@@ -200,16 +201,17 @@ func buildRPM() {
 		content := string(contentBytes)
 		check(err, "reading spec file content")
 		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
-		content = strings.Replace(content, "@ARCHITECTURE@", p.Arch, 1)
+		content = strings.Replace(content, "@TOOLS_RELEASE@", rpmRelease, -1)
+		content = strings.Replace(content, "@ARCHITECTURE@", p.Arch, -1)
 		_, err = f.WriteString(content)
 		check(err, "write content to spec file")
 	}
 	createSpecFile()
 
-	outputFile := mdt + "-" + rpmVersion + "-2." + p.Arch + ".rpm"
-	outputPath := filepath.Join(home, "rpmbuild", "RPMS", p.Arch, outputFile)
+	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + p.Arch + ".rpm"
+	outputPath := filepath.Join(home, "rpmbuild", "RPMS", outputFile)
 	// create the .deb file.
-	log.Printf("running: rmbuild -bb %s\n", specFile)
+	log.Printf("running: rmpbuild -bb %s\n", specFile)
 	out, err := run("rpmbuild", "-bb", specFile)
 	check(err, "rpmbuild\n"+out)
 	// Copy to top level directory so we can upload it.
@@ -222,7 +224,6 @@ func buildRPM() {
 func buildDeb() {
 	mdt := "mongodb-database-tools"
 	releaseName := getReleaseName()
-
 
 	// set up build directory.
 	debBuildDir := "deb_build"
@@ -254,20 +255,20 @@ func buildDeb() {
 
 	// create DEBIAN dir
 	controlDir := filepath.Join(releaseName, "DEBIAN")
-	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll " + controlDir)
+	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll "+controlDir)
 
 	// create usr/bin and usr/share/doc
 	binDir := filepath.Join(releaseName, "usr", "bin")
-	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll " + binDir)
+	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll "+binDir)
 	docDir := filepath.Join(releaseName, "usr", "share", "doc", mdt)
-	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll " + docDir)
+	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll "+docDir)
 
 	md5sums := make(map[string]string)
 	// We use the order just to make sure the md5sums are always in the same order.
 	// This probably doesn't matter, but it looks nicer for anyone inspecting the md5sums file.
-	md5sumsOrder := make([]string, 0, len(binaries) + len(staticFiles))
+	md5sumsOrder := make([]string, 0, len(binaries)+len(staticFiles))
 	logCopy := func(src, dst string) {
-			log.Printf("copying %s to %s\n", src, dst)
+		log.Printf("copying %s to %s\n", src, dst)
 	}
 	// Copy over the data files.
 	{
@@ -293,7 +294,7 @@ func buildDeb() {
 	}
 
 	controlFile := "control"
-	createControlFile := func () {
+	createControlFile := func() {
 		f, err := os.Create(controlFile)
 		check(err, "create control")
 		defer f.Close()
@@ -312,7 +313,7 @@ func buildDeb() {
 	createControlFile()
 
 	md5sumsFile := "md5sums"
-	createMD5Sums := func () {
+	createMD5Sums := func() {
 		f, err := os.Create(md5sumsFile)
 		check(err, "create md5sums")
 		defer f.Close()
@@ -351,7 +352,6 @@ func buildDeb() {
 		logCopy(md5sumsFile, dst)
 		check(os.Link(md5sumsFile, dst), "link file")
 
-
 		// add the static control files.
 		for _, file := range staticControlFiles {
 			// add the static control files.
@@ -368,7 +368,7 @@ func buildDeb() {
 	out, err := run("dpkg", "-b", releaseName, output)
 	check(err, "run dpkg\n"+out)
 	// Copy to top level directory so we can upload it.
-	check(os.Link(
+	check(copyFile(
 		output,
 		filepath.Join("..", output),
 	), "linking output for s3 upload")
@@ -563,6 +563,17 @@ func getRPMVersion(version string) string {
 	return rLabel
 }
 
+func getRPMRelease(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to g7f57f9a2
+	// will return 1 if nothing is specified, because rpm
+	// expects _something_.
+	parts := strings.Split(version, "-")
+	if len(parts) < 2 {
+		return "1"
+	}
+	return parts[1]
+}
+
 func getDebVersion(version string) string {
 	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2-39-g7f57f9a2
 	if version[0] == 'r' {
@@ -686,7 +697,7 @@ func buildZip() {
 	for _, binName := range binaries {
 		log.Printf("adding %s binary to zip\n", binName)
 		src := filepath.Join(".", "bin", binName)
-		dst := filepath.Join(releaseName, "bin", binName + ".exe")
+		dst := filepath.Join(releaseName, "bin", binName+".exe")
 		addToZip(zw, dst, src)
 	}
 }

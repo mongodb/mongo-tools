@@ -1,7 +1,9 @@
+%define _rpmfilename %%{name}-%%{version}-%%{release}.@ARCHITECTURE@.rpm
+
 Summary: MongoDB Database Tools
 Name: mongodb-database-tools
 Version: @TOOLS_VERSION@
-Release: 2%{?dist}
+Release: @TOOLS_RELEASE@
 Group: Applications/Databases
 License: Apache
 URL:        http://www.mongodb.com
