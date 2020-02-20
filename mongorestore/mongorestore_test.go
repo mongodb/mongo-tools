@@ -677,7 +677,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				}
 			})
 		})
-		//Convey("Set --preserveUUID if server version >= 4.0", func() {
+
 		dbName := session.Database("testdata")
 
 		// Drop the collection to clean up resources
