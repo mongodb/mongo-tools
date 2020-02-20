@@ -215,7 +215,7 @@ func buildRPM() {
 	out, err := run("rpmbuild", "-bb", specFile)
 	check(err, "rpmbuild\n"+out)
 	// Copy to top level directory so we can upload it.
-	check(os.Link(
+	check(copyFile(
 		outputPath,
 		filepath.Join("..", outputFile),
 	), "linking output for s3 upload")
@@ -368,7 +368,7 @@ func buildDeb() {
 	out, err := run("dpkg", "-b", releaseName, output)
 	check(err, "run dpkg\n"+out)
 	// Copy to top level directory so we can upload it.
-	check(copyFile(
+	check(os.Link(
 		output,
 		filepath.Join("..", output),
 	), "linking output for s3 upload")
