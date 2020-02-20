@@ -638,7 +638,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 	}
 
 	Convey("Test MongoRestore with {autoIndexId: false} in a non-local database's collection", t, func() {
-		Convey("Do not set --preserveUUID", func() {
+		Convey("Do not set --preserveUUID\n", func() {
 			dbName := session.Database("testdata")
 
 			// Drop the collection to clean up resources
@@ -677,47 +677,50 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				}
 			})
 		})
-		Convey("Set --preserveUUID", func() {
-			dbName := session.Database("testdata")
+		//Convey("Set --preserveUUID if server version >= 4.0", func() {
+		dbName := session.Database("testdata")
 
-			// Drop the collection to clean up resources
-			defer dbName.Collection("test_auto_idx").Drop(ctx)
+		// Drop the collection to clean up resources
+		defer dbName.Collection("test_auto_idx").Drop(ctx)
 
-			args := []string{
-				PreserveUUIDOption, "1",
-				DropOption,
-			}
+		args := []string{
+			PreserveUUIDOption, "1",
+			DropOption,
+		}
 
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
 
-			restore.TargetDirectory = "testdata/test_auto_idx.bson"
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
+		if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+			Convey("Set --preserveUUID if server version >= 4.0\n", func() {
+				restore.TargetDirectory = "testdata/test_auto_idx.bson"
+				result := restore.Restore()
+				So(result.Err, ShouldBeNil)
 
-			// Find the collection
-			filter := bson.D{{"name", "test_auto_idx"}}
-			cursor, err := session.Database("testdata").ListCollections(ctx, filter)
-			So(err, ShouldBeNil)
+				// Find the collection
+				filter := bson.D{{"name", "test_auto_idx"}}
+				cursor, err := session.Database("testdata").ListCollections(ctx, filter)
+				So(err, ShouldBeNil)
 
-			defer cursor.Close(ctx)
+				defer cursor.Close(ctx)
 
-			documentExists := cursor.Next(ctx)
-			So(documentExists, ShouldBeTrue)
+				documentExists := cursor.Next(ctx)
+				So(documentExists, ShouldBeTrue)
 
-			var collInfo struct {
-				Options bson.M
-			}
-			err = cursor.Decode(&collInfo)
-			So(err, ShouldBeNil)
-
-			Convey("{autoIndexId: false} should be flipped to true if server version >= 4.0", func() {
-				if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-					So(collInfo.Options["autoIndexId"], ShouldBeTrue)
-				} else {
-					So(collInfo.Options["autoIndexId"], ShouldBeFalse)
+				var collInfo struct {
+					Options bson.M
 				}
+				err = cursor.Decode(&collInfo)
+				So(err, ShouldBeNil)
+
+				Convey("{autoIndexId: false} should be flipped to true if server version >= 4.0", func() {
+					if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+						So(collInfo.Options["autoIndexId"], ShouldBeTrue)
+					} else {
+						So(collInfo.Options["autoIndexId"], ShouldBeFalse)
+					}
+				})
 			})
-		})
+		}
 	})
 }
