@@ -126,7 +126,8 @@ func listLinuxDeps() {
 		for _, libPath := range libraryPaths {
 			out, err := run("dpkg", "-S", libPath)
 			check(err, "dpkg -S "+libPath+": "+out)
-			deps[strings.Trim(out, " \t\n")] = struct{}{}
+			sp := strings.Split(out, ":")
+			deps[strings.Trim(sp[0], " \t\n")] = struct{}{}
 		}
 	} else {
 		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
