@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/release/platform"
@@ -51,6 +52,8 @@ func main() {
 	case "build-packages":
 		buildMSI()
 		buildLinuxPackages()
+	case "list-deps":
+		listLinuxDeps()
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -99,6 +102,62 @@ func buildArchive() {
 	} else {
 		buildTarball()
 	}
+}
+
+func listLinuxDeps() {
+	linux, err := platform.IsLinux()
+	check(err, "check platform type")
+	if !linux {
+		return
+	}
+
+	p, err := platform.Get()
+	check(err, "get platform")
+	platformName := p.Name
+	libraryPaths := getLibraryPaths()
+	deps := make(map[string]struct{})
+	if platform.IsRPM(platformName) {
+		for _, libPath := range libraryPaths {
+			out, err := run("rpm", "-q", "--whatprovides", libPath)
+			check(err, "rpm -q --whatprovides "+libPath+": "+out)
+			deps[strings.Trim(out, " \t\n")] = struct{}{}
+		}
+	} else if platform.IsDeb(platformName) {
+		for _, libPath := range libraryPaths {
+			out, err := run("dpkg", "-S", libPath)
+			check(err, "dpkg -S "+libPath+": "+out)
+			deps[strings.Trim(out, " \t\n")] = struct{}{}
+		}
+	} else {
+		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
+	}
+	orderedDeps := make([]string, 0, len(deps))
+	for dep := range deps {
+		orderedDeps = append(orderedDeps, dep)
+	}
+	sort.Strings(orderedDeps)
+	for _, dep := range orderedDeps {
+		log.Printf("%s\n", dep)
+	}
+}
+
+func getLibraryPaths() []string {
+	out, err := run("ldd", filepath.Join("bin", "mongodump"))
+	check(err, "ldd\n"+out)
+
+	ret := []string{}
+	for _, line := range strings.Split(out, "\n") {
+		sp := strings.Split(line, "=>")
+		if len(sp) < 2 {
+			continue
+		}
+		sp = strings.Split(sp[1], "(")
+		libPath := strings.Trim(sp[0], " \t")
+		if libPath != "" {
+			ret = append(ret, libPath)
+		}
+	}
+	return ret
 }
 
 func buildLinuxPackages() {
