@@ -587,7 +587,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-          - src/github.com/mongodb/mongo-tools/mongodb-cli-tools-*
+          - src/github.com/mongodb/mongo-tools/mongodb-*
         remote_file: mongo-tools/pkgs/${build_id}/
         content_type: application/octet-stream
         bucket: mciuploads

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/release/platform"
@@ -51,6 +52,8 @@ func main() {
 	case "build-packages":
 		buildMSI()
 		buildLinuxPackages()
+	case "list-deps":
+		listLinuxDeps()
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -101,6 +104,63 @@ func buildArchive() {
 	}
 }
 
+func listLinuxDeps() {
+	linux, err := platform.IsLinux()
+	check(err, "check platform type")
+	if !linux {
+		return
+	}
+
+	p, err := platform.Get()
+	check(err, "get platform")
+	platformName := p.Name
+	libraryPaths := getLibraryPaths()
+	deps := make(map[string]struct{})
+	if platform.IsRPM(platformName) {
+		for _, libPath := range libraryPaths {
+			out, err := run("rpm", "-q", "--whatprovides", libPath)
+			check(err, "rpm -q --whatprovides "+libPath+": "+out)
+			deps[strings.Trim(out, " \t\n")] = struct{}{}
+		}
+	} else if platform.IsDeb(platformName) {
+		for _, libPath := range libraryPaths {
+			out, err := run("dpkg", "-S", libPath)
+			check(err, "dpkg -S "+libPath+": "+out)
+			sp := strings.Split(out, ":")
+			deps[strings.Trim(sp[0], " \t\n")] = struct{}{}
+		}
+	} else {
+		log.Fatalf("linux platform type is neither deb nor rpm based: " + platformName)
+	}
+	orderedDeps := make([]string, 0, len(deps))
+	for dep := range deps {
+		orderedDeps = append(orderedDeps, dep)
+	}
+	sort.Strings(orderedDeps)
+	for _, dep := range orderedDeps {
+		log.Printf("%s\n", dep)
+	}
+}
+
+func getLibraryPaths() []string {
+	out, err := run("ldd", filepath.Join("bin", "mongodump"))
+	check(err, "ldd\n"+out)
+
+	ret := []string{}
+	for _, line := range strings.Split(out, "\n") {
+		sp := strings.Split(line, "=>")
+		if len(sp) < 2 {
+			continue
+		}
+		sp = strings.Split(sp[1], "(")
+		libPath := strings.Trim(sp[0], " \t")
+		if libPath != "" {
+			ret = append(ret, libPath)
+		}
+	}
+	return ret
+}
+
 func buildLinuxPackages() {
 	linux, err := platform.IsLinux()
 	check(err, "check platform type")
@@ -121,13 +181,109 @@ func buildLinuxPackages() {
 }
 
 func buildRPM() {
-	// no op
+	mdt := "mongodb-database-tools"
+	home := os.Getenv("HOME")
+
+	// set up build directory.
+	log.Printf("create rpm directory tree\n")
+	rpmBuildDir := "rpm_build"
+	check(os.RemoveAll(rpmBuildDir), "removeAll "+rpmBuildDir)
+	check(os.MkdirAll(rpmBuildDir, os.ModePerm), "mkdirAll "+rpmBuildDir)
+	check(os.Chdir(rpmBuildDir), "cd to "+rpmBuildDir)
+	oldCwd, err := os.Getwd()
+	check(err, "get current directory")
+	defer os.Chdir(oldCwd)
+	// we'll want to go back to the original directory, just in case.
+	// build the release dir.
+	// The goal here is to set up  directory with the following structure:
+	// rpmbuild/
+	// |----- SOURCES/
+	// |         |----- mongodb-database-tools.tar.gz:
+	//                       |
+	//                      mongodb-database-tools/
+	//                               |------ usr/
+	//                               |-- bin/
+	//                               |    |--- bsondump
+	//                               |    |--- mongo*
+	//                               |-- share/
+	//                                      |---- doc/
+	//                                             |----- mongodb-database-tools/
+	//                                                              |--- staticFiles
+
+	// create tar file
+	log.Printf("tarring necessary files\n")
+	createTar := func() {
+		staticFilesPath := ".."
+		binariesPath := filepath.Join("..", "bin")
+		sources := filepath.Join(home, "rpmbuild", "SOURCES")
+		check(os.MkdirAll(sources, os.ModePerm), "create "+sources)
+		archiveFile, err := os.Create(filepath.Join(sources, mdt+".tar.gz"))
+		check(err, "create archive file")
+		defer archiveFile.Close()
+
+		gw := gzip.NewWriter(archiveFile)
+		defer gw.Close()
+
+		tw := tar.NewWriter(gw)
+		defer tw.Close()
+
+		for _, name := range staticFiles {
+			log.Printf("adding %s to tarball\n", name)
+			src := filepath.Join(staticFilesPath, name)
+			dst := filepath.Join(mdt, "usr", "share", "doc", mdt, name)
+			addToTarball(tw, dst, src)
+		}
+
+		for _, name := range binaries {
+			log.Printf("adding %s to tarball\n", name)
+			src := filepath.Join(binariesPath, name)
+			dst := filepath.Join(mdt, "usr", "bin", name)
+			addToTarball(tw, dst, src)
+		}
+	}
+	createTar()
+
+	p, err := platform.Get()
+	check(err, "get platform")
+	specFile := mdt + ".spec"
+
+	versionStr := getVersion()
+	rpmVersion := getRPMVersion(versionStr)
+	rpmRelease := getRPMRelease(versionStr)
+	createSpecFile := func() {
+		log.Printf("create spec file\n")
+		f, err := os.Create(specFile)
+		check(err, "create spec")
+		defer f.Close()
+
+		// get the control file content.
+		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "rpm", specFile))
+		content := string(contentBytes)
+		check(err, "reading spec file content")
+		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
+		content = strings.Replace(content, "@TOOLS_RELEASE@", rpmRelease, -1)
+		content = strings.Replace(content, "@ARCHITECTURE@", p.Arch, -1)
+		_, err = f.WriteString(content)
+		check(err, "write content to spec file")
+	}
+	createSpecFile()
+
+	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + p.Arch + ".rpm"
+	outputPath := filepath.Join(home, "rpmbuild", "RPMS", outputFile)
+	// create the .deb file.
+	log.Printf("running: rmpbuild -bb %s\n", specFile)
+	out, err := run("rpmbuild", "-bb", specFile)
+	check(err, "rpmbuild\n"+out)
+	// Copy to top level directory so we can upload it.
+	check(copyFile(
+		outputPath,
+		filepath.Join("..", outputFile),
+	), "linking output for s3 upload")
 }
 
 func buildDeb() {
-	mdt := "mongo-database-tools"
+	mdt := "mongodb-database-tools"
 	releaseName := getReleaseName()
-
 
 	// set up build directory.
 	debBuildDir := "deb_build"
@@ -152,27 +308,27 @@ func buildDeb() {
 	//          |    |--- mongo*
 	//          |-- share/
 	//                 |---- doc/
-	//                        |----- mongo-database-tools/
+	//                        |----- mongodb-database-tools/
 	//                                         |--- staticFiles
 
 	log.Printf("create deb directory tree\n")
 
 	// create DEBIAN dir
 	controlDir := filepath.Join(releaseName, "DEBIAN")
-	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll " + controlDir)
+	check(os.MkdirAll(controlDir, os.ModePerm), "mkdirAll "+controlDir)
 
 	// create usr/bin and usr/share/doc
 	binDir := filepath.Join(releaseName, "usr", "bin")
-	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll " + binDir)
+	check(os.MkdirAll(binDir, os.ModePerm), "mkdirAll "+binDir)
 	docDir := filepath.Join(releaseName, "usr", "share", "doc", mdt)
-	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll " + docDir)
+	check(os.MkdirAll(docDir, os.ModePerm), "mkdirAll "+docDir)
 
 	md5sums := make(map[string]string)
 	// We use the order just to make sure the md5sums are always in the same order.
 	// This probably doesn't matter, but it looks nicer for anyone inspecting the md5sums file.
-	md5sumsOrder := make([]string, 0, len(binaries) + len(staticFiles))
+	md5sumsOrder := make([]string, 0, len(binaries)+len(staticFiles))
 	logCopy := func(src, dst string) {
-			log.Printf("copying %s to %s\n", src, dst)
+		log.Printf("copying %s to %s\n", src, dst)
 	}
 	// Copy over the data files.
 	{
@@ -198,7 +354,7 @@ func buildDeb() {
 	}
 
 	controlFile := "control"
-	createControlFile := func () {
+	createControlFile := func() {
 		f, err := os.Create(controlFile)
 		check(err, "create control")
 		defer f.Close()
@@ -217,7 +373,7 @@ func buildDeb() {
 	createControlFile()
 
 	md5sumsFile := "md5sums"
-	createMD5Sums := func () {
+	createMD5Sums := func() {
 		f, err := os.Create(md5sumsFile)
 		check(err, "create md5sums")
 		defer f.Close()
@@ -255,7 +411,6 @@ func buildDeb() {
 		dst = filepath.Join(controlDir, md5sumsFile)
 		logCopy(md5sumsFile, dst)
 		check(os.Link(md5sumsFile, dst), "link file")
-
 
 		// add the static control files.
 		for _, file := range staticControlFiles {
@@ -459,6 +614,26 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
+func getRPMVersion(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
+	rLabel := strings.Split(version, "-")[0]
+	if rLabel[0] == 'r' {
+		return rLabel[1:]
+	}
+	return rLabel
+}
+
+func getRPMRelease(version string) string {
+	// r49.3.2-39-g7f57f9a2 will be turned to g7f57f9a2
+	// will return 1 if nothing is specified, because rpm
+	// expects _something_.
+	parts := strings.Split(version, "-")
+	if len(parts) < 2 {
+		return "1"
+	}
+	return parts[1]
+}
+
 func getDebVersion(version string) string {
 	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2-39-g7f57f9a2
 	if version[0] == 'r' {
@@ -582,7 +757,7 @@ func buildZip() {
 	for _, binName := range binaries {
 		log.Printf("adding %s binary to zip\n", binName)
 		src := filepath.Join(".", "bin", binName)
-		dst := filepath.Join(releaseName, "bin", binName + ".exe")
+		dst := filepath.Join(releaseName, "bin", binName+".exe")
 		addToZip(zw, dst, src)
 	}
 }
