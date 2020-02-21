@@ -49,6 +49,7 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
+        run_on: rhel62-large
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
       - name: unit
@@ -69,6 +70,7 @@ mongo_tools_variables:
       - name: qa-tests-4.2
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
+        run_on: ubuntu1604-build
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
       - name: unit
