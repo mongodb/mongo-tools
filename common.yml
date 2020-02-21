@@ -9,12 +9,13 @@ stepback: true
 
 mongo_tools_variables:
 
-## List of tests to run on each buildvariant
+  ## List of tests to run on each buildvariant
   mongo_tools_task_lists:
     mac_task_list: &macos_tasks
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -33,6 +34,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -54,6 +56,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -71,6 +74,7 @@ mongo_tools_variables:
       - name: unit
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -82,36 +86,37 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: kerberos
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-tests-3.2
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-tests-3.4
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-tests-3.6
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-tests-4.0
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-tests-4.2
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-dump-restore-with-archiving-current
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-dump-restore-with-gzip-current
         distros:
-        - windows-64-vs2017-test
+          - windows-64-vs2017-test
       - name: qa-tests-unstable
       - name: unit
       - name: native-cert-ssl-current
@@ -119,6 +124,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -136,6 +142,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -154,6 +161,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: qa-tests-3.4
@@ -172,7 +180,7 @@ mongo_tools_variables:
       - name: native-cert-ssl-current
 
 
-## Common mongodb arguments
+  ## Common mongodb arguments
   mongod_arguments:
     default: &mongod_default_startup_args
       mongod_args: ""
@@ -650,15 +658,15 @@ functions:
           mkdir -p bin
 
   "fetch ftdc" :
-  - command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        GOPATH=$PWD go get github.com/10gen/ftdc-utils/cmd/ftdc
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          GOPATH=$PWD go get github.com/10gen/ftdc-utils/cmd/ftdc
 
   "fetch golangci-lint" :
     - command: shell.exec
@@ -672,14 +680,14 @@ functions:
           curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest
 
   "create auth_user" :
-  - command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        ./bin/mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\", \"clusterManager\"]});"
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          ./bin/mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\", \"clusterManager\"]});"
 
   "create sharded_cluster" :
     - command: shell.exec
@@ -692,7 +700,7 @@ functions:
           set -e
           echo "starting sharded cluster"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}' 
+          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -735,7 +743,7 @@ pre:
         exit 0
 
 post:
-    # attach.results works for jstests, gotest.parse_files for golang tests
+  # attach.results works for jstests, gotest.parse_files for golang tests
   - command: attach.results
     params:
       file_location: src/github.com/mongodb/mongo-tools/report.json
@@ -777,1048 +785,1060 @@ timeout:
 
 
 tasks:
-- name: dist
-  depends_on:
-  commands:
-    - func: "fetch source"
-    # bsondump
-    - func: "build tool"
-      vars:
-        tool: bsondump
-    - func: "upload tool"
-      vars:
-        tool: bsondump
-    # mongodump
-    - func: "build tool"
-      vars:
-        tool: mongodump
-    - func: "upload tool"
-      vars:
-        tool: mongodump
-    # mongoexport
-    - func: "build tool"
-      vars:
-        tool: mongoexport
-    - func: "upload tool"
-      vars:
-        tool: mongoexport
-    # mongofiles
-    - func: "build tool"
-      vars:
-        tool: mongofiles
-    - func: "upload tool"
-      vars:
-        tool: mongofiles
-    # mongoimport
-    - func: "build tool"
-      vars:
-        tool: mongoimport
-    - func: "upload tool"
-      vars:
-        tool: mongoimport
-    # mongorestore
-    - func: "build tool"
-      vars:
-        tool: mongorestore
-    - func: "upload tool"
-      vars:
-        tool: mongorestore
-    # mongostat
-    - func: "build tool"
-      vars:
-        tool: mongostat
-    - func: "upload tool"
-      vars:
-        tool: mongostat
-    # mongotop
-    - func: "build tool"
-      vars:
-        tool: mongotop
-    - func: "upload tool"
-      vars:
-        tool: mongotop
-    - func: "create release artifacts"
+  - name: dist
+    depends_on:
+    commands:
+      - func: "fetch source"
+      # bsondump
+      - func: "build tool"
+        vars:
+          tool: bsondump
+      - func: "upload tool"
+        vars:
+          tool: bsondump
+      # mongodump
+      - func: "build tool"
+        vars:
+          tool: mongodump
+      - func: "upload tool"
+        vars:
+          tool: mongodump
+      # mongoexport
+      - func: "build tool"
+        vars:
+          tool: mongoexport
+      - func: "upload tool"
+        vars:
+          tool: mongoexport
+      # mongofiles
+      - func: "build tool"
+        vars:
+          tool: mongofiles
+      - func: "upload tool"
+        vars:
+          tool: mongofiles
+      # mongoimport
+      - func: "build tool"
+        vars:
+          tool: mongoimport
+      - func: "upload tool"
+        vars:
+          tool: mongoimport
+      # mongorestore
+      - func: "build tool"
+        vars:
+          tool: mongorestore
+      - func: "upload tool"
+        vars:
+          tool: mongorestore
+      # mongostat
+      - func: "build tool"
+        vars:
+          tool: mongostat
+      - func: "upload tool"
+        vars:
+          tool: mongostat
+      # mongotop
+      - func: "build tool"
+        vars:
+          tool: mongotop
+      - func: "upload tool"
+        vars:
+          tool: mongotop
+      - func: "create release artifacts"
 
-# Regardless of the buildvariant, the sign task must be run on a
-# distro that has the notary client available. We will use
-# amazon1-2018-test for this purpose. The notary client is not
-# available on all distros, which is why sign must be a separate task.
-- name: sign
-  depends_on:
-    - name: dist
-  commands:
-    - func: "fetch dist release artifacts"
-    - func: "upload signed release artifacts"
+  # Regardless of the buildvariant, the sign task must be run on a
+  # distro that has the notary client available. We will use
+  # amazon1-2018-test for this purpose. The notary client is not
+  # available on all distros, which is why sign must be a separate task.
+  - name: sign
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch dist release artifacts"
+      - func: "upload signed release artifacts"
 
-- name: integration-4.0
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.0"
-    - func: "start mongod"
-    - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
-      vars:
-          INT_TEST: "true" 
+  - name: integration-3.6
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod"
+        vars:
+          mongo_version: "3.6"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
+          INT_TEST: "true"
 
-- name: integration-4.0-auth
-  commands:
-    - func: "fetch source"
-    # Concat auth args
-    - command: expansions.update
-      params:
-        updates:
-          - key: "mongod_args"
-            concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.0"
-    - func: "start mongod"
-    - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
-      vars:
+  - name: integration-4.0
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.0"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
+          INT_TEST: "true"
+
+  - name: integration-4.0-auth
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args"
+              concat: " --auth"
+            - key: "auth_username"
+              value: "passwordIsTaco"
+            - key: "auth_password"
+              value: "Taco"
+            - key: "create_mongod_users_command"
+              value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.0"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
           INT_TEST: "true"
           AUTH_TEST: "true"
 
-- name: integration-4.2
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "start mongod"
-    - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
-      vars:
-          INT_TEST: "true" 
+  - name: integration-4.2
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
+          INT_TEST: "true"
 
-- name: integration-4.2-auth
-  commands:
-    - func: "fetch source"
-    # Concat auth args
-    - command: expansions.update
-      params:
-        updates:
-          - key: "mongod_args"
-            concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "start mongod"
-    - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
-      vars:
+  - name: integration-4.2-auth
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args"
+              concat: " --auth"
+            - key: "auth_username"
+              value: "passwordIsTaco"
+            - key: "auth_password"
+              value: "Taco"
+            - key: "create_mongod_users_command"
+              value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
           INT_TEST: "true"
           AUTH_TEST: "true"
 
-- name: kerberos
-  commands:
-    - func: "fetch source"
-    # Explicitly run ONLY Kerberos tests
-    - command: expansions.update
-      params:
-        updates:
-          - key: "args"
-            value: "${args} -test.types=kerberos"
-    - func: "setup integration test"
-    - func: "run tool integration tests"
-      vars:
+  - name: kerberos
+    commands:
+      - func: "fetch source"
+      # Explicitly run ONLY Kerberos tests
+      - command: expansions.update
+        params:
+          updates:
+            - key: "args"
+              value: "${args} -test.types=kerberos"
+      - func: "setup integration test"
+      - func: "run tool integration tests"
+        vars:
           KERBEROS_TEST: "true"
 
-- name: legacy30
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "3.0"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "run legacy tests"
-      vars:
-        test_path: "test/legacy30"
-        smoke_args: "--authMechanism SCRAM-SHA-1"
+  - name: legacy30
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "3.0"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "run legacy tests"
+        vars:
+          test_path: "test/legacy30"
+          smoke_args: "--authMechanism SCRAM-SHA-1"
 
-- name: format-go
-  commands:
-    - func: "fetch source"
-    - func: "fetch golangci-lint"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          . ./set_goenv.sh
-          GOROOT="" set_goenv || exit
-          PATH=$PATH:$PWD/bin golangci-lint run --disable-all -E gofmt ./...
-          exit $?
+  - name: format-go
+    commands:
+      - func: "fetch source"
+      - func: "fetch golangci-lint"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            set -x
+            set -v
+            set -e
+            . ./set_goenv.sh
+            GOROOT="" set_goenv || exit
+            PATH=$PATH:$PWD/bin golangci-lint run --disable-all -E gofmt ./...
+            exit $?
 
-- name: lint-go
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          . ./set_goenv.sh
-          GOROOT="" set_goenv || exit
-          retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
-          if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
+  - name: lint-go
+    commands:
+      - func: "fetch source"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            set -x
+            set -v
+            set -e
+            . ./set_goenv.sh
+            GOROOT="" set_goenv || exit
+            retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
+            if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
 
-- name: lint-js
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          PATH="/opt/node/bin:$PATH"
-          /opt/node/bin/npm install eslint@3.2
-          /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
+  - name: lint-js
+    commands:
+      - func: "fetch source"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            set -x
+            set -v
+            set -e
+            PATH="/opt/node/bin:$PATH"
+            /opt/node/bin/npm install eslint@3.2
+            /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
-- name: qa-tests-unstable
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "latest"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "${excludes}"
+  - name: qa-tests-unstable
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "latest"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_ssl}"
+          excludes: "${excludes}"
 
-- name: qa-tests-4.2
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_unstable,${excludes}"
+  - name: qa-tests-4.2
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_ssl}"
+          excludes: "requires_unstable,${excludes}"
 
-- name: qa-tests-4.0
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.0"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_min_mongo_42,requires_unstable,${excludes}"
+  - name: qa-tests-4.0
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.0"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_ssl}"
+          excludes: "requires_min_mongo_42,requires_unstable,${excludes}"
 
-- name: qa-tests-3.6
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "3.6"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
+  - name: qa-tests-3.6
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "3.6"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_ssl}"
+          excludes: "requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
-- name: qa-tests-3.4
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "3.4"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
+  - name: qa-tests-3.4
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "3.4"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_ssl}"
+          excludes: "requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
-- name: qa-tests-3.2
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "3.2"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "requires_min_mongo_34,requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
+  - name: qa-tests-3.2
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "3.2"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_ssl}"
+          excludes: "requires_min_mongo_34,requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
-- name: native-cert-ssl-current
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/test/qa-tests
-        script: |
-          set -x
-          set -v
-          set -e
-          chmod +x ../../bin/*
-          mv ../../bin/* .
-          chmod 400 jstests/libs/key*
-          python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+  - name: native-cert-ssl-current
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "fetch tool"
+        vars:
+          tool: mongoimport
+      - func: "fetch tool"
+        vars:
+          tool: mongoexport
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "fetch tool"
+        vars:
+          tool: mongostat
+      - func: "fetch tool"
+        vars:
+          tool: mongotop
+      - func: "fetch tool"
+        vars:
+          tool: mongofiles
+      - func: "fetch tool"
+        vars:
+          tool: bsondump
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools/test/qa-tests
+          script: |
+            set -x
+            set -v
+            set -e
+            chmod +x ../../bin/*
+            mv ../../bin/* .
+            chmod 400 jstests/libs/key*
+            python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
-- name: qa-dump-restore-with-archiving-current
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "restore_archive"
-        excludes: "requires_unstable,${excludes}"
+  - name: qa-dump-restore-with-archiving-current
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "restore_archive"
+          excludes: "requires_unstable,${excludes}"
 
-- name: qa-dump-restore-with-gzip-current
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "restore_gzip"
-        excludes: "requires_unstable,${excludes}"
+  - name: qa-dump-restore-with-gzip-current
+    depends_on:
+      - name: dist
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "fetch tool"
+        vars:
+          tool: mongodump
+      - func: "fetch tool"
+        vars:
+          tool: mongorestore
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "restore_gzip"
+          excludes: "requires_unstable,${excludes}"
 
-- name: unit
-  commands:
-    - command: expansions.update
-    - func: "fetch source"
-    - func: "run tool unit tests"
-      vars:
+  - name: unit
+    commands:
+      - command: expansions.update
+      - func: "fetch source"
+      - func: "run tool unit tests"
+        vars:
           UNIT_TEST: "true"
           run_coverage: "true"
-    - func: "create coverage reports"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongoimport"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongoexport"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongostat"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongodump"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongorestore"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
+      - func: "create coverage reports"
+      - command: expansions.update
+        params:
+          updates:
+            - key: "coverage_pkg"
+              value: "mongoimport"
+      - func: "upload html coverage"
+      - func: "upload text coverage"
+      - command: expansions.update
+        params:
+          updates:
+            - key: "coverage_pkg"
+              value: "mongoexport"
+      - func: "upload html coverage"
+      - func: "upload text coverage"
+      - command: expansions.update
+        params:
+          updates:
+            - key: "coverage_pkg"
+              value: "mongostat"
+      - func: "upload html coverage"
+      - func: "upload text coverage"
+      - command: expansions.update
+        params:
+          updates:
+            - key: "coverage_pkg"
+              value: "mongodump"
+      - func: "upload html coverage"
+      - func: "upload text coverage"
+      - command: expansions.update
+        params:
+          updates:
+            - key: "coverage_pkg"
+              value: "mongorestore"
+      - func: "upload html coverage"
+      - func: "upload text coverage"
 
-- name: vet
-  commands:
-    - func: "fetch source"
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          go tool vet bsondump mongo*
+  - name: vet
+    commands:
+      - func: "fetch source"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            set -x
+            set -v
+            set -e
+            go tool vet bsondump mongo*
 
 buildvariants:
 
-#######################################
-#     Static Analysis Buildvariant    #
-#######################################
+  #######################################
+  #     Static Analysis Buildvariant    #
+  #######################################
 
-- name: static
-  display_name: '! Static Analysis'
-  run_on:
-  - rhel62-small
-  expansions:
-    build_tags: "ssl sasl gssapi"
-    _platform: rhel62
-  tasks:
-  - name: format-go
-  - name: lint-go
-  - name: lint-js
-  - name: vet
+  - name: static
+    display_name: '! Static Analysis'
+    run_on:
+      - rhel62-small
+    expansions:
+      build_tags: "ssl sasl gssapi"
+      _platform: rhel62
+    tasks:
+      - name: format-go
+      - name: lint-go
+      - name: lint-js
+      - name: vet
 
-#######################################
-#     Amazon x86_64 Buildvariants     #
-#######################################
+  #######################################
+  #     Amazon x86_64 Buildvariants     #
+  #######################################
 
-- name: amazonlinux64
-  display_name: Amazon Linux 64
-  run_on:
-  - amazon1-2018-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: amazon1
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: amazonlinux64
+    display_name: Amazon Linux 64
+    run_on:
+      - amazon1-2018-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: amazon1
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-- name: amazon2
-  display_name: Amazon Linux 64 v2
-  run_on:
-  - amazon2-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: amazon2
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: amazon2
+    display_name: Amazon Linux 64 v2
+    run_on:
+      - amazon2-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: amazon2
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#     Debian x86_64 Buildvariants     #
-#######################################
+  #######################################
+  #     Debian x86_64 Buildvariants     #
+  #######################################
 
-- name: debian81
-  display_name: Debian 8.1
-  run_on:
-  - debian81-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: debian81
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: debian81
+    display_name: Debian 8.1
+    run_on:
+      - debian81-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: debian81
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-- name: debian92
-  display_name: Debian 9.2
-  run_on:
-  - debian92-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: debian92
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: debian92
+    display_name: Debian 9.2
+    run_on:
+      - debian92-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: debian92
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#           macOS Buildvariant        #
-#######################################
+  #######################################
+  #           macOS Buildvariant        #
+  #######################################
 
-- name: macOS-1014
-  display_name: MacOS 10.14
-  run_on:
-  - macos-1014
-  expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
-    mongo_os: "osx"
-    mongo_target: "osx-ssl"
-    arch: "osx/x86_64"
-    excludes: requires_many_files
-    build_tags: "ssl sasl gssapi"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    USE_SSL: "true"
-    _platform: macos1014
-  tasks: *macos_tasks
+  - name: macOS-1014
+    display_name: MacOS 10.14
+    run_on:
+      - macos-1014
+    expansions:
+      <<: *mongod_ssl_startup_args
+      <<: *mongo_ssl_startup_args
+      mongo_os: "osx"
+      mongo_target: "osx-ssl"
+      arch: "osx/x86_64"
+      excludes: requires_many_files
+      build_tags: "ssl sasl gssapi"
+      smoke_use_ssl: --use-ssl
+      resmoke_use_ssl: _ssl
+      USE_SSL: "true"
+      _platform: macos1014
+    tasks: *macos_tasks
 
-#######################################
-#     RHEL x86_64 Buildvariants       #
-#######################################
+  #######################################
+  #     RHEL x86_64 Buildvariants       #
+  #######################################
 
-- name: rhel62
-  display_name: RHEL 6.2
-  run_on:
-  - rhel62-small
-  expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
-    mongo_os: "rhel62"
-    mongo_edition: "enterprise"
-    build_tags: "ssl sasl gssapi"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    arch: "linux/x86_64"
-    edition: enterprise
-    run_kinit: true
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    _platform: rhel62
-    USE_SSL: "true"
-  tasks: *rhel_x86_64_tasks
+  - name: rhel62
+    display_name: RHEL 6.2
+    run_on:
+      - rhel62-small
+    expansions:
+      <<: *mongod_ssl_startup_args
+      <<: *mongo_ssl_startup_args
+      mongo_os: "rhel62"
+      mongo_edition: "enterprise"
+      build_tags: "ssl sasl gssapi"
+      smoke_use_ssl: --use-ssl
+      resmoke_use_ssl: _ssl
+      arch: "linux/x86_64"
+      edition: enterprise
+      run_kinit: true
+      resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+      _platform: rhel62
+      USE_SSL: "true"
+    tasks: *rhel_x86_64_tasks
 
-- name: rhel70
-  display_name: RHEL 7.0
-  run_on:
-  - rhel70-small
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: rhel70
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: rhel70
+    display_name: RHEL 7.0
+    run_on:
+      - rhel70-small
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: rhel70
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#     SUSE x86_64 Buildvariants       #
-#######################################
+  #######################################
+  #     SUSE x86_64 Buildvariants       #
+  #######################################
 
-- name: suse12
-  display_name: SUSE 12
-  run_on:
-  - suse12-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: suse12
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: suse12
+    display_name: SUSE 12
+    run_on:
+      - suse12-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: suse12
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#    Ubuntu x86_64 Buildvariants      #
-#######################################
+  #######################################
+  #    Ubuntu x86_64 Buildvariants      #
+  #######################################
 
-- name: ubuntu1404
-  display_name: Ubuntu 14.04
-  run_on:
-  - ubuntu1404-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1404
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: ubuntu1404
+    display_name: Ubuntu 14.04
+    run_on:
+      - ubuntu1404-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: ubuntu1404
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-- name: ubuntu1604
-  display_name: Ubuntu 16.04
-  run_on:
-  - ubuntu1604-test
-  expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
-    mongo_os: "ubuntu1604"
-    mongo_edition: "enterprise"
-    build_tags: "ssl sasl gssapi"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    arch: "linux/x86_64"
-    edition: enterprise
-    run_kinit: true
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    USE_SSL: "true"
-    _platform: ubuntu1604
-  tasks: *ubuntu_x86_64_tasks
+  - name: ubuntu1604
+    display_name: Ubuntu 16.04
+    run_on:
+      - ubuntu1604-test
+    expansions:
+      <<: *mongod_ssl_startup_args
+      <<: *mongo_ssl_startup_args
+      mongo_os: "ubuntu1604"
+      mongo_edition: "enterprise"
+      build_tags: "ssl sasl gssapi"
+      smoke_use_ssl: --use-ssl
+      resmoke_use_ssl: _ssl
+      arch: "linux/x86_64"
+      edition: enterprise
+      run_kinit: true
+      resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+      USE_SSL: "true"
+      _platform: ubuntu1604
+    tasks: *ubuntu_x86_64_tasks
 
-- name: ubuntu1804
-  display_name: Ubuntu 18.04
-  run_on:
-  - ubuntu1804-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1804
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: ubuntu1804
+    display_name: Ubuntu 18.04
+    run_on:
+      - ubuntu1804-test
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: ubuntu1804
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#        Windows Buildvariants        #
-#######################################
+  #######################################
+  #        Windows Buildvariants        #
+  #######################################
 
-- name: windows-64
-  display_name: Windows 64-bit
-  run_on:
-  - windows-64-vs2017-compile
-  expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
-    mongo_os: "windows-64"
-    mongo_edition: "enterprise"
-    mongo_target: "windows"
-    build_tags: "sasl gssapi ssl"
-    smoke_use_ssl: --use-ssl
-    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    resmoke_use_ssl: _ssl
-    excludes: requires_large_ram,requires_mongo_24
-    edition: enterprise
-    extension: .exe
-    arch: "win32/x86_64"
-    preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
-    USE_SSL: "true"
-    _platform: windowsVS2017
-  tasks: *windows_64_tasks
+  - name: windows-64
+    display_name: Windows 64-bit
+    run_on:
+      - windows-64-vs2017-compile
+    expansions:
+      <<: *mongod_ssl_startup_args
+      <<: *mongo_ssl_startup_args
+      mongo_os: "windows-64"
+      mongo_edition: "enterprise"
+      mongo_target: "windows"
+      build_tags: "sasl gssapi ssl"
+      smoke_use_ssl: --use-ssl
+      resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
+      resmoke_use_ssl: _ssl
+      excludes: requires_large_ram,requires_mongo_24
+      edition: enterprise
+      extension: .exe
+      arch: "win32/x86_64"
+      preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
+      USE_SSL: "true"
+      _platform: windowsVS2017
+    tasks: *windows_64_tasks
 
-#######################################
-#        ARM Buildvariants            #
-#######################################
+  #######################################
+  #        ARM Buildvariants            #
+  #######################################
 
-# MongoDB 3.4 - 4.0
-- name: ubuntu1604-arm64
-  display_name: ZAP ARM64 Ubuntu 16.04
-  run_on:
-  - ubuntu1604-arm64-small
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "ubuntu1604"
-    mongo_edition: "targeted"
-    mongo_arch: "arm64"
-    build_tags: "ssl"
-    resmoke_use_ssl: _ssl
-    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    resmoke_args: -j 2
-    arch: "linux/arm64"
-    edition: ssl
-    USE_SSL: "true"
-    _platform: ubuntu1604-arm
-  tasks: *ubuntu1604_arm64_tasks
+  # MongoDB 3.4 - 4.0
+  - name: ubuntu1604-arm64
+    display_name: ZAP ARM64 Ubuntu 16.04
+    run_on:
+      - ubuntu1604-arm64-small
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      <<: *mongod_default_startup_args
+      <<: *mongo_default_startup_args
+      mongo_os: "ubuntu1604"
+      mongo_edition: "targeted"
+      mongo_arch: "arm64"
+      build_tags: "ssl"
+      resmoke_use_ssl: _ssl
+      excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+      resmoke_args: -j 2
+      arch: "linux/arm64"
+      edition: ssl
+      USE_SSL: "true"
+      _platform: ubuntu1604-arm
+    tasks: *ubuntu1604_arm64_tasks
 
-# MongoDB 4.2+
-- name: ubuntu1804-arm64
-  display_name: ZAP ARM64 Ubuntu 18.04
-  run_on:
-  - ubuntu1804-arm64-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "ubuntu1804"
-    mongo_edition: "targeted"
-    mongo_arch: "aarch64"
-    build_tags: "ssl"
-    resmoke_use_ssl: _ssl
-    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    resmoke_args: -j 2
-    arch: "linux/arm64"
-    edition: ssl
-    USE_SSL: "true"
-    _platform: ubuntu1804-arm
-  tasks: *ubuntu1804_arm64_tasks
+  # MongoDB 4.2+
+  - name: ubuntu1804-arm64
+    display_name: ZAP ARM64 Ubuntu 18.04
+    run_on:
+      - ubuntu1804-arm64-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      <<: *mongod_default_startup_args
+      <<: *mongo_default_startup_args
+      mongo_os: "ubuntu1804"
+      mongo_edition: "targeted"
+      mongo_arch: "aarch64"
+      build_tags: "ssl"
+      resmoke_use_ssl: _ssl
+      excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+      resmoke_args: -j 2
+      arch: "linux/arm64"
+      edition: ssl
+      USE_SSL: "true"
+      _platform: ubuntu1804-arm
+    tasks: *ubuntu1804_arm64_tasks
 
-#######################################
-#        Power Buildvariants          #
-#######################################
+  #######################################
+  #        Power Buildvariants          #
+  #######################################
 
-- name: rhel71-ppc64le
-  display_name: ZAP PPC64LE RHEL 7.1
-  run_on:
-  - rhel71-power8-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "rhel71"
-    mongo_edition: "enterprise"
-    mongo_arch: "ppc64le"
-    build_tags: 'ssl sasl gssapi'
-    resmoke_use_ssl: _ssl
-    resmoke_args: -j 4
-    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    arch: "linux/ppc64le"
-    edition: enterprise
-    run_kinit: true
-    _platform: rhel71-ppc
-  tasks: *rhel71_ppc64le_tasks
+  - name: rhel71-ppc64le
+    display_name: ZAP PPC64LE RHEL 7.1
+    run_on:
+      - rhel71-power8-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      <<: *mongod_default_startup_args
+      <<: *mongo_default_startup_args
+      mongo_os: "rhel71"
+      mongo_edition: "enterprise"
+      mongo_arch: "ppc64le"
+      build_tags: 'ssl sasl gssapi'
+      resmoke_use_ssl: _ssl
+      resmoke_args: -j 4
+      excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+      arch: "linux/ppc64le"
+      edition: enterprise
+      run_kinit: true
+      _platform: rhel71-ppc
+    tasks: *rhel71_ppc64le_tasks
 
-# MongoDB 3.4 - 4.0
-- name: ubuntu1604-ppc64le
-  display_name: ZAP PPC64LE Ubuntu 16.04
-  run_on:
-  - ubuntu1604-power8-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: 'ssl sasl gssapi'
-    _platform: ubuntu1604-ppc
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  # MongoDB 3.4 - 4.0
+  - name: ubuntu1604-ppc64le
+    display_name: ZAP PPC64LE Ubuntu 16.04
+    run_on:
+      - ubuntu1604-power8-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: 'ssl sasl gssapi'
+      _platform: ubuntu1604-ppc
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-# MongoDB 4.2+
-- name: ubuntu1804-ppc64le
-  display_name: ZAP PPC64LE Ubuntu 18.04
-  run_on:
-  - ubuntu1804-power8-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: 'ssl sasl gssapi'
-    _platform: ubuntu1804-ppc
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  # MongoDB 4.2+
+  - name: ubuntu1804-ppc64le
+    display_name: ZAP PPC64LE Ubuntu 18.04
+    run_on:
+      - ubuntu1804-power8-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: 'ssl sasl gssapi'
+      _platform: ubuntu1804-ppc
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#     Z (s390x) Buildvariants         #
-#######################################
+  #######################################
+  #     Z (s390x) Buildvariants         #
+  #######################################
 
-- name: rhel67-s390x
-  display_name: ZAP s390x RHEL 6.7
-  run_on:
-  - rhel67-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "rhel67"
-    mongo_edition: "enterprise"
-    mongo_arch: "s390x"
-    build_tags: "sasl gssapi ssl"
-    resmoke_use_ssl: _ssl
-    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    resmoke_args: -j 2
-    arch: "linux/s390x"
-    edition: enterprise
-    run_kinit: true
-    _platform: rhel67-zseries
-  tasks: *rhel67_s390x_tasks
+  - name: rhel67-s390x
+    display_name: ZAP s390x RHEL 6.7
+    run_on:
+      - rhel67-zseries-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      <<: *mongod_default_startup_args
+      <<: *mongo_default_startup_args
+      mongo_os: "rhel67"
+      mongo_edition: "enterprise"
+      mongo_arch: "s390x"
+      build_tags: "sasl gssapi ssl"
+      resmoke_use_ssl: _ssl
+      excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+      resmoke_args: -j 2
+      arch: "linux/s390x"
+      edition: enterprise
+      run_kinit: true
+      _platform: rhel67-zseries
+    tasks: *rhel67_s390x_tasks
 
-- name: rhel72-s390x
-  display_name: ZAP s390x RHEL 7.2
-  run_on:
-  - rhel72-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: rhel72-zseries
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: rhel72-s390x
+    display_name: ZAP s390x RHEL 7.2
+    run_on:
+      - rhel72-zseries-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: rhel72-zseries
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-- name: ubuntu1604-s390x
-  display_name: ZAP s390x Ubuntu 16.04
-  run_on:
-  - ubuntu1604-zseries-small
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1604-zseries
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: ubuntu1604-s390x
+    display_name: ZAP s390x Ubuntu 16.04
+    run_on:
+      - ubuntu1604-zseries-small
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: ubuntu1604-zseries
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-- name: ubuntu1804-s390x
-  display_name: ZAP s390x Ubuntu 18.04
-  run_on:
-  - ubuntu1804-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-    _platform: ubuntu1804-zseries
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
+  - name: ubuntu1804-s390x
+    display_name: ZAP s390x Ubuntu 18.04
+    run_on:
+      - ubuntu1804-zseries-test
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: "sasl gssapi ssl"
+      _platform: ubuntu1804-zseries
+    tasks:
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
 
-#######################################
-#     Experimental Buildvariants      #
-#######################################
+  #######################################
+  #     Experimental Buildvariants      #
+  #######################################
 
-- name: ubuntu-race
-  stepback: false
-  batchtime: 1440 # daily
-  display_name: z Race Detector Ubuntu 16.04
-  run_on:
-  - ubuntu1604-test
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "ubuntu1604"
-    mongo_edition: "enterprise"
-    build_tags: "sasl gssapi ssl"
-    arch: "linux/x86_64"
-    args: "-buildmode=default -race"
-    excludes: requires_large_ram
-    _platform: ubuntu1604-zseries
-  tasks: *ubuntu_x86_64_race_tasks
-
+  - name: ubuntu-race
+    stepback: false
+    batchtime: 1440 # daily
+    display_name: z Race Detector Ubuntu 16.04
+    run_on:
+      - ubuntu1604-test
+    expansions:
+      <<: *mongod_default_startup_args
+      <<: *mongo_default_startup_args
+      mongo_os: "ubuntu1604"
+      mongo_edition: "enterprise"
+      build_tags: "sasl gssapi ssl"
+      arch: "linux/x86_64"
+      args: "-buildmode=default -race"
+      excludes: requires_large_ram
+      _platform: ubuntu1604-zseries
+    tasks: *ubuntu_x86_64_race_tasks
