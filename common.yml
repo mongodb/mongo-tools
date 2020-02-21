@@ -15,6 +15,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -33,6 +34,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -54,6 +56,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -71,6 +74,7 @@ mongo_tools_variables:
       - name: unit
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -82,6 +86,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -119,6 +124,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -136,6 +142,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.2
@@ -154,6 +161,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: qa-tests-3.4
@@ -849,6 +857,19 @@ tasks:
   commands:
     - func: "fetch dist release artifacts"
     - func: "upload signed release artifacts"
+
+- name: integration-3.6
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.6"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
 
 - name: integration-4.0
   commands:
