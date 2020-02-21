@@ -15,8 +15,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -34,8 +34,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -56,8 +56,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -74,8 +74,8 @@ mongo_tools_variables:
       - name: unit
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -86,8 +86,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -124,8 +124,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -142,8 +142,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: integration-4.2
       - name: integration-4.2-auth
@@ -161,8 +161,8 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
-      - name: integration-3.6
       - name: integration-4.0
+      - name: integration-3.6
       - name: integration-4.0-auth
       - name: qa-tests-3.4
       - name: qa-tests-3.6
