@@ -677,7 +677,6 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				}
 			})
 		})
-
 		dbName := session.Database("testdata")
 
 		// Drop the collection to clean up resources
