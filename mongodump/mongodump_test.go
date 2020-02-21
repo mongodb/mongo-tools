@@ -266,7 +266,7 @@ func setUpDBView() error {
 	collName := "coll1"
 	dbName := testDB
 
-	pipeline := []bson.M{bson.M{"$project": bson.M{"b": "$a"}}}
+	pipeline := []bson.M{{"$project": bson.M{"b": "$a"}}}
 	createCmd := bson.D{
 		{"create", "test view"},
 		{"viewOn", collName},

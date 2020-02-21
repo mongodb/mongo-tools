@@ -40,9 +40,6 @@ mongo_tools_variables:
       # Disabled due to TOOLS-2119
       # - name: kerberos
       - name: legacy30
-      - name: lint-go
-      - name: format-go
-      - name: lint-js
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
@@ -53,7 +50,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
       - name: unit
-      - name: vet
     ubuntu_x86_64_task_list: &ubuntu_x86_64_tasks
       - name: dist
       - name: sign
@@ -63,9 +59,6 @@ mongo_tools_variables:
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: kerberos
-      - name: lint-go
-      - name: format-go
-      - name: lint-js
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
@@ -76,7 +69,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
       - name: unit
-      - name: vet
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
       - name: integration-4.0
@@ -1411,6 +1403,23 @@ tasks:
           go tool vet bsondump mongo*
 
 buildvariants:
+
+#######################################
+#     Static Analysis Buildvariant    #
+#######################################
+
+- name: static
+  display_name: '! Static Analysis'
+  run_on:
+  - rhel62-small
+  expansions:
+    build_tags: "ssl sasl gssapi"
+    _platform: rhel62
+  tasks:
+  - name: format-go
+  - name: lint-go
+  - name: lint-js
+  - name: vet
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
