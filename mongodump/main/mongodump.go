@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/signals"
 	"github.com/mongodb/mongo-tools-common/util"
@@ -31,23 +30,9 @@ var (
 
 func main() {
 	// initialize command-line opts
-	opts := options.New("mongodump", VersionStr, GitCommit, mongodump.Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
-
-	inputOpts := &mongodump.InputOptions{}
-	opts.AddOptions(inputOpts)
-	outputOpts := &mongodump.OutputOptions{}
-	opts.AddOptions(outputOpts)
-	opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
-
-	args, err := opts.ParseArgs(os.Args[1:])
+	opts, err := mongodump.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, util.ShortUsage("mongodump"))
-		os.Exit(util.ExitFailure)
-	}
-
-	if len(args) > 0 {
-		log.Logvf(log.Always, "positional arguments not allowed: %v", args)
+		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
 		log.Logvf(log.Always, util.ShortUsage("mongodump"))
 		os.Exit(util.ExitFailure)
 	}
@@ -74,9 +59,9 @@ func main() {
 	defer progressManager.Stop()
 
 	dump := mongodump.MongoDump{
-		ToolOptions:     opts,
-		OutputOptions:   outputOpts,
-		InputOptions:    inputOpts,
+		ToolOptions:     opts.ToolOptions,
+		OutputOptions:   opts.OutputOptions,
+		InputOptions:    opts.InputOptions,
 		ProgressManager: progressManager,
 	}
 

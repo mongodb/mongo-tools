@@ -370,6 +370,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	return imResult, BulkWriteException{
 		WriteErrors:       bwErrors,
 		WriteConcernError: writeException.WriteConcernError,
+		Labels:            writeException.Labels,
 	}
 }
 
@@ -1096,6 +1097,9 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Crypt:          coll.client.crypt,
 	}
 
+	if fo.AllowDiskUse != nil {
+		op.AllowDiskUse(*fo.AllowDiskUse)
+	}
 	if fo.AllowPartialResults != nil {
 		op.AllowPartialResults(*fo.AllowPartialResults)
 	}
@@ -1414,6 +1418,13 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	if fo.Upsert != nil {
 		op = op.Upsert(*fo.Upsert)
 	}
+	if fo.Hint != nil {
+		hint, err := transformValue(coll.registry, fo.Hint)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Hint(hint)
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1489,6 +1500,13 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 	if fo.Upsert != nil {
 		op = op.Upsert(*fo.Upsert)
+	}
+	if fo.Hint != nil {
+		hint, err := transformValue(coll.registry, fo.Hint)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Hint(hint)
 	}
 
 	return coll.findAndModify(ctx, op)
