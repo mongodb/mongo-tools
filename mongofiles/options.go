@@ -15,9 +15,11 @@ import (
 )
 
 // Usage string printed as part of --help
-var Usage = `<options> <command> <filename or _id>
+var Usage = `<options> <connection-string> <command> <filename or _id>
 
 Manipulate gridfs files using the command line.
+
+Connection strings must begin with mongodb:// or mongodb+srv://.
 
 Possible commands include:
 	list      - list all files; 'filename' is an optional prefix which listed filenames must begin with
@@ -34,7 +36,7 @@ See http://docs.mongodb.org/manual/reference/program/mongofiles/ for more inform
 // ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	// initialize command-line opts
-	opts := options.New("mongofiles", versionStr, gitCommit, Usage, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
+	opts := options.New("mongofiles", versionStr, gitCommit, Usage, true, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
 
 	storageOpts := &StorageOptions{}
 	inputOpts := &InputOptions{}
@@ -46,7 +48,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 
 	args, err := opts.ParseArgs(rawArgs)
 	if err != nil {
-		return Options{}, fmt.Errorf("error parsing command line options: %v", err)
+		return Options{}, err
 	}
 
 	log.SetVerbosity(opts.Verbosity)
