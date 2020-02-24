@@ -260,24 +260,6 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		imp.IngestOptions.BulkBufferSize = 1000
 	}
 
-	// ensure no more than one positional argument is supplied
-	if len(args) > 1 {
-		return fmt.Errorf("only one positional argument is allowed")
-	}
-
-	// ensure either a positional argument is supplied or an argument is passed
-	// to the --file flag - and not both
-	if imp.InputOptions.File != "" && len(args) != 0 {
-		return fmt.Errorf("incompatible options: --file and positional argument(s)")
-	}
-
-	if imp.InputOptions.File == "" {
-		if len(args) != 0 {
-			// if --file is not supplied, use the positional argument supplied
-			imp.InputOptions.File = args[0]
-		}
-	}
-
 	// ensure we have a valid string to use for the collection
 	if imp.ToolOptions.Collection == "" {
 		log.Logvf(log.Always, "no collection specified")
