@@ -66,16 +66,6 @@ type PositionalArgumentTestCase struct {
 	ExpectErr    string
 }
 
-/*
-	list      - list all files; 'filename' is an optional prefix which listed filenames must begin with
-	search    - search all files; 'filename' is a regex which listed filenames must match
-	put       - add a file with filename 'filename'
-	put_id    - add a file with filename 'filename' and a given '_id'
-	get       - get a file with filename 'filename'
-	get_id    - get a file with the given '_id'
-	delete    - delete all files with filename 'filename'
-	delete_id - delete a file with the given '_id'
-*/
 func TestPositionalArgumentParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Testing parsing positional arguments", t, func() {
@@ -343,7 +333,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			{
 				InputArgs: []string{"foo", "bar"},
 				ExpectErr: "'foo' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
-			},=
+			},
 			{
 				InputArgs: []string{"list", "mongodb://foo", "--uri=mongodb://bar"},
 				ExpectErr: "illegal argument combination: cannot specify a URI in a positional argument and --uri",
