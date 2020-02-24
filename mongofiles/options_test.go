@@ -9,6 +9,7 @@ package mongofiles
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -55,5 +56,326 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(opts.ToolOptions.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.W(2), writeconcern.J(true)))
 		})
+	})
+}
+
+type PositionalArgumentTestCase struct {
+	InputArgs    []string
+	ExpectedOpts Options
+	ExpectedMF   MongoFiles
+	ExpectErr    string
+}
+
+/*
+	list      - list all files; 'filename' is an optional prefix which listed filenames must begin with
+	search    - search all files; 'filename' is a regex which listed filenames must match
+	put       - add a file with filename 'filename'
+	put_id    - add a file with filename 'filename' and a given '_id'
+	get       - get a file with filename 'filename'
+	get_id    - get a file with the given '_id'
+	delete    - delete all files with filename 'filename'
+	delete_id - delete a file with the given '_id'
+*/
+func TestPositionalArgumentParsing(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("Testing parsing positional arguments", t, func() {
+		positionalArgumentTestCases := []PositionalArgumentTestCase{
+			{
+				InputArgs: []string{"list", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "list",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "list", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "list",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "list"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "",
+					Command:  "list",
+				},
+			},
+			{
+				InputArgs: []string{"search", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "search",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "search", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "search",
+				},
+			},
+			{
+				InputArgs: []string{"put", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "put",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "put", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "put",
+				},
+			},
+			{
+				InputArgs: []string{"put_id", "foo", "id"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "put_id",
+					Id:       "id",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "put_id", "foo", "id"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "put_id",
+					Id:       "id",
+				},
+			},
+			{
+				InputArgs: []string{"get", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "get",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "get", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "get",
+				},
+			},
+			{
+				InputArgs: []string{"get_id", "id"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					Command: "get_id",
+					Id:      "id",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "get_id", "id"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					Command: "get_id",
+					Id:      "id",
+				},
+			},
+			{
+				InputArgs: []string{"delete", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "delete",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "delete", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "delete",
+				},
+			},
+			{
+				InputArgs: []string{"delete_id", "id"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					Command: "delete_id",
+					Id:      "id",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "delete_id", "id"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					Command: "delete_id",
+					Id:      "id",
+				},
+			},
+			{
+				InputArgs: []string{"put_id", "mongodb://foo", "mongodb://bar"},
+				ExpectErr: "too many URIs found in positional arguments: only one URI can be set as a positional argument",
+			},
+			{
+				InputArgs: []string{"list", "foo", "bar"},
+				ExpectErr: "too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			},
+			{
+				InputArgs: []string{"list", "foo", "bar", "mongodb://foo"},
+				ExpectErr: "too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			},
+			{
+				InputArgs: []string{"get"},
+				ExpectErr: "'get' argument missing",
+			},
+			{
+				InputArgs: []string{"get", "mongodb://foo"},
+				ExpectErr: "'get' argument missing",
+			},
+			{
+				InputArgs: []string{"foo", "bar"},
+				ExpectErr: "'foo' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			},=
+			{
+				InputArgs: []string{"list", "mongodb://foo", "--uri=mongodb://bar"},
+				ExpectErr: "illegal argument combination: cannot specify a URI in a positional argument and --uri",
+			},
+		}
+
+		for _, tc := range positionalArgumentTestCases {
+			t.Logf("Testing: %s", tc.InputArgs)
+			var mf *MongoFiles
+			opts, err := ParseOptions(tc.InputArgs, "", "")
+
+			if err == nil {
+				mf = &MongoFiles{
+					ToolOptions: opts.ToolOptions,
+					StorageOptions: &StorageOptions{
+						GridFSPrefix: "fs",
+					},
+				}
+				err = mf.ValidateCommand(opts.ParsedArgs)
+			}
+
+			if tc.ExpectErr != "" {
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldEqual, tc.ExpectErr)
+			} else {
+				So(err, ShouldBeNil)
+				So(mf.FileName, ShouldEqual, tc.ExpectedMF.FileName)
+				So(mf.Command, ShouldEqual, tc.ExpectedMF.Command)
+				So(mf.Id, ShouldEqual, tc.ExpectedMF.Id)
+				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
+			}
+
+		}
 	})
 }

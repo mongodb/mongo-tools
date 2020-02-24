@@ -6,9 +6,19 @@
 
 package mongostat
 
-var Usage = `<options> <polling interval in seconds>
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
+)
+
+var Usage = `<options> <connection-string> <polling interval in seconds>
 
 Monitor basic MongoDB server statistics.
+
+Connection strings must begin with mongodb:// or mongodb+srv://.
 
 See http://docs.mongodb.org/manual/reference/program/mongostat/ for more information.`
 
@@ -30,4 +40,53 @@ type StatOptions struct {
 // Name returns a human-readable group name for mongostat options.
 func (*StatOptions) Name() string {
 	return "stat"
+}
+
+type Options struct {
+	*options.ToolOptions
+	*StatOptions
+	SleepInterval int
+}
+
+func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
+	opts := options.New(
+		"mongostat", versionStr, gitCommit, Usage, true,
+		options.EnabledOptions{Connection: true, Auth: true, Namespace: false, URI: true})
+	opts.UseReadOnlyHostDescription()
+
+	// add mongostat-specific options
+	statOpts := &StatOptions{}
+	opts.AddOptions(statOpts)
+
+	interactiveOption := opts.FindOptionByLongName("interactive")
+	if _, available := stat_consumer.FormatterConstructors["interactive"]; !available {
+		// make --interactive inaccessible
+		interactiveOption.LongName = ""
+		interactiveOption.ShortName = 0
+	}
+
+	args, err := opts.ParseArgs(rawArgs)
+	if err != nil {
+		return Options{}, err
+	}
+
+	if len(args) > 1 {
+		return Options{}, fmt.Errorf("error parsing positional arguments: " +
+			"provide only one polling interval in seconds and only one MongoDB connection string. " +
+			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+		)
+	}
+
+	sleepInterval := 1
+	if len(args) == 1 {
+		sleepInterval, err = strconv.Atoi(args[0])
+		if err != nil {
+			return Options{}, fmt.Errorf("invalid sleep interval: %v", args[0])
+		}
+		if sleepInterval < 1 {
+			return Options{}, fmt.Errorf("sleep interval must be at least 1 second")
+		}
+	}
+
+	return Options{opts, statOpts, sleepInterval}, nil
 }

@@ -9,12 +9,10 @@ package main
 
 import (
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
 	"github.com/mongodb/mongo-tools-common/signals"
 	"github.com/mongodb/mongo-tools-common/util"
@@ -58,50 +56,15 @@ var (
 
 func main() {
 	// initialize command-line opts
-	opts := options.New(
-		"mongostat", VersionStr, GitCommit,
-		mongostat.Usage,
-		options.EnabledOptions{Connection: true, Auth: true, Namespace: false, URI: true})
-	opts.UseReadOnlyHostDescription()
-
-	// add mongostat-specific options
-	statOpts := &mongostat.StatOptions{}
-	opts.AddOptions(statOpts)
-
-	interactiveOption := opts.FindOptionByLongName("interactive")
-	if _, available := stat_consumer.FormatterConstructors["interactive"]; !available {
-		// make --interactive inaccessible
-		interactiveOption.LongName = ""
-		interactiveOption.ShortName = 0
-	}
-
-	args, err := opts.ParseArgs(os.Args[1:])
+	opts, err := mongostat.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
 		log.Logvf(log.Always, util.ShortUsage("mongostat"))
 		os.Exit(util.ExitFailure)
 	}
 
 	log.SetVerbosity(opts.Verbosity)
 	signals.Handle()
-
-	sleepInterval := 1
-	if len(args) > 0 {
-		if len(args) != 1 {
-			log.Logvf(log.Always, "too many positional arguments: %v", args)
-			log.Logvf(log.Always, util.ShortUsage("mongostat"))
-			os.Exit(util.ExitFailure)
-		}
-		sleepInterval, err = strconv.Atoi(args[0])
-		if err != nil {
-			log.Logvf(log.Always, "invalid sleep interval: %v", args[0])
-			os.Exit(util.ExitFailure)
-		}
-		if sleepInterval < 1 {
-			log.Logvf(log.Always, "sleep interval must be at least 1 second")
-			os.Exit(util.ExitFailure)
-		}
-	}
 
 	// print help, if specified
 	if opts.PrintHelp(false) {
@@ -127,22 +90,22 @@ func main() {
 		os.Exit(util.ExitFailure)
 	}
 
-	if statOpts.Interactive && statOpts.Json {
+	if opts.Interactive && opts.Json {
 		log.Logvf(log.Always, "cannot use output formats --json and --interactive together")
 		os.Exit(util.ExitFailure)
 	}
 
-	if statOpts.Deprecated && !statOpts.Json {
+	if opts.Deprecated && !opts.Json {
 		log.Logvf(log.Always, "--useDeprecatedJsonKeys can only be used when --json is also specified")
 		os.Exit(util.ExitFailure)
 	}
 
-	if statOpts.Columns != "" && statOpts.AppendColumns != "" {
+	if opts.Columns != "" && opts.AppendColumns != "" {
 		log.Logvf(log.Always, "-O cannot be used if -o is also specified")
 		os.Exit(util.ExitFailure)
 	}
 
-	if statOpts.HumanReadable != "true" && statOpts.HumanReadable != "false" {
+	if opts.HumanReadable != "true" && opts.HumanReadable != "false" {
 		log.Logvf(log.Always, "--humanReadable must be set to either 'true' or 'false'")
 		os.Exit(util.ExitFailure)
 	}
@@ -159,23 +122,23 @@ func main() {
 	}
 
 	var factory stat_consumer.FormatterConstructor
-	if statOpts.Json {
+	if opts.Json {
 		factory = stat_consumer.FormatterConstructors["json"]
-	} else if statOpts.Interactive {
+	} else if opts.Interactive {
 		factory = stat_consumer.FormatterConstructors["interactive"]
 	} else {
 		factory = stat_consumer.FormatterConstructors[""]
 	}
-	formatter := factory(statOpts.RowCount, !statOpts.NoHeaders)
+	formatter := factory(opts.RowCount, !opts.NoHeaders)
 
 	cliFlags := 0
-	if statOpts.Columns == "" {
+	if opts.Columns == "" {
 		cliFlags = line.FlagAlways
-		if statOpts.Discover {
+		if opts.Discover {
 			cliFlags |= line.FlagDiscover
 			cliFlags |= line.FlagHosts
 		}
-		if statOpts.All {
+		if opts.All {
 			cliFlags |= line.FlagAll
 		}
 		if strings.Contains(opts.Host, ",") {
@@ -184,31 +147,31 @@ func main() {
 	}
 
 	var customHeaders []string
-	if statOpts.Columns != "" {
-		customHeaders = optionCustomHeaders(statOpts.Columns)
-	} else if statOpts.AppendColumns != "" {
-		customHeaders = optionCustomHeaders(statOpts.AppendColumns)
+	if opts.Columns != "" {
+		customHeaders = optionCustomHeaders(opts.Columns)
+	} else if opts.AppendColumns != "" {
+		customHeaders = optionCustomHeaders(opts.AppendColumns)
 	}
 
 	var keyNames map[string]string
-	if statOpts.Deprecated {
+	if opts.Deprecated {
 		keyNames = line.DeprecatedKeyMap()
-	} else if statOpts.Columns == "" {
+	} else if opts.Columns == "" {
 		keyNames = line.DefaultKeyMap()
 	} else {
-		keyNames = optionKeyNames(statOpts.Columns)
+		keyNames = optionKeyNames(opts.Columns)
 	}
-	if statOpts.AppendColumns != "" {
-		addKN := optionKeyNames(statOpts.AppendColumns)
+	if opts.AppendColumns != "" {
+		addKN := optionKeyNames(opts.AppendColumns)
 		for k, v := range addKN {
 			keyNames[k] = v
 		}
 	}
 
 	readerConfig := &status.ReaderConfig{
-		HumanReadable: statOpts.HumanReadable == "true",
+		HumanReadable: opts.HumanReadable == "true",
 	}
-	if statOpts.Json {
+	if opts.Json {
 		readerConfig.TimeFormat = "15:04:05"
 	}
 
@@ -216,7 +179,7 @@ func main() {
 		keyNames, readerConfig, formatter, os.Stdout)
 	seedHosts := util.CreateConnectionAddrs(opts.Host, opts.Port)
 	var cluster mongostat.ClusterMonitor
-	if statOpts.Discover || len(seedHosts) > 1 {
+	if opts.Discover || len(seedHosts) > 1 {
 		cluster = &mongostat.AsyncClusterMonitor{
 			ReportChan:    make(chan *status.ServerStatus),
 			ErrorChan:     make(chan *status.NodeError),
@@ -232,17 +195,17 @@ func main() {
 	}
 
 	var discoverChan chan string
-	if statOpts.Discover {
+	if opts.Discover {
 		discoverChan = make(chan string, 128)
 	}
 
 	opts.Direct = true
 	stat := &mongostat.MongoStat{
-		Options:       opts,
-		StatOptions:   statOpts,
+		Options:       opts.ToolOptions,
+		StatOptions:   opts.StatOptions,
 		Nodes:         map[string]*mongostat.NodeMonitor{},
 		Discovered:    discoverChan,
-		SleepInterval: time.Duration(sleepInterval) * time.Second,
+		SleepInterval: time.Duration(opts.SleepInterval) * time.Second,
 		Cluster:       cluster,
 	}
 

@@ -9,6 +9,9 @@ package mongoexport
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/mongodb/mongo-tools-common/testtype"
+	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
@@ -103,6 +106,63 @@ func TestParseOptions(t *testing.T) {
 					t.Fatalf("JSON format mismatch; expected %v, got %v", tc.expectedFormat, opts.JSONFormat)
 				}
 			})
+		}
+	})
+}
+
+type PositionalArgumentTestCase struct {
+	InputArgs    []string
+	ExpectedOpts Options
+	ExpectErr    string
+}
+
+func TestPositionalArgumentParsing(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("Testing parsing positional arguments", t, func() {
+		positionalArgumentTestCases := []PositionalArgumentTestCase{
+			{
+				InputArgs: []string{"mongodb://foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://foo",
+						},
+					},
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "mongodb://bar"},
+				ExpectErr: "too many URIs found in positional arguments: only one URI can be set as a positional argument",
+			},
+			{
+				InputArgs: []string{"foo", "bar"},
+				ExpectErr: "error parsing positional arguments: " +
+					"provide only one MongoDB connection string. " +
+					"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+			},
+			{
+				InputArgs: []string{"foo", "bar", "mongodb://foo"},
+				ExpectErr: "error parsing positional arguments: " +
+					"provide only one MongoDB connection string. " +
+					"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "--uri=mongodb://bar"},
+				ExpectErr: "illegal argument combination: cannot specify a URI in a positional argument and --uri",
+			},
+		}
+
+		for _, tc := range positionalArgumentTestCases {
+			t.Logf("Testing: %s", tc.InputArgs)
+			opts, err := ParseOptions(tc.InputArgs, "", "")
+			if tc.ExpectErr != "" {
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldEqual, tc.ExpectErr)
+			} else {
+				So(err, ShouldBeNil)
+				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
+			}
+
 		}
 	})
 }

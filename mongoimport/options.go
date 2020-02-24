@@ -14,9 +14,11 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 )
 
-var Usage = `<options> <file>
+var Usage = `<options> <connection-string> <file> 
 
 Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport reads from stdin.
+
+Connection strings must begin with mongodb:// or mongodb+srv://.
 
 See http://docs.mongodb.org/manual/reference/program/mongoimport/ for more information.`
 
@@ -117,7 +119,7 @@ type Options struct {
 
 // ParseOptions reads command line arguments and converts them into options used to configure mongoimport.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
-	opts := options.New("mongoimport", versionStr, gitCommit, Usage,
+	opts := options.New("mongoimport", versionStr, gitCommit, Usage, true,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	inputOpts := &InputOptions{}
 	ingestOpts := &IngestOptions{}
@@ -130,6 +132,13 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		return Options{}, err
 	}
 
+	if len(args) > 1 {
+		return Options{}, fmt.Errorf("error parsing positional arguments: " +
+			"provide only one polling interval in seconds and only one MongoDB connection string. " +
+			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+		)
+	}
+
 	log.SetVerbosity(opts.Verbosity)
 	opts.URI.LogUnsupportedOptions()
 
@@ -138,6 +147,24 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		return Options{}, fmt.Errorf("error constructing write concern: %v", err)
 	}
 	opts.WriteConcern = wc
+
+	// ensure no more than one positional argument is supplied
+	if len(args) > 1 {
+		return Options{}, fmt.Errorf("only one positional argument is allowed")
+	}
+
+	// ensure either a positional argument is supplied or an argument is passed
+	// to the --file flag - and not both
+	if inputOpts.File != "" && len(args) != 0 {
+		return Options{}, fmt.Errorf("error parsing positional arguments: cannot use both --file and a positional argument to set the input file")
+	}
+
+	if inputOpts.File == "" {
+		if len(args) != 0 {
+			// if --file is not supplied, use the positional argument supplied
+			inputOpts.File = args[0]
+		}
+	}
 
 	return Options{
 		opts,

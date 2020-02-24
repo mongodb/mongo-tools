@@ -36,6 +36,9 @@ const (
 
 	// For now mongoreplay tests are unique, and will have to be explicitly run.
 	MongoReplayTestType = "TOOLS_TESTING_REPLAY"
+
+	// For testing options parsing. Requires an SRV URI in the ATLAS_URI environment variable.
+	SRVConnectionStringTestType = "TOOLS_TESTING_SRV"
 )
 
 func HasTestType(testType string) bool {
