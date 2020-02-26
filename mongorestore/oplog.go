@@ -35,6 +35,15 @@ type oplogContext struct {
 	txnBuffer  *txn.Buffer
 }
 
+// shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
+func shouldIgnoreNamespace(ns string) bool {
+	if strings.HasPrefix(ns, "config.cache.") || strings.HasPrefix(ns, "config.system.sessions") || strings.HasPrefix(ns, "config.transactions") {
+		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
+		return true
+	}
+	return false
+}
+
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
 	log.Logv(log.Always, "replaying oplog")
@@ -82,10 +91,16 @@ func (restore *MongoRestore) RestoreOplog() error {
 		oplogCtx.progressor.Inc(int64(len(rawOplogEntry)))
 
 		entryAsOplog := db.Oplog{}
+
 		err = bson.Unmarshal(rawOplogEntry, &entryAsOplog)
 		if err != nil {
 			return fmt.Errorf("error reading oplog: %v", err)
 		}
+
+		if shouldIgnoreNamespace(entryAsOplog.Namespace) {
+			continue
+		}
+
 		if entryAsOplog.Operation == "n" {
 			//skip no-ops
 			continue

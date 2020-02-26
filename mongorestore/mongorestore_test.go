@@ -8,9 +8,14 @@ package mongorestore
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/mongodb/mongo-tools-common/bsonutil"
+	"go.mongodb.org/mongo-driver/mongo"
 	"os"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/mongodb/mongo-tools-common/db"
@@ -20,6 +25,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
+	driverOpt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -271,6 +277,257 @@ func generateTestData() error {
 	}
 
 	return nil
+}
+
+type CollectionInfo struct {
+	Options *bson.D
+}
+
+type ByIndexName []bson.D
+
+func (n ByIndexName) Len() int {
+	return len(n)
+}
+
+func (n ByIndexName) Swap(i, j int) {
+	n[i], n[j] = n[j], n[i]
+}
+
+func (n ByIndexName) Less(i, j int) bool {
+	return getIndexName(n[i]) < getIndexName(n[j])
+}
+
+// removeKey removes the given key. Returns the removed value and true if the
+// key was found.
+func removeKey(key string, document *bson.D) (interface{}, bool) {
+	if document == nil {
+		return nil, false
+	}
+	doc := *document
+	for i, elem := range doc {
+		if elem.Key == key {
+			// Remove this key.
+			*document = append(doc[:i], doc[i+1:]...)
+			return elem.Value, true
+		}
+	}
+	return nil, false
+}
+
+// getCollectionDocs returns a slice of all documents in a collection.
+func getCollectionDocs(coll *mongo.Collection) ([]bson.D, error) {
+	c, err := coll.Find(context.Background(), bson.D{}, driverOpt.Find().SetSort(bson.D{{"_id", 1}}))
+	if err != nil {
+		return nil, err
+	}
+
+	defer c.Close(context.Background())
+	var docs []bson.D
+	for c.Next(context.Background()) {
+		var doc bson.D
+		if err = c.Decode(&doc); err != nil {
+			return nil, err
+		}
+
+		docs = append(docs, doc)
+	}
+
+	return docs, nil
+}
+
+func findStringValueByKey(keyName string, document *bson.D) (string, error) {
+	value, err := bsonutil.FindValueByKey(keyName, document)
+	if err != nil {
+		return "", err
+	}
+	str, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("field present, but is not a string: %v", value)
+	}
+	return str, nil
+}
+
+func getIndexName(index bson.D) string {
+	name, err := findStringValueByKey("name", &index)
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
+// isViewError checks if err is an "CommandNotSupportedOnView" error.
+func isViewError(err error) bool {
+	e, ok := err.(mongo.CommandError)
+	return ok && e.Code == 166
+}
+
+// bsonDToM converts the given bson.D to bson.M.
+func bsonDToM(d *bson.D) *bson.M {
+	if d == nil {
+		return nil
+	}
+	m := make(bson.M)
+	for _, elem := range *d {
+		m[elem.Key] = elem.Value
+	}
+	return &m
+}
+
+// fullCollectionName returns the full namespace for a collection (dbName.collectionName)
+func fullCollectionName(c *mongo.Collection) string {
+	return fmt.Sprintf("%s.%s", c.Database().Name(), c.Name())
+}
+
+func getIndexDocumentsForCollection(c *mongo.Collection) ([]bson.D, error) {
+	var indexes []bson.D
+	indexesIter, err := c.Indexes().List(context.Background())
+	if err != nil {
+		if isViewError(err) {
+			return indexes, nil
+		}
+		return nil, err
+	}
+	for indexesIter.Next(context.Background()) {
+		var index bson.D
+		if err := indexesIter.Decode(&index); err != nil {
+			return nil, err
+		}
+
+		indexes = append(indexes, index)
+	}
+	sort.Sort(ByIndexName(indexes))
+	return indexes, nil
+}
+
+// AssertBsonDEqualUnordered, asserts two bson.Ds are equal ignoring the
+// order of the top level fields. Useful for comparing indexes.
+func assertBsonDEqualUnordered(expected, actual *bson.D) {
+	_, err := bson.MarshalExtJSON(expected, true, true)
+	So(err, ShouldBeNil)
+
+	_, err = bson.MarshalExtJSON(actual, true, true)
+	So(err, ShouldBeNil)
+
+	expectedM := bsonDToM(expected)
+	actualM := bsonDToM(actual)
+	So(reflect.DeepEqual(expectedM, actualM), ShouldBeTrue)
+}
+
+func assertIndexesEqual(source, dest *mongo.Collection, destinationVersion db.Version) {
+	sourceIndexes, err := getIndexDocumentsForCollection(source)
+	So(err, ShouldBeNil)
+
+	destIndexes, err := getIndexDocumentsForCollection(dest)
+	So(err, ShouldBeNil)
+	So(len(sourceIndexes), ShouldEqual, len(destIndexes))
+
+	for i := 0; i < len(sourceIndexes) && i < len(destIndexes); i++ {
+		sourceIndex := sourceIndexes[i]
+		destIndex := destIndexes[i]
+
+		// Do not compare the "v" field and textIndexVersion field.
+		// remove the "v" flag of the _id_ index which may haven been
+		// created with a different version on the destination.
+		// remove the "textIndexVersion" key from both source and destination indexes during comparison
+		if destinationVersion.Cmp(db.Version{4, 2, 0}) != 0 {
+			name, err := findStringValueByKey("name", &sourceIndex)
+			So(err, ShouldNotBeNil)
+
+			if name == "_id_" {
+				// "v" should always be the first field returned in an index spec.
+				So("v", ShouldEqual, sourceIndex[0].Key, "source index first field name")
+				So("v", ShouldEqual, destIndex[0].Key, "dest index first field name")
+				sourceIndex = sourceIndex[1:]
+				destIndex = destIndex[1:]
+			}
+
+			removeKey("textIndexVersion", &sourceIndex)
+			removeKey("textIndexVersion", &destIndex)
+		}
+
+		assertBsonDEqualUnordered(&sourceIndex, &destIndex)
+	}
+}
+
+// getCollections returns an iterator to the listCollections output for the
+// given database.
+func getCollections(database *mongo.Database, name string) (*mongo.Cursor, error) {
+	var filter bson.D
+	if len(name) > 0 {
+		filter = bson.D{{"name", name}}
+	}
+
+	return database.ListCollections(context.Background(), filter)
+}
+
+
+// getCollectionInfo returns the listCollections output for the
+// given collection.
+func getCollectionInfo(c *mongo.Collection, ctx context.Context) (*CollectionInfo, error) { // parameterize db and coll names!
+	cursor, err := getCollections(c.Database(), c.Name())
+	So(err, ShouldBeNil)
+
+	defer cursor.Close(ctx)
+
+	_ = cursor.Next(ctx)
+
+	collInfo := &CollectionInfo{}
+	if err = cursor.Decode(&collInfo); err != nil {
+		return collInfo, err
+	}
+
+	return collInfo, cursor.Err()
+}
+
+// assertBsonDEqual asserts two bson.Ds are equal.
+func assertBsonDEqual(expected, actual *bson.D, label string) {
+	if expected == nil {
+		So(actual, ShouldBeNil)
+		return
+	}
+
+	expectedJSON, err := bson.MarshalExtJSON(expected, true, true)
+	So(err, ShouldBeNil)
+
+	actualJSON, err := bson.MarshalExtJSON(actual, true, true)
+	So(err, ShouldBeNil)
+
+	So(bytes.Equal(expectedJSON, actualJSON), ShouldBeTrue)
+}
+
+func assertCollectionEqual(t *testing.T, source, dest *mongo.Collection, session *mongo.Client, ctx context.Context) {
+	t.Helper()
+	// Assert that the collection at the destination is created with the same options.
+	sourceCollInfo, err := getCollectionInfo(source, ctx)
+	So(err, ShouldBeNil)
+
+	destinationCollInfo, err := getCollectionInfo(dest, ctx)
+	So(err, ShouldBeNil)
+
+	args := []string{
+		OplogReplayOption, "1",
+		DropOption,
+	}
+
+	restore, err := getRestoreWithArgs(args...)
+	So(err, ShouldBeNil)
+
+	assertBsonDEqual(sourceCollInfo.Options, destinationCollInfo.Options,
+		fmt.Sprintf("collection options for destination collection %s", fullCollectionName(dest)))
+
+	// Assert that all documents in the collections are the same.
+	sourceDocs, err := getCollectionDocs(source)
+	So(err, ShouldBeNil)
+
+	destDocs, err := getCollectionDocs(dest)
+	So(err, ShouldBeNil)
+
+	So(len(sourceDocs), ShouldEqual, len(destDocs))
+	for i := 0; i < len(sourceDocs) && i < len(destDocs); i++ {
+		assertBsonDEqual(&sourceDocs[i], &destDocs[i],
+			fmt.Sprintf("destination collection %s, document: %v", fullCollectionName(dest), i))
+	}
+	assertIndexesEqual(source, dest, restore.serverVersion)
 }
 
 // test --maintainInsertionOrder and --stopOnError behavior
@@ -721,5 +978,50 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				})
 			})
 		}
+	})
+}
+
+// TestSkipSystemCollections asserts that certain system collections like "config.systems.sessions" and the transaction
+// related tables aren't applied via applyops when replaying the oplog.
+func TestSkipSystemCollections(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	ctx := context.Background()
+
+	Convey("With a test MongoRestore", t, func() {
+		session.Database("db3").RunCommand(ctx, bson.D{
+			{"create", "c1"},
+		})
+
+		args := []string{
+			DirectoryOption, "testdata/oplog_partial_skips",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		c1 := session.Database("db3").Collection("c1")
+		c1.Drop(nil)
+
+		// Run mongorestore
+		collBeforeRestore := session.Database("db3").Collection("c1")
+		So(err, ShouldBeNil)
+
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		// Verify restoration
+		_, err = c1.CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+
+		assertCollectionEqual(t, collBeforeRestore, session.Database("db3").Collection("c1"), session, ctx)
+		session.Disconnect(context.Background())
 	})
 }
