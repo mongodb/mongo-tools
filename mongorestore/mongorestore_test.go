@@ -460,7 +460,6 @@ func getCollections(database *mongo.Database, name string) (*mongo.Cursor, error
 	return database.ListCollections(context.Background(), filter)
 }
 
-
 // getCollectionInfo returns the listCollections output for the
 // given collection.
 func getCollectionInfo(c *mongo.Collection, ctx context.Context) (*CollectionInfo, error) { // parameterize db and coll names!
