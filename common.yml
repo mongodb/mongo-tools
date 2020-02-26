@@ -617,6 +617,27 @@ functions:
         extract_to: src/github.com/mongodb/mongo-tools/
         bucket: mciuploads
 
+  "sign msi installer":
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        script: |
+          echo "${signing_auth_token}" > ${PROJECT_DIR}/signing_auth_token
+    - command: shell.exec
+      # If the notary service is failing, it should be a system failure to alert the evg team.
+      type: system
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools/
+        script: |
+          /usr/local/bin/notary-client.py \
+              --key-name "server-Tools" \
+              --auth-token-file ${PROJECT_DIR}/signing_auth_token \
+              --comment "Evergreen Automatic Signing (mongo-tools) - ${version_id} - ${build_variant}" \
+              --notary-url http://notary-service.build.10gen.cc:5000 \
+              --skip-missing \
+              release.msi
+
   "upload signed release artifacts":
     - command: s3.put
       params:
@@ -869,6 +890,7 @@ tasks:
     - name: dist
   commands:
     - func: "fetch dist release artifacts"
+    - func: "sign msi installer"
     - func: "upload signed release artifacts"
 
 - name: integration-3.6
