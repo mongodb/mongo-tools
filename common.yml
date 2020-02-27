@@ -1732,8 +1732,8 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "targeted"
     mongo_arch: "arm64"
@@ -1753,8 +1753,8 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
     mongo_os: "ubuntu1804"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
@@ -1803,10 +1803,10 @@ buildvariants:
     run_kinit: true
   tasks: *rhel71_ppc64le_tasks
 
-- name: rhel81-ppc64le
-  display_name: ZAP PPC64LE RHEL 8.1
+- name: rhel82-ppc64le
+  display_name: ZAP PPC64LE RHEL 8.2
   run_on:
-    - rhel81-power8-test
+    - rhel82-power8-test
   stepback: false
   batchtime: 10080 # weekly
   expansions:
