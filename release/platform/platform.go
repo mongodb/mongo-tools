@@ -216,7 +216,7 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
-		Name: "rhel80",
+		Name: "rhel81",
 		Arch: "ppc64le",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,
