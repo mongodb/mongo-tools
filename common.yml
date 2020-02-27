@@ -633,7 +633,7 @@ functions:
           /usr/local/bin/notary-client.py \
               --key-name "server-Tools" \
               --auth-token-file ${PROJECT_DIR}/signing_auth_token \
-              --comment "Evergreen Automatic Signing (mongo-tools) - ${version_id} - ${build_variant}" \
+              --comment "Evergreen Automatic Signing (mongo-tools)" \
               --notary-url http://notary-service.build.10gen.cc:5000 \
               --skip-missing \
               release.msi
