@@ -252,7 +252,7 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
-		Name: "rhel80",
+		Name: "rhel82",
 		Arch: "s390x",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,
