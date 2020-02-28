@@ -24,7 +24,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
@@ -296,7 +296,7 @@ func (exp *MongoExport) getCount() (int64, error) {
 // to export, based on the options given to mongoexport. Also returns the
 // associated session, so that it can be closed once the cursor is used up.
 func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
-	findOpts := driverOpts.Find()
+	findOpts := mopt.Find()
 
 	if exp.InputOpts != nil && exp.InputOpts.Sort != "" {
 		sortD, err := getSortFromArg(exp.InputOpts.Sort)
