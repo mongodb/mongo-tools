@@ -632,7 +632,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
           /usr/local/bin/notary-client.py \
-              --key-name "server-Tools" \
+              --key-name "server-Tools.pub" \
               --auth-token-file ./signing_auth_token \
               --comment "Evergreen Automatic Signing (mongo-tools)" \
               --notary-url http://notary-service.build.10gen.cc:5000 \
