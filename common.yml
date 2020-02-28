@@ -529,6 +529,20 @@ functions:
         echo "Starting mongod..."
         PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
 
+  "start mongod cluster":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      background: true
+      script: |
+        set -x
+        set -v
+        set -e
+        rm -rf mongodb/db_files mongodb/${logfile|run.log}
+        mkdir -p mongodb/db_files
+        echo "Starting mongod cluster..."
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet rs0
+
   "wait for mongod to be ready":
     command: shell.exec
     params:
