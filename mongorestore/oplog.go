@@ -37,7 +37,7 @@ type oplogContext struct {
 
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
-	if strings.HasPrefix(ns, "config.cache.") || strings.HasPrefix(ns, "config.system.sessions") || strings.HasPrefix(ns, "config.transactions") {
+	if strings.HasPrefix(ns, "config.cache.") || strings.HasPrefix(ns, "config.system.sessions") {
 		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
 		return true
 	}
