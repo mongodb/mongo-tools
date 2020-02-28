@@ -127,14 +127,14 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.AddOptions(ingestOpts)
 	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
 
-	args, err := opts.ParseArgs(rawArgs)
+	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
 		return Options{}, err
 	}
 
-	if len(args) > 1 {
+	if len(extraArgs) > 1 {
 		return Options{}, fmt.Errorf("error parsing positional arguments: " +
-			"provide only one polling interval in seconds and only one MongoDB connection string. " +
+			"provide only one file name and only one MongoDB connection string. " +
 			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
 		)
 	}
@@ -148,21 +148,16 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 	opts.WriteConcern = wc
 
-	// ensure no more than one positional argument is supplied
-	if len(args) > 1 {
-		return Options{}, fmt.Errorf("only one positional argument is allowed")
-	}
-
 	// ensure either a positional argument is supplied or an argument is passed
 	// to the --file flag - and not both
-	if inputOpts.File != "" && len(args) != 0 {
+	if inputOpts.File != "" && len(extraArgs) != 0 {
 		return Options{}, fmt.Errorf("error parsing positional arguments: cannot use both --file and a positional argument to set the input file")
 	}
 
 	if inputOpts.File == "" {
-		if len(args) != 0 {
+		if len(extraArgs) != 0 {
 			// if --file is not supplied, use the positional argument supplied
-			inputOpts.File = args[0]
+			inputOpts.File = extraArgs[0]
 		}
 	}
 
@@ -170,6 +165,6 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		opts,
 		inputOpts,
 		ingestOpts,
-		args,
+		extraArgs,
 	}, nil
 }

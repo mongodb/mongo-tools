@@ -195,13 +195,13 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			{
 				InputArgs: []string{"foo", "bar"},
 				ExpectErr: "error parsing positional arguments: " +
-					"provide only one polling interval in seconds and only one MongoDB connection string. " +
+					"provide only one file name and only one MongoDB connection string. " +
 					"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
 			},
 			{
 				InputArgs: []string{"foo", "bar", "mongodb://foo"},
 				ExpectErr: "error parsing positional arguments: " +
-					"provide only one polling interval in seconds and only one MongoDB connection string. " +
+					"provide only one file name and only one MongoDB connection string. " +
 					"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
 			},
 			{

@@ -46,7 +46,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
 	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
 
-	args, err := opts.ParseArgs(rawArgs)
+	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
 		return Options{}, err
 	}
@@ -72,7 +72,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 	}
 
-	return Options{opts, storageOpts, inputOpts, args}, nil
+	return Options{opts, storageOpts, inputOpts, extraArgs}, nil
 }
 
 // Options contains all the possible options that can configure mongofiles
