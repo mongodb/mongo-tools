@@ -48,12 +48,12 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	outputOpts := &Output{}
 	opts.AddOptions(outputOpts)
 
-	args, err := opts.ParseArgs(rawArgs)
+	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
 		return Options{}, err
 	}
 
-	if len(args) > 1 {
+	if len(extraArgs) > 1 {
 		return Options{}, fmt.Errorf("error parsing positional arguments: " +
 			"provide only one polling interval in seconds and only one MongoDB connection string. " +
 			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
@@ -61,10 +61,10 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 
 	sleeptime := 1 // default to 1 second sleep time
-	if len(args) > 0 {
-		sleeptime, err = strconv.Atoi(args[0])
+	if len(extraArgs) > 0 {
+		sleeptime, err = strconv.Atoi(extraArgs[0])
 		if err != nil || sleeptime <= 0 {
-			return Options{}, fmt.Errorf("invalid sleep time: %v", args[0])
+			return Options{}, fmt.Errorf("invalid sleep time: %v", extraArgs[0])
 		}
 	}
 

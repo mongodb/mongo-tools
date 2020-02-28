@@ -86,12 +86,12 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.AddOptions(outputOpts)
 	opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
 
-	args, err := opts.ParseArgs(rawArgs)
+	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
 		return Options{}, err
 	}
 
-	if len(args) > 0 {
+	if len(extraArgs) > 0 {
 		return Options{}, fmt.Errorf("error parsing positional arguments: " +
 			"provide only one MongoDB connection string. " +
 			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
