@@ -254,21 +254,6 @@ tasks:
           AUTH_TEST: "true"
     - func: "attach-test-results"
 
-- name: integration-4.0-cluster
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.0"
-    - func: "start mongod cluster"
-    - func: "wait for mongod to be ready"
-    - func: "create repl_set"
-    - func: "run tool integration tests"
-      vars:
-        INT_TEST: "true"
-    - func: "attach-test-results"
-
 - name: integration-4.2
   commands:
     - func: "fetch source"

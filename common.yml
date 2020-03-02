@@ -18,6 +18,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-tests-3.2
@@ -37,6 +38,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
@@ -982,41 +984,55 @@ tasks:
           INT_TEST: "true"
           AUTH_TEST: "true"
 
-- name: integration-4.2
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "start mongod"
-    - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
-      vars:
-          INT_TEST: "true" 
+  - name: integration-4.0-cluster
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.0"
+      - func: "start mongod cluster"
+      - func: "wait for mongod to be ready"
+      - func: "create repl_set"
+      - func: "run tool integration tests"
+        vars:
+          INT_TEST: "true"
 
-- name: integration-4.2-auth
-  commands:
-    - func: "fetch source"
-    # Concat auth args
-    - command: expansions.update
-      params:
-        updates:
-          - key: "mongod_args"
-            concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.2"
-    - func: "start mongod"
-    - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
-      vars:
+  - name: integration-4.2
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
+          INT_TEST: "true"
+
+  - name: integration-4.2-auth
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args"
+              concat: " --auth"
+            - key: "auth_username"
+              value: "passwordIsTaco"
+            - key: "auth_password"
+              value: "Taco"
+            - key: "create_mongod_users_command"
+              value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+      - func: "download mongod"
+        vars:
+          mongo_version: "4.2"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run tool integration tests"
+        vars:
           INT_TEST: "true"
           AUTH_TEST: "true"
 
