@@ -108,6 +108,12 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
+		Name: "debian71",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
+	},
+	{
 		Name: "debian81",
 		Arch: "x86_64",
 		OS:   OSLinux,
@@ -115,6 +121,12 @@ var platforms = []Platform{
 	},
 	{
 		Name: "debian92",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
+	},
+	{
+		Name: "debian10",
 		Arch: "x86_64",
 		OS:   OSLinux,
 		Pkg:  PkgDeb,
@@ -137,10 +149,34 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
+		Name: "rhel80",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
+		Name: "suse11",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
 		Name: "suse12",
 		Arch: "x86_64",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,
+	},
+	{
+		Name: "suse15",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
+		Name: "ubuntu1204",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
 	},
 	{
 		Name: "ubuntu1404",
@@ -156,6 +192,12 @@ var platforms = []Platform{
 	},
 	{
 		Name: "ubuntu1804",
+		Arch: "x86_64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
+	},
+	{
+		Name: "ubuntu2004",
 		Arch: "x86_64",
 		OS:   OSLinux,
 		Pkg:  PkgDeb,
@@ -178,7 +220,19 @@ var platforms = []Platform{
 		Pkg:  PkgDeb,
 	},
 	{
+		Name: "ubuntu2004",
+		Arch: "arm64",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
+	},
+	{
 		Name: "rhel71",
+		Arch: "ppc64le",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
+		Name: "rhel82",
 		Arch: "ppc64le",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,
@@ -191,6 +245,12 @@ var platforms = []Platform{
 	},
 	{
 		Name: "ubuntu1804",
+		Arch: "ppc64le",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
+	},
+	{
+		Name: "ubuntu2004",
 		Arch: "ppc64le",
 		OS:   OSLinux,
 		Pkg:  PkgDeb,
@@ -208,6 +268,24 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
+		Name: "rhel82",
+		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
+		Name: "suse12",
+		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
+		Name: "suse15",
+		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgRPM,
+	},
+	{
 		Name: "ubuntu1604",
 		Arch: "s390x",
 		OS:   OSLinux,
@@ -215,6 +293,12 @@ var platforms = []Platform{
 	},
 	{
 		Name: "ubuntu1804",
+		Arch: "s390x",
+		OS:   OSLinux,
+		Pkg:  PkgDeb,
+	},
+	{
+		Name: "ubuntu2004",
 		Arch: "s390x",
 		OS:   OSLinux,
 		Pkg:  PkgDeb,
