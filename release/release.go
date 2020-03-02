@@ -78,7 +78,7 @@ func main() {
 		buildMSI()
 		buildLinuxPackages()
 	case "get-version":
-		fmt.Print(getVersion())
+		fmt.Println(v)
 	case "list-deps":
 		listLinuxDeps()
 	case "upload-release":
@@ -111,15 +111,6 @@ func run(name string, args ...string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-func getVersion() string {
-	desc, err := run("git", "describe", "--dirty")
-	check(err, "git describe")
-	if env.EvgIsPatch() {
-		desc += "-patch"
-	}
-	return desc
-}
-
 func isTaggedRelease(rev string) bool {
 	_, err := run("git", "describe", "--exact", rev)
 	return err == nil
@@ -128,11 +119,13 @@ func isTaggedRelease(rev string) bool {
 func getReleaseName() string {
 	p, err := platform.GetFromEnv()
 	check(err, "get platform")
-	version := getVersion()
+
+	v, err := version.GetCurrent()
+	check(err, "get version")
 
 	return fmt.Sprintf(
-		"mongodb-cli-tools-%s-%s-%s",
-		p.Name, p.Arch, version,
+		"mongodb-database-tools-%s-%s-%s",
+		p.Name, p.Arch, v,
 	)
 }
 
@@ -226,17 +219,11 @@ func buildRPM() {
 	mdt := "mongodb-database-tools"
 	home := os.Getenv("HOME")
 
-	// set up build directory.
-	log.Printf("create rpm directory tree\n")
-	rpmBuildDir := "rpm_build"
-	check(os.RemoveAll(rpmBuildDir), "removeAll "+rpmBuildDir)
-	check(os.MkdirAll(rpmBuildDir, os.ModePerm), "mkdirAll "+rpmBuildDir)
-	check(os.Chdir(rpmBuildDir), "cd to "+rpmBuildDir)
-	oldCwd, err := os.Getwd()
-	check(err, "get current directory")
-	defer os.Chdir(oldCwd)
+	// set up build working directory.
+	cdBack := useWorkingDir("rpm_build")
 	// we'll want to go back to the original directory, just in case.
-	// build the release dir.
+	defer cdBack()
+
 	// The goal here is to set up  directory with the following structure:
 	// rpmbuild/
 	// |----- SOURCES/
@@ -289,9 +276,12 @@ func buildRPM() {
 	check(err, "get platform")
 	specFile := mdt + ".spec"
 
-	versionStr := getVersion()
-	rpmVersion := getRPMVersion(versionStr)
-	rpmRelease := getRPMRelease(versionStr)
+	v, err := version.GetCurrent()
+	check(err, "get version")
+
+	rpmVersion := v.StringWithoutPre()
+	rpmRelease := v.RPMRelease()
+
 	createSpecFile := func() {
 		log.Printf("create spec file\n")
 		f, err := os.Create(specFile)
@@ -330,16 +320,11 @@ func buildDeb() {
 	mdt := "mongodb-database-tools"
 	releaseName := getReleaseName()
 
-	// set up build directory.
-	debBuildDir := "deb_build"
-	check(os.RemoveAll(debBuildDir), "removeAll "+debBuildDir)
-	check(os.MkdirAll(debBuildDir, os.ModePerm), "mkdirAll "+debBuildDir)
-	check(os.Chdir(debBuildDir), "cd to "+debBuildDir)
-	oldCwd, err := os.Getwd()
-	check(err, "get current directory")
-	defer os.Chdir(oldCwd)
+	// set up build working directory.
+	cdBack := useWorkingDir("deb_build")
 	// we'll want to go back to the original directory, just in case.
-	// build the release dir.
+	defer cdBack()
+
 	// The goal here is to set up  directory with the following structure:
 	// releaseName/
 	// |----- DEBIAN/
@@ -404,11 +389,14 @@ func buildDeb() {
 		check(err, "create control")
 		defer f.Close()
 
+		v, err := version.GetCurrent()
+		check(err, "get version")
+
 		// get the control file content.
 		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "deb", "control"))
 		content := string(contentBytes)
 		check(err, "reading control file content")
-		content = strings.Replace(content, "@TOOLS_VERSION@", getDebVersion(getVersion()), -1)
+		content = strings.Replace(content, "@TOOLS_VERSION@", v.String(), -1)
 
 		content = strings.Replace(content, "@ARCHITECTURE@", pf.DebianArch(), 1)
 		_, err = f.WriteString(content)
@@ -524,15 +512,11 @@ func buildMSI() {
 
 	log.Printf("building msi installer\n")
 
-	// set up build directory.
+	// set up build working directory.
 	msiBuildDir := "msi_build"
-	check(os.RemoveAll(msiBuildDir), "removeAll "+msiBuildDir)
-	check(os.MkdirAll(msiBuildDir, os.ModePerm), "mkdirAll "+msiBuildDir)
-	check(os.Chdir(msiBuildDir), "cd to "+msiBuildDir)
-	oldCwd, err := os.Getwd()
+	cdBack := useWorkingDir(msiBuildDir)
 	// we'll want to go back to the original directory, just in case.
-	defer os.Chdir(oldCwd)
-	check(err, "get current directory")
+	defer cdBack()
 
 	// Copy sasldlls. They need to be in this directory for Wix. Linking will
 	// not work as the dlls are on a different file system.
@@ -583,9 +567,11 @@ func buildMSI() {
 	objDir := filepath.Join(cwd, "objs") + string(os.PathSeparator)
 	arch := "x64"
 
-	release := getVersion()
-	wixVersion := getWixVersion(release)
-	versionLabel := getVersionLabel(release)
+	v, err := version.GetCurrent()
+	check(err, "get version")
+
+	wixVersion := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
+	versionLabel := fmt.Sprintf("%d", v.Major)
 
 	lastVersionLabel := "49"
 	if versionLabel > lastVersionLabel {
@@ -671,56 +657,22 @@ func downloadFile(url, dst string) {
 	check(err, "write release file from http body")
 }
 
-func getRPMVersion(version string) string {
-	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
-	rLabel := strings.Split(version, "-")[0]
-	if rLabel[0] == 'r' {
-		return rLabel[1:]
-	}
-	return rLabel
-}
-
-func getRPMRelease(version string) string {
-	// r49.3.2-39-g7f57f9a2 will be turned to g7f57f9a2
-	// will return 1 if nothing is specified, because rpm
-	// expects _something_.
-	parts := strings.Split(version, "-")
-	if len(parts) < 2 {
-		return "1"
-	}
-	return parts[1]
-}
-
-func getDebVersion(version string) string {
-	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2-39-g7f57f9a2
-	if version[0] == 'r' {
-		return version[1:]
-	}
-	return version
-}
-
-func getWixVersion(version string) string {
-	// r49.3.2-39-g7f57f9a2 will be turned to 49.3.2
-	rLabel := strings.Split(version, "-")[0]
-	if rLabel[0] == 'r' {
-		return rLabel[1:]
-	}
-	return rLabel
-}
-
-func getVersionLabel(version string) string {
-	// r49.3.2-39-g7f57f9a2 will be turned to 49
-	rLabel := strings.Split(version, ".")[0]
-	if rLabel[0] == 'r' {
-		return rLabel[1:]
-	}
-	return rLabel
-}
-
 func computeMD5(filename string) string {
 	content, err := ioutil.ReadFile(filename)
 	check(err, "reading file during md5 summing")
 	return fmt.Sprintf("%x", md5.Sum([]byte(content)))
+}
+
+func useWorkingDir(dir string) func() {
+	check(os.RemoveAll(dir), "removeAll "+dir)
+	check(os.MkdirAll(dir, os.ModePerm), "mkdirAll "+dir)
+	check(os.Chdir(dir), "cd to "+dir)
+
+	cur, err := os.Getwd()
+	check(err, "get current directory")
+	return func() {
+		os.Chdir(cur)
+	}
 }
 
 func addToTarball(tw *tar.Writer, dst, src string) {
@@ -871,9 +823,8 @@ func uploadRelease(v version.Version) {
 		check(err, "get aws client")
 
 		for _, a := range artifacts {
-			fmt.Println(a.URL)
-
 			ext := path.Ext(a.URL)
+
 			unstableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-unstable%s",
 				pf.Name, pf.Arch, ext,
@@ -891,14 +842,14 @@ func uploadRelease(v version.Version) {
 
 			fmt.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
-			if v.IsStable {
+			if v.IsStable() {
 				copyFile(unstableFile, stableFile)
 				copyFile(unstableFile, latestStableFile)
 			}
 
 			fmt.Printf("    uploading to %s\n", unstableFile)
 			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
-			if v.IsStable {
+			if v.IsStable() {
 				fmt.Printf("    uploading to %s\n", stableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
 				fmt.Printf("    uploading to %s\n", latestStableFile)
