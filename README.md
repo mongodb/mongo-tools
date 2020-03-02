@@ -66,4 +66,10 @@ See our [Contributor's Guide](CONTRIBUTING.md).
 
 Documentation
 ---------------
-See the MongoDB packages [documentation](http://docs.mongodb.org/master/reference/program/).
+See the MongoDB packages [documentation](https://docs.mongodb.org/database-tools/).
+
+For documentation on older versions of the MongoDB, reference that version of the [MongoDB Server Manual](docs.mongodb.com/manual):
+
+- [MongoDB 4.2 Tools](https://docs.mongodb.org/v4.2/reference/program)
+- [MongoDB 4.0 Tools](https://docs.mongodb.org/v4.0/reference/program)
+- [MongoDB 3.6 Tools](https://docs.mongodb.org/v3.6/reference/program)
