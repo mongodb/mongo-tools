@@ -37,7 +37,7 @@ func simpleMongoExportOpts() Options {
 	// get ToolOptions from URI or defaults
 	if uri := os.Getenv("MONGOD"); uri != "" {
 		fakeArgs := []string{"--uri=" + uri}
-		toolOptions = options.New("mongoexport", "", "", "", options.EnabledOptions{URI: true})
+		toolOptions = options.New("mongoexport", "", "", "", true, options.EnabledOptions{URI: true})
 		toolOptions.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
 		_, err := toolOptions.ParseArgs(fakeArgs)
 		if err != nil {

@@ -21,7 +21,24 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
-// Parse parses the provided uri and returns a URI object.
+// ParseAndValidate parses the provided URI into a ConnString object.
+// It check that all values are valid.
+func ParseAndValidate(s string) (ConnString, error) {
+	p := parser{dnsResolver: dns.DefaultResolver}
+	err := p.parse(s)
+	if err != nil {
+		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
+	}
+	err = p.ConnString.Validate()
+	if err != nil {
+		return p.ConnString, internal.WrapErrorf(err, "error validating uri")
+	}
+	return p.ConnString, nil
+}
+
+// Parse parses the provided URI into a ConnString object
+// but does not check that all values are valid. Use `ConnString.Validate()`
+// to run the validation checks separately.
 func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
@@ -37,7 +54,9 @@ type ConnString struct {
 	AppName                            string
 	AuthMechanism                      string
 	AuthMechanismProperties            map[string]string
+	AuthMechanismPropertiesSet         bool
 	AuthSource                         string
+	AuthSourceSet                      bool
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
@@ -80,6 +99,10 @@ type ConnString struct {
 	SSLClientCertificateKeyFileSet     bool
 	SSLClientCertificateKeyPassword    func() string
 	SSLClientCertificateKeyPasswordSet bool
+	SSLCertificateFile                 string
+	SSLCertificateFileSet              bool
+	SSLPrivateKeyFile                  string
+	SSLPrivateKeyFileSet               bool
 	SSLInsecure                        bool
 	SSLInsecureSet                     bool
 	SSLCaFile                          string
@@ -103,6 +126,15 @@ type ConnString struct {
 
 func (u *ConnString) String() string {
 	return u.Original
+}
+
+// Validate checks that the Auth and SSL parameters are valid values.
+func (u *ConnString) Validate() error {
+	p := parser{
+		dnsResolver: dns.DefaultResolver,
+		ConnString:  *u,
+	}
+	return p.validate()
 }
 
 // ConnectMode informs the driver on how to connect
@@ -247,19 +279,29 @@ func (p *parser) parse(original string) error {
 		return err
 	}
 
+	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
+	if p.WTimeoutSetFromOption {
+		p.WTimeoutSet = true
+	}
+
+	return nil
+}
+
+func (p *parser) validate() error {
+	var err error
+
 	err = p.validateAuth()
 	if err != nil {
+		return err
+	}
+
+	if err = p.validateSSL(); err != nil {
 		return err
 	}
 
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
-	}
-
-	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
-	if p.WTimeoutSetFromOption {
-		p.WTimeoutSet = true
 	}
 
 	return nil
@@ -381,6 +423,27 @@ func (p *parser) validateAuth() error {
 	return nil
 }
 
+func (p *parser) validateSSL() error {
+	if !p.SSL {
+		return nil
+	}
+
+	if p.SSLClientCertificateKeyFileSet {
+		if p.SSLCertificateFileSet || p.SSLPrivateKeyFileSet {
+			return errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided " +
+				"along with tlsCertificateFile or tlsPrivateKeyFile")
+		}
+		return nil
+	}
+	if p.SSLCertificateFileSet && !p.SSLPrivateKeyFileSet {
+		return errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified")
+	}
+	if p.SSLPrivateKeyFileSet && !p.SSLCertificateFileSet {
+		return errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")
+	}
+	return nil
+}
+
 func (p *parser) addHost(host string) error {
 	if host == "" {
 		return nil
@@ -444,8 +507,10 @@ func (p *parser) addOption(pair string) error {
 			}
 			p.AuthMechanismProperties[kv[0]] = kv[1]
 		}
+		p.AuthMechanismPropertiesSet = true
 	case "authsource":
 		p.AuthSource = value
+		p.AuthSourceSet = true
 	case "compressors":
 		compressors := strings.Split(value, ",")
 		if len(compressors) < 1 {
@@ -605,6 +670,16 @@ func (p *parser) addOption(pair string) error {
 	case "sslclientcertificatekeypassword", "tlscertificatekeyfilepassword":
 		p.SSLClientCertificateKeyPassword = func() string { return value }
 		p.SSLClientCertificateKeyPasswordSet = true
+	case "tlscertificatefile":
+		p.SSL = true
+		p.SSLSet = true
+		p.SSLCertificateFile = value
+		p.SSLCertificateFileSet = true
+	case "tlsprivatekeyfile":
+		p.SSL = true
+		p.SSLSet = true
+		p.SSLPrivateKeyFile = value
+		p.SSLPrivateKeyFileSet = true
 	case "sslinsecure", "tlsinsecure":
 		switch value {
 		case "true":

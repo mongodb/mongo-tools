@@ -273,7 +273,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		// be created in options parsing, but tests still manually construct
 		// options and generally don't construct a URI, so we invoke the URI
 		// normalization routine here to correct for that.
-		opts.NormalizeHostPortURI()
+		opts.NormalizeOptionsAndURI()
 	}
 
 	uriOpts := mopt.Client().ApplyURI(opts.URI.ConnectionString)

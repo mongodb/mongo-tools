@@ -29,52 +29,19 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  version = "^2.0.2"
+  version = "v3.0.0"
 
 [[constraint]]
   name = "go.mongodb.org/mongo-driver"
-  version = "^1.1.2"
-
-[[constraint]]
-  name = "github.com/10gen/escaper"
-  revision = "17fe61c658dcbdcbf246c783f4f7dc97efde3a8b"
-
-[[constraint]]
-  name = "github.com/10gen/llmgo"
-  revision = "afcced55e92d9b6b93ccf32508238c08cfbaddb8"
-
-[[constraint]]
-  name = "github.com/10gen/openssl"
-  revision = "fc9a1d560ec3549c695198fe39b9de7f89a7503d"
-
-[[constraint]]
-  name = "github.com/google/gopacket"
-  # v1.1.16 plus fixes for compilation errors
-  revision = "7edef24d642a09d18efcf1e00a9dc2d4c6342c82"
-
-[[constraint]]
-  name = "github.com/howeyc/gopass"
-  revision = "44476384cd4721b68705e72f19e95d1a3a504370"
-
-[[constraint]]
-  name = "github.com/jessevdk/go-flags"
-  version = "^v1.4.0"
+  revision = "6f3c9d10a6095244ff3effe99e410357c36b47f6"
 
 [[constraint]]
   name = "github.com/nsf/termbox-go"
   revision = "0723e7c3d0a317dea811f0fbe4d6edd81908c971"
 
 [[constraint]]
-  name = "github.com/patrickmn/go-cache"
-  revision = "1881a9bccb818787f68c52bfba648c6cf34c34fa"
-
-[[constraint]]
   name = "github.com/smartystreets/goconvey"
   revision = "bf58a9a1291224109919756b4dcc469c670cc7e4"
-
-[[constraint]]
-  name = "golang.org/x/crypto"
-  revision = "1f22c0103821b9390939b6776727195525381532"
 
 [[override]]
   name = "gopkg.in/mgo.v2"

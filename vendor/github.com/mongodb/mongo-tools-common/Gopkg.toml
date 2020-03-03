@@ -26,7 +26,7 @@
 
 [[constraint]]
   name = "go.mongodb.org/mongo-driver"
-  version = "^v1.1.2"
+  revision = "6f3c9d10a6095244ff3effe99e410357c36b47f6"
 
 [[constraint]]
   name = "github.com/jessevdk/go-flags"
