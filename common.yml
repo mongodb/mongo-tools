@@ -1731,17 +1731,6 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
 
-- name: ubuntu2004
-  display_name: Ubuntu 20.04
-  run_on:
-    - ubuntu2004-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-
 #######################################
 #        Windows Buildvariants        #
 #######################################
@@ -1813,19 +1802,6 @@ buildvariants:
     USE_SSL: "true"
   tasks: *ubuntu1804_arm64_tasks
 
-- name: ubuntu2004-arm64
-  display_name: ZAP ARM64 Ubuntu 20.04
-  run_on:
-    - ubuntu2004-arm64-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-
 #######################################
 #        Power Buildvariants          #
 #######################################
@@ -1849,19 +1825,6 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks: *rhel71_ppc64le_tasks
-
-- name: rhel81-ppc64le
-  display_name: ZAP PPC64LE RHEL 8.1
-  run_on:
-    - rhel81-power8-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: 'ssl sasl gssapi'
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
 
 # MongoDB 3.4 - 4.0
 - name: ubuntu1604-ppc64le
@@ -1890,19 +1853,6 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: ubuntu2004-ppc64le
-  display_name: ZAP PPC64LE Ubuntu 20.04
-  run_on:
-    - ubuntu2004-power8-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: 'ssl sasl gssapi'
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
 
 #######################################
 #     Z (s390x) Buildvariants         #
@@ -1941,36 +1891,10 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
 
-- name: rhel80-s390x
-  display_name: ZAP s390x RHEL 8.0
-  run_on:
-    - rhel80-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
   run_on:
     - suse12-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-
-- name: suse15-s390x
-  display_name: ZAP s390x SUSE 15
-  run_on:
-    - suse15-zseries-test
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2005,19 +1929,6 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
-
-- name: ubuntu2004-s390x
-  display_name: ZAP s390x Ubuntu 20.04
-  run_on:
-    - ubuntu2004-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
 
 #######################################
 #     Experimental Buildvariants      #
