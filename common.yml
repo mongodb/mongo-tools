@@ -997,7 +997,7 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.0"
-    - func: "start mongod"
+    - func: "start mongod cluster"
     - func: "wait for mongod to be ready"
     - func: "create repl_set"
     - func: "run tool integration tests"
