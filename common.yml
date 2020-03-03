@@ -62,6 +62,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: kerberos
@@ -81,6 +82,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-tests-4.0
@@ -93,6 +95,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
         distros:
@@ -131,6 +134,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       #- name: kerberos
@@ -149,6 +153,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
@@ -168,6 +173,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
@@ -764,7 +770,7 @@ functions:
           set -e
           echo "starting repl set"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:3, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
