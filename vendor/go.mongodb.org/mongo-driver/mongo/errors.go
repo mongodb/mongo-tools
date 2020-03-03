@@ -185,9 +185,6 @@ type WriteException struct {
 
 	// The write errors that occurred during operation execution.
 	WriteErrors WriteErrors
-
-	// The categories to which the exception belongs.
-	Labels []string
 }
 
 // Error implements the error interface.
@@ -197,18 +194,6 @@ func (mwe WriteException) Error() string {
 	fmt.Fprintf(&buf, "{%s}, ", mwe.WriteErrors)
 	fmt.Fprintf(&buf, "{%s}]", mwe.WriteConcernError)
 	return buf.String()
-}
-
-// HasErrorLabel returns true if the error contains the specified label.
-func (mwe WriteException) HasErrorLabel(label string) bool {
-	if mwe.Labels != nil {
-		for _, l := range mwe.Labels {
-			if l == label {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
@@ -240,9 +225,6 @@ type BulkWriteException struct {
 
 	// The write errors that occurred during operation execution.
 	WriteErrors []BulkWriteError
-
-	// The categories to which the exception belongs.
-	Labels []string
 }
 
 // Error implements the error interface.
@@ -252,18 +234,6 @@ func (bwe BulkWriteException) Error() string {
 	fmt.Fprintf(&buf, "{%s}, ", bwe.WriteErrors)
 	fmt.Fprintf(&buf, "{%s}]", bwe.WriteConcernError)
 	return buf.String()
-}
-
-// HasErrorLabel returns true if the error contains the specified label.
-func (bwe BulkWriteException) HasErrorLabel(label string) bool {
-	if bwe.Labels != nil {
-		for _, l := range bwe.Labels {
-			if l == label {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // returnResult is used to determine if a function calling processWriteError should return
@@ -295,7 +265,6 @@ func processWriteError(err error) (returnResult, error) {
 			return rrMany, WriteException{
 				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
 				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
-				Labels:            tt.Labels,
 			}
 		default:
 			return rrNone, replaceErrors(err)

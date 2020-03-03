@@ -28,7 +28,6 @@ phases:
               servers: []
             newDescription:
               topologyType: "ReplicaSetNoPrimary"
-              setName: "rs"
               servers:
                 -
                   address: "a:27017"
@@ -73,7 +72,6 @@ phases:
             topologyId: "42"
             previousDescription:
               topologyType: "ReplicaSetNoPrimary"
-              setName: "rs"
               servers:
                 -
                   address: "a:27017"

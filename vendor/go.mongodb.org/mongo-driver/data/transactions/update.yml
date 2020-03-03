@@ -82,6 +82,7 @@ tests:
             updates:
               - q: {x: 1}
                 u: {y: 1}
+                upsert: false
             ordered: true
             lsid: session0
             txnNumber:
@@ -207,6 +208,8 @@ tests:
             updates:
               - q: {x: 1}
                 u: {y: 1}
+                multi: false
+                upsert: false
             ordered: true
             lsid: session0
             txnNumber:

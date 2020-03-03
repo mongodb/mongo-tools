@@ -137,9 +137,6 @@ func (b *Bucket) OpenUploadStreamWithID(fileID interface{}, filename string, opt
 }
 
 // UploadFromStream creates a fileID and uploads a file given a source stream.
-//
-// If this upload requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
 func (b *Bucket) UploadFromStream(filename string, source io.Reader, opts ...*options.UploadOptions) (primitive.ObjectID, error) {
 	fileID := primitive.NewObjectID()
 	err := b.UploadFromStreamWithID(fileID, filename, source, opts...)
@@ -147,9 +144,6 @@ func (b *Bucket) UploadFromStream(filename string, source io.Reader, opts ...*op
 }
 
 // UploadFromStreamWithID uploads a file given a source stream.
-//
-// If this upload requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
 func (b *Bucket) UploadFromStreamWithID(fileID interface{}, filename string, source io.Reader, opts ...*options.UploadOptions) error {
 	us, err := b.OpenUploadStreamWithID(fileID, filename, opts...)
 	if err != nil {
@@ -197,9 +191,6 @@ func (b *Bucket) OpenDownloadStream(fileID interface{}) (*DownloadStream, error)
 
 // DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
 // Returns the number of bytes written to the steam and an error, or nil if there was no error.
-//
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
 func (b *Bucket) DownloadToStream(fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(fileID)
 	if err != nil {
@@ -230,9 +221,6 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.Name
 }
 
 // DownloadToStreamByName downloads the file with the given name to the given io.Writer.
-//
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
 func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts ...*options.NameOptions) (int64, error) {
 	ds, err := b.OpenDownloadStreamByName(filename, opts...)
 	if err != nil {
@@ -243,9 +231,6 @@ func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts 
 }
 
 // Delete deletes all chunks and metadata associated with the file with the given file ID.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
 func (b *Bucket) Delete(fileID interface{}) error {
 	// delete document in files collection and then chunks to minimize race conditions
 
@@ -271,9 +256,6 @@ func (b *Bucket) Delete(fileID interface{}) error {
 }
 
 // Find returns the files collection documents that match the given filter.
-//
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
 func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {
@@ -282,9 +264,6 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 
 	gfsOpts := options.MergeGridFSFindOptions(opts...)
 	find := options.Find()
-	if gfsOpts.AllowDiskUse != nil {
-		find.SetAllowDiskUse(*gfsOpts.AllowDiskUse)
-	}
 	if gfsOpts.BatchSize != nil {
 		find.SetBatchSize(*gfsOpts.BatchSize)
 	}
@@ -308,9 +287,6 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 }
 
 // Rename renames the stored file with the specified file ID.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline
 func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
@@ -337,9 +313,6 @@ func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 }
 
 // Drop drops the files and chunks collections associated with this bucket.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline
 func (b *Bucket) Drop() error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {

@@ -25,7 +25,7 @@ func main() {
 	opts, err := mongorestore.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
+		log.Logv(log.Always, err.Error())
 		log.Logvf(log.Always, util.ShortUsage("mongorestore"))
 		os.Exit(util.ExitFailure)
 	}

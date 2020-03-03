@@ -8,25 +8,23 @@ package options
 
 import "go.mongodb.org/mongo-driver/mongo/readpref"
 
-// RunCmdOptions represents options that can be used to configure a RunCommand operation.
+// RunCmdOptions represents all possible options for a runCommand operation.
 type RunCmdOptions struct {
-	// The read preference to use for the operation. The default value is nil, which means that the primary read
-	// preference will be used.
-	ReadPreference *readpref.ReadPref
+	ReadPreference *readpref.ReadPref // The read preference for the operation.
 }
 
-// RunCmd creates a new RunCmdOptions instance.
+// RunCmd creates a new *RunCmdOptions
 func RunCmd() *RunCmdOptions {
 	return &RunCmdOptions{}
 }
 
-// SetReadPreference sets value for the ReadPreference field.
+// SetReadPreference sets the read preference for the operation.
 func (rc *RunCmdOptions) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptions {
 	rc.ReadPreference = rp
 	return rc
 }
 
-// MergeRunCmdOptions combines the given RunCmdOptions instances into one *RunCmdOptions in a last-one-wins fashion.
+// MergeRunCmdOptions combines the given *RunCmdOptions into one *RunCmdOptions in a last one wins fashion.
 func MergeRunCmdOptions(opts ...*RunCmdOptions) *RunCmdOptions {
 	rc := RunCmd()
 	for _, opt := range opts {

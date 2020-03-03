@@ -16,14 +16,12 @@ import (
 )
 
 // Usage describes basic usage of mongorestore
-var Usage = `<options> <connection-string> <directory or file to restore>
+var Usage = `<options> <directory or file to restore>
 
 Restore backups generated with mongodump to a running server.
 
 Specify a database with -d to restore a single database from the target directory,
 or use -d and -c to restore a single collection from a single .bson file.
-
-Connection strings must begin with mongodb:// or mongodb+srv://.
 
 See http://docs.mongodb.org/manual/reference/program/mongorestore/ for more information.`
 
@@ -145,7 +143,7 @@ func (*NSOptions) Name() string {
 
 // ParseOptions reads the command line arguments and converts them into options used to configure a MongoRestore instance
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
-	opts := options.New("mongorestore", versionStr, gitCommit, Usage, true,
+	opts := options.New("mongorestore", versionStr, gitCommit, Usage,
 		options.EnabledOptions{Auth: true, Connection: true, URI: true})
 	nsOpts := &NSOptions{}
 	opts.AddOptions(nsOpts)
@@ -160,14 +158,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 
 	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
-		return Options{}, err
-	}
-
-	if len(extraArgs) > 1 {
-		return Options{}, fmt.Errorf("error parsing positional arguments: " +
-			"provide only one polling interval in seconds and only one MongoDB connection string. " +
-			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
-		)
+		return Options{}, fmt.Errorf("error parsing command line options: %v", err)
 	}
 
 	// Allow the db connector to fall back onto the current database when no
@@ -181,7 +172,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 
 	targetDir, err := getTargetDirFromArgs(extraArgs, inputOpts.Directory)
 	if err != nil {
-		return Options{}, fmt.Errorf("error parsing positional arguments: %v", err)
+		return Options{}, fmt.Errorf("error parsing target dir: %v", err)
 	}
 	targetDir = util.ToUniversalPath(targetDir)
 
@@ -201,6 +192,10 @@ func getTargetDirFromArgs(extraArgs []string, dirFlag string) (string, error) {
 	// We start by handling error cases, and then handle the different ways the target
 	// directory can be legally set.
 	switch {
+	case len(extraArgs) > 1:
+		// error on cases when there are too many positional arguments
+		return "", fmt.Errorf("too many positional arguments")
+
 	case dirFlag != "" && len(extraArgs) > 0:
 		// error when positional arguments and --dir are used
 		return "", fmt.Errorf(

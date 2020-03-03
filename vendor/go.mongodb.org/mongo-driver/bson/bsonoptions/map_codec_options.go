@@ -8,8 +8,7 @@ package bsonoptions
 
 // MapCodecOptions represents all possible options for map encoding and decoding.
 type MapCodecOptions struct {
-	DecodeZerosMap   *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
-	EncodeNilAsEmpty *bool // Specifies if a nil map should encode as an empty document instead of null. Defaults to false.
+	DecodeZerosMap *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
 }
 
 // MapCodec creates a new *MapCodecOptions
@@ -23,12 +22,6 @@ func (t *MapCodecOptions) SetDecodeZerosMap(b bool) *MapCodecOptions {
 	return t
 }
 
-// SetEncodeNilAsEmpty specifies  if a nil map should encode as an empty document instead of null. Defaults to false.
-func (t *MapCodecOptions) SetEncodeNilAsEmpty(b bool) *MapCodecOptions {
-	t.EncodeNilAsEmpty = &b
-	return t
-}
-
 // MergeMapCodecOptions combines the given *MapCodecOptions into a single *MapCodecOptions in a last one wins fashion.
 func MergeMapCodecOptions(opts ...*MapCodecOptions) *MapCodecOptions {
 	s := MapCodec()
@@ -38,9 +31,6 @@ func MergeMapCodecOptions(opts ...*MapCodecOptions) *MapCodecOptions {
 		}
 		if opt.DecodeZerosMap != nil {
 			s.DecodeZerosMap = opt.DecodeZerosMap
-		}
-		if opt.EncodeNilAsEmpty != nil {
-			s.EncodeNilAsEmpty = opt.EncodeNilAsEmpty
 		}
 	}
 

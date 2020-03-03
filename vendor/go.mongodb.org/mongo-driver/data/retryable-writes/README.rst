@@ -19,14 +19,10 @@ Tests will require a MongoClient created with options defined in the tests.
 Integration tests will require a running MongoDB cluster with server versions
 3.6.0 or later. The ``{setFeatureCompatibilityVersion: 3.6}`` admin command
 will also need to have been executed to enable support for retryable writes on
-the cluster. Some tests may have more stringent version requirements depending
-on the fail points used.
+the cluster.
 
 Server Fail Point
 =================
-
-onPrimaryTransactionalWrite
----------------------------
 
 Some tests depend on a server fail point, ``onPrimaryTransactionalWrite``, which
 allows us to force a network error before the server would return a write result
@@ -68,36 +64,24 @@ may be combined if desired:
   If set, the specified exception code will be thrown and the write will not be
   committed. If unset, the write will be allowed to commit.
 
-failCommand
------------
+Disabling Fail Point after Test Execution
+-----------------------------------------
 
-Some tests depend on a server fail point, ``failCommand``, which allows the
-client to force the server to return an error. Unlike
-``onPrimaryTransactionalWrite``, ``failCommand`` does not allow the client to
-directly control whether the server will commit the operation (execution of the
-write depends on whether the ``closeConnection`` and/or ``errorCode`` options
-are specified). See: `failCommand <../../transactions/tests#failcommand>`_ in
-the Transactions spec test suite for more information.
-
-Disabling Fail Points after Test Execution
-------------------------------------------
-
-After each test that configures a fail point, drivers should disable the fail
-point to avoid spurious failures in subsequent tests. The fail point may be
-disabled like so::
+After each test that configures a fail point, drivers should disable the
+``onPrimaryTransactionalWrite`` fail point to avoid spurious failures in
+subsequent tests. The fail point may be disabled like so::
 
     db.runCommand({
-        configureFailPoint: <fail point name>,
+        configureFailPoint: "onPrimaryTransactionalWrite",
         mode: "off"
     });
 
-Use as Integration Tests
-========================
+Network Error Tests
+===================
 
-Integration tests are expressed in YAML and can be run against a replica set or
-sharded cluster as denoted by the top-level ``runOn`` field. Tests that rely on
-the ``onPrimaryTransactionalWrite`` fail point cannot be run against a sharded
-cluster because the fail point is not supported by mongos.
+Network error tests are expressed in YAML and should be run against a replica
+set. These tests cannot be run against a shard cluster because mongos does not
+support the necessary fail point.
 
 The tests exercise the following scenarios:
 
@@ -137,29 +121,17 @@ Test Format
 
 Each YAML file has the following keys:
 
-- ``runOn`` (optional): An array of server version and/or topology requirements
-  for which the tests can be run. If the test environment satisfies one or more
-  of these requirements, the tests may be executed; otherwise, this file should
-  be skipped. If this field is omitted, the tests can be assumed to have no
-  particular requirements and should be executed. Each element will have some or
-  all of the following fields:
-
-  - ``minServerVersion`` (optional): The minimum server version (inclusive)
-    required to successfully run the tests. If this field is omitted, it should
-    be assumed that there is no lower bound on the required server version.
-
-  - ``maxServerVersion`` (optional): The maximum server version (inclusive)
-    against which the tests can be run successfully. If this field is omitted,
-    it should be assumed that there is no upper bound on the required server
-    version.
-
-  - ``topology`` (optional): An array of server topologies against which the
-    tests can be run successfully. Valid topologies are "single", "replicaset",
-    and "sharded". If this field is omitted, the default is all topologies (i.e.
-    ``["single", "replicaset", "sharded"]``).
-
 - ``data``: The data that should exist in the collection under test before each
   test run.
+
+- ``minServerVersion`` (optional): The minimum server version (inclusive)
+  required to successfully run the test. If this field is not present, it should
+  be assumed that there is no lower bound on the required server version.
+
+- ``maxServerVersion`` (optional): The maximum server version (exclusive)
+  against which this test can run successfully. If this field is not present,
+  it should be assumed that there is no upper bound on the required server
+  version.
 
 - ``tests``: An array of tests that are to be run independently of each other.
   Each test will have some or all of the following fields:
@@ -168,15 +140,9 @@ Each YAML file has the following keys:
 
   - ``clientOptions``: Parameters to pass to MongoClient().
 
-  - ``useMultipleMongoses`` (optional): If ``true``, the MongoClient for this
-    test should be initialized with multiple mongos seed addresses. If ``false``
-    or omitted, only a single mongos address should be specified. This field has
-    no effect for non-sharded topologies.
-
   - ``failPoint`` (optional): The ``configureFailPoint`` command document to run
     to configure a fail point on the primary server. Drivers must ensure that
-    ``configureFailPoint`` is the first field in the command. This option and
-    ``useMultipleMongoses: true`` are mutually exclusive.
+    ``configureFailPoint`` is the first field in the command.
 
   - ``operation``: Document describing the operation to be executed. The
     operation should be executed through a collection object derived from a
@@ -204,12 +170,6 @@ Each YAML file has the following keys:
       unrecoverable failure. In that case, drivers may choose to check the
       result object if their BulkWriteException (or equivalent) provides access
       to a write result object.
-
-      - ``errorLabelsContain``: A list of error label strings that the
-        error is expected to have.
-
-      - ``errorLabelsOmit``: A list of error label strings that the
-        error is expected not to have.
 
     - ``collection``:
 
@@ -280,7 +240,7 @@ unsupported write operations:
 
 * Unsupported write commands
 
-  - ``aggregate`` with write stage (e.g. ``$out``, ``$merge``)
+  - ``aggregate`` with ``$out`` pipeline operator
 
 Drivers should test that transactions IDs are always included in commands for
 supported write operations:
@@ -301,39 +261,3 @@ supported write operations:
   - ``insertMany()`` with ``ordered=false``
   - ``bulkWrite()`` with ``ordered=true`` (no ``UpdateMany`` or ``DeleteMany``)
   - ``bulkWrite()`` with ``ordered=false`` (no ``UpdateMany`` or ``DeleteMany``)
-
-Prose Tests
-===========
-
-The following tests ensure that retryable writes work properly with replica sets
-and sharded clusters.
-
-#. Test that retryable writes raise an exception when using the MMAPv1 storage
-   engine. For this test, execute a write operation, such as ``insertOne``,
-   which should generate an exception. Assert that the error message is the
-   replacement error message::
-
-    This MongoDB deployment does not support retryable writes. Please add
-    retryWrites=false to your connection string.
-
-   and the error code is 20.
-   
-   **Note**: Drivers that rely on ``serverStatus`` to determine the storage engine
-   in use MAY skip this test for sharded clusters, since ``mongos`` does not report
-   this information in its ``serverStatus`` response.
-
-Changelog
-=========
-
-:2019-10-21: Add ``errorLabelsContain`` and ``errorLabelsContain`` fields to ``result``
-
-:2019-08-07: Add Prose Tests section
-
-:2019-06-07: Mention $merge stage for aggregate alongside $out
-
-:2019-03-01: Add top-level ``runOn`` field to denote server version and/or
-             topology requirements requirements for the test file. Removes the
-             ``minServerVersion`` and ``maxServerVersion`` top-level fields,
-             which are now expressed within ``runOn`` elements.
-
-             Add test-level ``useMultipleMongoses`` field.

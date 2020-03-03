@@ -274,7 +274,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 10107
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -342,7 +341,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 13436
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -410,7 +408,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 13435
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -470,7 +467,7 @@ tests:
       collection:
         data: []
 
-  - description: abortTransaction succeeds after InterruptedDueToReplStateChange 
+  - description: abortTransaction succeeds after InterruptedDueToStepDown
 
     failPoint:
       configureFailPoint: failCommand
@@ -478,7 +475,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 11602
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -546,7 +542,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 11600
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -614,7 +609,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 189
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -682,7 +676,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 91
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -750,7 +743,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 7
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -818,7 +810,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 6
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -886,7 +877,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 9001
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -954,7 +944,6 @@ tests:
       data:
           failCommands: ["abortTransaction"]
           errorCode: 89
-          errorLabels: ["RetryableWriteError"] # SPEC-1565
           closeConnection: false
 
     operations:
@@ -1023,7 +1012,6 @@ tests:
           failCommands: ["abortTransaction"]
           writeConcernError:
             code: 11600
-            errorLabels: ["RetryableWriteError"] # SPEC-1565
             errmsg: Replication is being shut down
 
     operations:
@@ -1089,7 +1077,7 @@ tests:
       collection:
         data: []
 
-  - description: abortTransaction succeeds after WriteConcernError InterruptedDueToReplStateChange 
+  - description: abortTransaction succeeds after WriteConcernError InterruptedDueToStepDown 
 
     failPoint:
       configureFailPoint: failCommand
@@ -1098,7 +1086,6 @@ tests:
           failCommands: ["abortTransaction"]
           writeConcernError:
             code: 11602
-            errorLabels: ["RetryableWriteError"] # SPEC-1565
             errmsg: Replication is being shut down
 
     operations:
@@ -1173,7 +1160,6 @@ tests:
           failCommands: ["abortTransaction"]
           writeConcernError:
             code: 189
-            errorLabels: ["RetryableWriteError"] # SPEC-1565
             errmsg: Replication is being shut down
 
     operations:
@@ -1248,7 +1234,6 @@ tests:
           failCommands: ["abortTransaction"]
           writeConcernError:
             code: 91
-            errorLabels: ["RetryableWriteError"] # SPEC-1565
             errmsg: Replication is being shut down
 
     operations:

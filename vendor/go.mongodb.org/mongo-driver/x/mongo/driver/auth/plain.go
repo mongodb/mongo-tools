@@ -42,8 +42,6 @@ type plainSaslClient struct {
 	password string
 }
 
-var _ SaslClient = (*plainSaslClient)(nil)
-
 func (c *plainSaslClient) Start() (string, []byte, error) {
 	b := []byte("\x00" + c.username + "\x00" + c.password)
 	return PLAIN, b, nil

@@ -57,20 +57,15 @@ type FailPointMode struct {
 
 // FailPointData is a representation of the FailPoint.Data field.
 type FailPointData struct {
-	FailCommands                  []string               `bson:"failCommands,omitempty"`
-	CloseConnection               bool                   `bson:"closeConnection,omitempty"`
-	ErrorCode                     int32                  `bson:"errorCode,omitempty"`
-	FailBeforeCommitExceptionCode int32                  `bson:"failBeforeCommitExceptionCode,omitempty"`
-	ErrorLabels                   *[]string              `bson:"errorLabels,omitempty"`
-	WriteConcernError             *WriteConcernErrorData `bson:"writeConcernError,omitempty"`
-}
-
-// WriteConcernErrorData is a representation of the FailPoint.Data.WriteConcern field.
-type WriteConcernErrorData struct {
-	Code        int32     `bson:"code"`
-	Name        string    `bson:"codeName"`
-	Errmsg      string    `bson:"errmsg"`
-	ErrorLabels *[]string `bson:"errorLabels,omitempty"`
+	FailCommands                  []string `bson:"failCommands,omitempty"`
+	CloseConnection               bool     `bson:"closeConnection,omitempty"`
+	ErrorCode                     int32    `bson:"errorCode,omitempty"`
+	FailBeforeCommitExceptionCode int32    `bson:"failBeforeCommitExceptionCode,omitempty"`
+	WriteConcernError             *struct {
+		Code   int32  `bson:"code"`
+		Name   string `bson:"codeName"`
+		Errmsg string `bson:"errmsg"`
+	} `bson:"writeConcernError,omitempty"`
 }
 
 // T is a wrapper around testing.T.

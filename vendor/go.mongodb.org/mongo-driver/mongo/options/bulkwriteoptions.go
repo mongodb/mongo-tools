@@ -6,42 +6,37 @@
 
 package options
 
-// DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
+// DefaultOrdered is the default order for a BulkWriteOptions struct created from BulkWrite.
 var DefaultOrdered = true
 
-// BulkWriteOptions represents options that can be used to configure a BulkWrite operation.
+// BulkWriteOptions represent all possible options for a bulkWrite operation.
 type BulkWriteOptions struct {
-	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
-	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
-	// validation.
-	BypassDocumentValidation *bool
-
-	// If true, no writes will be executed after one fails. The default value is true.
-	Ordered *bool
+	BypassDocumentValidation *bool // If true, allows the write to opt out of document-level validation.
+	Ordered                  *bool // If true, when a write fails, return without performing remaining writes. Defaults to true.
 }
 
-// BulkWrite creates a new *BulkWriteOptions instance.
+// BulkWrite creates a new *BulkWriteOptions
 func BulkWrite() *BulkWriteOptions {
 	return &BulkWriteOptions{
 		Ordered: &DefaultOrdered,
 	}
 }
 
-// SetOrdered sets the value for the Ordered field.
+// SetOrdered configures the ordered option. If true, when a write fails, the function will return without attempting
+// remaining writes. Defaults to true.
 func (b *BulkWriteOptions) SetOrdered(ordered bool) *BulkWriteOptions {
 	b.Ordered = &ordered
 	return b
 }
 
-// SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
+// SetBypassDocumentValidation specifies if the write should opt out of document-level validation.
+// Valid for server versions >= 3.2. For servers < 3.2, this option is ignored.
 func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOptions {
 	b.BypassDocumentValidation = &bypass
 	return b
 }
 
-// MergeBulkWriteOptions combines the given BulkWriteOptions instances into a single BulkWriteOptions in a last-one-wins
-// fashion.
+// MergeBulkWriteOptions combines the given *BulkWriteOptions into a single *BulkWriteOptions in a last one wins fashion.
 func MergeBulkWriteOptions(opts ...*BulkWriteOptions) *BulkWriteOptions {
 	b := BulkWrite()
 	for _, opt := range opts {

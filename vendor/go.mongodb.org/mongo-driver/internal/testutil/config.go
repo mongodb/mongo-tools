@@ -236,7 +236,7 @@ func ConnString(t *testing.T) connstring.ConnString {
 		mongodbURI = AddCompressorToUri(mongodbURI)
 
 		var err error
-		connectionString, err = connstring.ParseAndValidate(mongodbURI)
+		connectionString, err = connstring.Parse(mongodbURI)
 		if err != nil {
 			connectionStringErr = err
 		}
@@ -256,7 +256,7 @@ func GetConnString() (connstring.ConnString, error) {
 
 	mongodbURI = AddTLSConfigToURI(mongodbURI)
 
-	cs, err := connstring.ParseAndValidate(mongodbURI)
+	cs, err := connstring.Parse(mongodbURI)
 	if err != nil {
 		return connstring.ConnString{}, err
 	}

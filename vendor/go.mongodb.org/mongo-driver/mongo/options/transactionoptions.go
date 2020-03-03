@@ -14,60 +14,45 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// TransactionOptions represents options that can be used to configure a transaction.
+// TransactionOptions represents all possible options for starting a transaction.
 type TransactionOptions struct {
-	// The read concern for operations in the transaction. The default value is nil, which means that the default
-	// read concern of the session used to start the transaction will be used.
-	ReadConcern *readconcern.ReadConcern
-
-	// The read preference for operations in the transaction. The default value is nil, which means that the default
-	// read preference of the session used to start the transaction will be used.
-	ReadPreference *readpref.ReadPref
-
-	// The write concern for operations in the transaction. The default value is nil, which means that the default
-	// write concern of the session used to start the transaction will be used.
-	WriteConcern *writeconcern.WriteConcern
-
-	// The default maximum amount of time that a CommitTransaction operation executed in the session can run on the
-	// server. The default value is nil, meaning that there is no time limit for execution.
-
-	// The maximum amount of time that a CommitTransaction operation can executed in the transaction can run on the
-	// server. The default value is nil, which means that the default maximum commit time of the session used to
-	// start the transaction will be used.
-	MaxCommitTime *time.Duration
+	ReadConcern    *readconcern.ReadConcern   // The read concern for the transaction. Defaults to the session's read concern.
+	ReadPreference *readpref.ReadPref         // The read preference for the transaction. Defaults to the session's read preference.
+	WriteConcern   *writeconcern.WriteConcern // The write concern for the transaction. Defaults to the session's write concern.
+	MaxCommitTime  *time.Duration             // The maximum amount of time to allow a single commitTransaction command to run.
 }
 
-// Transaction creates a new TransactionOptions instance.
+// Transaction creates a new *TransactionOptions
 func Transaction() *TransactionOptions {
 	return &TransactionOptions{}
 }
 
-// SetReadConcern sets the value for the ReadConcern field.
+// SetReadConcern sets the read concern for the transaction.
 func (t *TransactionOptions) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptions {
 	t.ReadConcern = rc
 	return t
 }
 
-// SetReadPreference sets the value for the ReadPreference field.
+// SetReadPreference sets the read preference for the transaction.
 func (t *TransactionOptions) SetReadPreference(rp *readpref.ReadPref) *TransactionOptions {
 	t.ReadPreference = rp
 	return t
 }
 
-// SetWriteConcern sets the value for the WriteConcern field.
+// SetWriteConcern sets the write concern for the transaction.
 func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptions {
 	t.WriteConcern = wc
 	return t
 }
 
-// SetMaxCommitTime sets the value for the MaxCommitTime field.
+// SetMaxCommitTime sets the max commit time for the transaction.
 func (t *TransactionOptions) SetMaxCommitTime(mct *time.Duration) *TransactionOptions {
 	t.MaxCommitTime = mct
 	return t
 }
 
-// MergeTransactionOptions combines the given TransactionOptions instances into a single TransactionOptions in a
-// last-one-wins fashion.
+// MergeTransactionOptions combines the given *TransactionOptions into a single *TransactionOptions in a last one wins
+// fashion.
 func MergeTransactionOptions(opts ...*TransactionOptions) *TransactionOptions {
 	t := Transaction()
 	for _, opt := range opts {

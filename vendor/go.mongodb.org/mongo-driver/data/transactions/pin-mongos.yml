@@ -317,7 +317,7 @@ tests:
           insertedIds: {0: 3, 1: 4}
       # Session is pinned.
       - *assertSessionPinned
-      # Fail the commit with a non-transient error.
+      # Fail the commit with a non-transient error, eg MaxTimeMSExpired.
       - name: targetedFailPoint
         object: testRunner
         arguments:
@@ -327,12 +327,12 @@ tests:
             mode: { times: 1 }
             data:
               failCommands: ["commitTransaction"]
-              errorCode: 51 # ManualInterventionRequired
+              errorCode: 50 # MaxTimeMSExpired
       - name: commitTransaction
         object: session0
         result:
           errorLabelsOmit: ["TransientTransactionError"]
-          errorCode: 51
+          errorCode: 50
       - *assertSessionPinned
       # The next commit should succeed.
       - name: commitTransaction

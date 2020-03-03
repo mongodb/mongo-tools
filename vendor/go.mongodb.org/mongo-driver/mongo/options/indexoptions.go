@@ -10,12 +10,9 @@ import (
 	"time"
 )
 
-// CreateIndexesOptions represents options that can be used to configure IndexView.CreateOne and IndexView.CreateMany
-// operations.
+// CreateIndexesOptions represents all possible options for the CreateOne() and CreateMany() functions.
 type CreateIndexesOptions struct {
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	MaxTime *time.Duration
+	MaxTime *time.Duration // The maximum amount of time to allow the query to run.
 }
 
 // CreateIndexes creates a new CreateIndexesOptions instance.
@@ -23,13 +20,13 @@ func CreateIndexes() *CreateIndexesOptions {
 	return &CreateIndexesOptions{}
 }
 
-// SetMaxTime sets the value for the MaxTime field.
+// SetMaxTime specifies the maximum amount of time to allow the query to run.
 func (c *CreateIndexesOptions) SetMaxTime(d time.Duration) *CreateIndexesOptions {
 	c.MaxTime = &d
 	return c
 }
 
-// MergeCreateIndexesOptions combines the given CreateIndexesOptions into a single CreateIndexesOptions in a last one
+// MergeCreateIndexesOptions combines the given *CreateIndexesOptions into a single *CreateIndexesOptions in a last one
 // wins fashion.
 func MergeCreateIndexesOptions(opts ...*CreateIndexesOptions) *CreateIndexesOptions {
 	c := CreateIndexes()
@@ -45,11 +42,8 @@ func MergeCreateIndexesOptions(opts ...*CreateIndexesOptions) *CreateIndexesOpti
 	return c
 }
 
-// DropIndexesOptions represents options that can be used to configure IndexView.DropOne and IndexView.DropAll
-// operations.
+// DropIndexesOptions represents all possible options for the DropIndexes() function.
 type DropIndexesOptions struct {
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
 	MaxTime *time.Duration
 }
 
@@ -58,14 +52,14 @@ func DropIndexes() *DropIndexesOptions {
 	return &DropIndexesOptions{}
 }
 
-// SetMaxTime sets the value for the MaxTime field.
+// SetMaxTime specifies the maximum amount of time to allow the query to run.
 func (d *DropIndexesOptions) SetMaxTime(duration time.Duration) *DropIndexesOptions {
 	d.MaxTime = &duration
 	return d
 }
 
-// MergeDropIndexesOptions combines the given DropIndexesOptions into a single DropIndexesOptions in a last-one-wins
-// fashion.
+// MergeDropIndexesOptions combines the given *DropIndexesOptions into a single *DropIndexesOptions in a last one
+// wins fashion.
 func MergeDropIndexesOptions(opts ...*DropIndexesOptions) *DropIndexesOptions {
 	c := DropIndexes()
 	for _, opt := range opts {
@@ -80,14 +74,10 @@ func MergeDropIndexesOptions(opts ...*DropIndexesOptions) *DropIndexesOptions {
 	return c
 }
 
-// ListIndexesOptions represents options that can be used to configure an IndexView.List operation.
+// ListIndexesOptions represents all possible options for the ListIndexes() function.
 type ListIndexesOptions struct {
-	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	MaxTime *time.Duration
+	MaxTime   *time.Duration
 }
 
 // ListIndexes creates a new ListIndexesOptions instance.
@@ -95,20 +85,20 @@ func ListIndexes() *ListIndexesOptions {
 	return &ListIndexesOptions{}
 }
 
-// SetBatchSize sets the value for the BatchSize field.
+// SetBatchSize specifies the number of documents to return in every batch.
 func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
 	l.BatchSize = &i
 	return l
 }
 
-// SetMaxTime sets the value for the MaxTime field.
+// SetMaxTime specifies the maximum amount of time to allow the query to run.
 func (l *ListIndexesOptions) SetMaxTime(d time.Duration) *ListIndexesOptions {
 	l.MaxTime = &d
 	return l
 }
 
-// MergeListIndexesOptions combines the given ListIndexesOptions instances into a single *ListIndexesOptions in a
-// last-one-wins fashion.
+// MergeListIndexesOptions combines the given *ListIndexesOptions into a single *ListIndexesOptions in a last one
+// wins fashion.
 func MergeListIndexesOptions(opts ...*ListIndexesOptions) *ListIndexesOptions {
 	c := ListIndexes()
 	for _, opt := range opts {
@@ -126,210 +116,162 @@ func MergeListIndexesOptions(opts ...*ListIndexesOptions) *ListIndexesOptions {
 	return c
 }
 
-// IndexOptions represents options that can be used to configure a new index created through the IndexView.CreateOne
-// or IndexView.CreateMany operations.
+// IndexOptions represents all possible options to configure a new index.
 type IndexOptions struct {
-	// If true, the index will be built in the background on the server and will not block other tasks. The default
-	// value is false.
-	Background *bool
-
-	// The length of time, in seconds, for documents to remain in the collection. The default value is 0, which means
-	// that documents will remain in the collection until they're explicitly deleted or the collection is dropped.
-	ExpireAfterSeconds *int32
-
-	// The name of the index. The default value is "[field1]_[direction1]_[field2]_[direction2]...". For example, an
-	// index with the specification {name: 1, age: -1} will be named "name_1_age_-1".
-	Name *string
-
-	// If true, the index will only reference documents that contain the fields specified in the index. The default is
-	// false.
-	Sparse *bool
-
-	// Specifies the storage engine to use for the index. The value must be a document in the form
-	// {<storage engine name>: <options>}. The default value is nil, which means that the default storage engine
-	// will be used. This option is only applicable for MongoDB versions >= 3.0 and is ignored for previous server
-	// versions.
-	StorageEngine interface{}
-
-	// If true, the collection will not accept insertion or update of documents where the index key value matches an
-	// existing value in the index. The default is false.
-	Unique *bool
-
-	// The index version number, either 0 or 1.
-	Version *int32
-
-	// The language that determines the list of stop words and the rules for the stemmer and tokenizer. This option
-	// is only applicable for text indexes and is ignored for other index types. The default value is "english".
-	DefaultLanguage *string
-
-	// The name of the field in the collection's documents that contains the override language for the document. This
-	// option is only applicable for text indexes and is ignored for other index types. The default value is the value
-	// of the DefaultLanguage option.
-	LanguageOverride *string
-
-	// The index version number for a text index. See https://docs.mongodb.com/manual/core/index-text/#text-versions for
-	// information about different version numbers.
-	TextVersion *int32
-
-	// A document that contains field and weight pairs. The weight is an integer ranging from 1 to 99,999, inclusive,
-	// indicating the significance of the field relative to the other indexed fields in terms of the score. This option
-	// is only applicable for text indexes and is ignored for other index types. The default value is nil, which means
-	// that every field will have a weight of 1.
-	Weights interface{}
-
-	// The index version number for a 2D sphere index. See https://docs.mongodb.com/manual/core/2dsphere/#dsphere-v2 for
-	// information about different version numbers.
-	SphereVersion *int32
-
-	// The precision of the stored geohash value of the location data. This option only applies to 2D indexes and is
-	// ignored for other index types. The value must be between 1 and 32, inclusive. The default value is 26.
-	Bits *int32
-
-	// The upper inclusive boundary for longitude and latitude values. This option is only applicable to 2D indexes and
-	// is ignored for other index types. The default value is 180.0.
-	Max *float64
-
-	// The lower inclusive boundary for longitude and latitude values. This option is only applicable to 2D indexes and
-	// is ignored for other index types. The default value is -180.0.
-	Min *float64
-
-	// The number of units within which to group location values. Location values that are within BucketSize units of
-	// each other will be grouped in the same bucket. This option is only applicable to geoHaystack indexes and is
-	// ignored for other index types. The value must be greater than 0.
-	BucketSize *int32
-
-	// A document that defines which collection documents the index should reference. This option is only valid for
-	// MongoDB versions >= 3.2 and is ignored for previous server versions.
+	Background              *bool
+	ExpireAfterSeconds      *int32
+	Name                    *string
+	Sparse                  *bool
+	StorageEngine           interface{}
+	Unique                  *bool
+	Version                 *int32
+	DefaultLanguage         *string
+	LanguageOverride        *string
+	TextVersion             *int32
+	Weights                 interface{}
+	SphereVersion           *int32
+	Bits                    *int32
+	Max                     *float64
+	Min                     *float64
+	BucketSize              *int32
 	PartialFilterExpression interface{}
-
-	// The collation to use for string comparisons for the index. This option is only valid for MongoDB versions >= 3.4.
-	// For previous server versions, the driver will return an error if this option is used.
-	Collation *Collation
-
-	// A document that defines the wildcard projection for the index.
-	WildcardProjection interface{}
+	Collation               *Collation
+	WildcardProjection      interface{}
 }
 
-// Index creates a new IndexOptions instance.
+// Index creates a new *IndexOptions
 func Index() *IndexOptions {
 	return &IndexOptions{}
 }
 
-// SetBackground sets value for the Background field.
+// SetBackground sets the background option. If true, the server will create the index in the background and not block
+// other tasks
 func (i *IndexOptions) SetBackground(background bool) *IndexOptions {
 	i.Background = &background
 	return i
 }
 
-// SetExpireAfterSeconds sets value for the ExpireAfterSeconds field.
+// SetExpireAfterSeconds specifies the number of seconds for a document to remain in a collection.
 func (i *IndexOptions) SetExpireAfterSeconds(seconds int32) *IndexOptions {
 	i.ExpireAfterSeconds = &seconds
 	return i
 }
 
-// SetName sets the value for the Name field.
+// SetName specifies a name for the index.
+// If not set, a name will be generated in the format "[field]_[direction]".
+// If multiple indexes are created for the same key pattern with different collations, a name must be provided to avoid
+// ambiguity.
 func (i *IndexOptions) SetName(name string) *IndexOptions {
 	i.Name = &name
 	return i
 }
 
-// SetSparse sets the value of the Sparse field.
+// SetSparse sets the sparse option.
+// If true, the index will only reference documents with the specified field in the index.
 func (i *IndexOptions) SetSparse(sparse bool) *IndexOptions {
 	i.Sparse = &sparse
 	return i
 }
 
-// SetStorageEngine sets the value for the StorageEngine field.
+// SetStorageEngine specifies the storage engine to use.
+// Valid for server versions >= 3.0
 func (i *IndexOptions) SetStorageEngine(engine interface{}) *IndexOptions {
 	i.StorageEngine = engine
 	return i
 }
 
-// SetUnique sets the value for the Unique field.
+// SetUnique forces the index to be unique.
 func (i *IndexOptions) SetUnique(unique bool) *IndexOptions {
 	i.Unique = &unique
 	return i
 }
 
-// SetVersion sets the value for the Version field.
+// SetVersion specifies the index version number, either 0 or 1.
 func (i *IndexOptions) SetVersion(version int32) *IndexOptions {
 	i.Version = &version
 	return i
 }
 
-// SetDefaultLanguage sets the value for the DefaultLanguage field.
+// SetDefaultLanguage specifies the default language for text indexes.
+// If not set, this will default to english.
 func (i *IndexOptions) SetDefaultLanguage(language string) *IndexOptions {
 	i.DefaultLanguage = &language
 	return i
 }
 
-// SetLanguageOverride sets the value of the LanguageOverride field.
+// SetLanguageOverride specifies the field in the document to override the language.
 func (i *IndexOptions) SetLanguageOverride(override string) *IndexOptions {
 	i.LanguageOverride = &override
 	return i
 }
 
-// SetTextVersion sets the value for the TextVersion field.
+// SetTextVersion specifies the text index version number.
+// MongoDB version 2.4 can only support version 1.
+// MongoDB versions 2.6 and higher can support versions 1 or 2.
 func (i *IndexOptions) SetTextVersion(version int32) *IndexOptions {
 	i.TextVersion = &version
 	return i
 }
 
-// SetWeights sets the value for the Weights field.
+// SetWeights specifies fields in the index and their corresponding weight values.
 func (i *IndexOptions) SetWeights(weights interface{}) *IndexOptions {
 	i.Weights = weights
 	return i
 }
 
-// SetSphereVersion sets the value for the SphereVersion field.
+// SetSphereVersion specifies the 2dsphere index version number.
+// MongoDB version 2.4 can only support version 1.
+// MongoDB versions 2.6 and higher can support versions 1 or 2.
 func (i *IndexOptions) SetSphereVersion(version int32) *IndexOptions {
 	i.SphereVersion = &version
 	return i
 }
 
-// SetBits sets the value for the Bits field.
+// SetBits specifies the precision of the stored geo hash in the 2d index, from 1 to 32.
 func (i *IndexOptions) SetBits(bits int32) *IndexOptions {
 	i.Bits = &bits
 	return i
 }
 
-// SetMax sets the value for the Max field.
+// SetMax specifies the maximum boundary for latitude and longitude in the 2d index.
 func (i *IndexOptions) SetMax(max float64) *IndexOptions {
 	i.Max = &max
 	return i
 }
 
-// SetMin sets the value for the Min field.
+// SetMin specifies the minimum boundary for latitude and longitude in the 2d index.
 func (i *IndexOptions) SetMin(min float64) *IndexOptions {
 	i.Min = &min
 	return i
 }
 
-// SetBucketSize sets the value for the BucketSize field
+// SetBucketSize specifies number of units within which to group the location values in a geo haystack index.
 func (i *IndexOptions) SetBucketSize(bucketSize int32) *IndexOptions {
 	i.BucketSize = &bucketSize
 	return i
 }
 
-// SetPartialFilterExpression sets the value for the PartialFilterExpression field.
+// SetPartialFilterExpression specifies a filter for use in a partial index. Only documents that match the filter
+// expression are included in the index.
 func (i *IndexOptions) SetPartialFilterExpression(expression interface{}) *IndexOptions {
 	i.PartialFilterExpression = expression
 	return i
 }
 
-// SetCollation sets the value for the Collation field.
+// SetCollation specifies a Collation to use for the operation.
+// Valid for server versions >= 3.4
 func (i *IndexOptions) SetCollation(collation *Collation) *IndexOptions {
 	i.Collation = collation
 	return i
 }
 
-// SetWildcardProjection sets the value for the WildcardProjection field.
+// SetWildcardProjection specifies a wildcard projection for a wildcard index.
 func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *IndexOptions {
 	i.WildcardProjection = wildcardProjection
 	return i
 }
 
-// MergeIndexOptions combines the given IndexOptions into a single IndexOptions in a last-one-wins fashion.
+// MergeIndexOptions combines the given *IndexOptions into a single *IndexOptions in a last one wins fashion.
 func MergeIndexOptions(opts ...*IndexOptions) *IndexOptions {
 	i := Index()
 

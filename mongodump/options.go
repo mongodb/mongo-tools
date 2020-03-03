@@ -9,17 +9,13 @@ package mongodump
 import (
 	"fmt"
 	"io/ioutil"
-
-	"github.com/mongodb/mongo-tools-common/options"
 )
 
-var Usage = `<options> <connection-string>
+var Usage = `<options>
 
 Export the content of a running server into .bson files.
 
 Specify a database with -d and a collection with -c to only dump that database or collection.
-
-Connection strings must begin with mongodb:// or mongodb+srv://.
 
 See http://docs.mongodb.org/manual/reference/program/mongodump/ for more information.`
 
@@ -69,34 +65,4 @@ type OutputOptions struct {
 // Name returns a human-readable group name for output options.
 func (*OutputOptions) Name() string {
 	return "output"
-}
-
-type Options struct {
-	*options.ToolOptions
-	*InputOptions
-	*OutputOptions
-}
-
-func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
-	opts := options.New("mongodump", versionStr, gitCommit, Usage, true, options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
-
-	inputOpts := &InputOptions{}
-	opts.AddOptions(inputOpts)
-	outputOpts := &OutputOptions{}
-	opts.AddOptions(outputOpts)
-	opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
-
-	extraArgs, err := opts.ParseArgs(rawArgs)
-	if err != nil {
-		return Options{}, err
-	}
-
-	if len(extraArgs) > 0 {
-		return Options{}, fmt.Errorf("error parsing positional arguments: " +
-			"provide only one MongoDB connection string. " +
-			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
-		)
-	}
-
-	return Options{opts, inputOpts, outputOpts}, nil
 }

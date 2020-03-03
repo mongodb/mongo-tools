@@ -54,7 +54,7 @@ func (*OutputOptions) Name() string {
 
 // ParseOptions translates the command line arguments into an Options used to configure BSONDump.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
-	toolOpts := options.New("bsondump", versionStr, gitCommit, Usage, true, options.EnabledOptions{})
+	toolOpts := options.New("bsondump", versionStr, gitCommit, Usage, options.EnabledOptions{})
 	outputOpts := &OutputOptions{}
 	toolOpts.AddOptions(outputOpts)
 

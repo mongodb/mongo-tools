@@ -14,11 +14,9 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 )
 
-var Usage = `<options> <connection-string> <file> 
+var Usage = `<options> <file>
 
 Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport reads from stdin.
-
-Connection strings must begin with mongodb:// or mongodb+srv://.
 
 See http://docs.mongodb.org/manual/reference/program/mongoimport/ for more information.`
 
@@ -119,7 +117,7 @@ type Options struct {
 
 // ParseOptions reads command line arguments and converts them into options used to configure mongoimport.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
-	opts := options.New("mongoimport", versionStr, gitCommit, Usage, true,
+	opts := options.New("mongoimport", versionStr, gitCommit, Usage,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	inputOpts := &InputOptions{}
 	ingestOpts := &IngestOptions{}
@@ -127,16 +125,9 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.AddOptions(ingestOpts)
 	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
 
-	extraArgs, err := opts.ParseArgs(rawArgs)
+	args, err := opts.ParseArgs(rawArgs)
 	if err != nil {
 		return Options{}, err
-	}
-
-	if len(extraArgs) > 1 {
-		return Options{}, fmt.Errorf("error parsing positional arguments: " +
-			"provide only one file name and only one MongoDB connection string. " +
-			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
-		)
 	}
 
 	log.SetVerbosity(opts.Verbosity)
@@ -148,23 +139,10 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 	opts.WriteConcern = wc
 
-	// ensure either a positional argument is supplied or an argument is passed
-	// to the --file flag - and not both
-	if inputOpts.File != "" && len(extraArgs) != 0 {
-		return Options{}, fmt.Errorf("error parsing positional arguments: cannot use both --file and a positional argument to set the input file")
-	}
-
-	if inputOpts.File == "" {
-		if len(extraArgs) != 0 {
-			// if --file is not supplied, use the positional argument supplied
-			inputOpts.File = extraArgs[0]
-		}
-	}
-
 	return Options{
 		opts,
 		inputOpts,
 		ingestOpts,
-		extraArgs,
+		args,
 	}, nil
 }

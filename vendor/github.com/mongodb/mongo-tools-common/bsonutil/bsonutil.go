@@ -81,21 +81,6 @@ func FindValueByKey(keyName string, document *bson.D) (interface{}, error) {
 	return nil, ErrNoSuchField
 }
 
-// FindStringValueByKey returns the value of keyName in document as a String.
-// Returns an error if keyName is not found in the top-level of the document,
-// or if it is found but its value is not a string.
-func FindStringValueByKey(keyName string, document *bson.D) (string, error) {
-	value, err := FindValueByKey(keyName, document)
-	if err != nil {
-		return "", err
-	}
-	str, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("field present, but is not a string: %v", value)
-	}
-	return str, nil
-}
-
 // FindIntByKey returns the value of keyName in the document as an int for
 // either int32 or int64 underlying type.
 func FindIntByKey(keyName string, document *bson.D) (int, error) {
@@ -128,23 +113,6 @@ func FindSubdocumentByKey(keyName string, document *bson.D) (bson.D, error) {
 		return bson.D{}, fmt.Errorf("field '%s' is not a document", keyName)
 	}
 	return doc, nil
-}
-
-// RemoveKey removes the given key. Returns the removed value and true if the
-// key was found.
-func RemoveKey(key string, document *bson.D) (interface{}, bool) {
-	if document == nil {
-		return nil, false
-	}
-	doc := *document
-	for i, elem := range doc {
-		if elem.Key == key {
-			// Remove this key.
-			*document = append(doc[:i], doc[i+1:]...)
-			return elem.Value, true
-		}
-	}
-	return nil, false
 }
 
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON

@@ -6,26 +6,24 @@
 
 package options
 
-// ListDatabasesOptions represents options that can be used to configure a ListDatabases operation.
+// ListDatabasesOptions represents all possible options for a listDatabases command.
 type ListDatabasesOptions struct {
-	// If true, only the Name field of the returned DatabaseSpecification objects will be populated. The default value
-	// is false.
-	NameOnly *bool
+	NameOnly *bool // If true, only the database names will be returned.
 }
 
-// ListDatabases creates a new ListDatabasesOptions instance.
+// ListDatabases creates a new *ListDatabasesOptions
 func ListDatabases() *ListDatabasesOptions {
 	return &ListDatabasesOptions{}
 }
 
-// SetNameOnly sets the value for the NameOnly field.
+// SetNameOnly specifies whether to return only the database names.
 func (ld *ListDatabasesOptions) SetNameOnly(b bool) *ListDatabasesOptions {
 	ld.NameOnly = &b
 	return ld
 }
 
-// MergeListDatabasesOptions combines the given ListDatabasesOptions instances into a single *ListDatabasesOptions in a
-// last-one-wins fashion.
+// MergeListDatabasesOptions combines the given *ListDatabasesOptions into a single *ListDatabasesOptions in a last one
+// wins fashion.
 func MergeListDatabasesOptions(opts ...*ListDatabasesOptions) *ListDatabasesOptions {
 	ld := ListDatabases()
 	for _, opt := range opts {

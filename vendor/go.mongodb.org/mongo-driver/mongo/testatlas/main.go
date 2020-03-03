@@ -9,7 +9,7 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
+	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,37 +19,46 @@ import (
 func main() {
 	flag.Parse()
 	uris := flag.Args()
-	ctx := context.Background()
 
-	for idx, uri := range uris {
+	for _, uri := range uris {
+		ctx := context.Background()
+
 		client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 		if err != nil {
-			panic(createErrorMessage(idx, "Connect error: %v", err))
+			log.Fatalf("failed creating and connecting to client: %v", err)
 		}
 
+		db := client.Database("test")
 		defer func() {
-			if err = client.Disconnect(ctx); err != nil {
-				panic(createErrorMessage(idx, "Disconnect error: %v", err))
+			err := db.Drop(ctx)
+			if err != nil {
+				log.Fatalf("failed dropping database: %v", err)
+			}
+
+			err = client.Disconnect(ctx)
+			if err != nil {
+				log.Fatalf("failed disconnecting from client: %v", err)
 			}
 		}()
 
-		db := client.Database("test")
+		coll := db.Collection("test")
+
 		err = db.RunCommand(
 			ctx,
 			bson.D{{"isMaster", 1}},
 		).Err()
 		if err != nil {
-			panic(createErrorMessage(idx, "isMaster error: %v", err))
+			log.Fatalf("failed executing isMaster command: %v", err)
 		}
 
-		coll := db.Collection("test")
-		if err = coll.FindOne(ctx, bson.D{{"x", 1}}).Err(); err != nil && err != mongo.ErrNoDocuments {
-			panic(createErrorMessage(idx, "FindOne error: %v", err))
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+		if err != nil {
+			log.Fatalf("failed executing insertOne command: %v", err)
+		}
+
+		res := coll.FindOne(ctx, bson.D{{"x", 1}})
+		if res.Err() != nil {
+			log.Fatalf("failed executing findOne command: %v", res.Err())
 		}
 	}
-}
-
-func createErrorMessage(idx int, msg string, args ...interface{}) string {
-	msg = fmt.Sprintf(msg, args...)
-	return fmt.Sprintf("error for URI at index %d: %s", idx, msg)
 }

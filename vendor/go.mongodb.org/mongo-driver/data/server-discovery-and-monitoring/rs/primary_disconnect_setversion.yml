@@ -46,8 +46,6 @@ phases: [
             topologyType: "ReplicaSetWithPrimary",
             logicalSessionTimeoutMinutes: null,
             setName: "rs",
-            maxSetVersion: 2,
-            maxElectionId: {"$oid": "000000000000000000000001"},
         }
     },
 
@@ -72,8 +70,6 @@ phases: [
             topologyType: "ReplicaSetNoPrimary",
             logicalSessionTimeoutMinutes: null,
             setName: "rs",
-            maxSetVersion: 2,
-            maxElectionId: {"$oid": "000000000000000000000001"},
         }
     },
 
@@ -107,8 +103,6 @@ phases: [
             topologyType: "ReplicaSetNoPrimary",
             logicalSessionTimeoutMinutes: null,
             setName: "rs",
-            maxSetVersion: 2,
-            maxElectionId: {"$oid": "000000000000000000000001"},
         }
     },
 
@@ -143,8 +137,6 @@ phases: [
             topologyType: "ReplicaSetWithPrimary",
             logicalSessionTimeoutMinutes: null,
             setName: "rs",
-            maxSetVersion: 2,
-            maxElectionId: {"$oid": "000000000000000000000002"},
         }
     },
 
@@ -177,8 +169,6 @@ phases: [
             topologyType: "ReplicaSetWithPrimary",
             logicalSessionTimeoutMinutes: null,
             setName: "rs",
-            maxSetVersion: 2,
-            maxElectionId: {"$oid": "000000000000000000000002"},
         }
     }
 ]

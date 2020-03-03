@@ -24,7 +24,6 @@ import (
 
 // Find performs a find operation.
 type Find struct {
-	allowDiskUse        *bool
 	allowPartialResults *bool
 	awaitData           *bool
 	batchSize           *int32
@@ -105,9 +104,6 @@ func (f *Find) Execute(ctx context.Context) error {
 
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "find", f.collection)
-	if f.allowDiskUse != nil {
-		dst = bsoncore.AppendBooleanElement(dst, "allowDiskUse", *f.allowDiskUse)
-	}
 	if f.allowPartialResults != nil {
 		dst = bsoncore.AppendBooleanElement(dst, "allowPartialResults", *f.allowPartialResults)
 	}
@@ -175,18 +171,6 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 		dst = bsoncore.AppendBooleanElement(dst, "tailable", *f.tailable)
 	}
 	return dst, nil
-}
-
-// AllowDiskUse when true allows temporary data to be written to disk during the find command. Valid for server
-// versions >= 4.4. Older servers >= 3.2 will report an error for using this option. For servers < 3.2, this setting is
-// ignored.
-func (f *Find) AllowDiskUse(allowDiskUse bool) *Find {
-	if f == nil {
-		f = new(Find)
-	}
-
-	f.allowDiskUse = &allowDiskUse
-	return f
 }
 
 // AllowPartialResults when true allows partial results to be returned if some shards are down.

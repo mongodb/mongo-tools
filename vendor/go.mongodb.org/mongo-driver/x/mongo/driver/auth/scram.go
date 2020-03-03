@@ -18,25 +18,15 @@ import (
 
 	"github.com/xdg/scram"
 	"github.com/xdg/stringprep"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-const (
-	// SCRAMSHA1 holds the mechanism name "SCRAM-SHA-1"
-	SCRAMSHA1 = "SCRAM-SHA-1"
+// SCRAMSHA1 holds the mechanism name "SCRAM-SHA-1"
+const SCRAMSHA1 = "SCRAM-SHA-1"
 
-	// SCRAMSHA256 holds the mechanism name "SCRAM-SHA-256"
-	SCRAMSHA256 = "SCRAM-SHA-256"
-)
-
-var (
-	// Additional options for the saslStart command to enable a shorter SCRAM conversation
-	scramStartOptions bsoncore.Document = bsoncore.BuildDocumentFromElements(nil,
-		bsoncore.AppendBooleanElement(nil, "skipEmptyExchange", true),
-	)
-)
+// SCRAMSHA256 holds the mechanism name "SCRAM-SHA-256"
+const SCRAMSHA256 = "SCRAM-SHA-256"
 
 func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
 	passdigest := mongoPasswordDigest(cred.Username, cred.Password)
@@ -91,9 +81,6 @@ type scramSaslAdapter struct {
 	conversation *scram.ClientConversation
 }
 
-var _ SaslClient = (*scramSaslAdapter)(nil)
-var _ ExtraOptionsSaslClient = (*scramSaslAdapter)(nil)
-
 func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	step, err := a.conversation.Step("")
 	if err != nil {
@@ -112,8 +99,4 @@ func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
 
 func (a *scramSaslAdapter) Completed() bool {
 	return a.conversation.Done()
-}
-
-func (*scramSaslAdapter) StartCommandOptions() bsoncore.Document {
-	return scramStartOptions
 }

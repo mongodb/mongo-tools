@@ -1,10 +1,7 @@
-runOn:
-    -
-        minServerVersion: "3.6"
-        topology: ["replicaset"]
-
 data:
     - { _id: 1, x: 11 }
+
+minServerVersion: '3.6'
 
 tests:
     -
