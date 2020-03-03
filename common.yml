@@ -748,7 +748,7 @@ functions:
           set -e
           echo "starting repl set"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:3, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo ${mongo_args} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:3, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -756,7 +756,7 @@ functions:
           set -x
           set -v
           set -e
-          ./bin/mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+          ./bin/mongo ${mongo_args} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
 pre:
   - command: shell.exec
@@ -941,7 +941,7 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true" 
+        INT_TEST: "true"
 
 - name: integration-4.0-auth
   commands:
@@ -965,8 +965,8 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true"
-          AUTH_TEST: "true"
+        INT_TEST: "true"
+        AUTH_TEST: "true"
 
 - name: integration-4.2
   commands:
@@ -979,7 +979,7 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true" 
+        INT_TEST: "true"
 
 - name: integration-4.2-auth
   commands:
@@ -1003,8 +1003,8 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true"
-          AUTH_TEST: "true"
+        INT_TEST: "true"
+        AUTH_TEST: "true"
 
 - name: kerberos
   commands:
