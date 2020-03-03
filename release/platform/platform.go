@@ -232,7 +232,7 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
-		Name: "rhel82",
+		Name: "rhel81",
 		Arch: "ppc64le",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,
@@ -268,7 +268,7 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
-		Name: "rhel82",
+		Name: "rhel80",
 		Arch: "s390x",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,

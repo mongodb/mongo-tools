@@ -1642,7 +1642,7 @@ buildvariants:
 - name: rhel80
   display_name: RHEL 8.0
   run_on:
-    - rhel80-small
+    - rhel80-test
   expansions:
     build_tags: "sasl gssapi ssl"
   tasks:
@@ -1860,10 +1860,10 @@ buildvariants:
     run_kinit: true
   tasks: *rhel71_ppc64le_tasks
 
-- name: rhel82-ppc64le
-  display_name: ZAP PPC64LE RHEL 8.2
+- name: rhel81-ppc64le
+  display_name: ZAP PPC64LE RHEL 8.1
   run_on:
-    - rhel82-power8-test
+    - rhel81-power8-test
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -1951,10 +1951,10 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
 
-- name: rhel82-s390x
-  display_name: ZAP s390x RHEL 8.2
+- name: rhel80-s390x
+  display_name: ZAP s390x RHEL 8.0
   run_on:
-    - rhel82-zseries-test
+    - rhel80-zseries-test
   stepback: false
   batchtime: 10080 # weekly
   expansions:
