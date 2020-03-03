@@ -549,7 +549,7 @@ functions:
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
         echo "Starting mongod cluster..."
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet rs0
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
 
   "wait for mongod to be ready":
     command: shell.exec
@@ -770,7 +770,7 @@ functions:
           set -e
           echo "starting repl set"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo ${mongo_args} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -778,7 +778,7 @@ functions:
           set -x
           set -v
           set -e
-          ./bin/mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+          ./bin/mongo ${mongo_args} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
 pre:
   - command: shell.exec
@@ -990,57 +990,57 @@ tasks:
           INT_TEST: "true"
           AUTH_TEST: "true"
 
-  - name: integration-4.0-cluster
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "download mongod"
-        vars:
-          mongo_version: "4.0"
-      - func: "start mongod cluster"
-      - func: "wait for mongod to be ready"
-      - func: "create repl_set"
-      - func: "run tool integration tests"
-        vars:
-          INT_TEST: "true"
+- name: integration-4.0-cluster
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.0"
+    - func: "start mongod cluster"
+    - func: "wait for mongod to be ready"
+    - func: "create repl_set"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
 
-  - name: integration-4.2
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "download mongod"
-        vars:
-          mongo_version: "4.2"
-      - func: "start mongod"
-      - func: "wait for mongod to be ready"
-      - func: "run tool integration tests"
-        vars:
-          INT_TEST: "true"
+- name: integration-4.2
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.2"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
 
-  - name: integration-4.2-auth
-    commands:
-      - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args"
-              concat: " --auth"
-            - key: "auth_username"
-              value: "passwordIsTaco"
-            - key: "auth_password"
-              value: "Taco"
-            - key: "create_mongod_users_command"
-              value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
-      - func: "download mongod"
-        vars:
-          mongo_version: "4.2"
-      - func: "start mongod"
-      - func: "wait for mongod to be ready"
-      - func: "run tool integration tests"
-        vars:
-          INT_TEST: "true"
-          AUTH_TEST: "true"
+- name: integration-4.2-auth
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args"
+            concat: " --auth"
+          - key: "auth_username"
+            value: "passwordIsTaco"
+          - key: "auth_password"
+            value: "Taco"
+          - key: "create_mongod_users_command"
+            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.2"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        AUTH_TEST: "true"
 
 - name: kerberos
   commands:
