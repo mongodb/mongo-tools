@@ -482,6 +482,7 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 	return args, err
 }
 
+
 func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error) {
 	newArgs := []string{}
 	var foundURI bool
@@ -509,6 +510,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 
 	return newArgs, nil
 }
+
 
 // NormalizeOptionsAndURI syncs the connection string an toolOptions objects.
 // It returns an error if there is any conflict between options and the connection string.
@@ -795,6 +797,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			return ConflictingArgsErrorFormat("sslPEMKeyFile", cs.SSLClientCertificateKeyPassword(), opts.SSLPEMKeyPassword, "--sslPEMKeyFile")
 		}
 	}
+
 	if opts.SSLPEMKeyPassword != "" && !cs.SSLClientCertificateKeyPasswordSet {
 		cs.SSLClientCertificateKeyPassword = func() string { return opts.SSLPEMKeyPassword }
 	}

@@ -104,8 +104,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  branch = "GODRIVER-1490"
-  digest = "1:3401b325a7129f3c366da080fdd064ff54242b86d9686db239e62129966efe19"
+  digest = "1:a0853db2fff63bb68e7b2a45f4f65fe85b2dac3b469fa75c70844d1e501eca2a"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -134,6 +133,7 @@
     "x/mongo/driver/dns",
     "x/mongo/driver/mongocrypt",
     "x/mongo/driver/mongocrypt/options",
+    "x/mongo/driver/ocsp",
     "x/mongo/driver/operation",
     "x/mongo/driver/session",
     "x/mongo/driver/topology",
@@ -141,13 +141,13 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "a581f97ec0f32fa5815dc0ef5d5d6b83fd1f9b20"
-  source = "github.com/tfogo/mongo-go-driver"
+  revision = "6f3c9d10a6095244ff3effe99e410357c36b47f6"
 
 [[projects]]
-  digest = "1:79784b4d6789bbd40f17a9d204051bdd887d889acbbdc24ed8263b3dca28dfbf"
+  digest = "1:1ae7a5abf5cbbb7b5eced808531eb743247f02c48be7ef0117d815b4cce152d0"
   name = "golang.org/x/crypto"
   packages = [
+    "ocsp",
     "pbkdf2",
     "ssh/terminal",
   ]
@@ -156,9 +156,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:382bb5a7fb4034db3b6a2d19e5a4a6bcf52f4750530603c01ca18a172fa3089b"
+  digest = "1:a2fc247e64b5dafd3251f12d396ec85f163d5bb38763c4997856addddf6e78d8"
   name = "golang.org/x/sync"
-  packages = ["semaphore"]
+  packages = [
+    "errgroup",
+    "semaphore",
+  ]
   pruneopts = "UT"
   revision = "112230192c580c3556b8cee6403af37a4fc5f28c"
 
