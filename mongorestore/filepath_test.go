@@ -17,7 +17,7 @@ import (
 	commonOpts "github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/testtype"
 	"github.com/mongodb/mongo-tools-common/util"
-	"github.com/mongodb/mongo-tools/mongorestore/ns"
+	"github.com/wNee/mongo-tools/mongorestore/ns"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

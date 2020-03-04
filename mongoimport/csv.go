@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mongodb/mongo-tools/mongoimport/csv"
+	"github.com/wNee/mongo-tools/mongoimport/csv"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

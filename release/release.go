@@ -17,11 +17,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mongodb/mongo-tools/release/aws"
-	"github.com/mongodb/mongo-tools/release/env"
-	"github.com/mongodb/mongo-tools/release/evergreen"
-	"github.com/mongodb/mongo-tools/release/platform"
-	"github.com/mongodb/mongo-tools/release/version"
+	"github.com/wNee/mongo-tools/release/aws"
+	"github.com/wNee/mongo-tools/release/env"
+	"github.com/wNee/mongo-tools/release/evergreen"
+	"github.com/wNee/mongo-tools/release/platform"
+	"github.com/wNee/mongo-tools/release/version"
 )
 
 // These are the binaries that are part of mongo-tools, relative

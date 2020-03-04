@@ -7,7 +7,7 @@
 package line
 
 import (
-	"github.com/mongodb/mongo-tools/mongostat/status"
+	"github.com/wNee/mongo-tools/mongostat/status"
 )
 
 // Flags to determine cases when to activate/deactivate columns for output.

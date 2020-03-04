@@ -25,7 +25,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/progress"
 	"github.com/mongodb/mongo-tools-common/util"
-	"github.com/mongodb/mongo-tools/mongorestore/ns"
+	"github.com/wNee/mongo-tools/mongorestore/ns"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

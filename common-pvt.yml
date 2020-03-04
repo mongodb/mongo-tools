@@ -55,7 +55,7 @@ functions:
       bucket: mciuploads
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}${extension}
+      local_file: src/github.com/wNee/mongo-tools/bin/${tool}${extension}
       remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
 
   "upload tool":
@@ -63,7 +63,7 @@ functions:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}
+      local_file: src/github.com/wNee/mongo-tools/bin/${tool}
       remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
       bucket: mciuploads
       permissions: public-read

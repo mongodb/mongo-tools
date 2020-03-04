@@ -18,10 +18,10 @@ import (
 	"github.com/mongodb/mongo-tools-common/password"
 	"github.com/mongodb/mongo-tools-common/signals"
 	"github.com/mongodb/mongo-tools-common/util"
-	"github.com/mongodb/mongo-tools/mongostat"
-	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
-	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
-	"github.com/mongodb/mongo-tools/mongostat/status"
+	"github.com/wNee/mongo-tools/mongostat"
+	"github.com/wNee/mongo-tools/mongostat/stat_consumer"
+	"github.com/wNee/mongo-tools/mongostat/stat_consumer/line"
+	"github.com/wNee/mongo-tools/mongostat/status"
 )
 
 // optionKeyNames interprets the CLI options Columns and AppendColumns into
