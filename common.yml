@@ -1653,16 +1653,6 @@ buildvariants:
 #######################################
 #     SUSE x86_64 Buildvariants       #
 #######################################
-- name: suse11
-  display_name: SUSE 11
-  run_on:
-    - suse11-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
 
 - name: suse12
   display_name: SUSE 12
