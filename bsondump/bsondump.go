@@ -247,3 +247,69 @@ func printBSON(raw bson.Raw, indentLevel int, out io.Writer) error {
 	}
 	return nil
 }
+
+type OplogTimestamp struct {
+	Ts  	Ts 		`json:"ts"`
+}
+type Ts struct {
+	Timestamp Timestamp `json:"$timestamp"`
+}
+type Timestamp struct {
+	T int64 `json:"t"`
+	I int64 `json:"i"`
+}
+
+// HeadTailTimestamp iterates only through the BSON file with timestamp, such as oplog.bson
+// It returns head and tail timestamp
+func (bd *BSONDump) HeadTailTimestamp() ([]OplogTimestamp, error) {
+	var tail bson.Raw
+	begin := false
+	opResult := make([]OplogTimestamp, 0, 2)
+	if bd.InputSource == nil {
+		panic("Tried to call JSON() before opening file")
+	}
+
+	for {
+		result := bson.Raw(bd.InputSource.LoadNext())
+		if result == nil {
+			break
+		}
+
+		tail = result
+		if !begin {
+			if bytes, err := formatJSON(&result, bd.OutputOptions.Pretty); err != nil {
+				//if objcheck is turned on, stop now. otherwise keep on dumpin'
+				if bd.OutputOptions.ObjCheck {
+					return nil, err
+				}
+			} else {
+				begin = true
+				op := OplogTimestamp{}
+				err := json.Unmarshal(bytes, &op)
+				if err != nil {
+					return nil, err
+				}
+				opResult = append(opResult, op)
+			}
+		}
+
+		if failpoint.Enabled(failpoint.SlowBSONDump) {
+			time.Sleep(2 * time.Second)
+		}
+	}
+	if err := bd.InputSource.Err(); err != nil {
+		return opResult, err
+	}
+
+	if bytes, err := formatJSON(&tail, bd.OutputOptions.Pretty); err != nil {
+		return opResult, nil
+	} else {
+		op := OplogTimestamp{}
+		err := json.Unmarshal(bytes, &op)
+		if err != nil {
+			return opResult, err
+		}
+		opResult = append(opResult, op)
+	}
+	return opResult, nil
+}
