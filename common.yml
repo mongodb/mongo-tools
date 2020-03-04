@@ -638,6 +638,7 @@ functions:
               --comment "Evergreen Automatic Signing (mongo-tools)" \
               --notary-url http://notary-service.build.10gen.cc:5000 \
               --skip-missing \
+              --outputs "sig" \
               --package-file-suffix "" \
               release.msi
 
