@@ -25,7 +25,7 @@ functions:
     command: shell.exec
     type: test
     params:
-      working_dir: src/github.com/mongodb/mongo-tools
+      working_dir: src/github.com/wNee/mongo-tools
       script: |
         set -x
         set -v
@@ -77,16 +77,16 @@ functions:
           set -x
           set -v
           set -e
-          mkdir -p src/github.com/mongodb
+          mkdir -p src/github.com/wNee
     - command: git.get_project
       params:
-        directory: src/github.com/mongodb/mongo-tools
+        directory: src/github.com/wNee/mongo-tools
     - command: git.apply_patch
       params:
-        directory: src/github.com/mongodb/mongo-tools
+        directory: src/github.com/wNee/mongo-tools
     - command: shell.exec
       params:
-        working_dir: src/github.com/mongodb/mongo-tools
+        working_dir: src/github.com/wNee/mongo-tools
         script: |
           set -x
           set -v
@@ -97,7 +97,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/github.com/mongodb/mongo-tools
+        working_dir: src/github.com/wNee/mongo-tools
         script: |
           set -x
           set -v

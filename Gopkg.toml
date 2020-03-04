@@ -28,7 +28,7 @@
 required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
-  name = "github.com/mongodb/mongo-tools-common"
+  name = "github.com/wNee/mongo-tools-common"
   version = "^2.0.2"
 
 [[constraint]]

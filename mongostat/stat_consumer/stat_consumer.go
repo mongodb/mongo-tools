@@ -11,7 +11,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/wNee/mongo-tools-common/util"
 	"github.com/wNee/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/wNee/mongo-tools/mongostat/status"
 )

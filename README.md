@@ -18,7 +18,7 @@ To build the tools, you need to have Go version 1.9 and up. `go get` will not wo
 need to clone the repository to build it.
 
 ```
-git clone https://github.com/mongodb/mongo-tools
+git clone https://github.com/wNee/mongo-tools
 cd mongo-tools
 ```
 

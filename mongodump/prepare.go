@@ -15,11 +15,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mongodb/mongo-tools-common/archive"
-	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/wNee/mongo-tools-common/archive"
+	"github.com/wNee/mongo-tools-common/db"
+	"github.com/wNee/mongo-tools-common/intents"
+	"github.com/wNee/mongo-tools-common/log"
+	"github.com/wNee/mongo-tools-common/util"
 )
 
 type NilPos struct{}

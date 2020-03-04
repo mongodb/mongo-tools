@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools-common/bsonutil"
-	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/progress"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/wNee/mongo-tools-common/bsonutil"
+	"github.com/wNee/mongo-tools-common/db"
+	"github.com/wNee/mongo-tools-common/intents"
+	"github.com/wNee/mongo-tools-common/log"
+	"github.com/wNee/mongo-tools-common/progress"
+	"github.com/wNee/mongo-tools-common/util"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,7 +26,7 @@ import (
 
 const insertBufferFactor = 16
 
-// validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
+// validIndexOptions are taken from https://github.com/wNee/mongo/blob/master/src/mongo/db/index/index_descriptor.h
 var validIndexOptions = map[string]bool{
 	"2dsphereIndexVersion":    true,
 	"background":              true,

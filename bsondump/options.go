@@ -9,8 +9,8 @@ package bsondump
 import (
 	"fmt"
 
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/options"
+	"github.com/wNee/mongo-tools-common/log"
+	"github.com/wNee/mongo-tools-common/options"
 )
 
 var Usage = `<options> <file>

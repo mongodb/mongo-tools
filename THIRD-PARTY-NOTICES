@@ -1230,7 +1230,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/mongodb/mongo-go-driver
+License notice for github.com/wNee/mongo-go-driver
 ----------------------------------------------------------------------
 
                                  Apache License
@@ -1436,7 +1436,7 @@ License notice for github.com/mongodb/mongo-go-driver
    limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for github.com/mongodb/mongo-tools-common
+License notice for github.com/wNee/mongo-tools-common
 ----------------------------------------------------------------------
 
 Copyright 2014 MongoDB, Inc.
