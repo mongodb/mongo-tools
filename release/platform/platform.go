@@ -155,12 +155,6 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
-		Name: "suse11",
-		Arch: "x86_64",
-		OS:   OSLinux,
-		Pkg:  PkgRPM,
-	},
-	{
 		Name: "suse12",
 		Arch: "x86_64",
 		OS:   OSLinux,
