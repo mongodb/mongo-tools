@@ -847,12 +847,12 @@ func uploadRelease(v version.Version) {
 				copyFile(unstableFile, latestStableFile)
 			}
 
-			fmt.Printf("    uploading to %s\n", unstableFile)
+			fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
 			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
 			if v.IsStable() {
-				fmt.Printf("    uploading to %s\n", stableFile)
+				fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
-				fmt.Printf("    uploading to %s\n", latestStableFile)
+				fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
 			}
 		}
