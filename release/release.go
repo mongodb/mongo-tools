@@ -5,6 +5,9 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,6 +44,32 @@ var staticFiles = []string{
 	"LICENSE.md",
 	"README.md",
 	"THIRD-PARTY-NOTICES",
+}
+
+type jsonFeed struct {
+	Versions []toolsVersion
+}
+
+type toolsVersion struct {
+	Version   string
+	Downloads []toolsDownload
+}
+
+type toolsDownload struct {
+	Name    string
+	Arch    string
+	Archive toolsArchive
+	Package toolsPackage
+}
+
+type toolsArchive toolsArtifact
+type toolsPackage toolsArtifact
+
+type toolsArtifact struct {
+	URL    string
+	Md5    string
+	Sha1   string
+	Sha256 string
 }
 
 func main() {
@@ -663,6 +692,18 @@ func computeMD5(filename string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(content)))
 }
 
+func computeSHA1(filename string) string {
+	content, err := ioutil.ReadFile(filename)
+	check(err, "reading file during sha1 summing")
+	return fmt.Sprintf("%x", sha1.Sum([]byte(content)))
+}
+
+func computeSHA256(filename string) string {
+	content, err := ioutil.ReadFile(filename)
+	check(err, "reading file during sha256 summing")
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+}
+
 func useWorkingDir(dir string) func() {
 	check(os.RemoveAll(dir), "removeAll "+dir)
 	check(os.MkdirAll(dir, os.ModePerm), "mkdirAll "+dir)
@@ -802,6 +843,11 @@ func uploadRelease(v version.Version) {
 		)
 	}
 
+	// Make a JSON feed. Since we only have one version right now, we can declare it here and
+	// always append the current version and reference it with feed.Versions[0]
+	var feed jsonFeed
+	feed.Versions = append(feed.Versions, toolsVersion{v.StringWithoutPre(), make([]toolsDownload, 0)})
+
 	for _, task := range signTasks {
 		fmt.Printf("\ngetting artifacts for %s\n", task.Variant)
 		pf, ok := platform.GetByVariant(task.Variant)
@@ -822,6 +868,9 @@ func uploadRelease(v version.Version) {
 		awsClient, err := aws.GetClient()
 		check(err, "get aws client")
 
+		var download toolsDownload
+		download.Name = pf.Name
+		download.Arch = pf.Arch
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
 
@@ -845,6 +894,20 @@ func uploadRelease(v version.Version) {
 			if v.IsStable() {
 				copyFile(unstableFile, stableFile)
 				copyFile(unstableFile, latestStableFile)
+
+				// The artifact URL indicates whether the artifact is an archive or a package.
+				// We assume there's at most one archive artifact and one package artifact
+				// for a given download entry.
+				md5sum := computeMD5(latestStableFile)
+				sha1sum := computeSHA1(latestStableFile)
+				sha256sum := computeSHA256(latestStableFile)
+				artifactURL := path.Join("fastdl.mongodb.org/tools/db", latestStableFile)
+
+				if ext == ".tgz" || ext == ".zip" {
+					download.Archive = toolsArchive{artifactURL, md5sum, sha1sum, sha256sum}
+				} else {
+					download.Package = toolsPackage{artifactURL, md5sum, sha1sum, sha256sum}
+				}
 			}
 
 			fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
@@ -857,5 +920,11 @@ func uploadRelease(v version.Version) {
 			}
 		}
 
+		feed.Versions[0].Downloads = append(feed.Versions[0].Downloads, download)
+	}
+
+	if v.IsStable() {
+		feedjson, _ := json.Marshal(feed)
+		fmt.Println(string(feedjson)) // TODO: make accessible for download center
 	}
 }
