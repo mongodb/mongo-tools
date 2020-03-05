@@ -1,7 +1,7 @@
 Package: mongodb-database-tools
 Version: @TOOLS_VERSION@
 Architecture: @ARCHITECTURE@
-Maintainer: TODO <todo@mongodb.com>
+Maintainer: MongoDB Connectors Team <database-tools-packaging@mongodb.com>
 Description: mongodb-database-tools package provides tools for working with the MongoDB server: 
  *bsondump - display BSON files in a human-readable format
  *mongoimport - Convert data from JSON, TSV or CSV and insert them into a collection
