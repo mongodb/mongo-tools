@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools/release/aws"
+	"github.com/mongodb/mongo-tools/release/download"
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
@@ -44,32 +45,6 @@ var staticFiles = []string{
 	"LICENSE.md",
 	"README.md",
 	"THIRD-PARTY-NOTICES",
-}
-
-type jsonFeed struct {
-	Versions []toolsVersion
-}
-
-type toolsVersion struct {
-	Version   string
-	Downloads []toolsDownload
-}
-
-type toolsDownload struct {
-	Name    string
-	Arch    string
-	Archive toolsArchive
-	Package toolsPackage
-}
-
-type toolsArchive toolsArtifact
-type toolsPackage toolsArtifact
-
-type toolsArtifact struct {
-	URL    string
-	Md5    string
-	Sha1   string
-	Sha256 string
 }
 
 func main() {
@@ -843,10 +818,8 @@ func uploadRelease(v version.Version) {
 		)
 	}
 
-	// Make a JSON feed. Since we only have one version right now, we can declare it here and
-	// always append the current version and reference it with feed.Versions[0]
-	var feed jsonFeed
-	feed.Versions = append(feed.Versions, toolsVersion{v.StringWithoutPre(), make([]toolsDownload, 0)})
+	// Accumulate all downloaded artifacts from sign tasks for JSON feed.
+	var dls []download.ToolsDownload
 
 	for _, task := range signTasks {
 		fmt.Printf("\ngetting artifacts for %s\n", task.Variant)
@@ -868,9 +841,9 @@ func uploadRelease(v version.Version) {
 		awsClient, err := aws.GetClient()
 		check(err, "get aws client")
 
-		var download toolsDownload
-		download.Name = pf.Name
-		download.Arch = pf.Arch
+		var dl download.ToolsDownload
+		dl.Name = pf.Name
+		dl.Arch = pf.Arch
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
 
@@ -904,9 +877,9 @@ func uploadRelease(v version.Version) {
 				artifactURL := path.Join("fastdl.mongodb.org/tools/db", latestStableFile)
 
 				if ext == ".tgz" || ext == ".zip" {
-					download.Archive = toolsArchive{artifactURL, md5sum, sha1sum, sha256sum}
+					dl.Archive = download.ToolsArchive{artifactURL, md5sum, sha1sum, sha256sum}
 				} else {
-					download.Package = toolsPackage{artifactURL, md5sum, sha1sum, sha256sum}
+					dl.Package = &download.ToolsPackage{artifactURL, md5sum, sha1sum, sha256sum}
 				}
 			}
 
@@ -920,10 +893,12 @@ func uploadRelease(v version.Version) {
 			}
 		}
 
-		feed.Versions[0].Downloads = append(feed.Versions[0].Downloads, download)
+		dls = append(dls, dl)
 	}
 
 	if v.IsStable() {
+		var feed download.JSONFeed
+		feed.Versions = append(feed.Versions, download.ToolsVersion{v.StringWithoutPre(), dls})
 		feedjson, _ := json.Marshal(feed)
 		fmt.Println(string(feedjson)) // TODO: make accessible for download center
 	}
