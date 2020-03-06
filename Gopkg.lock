@@ -9,27 +9,27 @@
   revision = "3550fdcf1f43b89aaeabaa4559eaae6dc4407e42"
 
 [[projects]]
-  digest = "1:7c1116c6cd1c74152d61c02d64e4a3269d6f7744efb3fd5571f29169797c9a73"
-  name = "github.com/DataDog/zstd"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "8fdb579680349497546a04291cedfff98a7829a0"
-  version = "v1.4.4"
-
-[[projects]]
   digest = "1:42ad88cf90b3fcd2fa1d101f59ec2c2b1274484d7c7dda2c1ad29200b0cc7bc1"
   name = "github.com/aws/aws-sdk-go"
   packages = [
-    ".",
     "aws",
     "aws/arn",
     "aws/awserr",
     "aws/awsutil",
     "aws/client",
     "aws/client/metadata",
+    "aws/corehandlers",
     "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/processcreds",
+    "aws/credentials/stscreds",
+    "aws/csm",
+    "aws/defaults",
+    "aws/ec2metadata",
     "aws/endpoints",
     "aws/request",
+    "aws/session",
     "aws/signer/v4",
     "internal/context",
     "internal/ini",
@@ -37,12 +37,14 @@
     "internal/sdkio",
     "internal/sdkmath",
     "internal/sdkrand",
+    "internal/sdkuri",
     "internal/shareddefaults",
     "internal/strings",
     "internal/sync/singleflight",
     "private/protocol",
     "private/protocol/eventstream",
     "private/protocol/eventstream/eventstreamapi",
+    "private/protocol/json/jsonutil",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
@@ -52,6 +54,8 @@
     "service/s3/internal/arn",
     "service/s3/s3iface",
     "service/s3/s3manager",
+    "service/sts",
+    "service/sts/stsiface",
   ]
   pruneopts = "T"
   revision = "2ff90b519baf8ee626cf6c3d451d54664ac72345"
@@ -140,7 +144,7 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:64c1c8502a4a206493c7bb788f4afe1916387260e61d420bba55e4a3a99c48fa"
+  digest = "1:94616683b735bd776de82966cabb56cd83c4c89bac1cd8c0843f79f539b0ffe2"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -162,8 +166,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "518ce6c36787c7a0f038949f8beda5d37d84c62d"
-  version = "v3.0.0"
+  revision = "26321ec077392561444fe41d6c571a613c7b52bb"
+  version = "v3.0.1"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -219,7 +223,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:a2b53513aaa639ea1408eec7628344e10a18dff7ca6921c5477f9496db088806"
+  digest = "1:59caf13f1d9adf0828bf0662cc322b331704a8133393250b4569f0c47020063f"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -257,10 +261,10 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "T"
-  revision = "6f3c9d10a6095244ff3effe99e410357c36b47f6"
+  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
 
 [[projects]]
-  digest = "1:0f2b2cb9f84318c0f71fed3087ff9ac370370f842469b71b00348c3d72a19b44"
+  digest = "1:d6a2cbcf3914d0ff5be802485340fb8009fb4e3199b2d790f68d752c44f7e4e2"
   name = "golang.org/x/crypto"
   packages = [
     "ocsp",
@@ -268,7 +272,7 @@
     "ssh/terminal",
   ]
   pruneopts = "T"
-  revision = "1f22c0103821b9390939b6776727195525381532"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [[projects]]
   branch = "master"
@@ -280,6 +284,17 @@
   ]
   pruneopts = "T"
   revision = "112230192c580c3556b8cee6403af37a4fc5f28c"
+
+[[projects]]
+  branch = "master"
+  digest = "1:85cd50ff41bc0ef9a9fa6654bcba702d021d99dfbecb716579ebb2e9162db955"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = "T"
+  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
 
 [[projects]]
   digest = "1:0a6103b1dc59b52f7e64a491b398b854c0fcaacde43c25ce468610a64311b72d"
@@ -319,8 +334,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/3rf/mongo-lint",
-    "github.com/aws/aws-sdk-go",
     "github.com/aws/aws-sdk-go/aws",
+    "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/google/go-cmp/cmp",
     "github.com/mongodb/mongo-tools-common/archive",

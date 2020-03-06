@@ -113,7 +113,7 @@ func GetLatestVisibleOplogTimestamp(client *mongo.Client) (primitive.Timestamp, 
 
 	err = res.Decode(&confirmOp)
 	if err == mongo.ErrNoDocuments {
-		return primitive.Timestamp{}, fmt.Errorf("Last op was not confirmed. last op time: %v. confirmation time was not found.",
+		return primitive.Timestamp{}, fmt.Errorf("last op was not confirmed. last op time: %v. confirmation time was not found",
 			latestOpTime)
 	}
 	if err != nil {
@@ -121,7 +121,7 @@ func GetLatestVisibleOplogTimestamp(client *mongo.Client) (primitive.Timestamp, 
 	}
 
 	if !confirmOp.Timestamp.Equal(latestOpTime) {
-		return primitive.Timestamp{}, fmt.Errorf("Last op was not confirmed. last op time: %v. confirmation time: %v",
+		return primitive.Timestamp{}, fmt.Errorf("last op was not confirmed. last op time: %v. confirmation time: %v",
 			latestOpTime, confirmOp.Timestamp)
 	}
 	return latestOpTime, nil

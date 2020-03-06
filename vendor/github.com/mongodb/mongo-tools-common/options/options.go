@@ -377,7 +377,7 @@ func (auth *Auth) ShouldAskForPassword() bool {
 }
 
 func NewURI(unparsed string) (*URI, error) {
-	cs, err := connstring.Parse(unparsed)
+	cs, err := connstring.ParseAndValidate(unparsed)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing URI from %v: %v", unparsed, err)
 	}
@@ -482,14 +482,13 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 	return args, err
 }
 
-
 func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error) {
 	newArgs := []string{}
 	var foundURI bool
 	var parsedURI connstring.ConnString
 
 	for _, arg := range args {
-		cs, err := connstring.ParseWithoutValidating(arg)
+		cs, err := connstring.Parse(arg)
 		if err == nil {
 			if foundURI {
 				return []string{}, fmt.Errorf("too many URIs found in positional arguments: only one URI can be set as a positional argument")
@@ -511,7 +510,6 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 	return newArgs, nil
 }
 
-
 // NormalizeOptionsAndURI syncs the connection string an toolOptions objects.
 // It returns an error if there is any conflict between options and the connection string.
 // If a value is set on the options, but not the connection string, that value is added to the
@@ -519,7 +517,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 // that value is added to the options.
 func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 	if opts.URI != nil && opts.URI.ConnectionString != "" {
-		cs, err := connstring.ParseWithoutValidating(opts.URI.ConnectionString)
+		cs, err := connstring.Parse(opts.URI.ConnectionString)
 		if err != nil {
 			return err
 		}
@@ -681,6 +679,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 		if opts.Username == "" && cs.Username != "" {
 			opts.Username = cs.Username
+		}
+		if opts.Username == "" && cs.Username == "" && cs.Scheme == connstring.SchemeMongoDBSRV {
+			return fmt.Errorf("must set a username when using an SRV scheme")
 		}
 
 		if opts.Password != "" && cs.Password != "" {
