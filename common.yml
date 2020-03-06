@@ -661,6 +661,15 @@ functions:
         script: |
           ${_set_shell_env}
           go run release/release.go upload-release
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/mongodb/mongo-tools/release.json
+        remote_file: mongo-tools/release/${build_id}/
+        content_type: application/json
+        bucket: mciuploads
+        permissions: public-read
 
   "fetch source" :
     - command: shell.exec
