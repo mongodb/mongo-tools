@@ -228,15 +228,15 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.validateSettings([]string{"a"}), ShouldBeNil)
 		})
 
-		Convey("an error should be thrown if --file is used with one positional argument", func() {
+		Convey("no error should be thrown if --file is used with one positional argument", func() {
 			imp := NewMockMongoImport()
 			imp.InputOptions.File = "abc"
-			So(imp.validateSettings([]string{"a"}), ShouldNotBeNil)
+			So(imp.validateSettings([]string{"a"}), ShouldBeNil)
 		})
 
-		Convey("an error should be thrown if there's more than one positional argument", func() {
+		Convey("no error should be thrown if there's more than one positional argument", func() {
 			imp := NewMockMongoImport()
-			So(imp.validateSettings([]string{"a", "b"}), ShouldNotBeNil)
+			So(imp.validateSettings([]string{"a", "b"}), ShouldBeNil)
 		})
 
 		Convey("an error should be thrown if --headerline is used with JSON input", func() {
