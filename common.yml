@@ -663,15 +663,6 @@ functions:
               --skip-missing \
               --package-file-suffix "" \
               --outputs "sig" \
-              release.deb
-          /usr/local/bin/notary-client.py \
-              --key-name "server-4.4" \
-              --auth-token-file ./signing_auth_token \
-              --comment "Evergreen Automatic Signing (mongo-tools)" \
-              --notary-url http://notary-service.build.10gen.cc:5000 \
-              --skip-missing \
-              --package-file-suffix "" \
-              --outputs "sig" \
               release.rpm
 
   "upload signed release artifacts":
