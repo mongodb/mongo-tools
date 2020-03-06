@@ -5,6 +5,9 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools/release/aws"
+	"github.com/mongodb/mongo-tools/release/download"
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
@@ -663,6 +667,18 @@ func computeMD5(filename string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(content)))
 }
 
+func computeSHA1(filename string) string {
+	content, err := ioutil.ReadFile(filename)
+	check(err, "reading file during sha1 summing")
+	return fmt.Sprintf("%x", sha1.Sum([]byte(content)))
+}
+
+func computeSHA256(filename string) string {
+	content, err := ioutil.ReadFile(filename)
+	check(err, "reading file during sha256 summing")
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+}
+
 func useWorkingDir(dir string) func() {
 	check(os.RemoveAll(dir), "removeAll "+dir)
 	check(os.MkdirAll(dir, os.ModePerm), "mkdirAll "+dir)
@@ -802,6 +818,12 @@ func uploadRelease(v version.Version) {
 		)
 	}
 
+	awsClient, err := aws.GetClient()
+	check(err, "get aws client")
+
+	// Accumulate all downloaded artifacts from sign tasks for JSON feed.
+	var dls []download.ToolsDownload
+
 	for _, task := range signTasks {
 		fmt.Printf("\ngetting artifacts for %s\n", task.Variant)
 		pf, ok := platform.GetByVariant(task.Variant)
@@ -819,9 +841,9 @@ func uploadRelease(v version.Version) {
 			)
 		}
 
-		awsClient, err := aws.GetClient()
-		check(err, "get aws client")
-
+		var dl download.ToolsDownload
+		dl.Name = pf.Name
+		dl.Arch = pf.Arch
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
 
@@ -845,6 +867,20 @@ func uploadRelease(v version.Version) {
 			if v.IsStable() {
 				copyFile(unstableFile, stableFile)
 				copyFile(unstableFile, latestStableFile)
+
+				// The artifact URL indicates whether the artifact is an archive or a package.
+				// We assume there's at most one archive artifact and one package artifact
+				// for a given download entry.
+				artifactURL := path.Join("fastdl.mongodb.org/tools/db", stableFile)
+				md5sum := computeMD5(latestStableFile)
+				sha1sum := computeSHA1(latestStableFile)
+				sha256sum := computeSHA256(latestStableFile)
+
+				if ext == ".tgz" || ext == ".zip" {
+					dl.Archive = download.ToolsArchive{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
+				} else {
+					dl.Package = &download.ToolsPackage{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
+				}
 			}
 
 			fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
@@ -857,5 +893,26 @@ func uploadRelease(v version.Version) {
 			}
 		}
 
+		dls = append(dls, dl)
+	}
+
+	// We only have one version for now, so we can just append one ToolsVersion to the JSON
+	// feed and upload immediately. Supporting more versions will require an additional loop.
+	if v.IsStable() {
+		var feed download.JSONFeed
+		feed.Versions = append(feed.Versions, download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+
+		feedFilename := "release.json"
+		feedFile, err := os.Create(feedFilename)
+		check(err, "create release.json")
+		defer feedFile.Close()
+
+		jsonEncoder := json.NewEncoder(feedFile)
+		jsonEncoder.SetIndent("", "  ")
+		err = jsonEncoder.Encode(feed)
+		check(err, "encode json feed")
+
+		fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
+		awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
 	}
 }
