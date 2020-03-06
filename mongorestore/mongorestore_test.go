@@ -759,7 +759,6 @@ func TestSkipSystemCollections(t *testing.T) {
 		}
 
 		currentTS := uint32(time.Now().UTC().Unix())
-		log.Logv(log.Always, fmt.Sprintf("%v", currentTS))
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
