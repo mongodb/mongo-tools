@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -325,6 +326,11 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
 
+	// Pass down URI so topology can determine whether or not SRV polling is required
+	topologyOpts = append(topologyOpts, topology.WithURI(func(uri string) string {
+		return opts.GetURI()
+	}))
+
 	// AppName
 	var appName string
 	if opts.AppName != nil {
@@ -548,6 +554,21 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
 
+	// OCSP cache
+	ocspCache := ocsp.NewCache()
+	connOpts = append(
+		connOpts,
+		topology.WithOCSPCache(func(ocsp.Cache) ocsp.Cache { return ocspCache }),
+	)
+
+	// Disable communication with external OCSP responders.
+	if opts.DisableOCSPEndpointCheck != nil {
+		connOpts = append(
+			connOpts,
+			topology.WithDisableOCSPEndpointCheck(func(bool) bool { return *opts.DisableOCSPEndpointCheck }),
+		)
+	}
+
 	serverOpts = append(
 		serverOpts,
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
@@ -559,7 +580,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 	// Deployment
 	if opts.Deployment != nil {
-		if len(serverOpts) > 2 || len(topologyOpts) > 1 {
+		// topology options: WithSeedlist and WithURI
+		// server options: WithClock and WithConnectionOptions
+		if len(serverOpts) > 2 || len(topologyOpts) > 2 {
 			return errors.New("cannot specify topology or server options with a deployment")
 		}
 		c.deployment = opts.Deployment
@@ -599,7 +622,7 @@ func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
 
 func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
 	var err error
-	c.mongocryptd, err = newMcryptClient(opts.ExtraOptions)
+	c.mongocryptd, err = newMcryptClient(opts)
 	return err
 }
 

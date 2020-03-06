@@ -42,6 +42,28 @@
   version = "v4.20"
 
 [[projects]]
+  digest = "1:a84c156a248491e277cecde22eb81edb2d6add4a67dd1e4c192d16cd224fc61b"
+  name = "github.com/klauspost/compress"
+  packages = [
+    "fse",
+    "huff0",
+    "snappy",
+    "zstd",
+    "zstd/internal/xxhash",
+  ]
+  pruneopts = "UT"
+  revision = "2a5ec94050832300f2c49529dbab4b3774cbc30a"
+  version = "v1.10.1"
+
+[[projects]]
+  digest = "1:9e1d37b58d17113ec3cb5608ac0382313c5b59470b94ed97d0976e69c7022314"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "614d223910a179a466c1767a985424175c39b465"
+  version = "v0.9.1"
+
+[[projects]]
   digest = "1:237af0cf68bac89e21af72e6cd6b64f388854895e75f82ad08c6c011e1a8286c"
   name = "github.com/smartystreets/assertions"
   packages = [
@@ -82,11 +104,12 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:27e22fe552475e0b843c0bffe24e6bc5c55cb4c5d68d119b8c79af08b1903bb4"
+  digest = "1:63f7dae66dc18fb59f4c9d897f5cc590d47da8af438c4f7a36098ac42a67a329"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
     "bson/bsoncodec",
+    "bson/bsonoptions",
     "bson/bsonrw",
     "bson/bsontype",
     "bson/primitive",
@@ -108,6 +131,9 @@
     "x/mongo/driver/connstring",
     "x/mongo/driver/description",
     "x/mongo/driver/dns",
+    "x/mongo/driver/mongocrypt",
+    "x/mongo/driver/mongocrypt/options",
+    "x/mongo/driver/ocsp",
     "x/mongo/driver/operation",
     "x/mongo/driver/session",
     "x/mongo/driver/topology",
@@ -115,26 +141,40 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "1261197350f3ad46a907489aee7ecc49b39efb82"
-  version = "v1.1.2"
+  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
 
 [[projects]]
-  digest = "1:79784b4d6789bbd40f17a9d204051bdd887d889acbbdc24ed8263b3dca28dfbf"
+  digest = "1:b27b4a5b31f1d7e858e7568c51030704dbea84dd2c7a7f407fb7e8d0acadb676"
   name = "golang.org/x/crypto"
   packages = [
+    "ocsp",
     "pbkdf2",
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "1f22c0103821b9390939b6776727195525381532"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [[projects]]
   branch = "master"
-  digest = "1:382bb5a7fb4034db3b6a2d19e5a4a6bcf52f4750530603c01ca18a172fa3089b"
+  digest = "1:a2fc247e64b5dafd3251f12d396ec85f163d5bb38763c4997856addddf6e78d8"
   name = "golang.org/x/sync"
-  packages = ["semaphore"]
+  packages = [
+    "errgroup",
+    "semaphore",
+  ]
   pruneopts = "UT"
   revision = "112230192c580c3556b8cee6403af37a4fc5f28c"
+
+[[projects]]
+  branch = "master"
+  digest = "1:e32edd8d81fe0447cb6855e2d2b0549b63717539513e09b3a1e4bb20d48f46c6"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = "UT"
+  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
 
 [[projects]]
   digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"

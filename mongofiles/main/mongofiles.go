@@ -25,7 +25,7 @@ var (
 func main() {
 	opts, err := mongofiles.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logv(log.Always, err.Error())
+		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
 		log.Logv(log.Always, util.ShortUsage("mongofiles"))
 		os.Exit(util.ExitFailure)
 	}

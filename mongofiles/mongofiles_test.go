@@ -265,12 +265,12 @@ func TestValidArguments(t *testing.T) {
 			So(err.Error(), ShouldEqual, "no command specified")
 		})
 
-		Convey("(list|get|put|delete|search|get_id|delete_id) should error out when more than 1 positional argument provided", func() {
+		Convey("(list|get|put|delete|search|get_id|delete_id) should error out when more than 1 positional argument (except URI) is provided", func() {
 			for _, command := range []string{"list", "get", "put", "delete", "search", "get_id", "delete_id"} {
 				args := []string{command, "arg1", "arg2"}
 				err := mf.ValidateCommand(args)
 				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, "too many positional arguments")
+				So(err.Error(), ShouldEqual, "too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
 			}
 		})
 
@@ -278,7 +278,7 @@ func TestValidArguments(t *testing.T) {
 			args := []string{"put_id", "arg1", "arg2", "arg3"}
 			err := mf.ValidateCommand(args)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "too many positional arguments")
+			So(err.Error(), ShouldEqual, "too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
 		})
 
 		Convey("put_id should error out when only 1 positional argument provided", func() {
@@ -308,7 +308,7 @@ func TestValidArguments(t *testing.T) {
 
 			err := mf.ValidateCommand(args)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, fmt.Sprintf("'%v' is not a valid command", args[0]))
+			So(err.Error(), ShouldEqual, fmt.Sprintf("'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)", args[0]))
 		})
 
 	})

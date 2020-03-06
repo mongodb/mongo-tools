@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -30,22 +31,24 @@ var globalConnectionID uint64 = 1
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
 
 type connection struct {
-	id               string
-	nc               net.Conn // When nil, the connection is closed.
-	addr             address.Address
-	idleTimeout      time.Duration
-	idleDeadline     atomic.Value // Stores a time.Time
-	lifetimeDeadline time.Time
-	readTimeout      time.Duration
-	writeTimeout     time.Duration
-	desc             description.Server
-	compressor       wiremessage.CompressorID
-	zliblevel        int
-	zstdLevel        int
-	connected        int32 // must be accessed using the sync/atomic package
-	connectDone      chan struct{}
-	connectErr       error
-	config           *connectionConfig
+	id                   string
+	nc                   net.Conn // When nil, the connection is closed.
+	addr                 address.Address
+	idleTimeout          time.Duration
+	idleDeadline         atomic.Value // Stores a time.Time
+	lifetimeDeadline     time.Time
+	readTimeout          time.Duration
+	writeTimeout         time.Duration
+	desc                 description.Server
+	compressor           wiremessage.CompressorID
+	zliblevel            int
+	zstdLevel            int
+	connected            int32 // must be accessed using the sync/atomic package
+	connectDone          chan struct{}
+	connectErr           error
+	config               *connectionConfig
+	cancelConnectContext context.CancelFunc
+	connectContextMade   chan struct{}
 
 	// pool related fields
 	pool       *pool
@@ -68,14 +71,15 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 	id := fmt.Sprintf("%s[-%d]", addr, nextConnectionID())
 
 	c := &connection{
-		id:               id,
-		addr:             addr,
-		idleTimeout:      cfg.idleTimeout,
-		lifetimeDeadline: lifetimeDeadline,
-		readTimeout:      cfg.readTimeout,
-		writeTimeout:     cfg.writeTimeout,
-		connectDone:      make(chan struct{}),
-		config:           cfg,
+		id:                 id,
+		addr:               addr,
+		idleTimeout:        cfg.idleTimeout,
+		lifetimeDeadline:   lifetimeDeadline,
+		readTimeout:        cfg.readTimeout,
+		writeTimeout:       cfg.writeTimeout,
+		connectDone:        make(chan struct{}),
+		config:             cfg,
+		connectContextMade: make(chan struct{}),
 	}
 	atomic.StoreInt32(&c.connected, initialized)
 
@@ -85,11 +89,13 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform
 // initialization handshakes.
 func (c *connection) connect(ctx context.Context) {
-
 	if !atomic.CompareAndSwapInt32(&c.connected, initialized, connected) {
 		return
 	}
 	defer close(c.connectDone)
+
+	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	close(c.connectContextMade)
 
 	var err error
 	c.nc, err = c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
@@ -104,7 +110,11 @@ func (c *connection) connect(ctx context.Context) {
 
 		// store the result of configureTLS in a separate variable than c.nc to avoid overwriting c.nc with nil in
 		// error cases.
-		tlsNc, err := configureTLS(ctx, c.nc, c.addr, tlsConfig)
+		ocspOpts := &ocsp.VerifyOptions{
+			Cache:                   c.config.ocspCache,
+			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
+		}
+		tlsNc, err := configureTLS(ctx, c.nc, c.addr, tlsConfig, ocspOpts)
 		if err != nil {
 			if c.nc != nil {
 				_ = c.nc.Close()
@@ -176,6 +186,11 @@ func (c *connection) wait() error {
 		<-c.connectDone
 	}
 	return c.connectErr
+}
+
+func (c *connection) closeConnectContext() {
+	<-c.connectContextMade
+	c.cancelConnectContext()
 }
 
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
@@ -399,7 +414,7 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 		ZlibLevel:  c.connection.zliblevel,
 		ZstdLevel:  c.connection.zstdLevel,
 	}
-	compressed, err := driver.CompressPlayoad(rem, opts)
+	compressed, err := driver.CompressPayload(rem, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +501,7 @@ func (c *Connection) LocalAddress() address.Address {
 var notMasterCodes = []int32{10107, 13435}
 var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
 
-func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config *tls.Config) (net.Conn, error) {
+func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config *tls.Config, ocspOpts *ocsp.VerifyOptions) (net.Conn, error) {
 	if !config.InsecureSkipVerify {
 		hostname := addr.String()
 		colonPos := strings.LastIndex(hostname, ":")
@@ -509,6 +524,15 @@ func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config
 	case err := <-errChan:
 		if err != nil {
 			return nil, err
+		}
+
+		// Only do OCSP verification if TLS verification is requested.
+		if config.InsecureSkipVerify {
+			break
+		}
+
+		if ocspErr := ocsp.Verify(ctx, client.ConnectionState(), ocspOpts); ocspErr != nil {
+			return nil, ocspErr
 		}
 	case <-ctx.Done():
 		return nil, errors.New("server connection cancelled/timeout during TLS handshake")

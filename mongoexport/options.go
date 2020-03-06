@@ -15,9 +15,11 @@ import (
 	"github.com/mongodb/mongo-tools-common/options"
 )
 
-var Usage = `<options>
+var Usage = `<options> <connection-string>
 
 Export data from MongoDB in CSV or JSON format.
+
+Connection strings must begin with mongodb:// or mongodb+srv://.
 
 See http://docs.mongodb.org/manual/reference/program/mongoexport/ for more information.`
 
@@ -102,7 +104,7 @@ type Options struct {
 // ParseOptions reads command line arguments and converts them into options that can be used to configure mongoexport.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	// initialize command-line opts
-	opts := options.New("mongoexport", versionStr, gitCommit, Usage,
+	opts := options.New("mongoexport", versionStr, gitCommit, Usage, true,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	outputOpts := &OutputFormatOptions{}
 	opts.AddOptions(outputOpts)
@@ -110,12 +112,15 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.AddOptions(inputOpts)
 	opts.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
 
-	args, err := opts.ParseArgs(rawArgs)
+	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
 		return Options{}, err
 	}
-	if len(args) != 0 {
-		return Options{}, fmt.Errorf("too many positional arguments: %v", args)
+	if len(extraArgs) > 0 {
+		return Options{}, fmt.Errorf("error parsing positional arguments: " +
+			"provide only one MongoDB connection string. " +
+			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+		)
 	}
 
 	log.SetVerbosity(opts.Verbosity)
@@ -141,6 +146,6 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		opts,
 		outputOpts,
 		inputOpts,
-		args,
+		extraArgs,
 	}, nil
 }

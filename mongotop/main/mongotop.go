@@ -9,12 +9,10 @@ package main
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/signals"
 	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/mongodb/mongo-tools/mongotop"
@@ -28,17 +26,9 @@ var (
 
 func main() {
 	// initialize command-line opts
-	opts := options.New("mongotop", VersionStr, GitCommit, mongotop.Usage,
-		options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
-	opts.UseReadOnlyHostDescription()
-
-	// add mongotop-specific options
-	outputOpts := &mongotop.Output{}
-	opts.AddOptions(outputOpts)
-
-	args, err := opts.ParseArgs(os.Args[1:])
+	opts, err := mongotop.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %v", err)
+		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
 		log.Logvf(log.Always, util.ShortUsage("mongotop"))
 		os.Exit(util.ExitFailure)
 	}
@@ -59,22 +49,8 @@ func main() {
 	// verify uri options and log them
 	opts.URI.LogUnsupportedOptions()
 
-	if len(args) > 1 {
-		log.Logvf(log.Always, "too many positional arguments")
-		log.Logvf(log.Always, util.ShortUsage("mongotop"))
-		os.Exit(util.ExitFailure)
-	}
-
-	sleeptime := 1 // default to 1 second sleep time
-	if len(args) > 0 {
-		sleeptime, err = strconv.Atoi(args[0])
-		if err != nil || sleeptime <= 0 {
-			log.Logvf(log.Always, "invalid sleep time: %v", args[0])
-			os.Exit(util.ExitFailure)
-		}
-	}
-	if outputOpts.RowCount < 0 {
-		log.Logvf(log.Always, "invalid value for --rowcount: %v", outputOpts.RowCount)
+	if opts.RowCount < 0 {
+		log.Logvf(log.Always, "invalid value for --rowcount: %v", opts.RowCount)
 		os.Exit(util.ExitFailure)
 	}
 
@@ -92,7 +68,7 @@ func main() {
 	}
 
 	// create a session provider to connect to the db
-	sessionProvider, err := db.NewSessionProvider(*opts)
+	sessionProvider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
 		log.Logvf(log.Always, "error connecting to host: %v", err)
 		os.Exit(util.ExitFailure)
@@ -111,10 +87,10 @@ func main() {
 
 	// instantiate a mongotop instance
 	top := &mongotop.MongoTop{
-		Options:         opts,
-		OutputOptions:   outputOpts,
+		Options:         opts.ToolOptions,
+		OutputOptions:   opts.Output,
 		SessionProvider: sessionProvider,
-		Sleeptime:       time.Duration(sleeptime) * time.Second,
+		Sleeptime:       time.Duration(opts.SleepTime) * time.Second,
 	}
 
 	// kick it off

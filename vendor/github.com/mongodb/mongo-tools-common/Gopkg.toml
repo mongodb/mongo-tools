@@ -26,7 +26,7 @@
 
 [[constraint]]
   name = "go.mongodb.org/mongo-driver"
-  version = "^v1.1.2"
+  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
 
 [[constraint]]
   name = "github.com/jessevdk/go-flags"
@@ -38,7 +38,7 @@
 
 [[constraint]]
   name = "golang.org/x/crypto"
-  revision = "1f22c0103821b9390939b6776727195525381532"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [prune]
   go-tests = true

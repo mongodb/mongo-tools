@@ -74,7 +74,9 @@ type ContextDialer interface {
 // Password: the password for authentication. This must not be specified for X509 and is optional for GSSAPI
 // authentication.
 //
-// PasswordSet specifies if the password is actually set, since an empty password is a valid password.
+// PasswordSet: For GSSAPI, this must be true if a password is specified, even if the password is the empty string, and
+// false if no password is specified, indicating that the password should be taken from the context of the running
+// process. For other mechanisms, this field is ignored.
 type Credential struct {
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
@@ -87,35 +89,37 @@ type Credential struct {
 // ClientOptions contains options to configure a Client instance. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
 type ClientOptions struct {
-	AppName                *string
-	Auth                   *Credential
-	ConnectTimeout         *time.Duration
-	Compressors            []string
-	Dialer                 ContextDialer
-	HeartbeatInterval      *time.Duration
-	Hosts                  []string
-	LocalThreshold         *time.Duration
-	MaxConnIdleTime        *time.Duration
-	MaxPoolSize            *uint64
-	MinPoolSize            *uint64
-	PoolMonitor            *event.PoolMonitor
-	Monitor                *event.CommandMonitor
-	ReadConcern            *readconcern.ReadConcern
-	ReadPreference         *readpref.ReadPref
-	Registry               *bsoncodec.Registry
-	ReplicaSet             *string
-	RetryWrites            *bool
-	RetryReads             *bool
-	ServerSelectionTimeout *time.Duration
-	Direct                 *bool
-	SocketTimeout          *time.Duration
-	TLSConfig              *tls.Config
-	WriteConcern           *writeconcern.WriteConcern
-	ZlibLevel              *int
-	ZstdLevel              *int
-	AutoEncryptionOptions  *AutoEncryptionOptions
+	AppName                  *string
+	Auth                     *Credential
+	AutoEncryptionOptions    *AutoEncryptionOptions
+	ConnectTimeout           *time.Duration
+	Compressors              []string
+	Dialer                   ContextDialer
+	Direct                   *bool
+	DisableOCSPEndpointCheck *bool
+	HeartbeatInterval        *time.Duration
+	Hosts                    []string
+	LocalThreshold           *time.Duration
+	MaxConnIdleTime          *time.Duration
+	MaxPoolSize              *uint64
+	MinPoolSize              *uint64
+	PoolMonitor              *event.PoolMonitor
+	Monitor                  *event.CommandMonitor
+	ReadConcern              *readconcern.ReadConcern
+	ReadPreference           *readpref.ReadPref
+	Registry                 *bsoncodec.Registry
+	ReplicaSet               *string
+	RetryReads               *bool
+	RetryWrites              *bool
+	ServerSelectionTimeout   *time.Duration
+	SocketTimeout            *time.Duration
+	TLSConfig                *tls.Config
+	WriteConcern             *writeconcern.WriteConcern
+	ZlibLevel                *int
+	ZstdLevel                *int
 
 	err error
+	uri string
 
 	// These options are for internal use only and should not be set. They are deprecated and are
 	// not part of the stability guarantee. They may be removed in the future.
@@ -130,6 +134,12 @@ func Client() *ClientOptions {
 
 // Validate validates the client options. This method will return the first error found.
 func (c *ClientOptions) Validate() error { return c.err }
+
+// GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
+// construction, this returns "".
+func (c *ClientOptions) GetURI() string {
+	return c.uri
+}
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
 // an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
@@ -150,7 +160,8 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		return c
 	}
 
-	cs, err := connstring.Parse(uri)
+	c.uri = uri
+	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
 		return c
@@ -277,26 +288,28 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 			tlsConfig.InsecureSkipVerify = true
 		}
 
+		var x509Subject string
+		var keyPasswd string
+		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+			keyPasswd = cs.SSLClientCertificateKeyPassword()
+		}
 		if cs.SSLClientCertificateKeyFileSet {
-			var keyPasswd string
-			if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
-				keyPasswd = cs.SSLClientCertificateKeyPassword()
-			}
-			s, err := addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
-			if err != nil {
-				c.err = err
-				return c
-			}
+			x509Subject, err = addClientCertFromConcatenatedFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
+		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
+			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, cs.SSLCertificateFile,
+				cs.SSLPrivateKeyFile, keyPasswd)
+		}
+		if err != nil {
+			c.err = err
+			return c
+		}
 
-			// If a username wasn't specified, add one from the certificate.
-			if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" && c.Auth.Username == "" {
-				// The Go x509 package gives the subject with the pairs in reverse order that we want.
-				pairs := strings.Split(s, ",")
-				for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
-					pairs[left], pairs[right] = pairs[right], pairs[left]
-				}
-				c.Auth.Username = strings.Join(pairs, ",")
-			}
+		// If a username wasn't specified fork x509, add one from the certificate.
+		if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" &&
+			c.Auth.Username == "" {
+
+			// The Go x509 package gives the subject with the pairs in reverse order that we want.
+			c.Auth.Username = extractX509UsernameFromSubject(x509Subject)
 		}
 
 		c.TLSConfig = tlsConfig
@@ -329,6 +342,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.ZstdLevel = &cs.ZstdLevel
 	}
 
+	if cs.SSLDisableOCSPEndpointCheckSet {
+		c.DisableOCSPEndpointCheck = &cs.SSLDisableOCSPEndpointCheck
+	}
+
 	return c
 }
 
@@ -354,7 +371,8 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 //
 // 2. "zlib" - requires server version >= 3.6
 //
-// 3. "zstd" - requires driver version >= 1.2.0, server version >= 4.2, and cgo support to be enabled.
+// 3. "zstd" - requires server version >= 4.2, and driver version >= 1.2.0 with cgo support enabled or driver version >= 1.3.0
+//    without cgo
 //
 // To use compression, it must be enabled on the server as well. If this option is specified, the driver will perform a
 // negotiation with the server to determine a common list of of compressors and will use the first one in that list when
@@ -561,9 +579,11 @@ func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 //
 // 1. "tls" (or "ssl"): Specify if TLS should be used (e.g. "tls=true").
 //
-// 2. "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile"): Specify the path to the client certificate key file or
-// the client private key file. If they are both needed, the files should be concatentated into one file. For example,
-// "tlsCertificateKeyFile=/path/to/ca.pem".
+// 2. Either "tlsCertificateKeyFile" (or "sslClientCertificateKeyFile") or a combination of "tlsCertificateFile" and
+// "tlsPrivateKeyFile". The "tlsCertificateKeyFile" option specifies a path to the client certificate and private key,
+// which must be concatenated into one file. The "tlsCertificateFile" and "tlsPrivateKey" combination specifies separate
+// paths to the client certificate and private key, respectively. Note that if "tlsCertificateKeyFile" is used, the
+// other two options must not be specified.
 //
 // 3. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
 // private key file (e.g. "tlsCertificateKeyFilePassword=password").
@@ -582,7 +602,7 @@ func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
 	return c
 }
 
-// SetWriteConcern specifies the write concern to use to for write operations. This can also be se through the following
+// SetWriteConcern specifies the write concern to use to for write operations. This can also be set through the following
 // URI options:
 //
 // 1. "w": Specify the number of nodes in the cluster that must acknowledge write operations before the operation
@@ -625,6 +645,20 @@ func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
 // options.
 func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
 	c.AutoEncryptionOptions = opts
+	return c
+}
+
+// SetDisableOCSPEndpointCheck specifies whether or not the driver should reach out to OCSP responders to verify the
+// certificate status for certificates presented by the server that contain a list of OCSP responders.
+//
+// If set to true, the driver will verify the status of the certificate using a response stapled by the server, if there
+// is one, but will not send an HTTP request to any responders if there is no staple. In this case, the driver will
+// continue the connection even though the certificate status is not known.
+//
+// This can also be set through the tlsDisableOCSPEndpointCheck URI option. Both this URI option and tlsInsecure must
+// not be set at the same time and will error if they are. The default value is false.
+func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOptions {
+	c.DisableOCSPEndpointCheck = &disableCheck
 	return c
 }
 
@@ -726,6 +760,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.Deployment != nil {
 			c.Deployment = opt.Deployment
 		}
+		if opt.DisableOCSPEndpointCheck != nil {
+			c.DisableOCSPEndpointCheck = opt.DisableOCSPEndpointCheck
+		}
 		if opt.err != nil {
 			c.err = opt.err
 		}
@@ -790,14 +827,33 @@ func loadCert(data []byte) ([]byte, error) {
 	return certBlock.Bytes, nil
 }
 
-// addClientCertFromFile adds a client certificate to the configuration given a path to the
-// containing file and returns the certificate's subject name.
-func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
-	data, err := ioutil.ReadFile(clientFile)
+func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
+	keyData, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return "", err
+	}
+	certData, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		return "", err
 	}
 
+	data := append(keyData, '\n')
+	data = append(data, certData...)
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+func addClientCertFromConcatenatedFile(cfg *tls.Config, certKeyFile, keyPassword string) (string, error) {
+	data, err := ioutil.ReadFile(certKeyFile)
+	if err != nil {
+		return "", err
+	}
+
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+// addClientCertFromBytes adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
 	var certBlock, certDecodedBlock, keyBlock []byte
 
@@ -861,4 +917,15 @@ func stringSliceContains(source []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// create a username for x509 authentication from an x509 certificate subject.
+func extractX509UsernameFromSubject(subject string) string {
+	// the Go x509 package gives the subject with the pairs in the reverse order from what we want.
+	pairs := strings.Split(subject, ",")
+	for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
+		pairs[left], pairs[right] = pairs[right], pairs[left]
+	}
+
+	return strings.Join(pairs, ",")
 }

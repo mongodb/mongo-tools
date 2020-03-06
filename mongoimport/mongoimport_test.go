@@ -228,15 +228,15 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.validateSettings([]string{"a"}), ShouldBeNil)
 		})
 
-		Convey("an error should be thrown if --file is used with one positional argument", func() {
+		Convey("no error should be thrown if --file is used with one positional argument", func() {
 			imp := NewMockMongoImport()
 			imp.InputOptions.File = "abc"
-			So(imp.validateSettings([]string{"a"}), ShouldNotBeNil)
+			So(imp.validateSettings([]string{"a"}), ShouldBeNil)
 		})
 
-		Convey("an error should be thrown if there's more than one positional argument", func() {
+		Convey("no error should be thrown if there's more than one positional argument", func() {
 			imp := NewMockMongoImport()
-			So(imp.validateSettings([]string{"a", "b"}), ShouldNotBeNil)
+			So(imp.validateSettings([]string{"a", "b"}), ShouldBeNil)
 		})
 
 		Convey("an error should be thrown if --headerline is used with JSON input", func() {
@@ -1276,7 +1276,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a new mongoimport with empty options", t, func() {
 		imp := NewMockMongoImport()
-		imp.ToolOptions = options.New("", "", "", "", options.EnabledOptions{})
+		imp.ToolOptions = options.New("", "", "", "", true, options.EnabledOptions{})
 		Convey("Then parsing should fill args with expected defaults", func() {
 			_, err := imp.ToolOptions.ParseArgs([]string{})
 			So(err, ShouldBeNil)
