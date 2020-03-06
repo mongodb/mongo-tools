@@ -181,6 +181,8 @@ functions:
         GOROOT="" set_goenv || exit
         if [ "${INT_TEST}" = "true" ]; then
           export TOOLS_TESTING_INTEGRATION="true"
+          export TOOLS_TESTING_SRV="true"
+          export ATLAS_URI=${atlas_srv_uri}
         fi;
         if [ "${USE_SSL}" = "true" ]; then
           export TOOLS_TESTING_SSL="true"

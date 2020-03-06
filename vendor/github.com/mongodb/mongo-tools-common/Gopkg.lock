@@ -104,7 +104,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:a0853db2fff63bb68e7b2a45f4f65fe85b2dac3b469fa75c70844d1e501eca2a"
+  digest = "1:63f7dae66dc18fb59f4c9d897f5cc590d47da8af438c4f7a36098ac42a67a329"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -141,10 +141,10 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "6f3c9d10a6095244ff3effe99e410357c36b47f6"
+  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
 
 [[projects]]
-  digest = "1:1ae7a5abf5cbbb7b5eced808531eb743247f02c48be7ef0117d815b4cce152d0"
+  digest = "1:b27b4a5b31f1d7e858e7568c51030704dbea84dd2c7a7f407fb7e8d0acadb676"
   name = "golang.org/x/crypto"
   packages = [
     "ocsp",
@@ -152,7 +152,7 @@
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "1f22c0103821b9390939b6776727195525381532"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [[projects]]
   branch = "master"
@@ -164,6 +164,17 @@
   ]
   pruneopts = "UT"
   revision = "112230192c580c3556b8cee6403af37a4fc5f28c"
+
+[[projects]]
+  branch = "master"
+  digest = "1:e32edd8d81fe0447cb6855e2d2b0549b63717539513e09b3a1e4bb20d48f46c6"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = "UT"
+  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
 
 [[projects]]
   digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"
