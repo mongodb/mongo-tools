@@ -818,6 +818,9 @@ func uploadRelease(v version.Version) {
 		)
 	}
 
+	awsClient, err := aws.GetClient()
+	check(err, "get aws client")
+
 	// Accumulate all downloaded artifacts from sign tasks for JSON feed.
 	var dls []download.ToolsDownload
 
@@ -837,9 +840,6 @@ func uploadRelease(v version.Version) {
 				len(pf.ArtifactExtensions()), len(artifacts), task.Variant,
 			)
 		}
-
-		awsClient, err := aws.GetClient()
-		check(err, "get aws client")
 
 		var dl download.ToolsDownload
 		dl.Name = pf.Name
@@ -871,15 +871,15 @@ func uploadRelease(v version.Version) {
 				// The artifact URL indicates whether the artifact is an archive or a package.
 				// We assume there's at most one archive artifact and one package artifact
 				// for a given download entry.
+				artifactURL := path.Join("fastdl.mongodb.org/tools/db", latestStableFile)
 				md5sum := computeMD5(latestStableFile)
 				sha1sum := computeSHA1(latestStableFile)
 				sha256sum := computeSHA256(latestStableFile)
-				artifactURL := path.Join("fastdl.mongodb.org/tools/db", latestStableFile)
 
 				if ext == ".tgz" || ext == ".zip" {
-					dl.Archive = download.ToolsArchive{artifactURL, md5sum, sha1sum, sha256sum}
+					dl.Archive = download.ToolsArchive{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
 				} else {
-					dl.Package = &download.ToolsPackage{artifactURL, md5sum, sha1sum, sha256sum}
+					dl.Package = &download.ToolsPackage{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
 				}
 			}
 
@@ -896,10 +896,23 @@ func uploadRelease(v version.Version) {
 		dls = append(dls, dl)
 	}
 
+	// We only have one version for now, so we can just append one ToolsVersion to the JSON
+	// feed and upload immediately. Supporting more versions will require an additional loop.
 	if v.IsStable() {
 		var feed download.JSONFeed
-		feed.Versions = append(feed.Versions, download.ToolsVersion{v.StringWithoutPre(), dls})
-		feedjson, _ := json.Marshal(feed)
-		fmt.Println(string(feedjson)) // TODO: make accessible for download center
+		feed.Versions = append(feed.Versions, download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+
+		marshalledFeed, err := json.MarshalIndent(feed, "", "  ")
+		check(err, "marshal feed")
+
+		feedFilename := "release.json"
+		feedFile, err := os.Create(feedFilename)
+		check(err, "create release.json")
+		defer feedFile.Close()
+		_, err = feedFile.Write(marshalledFeed)
+		check(err, "write release.json")
+
+		fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
+		awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
 	}
 }
