@@ -116,11 +116,6 @@ func isTaggedRelease(rev string) bool {
 	return err == nil
 }
 
-func isTaggedRelease(rev string) bool {
-	_, err := run("git", "describe", "--exact", rev)
-	return err == nil
-}
-
 func getReleaseName() string {
 	p, err := platform.GetFromEnv()
 	check(err, "get platform")
