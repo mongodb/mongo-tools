@@ -871,7 +871,7 @@ func uploadRelease(v version.Version) {
 				// The artifact URL indicates whether the artifact is an archive or a package.
 				// We assume there's at most one archive artifact and one package artifact
 				// for a given download entry.
-				artifactURL := path.Join("fastdl.mongodb.org/tools/db", stableFile)
+				artifactURL := path.Join("https://fastdl.mongodb.org/tools/db", stableFile)
 				md5sum := computeMD5(latestStableFile)
 				sha1sum := computeSHA1(latestStableFile)
 				sha256sum := computeSHA256(latestStableFile)
@@ -912,7 +912,7 @@ func uploadRelease(v version.Version) {
 		err = jsonEncoder.Encode(feed)
 		check(err, "encode json feed")
 
-		fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
+		fmt.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
 		awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
 	}
 }
