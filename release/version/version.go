@@ -102,7 +102,11 @@ func GetFromRev(rev string) (Version, error) {
 }
 
 func (v Version) String() string {
-	return fmt.Sprintf("%d.%d.%d-%s", v.Major, v.Minor, v.Patch, v.Pre)
+	vStr := v.StringWithoutPre()
+	if v.Pre != "" {
+		vStr = fmt.Sprintf("%s-%s", vStr, v.Pre)
+	}
+	return vStr
 }
 
 func (v Version) StringWithoutPre() string {
