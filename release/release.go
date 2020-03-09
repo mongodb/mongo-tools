@@ -871,7 +871,7 @@ func uploadRelease(v version.Version) {
 				// The artifact URL indicates whether the artifact is an archive or a package.
 				// We assume there's at most one archive artifact and one package artifact
 				// for a given download entry.
-				artifactURL := path.Join("https://fastdl.mongodb.org/tools/db", stableFile)
+				artifactURL := fmt.Sprintf("https://fastdl.mongodb.org/tools/db/%s", stableFile)
 				md5sum := computeMD5(latestStableFile)
 				sha1sum := computeSHA1(latestStableFile)
 				sha256sum := computeSHA256(latestStableFile)
