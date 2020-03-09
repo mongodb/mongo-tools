@@ -18,6 +18,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-tests-3.2
@@ -37,6 +38,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
@@ -60,6 +62,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: kerberos
@@ -79,6 +82,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-tests-4.0
@@ -91,6 +95,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
         distros:
@@ -129,6 +134,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       #- name: kerberos
@@ -147,6 +153,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
@@ -166,6 +173,7 @@ mongo_tools_variables:
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
+      - name: integration-4.0-cluster
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
@@ -529,6 +537,20 @@ functions:
         echo "Starting mongod..."
         PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
 
+  "start mongod cluster":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      background: true
+      script: |
+        set -x
+        set -v
+        set -e
+        rm -rf mongodb/db_files mongodb/${logfile|run.log}
+        mkdir -p mongodb/db_files
+        echo "Starting mongod cluster..."
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
+
   "wait for mongod to be ready":
     command: shell.exec
     params:
@@ -782,7 +804,7 @@ functions:
           set -e
           echo "starting repl set"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:3, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo ${mongo_args} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -790,7 +812,7 @@ functions:
           set -x
           set -v
           set -e
-          ./bin/mongo --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+          ./bin/mongo ${mongo_args} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
 pre:
   - command: shell.exec
@@ -1003,6 +1025,20 @@ tasks:
           INT_TEST: "true"
           AUTH_TEST: "true"
 
+- name: integration-4.0-cluster
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.0"
+    - func: "start mongod cluster"
+    - func: "wait for mongod to be ready"
+    - func: "create repl_set"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+
 - name: integration-4.2
   commands:
     - func: "fetch source"
@@ -1014,7 +1050,7 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true" 
+        INT_TEST: "true"
 
 - name: integration-4.2-auth
   commands:
@@ -1038,8 +1074,8 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true"
-          AUTH_TEST: "true"
+        INT_TEST: "true"
+        AUTH_TEST: "true"
 
 - name: kerberos
   commands:

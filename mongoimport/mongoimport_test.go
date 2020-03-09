@@ -24,7 +24,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
-	driverOpts "go.mongodb.org/mongo-driver/mongo/options"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -42,7 +42,7 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	cursor, err := collection.Find(nil, bson.D{}, driverOpts.Find().SetSort(bson.D{{"_id", 1}}))
+	cursor, err := collection.Find(nil, bson.D{}, mopt.Find().SetSort(bson.D{{"_id", 1}}))
 	if err != nil {
 		return err
 	}

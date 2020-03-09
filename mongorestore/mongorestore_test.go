@@ -10,9 +10,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"os"
-	"testing"
-
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -20,7 +17,11 @@ import (
 	"github.com/mongodb/mongo-tools-common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"os"
+	"testing"
+	"time"
 )
 
 const (
@@ -721,5 +722,71 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				})
 			})
 		}
+	})
+}
+
+// TestSkipSystemCollections asserts that certain system collections like "config.systems.sessions" and the transaction
+// related tables aren't applied via applyops when replaying the oplog.
+func TestSkipSystemCollections(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.SkipNow()
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		db3 := session.Database("db3")
+
+		// Drop the collection to clean up resources
+		defer db3.Collection("c1").Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/oplog_partial_skips",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		currentTS := uint32(time.Now().UTC().Unix())
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("applyOps should skip certain system-related collections during mongorestore", func() {
+			queryObj := bson.D{
+				{"$and",
+					bson.A{
+						bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
+						bson.D{{"$or", bson.A{
+							bson.D{{"ns", primitive.Regex{Pattern: "^config.system.sessions*"}}},
+							bson.D{{"ns", primitive.Regex{Pattern: "^config.cache.*"}}},
+						}}},
+					},
+				},
+			}
+
+			cursor, err := session.Database("local").Collection("oplog.rs").Find(nil, queryObj, nil)
+			So(err, ShouldBeNil)
+
+			flag := cursor.Next(ctx)
+			So(flag, ShouldBeFalse)
+
+			cursor.Close(ctx)
+		})
 	})
 }
