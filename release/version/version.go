@@ -21,7 +21,7 @@ func Parse(desc string) (Version, error) {
 		return Version{}, fmt.Errorf("description too short to parse: %q", desc)
 	}
 
-	if desc[0] == 'r' {
+	if desc[0] == 'r' || desc[0] == 'v' {
 		desc = desc[1:]
 	}
 

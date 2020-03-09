@@ -12,10 +12,6 @@ MongoDB Tools
 
 Report any bugs, improvements, or new feature requests at https://jira.mongodb.org/browse/TOOLS
 
-Current Version
----------------
-The current version of the tools is 99.0.0
-
 Building Tools
 ---------------
 To build the tools, you need to have Go version 1.9 and up. `go get` will not work; you
