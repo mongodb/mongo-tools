@@ -261,9 +261,10 @@ type Timestamp struct {
 
 // HeadTailTimestamp iterates only through the BSON file with timestamp, such as oplog.bson
 // It returns head and tail timestamp
-func (bd *BSONDump) HeadTailTimestamp() ([]OplogTimestamp, error) {
+func (bd *BSONDump) HeadTailTimestamp() ([]OplogTimestamp, int, error) {
 	var tail bson.Raw
 	begin := false
+	number := 0
 	opResult := make([]OplogTimestamp, 0, 2)
 	if bd.InputSource == nil {
 		panic("Tried to call JSON() before opening file")
@@ -280,36 +281,37 @@ func (bd *BSONDump) HeadTailTimestamp() ([]OplogTimestamp, error) {
 			if bytes, err := formatJSON(&result, bd.OutputOptions.Pretty); err != nil {
 				//if objcheck is turned on, stop now. otherwise keep on dumpin'
 				if bd.OutputOptions.ObjCheck {
-					return nil, err
+					return nil, number, err
 				}
 			} else {
 				begin = true
 				op := OplogTimestamp{}
 				err := json.Unmarshal(bytes, &op)
 				if err != nil {
-					return nil, err
+					return nil, number, err
 				}
 				opResult = append(opResult, op)
 			}
 		}
 
+		number++
 		if failpoint.Enabled(failpoint.SlowBSONDump) {
 			time.Sleep(2 * time.Second)
 		}
 	}
 	if err := bd.InputSource.Err(); err != nil {
-		return opResult, err
+		return opResult, number, err
 	}
 
 	if bytes, err := formatJSON(&tail, bd.OutputOptions.Pretty); err != nil {
-		return opResult, nil
+		return opResult, number, nil
 	} else {
 		op := OplogTimestamp{}
 		err := json.Unmarshal(bytes, &op)
 		if err != nil {
-			return opResult, err
+			return opResult, number, err
 		}
 		opResult = append(opResult, op)
 	}
-	return opResult, nil
+	return opResult, number, nil
 }
