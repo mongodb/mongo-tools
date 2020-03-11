@@ -65,6 +65,7 @@ ToolTest = function(name, extraOptions) {
   this.dbpath = this.root + "/";
   this.ext = this.root + "_external/";
   this.extFile = this.root + "_external/a";
+  mkdir(this.dbpath);
   resetDbpath(this.dbpath);
   resetDbpath(this.ext);
 };
