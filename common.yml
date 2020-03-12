@@ -43,7 +43,7 @@ mongo_tools_variables:
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
       # - name: kerberos
-      - name: legacy30
+      - name: legacy42
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
@@ -221,7 +221,7 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        python buildscripts/smoke.py ${smoke_use_ssl} --with-cleanbb --mongod ./mongod --mongo ./mongo --report-file ../../report.json --continue-on-failure --buildlogger-builder MCI_${build_variant} --buildlogger-buildnum ${builder_num|} --buildlogger-credentials ./mci.buildlogger --buildlogger-phase ${task_name}_${execution} ${smoke_args} tool
+        ./mongo --nodb jstests/tool/*.js
 
   "run qa-tests":
     command: shell.exec
@@ -1091,7 +1091,7 @@ tasks:
       vars:
           KERBEROS_TEST: "true"
 
-- name: legacy30
+- name: legacy42
   depends_on:
   - name: dist
   commands:
@@ -1100,7 +1100,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "3.0"
+        mongo_version: "4.2"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -1119,10 +1119,12 @@ tasks:
     - func: "fetch tool"
       vars:
         tool: mongofiles
+    - func: "fetch tool"
+      vars:
+        tool: bsondump
     - func: "run legacy tests"
       vars:
-        test_path: "test/legacy30"
-        smoke_args: "--authMechanism SCRAM-SHA-1"
+        test_path: "test/legacy42"
 
 - name: format-go
   commands:
