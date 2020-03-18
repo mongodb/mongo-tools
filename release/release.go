@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"compress/gzip"
 	"crypto/md5"
 	"crypto/sha1"
@@ -19,6 +20,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/mongodb/mongo-tools/release/aws"
 	"github.com/mongodb/mongo-tools/release/download"
@@ -87,6 +90,8 @@ func main() {
 		listLinuxDeps()
 	case "upload-release":
 		uploadRelease(v)
+	case "linux-release":
+		linuxRelease(v)
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -113,6 +118,45 @@ func run(name string, args ...string) (string, error) {
 		}
 	}
 	return strings.TrimSpace(string(out)), err
+}
+
+func streamOutput(prefix string, reader io.Reader) {
+	log := func(txt string) {
+		log.Printf("[%s] %s\n", prefix, txt)
+	}
+
+	scanner := bufio.NewScanner(reader)
+	for {
+		hasNext := scanner.Scan()
+		if !hasNext {
+			err := scanner.Err()
+			log("DONE")
+			if err != nil {
+				log("streaming error: " + err.Error())
+			}
+			return
+		}
+		txt := scanner.Text()
+		log(txt)
+	}
+}
+
+func runAndStreamStderr(logPrefix string, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	streamOutput(logPrefix, stderrPipe)
+
+	return cmd.Wait()
 }
 
 func isTaggedRelease(rev string) bool {
@@ -791,7 +835,8 @@ func buildZip() {
 
 func uploadRelease(v version.Version) {
 	if env.EvgIsPatch() {
-		fmt.Println("current build is a patch; not uploading a release")
+		log.Println("current build is a patch; not uploading a release")
+		return
 	}
 
 	tasks, err := evergreen.GetTasksForRevision(v.Commit)
@@ -825,7 +870,7 @@ func uploadRelease(v version.Version) {
 	var dls []download.ToolsDownload
 
 	for _, task := range signTasks {
-		fmt.Printf("\ngetting artifacts for %s\n", task.Variant)
+		log.Printf("\ngetting artifacts for %s\n", task.Variant)
 		pf, ok := platform.GetByVariant(task.Variant)
 		if !ok {
 			panic("unreachable") // should have been caught in previous block
@@ -862,7 +907,7 @@ func uploadRelease(v version.Version) {
 				pf.Name, pf.Arch, ext,
 			)
 
-			fmt.Printf("  downloading %s\n", a.URL)
+			log.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
 			if v.IsStable() {
 				copyFile(unstableFile, stableFile)
@@ -883,12 +928,12 @@ func uploadRelease(v version.Version) {
 				}
 			}
 
-			fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
+			log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
 			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
 			if v.IsStable() {
-				fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
+				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
-				fmt.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
+				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
 			}
 		}
@@ -912,7 +957,116 @@ func uploadRelease(v version.Version) {
 		err = jsonEncoder.Encode(feed)
 		check(err, "encode json feed")
 
-		fmt.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
+		log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
 		awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
 	}
+}
+
+var linuxRepoEditions = []string{"org", "enterprise"}
+var linuxRepoVersions = []string{"4.3.0"}
+
+func linuxRelease(v version.Version) {
+	if env.EvgIsPatch() {
+		log.Println("current build is a patch; not performing a linux release")
+		return
+	}
+
+	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	check(err, "get evergreen tasks")
+
+	distTasks := []evergreen.Task{}
+	for _, task := range tasks {
+		if task.IsPatch() || task.DisplayName != "dist" {
+			continue
+		}
+
+		if task.Variant == "ubuntu-race" {
+			continue
+		}
+
+		_, knownVariant := platform.GetByVariant(task.Variant)
+		if !knownVariant {
+			log.Fatalf("found dist task with unknown variant '%s'\n", task.Variant)
+		}
+
+		distTasks = append(distTasks, task)
+	}
+
+	if len(distTasks) != platform.Count() {
+		log.Fatalf(
+			"found %d dist tasks, but expected %d release platforms",
+			len(distTasks), platform.Count(),
+		)
+	}
+
+	wg := &sync.WaitGroup{}
+	for _, task := range distTasks {
+		pf, ok := platform.GetByVariant(task.Variant)
+		if !ok {
+			panic("unreachable") // should have been caught in previous block
+		}
+		if pf.OS != platform.OSLinux {
+			log.Printf("\nskipping non-linux variant %s\n", task.Variant)
+			continue
+		}
+
+		log.Printf("\ngetting artifacts for %s\n", task.Variant)
+		artifacts, err := evergreen.GetArtifactsForTask(task.TaskID)
+		check(err, "getting artifacts list")
+
+		packagesURL := ""
+		for _, a := range artifacts {
+			if strings.HasPrefix(a.Name, "All Release Artifacts") {
+				packagesURL = a.URL
+				break
+			}
+		}
+
+		editionsToRelease := linuxRepoEditions
+		versionsToRelease := linuxRepoVersions
+		if !v.IsStable() {
+			// If we're not releasing a stable version, just using the
+			// current version string will cause the packages to be
+			// pushed to the "development" repos.
+			versionsToRelease = []string{v.String()}
+		}
+
+		for _, mongoVersion := range versionsToRelease {
+			for _, mongoEdition := range editionsToRelease {
+				mv := mongoVersion
+				me := mongoEdition
+				wg.Add(1)
+				go func() {
+					curatorArgs := []string{
+						"--level", "debug",
+						"repo", "submit",
+						"--service", "https://barque.corp.mongodb.com",
+						"--config", "etc/repo-config.yml",
+						"--distro", pf.Name,
+						"--arch", pf.Arch,
+						"--edition", me,
+						"--version", mv,
+						"--packages", packagesURL,
+						"--username", os.Getenv("BARQUE_USERNAME"),
+						"--password", os.Getenv("BARQUE_PASSWORD"),
+					}
+
+					prefix := fmt.Sprintf("%s-%s", pf.Variant(), me)
+					log.Printf("starting curator for %s\n", prefix)
+					err := runAndStreamStderr(prefix, "./curator", curatorArgs...)
+
+					log.Printf("finished curator for %s\n", prefix)
+					check(err, "run curator for %s", prefix)
+					wg.Done()
+				}()
+
+				// We need to sleep briefly between curator
+				// invocations because of an auth race condition in
+				// barque.
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+	}
+	log.Println("waiting for curator invocations to finish")
+	wg.Wait()
 }

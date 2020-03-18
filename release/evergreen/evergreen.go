@@ -26,6 +26,8 @@ type Task struct {
 	DisplayName string `json:"display_name"`
 }
 
+// IsPatch indicates whether the task is part of a patchbuild (as
+// opposed to a task from the waterfall).
 func (t Task) IsPatch() bool {
 	return strings.Contains(t.TaskID, "patch")
 }
@@ -87,6 +89,9 @@ func GetArtifactsForTask(id string) ([]Artifact, error) {
 	return task.Artifacts, nil
 }
 
+// GetTasksForRevision gets all the evergreen tasks associated with a
+// git revision. This also includes tasks from patches that were based
+// on the provided revision.
 func GetTasksForRevision(rev string) ([]Task, error) {
 	res, err := get("/projects/mongo-tools/revisions/" + rev + "/tasks?limit=100000")
 	if err != nil {

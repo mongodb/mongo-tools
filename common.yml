@@ -700,7 +700,7 @@ functions:
         permissions: public-read
         content_type: application/octet-stream
 
-  "upload release packages":
+  "upload release packages to s3":
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -716,6 +716,20 @@ functions:
         content_type: application/json
         bucket: mciuploads
         permissions: public-read
+
+  "upload release packages to linux repos":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          curl -L -O http://boxes.10gen.com/build/curator/curator-dist-rhel70-latest.tar.gz
+          tar -zxvf curator-dist-rhel70-latest.tar.gz
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          go run release/release.go linux-release
 
   "fetch source" :
     - command: shell.exec
@@ -838,6 +852,9 @@ pre:
           export EVG_KEY='${evg_key}'
           export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
           export AWS_SECRET_ACCESS_KEY='${release_aws_secret}'
+          export NOTARY_TOKEN='${signing_auth_token_server_4_4}'
+          export BARQUE_USERNAME='${evg_user}'
+          export BARQUE_PASSWORD='${evg_password}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -972,7 +989,16 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "upload release packages"
+    - func: "upload release packages to s3"
+
+- name: release-linux-repos
+  depends_on:
+    - name: sign
+      variant: '*'
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "upload release packages to linux repos"
 
 - name: integration-3.6
   commands:
@@ -1584,6 +1610,7 @@ buildvariants:
   - amazon1-2018-test
   tasks:
   - name: release-s3
+  - name: release-linux-repos
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
