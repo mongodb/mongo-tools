@@ -146,12 +146,33 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 
 // addClientCertFromFile adds a client certificate to the configuration given a path to the
 // containing file and returns the certificate's subject name.
-func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
+func addClientCertFromFile(cfg *tls.Config, clientFile, keyPassword string) (string, error) {
 	data, err := ioutil.ReadFile(clientFile)
 	if err != nil {
 		return "", err
 	}
 
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
+	keyData, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return "", err
+	}
+	certData, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return "", err
+	}
+
+	data := append(keyData, '\n')
+	data = append(data, certData...)
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+// addClientCertFromBytes adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
 	var certBlock, certDecodedBlock, keyBlock []byte
 
@@ -206,6 +227,17 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 	}
 
 	return crt.Subject.String(), nil
+}
+
+// create a username for x509 authentication from an x509 certificate subject.
+func extractX509UsernameFromSubject(subject string) string {
+	// the Go x509 package gives the subject with the pairs in the reverse order from what we want.
+	pairs := strings.Split(subject, ",")
+	for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
+		pairs[left], pairs[right] = pairs[right], pairs[left]
+	}
+
+	return strings.Join(pairs, ",")
 }
 
 // addCACertFromFile adds a root CA certificate to the configuration given a path
@@ -427,17 +459,33 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
 			tlsConfig.InsecureSkipVerify = true
 		}
-		if opts.SSLPEMKeyFile != "" {
-			_, err := addClientCertFromFile(tlsConfig, opts.SSLPEMKeyFile, opts.SSLPEMKeyPassword)
-			if err != nil {
-				return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
-			}
+
+		var x509Subject string
+		var keyPasswd string
+		var err error
+		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+			keyPasswd = cs.SSLClientCertificateKeyPassword()
+		}
+		if cs.SSLClientCertificateKeyFileSet {
+			x509Subject, err = addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
+		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
+			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, cs.SSLCertificateFile, cs.SSLPrivateKeyFile, keyPasswd)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
 		}
 		if opts.SSLCAFile != "" {
 			if err := addCACertFromFile(tlsConfig, opts.SSLCAFile); err != nil {
 				return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
 			}
 		}
+
+		// If a username wasn't specified for x509, add one from the certificate.
+		if clientopt.Auth != nil && strings.ToLower(clientopt.Auth.AuthMechanism) == "mongodb-x509" && clientopt.Auth.Username == "" {
+			// The Go x509 package gives the subject with the pairs in reverse order that we want.
+			clientopt.Auth.Username = extractX509UsernameFromSubject(x509Subject)
+		}
+
 		clientopt.SetTLSConfig(tlsConfig)
 	}
 

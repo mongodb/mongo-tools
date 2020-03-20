@@ -789,7 +789,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 	if opts.SSLPEMKeyFile != "" && cs.SSLClientCertificateKeyFileSet {
 		if opts.SSLPEMKeyFile != cs.SSLClientCertificateKeyFile {
-			return ConflictingArgsErrorFormat("sslPEMKeyFile", cs.SSLClientCertificateKeyFile, opts.SSLPEMKeyFile, "--sslPEMKeyFile")
+			return ConflictingArgsErrorFormat("sslClientCertificateKeyFile", cs.SSLClientCertificateKeyFile, opts.SSLPEMKeyFile, "--sslPEMKeyFile")
 		}
 	}
 	if opts.SSLPEMKeyFile != "" && !cs.SSLClientCertificateKeyFileSet {
@@ -802,7 +802,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 	if opts.SSLPEMKeyPassword != "" && cs.SSLClientCertificateKeyPasswordSet {
 		if opts.SSLPEMKeyPassword != cs.SSLClientCertificateKeyPassword() {
-			return ConflictingArgsErrorFormat("sslPEMKeyFile", cs.SSLClientCertificateKeyPassword(), opts.SSLPEMKeyPassword, "--sslPEMKeyFile")
+			return ConflictingArgsErrorFormat("sslPEMKeyFilePassword", cs.SSLClientCertificateKeyPassword(), opts.SSLPEMKeyPassword, "--sslPEMKeyFilePassword")
 		}
 	}
 	if opts.SSLPEMKeyPassword != "" && !cs.SSLClientCertificateKeyPasswordSet {
@@ -817,7 +817,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 	if cs.SSLInsecureSet {
 		if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) && !cs.SSLInsecure {
-			return ConflictingArgsErrorFormat("sslPEMKeyFile", "false", "true", "--sslAllowInvalidCert or --sslAllowInvalidHost")
+			return ConflictingArgsErrorFormat("sslInsecure or tlsInsecure", "false", "true", "--sslAllowInvalidCert or --sslAllowInvalidHost")
 		}
 		opts.SSLAllowInvalidCert = cs.SSLInsecure
 		opts.SSLAllowInvalidHost = cs.SSLInsecure
