@@ -141,7 +141,7 @@ type URI struct {
 
 	knownURIParameters   []string
 	extraOptionsRegistry []ExtraOptions
-	connString           connstring.ConnString
+	ConnString           connstring.ConnString
 }
 
 // Struct holding connection-related options
@@ -381,17 +381,17 @@ func NewURI(unparsed string) (*URI, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing URI from %v: %v", unparsed, err)
 	}
-	return &URI{ConnectionString: cs.String(), connString: cs}, nil
+	return &URI{ConnectionString: cs.String(), ConnString: cs}, nil
 }
 
 func (uri *URI) GetConnectionAddrs() []string {
-	return uri.connString.Hosts
+	return uri.ConnString.Hosts
 }
 func (uri *URI) ParsedConnString() *connstring.ConnString {
 	if uri.ConnectionString == "" {
 		return nil
 	}
-	return &uri.connString
+	return &uri.ConnString
 }
 func (uri *URI) AddKnownURIParameters(uriFieldNames []string) {
 	uri.knownURIParameters = append(uri.knownURIParameters, uriFieldNames...)
@@ -404,11 +404,11 @@ func (opts *ToolOptions) EnabledToolOptions() EnabledOptions {
 func (uri *URI) LogUnsupportedOptions() {
 	allOptionsFromURI := map[string]struct{}{}
 
-	for optName := range uri.connString.Options {
+	for optName := range uri.ConnString.Options {
 		allOptionsFromURI[optName] = struct{}{}
 	}
 
-	for optName := range uri.connString.UnknownOptions {
+	for optName := range uri.ConnString.UnknownOptions {
 		allOptionsFromURI[optName] = struct{}{}
 	}
 
@@ -525,7 +525,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		if err != nil {
 			return err
 		}
-		err = opts.connString.Validate()
+		err = opts.ConnString.Validate()
 		if err != nil {
 			return err
 		}
@@ -566,7 +566,7 @@ func (opts *ToolOptions) handleUnknownOption(option string, arg flags.SplitArgum
 // we check that it is not equal to its default value. To check that a URI option is set,
 // some options have an "OptionSet" field.
 func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
-	opts.URI.connString = cs
+	opts.URI.ConnString = cs
 
 	if opts.enabledOptions.Connection {
 		// Port can be set in --port, --host, or URI
@@ -629,6 +629,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 		if opts.Connection.ServerSelectionTimeout != 0 && !cs.ServerSelectionTimeoutSet {
 			cs.ServerSelectionTimeout = time.Duration(opts.Connection.ServerSelectionTimeout) * time.Millisecond
+			cs.ServerSelectionTimeoutSet = true
 		}
 		if opts.Connection.ServerSelectionTimeout == 0 && cs.ServerSelectionTimeoutSet {
 			opts.Connection.ServerSelectionTimeout = int(cs.ServerSelectionTimeout / time.Millisecond)
@@ -641,6 +642,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 		if opts.Connection.Timeout != 3 && !cs.ConnectTimeoutSet {
 			cs.ConnectTimeout = time.Duration(opts.Connection.Timeout) * time.Millisecond
+			cs.ConnectTimeoutSet = true
 		}
 		if opts.Connection.Timeout == 3 && cs.ConnectTimeoutSet {
 			opts.Connection.Timeout = int(cs.ConnectTimeout / time.Millisecond)
@@ -653,6 +655,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 		if opts.Connection.SocketTimeout != 0 && !cs.SocketTimeoutSet {
 			cs.SocketTimeout = time.Duration(opts.Connection.SocketTimeout) * time.Millisecond
+			cs.SocketTimeoutSet = true
 		}
 		if opts.Connection.SocketTimeout == 0 && cs.SocketTimeoutSet {
 			opts.Connection.SocketTimeout = int(cs.SocketTimeout / time.Millisecond)
@@ -689,11 +692,12 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 				return fmt.Errorf("Invalid Options: Cannot specify different password in connection URI and command-line option")
 			}
 		}
-		if opts.Password != "" && cs.Password == "" {
+		if opts.Password != "" && cs.PasswordSet {
 			cs.Password = opts.Password
 		}
-		if opts.Password == "" && cs.Password != "" {
+		if opts.Password == "" && !cs.PasswordSet {
 			opts.Password = cs.Password
+			cs.PasswordSet = true
 		}
 
 		if opts.Source != "" && cs.AuthSourceSet {
@@ -703,6 +707,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 		if opts.Source != "" && !cs.AuthSourceSet {
 			cs.AuthSource = opts.Source
+			cs.AuthSourceSet = true
 		}
 		if opts.Source == "" && cs.AuthSourceSet {
 			opts.Source = cs.AuthSource
@@ -776,6 +781,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	}
 	if opts.SSLCAFile != "" && !cs.SSLCaFileSet {
 		cs.SSLCaFile = opts.SSLCAFile
+		cs.SSLCaFileSet = true
 	}
 	if opts.SSLCAFile == "" && cs.SSLCaFileSet {
 		opts.SSLCAFile = cs.SSLCaFile
@@ -788,6 +794,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	}
 	if opts.SSLPEMKeyFile != "" && !cs.SSLClientCertificateKeyFileSet {
 		cs.SSLClientCertificateKeyFile = opts.SSLPEMKeyFile
+		cs.SSLClientCertificateKeyFileSet = true
 	}
 	if opts.SSLPEMKeyFile == "" && cs.SSLClientCertificateKeyFileSet {
 		opts.SSLPEMKeyFile = cs.SSLClientCertificateKeyFile
@@ -798,9 +805,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			return ConflictingArgsErrorFormat("sslPEMKeyFile", cs.SSLClientCertificateKeyPassword(), opts.SSLPEMKeyPassword, "--sslPEMKeyFile")
 		}
 	}
-
 	if opts.SSLPEMKeyPassword != "" && !cs.SSLClientCertificateKeyPasswordSet {
 		cs.SSLClientCertificateKeyPassword = func() string { return opts.SSLPEMKeyPassword }
+		cs.SSLClientCertificateKeyPasswordSet = true
 	}
 	if opts.SSLPEMKeyPassword == "" && cs.SSLClientCertificateKeyPasswordSet {
 		opts.SSLPEMKeyPassword = cs.SSLClientCertificateKeyPassword()
@@ -830,6 +837,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 		if opts.Kerberos.Service != "" && !cs.AuthMechanismPropertiesSet {
 			cs.AuthMechanismProperties["SERVICE_NAME"] = opts.Kerberos.Service
+			cs.AuthMechanismPropertiesSet = true
 		}
 		if opts.Kerberos.Service == "" && cs.AuthMechanismPropertiesSet {
 			opts.Kerberos.Service = gssapiServiceName
@@ -846,7 +854,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	}
 
 	// set the connString on opts so it can be validated later
-	opts.connString = cs
+	opts.ConnString = cs
 
 	return nil
 }

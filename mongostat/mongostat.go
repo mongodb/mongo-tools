@@ -244,6 +244,7 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, er
 	uriCopy.ConnectionString = newCS
 	optsCopy.URI = &uriCopy
 	optsCopy.Direct = true
+	optsCopy.ConnString.Hosts = []string{fullHost}
 	sessionProvider, err := db.NewSessionProvider(optsCopy)
 	if err != nil {
 		return nil, err
