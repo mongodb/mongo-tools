@@ -377,7 +377,7 @@ func (auth *Auth) ShouldAskForPassword() bool {
 }
 
 func NewURI(unparsed string) (*URI, error) {
-	cs, err := connstring.ParseAndValidate(unparsed)
+	cs, err := connstring.Parse(unparsed)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing URI from %v: %v", unparsed, err)
 	}
@@ -687,17 +687,17 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			return fmt.Errorf("must set a username when using an SRV scheme")
 		}
 
-		if opts.Password != "" && cs.Password != "" {
+		if opts.Password != "" && cs.PasswordSet {
 			if opts.Password != cs.Password {
 				return fmt.Errorf("Invalid Options: Cannot specify different password in connection URI and command-line option")
 			}
 		}
-		if opts.Password != "" && cs.PasswordSet {
+		if opts.Password != "" && !cs.PasswordSet {
 			cs.Password = opts.Password
-		}
-		if opts.Password == "" && !cs.PasswordSet {
-			opts.Password = cs.Password
 			cs.PasswordSet = true
+		}
+		if opts.Password == "" && cs.PasswordSet {
+			opts.Password = cs.Password
 		}
 
 		if opts.Source != "" && cs.AuthSourceSet {
