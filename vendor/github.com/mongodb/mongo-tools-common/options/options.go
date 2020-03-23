@@ -516,20 +516,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 // connection string. If a value is set on the connection string, but not the options,
 // that value is added to the options.
 func (opts *ToolOptions) NormalizeOptionsAndURI() error {
-	if opts.URI != nil && opts.URI.ConnectionString != "" {
-		cs, err := connstring.Parse(opts.URI.ConnectionString)
-		if err != nil {
-			return err
-		}
-		err = opts.setOptionsFromURI(cs)
-		if err != nil {
-			return err
-		}
-		err = opts.ConnString.Validate()
-		if err != nil {
-			return err
-		}
-	} else {
+	if opts.URI == nil || opts.URI.ConnectionString == "" {
 		// If URI not provided, get replica set name and generate connection string
 		_, opts.ReplicaSetName = util.SplitHostArg(opts.Host)
 		uri, err := NewURI(util.BuildURI(opts.Host, opts.Port))
@@ -537,6 +524,19 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 			return err
 		}
 		opts.URI = uri
+	}
+
+	cs, err := connstring.Parse(opts.URI.ConnectionString)
+	if err != nil {
+		return err
+	}
+	err = opts.setOptionsFromURI(cs)
+	if err != nil {
+		return err
+	}
+	err = opts.ConnString.Validate()
+	if err != nil {
+		return err
 	}
 
 	// connect directly, unless a replica set name is explicitly specified
@@ -774,6 +774,23 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 	}
 
+	// ignore opts.UseSSL being false due to zero-value problem (TOOLS-2459 PR for details)
+	// Ignore: opts.UseSSL = false, cs.SSL = true (have cs take precedence)
+	// Treat as conflict: opts.UseSSL = true, cs.SSL = false
+	if opts.UseSSL && cs.SSLSet {
+		if !cs.SSL {
+			return ConflictingArgsErrorFormat("ssl or tls", strconv.FormatBool(cs.SSL), strconv.FormatBool(opts.UseSSL), "--ssl")
+		}
+	}
+	if opts.UseSSL && !cs.SSLSet {
+		cs.SSL = opts.UseSSL
+		cs.SSLSet = true
+	}
+	// If SSL set in cs but not in opts,
+	if !opts.UseSSL && cs.SSLSet {
+		opts.UseSSL = cs.SSL
+	}
+
 	if opts.SSLCAFile != "" && cs.SSLCaFileSet {
 		if opts.SSLCAFile != cs.SSLCaFile {
 			return ConflictingArgsErrorFormat("sslCAFile", cs.SSLCaFile, opts.SSLCAFile, "--sslCAFile")
@@ -815,10 +832,18 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 	// Note: SSLCRLFile is not parsed by the go driver
 
-	if cs.SSLInsecureSet {
-		if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) && !cs.SSLInsecure {
+	// ignore (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) being false due to zero-value problem (TOOLS-2459 PR for details)
+	// Have cs take precedence in cases where it is unclear
+	if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) && cs.SSLInsecureSet {
+		if !cs.SSLInsecure {
 			return ConflictingArgsErrorFormat("sslInsecure or tlsInsecure", "false", "true", "--sslAllowInvalidCert or --sslAllowInvalidHost")
 		}
+	}
+	if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) && !cs.SSLInsecureSet {
+		cs.SSLInsecure = true
+		cs.SSLInsecureSet = true
+	}
+	if (!opts.SSLAllowInvalidCert && !opts.SSLAllowInvalidHost) && cs.SSLInsecureSet {
 		opts.SSLAllowInvalidCert = cs.SSLInsecure
 		opts.SSLAllowInvalidHost = cs.SSLInsecure
 	}
