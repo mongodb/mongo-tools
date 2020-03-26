@@ -1615,17 +1615,6 @@ buildvariants:
 #     Debian x86_64 Buildvariants     #
 #######################################
 
-- name: debian71
-  display_name: Debian 7.1
-  run_on:
-    - debian71-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-
 - name: debian81
   display_name: Debian 8.1
   run_on:
@@ -1752,17 +1741,6 @@ buildvariants:
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
 #######################################
-
-- name: ubuntu1204
-  display_name: Ubuntu 12.04
-  run_on:
-    - ubuntu1204-test
-  expansions:
-    build_tags: "sasl gssapi ssl"
-  tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
 
 - name: ubuntu1404
   display_name: Ubuntu 14.04

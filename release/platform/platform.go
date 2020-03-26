@@ -108,12 +108,6 @@ var platforms = []Platform{
 		Pkg:  PkgRPM,
 	},
 	{
-		Name: "debian71",
-		Arch: "x86_64",
-		OS:   OSLinux,
-		Pkg:  PkgDeb,
-	},
-	{
 		Name: "debian81",
 		Arch: "x86_64",
 		OS:   OSLinux,
@@ -165,12 +159,6 @@ var platforms = []Platform{
 		Arch: "x86_64",
 		OS:   OSLinux,
 		Pkg:  PkgRPM,
-	},
-	{
-		Name: "ubuntu1204",
-		Arch: "x86_64",
-		OS:   OSLinux,
-		Pkg:  PkgDeb,
 	},
 	{
 		Name: "ubuntu1404",
