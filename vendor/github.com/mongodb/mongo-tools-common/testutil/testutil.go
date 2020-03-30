@@ -62,6 +62,10 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 			URI:        &options.URI{},
 		}
 	}
+	err := toolOptions.NormalizeOptionsAndURI()
+	if err != nil {
+		return nil, nil, err
+	}
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, nil, err

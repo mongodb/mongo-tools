@@ -27,7 +27,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/tag"
 )
 
 type (
@@ -143,12 +146,33 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 
 // addClientCertFromFile adds a client certificate to the configuration given a path to the
 // containing file and returns the certificate's subject name.
-func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
+func addClientCertFromFile(cfg *tls.Config, clientFile, keyPassword string) (string, error) {
 	data, err := ioutil.ReadFile(clientFile)
 	if err != nil {
 		return "", err
 	}
 
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
+	keyData, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return "", err
+	}
+	certData, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return "", err
+	}
+
+	data := append(keyData, '\n')
+	data = append(data, certData...)
+	return addClientCertFromBytes(cfg, data, keyPassword)
+}
+
+// addClientCertFromBytes adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
 	var certBlock, certDecodedBlock, keyBlock []byte
 
@@ -203,6 +227,17 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (strin
 	}
 
 	return crt.Subject.String(), nil
+}
+
+// create a username for x509 authentication from an x509 certificate subject.
+func extractX509UsernameFromSubject(subject string) string {
+	// the Go x509 package gives the subject with the pairs in the reverse order from what we want.
+	pairs := strings.Split(subject, ",")
+	for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
+		pairs[left], pairs[right] = pairs[right], pairs[left]
+	}
+
+	return strings.Join(pairs, ",")
 }
 
 // addCACertFromFile adds a root CA certificate to the configuration given a path
@@ -262,12 +297,6 @@ func loadCert(data []byte) ([]byte, error) {
 
 // configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
-	clientopt := mopt.Client()
-
-	if opts.RetryWrites != nil {
-		clientopt.SetRetryWrites(*opts.RetryWrites)
-	}
-
 	if opts.URI == nil || opts.URI.ConnectionString == "" {
 		// XXX Normal operations shouldn't ever reach here because a URI should
 		// be created in options parsing, but tests still manually construct
@@ -276,9 +305,13 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		opts.NormalizeOptionsAndURI()
 	}
 
-	uriOpts := mopt.Client().ApplyURI(opts.URI.ConnectionString)
-	if err := uriOpts.Validate(); err != nil {
-		return nil, fmt.Errorf("error parsing options from URI: %v", err)
+	clientopt := mopt.Client()
+	cs := opts.URI.ParsedConnString()
+
+	clientopt.Hosts = cs.Hosts
+
+	if opts.RetryWrites != nil {
+		clientopt.SetRetryWrites(*opts.RetryWrites)
 	}
 
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
@@ -307,6 +340,87 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 
 	if opts.Compressors != "" && opts.Compressors != "none" {
 		clientopt.SetCompressors(strings.Split(opts.Compressors, ","))
+	}
+
+	if cs.ZlibLevelSet {
+		clientopt.SetZlibLevel(cs.ZlibLevel)
+	}
+	if cs.ZstdLevelSet {
+		clientopt.SetZstdLevel(cs.ZstdLevel)
+	}
+
+	if cs.HeartbeatIntervalSet {
+		clientopt.SetHeartbeatInterval(cs.HeartbeatInterval)
+	}
+
+	if cs.LocalThresholdSet {
+		clientopt.SetLocalThreshold(cs.LocalThreshold)
+	}
+
+	if cs.MaxConnIdleTimeSet {
+		clientopt.SetMaxConnIdleTime(cs.MaxConnIdleTime)
+	}
+
+	if cs.MaxPoolSizeSet {
+		clientopt.SetMaxPoolSize(cs.MaxPoolSize)
+	}
+
+	if cs.MinPoolSizeSet {
+		clientopt.SetMinPoolSize(cs.MinPoolSize)
+	}
+
+	if cs.ReadConcernLevel != "" {
+		rc := readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+		clientopt.SetReadConcern(rc)
+	}
+
+	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
+		readPrefOpts := make([]readpref.Option, 0, 1)
+
+		tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+		if len(tagSets) > 0 {
+			readPrefOpts = append(readPrefOpts, readpref.WithTagSets(tagSets...))
+		}
+
+		if cs.MaxStaleness != 0 {
+			readPrefOpts = append(readPrefOpts, readpref.WithMaxStaleness(cs.MaxStaleness))
+		}
+
+		mode, err := readpref.ModeFromString(cs.ReadPreference)
+		if err != nil {
+			return nil, err
+		}
+
+		readPref, err := readpref.New(mode, readPrefOpts...)
+		if err != nil {
+			return nil, err
+		}
+
+		clientopt.SetReadPreference(readPref)
+	}
+
+	if cs.RetryReadsSet {
+		clientopt.SetRetryReads(cs.RetryReads)
+	}
+
+	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
+		opts := make([]writeconcern.Option, 0, 1)
+
+		if len(cs.WString) > 0 {
+			opts = append(opts, writeconcern.WTagSet(cs.WString))
+		} else if cs.WNumberSet {
+			opts = append(opts, writeconcern.W(cs.WNumber))
+		}
+
+		if cs.JSet {
+			opts = append(opts, writeconcern.J(cs.J))
+		}
+
+		if cs.WTimeoutSet {
+			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+		}
+
+		clientopt.SetWriteConcern(writeconcern.New(opts...))
 	}
 
 	if opts.Auth != nil && opts.Auth.IsSet() {
@@ -345,21 +459,41 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
 			tlsConfig.InsecureSkipVerify = true
 		}
-		if opts.SSLPEMKeyFile != "" {
-			_, err := addClientCertFromFile(tlsConfig, opts.SSLPEMKeyFile, opts.SSLPEMKeyPassword)
-			if err != nil {
-				return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
-			}
+
+		var x509Subject string
+		var keyPasswd string
+		var err error
+		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+			keyPasswd = cs.SSLClientCertificateKeyPassword()
+		}
+		if cs.SSLClientCertificateKeyFileSet {
+			x509Subject, err = addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
+		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
+			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, cs.SSLCertificateFile, cs.SSLPrivateKeyFile, keyPasswd)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
 		}
 		if opts.SSLCAFile != "" {
 			if err := addCACertFromFile(tlsConfig, opts.SSLCAFile); err != nil {
 				return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
 			}
 		}
+
+		// If a username wasn't specified for x509, add one from the certificate.
+		if clientopt.Auth != nil && strings.ToLower(clientopt.Auth.AuthMechanism) == "mongodb-x509" && clientopt.Auth.Username == "" {
+			// The Go x509 package gives the subject with the pairs in reverse order that we want.
+			clientopt.Auth.Username = extractX509UsernameFromSubject(x509Subject)
+		}
+
 		clientopt.SetTLSConfig(tlsConfig)
 	}
 
-	return mongo.NewClient(uriOpts, clientopt)
+	if cs.SSLDisableOCSPEndpointCheckSet {
+		clientopt.SetDisableOCSPEndpointCheck(cs.SSLDisableOCSPEndpointCheck)
+	}
+
+	return mongo.NewClient(clientopt)
 }
 
 // FilterError determines whether an error needs to be propagated back to the user or can be continued through. If an
