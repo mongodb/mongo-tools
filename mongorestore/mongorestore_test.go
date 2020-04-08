@@ -380,7 +380,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			restore.TargetDirectory = "testdata/indextestdump"
 			result := restore.Restore()
 			So(result.Err, ShouldNotBeNil)
-			So(result.Err.Error(), ShouldStartWith, `indextest.test_collection: error creating indexes for indextest.test_collection: createIndex error: (InvalidIndexSpecificationOption)`)
+			So(result.Err.Error(), ShouldStartWith, `indextest.test_collection: error creating indexes for indextest.test_collection: createIndex error:`)
 
 			So(result.Successes, ShouldEqual, 100)
 			So(result.Failures, ShouldEqual, 0)
@@ -400,7 +400,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 		restore, err = getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		Convey("Creating index with invalid option and --ignoreInvalidIndexOptions should succeed", func() {
+		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
 			restore.TargetDirectory = "testdata/indextestdump"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)

@@ -194,6 +194,11 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 		{"createIndexes", intent.C},
 		{"indexes", indexes},
 	}
+
+	if restore.serverVersion.GTE(db.Version{4, 1, 9}) {
+		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
+	}
+
 	err = session.Database(intent.DB).RunCommand(nil, rawCommand).Err()
 	if err == nil {
 		return nil
