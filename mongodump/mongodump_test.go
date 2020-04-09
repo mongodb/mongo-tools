@@ -1154,3 +1154,57 @@ func TestMongoDumpViews(t *testing.T) {
 
 	})
 }
+
+func TestMongoDumpCollectionOutputPath(t *testing.T) {
+	// testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	log.SetWriter(ioutil.Discard)
+
+	Convey("testing output paths for collection names of varying lengths", t, func() {
+		md := simpleMongoDumpInstance()
+
+		Convey("don't change a collection name that results in an output path < 255 bytes", func() {
+			md.OutputOptions.Out = "dump"
+
+			// 26 bytes < 255 bytes
+			// (output path will be under 255 bytes, regardless of file extension)
+			colName := "abcdefghijklmnopqrstuvwxyz"
+
+			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+			So(len(fileComponents), ShouldEqual, 3)
+
+			filePath := fileComponents[len(fileComponents)-1]
+			So(len(filePath), ShouldEqual, len(colName))
+			So(filePath, ShouldNotContainSubstring, util.EscapeCollectionName("$"))
+		})
+
+		Convey("don't change a collection name that could result in an output path = 255 bytes", func() {
+			md.OutputOptions.Out = "dump"
+
+			// 17 bytes * 14 = 238 bytes
+			// (output would be exactly 255 bytes with longest possible file extension of .metadata.json.gz)
+			colName := strings.Repeat("abcdefghijklmnopq", 14)
+
+			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+			So(len(fileComponents), ShouldEqual, 3)
+
+			filePath := fileComponents[len(fileComponents)-1]
+			So(len(filePath), ShouldEqual, len(colName))
+			So(filePath, ShouldNotContainSubstring, util.EscapeCollectionName("$"))
+		})
+
+		Convey("truncate a collection name that results in an output path > 255 bytes", func() {
+			md.OutputOptions.Out = "dump"
+
+			// 26 bytes * 10 = 260 bytes > 255 bytes
+			// (output path is already over the limit, regardless of file extension)
+			colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 10)
+
+			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+			So(len(fileComponents), ShouldEqual, 3)
+
+			filePath := fileComponents[len(fileComponents)-1]
+			So(len(filePath), ShouldEqual, 238)
+			So(filePath, ShouldContainSubstring, util.EscapeCollectionName("$"))
+		})
+	})
+}

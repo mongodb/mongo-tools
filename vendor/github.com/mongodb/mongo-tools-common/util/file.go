@@ -8,11 +8,11 @@ package util
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"net/url"
 	"os"
 	"path/filepath"
-	"context"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -45,11 +45,11 @@ func ToUniversalPath(path string) string {
 }
 
 func EscapeCollectionName(collName string) string {
-	return url.PathEscape(collName)
+	return url.QueryEscape(collName)
 }
 
 func UnescapeCollectionName(escapedCollName string) (string, error) {
-	return url.PathUnescape(escapedCollName)
+	return url.QueryUnescape(escapedCollName)
 }
 
 type WrappedReadCloser struct {
@@ -79,7 +79,6 @@ func (wwc *WrappedWriteCloser) Close() error {
 	}
 	return innerErr
 }
-
 
 // Wrapper that can capture errors that occur when closing the underlying closer.
 type DeferredCloser struct {

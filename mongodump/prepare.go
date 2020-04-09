@@ -9,6 +9,8 @@ package mongodump
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -194,9 +196,24 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 		root = dump.OutputOptions.Out
 	}
 
-	return filepath.Join(root, dbName, util.EscapeCollectionName(colName))
+	// Encode a new output path for collection names that would result in a file name greater
+	// than 255 bytes long. This includes the longest possible file extension: .metadata.json.gz
+	// The new format is <truncated-url-encoded-collection-name>%24<collection-name-hash-base64>
+	// where %24 represents a $ symbol delimiter (e.g. aVeryVery...VeryLongName%24oPpXMQ...).
+	if len(colName) > 238 {
+		colNameTruncated := util.EscapeCollectionName(colName)[:208]
+		delimiter := util.EscapeCollectionName("$")
+		colNameHashBytes := sha1.Sum([]byte(colName))
+		colNameHashBase64 := base64.RawURLEncoding.EncodeToString(colNameHashBytes[:])
+
+		// First 208 bytes of col name + 3 bytes delimiter + 27 bytes base64 hash = 238 bytes.
+		colName = colNameTruncated + delimiter + colNameHashBase64
+	}
+
+	return filepath.Join(root, dbName, colName)
 }
 
+// Unused.
 func checkStringForPathSeparator(s string, c *rune) bool {
 	for _, *c = range s {
 		if os.IsPathSeparator(uint8(*c)) {
@@ -314,12 +331,6 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		} else if dump.OutputOptions.ViewsAsCollections || !ci.IsView() {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
-			var c rune
-			if checkStringForPathSeparator(dbName, &c) {
-				return nil, fmt.Errorf(`database "%v" contains a path separator '%c' `+
-					`and can't be dumped to the filesystem`, dbName, c)
-			}
-
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 			intent.Location = path
