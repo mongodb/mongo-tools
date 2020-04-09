@@ -20,38 +20,10 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const insertBufferFactor = 16
-
-// validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
-var validIndexOptions = map[string]bool{
-	"2dsphereIndexVersion":    true,
-	"background":              true,
-	"bits":                    true,
-	"bucketSize":              true,
-	"coarsestIndexedLevel":    true,
-	"collation":               true,
-	"default_language":        true,
-	"expireAfterSeconds":      true,
-	"finestIndexedLevel":      true,
-	"key":                     true,
-	"language_override":       true,
-	"max":                     true,
-	"min":                     true,
-	"name":                    true,
-	"ns":                      true,
-	"partialFilterExpression": true,
-	"sparse":                  true,
-	"storageEngine":           true,
-	"textIndexVersion":        true,
-	"unique":                  true,
-	"v":                       true,
-	"weights":                 true,
-	"wildcardProjection":      true,
-}
 
 // Result encapsulates the outcome of a particular restore attempt.
 type Result struct {
@@ -171,7 +143,6 @@ func (restore *MongoRestore) RestoreIntents() Result {
 
 // RestoreIntent attempts to restore a given intent into MongoDB.
 func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
-
 	collectionExists, err := restore.CollectionExists(intent)
 	if err != nil {
 		return Result{Err: fmt.Errorf("error reading database: %v", err)}
@@ -318,7 +289,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			convertLegacyIndexes(indexes)
+			restore.convertLegacyIndexes(indexes)
 		}
 		if restore.OutputOptions.FixDottedHashedIndexes {
 			fixDottedHashedIndexes(indexes)
@@ -335,10 +306,16 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func convertLegacyIndexes(indexes []IndexDocument) {
+func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument) {
 	for _, index := range indexes {
-		convertLegacyIndexKeys(index)
-		convertLegacyIndexOptions(index)
+		bsonutil.ConvertLegacyIndexKeys(index.Key, index.Options["ns"].(string))
+
+		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
+		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.
+		// So for pre 3.4 indexes being added to servers < 4.1.9 we must strip the options here.
+		if restore.serverVersion.LT(db.Version{4, 1, 9}) {
+			bsonutil.ConvertLegacyIndexOptions(index.Options)
+		}
 	}
 }
 
@@ -360,74 +337,6 @@ func fixDottedHashedIndex(index IndexDocument) {
 			indexFields[i].Value = int32(1)
 		}
 	}
-}
-
-func convertLegacyIndexKeys(index IndexDocument) {
-	var converted bool
-	originalJSONString := createExtJSONString(index.Key)
-	for j, elem := range index.Key {
-		switch v := elem.Value.(type) {
-		case int32, int64, float64:
-			// Only convert 0 value
-			if v == 0 {
-				index.Key[j].Value = 1
-				converted = true
-			}
-		case primitive.Decimal128:
-			// Note, this doesn't catch Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
-			// These values are so unlikely we just ignore them
-			zeroVal, err := primitive.ParseDecimal128("0")
-			if err == nil {
-				if v == zeroVal {
-					index.Key[j].Value = 1
-					converted = true
-				}
-			}
-		case string:
-			// Only convert an empty string
-			if v == "" {
-				index.Key[j].Value = 1
-				converted = true
-			}
-		default:
-			// Convert all types that aren't strings or numbers
-			index.Key[j].Value = 1
-			converted = true
-		}
-	}
-	if converted {
-		newJSONString := createExtJSONString(index.Key)
-		log.Logvf(log.Always, "convertLegacyIndexes: converted index values '%s' to '%s' on collection '%s'",
-			originalJSONString, newJSONString, index.Options["ns"])
-	}
-}
-
-func convertLegacyIndexOptions(index IndexDocument) {
-	var converted bool
-	originalJSONString := createExtJSONString(index.Options)
-	for key := range index.Options {
-		if _, ok := validIndexOptions[key]; !ok {
-			delete(index.Options, key)
-			converted = true
-		}
-	}
-	if converted {
-		newJSONString := createExtJSONString(index.Options)
-		log.Logvf(log.Always, "convertLegacyIndexes: converted index options '%s' to '%s'",
-			originalJSONString, newJSONString)
-	}
-}
-
-func createExtJSONString(doc interface{}) string {
-	// by default return "<unable to format document>"" since we don't
-	// want to throw an error when formatting informational messages.
-	// An error would be inconsequential.
-	JSONString := "<unable to format document>"
-	JSONBytes, err := bson.MarshalExtJSON(doc, false, false)
-	if err == nil {
-		JSONString = string(JSONBytes)
-	}
-	return JSONString
 }
 
 // RestoreCollectionToDB pipes the given BSON data into the database.
