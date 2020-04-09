@@ -577,7 +577,7 @@ func buildMSI() {
 	wixVersion := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 	versionLabel := fmt.Sprintf("%d", v.Major)
 
-	lastVersionLabel := "99"
+	lastVersionLabel := "4"
 	if versionLabel != lastVersionLabel {
 		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be up-to-date, last version = "+lastVersionLabel)
 	}
