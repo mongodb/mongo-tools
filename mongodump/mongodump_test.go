@@ -1156,7 +1156,7 @@ func TestMongoDumpViews(t *testing.T) {
 }
 
 func TestMongoDumpCollectionOutputPath(t *testing.T) {
-	// testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("testing output paths for collection names of varying lengths", t, func() {

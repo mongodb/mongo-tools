@@ -208,6 +208,8 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 
 		// First 208 bytes of col name + 3 bytes delimiter + 27 bytes base64 hash = 238 bytes.
 		colName = colNameTruncated + delimiter + colNameHashBase64
+	} else {
+		colName = util.EscapeCollectionName(colName)
 	}
 
 	return filepath.Join(root, dbName, colName)
