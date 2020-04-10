@@ -354,7 +354,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 					Buffer: &bytes.Buffer{},
 				}
 			} else {
-				path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name+".metadata.json"))
+				path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".metadata.json")
 				intent.MetadataFile = &realMetadataFile{path: path, intent: intent}
 			}
 		}
