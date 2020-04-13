@@ -713,6 +713,7 @@ functions:
         aws_secret: ${aws_secret}
         local_file: src/github.com/mongodb/mongo-tools/release.json
         remote_file: mongo-tools/release/${build_id}/
+        optional: true
         content_type: application/json
         bucket: mciuploads
         permissions: public-read
@@ -852,6 +853,7 @@ pre:
           export EVG_KEY='${evg_key}'
           export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
           export AWS_SECRET_ACCESS_KEY='${release_aws_secret}'
+          export NOTARY_KEY_NAME='server-4.4'
           export NOTARY_TOKEN='${signing_auth_token_server_4_4}'
           export BARQUE_USERNAME='${evg_user}'
           export BARQUE_PASSWORD='${evg_password}'

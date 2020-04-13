@@ -962,7 +962,6 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-var linuxRepoEditions = []string{"org", "enterprise"}
 var linuxRepoVersions = []string{"4.3.0"}
 
 func linuxRelease(v version.Version) {
@@ -1022,7 +1021,7 @@ func linuxRelease(v version.Version) {
 			}
 		}
 
-		editionsToRelease := linuxRepoEditions
+		editionsToRelease := pf.Repos
 		versionsToRelease := linuxRepoVersions
 		if !v.IsStable() {
 			// If we're not releasing a stable version, just using the
