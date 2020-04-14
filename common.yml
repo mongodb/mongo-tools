@@ -619,7 +619,6 @@ functions:
         target: src/github.com/mongodb/mongo-tools/upload.tgz
         source_dir: src/github.com/mongodb/mongo-tools
         include:
-          - "./release.*"
           - "*.deb"
           - "*.rpm"
     - command: s3.put
@@ -2035,4 +2034,3 @@ buildvariants:
     args: "-buildmode=default -race"
     excludes: requires_large_ram
   tasks: *ubuntu_x86_64_race_tasks
-
