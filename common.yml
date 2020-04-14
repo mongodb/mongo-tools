@@ -682,19 +682,16 @@ functions:
         script: |
           set -o errexit
           if [ -e *.rpm ]; then
-             export FILE="*.rpm"
-          elif [ -e *.deb ]; then
-             export FILE="*.deb"
+             /usr/local/bin/notary-client.py \
+                --key-name "server-4.4" \
+                --auth-token-file ./signing_auth_token \
+                --comment "Evergreen Automatic Signing (mongo-tools)" \
+                --notary-url http://notary-service.build.10gen.cc:5000 \
+                --skip-missing \
+                --package-file-suffix "" \
+                --outputs "sig" \
+                *.rpm
           fi
-          /usr/local/bin/notary-client.py \
-            --key-name "server-4.4" \
-            --auth-token-file ./signing_auth_token \
-            --comment "Evergreen Automatic Signing (mongo-tools)" \
-            --notary-url http://notary-service.build.10gen.cc:5000 \
-            --skip-missing \
-            --package-file-suffix "" \
-            --outputs "sig" \
-            $FILE
 
   "upload signed release artifacts":
     - command: s3.put
