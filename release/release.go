@@ -536,7 +536,7 @@ func buildDeb() {
 	// Copy to top level directory so we can upload it.
 	check(os.Link(
 		output,
-		filepath.Join("../"+getDebFileName()),
+		filepath.Join("..", getDebFileName()),
 	), "linking output for s3 upload")
 }
 
