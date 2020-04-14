@@ -383,7 +383,7 @@ func buildRPM() {
 	// Copy to top level directory so we can upload it.
 	check(copyFile(
 		outputPath,
-		filepath.Join("../"+getRPMFileName()),
+		filepath.Join("..", getRPMFileName()),
 	), "linking output for s3 upload")
 }
 
