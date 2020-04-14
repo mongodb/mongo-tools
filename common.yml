@@ -604,7 +604,8 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-          - src/github.com/mongodb/mongo-tools/release.*
+          - src/github.com/mongodb/mongo-tools/*.deb
+          - src/github.com/mongodb/mongo-tools/*.rpm
         remote_file: mongo-tools/pkgs/${build_id}/
         content_type: application/octet-stream
         bucket: mciuploads
@@ -619,6 +620,8 @@ functions:
         source_dir: src/github.com/mongodb/mongo-tools
         include:
           - "./release.*"
+          - "*.deb"
+          - "*.rpm"
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -678,15 +681,20 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
           set -o errexit
+          if [ -e *.rpm ]; then
+             export FILE="*.rpm"
+          elif [ -e *.deb ]; then
+             export FILE="*.deb"
+          fi
           /usr/local/bin/notary-client.py \
-              --key-name "server-4.4" \
-              --auth-token-file ./signing_auth_token \
-              --comment "Evergreen Automatic Signing (mongo-tools)" \
-              --notary-url http://notary-service.build.10gen.cc:5000 \
-              --skip-missing \
-              --package-file-suffix "" \
-              --outputs "sig" \
-              release.rpm
+            --key-name "server-4.4" \
+            --auth-token-file ./signing_auth_token \
+            --comment "Evergreen Automatic Signing (mongo-tools)" \
+            --notary-url http://notary-service.build.10gen.cc:5000 \
+            --skip-missing \
+            --package-file-suffix "" \
+            --outputs "sig" \
+            $FILE
 
   "upload signed release artifacts":
     - command: s3.put

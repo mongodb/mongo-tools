@@ -78,6 +78,7 @@ func GetArtifactsForTask(id string) ([]Artifact, error) {
 	}{}
 	bodyDecoder := json.NewDecoder(res.Body)
 	err = bodyDecoder.Decode(&task)
+	fmt.Println("!!!!!!!!!!!", res.Body)
 	if err != nil {
 		return nil, err
 	}
