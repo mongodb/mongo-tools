@@ -177,6 +177,32 @@ func getReleaseName() string {
 	)
 }
 
+func getDebFileName() string {
+	p, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	v, err := version.GetCurrent()
+	check(err, "get version")
+
+	return fmt.Sprintf(
+		"mongodb-database-tools_%s_%s.deb",
+		v, p.DebianArch(),
+	)
+}
+
+func getRPMFileName() string {
+	p, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	v, err := version.GetCurrent()
+	check(err, "get version")
+
+	return fmt.Sprintf(
+		"mongodb-database-tools-%s.%s.rpm",
+		v, p.Arch,
+	)
+}
+
 func buildArchive() {
 	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
@@ -357,7 +383,7 @@ func buildRPM() {
 	// Copy to top level directory so we can upload it.
 	check(copyFile(
 		outputPath,
-		filepath.Join("../release.rpm"),
+		filepath.Join("..", getRPMFileName()),
 	), "linking output for s3 upload")
 }
 
@@ -510,7 +536,7 @@ func buildDeb() {
 	// Copy to top level directory so we can upload it.
 	check(os.Link(
 		output,
-		filepath.Join("../release.deb"),
+		filepath.Join("..", getDebFileName()),
 	), "linking output for s3 upload")
 }
 
