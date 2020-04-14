@@ -186,7 +186,7 @@ func getDebFileName() string {
 
 	return fmt.Sprintf(
 		"mongodb-database-tools_%s_%s.deb",
-		v, p.DebianArch,
+		v, p.DebianArch(),
 	)
 }
 
