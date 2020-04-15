@@ -184,9 +184,14 @@ func getDebFileName() string {
 	v, err := version.GetCurrent()
 	check(err, "get version")
 
+	vStr := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
+	if v.Pre != "" {
+		vStr += "~latest"
+	}
+
 	return fmt.Sprintf(
 		"mongodb-database-tools_%s_%s.deb",
-		v, p.DebianArch(),
+		vStr, p.DebianArch(),
 	)
 }
 
@@ -197,9 +202,14 @@ func getRPMFileName() string {
 	v, err := version.GetCurrent()
 	check(err, "get version")
 
+	vStr := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
+	if v.Pre != "" {
+		vStr += ".latest"
+	}
+
 	return fmt.Sprintf(
 		"mongodb-database-tools-%s.%s.rpm",
-		v, p.Arch,
+		vStr, p.Arch,
 	)
 }
 
