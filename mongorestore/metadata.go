@@ -35,9 +35,10 @@ type authVersionPair struct {
 
 // Metadata holds information about a collection's options and indexes.
 type Metadata struct {
-	Options bson.D          `bson:"options,omitempty"`
-	Indexes []IndexDocument `bson:"indexes"`
-	UUID    string          `bson:"uuid"`
+	Options        bson.D          `bson:"options,omitempty"`
+	Indexes        []IndexDocument `bson:"indexes"`
+	UUID           string          `bson:"uuid"`
+	CollectionName string          `bson:"collectionname"`
 }
 
 // IndexDocument holds information about a collection's index.

@@ -48,6 +48,8 @@ func TestCreateAllIntents(t *testing.T) {
 	//   testdirs/badfile.txt
 	//   testdirs/oplog.bson
 	//   testdirs/db1
+	//   testdirs/db1/aVery...VeryLongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.bson
+	//   testdirs/db1/aVery...VeryLongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.metadata.json
 	//   testdirs/db1/baddir
 	//   testdirs/db1/baddir/out.bson
 	//   testdirs/db1/c1.bson
@@ -77,28 +79,33 @@ func TestCreateAllIntents(t *testing.T) {
 			Convey("and reading the intents should show alphabetical order", func() {
 				i0 := mr.manager.Pop()
 				So(i0.DB, ShouldEqual, "db1")
-				So(i0.C, ShouldEqual, "c1")
+				So(i0.C, ShouldEqual, longCollectionName)
 				i1 := mr.manager.Pop()
 				So(i1.DB, ShouldEqual, "db1")
-				So(i1.C, ShouldEqual, "c2")
+				So(i1.C, ShouldEqual, "c1")
 				i2 := mr.manager.Pop()
 				So(i2.DB, ShouldEqual, "db1")
-				So(i2.C, ShouldEqual, "c3")
+				So(i2.C, ShouldEqual, "c2")
 				i3 := mr.manager.Pop()
-				So(i3.DB, ShouldEqual, "db2")
-				So(i3.C, ShouldEqual, "c1")
+				So(i3.DB, ShouldEqual, "db1")
+				So(i3.C, ShouldEqual, "c3")
 				i4 := mr.manager.Pop()
-				So(i4, ShouldBeNil)
+				So(i4.DB, ShouldEqual, "db2")
+				So(i4.C, ShouldEqual, "c1")
+				i5 := mr.manager.Pop()
+				So(i5, ShouldBeNil)
 
 				Convey("with all the proper metadata + bson merges", func() {
 					So(i0.Location, ShouldNotEqual, "")
 					So(i0.MetadataLocation, ShouldNotEqual, "")
 					So(i1.Location, ShouldNotEqual, "")
-					So(i1.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i1.MetadataLocation, ShouldNotEqual, "")
 					So(i2.Location, ShouldNotEqual, "")
-					So(i2.MetadataLocation, ShouldNotEqual, "")
+					So(i2.MetadataLocation, ShouldEqual, "") //no metadata for this file
 					So(i3.Location, ShouldNotEqual, "")
-					So(i3.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i3.MetadataLocation, ShouldNotEqual, "")
+					So(i4.Location, ShouldNotEqual, "")
+					So(i4.MetadataLocation, ShouldEqual, "") //no metadata for this file
 
 					Convey("and skipped files all present in the logs", func() {
 						logs := buff.String()
@@ -115,6 +122,8 @@ func TestCreateAllIntents(t *testing.T) {
 func TestCreateIntentsForDB(t *testing.T) {
 	// This tests creates intents based on the test file tree:
 	//   db1
+	//   db1/aVery...VeryLongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.bson
+	//   db1/aVery...VeryLongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.metadata.json
 	//   db1/baddir
 	//   db1/baddir/out.bson
 	//   db1/c1.bson
@@ -141,27 +150,32 @@ func TestCreateIntentsForDB(t *testing.T) {
 
 			Convey("and reading the intents should show alphabetical order", func() {
 				i0 := mr.manager.Pop()
-				So(i0.C, ShouldEqual, "c1")
+				So(i0.C, ShouldEqual, longCollectionName)
 				i1 := mr.manager.Pop()
-				So(i1.C, ShouldEqual, "c2")
+				So(i1.C, ShouldEqual, "c1")
 				i2 := mr.manager.Pop()
-				So(i2.C, ShouldEqual, "c3")
+				So(i2.C, ShouldEqual, "c2")
 				i3 := mr.manager.Pop()
-				So(i3, ShouldBeNil)
+				So(i3.C, ShouldEqual, "c3")
+				i4 := mr.manager.Pop()
+				So(i4, ShouldBeNil)
 
 				Convey("and all intents should have the supplied db name", func() {
 					So(i0.DB, ShouldEqual, "myDB")
 					So(i1.DB, ShouldEqual, "myDB")
 					So(i2.DB, ShouldEqual, "myDB")
+					So(i3.DB, ShouldEqual, "myDB")
 				})
 
 				Convey("with all the proper metadata + bson merges", func() {
 					So(i0.Location, ShouldNotEqual, "")
 					So(i0.MetadataLocation, ShouldNotEqual, "")
 					So(i1.Location, ShouldNotEqual, "")
-					So(i1.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i1.MetadataLocation, ShouldNotEqual, "")
 					So(i2.Location, ShouldNotEqual, "")
-					So(i2.MetadataLocation, ShouldNotEqual, "")
+					So(i2.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i3.Location, ShouldNotEqual, "")
+					So(i3.MetadataLocation, ShouldNotEqual, "")
 
 					Convey("and skipped files all present in the logs", func() {
 						logs := buff.String()
@@ -187,21 +201,24 @@ func TestCreateIntentsRenamed(t *testing.T) {
 
 			Convey("and reading the intents should show new collection names", func() {
 				i0 := mr.manager.Pop()
-				So(i0.C, ShouldEqual, "test.c1")
+				So(i0.C, ShouldEqual, "test."+longCollectionName)
 				i1 := mr.manager.Pop()
-				So(i1.C, ShouldEqual, "test.c2")
+				So(i1.C, ShouldEqual, "test.c1")
 				i2 := mr.manager.Pop()
-				So(i2.C, ShouldEqual, "test.c3")
+				So(i2.C, ShouldEqual, "test.c2")
 				i3 := mr.manager.Pop()
-				So(i3.C, ShouldEqual, "c1")
+				So(i3.C, ShouldEqual, "test.c3")
 				i4 := mr.manager.Pop()
-				So(i4, ShouldBeNil)
+				So(i4.C, ShouldEqual, "c1")
+				i5 := mr.manager.Pop()
+				So(i5, ShouldBeNil)
 
 				Convey("and intents should have the renamed db", func() {
 					So(i0.DB, ShouldEqual, "db4")
 					So(i1.DB, ShouldEqual, "db4")
 					So(i2.DB, ShouldEqual, "db4")
-					So(i3.DB, ShouldEqual, "db2")
+					So(i3.DB, ShouldEqual, "db4")
+					So(i4.DB, ShouldEqual, "db2")
 				})
 			})
 		})
@@ -215,13 +232,23 @@ func TestHandlingBSON(t *testing.T) {
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
 
-		Convey("with a target path to a bson file instead of a directory", func() {
+		Convey("with a target path to a normal bson file instead of a directory", func() {
 			err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c2.bson")
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
 				So(mr.NSOptions.DB, ShouldEqual, "db1")
 				So(mr.NSOptions.Collection, ShouldEqual, "c2")
+			})
+		})
+
+		Convey("with a target path to a truncated bson file instead of a directory", func() {
+			err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/" + longBsonName)
+			So(err, ShouldBeNil)
+
+			Convey("the proper DB and Coll should be inferred", func() {
+				So(mr.NSOptions.DB, ShouldEqual, "db1")
+				So(mr.NSOptions.Collection, ShouldEqual, longCollectionName)
 			})
 		})
 
@@ -261,7 +288,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 		}
 		log.SetWriter(&buff)
 
-		Convey("running CreateIntentForCollection on a file without metadata", func() {
+		Convey("running CreateIntentForCollection on a normal bson file without metadata", func() {
 			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/c2.bson"))
 			So(err, ShouldBeNil)
 			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
@@ -287,7 +314,17 @@ func TestCreateIntentsForCollection(t *testing.T) {
 			})
 		})
 
-		Convey("running CreateIntentForCollection on a file *with* metadata", func() {
+		Convey("running CreateIntentForCollection on a truncated bson file without metadata", func() {
+			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/" + longMadeUpBsonName))
+			So(err, ShouldBeNil)
+			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+
+			Convey("should fail", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
+
+		Convey("running CreateIntentForCollection on a normal bson file *with* metadata", func() {
 			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/c1.bson"))
 			So(err, ShouldBeNil)
 			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
@@ -305,6 +342,30 @@ func TestCreateIntentsForCollection(t *testing.T) {
 
 				Convey("and a set Metadata path", func() {
 					So(i0.MetadataLocation, ShouldEqual, util.ToUniversalPath("testdata/testdirs/db1/c1.metadata.json"))
+					logs := buff.String()
+					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+				})
+			})
+		})
+
+		Convey("running CreateIntentForCollection on a truncated file *with* metadata", func() {
+			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/" + longBsonName))
+			So(err, ShouldBeNil)
+			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+			So(err, ShouldBeNil)
+			mr.manager.Finalize(intents.Legacy)
+
+			Convey("should create one intent with 'myDb' and 'myC' fields", func() {
+				i0 := mr.manager.Pop()
+				So(i0, ShouldNotBeNil)
+				So(i0.DB, ShouldEqual, "myDB")
+				So(i0.C, ShouldEqual, "myC")
+				So(i0.Location, ShouldEqual, util.ToUniversalPath("testdata/testdirs/db1/"+longBsonName))
+				i1 := mr.manager.Pop()
+				So(i1, ShouldBeNil)
+
+				Convey("and a set Metadata path", func() {
+					So(i0.MetadataLocation, ShouldEqual, util.ToUniversalPath("testdata/testdirs/db1/"+longMetadataName))
 					logs := buff.String()
 					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
 				})

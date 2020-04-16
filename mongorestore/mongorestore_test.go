@@ -26,7 +26,18 @@ import (
 )
 
 const (
-	mioSoeFile = "testdata/10k1dup10k.bson"
+	mioSoeFile     = "testdata/10k1dup10k.bson"
+	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
+	longCollectionName = longFilePrefix +
+		"LongCollectionNameConsistingOfExactlyTwoHundredAndFiftyNineCharacters"
+	longBsonName = longFilePrefix +
+		"LongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.bson"
+	longMetadataName = longFilePrefix +
+		"LongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.metadata.json"
+	longMadeUpBsonName = longFilePrefix +
+		"LongCollectionNameC%24someMadeUpInvalidHashString.bson"
 )
 
 func init() {
@@ -75,29 +86,50 @@ func TestMongorestore(t *testing.T) {
 
 		c1 := db.Collection("c1")
 		c1.Drop(nil)
+		longCollection := db.Collection(longCollectionName)
+		longCollection.Drop(nil)
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 100)
+			So(result.Successes, ShouldEqual, 101)
 			So(result.Failures, ShouldEqual, 0)
+
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
+
+			count, err = longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
 		})
 
 		Convey("and an target of '-' restores from standard input", func() {
 			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
+			So(err, ShouldBeNil)
+
 			restore.NSOptions.Collection = "c1"
 			restore.NSOptions.DB = "db1"
-			So(err, ShouldBeNil)
 			restore.InputReader = bsonFile
 			restore.TargetDirectory = "-"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
+
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
+
+			longBsonFile, err := os.Open("testdata/testdirs/db1/" + longBsonName)
+			So(err, ShouldBeNil)
+
+			restore.NSOptions.Collection = longCollectionName
+			restore.InputReader = longBsonFile
+			result = restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			count, err = longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
 		})
 	})
 }
