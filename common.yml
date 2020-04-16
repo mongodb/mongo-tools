@@ -604,6 +604,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
+          - src/github.com/mongodb/mongo-tools/release.*
           - src/github.com/mongodb/mongo-tools/*.deb
           - src/github.com/mongodb/mongo-tools/*.rpm
         remote_file: mongo-tools/pkgs/${build_id}/
@@ -699,6 +700,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
+          - src/github.com/mongodb/mongo-tools/release.*
           - src/github.com/mongodb/mongo-tools/*.deb
           - src/github.com/mongodb/mongo-tools/*.rpm
         remote_file: mongo-tools/task/sign/${build_id}/
