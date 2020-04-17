@@ -1072,33 +1072,44 @@ func linuxRelease(v version.Version) {
 				me := mongoEdition
 				wg.Add(1)
 				go func() {
-					curatorArgs := []string{
-						"--level", "debug",
-						"repo", "submit",
-						"--service", "https://barque.corp.mongodb.com",
-						"--config", "etc/repo-config.yml",
-						"--distro", pf.Name,
-						"--arch", pf.Arch,
-						"--edition", me,
-						"--version", mv,
-						"--packages", packagesURL,
-						"--username", os.Getenv("BARQUE_USERNAME"),
-						"--password", os.Getenv("BARQUE_PASSWORD"),
-					}
-
+					var err error
 					prefix := fmt.Sprintf("%s-%s", pf.Variant(), me)
-					log.Printf("starting curator for %s\n", prefix)
-					err := runAndStreamStderr(prefix, "./curator", curatorArgs...)
+					// retry up to 10 times on failure.
+					for retries := 10; retries > 0; retries-- {
+						curatorArgs := []string{
+							"--level", "debug",
+							"repo", "submit",
+							"--service", "https://barque.corp.mongodb.com",
+							"--config", "etc/repo-config.yml",
+							"--distro", pf.Name,
+							"--arch", pf.Arch,
+							"--edition", me,
+							"--version", mv,
+							"--packages", packagesURL,
+							"--username", os.Getenv("BARQUE_USERNAME"),
+							"--password", os.Getenv("BARQUE_PASSWORD"),
+						}
 
-					log.Printf("finished curator for %s\n", prefix)
+						if retries == 10 {
+							log.Printf("starting curator for %s\n", prefix)
+						} else {
+							log.Printf("restarting curator for %s after failure\n", prefix)
+						}
+						err = runAndStreamStderr(prefix, "./curator", curatorArgs...)
+						if err == nil {
+							log.Printf("finished curator for %s\n", prefix)
+							wg.Done()
+							return
+						}
+					}
 					check(err, "run curator for %s", prefix)
-					wg.Done()
 				}()
 
 				// We need to sleep briefly between curator
 				// invocations because of an auth race condition in
 				// barque.
-				time.Sleep(500 * time.Millisecond)
+				// Sleep a bit more to try to keep the flakiness from showing up.
+				time.Sleep(5 * time.Second)
 			}
 		}
 	}
