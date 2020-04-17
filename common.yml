@@ -24,11 +24,15 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
@@ -48,6 +52,9 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       # Disabled due to TOOLS-2119
       # - name: kerberos
       - name: legacy42
@@ -56,6 +63,7 @@ mongo_tools_variables:
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
         run_on: rhel62-large
@@ -76,12 +84,16 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: kerberos
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
         run_on: ubuntu1604-build
@@ -98,8 +110,12 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: dist
@@ -113,6 +129,9 @@ mongo_tools_variables:
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
       - name: integration-4.0-mmapv1
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
         distros:
@@ -133,6 +152,9 @@ mongo_tools_variables:
         distros:
         - windows-64-vs2017-test
       - name: qa-tests-4.2
+        distros:
+        - windows-64-vs2017-test
+      - name: qa-tests-4.4
         distros:
         - windows-64-vs2017-test
       - name: qa-dump-restore-with-archiving-current
@@ -156,6 +178,9 @@ mongo_tools_variables:
       - name: integration-4.0-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       #- name: kerberos
       - name: qa-dump-restore-with-archiving-current
       - name: qa-dump-restore-with-gzip-current
@@ -163,6 +188,7 @@ mongo_tools_variables:
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
     rhel67_s390x_task_list: &rhel67_s390x_tasks
@@ -179,6 +205,9 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       # Disabled due to TOOLS-2119
       # - name: kerberos
       - name: qa-dump-restore-with-archiving-current
@@ -187,6 +216,7 @@ mongo_tools_variables:
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
@@ -210,9 +240,13 @@ mongo_tools_variables:
         run_on: rhel70-small
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: qa-dump-restore-with-archiving-current
       - name: qa-dump-restore-with-gzip-current
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: qa-tests-unstable
       - name: native-cert-ssl-current
 
@@ -1205,6 +1239,58 @@ tasks:
         INT_TEST: "true"
         AUTH_TEST: "true"
 
+- name: integration-4.4
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+
+- name: integration-4.4-auth
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args"
+            concat: " --auth"
+          - key: "auth_username"
+            value: "passwordIsTaco"
+          - key: "auth_password"
+            value: "Taco"
+          - key: "create_mongod_users_command"
+            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        AUTH_TEST: "true"
+
+- name: integration-4.4-cluster
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod cluster"
+    - func: "wait for mongod to be ready"
+    - func: "create repl_set"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+
 - name: kerberos
   commands:
     - func: "fetch source"
@@ -1340,6 +1426,45 @@ tasks:
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "${excludes}"
+
+- name: qa-tests-4.4
+  depends_on:
+    - name: dist
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "fetch tool"
+      vars:
+        tool: mongoimport
+    - func: "fetch tool"
+      vars:
+        tool: mongoexport
+    - func: "fetch tool"
+      vars:
+        tool: mongodump
+    - func: "fetch tool"
+      vars:
+        tool: mongorestore
+    - func: "fetch tool"
+      vars:
+        tool: mongostat
+    - func: "fetch tool"
+      vars:
+        tool: mongotop
+    - func: "fetch tool"
+      vars:
+        tool: mongofiles
+    - func: "fetch tool"
+      vars:
+        tool: bsondump
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_ssl}"
+        excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
   depends_on:
