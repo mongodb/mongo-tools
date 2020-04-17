@@ -110,6 +110,13 @@ func (restore *MongoRestore) RestoreOplog() error {
 			//skip no-ops
 			continue
 		}
+
+		entryName := entryAsOplog.Object[0].Key
+		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+			log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+			continue
+		}
+
 		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
 			log.Logvf(
 				log.DebugLow,

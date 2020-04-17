@@ -1131,3 +1131,69 @@ func TestMongorestoreAWSAuth(t *testing.T) {
 		})
 	})
 }
+
+// TestSkipStartAndAbortIndexBuild asserts that all "startIndexBuild" and "abortIndexBuild" oplog
+// entries are skipped when restoring the oplog.
+func TestSkipStartAndAbortIndexBuild(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.SkipNow()
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database("test")
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection("skip_index_entries").Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/oplog_ignore_index",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		currentTS := uint32(time.Now().UTC().Unix())
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("RestoreOplog() should ignore all startIndexBuild and abortIndexBuild oplog entries", func() {
+			queryObj := bson.D{
+				{"$and",
+					bson.A{
+						bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
+						bson.D{{"$or", bson.A{
+							bson.D{{"o.startIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
+							bson.D{{"o.abortIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
+						}}},
+					},
+				},
+			}
+
+			cursor, err := session.Database("local").Collection("oplog.rs").Find(nil, queryObj, nil)
+			So(err, ShouldBeNil)
+
+			flag := cursor.Next(ctx)
+			So(flag, ShouldBeFalse)
+
+			cursor.Close(ctx)
+		})
+	})
+}
