@@ -9,6 +9,8 @@ package mongodump
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -41,6 +43,12 @@ var (
 
 const (
 	KerberosDumpDirectory = "dump-kerberos"
+	longPrefix            = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
+	longCollectionName = longPrefix + "/Long/Collection/Name/Consisting/Of/Many/Characters"
+	longBsonName       = longPrefix + "%2FLong%2FCollection%2FName%24FUVlwTrb2eHN1RUE1swI1fFzWmA.bson"
+	longMetadataName   = longPrefix + "%2FLong%2FCollection%2FName%24FUVlwTrb2eHN1RUE1swI1fFzWmA.metadata.json"
 )
 
 func simpleMongoDumpInstance() *MongoDump {
@@ -579,9 +587,47 @@ func TestMongoDumpBSON(t *testing.T) {
 					md.OutputOptions.Archive = "dump_slash.archive"
 					err = md.Init()
 					So(err, ShouldBeNil)
+				})
+			})
 
+			Convey("and that it dumps a collection with a name >238 bytes in the right format", func() {
+				session, err := testutil.GetBareSession()
+				So(err, ShouldBeNil)
+				coll := session.Database(testDB).Collection(longCollectionName)
+				_, err = coll.InsertOne(nil, bson.M{"a": 1})
+				So(err, ShouldBeNil)
+				defer coll.Drop(nil)
+
+				md.ToolOptions.Namespace.Collection = longCollectionName
+				err = md.Init()
+				So(err, ShouldBeNil)
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				absDumpDir := util.ToUniversalPath(filepath.Join(path, "dump_slash"))
+				So(os.RemoveAll(absDumpDir), ShouldBeNil)
+				So(fileDirExists(absDumpDir), ShouldBeFalse)
+
+				dumpDBDir := util.ToUniversalPath(filepath.Join("dump_slash", testDB))
+				So(fileDirExists(dumpDBDir), ShouldBeFalse)
+
+				md.OutputOptions.Out = "dump_slash"
+				err = md.Dump()
+				So(err, ShouldBeNil)
+				So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+				Convey("to a bson file", func() {
+					oneBsonFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longBsonName)))
+					So(err, ShouldBeNil)
+					defer oneBsonFile.Close()
 				})
 
+				Convey("to a metadata file", func() {
+					oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longMetadataName)))
+					So(err, ShouldBeNil)
+					defer oneMetaFile.Close()
+				})
 			})
 
 			Convey("for an entire database", func() {
@@ -741,6 +787,11 @@ func TestMongoDumpMetaData(t *testing.T) {
 
 					Convey("and contains an 'indexes' key", func() {
 						_, ok := jsonResult["indexes"]
+						So(ok, ShouldBeTrue)
+					})
+
+					Convey("and contains a 'collectionName' key", func() {
+						_, ok := jsonResult["collectionName"]
 						So(ok, ShouldBeTrue)
 					})
 
@@ -1162,7 +1213,7 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 	Convey("testing output paths for collection names of varying lengths", t, func() {
 		md := simpleMongoDumpInstance()
 
-		Convey("don't change a collection name that results in an output path < 255 bytes", func() {
+		Convey("don't change a collection name that results in an output path <255 bytes", func() {
 			md.OutputOptions.Out = "dump"
 
 			// 26 bytes < 255 bytes
@@ -1173,11 +1224,11 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 			So(len(fileComponents), ShouldEqual, 3)
 
 			filePath := fileComponents[len(fileComponents)-1]
-			So(len(filePath), ShouldEqual, len(colName))
-			So(filePath, ShouldNotContainSubstring, util.EscapeCollectionName("$"))
+			So(filePath, ShouldEqual, colName)
+			So(filePath, ShouldNotContainSubstring, "%24")
 		})
 
-		Convey("don't change a collection name that could result in an output path = 255 bytes", func() {
+		Convey("don't change a collection name that could result in an output path =255 bytes", func() {
 			md.OutputOptions.Out = "dump"
 
 			// 17 bytes * 14 = 238 bytes
@@ -1188,23 +1239,44 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 			So(len(fileComponents), ShouldEqual, 3)
 
 			filePath := fileComponents[len(fileComponents)-1]
-			So(len(filePath), ShouldEqual, len(colName))
-			So(filePath, ShouldNotContainSubstring, util.EscapeCollectionName("$"))
+			So(filePath, ShouldEqual, colName)
+			So(filePath, ShouldNotContainSubstring, "%24")
 		})
 
-		Convey("truncate a collection name that results in an output path > 255 bytes", func() {
+		Convey("truncate a collection name that results in an output path >255 bytes", func() {
 			md.OutputOptions.Out = "dump"
 
-			// 26 bytes * 10 = 260 bytes > 255 bytes
-			// (output path is already over the limit, regardless of file extension)
-			colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 10)
+			Convey("without special characters", func() {
+				// 26 bytes * 10 = 260 bytes > 238 bytes
+				// (output path is already over the file name limit of 255, regardless of file extension)
+				colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 10)
 
-			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-			So(len(fileComponents), ShouldEqual, 3)
+				fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+				So(len(fileComponents), ShouldEqual, 3)
 
-			filePath := fileComponents[len(fileComponents)-1]
-			So(len(filePath), ShouldEqual, 238)
-			So(filePath, ShouldContainSubstring, util.EscapeCollectionName("$"))
+				filePath := fileComponents[len(fileComponents)-1]
+				So(filePath[:211], ShouldEqual, colName[:208]+"%24")
+
+				hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
+				hash := sha1.Sum([]byte(colName))
+				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
+			})
+
+			Convey("with special characters", func() {
+				// (26 bytes + 3 special bytes) * 8 = 232 bytes < 238 bytes
+				// (output path is under the limit, but will go over when we escape the special symbols)
+				colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz+/@", 8)
+
+				fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+				So(len(fileComponents), ShouldEqual, 3)
+
+				filePath := fileComponents[len(fileComponents)-1]
+				So(filePath[:211], ShouldEqual, util.EscapeCollectionName(colName)[:208]+"%24")
+
+				hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
+				hash := sha1.Sum([]byte(colName))
+				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
+			})
 		})
 	})
 }

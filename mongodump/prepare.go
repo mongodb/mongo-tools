@@ -200,29 +200,17 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 	// than 255 bytes long. This includes the longest possible file extension: .metadata.json.gz
 	// The new format is <truncated-url-encoded-collection-name>%24<collection-name-hash-base64>
 	// where %24 represents a $ symbol delimiter (e.g. aVeryVery...VeryLongName%24oPpXMQ...).
-	if len(colName) > 238 {
-		colNameTruncated := util.EscapeCollectionName(colName)[:208]
-		delimiter := util.EscapeCollectionName("$")
+	escapedColName := util.EscapeCollectionName(colName)
+	if len(escapedColName) > 238 {
+		colNameTruncated := escapedColName[:208]
 		colNameHashBytes := sha1.Sum([]byte(colName))
 		colNameHashBase64 := base64.RawURLEncoding.EncodeToString(colNameHashBytes[:])
 
-		// First 208 bytes of col name + 3 bytes delimiter + 27 bytes base64 hash = 238 bytes.
-		colName = colNameTruncated + delimiter + colNameHashBase64
-	} else {
-		colName = util.EscapeCollectionName(colName)
+		// First 208 bytes of col name + 3 bytes delimiter + 27 bytes base64 hash = 238 bytes max.
+		escapedColName = colNameTruncated + "%24" + colNameHashBase64
 	}
 
-	return filepath.Join(root, dbName, colName)
-}
-
-// Unused.
-func checkStringForPathSeparator(s string, c *rune) bool {
-	for _, *c = range s {
-		if os.IsPathSeparator(uint8(*c)) {
-			return true
-		}
-	}
-	return false
+	return filepath.Join(root, dbName, escapedColName)
 }
 
 // CreateOplogIntents creates an intents.Intent for the oplog and adds it to the manager

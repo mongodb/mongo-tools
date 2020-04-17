@@ -19,10 +19,10 @@ import (
 
 // Metadata holds information about a collection's options and indexes.
 type Metadata struct {
-	Options        bson.M   `json:"options,omitempty"`
-	Indexes        []bson.D `json:"indexes"`
-	UUID           string   `json:"uuid,omitempty"`
-	CollectionName string   `json:"collectionName"`
+	Options        bson.M   `bson:"options,omitempty"`
+	Indexes        []bson.D `bson:"indexes"`
+	UUID           string   `bson:"uuid,omitempty"`
+	CollectionName string   `bson:"collectionName"`
 }
 
 // IndexDocumentFromDB is used internally to preserve key ordering.
@@ -49,6 +49,8 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	// intents.  Otherwise, it will be the empty string.
 	meta.UUID = intent.UUID
 
+	// Adding the collection name is useful if a long collection name results in a truncated
+	// bson or metadata file name, in which case the collection name can be found here.
 	meta.CollectionName = intent.C
 
 	// Second, we read the collection's index information by either calling
