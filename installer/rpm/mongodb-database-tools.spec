@@ -10,7 +10,7 @@ URL:        http://www.mongodb.com
 Vendor:     MongoDB
 BuildArchitectures: @ARCHITECTURE@
 Obsoletes:  mongodb-database-tools <= @TOOLS_VERSION@
-Requires: glibc >= 2.17, keyutils-libs >= 1.5.8, krb5-libs >= 1.15.1, libcom_err >= 1.43.5, libselinux >= 2.1.10, openssl >= 1.0.2k, zlib >= 1.2.8
+Requires: openssl, cyrus-sasl, cyrus-sasl-plain, cyrus-sasl-gssapi
 BuildRoot: %{_topdir}/BUILD/%{name}-%{version}-%{release}
 
 %description
