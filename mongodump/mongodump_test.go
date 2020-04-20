@@ -590,46 +590,6 @@ func TestMongoDumpBSON(t *testing.T) {
 				})
 			})
 
-			Convey("and that it dumps a collection with a name >238 bytes in the right format", func() {
-				session, err := testutil.GetBareSession()
-				So(err, ShouldBeNil)
-				coll := session.Database(testDB).Collection(longCollectionName)
-				_, err = coll.InsertOne(nil, bson.M{"a": 1})
-				So(err, ShouldBeNil)
-				defer coll.Drop(nil)
-
-				md.ToolOptions.Namespace.Collection = longCollectionName
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				absDumpDir := util.ToUniversalPath(filepath.Join(path, "dump_slash"))
-				So(os.RemoveAll(absDumpDir), ShouldBeNil)
-				So(fileDirExists(absDumpDir), ShouldBeFalse)
-
-				dumpDBDir := util.ToUniversalPath(filepath.Join("dump_slash", testDB))
-				So(fileDirExists(dumpDBDir), ShouldBeFalse)
-
-				md.OutputOptions.Out = "dump_slash"
-				err = md.Dump()
-				So(err, ShouldBeNil)
-				So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-				Convey("to a bson file", func() {
-					oneBsonFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longBsonName)))
-					So(err, ShouldBeNil)
-					defer oneBsonFile.Close()
-				})
-
-				Convey("to a metadata file", func() {
-					oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longMetadataName)))
-					So(err, ShouldBeNil)
-					defer oneMetaFile.Close()
-				})
-			})
-
 			Convey("for an entire database", func() {
 				md.ToolOptions.Namespace.Collection = ""
 				err = md.Init()
@@ -726,6 +686,70 @@ func TestMongoDumpBSON(t *testing.T) {
 			So(err, ShouldBeNil)
 			err = md.Dump()
 			So(err, ShouldBeNil)
+		})
+
+		Reset(func() {
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+		})
+	})
+}
+
+func TestMongoDumpBSONLongCollectionName(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 4.4 or later")
+	}
+
+	log.SetWriter(ioutil.Discard)
+
+	Convey("With a MongoDump instance", t, func() {
+		err = setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		md := simpleMongoDumpInstance()
+
+		Convey("testing that it dumps a collection with a name >238 bytes in the right format", func() {
+			coll := session.Database(testDB).Collection(longCollectionName)
+			_, err = coll.InsertOne(nil, bson.M{"a": 1})
+			So(err, ShouldBeNil)
+			defer coll.Drop(nil)
+
+			md.ToolOptions.Namespace.Collection = longCollectionName
+			err = md.Init()
+			So(err, ShouldBeNil)
+
+			path, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			absDumpDir := util.ToUniversalPath(filepath.Join(path, "dump_slash"))
+			So(os.RemoveAll(absDumpDir), ShouldBeNil)
+			So(fileDirExists(absDumpDir), ShouldBeFalse)
+
+			dumpDBDir := util.ToUniversalPath(filepath.Join("dump_slash", testDB))
+			So(fileDirExists(dumpDBDir), ShouldBeFalse)
+
+			md.OutputOptions.Out = "dump_slash"
+			err = md.Dump()
+			So(err, ShouldBeNil)
+			So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+			Convey("to a bson file", func() {
+				oneBsonFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longBsonName)))
+				So(err, ShouldBeNil)
+				oneBsonFile.Close()
+			})
+
+			Convey("to a metadata file", func() {
+				oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longMetadataName)))
+				So(err, ShouldBeNil)
+				oneMetaFile.Close()
+			})
 		})
 
 		Reset(func() {
