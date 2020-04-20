@@ -558,7 +558,7 @@ func buildMSI() {
 	}
 
 	// The msi msiUpgradeCode must be updated when the minor version changes.
-	msiUpgradeCode := "653cfd55-7b54-41f6-862c-876a1dd3566a"
+	msiUpgradeCode := "effc2f80-8f82-413f-a3ba-4a96f3d2883a"
 
 	binariesPath := filepath.Join("..", "bin")
 	msiStaticFilesPath := ".."
@@ -657,9 +657,9 @@ func buildMSI() {
 	wixVersion := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 	versionLabel := fmt.Sprintf("%d", v.Major)
 
-	lastVersionLabel := "4"
-	if versionLabel != lastVersionLabel {
-		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be up-to-date, last version = "+lastVersionLabel)
+	currentVersionLabel := "99"
+	if versionLabel != currentVersionLabel {
+		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be updated")
 	}
 
 	candle := filepath.Join(wixPath, "candle.exe")
