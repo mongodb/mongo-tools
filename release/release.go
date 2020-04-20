@@ -998,7 +998,10 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-var linuxRepoVersions = []string{"4.3.0"}
+var linuxRepoVersions = []string{
+	"4.0.0-rc0", // any rc version will send the package to the "testing" repo
+	"4.3.0",     // any 4.3 stable release version will send the package to the "4.3" repo
+}
 
 func linuxRelease(v version.Version) {
 	if env.EvgIsPatch() {
