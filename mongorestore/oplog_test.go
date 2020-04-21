@@ -290,10 +290,13 @@ func TestOplogRestoreTools2002(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		// applyOps does not support createIndexes on server versions > 4.4
+		if restore.serverVersion.LT(db.Version{4, 4, 0}) {
+			// Run mongorestore
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Failures, ShouldEqual, 0)
+		}
 	})
 }
 

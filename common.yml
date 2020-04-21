@@ -33,7 +33,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
@@ -64,7 +63,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
         run_on: rhel62-large
       - name: qa-dump-restore-with-archiving-current
@@ -94,7 +92,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: qa-tests-unstable
       - name: qa-dump-restore-with-gzip-current
         run_on: ubuntu1604-build
       - name: qa-dump-restore-with-archiving-current
@@ -163,7 +160,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-gzip-current
         distros:
         - windows-64-vs2017-test
-      - name: qa-tests-unstable
       - name: unit
       - name: native-cert-ssl-current
     rhel71_ppc64le_task_list: &rhel71_ppc64le_tasks
@@ -189,7 +185,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: qa-tests-unstable
       - name: native-cert-ssl-current
     rhel67_s390x_task_list: &rhel67_s390x_tasks
       - name: dist
@@ -217,7 +212,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: qa-tests-unstable
       - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
@@ -247,7 +241,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-gzip-current
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: qa-tests-unstable
       - name: native-cert-ssl-current
 
 
@@ -259,6 +252,9 @@ mongo_tools_variables:
     ssl: &mongod_ssl_startup_args
       mongod_args: "--sslMode requireSSL --sslCAFile testdata/certs/ca.pem --sslPEMKeyFile testdata/certs/server.pem"
       mongod_port: 33333
+    tls: &mongod_tls_startup_args
+      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile testdata/certs/ca.pem --tlsCertificateKeyFile testdata/certs/server.pem"
+      mongod_port: 33333
 
   mongo_arguments:
     default: &mongo_default_startup_args
@@ -266,6 +262,9 @@ mongo_tools_variables:
       mongod_port: 33333
     ssl: &mongo_ssl_startup_args
       mongo_args: "--port 33333 --ssl --sslCAFile ./testdata/certs/ca.pem --sslPEMKeyFile ./testdata/certs/server.pem --sslAllowInvalidCertificates"
+      mongod_port: 33333
+    tls: &mongo_tls_startup_args
+      mongo_args_tls: "--port 33333 --tls --tlsCAFile ./testdata/certs/ca.pem --tlsCertificateKeyFile ./testdata/certs/server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
 functions:
@@ -493,6 +492,10 @@ functions:
           export TOOLS_TESTING_SSL="true"
           export TOOLS_TESTING_INTEGRATION="true"
         fi;
+        if [ "${USE_TLS}" = "true" ]; then
+          export TOOLS_TESTING_TLS="true"
+          export TOOLS_TESTING_INTEGRATION="true"
+        fi;
         if [ "${AUTH_TEST}" = "true" ]; then
           export TOOLS_TESTING_AUTH="true"
           export TOOLS_TESTING_INTEGRATION="true"
@@ -503,7 +506,7 @@ functions:
         if [ "${create_mongod_users_command}" != "" ]; then
           export TOOLS_TESTING_AUTH_USERNAME=${auth_username}
           export TOOLS_TESTING_AUTH_PASSWORD=${auth_password}
-          echo "${create_mongod_users_command}" | ./bin/mongo${extension} ${mongo_args} admin
+          echo "${create_mongod_users_command}" | ./bin/mongo${extension} ${mongo_args_tls} admin
         fi;
         export ON_EVERGREEN="true"
         export TOOLS_BUILD_TAGS="${build_tags}"
@@ -616,6 +619,34 @@ functions:
         echo "Starting mongod cluster..."
         PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
 
+  "start mongod tls":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      background: true
+      script: |
+        set -x
+        set -v
+        set -e
+        rm -rf mongodb/db_files mongodb/${logfile|run.log}
+        mkdir -p mongodb/db_files
+        echo "Starting mongod..."
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args_tls} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
+
+  "start mongod cluster tls":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      background: true
+      script: |
+        set -x
+        set -v
+        set -e
+        rm -rf mongodb/db_files mongodb/${logfile|run.log}
+        mkdir -p mongodb/db_files
+        echo "Starting mongod cluster..."
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args_tls} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
+
   "wait for mongod to be ready":
     command: shell.exec
     params:
@@ -623,10 +654,10 @@ functions:
       script: |
         set -x
         set -v
-        SECS = 0
+        SECS=0
         while true ; do
             set -o verbose
-            ./bin/mongo${extension} ${mongo_args} --eval 'true;'
+            ./bin/mongo${extension} ${mongo_args_tls} --eval 'true;'
             if [ "$?" = "0" ]; then
                 echo "mongod ready";
                 exit 0
@@ -636,7 +667,7 @@ functions:
                     echo "mongod not ready after 20 seconds"
                     exit 1
                 fi
-                echo "waiting for mongod ( ${mongo_args} ) to be ready..."  ;
+                echo "waiting for mongod ( ${mongo_args_tls} ) to be ready..."  ;
                 sleep 1 ;
             fi
         done
@@ -922,7 +953,20 @@ functions:
           set -e
           echo "starting repl set"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo ${mongo_args} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo ${mongo_args} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitNodesAgreeOnPrimary();while(true){sleep(1000);}'
+  "create repl_set tls":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        background: true
+        script: |
+          set -x
+          set -v
+          set -e
+          echo "starting repl set"
+          cd test/qa-tests
+          mkdir -p /data/db/
+          PATH=./bin:$PATH ./bin/mongo ${mongo_args_tls} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitNodesAgreeOnPrimary();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -930,7 +974,7 @@ functions:
           set -x
           set -v
           set -e
-          ./bin/mongo ${mongo_args} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+          ./bin/mongo ${mongo_args_tls} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
 pre:
   - command: shell.exec
@@ -1246,7 +1290,7 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "start mongod"
+    - func: "start mongod tls"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
@@ -1259,7 +1303,7 @@ tasks:
     - command: expansions.update
       params:
         updates:
-          - key: "mongod_args"
+          - key: "mongod_args_tls"
             concat: " --auth"
           - key: "auth_username"
             value: "passwordIsTaco"
@@ -1270,7 +1314,7 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "start mongod"
+    - func: "start mongod tls"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
@@ -1284,9 +1328,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "start mongod cluster"
+    - func: "start mongod cluster tls"
     - func: "wait for mongod to be ready"
-    - func: "create repl_set"
+    - func: "create repl_set tls"
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
@@ -1388,44 +1432,6 @@ tasks:
           /opt/node/bin/npm install eslint@3.2
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
-- name: qa-tests-unstable
-  depends_on:
-  - name: dist
-  commands:
-    - func: "fetch source"
-    - func: "get buildnumber"
-    - func: "setup credentials"
-    - func: "download mongod"
-      vars:
-        mongo_version: "latest"
-    - func: "fetch tool"
-      vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
-    - func: "run qa-tests"
-      vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "${excludes}"
 
 - name: qa-tests-4.4
   depends_on:
@@ -1463,7 +1469,7 @@ tasks:
         tool: bsondump
     - func: "run qa-tests"
       vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
+        resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
@@ -1922,12 +1928,15 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     excludes: requires_many_files
     build_tags: "failpoints ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     USE_SSL: "true"
   tasks: *macos_tasks
 
@@ -1942,11 +1951,14 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
     build_tags: "failpoints ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
@@ -2031,17 +2043,20 @@ buildvariants:
   run_on:
   - ubuntu1604-test
   expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
+#    <<: *mongod_ssl_startup_args
+#    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "failpoints ssl sasl gssapi"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
+    build_tags: "failpoints tls sasl gssapi"
+    smoke_use_ssl: --use-tls
+    resmoke_use_ssl: _tls
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     USE_SSL: "true"
+    USE_TLS: "true"
   tasks: *ubuntu_x86_64_tasks
 
 - name: ubuntu1804
@@ -2068,6 +2083,8 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
@@ -2075,6 +2092,7 @@ buildvariants:
     smoke_use_ssl: --use-ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     excludes: requires_large_ram,requires_mongo_24
     edition: enterprise
     extension: .exe
@@ -2096,11 +2114,14 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "targeted"
     mongo_arch: "arm64"
     build_tags: "failpoints ssl"
     resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     edition: ssl
@@ -2115,17 +2136,20 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
+#    <<: *mongod_ssl_startup_args
+#    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1804"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
     build_tags: "failpoins ssl"
-    resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     edition: ssl
-    USE_SSL: "true"
+#    USE_SSL: "true"
+    USE_TLS: "true"
   tasks: *ubuntu1804_arm64_tasks
 
 #######################################
@@ -2146,6 +2170,7 @@ buildvariants:
     mongo_arch: "ppc64le"
     build_tags: 'failpoints ssl sasl gssapi'
     resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     edition: enterprise
@@ -2202,6 +2227,7 @@ buildvariants:
     mongo_arch: "s390x"
     build_tags: "failpoints sasl gssapi ssl"
     resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     edition: enterprise
