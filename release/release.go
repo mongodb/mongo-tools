@@ -1010,6 +1010,14 @@ func linuxRelease(v version.Version) {
 		return
 	}
 
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	if pf.OS != platform.OSLinux {
+		log.Printf("cannot release linux packages for non-linux platform")
+		return
+	}
+
 	tasks, err := evergreen.GetTasksForRevision(v.Commit)
 	check(err, "get evergreen tasks")
 
@@ -1019,36 +1027,19 @@ func linuxRelease(v version.Version) {
 			continue
 		}
 
-		if task.Variant == "ubuntu-race" {
+		if pf.Variant() != task.Variant {
 			continue
-		}
-
-		_, knownVariant := platform.GetByVariant(task.Variant)
-		if !knownVariant {
-			log.Fatalf("found dist task with unknown variant '%s'\n", task.Variant)
 		}
 
 		distTasks = append(distTasks, task)
 	}
 
-	if len(distTasks) != platform.Count() {
-		log.Fatalf(
-			"found %d dist tasks, but expected %d release platforms",
-			len(distTasks), platform.Count(),
-		)
+	if len(distTasks) != 1 {
+		log.Fatalf("found %d dist tasks, but expected one", len(distTasks))
 	}
 
 	wg := &sync.WaitGroup{}
 	for _, task := range distTasks {
-		pf, ok := platform.GetByVariant(task.Variant)
-		if !ok {
-			panic("unreachable") // should have been caught in previous block
-		}
-		if pf.OS != platform.OSLinux {
-			log.Printf("\nskipping non-linux variant %s\n", task.Variant)
-			continue
-		}
-
 		log.Printf("\ngetting artifacts for %s\n", task.Variant)
 		artifacts, err := evergreen.GetArtifactsForTask(task.TaskID)
 		check(err, "getting artifacts list")
@@ -1078,8 +1069,9 @@ func linuxRelease(v version.Version) {
 				go func() {
 					var err error
 					prefix := fmt.Sprintf("%s-%s", pf.Variant(), me)
-					// retry up to 10 times on failure.
-					for retries := 10; retries > 0; retries-- {
+					// retry twice on failure.
+					maxRetries := 2
+					for retries := maxRetries; retries >= 0; retries-- {
 						curatorArgs := []string{
 							"--level", "debug",
 							"repo", "submit",
@@ -1094,7 +1086,7 @@ func linuxRelease(v version.Version) {
 							"--password", os.Getenv("BARQUE_PASSWORD"),
 						}
 
-						if retries == 10 {
+						if retries == maxRetries {
 							log.Printf("starting curator for %s\n", prefix)
 						} else {
 							log.Printf("restarting curator for %s after failure\n", prefix)

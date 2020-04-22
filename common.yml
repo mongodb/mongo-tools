@@ -15,6 +15,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -35,6 +36,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -59,6 +61,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -92,6 +95,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -131,6 +135,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -150,6 +155,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -170,6 +176,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -181,6 +188,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         run_on: amazon1-2018-test
+      - name: push
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-dump-restore-with-archiving-current
@@ -992,6 +1000,14 @@ tasks:
     - func: "sign linux packages"
     - func: "upload signed release artifacts"
 
+- name: push
+  depends_on:
+    - name: sign
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "upload release packages to linux repos"
+
 - name: release-s3
   depends_on:
     - name: sign
@@ -1000,15 +1016,6 @@ tasks:
     - func: "fetch source"
     - command: expansions.update
     - func: "upload release packages to s3"
-
-- name: release-linux-repos
-  depends_on:
-    - name: sign
-      variant: '*'
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "upload release packages to linux repos"
 
 - name: integration-3.6
   commands:
@@ -1620,7 +1627,6 @@ buildvariants:
   - amazon1-2018-test
   tasks:
   - name: release-s3
-  - name: release-linux-repos
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
@@ -1636,6 +1642,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: amazon2
   display_name: Amazon Linux 64 v2
@@ -1647,6 +1654,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1662,6 +1670,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: debian92
   display_name: Debian 9.2
@@ -1673,6 +1682,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: debian10
   display_name: Debian 10
@@ -1684,6 +1694,7 @@ buildvariants:
     - name: dist
     - name: sign
       run_on: amazon1-2018-test
+    - name: push
 
 #######################################
 #           macOS Buildvariant        #
@@ -1737,6 +1748,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: rhel80
   display_name: RHEL 8.0
@@ -1748,6 +1760,7 @@ buildvariants:
     - name: dist
     - name: sign
       run_on: amazon1-2018-test
+    - name: push
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1763,6 +1776,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: suse15
   display_name: SUSE 15
@@ -1774,6 +1788,7 @@ buildvariants:
     - name: dist
     - name: sign
       run_on: amazon1-2018-test
+    - name: push
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1789,6 +1804,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1818,6 +1834,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 #######################################
 #        Windows Buildvariants        #
@@ -1927,6 +1944,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le
@@ -1941,6 +1959,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 #######################################
 #     Z (s390x) Buildvariants         #
@@ -1978,6 +1997,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
@@ -1991,6 +2011,7 @@ buildvariants:
     - name: dist
     - name: sign
       run_on: amazon1-2018-test
+    - name: push
 
 - name: ubuntu1604-s390x
   display_name: ZAP s390x Ubuntu 16.04
@@ -2004,6 +2025,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 - name: ubuntu1804-s390x
   display_name: ZAP s390x Ubuntu 18.04
@@ -2017,6 +2039,7 @@ buildvariants:
   - name: dist
   - name: sign
     run_on: amazon1-2018-test
+  - name: push
 
 #######################################
 #     Experimental Buildvariants      #
