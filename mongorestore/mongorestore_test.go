@@ -27,17 +27,17 @@ import (
 
 const (
 	mioSoeFile     = "testdata/10k1dup10k.bson"
-	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
-		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
 	longCollectionName = longFilePrefix +
-		"LongCollectionNameConsistingOfExactlyTwoHundredAndFiftyNineCharacters"
+		"LongCollectionNameConsistingOfExactlyTwoHundredAndFortySevenCharacters"
 	longBsonName = longFilePrefix +
-		"LongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.bson"
+		"LongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson"
 	longMetadataName = longFilePrefix +
-		"LongCollectionNameC%24Ax2lHbMK_bh19s4f_JCieskppac.metadata.json"
-	longMadeUpBsonName = longFilePrefix +
-		"LongCollectionNameC%24someMadeUpInvalidHashString.bson"
+		"LongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json"
+	longInvalidBson = longFilePrefix +
+		"LongCollectionNameConsistingOfE%24someMadeUpInvalidHashString.bson"
 )
 
 func init() {
@@ -86,22 +86,17 @@ func TestMongorestore(t *testing.T) {
 
 		c1 := db.Collection("c1")
 		c1.Drop(nil)
-		longCollection := db.Collection(longCollectionName)
-		longCollection.Drop(nil)
+
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 101)
+			So(result.Successes, ShouldEqual, 100)
 			So(result.Failures, ShouldEqual, 0)
 
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
-
-			count, err = longCollection.CountDocuments(nil, bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
 		})
 
 		Convey("and an target of '-' restores from standard input", func() {
@@ -118,16 +113,63 @@ func TestMongorestore(t *testing.T) {
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
+		})
+	})
+}
 
-			longBsonFile, err := os.Open("testdata/testdirs/db1/" + longBsonName)
+func TestMongorestoreLongCollectionName(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 4.4 or later")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		db := session.Database("db1")
+		Convey("and majority is used as the default write concern", func() {
+			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
+		})
+
+		longCollection := db.Collection(longCollectionName)
+		longCollection.Drop(nil)
+
+		Convey("and an explicit target restores truncated files from that dump directory", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 1)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
+		})
+
+		Convey("and an target of '-' restores truncated files from standard input", func() {
+			longBsonFile, err := os.Open("testdata/longcollectionname/db1/" + longBsonName)
 			So(err, ShouldBeNil)
 
 			restore.NSOptions.Collection = longCollectionName
+			restore.NSOptions.DB = "db1"
 			restore.InputReader = longBsonFile
-			result = restore.Restore()
+			restore.TargetDirectory = "-"
+			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			count, err = longCollection.CountDocuments(nil, bson.M{})
+			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})

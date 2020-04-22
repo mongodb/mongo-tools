@@ -38,7 +38,7 @@ type Metadata struct {
 	Options        bson.D          `bson:"options,omitempty"`
 	Indexes        []IndexDocument `bson:"indexes"`
 	UUID           string          `bson:"uuid"`
-	CollectionName string          `bson:"collectionname"`
+	CollectionName string          `bson:"collectionName"`
 }
 
 // IndexDocument holds information about a collection's index.

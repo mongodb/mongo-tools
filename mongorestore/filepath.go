@@ -204,115 +204,81 @@ func (f *stdinFile) Close() error {
 	return nil
 }
 
-// getCollectionNameFromFile returns the collection name and FileType for a bson or metadata file.
-// The collection name may be pulled from either the file name itself, or from the content of a
-// .metadata.json file if the file name is truncated.
-func (restore *MongoRestore) getCollectionNameFromFile(filename string) (string, FileType, error) {
+// getInfoFromFile returns the collection name and FileType from a bson or metadata file.
+// The collection name may be pulled from either the file name itself, or from the content
+// of a .metadata.json file if the file name is truncated.
+func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType, error) {
 	baseFileName := filepath.Base(filename)
+	metadataFullPath := ""
 
-	baseName := ""
+	collName := ""
+	unescapedCollName := ""
+
 	fileType := UnknownFileType
-
 	var err error
 
 	// .bin supported for legacy reasons
 	if strings.HasSuffix(baseFileName, ".bin") {
-		baseName = strings.TrimSuffix(baseFileName, ".bin")
+		collName = strings.TrimSuffix(baseFileName, ".bin")
 		fileType = BSONFileType
 	} else if restore.InputOptions.Gzip && restore.InputOptions.Archive == "" {
 		// Gzip indicates that files in a dump directory should have a .gz suffix
 		// but it does not indicate that the "files" provided by the archive should,
 		// compressed or otherwise.
 		if strings.HasSuffix(baseFileName, ".metadata.json.gz") {
-			baseName, err = restore.getCollectionNameFromMetadata(filename)
-			if err != nil {
-				return "", UnknownFileType, err
-			}
+			collName = strings.TrimSuffix(baseFileName, ".metadata.json.gz")
 			fileType = MetadataFileType
+			metadataFullPath = filename
 		} else if strings.HasSuffix(baseFileName, ".bson.gz") {
-			baseName, err = restore.getCollectionNameFromBson(filename)
-			if err != nil {
-				return "", UnknownFileType, err
-			}
+			collName = strings.TrimSuffix(baseFileName, ".bson.gz")
 			fileType = BSONFileType
+			metadataFullPath = strings.TrimSuffix(filename, ".bson.gz") + ".metadata.json.gz"
 		}
 	} else if strings.HasSuffix(baseFileName, ".metadata.json") {
-		baseName, err = restore.getCollectionNameFromMetadata(filename)
-		if err != nil {
-			return "", UnknownFileType, err
-		}
+		collName = strings.TrimSuffix(baseFileName, ".metadata.json")
 		fileType = MetadataFileType
+		metadataFullPath = filename
 	} else if strings.HasSuffix(baseFileName, ".bson") {
-		baseName, err = restore.getCollectionNameFromBson(filename)
-		if err != nil {
-			return "", UnknownFileType, err
-		}
+		collName = strings.TrimSuffix(baseFileName, ".bson")
 		fileType = BSONFileType
+		metadataFullPath = strings.TrimSuffix(filename, ".bson") + ".metadata.json"
 	}
 
-	unescapedCollectionName, err := util.UnescapeCollectionName(baseName)
+	// If the collection name is not truncated, unescape it and return it.
+	if !strings.Contains(collName, "%24") {
+		unescapedCollName, err = util.UnescapeCollectionName(collName)
+		if err != nil {
+			return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename \"%v\": %v", baseFileName, err)
+		}
+		return unescapedCollName, fileType, nil
+	}
+
+	// Otherwise parse it from the metadata file.
+	collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
+	if err != nil {
+		return "", UnknownFileType, err
+	}
+	unescapedCollName, err = util.UnescapeCollectionName(collName)
 	if err != nil {
 		return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename \"%v\": %v", baseFileName, err)
 	}
-	return unescapedCollectionName, fileType, nil
-}
 
-// getCollectionNameFromBson returns the escaped collection name from a bson file on disk.
-// If the bson file name isn't truncated, it returns the collection name from the file name.
-// Otherwise the bson file name is truncated, so it returns the collection name found in
-// the corresponding metadata file in the same directory as the bson file.
-//
-// Intended as a helper to getCollectionNameFromFile.
-func (restore *MongoRestore) getCollectionNameFromBson(bsonFullPath string) (string, error) {
-	if bsonFullPath == "" {
-		return "", fmt.Errorf("bson file path is empty")
-	}
-
-	// Return the collection name directly from from the bson file name for files that have
-	// no truncated name (i.e. no %24 in the file name).
-	bsonBase := filepath.Base(bsonFullPath)
-	gzip := strings.HasSuffix(bsonBase, ".gz")
-	if !strings.Contains(bsonBase, "%24") {
-		if gzip {
-			return strings.TrimSuffix(bsonBase, ".bson.gz"), nil
-		}
-		return strings.TrimSuffix(bsonBase, ".bson"), nil
-	}
-
-	// Otherwise return the collection name from the corresponding metadata file.
-	var metadataFullPath string
-	if gzip {
-		metadataFullPath = strings.TrimSuffix(bsonFullPath, ".bson.gz") + ".metadata.json.gz"
-	} else {
-		metadataFullPath = strings.TrimSuffix(bsonFullPath, ".bson") + ".metadata.json"
-	}
-	return restore.getCollectionNameFromMetadata(metadataFullPath)
+	return unescapedCollName, fileType, nil
 }
 
 // getCollectionNameFromMetadata returns the escaped collection name from a metadata file on disk.
-// If the metadata file name isn't truncated, it returns the collection name from the file name.
-// Otherwise the metadata file name is truncated, so it returns the collection name found in
-// the metadate file under the `collectionname` field.
+// It returns the collection name found in the metadata file under the `collectionName` field. This
+// is only valid for newer metadata files and metadata files with truncated names, as there may be
+// older metadata files that have no `collectionName` field.
 //
-// Intended as a helper to getCollectionNameFromFile.
+// Intended as a helper to getInfoFromFile.
 func (restore *MongoRestore) getCollectionNameFromMetadata(metadataFullPath string) (string, error) {
 	if metadataFullPath == "" {
 		return "", fmt.Errorf("metadata file path is empty")
 	}
 
-	// Return the collection name directly from the metadata file name for files that have
-	// no truncated name (i.e. no %24 in the file name).
-	metadataBase := filepath.Base(metadataFullPath)
-	gzip := strings.HasSuffix(metadataBase, ".gz")
-	if !strings.Contains(metadataBase, "%24") {
-		if gzip {
-			return strings.TrimSuffix(metadataBase, ".metadata.json.gz"), nil
-		}
-		return strings.TrimSuffix(metadataBase, ".metadata.json"), nil
-	}
-
 	// Open the metadata file for reading.
-	metadataFile := &realMetadataFile{path: metadataFullPath, gzip: gzip}
+	metadataFile := &realMetadataFile{path: metadataFullPath, gzip: strings.HasSuffix(metadataFullPath, ".gz")}
 	err := metadataFile.Open()
 	if err != nil {
 		return "", fmt.Errorf("error opening metadata file \"%s\": %v", metadataFullPath, err)
@@ -329,7 +295,7 @@ func (restore *MongoRestore) getCollectionNameFromMetadata(metadataFullPath stri
 		return "", fmt.Errorf("error parsing metadata from %s: %v", metadataFullPath, err)
 	}
 
-	// It's invalid for a metadata file with a truncated name to have no collection name field.
+	// It's invalid for a current metadata file to have no collection name field.
 	if metadata.CollectionName == "" {
 		return "", fmt.Errorf("no collection name found in metadata file with "+
 			"truncated file name \"%s\"", metadataFullPath)
@@ -446,7 +412,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				filepath.Join(dir.Name(), entry.Name()))
 		} else {
 			// Pass the full file path in case a .metadata.json file needs to be opened and inspected.
-			collection, fileType, err := restore.getCollectionNameFromFile(entry.Path())
+			collection, fileType, err := restore.getInfoFromFile(entry.Path())
 			if err != nil {
 				return err
 			}
@@ -603,7 +569,7 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	if bsonFile.IsDir() {
 		return fmt.Errorf("file %v is a directory, not a bson file", bsonFile.Path())
 	}
-	_, fileType, err := restore.getCollectionNameFromFile(bsonFile.Path())
+	_, fileType, err := restore.getInfoFromFile(bsonFile.Path())
 	if err != nil {
 		return err
 	}
@@ -680,7 +646,7 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 	// like a bson file and infer as much as we can
 	if restore.NSOptions.Collection == "" {
 		// if the user did not set -c, get the collection name from the bson file
-		newCollectionName, fileType, err := restore.getCollectionNameFromFile(path)
+		newCollectionName, fileType, err := restore.getInfoFromFile(path)
 		if err != nil {
 			return err
 		}
