@@ -86,9 +86,14 @@ func TestMongorestore(t *testing.T) {
 
 		c1 := db.Collection("c1")
 		c1.Drop(nil)
+		c2 := db.Collection("c2")
+		c2.Drop(nil)
+		c3 := db.Collection("c3")
+		c3.Drop(nil)
 
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
+
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 100)
@@ -97,6 +102,11 @@ func TestMongorestore(t *testing.T) {
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
+
+			restore.TargetDirectory = ""
+			c1.Drop(nil)
+			c2.Drop(nil)
+			c3.Drop(nil)
 		})
 
 		Convey("and an target of '-' restores from standard input", func() {
@@ -107,12 +117,86 @@ func TestMongorestore(t *testing.T) {
 			restore.NSOptions.DB = "db1"
 			restore.InputReader = bsonFile
 			restore.TargetDirectory = "-"
+
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
+
+			restore.NSOptions.Collection = ""
+			restore.NSOptions.DB = ""
+			restore.InputReader = nil
+			restore.TargetDirectory = ""
+			c1.Drop(nil)
+		})
+
+		Convey("and specifying an nsExclude option", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+			restore.NSOptions.NSExclude = make([]string, 1)
+			restore.NSOptions.NSExclude[0] = "db1.c1"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			restore.TargetDirectory = ""
+			restore.NSOptions.NSExclude = nil
+			c1.Drop(nil)
+			c2.Drop(nil)
+			c3.Drop(nil)
+		})
+
+		Convey("and specifying an nsInclude option", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+			restore.NSOptions.NSInclude = make([]string, 1)
+			restore.NSOptions.NSInclude[0] = "db1.c3"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c3.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			restore.TargetDirectory = ""
+			restore.NSOptions.NSInclude = nil
+			c3.Drop(nil)
+		})
+
+		Convey("and specifying nsFrom and nsTo options", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+
+			restore.NSOptions.NSFrom = make([]string, 1)
+			restore.NSOptions.NSFrom[0] = "db1.c1"
+			restore.NSOptions.NSTo = make([]string, 1)
+			restore.NSOptions.NSTo[0] = "db1.c1renamed"
+
+			c1renamed := db.Collection("c1renamed")
+			c1renamed.Drop(nil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 100)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1renamed.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 100)
+
+			restore.TargetDirectory = ""
+			restore.NSOptions.NSFrom = nil
+			restore.NSOptions.NSTo = nil
+			c1renamed.Drop(nil)
+			c2.Drop(nil)
+			c3.Drop(nil)
 		})
 	})
 }
@@ -148,6 +232,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 		Convey("and an explicit target restores truncated files from that dump directory", func() {
 			restore.TargetDirectory = "testdata/longcollectionname"
+
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 1)
@@ -156,6 +241,9 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
+
+			restore.TargetDirectory = ""
+			longCollection.Drop(nil)
 		})
 
 		Convey("and an target of '-' restores truncated files from standard input", func() {
@@ -172,6 +260,75 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
+
+			restore.NSOptions.Collection = ""
+			restore.NSOptions.DB = ""
+			restore.InputReader = nil
+			restore.TargetDirectory = ""
+			longCollection.Drop(nil)
+		})
+
+		Convey("and specifying an nsExclude option", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			restore.NSOptions.NSExclude = make([]string, 1)
+			restore.NSOptions.NSExclude[0] = "db1." + longCollectionName
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			restore.TargetDirectory = ""
+			restore.NSOptions.NSExclude = nil
+			longCollection.Drop(nil)
+		})
+
+		Convey("and specifying an nsInclude option", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			restore.NSOptions.NSInclude = make([]string, 1)
+			restore.NSOptions.NSInclude[0] = "db1." + longCollectionName
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 1)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
+
+			restore.TargetDirectory = ""
+			restore.NSOptions.NSInclude = nil
+			longCollection.Drop(nil)
+		})
+
+		Convey("and specifying nsFrom and nsTo options", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			restore.NSOptions.NSFrom = make([]string, 1)
+			restore.NSOptions.NSFrom[0] = "db1." + longCollectionName
+			restore.NSOptions.NSTo = make([]string, 1)
+			restore.NSOptions.NSTo[0] = "db1.aMuchShorterCollectionName"
+
+			shortCollection := db.Collection("aMuchShorterCollectionName")
+			shortCollection.Drop(nil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 1)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := shortCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
+
+			restore.TargetDirectory = "a"
+			restore.NSOptions.NSFrom = nil
+			restore.NSOptions.NSTo = nil
+			shortCollection.Drop(nil)
 		})
 	})
 }

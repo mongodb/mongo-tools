@@ -112,6 +112,47 @@ func TestCreateAllIntents(t *testing.T) {
 	})
 }
 
+func TestCreateAllIntentsLongCollectionName(t *testing.T) {
+	// This tests creates intents based on the test file tree:
+	//   testdata/longcollectionname
+	//   testdata/longcollectionname/db1
+	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson
+	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json
+
+	var mr *MongoRestore
+	var buff bytes.Buffer
+
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	Convey("With a test MongoRestore", t, func() {
+		mr = newMongoRestore()
+		log.SetWriter(&buff)
+
+		Convey("running CreateAllIntents should succeed", func() {
+			ddl, err := newActualPath("testdata/longcollectionname/")
+			So(err, ShouldBeNil)
+			So(mr.CreateAllIntents(ddl), ShouldBeNil)
+			mr.manager.Finalize(intents.Legacy)
+
+			Convey("and reading the intents should show a long collection name", func() {
+				i0 := mr.manager.Pop()
+				So(i0.DB, ShouldEqual, "db1")
+				So(i0.C, ShouldEqual, longCollectionName)
+
+				Convey("with all the proper metadata + bson merges", func() {
+					So(i0.Location, ShouldNotEqual, "")
+					So(i0.MetadataLocation, ShouldNotEqual, "")
+
+					Convey("and skipped files all present in the logs", func() {
+						logs := buff.String()
+						So(strings.Contains(logs, longInvalidBson), ShouldEqual, true)
+					})
+				})
+			})
+		})
+	})
+}
+
 func TestCreateIntentsForDB(t *testing.T) {
 	// This tests creates intents based on the test file tree:
 	//   db1
@@ -173,6 +214,45 @@ func TestCreateIntentsForDB(t *testing.T) {
 	})
 }
 
+func TestCreateIntentsForDBLongCollectionName(t *testing.T) {
+	// This tests creates intents based on the test file tree:
+	//   testdata/longcollectionname/db1
+	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson
+	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json
+
+	var mr *MongoRestore
+	var buff bytes.Buffer
+
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	Convey("With a test MongoRestore", t, func() {
+		mr = newMongoRestore()
+		log.SetWriter(&buff)
+
+		Convey("running CreateIntentsForDB should succeed", func() {
+			ddl, err := newActualPath("testdata/longcollectionname/db1")
+			So(err, ShouldBeNil)
+			err = mr.CreateIntentsForDB("myDB", ddl)
+			So(err, ShouldBeNil)
+			mr.manager.Finalize(intents.Legacy)
+
+			Convey("and reading the intents should show alphabetical order", func() {
+				i0 := mr.manager.Pop()
+				So(i0.C, ShouldEqual, longCollectionName)
+
+				Convey("and all intents should have the supplied db name", func() {
+					So(i0.DB, ShouldEqual, "myDB")
+				})
+
+				Convey("with all the proper metadata + bson merges", func() {
+					So(i0.Location, ShouldNotEqual, "")
+					So(i0.MetadataLocation, ShouldNotEqual, "")
+				})
+			})
+		})
+	})
+}
+
 func TestCreateIntentsRenamed(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a test MongoRestore", t, func() {
@@ -215,13 +295,23 @@ func TestHandlingBSON(t *testing.T) {
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
 
-		Convey("with a target path to a bson file instead of a directory", func() {
+		Convey("with a target path to a regular bson file instead of a directory", func() {
 			err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c2.bson")
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
 				So(mr.NSOptions.DB, ShouldEqual, "db1")
 				So(mr.NSOptions.Collection, ShouldEqual, "c2")
+			})
+		})
+
+		Convey("with a target path to a truncated bson file instead of a directory", func() {
+			err := mr.handleBSONInsteadOfDirectory("testdata/longcollectionname/db1/" + longBsonName)
+			So(err, ShouldBeNil)
+
+			Convey("the proper DB and Coll should be inferred", func() {
+				So(mr.NSOptions.DB, ShouldEqual, "db1")
+				So(mr.NSOptions.Collection, ShouldEqual, longCollectionName)
 			})
 		})
 
@@ -340,5 +430,56 @@ func TestCreateIntentsForCollection(t *testing.T) {
 			})
 		})
 
+	})
+}
+
+func TestCreateIntentsForLongCollectionName(t *testing.T) {
+	var mr *MongoRestore
+	var buff bytes.Buffer
+
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	Convey("With a test MongoRestore", t, func() {
+		buff = bytes.Buffer{}
+		mr = &MongoRestore{
+			manager:      intents.NewIntentManager(),
+			ToolOptions:  &commonOpts.ToolOptions{},
+			InputOptions: &InputOptions{},
+		}
+		log.SetWriter(&buff)
+
+		Convey("running CreateIntentForCollection on a truncated bson file without metadata", func() {
+			ddl, err := newActualPath(util.ToUniversalPath("testdata/longcollectionname/" + longInvalidBson))
+			So(err, ShouldBeNil)
+			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+
+			Convey("should fail", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
+
+		Convey("running CreateIntentForCollection on a truncated bson file *with* metadata", func() {
+			ddl, err := newActualPath(util.ToUniversalPath("testdata/longcollectionname/db1/" + longBsonName))
+			So(err, ShouldBeNil)
+			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+			So(err, ShouldBeNil)
+			mr.manager.Finalize(intents.Legacy)
+
+			Convey("should create one intent with 'myDb' and 'myC' fields", func() {
+				i0 := mr.manager.Pop()
+				So(i0, ShouldNotBeNil)
+				So(i0.DB, ShouldEqual, "myDB")
+				So(i0.C, ShouldEqual, "myC")
+				So(i0.Location, ShouldEqual, util.ToUniversalPath("testdata/longcollectionname/db1/"+longBsonName))
+				i1 := mr.manager.Pop()
+				So(i1, ShouldBeNil)
+
+				Convey("and a set Metadata path", func() {
+					So(i0.MetadataLocation, ShouldEqual, util.ToUniversalPath("testdata/longcollectionname/db1/"+longMetadataName))
+					logs := buff.String()
+					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+				})
+			})
+		})
 	})
 }
