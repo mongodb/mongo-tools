@@ -55,6 +55,8 @@ func TestCreateAllIntents(t *testing.T) {
 	//   testdirs/db1/c2.bson
 	//   testdirs/db1/c3.bson
 	//   testdirs/db1/c3.metadata.json
+	//   testdirs/db1/c4.bson
+	//   testdirs/db1/c4.metadata.json
 	//   testdirs/db2
 	//   testdirs/db2/c1.bin
 	//   testdirs/db2/c2.txt
@@ -85,20 +87,25 @@ func TestCreateAllIntents(t *testing.T) {
 				So(i2.DB, ShouldEqual, "db1")
 				So(i2.C, ShouldEqual, "c3")
 				i3 := mr.manager.Pop()
-				So(i3.DB, ShouldEqual, "db2")
-				So(i3.C, ShouldEqual, "c1")
+				So(i3.DB, ShouldEqual, "db1")
+				So(i3.C, ShouldEqual, "c4")
 				i4 := mr.manager.Pop()
-				So(i4, ShouldBeNil)
+				So(i4.DB, ShouldEqual, "db2")
+				So(i4.C, ShouldEqual, "c1")
+				i5 := mr.manager.Pop()
+				So(i5, ShouldBeNil)
 
 				Convey("with all the proper metadata + bson merges", func() {
 					So(i0.Location, ShouldNotEqual, "")
 					So(i0.MetadataLocation, ShouldNotEqual, "")
 					So(i1.Location, ShouldNotEqual, "")
-					So(i1.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i1.MetadataLocation, ShouldEqual, "") // no metadata for this file
 					So(i2.Location, ShouldNotEqual, "")
 					So(i2.MetadataLocation, ShouldNotEqual, "")
 					So(i3.Location, ShouldNotEqual, "")
-					So(i3.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i3.MetadataLocation, ShouldNotEqual, "")
+					So(i4.Location, ShouldNotEqual, "")
+					So(i4.MetadataLocation, ShouldEqual, "") // no metadata for this file
 
 					Convey("and skipped files all present in the logs", func() {
 						logs := buff.String()
@@ -163,6 +170,8 @@ func TestCreateIntentsForDB(t *testing.T) {
 	//   db1/c2.bson
 	//   db1/c3.bson
 	//   db1/c3.metadata.json
+	//   db1/c4.bson
+	//   db1/c4.metadata.json
 
 	var mr *MongoRestore
 	var buff bytes.Buffer
@@ -188,21 +197,26 @@ func TestCreateIntentsForDB(t *testing.T) {
 				i2 := mr.manager.Pop()
 				So(i2.C, ShouldEqual, "c3")
 				i3 := mr.manager.Pop()
-				So(i3, ShouldBeNil)
+				So(i3.C, ShouldEqual, "c4")
+				i4 := mr.manager.Pop()
+				So(i4, ShouldBeNil)
 
 				Convey("and all intents should have the supplied db name", func() {
 					So(i0.DB, ShouldEqual, "myDB")
 					So(i1.DB, ShouldEqual, "myDB")
 					So(i2.DB, ShouldEqual, "myDB")
+					So(i3.DB, ShouldEqual, "myDB")
 				})
 
 				Convey("with all the proper metadata + bson merges", func() {
 					So(i0.Location, ShouldNotEqual, "")
 					So(i0.MetadataLocation, ShouldNotEqual, "")
 					So(i1.Location, ShouldNotEqual, "")
-					So(i1.MetadataLocation, ShouldEqual, "") //no metadata for this file
+					So(i1.MetadataLocation, ShouldEqual, "") // no metadata for this file
 					So(i2.Location, ShouldNotEqual, "")
 					So(i2.MetadataLocation, ShouldNotEqual, "")
+					So(i3.Location, ShouldNotEqual, "")
+					So(i3.MetadataLocation, ShouldNotEqual, "")
 
 					Convey("and skipped files all present in the logs", func() {
 						logs := buff.String()
@@ -273,15 +287,18 @@ func TestCreateIntentsRenamed(t *testing.T) {
 				i2 := mr.manager.Pop()
 				So(i2.C, ShouldEqual, "test.c3")
 				i3 := mr.manager.Pop()
-				So(i3.C, ShouldEqual, "c1")
+				So(i3.C, ShouldEqual, "test.c4")
 				i4 := mr.manager.Pop()
-				So(i4, ShouldBeNil)
+				So(i4.C, ShouldEqual, "c1")
+				i5 := mr.manager.Pop()
+				So(i5, ShouldBeNil)
 
 				Convey("and intents should have the renamed db", func() {
 					So(i0.DB, ShouldEqual, "db4")
 					So(i1.DB, ShouldEqual, "db4")
 					So(i2.DB, ShouldEqual, "db4")
-					So(i3.DB, ShouldEqual, "db2")
+					So(i3.DB, ShouldEqual, "db4")
+					So(i4.DB, ShouldEqual, "db2")
 				})
 			})
 		})
@@ -295,7 +312,7 @@ func TestHandlingBSON(t *testing.T) {
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
 
-		Convey("with a target path to a regular bson file instead of a directory", func() {
+		Convey("with a target path to a non-truncated bson file instead of a directory", func() {
 			err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c2.bson")
 			So(err, ShouldBeNil)
 

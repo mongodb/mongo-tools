@@ -244,25 +244,19 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 		metadataFullPath = strings.TrimSuffix(filename, ".bson") + ".metadata.json"
 	}
 
-	// If the collection name is not truncated, unescape it and return it.
-	if !strings.Contains(collName, "%24") {
-		unescapedCollName, err = util.UnescapeCollectionName(collName)
+	// If the collection name is truncated, parse the full name from the metadata file.
+	if strings.Contains(collName, "%24") {
+		collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
 		if err != nil {
-			return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename \"%v\": %v", baseFileName, err)
+			return "", UnknownFileType, err
 		}
-		return unescapedCollName, fileType, nil
 	}
 
-	// Otherwise parse it from the metadata file.
-	collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
-	if err != nil {
-		return "", UnknownFileType, err
-	}
+	// Unescape the finalized collection name and return it.
 	unescapedCollName, err = util.UnescapeCollectionName(collName)
 	if err != nil {
 		return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename \"%v\": %v", baseFileName, err)
 	}
-
 	return unescapedCollName, fileType, nil
 }
 

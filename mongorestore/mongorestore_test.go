@@ -84,29 +84,36 @@ func TestMongorestore(t *testing.T) {
 			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 		})
 
-		c1 := db.Collection("c1")
+		c1 := db.Collection("c1") // 100 documents
 		c1.Drop(nil)
-		c2 := db.Collection("c2")
+		c2 := db.Collection("c2") // 0 documents
 		c2.Drop(nil)
-		c3 := db.Collection("c3")
+		c3 := db.Collection("c3") // 0 documents
 		c3.Drop(nil)
+		c4 := db.Collection("c4") // 10 documents
+		c4.Drop(nil)
 
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 100)
+			So(result.Successes, ShouldEqual, 110)
 			So(result.Failures, ShouldEqual, 0)
 
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+
 			restore.TargetDirectory = ""
 			c1.Drop(nil)
 			c2.Drop(nil)
 			c3.Drop(nil)
+			c4.Drop(nil)
 		})
 
 		Convey("and an target of '-' restores from standard input", func() {
@@ -138,37 +145,41 @@ func TestMongorestore(t *testing.T) {
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 0)
+			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+
 			restore.TargetDirectory = ""
 			restore.NSOptions.NSExclude = nil
-			c1.Drop(nil)
 			c2.Drop(nil)
 			c3.Drop(nil)
+			c4.Drop(nil)
 		})
 
 		Convey("and specifying an nsInclude option", func() {
 			restore.TargetDirectory = "testdata/testdirs"
 			restore.NSOptions.NSInclude = make([]string, 1)
-			restore.NSOptions.NSInclude[0] = "db1.c3"
+			restore.NSOptions.NSInclude[0] = "db1.c4"
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 0)
+			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := c3.CountDocuments(nil, bson.M{})
+			count, err := c4.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 0)
+			So(count, ShouldEqual, 10)
 
 			restore.TargetDirectory = ""
 			restore.NSOptions.NSInclude = nil
-			c3.Drop(nil)
+			c4.Drop(nil)
 		})
 
 		Convey("and specifying nsFrom and nsTo options", func() {
@@ -184,12 +195,16 @@ func TestMongorestore(t *testing.T) {
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 100)
+			So(result.Successes, ShouldEqual, 110)
 			So(result.Failures, ShouldEqual, 0)
 
 			count, err := c1renamed.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
 
 			restore.TargetDirectory = ""
 			restore.NSOptions.NSFrom = nil
@@ -197,6 +212,7 @@ func TestMongorestore(t *testing.T) {
 			c1renamed.Drop(nil)
 			c2.Drop(nil)
 			c3.Drop(nil)
+			c4.Drop(nil)
 		})
 	})
 }
