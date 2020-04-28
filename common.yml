@@ -16,6 +16,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -37,6 +38,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -62,6 +64,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -96,6 +99,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -136,6 +140,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -156,6 +161,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -177,6 +183,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -189,6 +196,7 @@ mongo_tools_variables:
       - name: sign
         run_on: amazon1-2018-test
       - name: push
+        run_on: rhel70-small
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-dump-restore-with-archiving-current
@@ -723,6 +731,14 @@ functions:
         script: |
           ${_set_shell_env}
           go run release/release.go upload-release
+
+  "upload release json feed to s3":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          go run release/release.go upload-json
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -1007,15 +1023,16 @@ tasks:
     - func: "fetch source"
     - command: expansions.update
     - func: "upload release packages to linux repos"
+    - func: "upload release packages to s3"
 
-- name: release-s3
+- name: release-json
   depends_on:
     - name: sign
       variant: '*'
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "upload release packages to s3"
+    - func: "upload release json feed to s3"
 
 - name: integration-3.6
   commands:
@@ -1626,7 +1643,7 @@ buildvariants:
   run_on:
   - amazon1-2018-test
   tasks:
-  - name: release-s3
+  - name: release-json
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
@@ -1643,6 +1660,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: amazon2
   display_name: Amazon Linux 64 v2
@@ -1655,6 +1673,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1671,6 +1690,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: debian92
   display_name: Debian 9.2
@@ -1683,6 +1703,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: debian10
   display_name: Debian 10
@@ -1691,10 +1712,11 @@ buildvariants:
   expansions:
     build_tags: "sasl gssapi ssl"
   tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-    - name: push
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
 
 #######################################
 #           macOS Buildvariant        #
@@ -1749,6 +1771,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: rhel80
   display_name: RHEL 8.0
@@ -1757,10 +1780,11 @@ buildvariants:
   expansions:
     build_tags: "sasl gssapi ssl"
   tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-    - name: push
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1777,6 +1801,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: suse15
   display_name: SUSE 15
@@ -1785,10 +1810,11 @@ buildvariants:
   expansions:
     build_tags: "sasl gssapi ssl"
   tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-    - name: push
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1805,6 +1831,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1835,6 +1862,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 #######################################
 #        Windows Buildvariants        #
@@ -1945,6 +1973,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le
@@ -1960,6 +1989,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 #######################################
 #     Z (s390x) Buildvariants         #
@@ -1998,6 +2028,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
@@ -2008,10 +2039,11 @@ buildvariants:
   expansions:
     build_tags: "sasl gssapi ssl"
   tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-    - name: push
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
 
 - name: ubuntu1604-s390x
   display_name: ZAP s390x Ubuntu 16.04
@@ -2026,6 +2058,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 - name: ubuntu1804-s390x
   display_name: ZAP s390x Ubuntu 18.04
@@ -2040,6 +2073,7 @@ buildvariants:
   - name: sign
     run_on: amazon1-2018-test
   - name: push
+    run_on: rhel70-small
 
 #######################################
 #     Experimental Buildvariants      #

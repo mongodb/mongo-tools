@@ -90,6 +90,8 @@ func main() {
 		listLinuxDeps()
 	case "upload-release":
 		uploadRelease(v)
+	case "upload-json":
+		uploadReleaseJSON(v)
 	case "linux-release":
 		linuxRelease(v)
 	default:
@@ -869,9 +871,14 @@ func buildZip() {
 	}
 }
 
-func uploadRelease(v version.Version) {
+func uploadReleaseJSON(v version.Version) {
 	if env.EvgIsPatch() {
-		log.Println("current build is a patch; not uploading a release")
+		log.Println("current build is a patch; not uploading release JSON feed")
+		return
+	}
+
+	if !v.IsStable() {
+		log.Println("not uploading release JSON feed for a non-stable release")
 		return
 	}
 
@@ -884,19 +891,16 @@ func uploadRelease(v version.Version) {
 			continue
 		}
 
-		_, knownVariant := platform.GetByVariant(task.Variant)
-		if !knownVariant {
-			log.Fatalf("found sign task with unknown variant '%s'\n", task.Variant)
+		if _, ok := platform.GetByVariant(task.Variant); !ok {
+			continue
 		}
 
 		signTasks = append(signTasks, task)
 	}
 
-	if len(signTasks) != platform.Count() {
-		log.Fatalf(
-			"found %d sign tasks, but expected %d release platforms",
-			len(signTasks), platform.Count(),
-		)
+	pfCount := platform.Count()
+	if len(signTasks) != pfCount {
+		log.Fatalf("found %d sign tasks, but expected %d", len(signTasks), pfCount)
 	}
 
 	awsClient, err := aws.GetClient()
@@ -906,11 +910,12 @@ func uploadRelease(v version.Version) {
 	var dls []download.ToolsDownload
 
 	for _, task := range signTasks {
-		log.Printf("\ngetting artifacts for %s\n", task.Variant)
 		pf, ok := platform.GetByVariant(task.Variant)
 		if !ok {
-			panic("unreachable") // should have been caught in previous block
+			log.Fatalf("clould not find platform for variant %q", task.Variant)
 		}
+
+		log.Printf("\ngetting artifacts for %s\n", task.Variant)
 
 		artifacts, err := evergreen.GetArtifactsForTask(task.TaskID)
 		check(err, "getting artifacts list")
@@ -925,6 +930,99 @@ func uploadRelease(v version.Version) {
 		var dl download.ToolsDownload
 		dl.Name = pf.Name
 		dl.Arch = pf.Arch
+		for _, a := range artifacts {
+			ext := path.Ext(a.URL)
+
+			stableFile := fmt.Sprintf(
+				"mongodb-database-tools-%s-%s-%s%s",
+				pf.Name, pf.Arch, v, ext,
+			)
+			artifactURL := fmt.Sprintf("https://fastdl.mongodb.org/tools/db/%s", stableFile)
+
+			log.Printf("  downloading %s\n", a.URL)
+			downloadFile(artifactURL, stableFile)
+
+			md5sum := computeMD5(stableFile)
+			sha1sum := computeSHA1(stableFile)
+			sha256sum := computeSHA256(stableFile)
+
+			// The extension indicates whether the artifact is an archive or a package.
+			// We assume there's at most one archive artifact and one package artifact
+			// for a given download entry.
+			if ext == ".tgz" || ext == ".zip" {
+				dl.Archive = download.ToolsArchive{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
+			} else {
+				dl.Package = &download.ToolsPackage{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
+			}
+		}
+
+		dls = append(dls, dl)
+	}
+
+	// We only have one version for now, so we can just append one
+	// ToolsVersion to the JSON feed and upload immediately.
+	var feed download.JSONFeed
+	feed.Versions = append(feed.Versions, download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+
+	feedFilename := "release.json"
+	feedFile, err := os.Create(feedFilename)
+	check(err, "create release.json")
+	defer feedFile.Close()
+
+	jsonEncoder := json.NewEncoder(feedFile)
+	jsonEncoder.SetIndent("", "  ")
+	err = jsonEncoder.Encode(feed)
+	check(err, "encode json feed")
+
+	log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
+	awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
+}
+
+func uploadRelease(v version.Version) {
+	if env.EvgIsPatch() {
+		log.Println("current build is a patch; not uploading a release")
+		return
+	}
+
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	check(err, "get evergreen tasks")
+
+	signTasks := []evergreen.Task{}
+	for _, task := range tasks {
+		if task.IsPatch() || task.DisplayName != "sign" {
+			continue
+		}
+
+		if pf.Variant() != task.Variant {
+			continue
+		}
+
+		signTasks = append(signTasks, task)
+	}
+
+	if len(signTasks) != 1 {
+		log.Fatalf("found %d sign tasks, but expected one", len(signTasks))
+	}
+
+	awsClient, err := aws.GetClient()
+	check(err, "get aws client")
+
+	for _, task := range signTasks {
+		log.Printf("\ngetting artifacts for %s\n", task.Variant)
+
+		artifacts, err := evergreen.GetArtifactsForTask(task.TaskID)
+		check(err, "getting artifacts list")
+
+		if len(artifacts) != len(pf.ArtifactExtensions()) {
+			log.Fatalf(
+				"expected %d artifacts but found %d for %s",
+				len(pf.ArtifactExtensions()), len(artifacts), task.Variant,
+			)
+		}
+
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
 
@@ -948,20 +1046,6 @@ func uploadRelease(v version.Version) {
 			if v.IsStable() {
 				copyFile(unstableFile, stableFile)
 				copyFile(unstableFile, latestStableFile)
-
-				// The artifact URL indicates whether the artifact is an archive or a package.
-				// We assume there's at most one archive artifact and one package artifact
-				// for a given download entry.
-				artifactURL := fmt.Sprintf("https://fastdl.mongodb.org/tools/db/%s", stableFile)
-				md5sum := computeMD5(latestStableFile)
-				sha1sum := computeSHA1(latestStableFile)
-				sha256sum := computeSHA256(latestStableFile)
-
-				if ext == ".tgz" || ext == ".zip" {
-					dl.Archive = download.ToolsArchive{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
-				} else {
-					dl.Package = &download.ToolsPackage{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
-				}
 			}
 
 			log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
@@ -973,28 +1057,6 @@ func uploadRelease(v version.Version) {
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
 			}
 		}
-
-		dls = append(dls, dl)
-	}
-
-	// We only have one version for now, so we can just append one ToolsVersion to the JSON
-	// feed and upload immediately. Supporting more versions will require an additional loop.
-	if v.IsStable() {
-		var feed download.JSONFeed
-		feed.Versions = append(feed.Versions, download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
-
-		feedFilename := "release.json"
-		feedFile, err := os.Create(feedFilename)
-		check(err, "create release.json")
-		defer feedFile.Close()
-
-		jsonEncoder := json.NewEncoder(feedFile)
-		jsonEncoder.SetIndent("", "  ")
-		err = jsonEncoder.Encode(feed)
-		check(err, "encode json feed")
-
-		log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
-		awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
 	}
 }
 
@@ -1041,6 +1103,7 @@ func linuxRelease(v version.Version) {
 	wg := &sync.WaitGroup{}
 	for _, task := range distTasks {
 		log.Printf("\ngetting artifacts for %s\n", task.Variant)
+
 		artifacts, err := evergreen.GetArtifactsForTask(task.TaskID)
 		check(err, "getting artifacts list")
 
