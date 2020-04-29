@@ -141,7 +141,6 @@ func (restore *MongoRestore) RestoreOplog() error {
 			err := restore.HandleNonTxnOp(oplogCtx, entryAsOplog)
 			if err != nil {
 				return fmt.Errorf("error applying oplog: %v", err)
-
 			}
 		}
 
@@ -169,8 +168,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 	if op.Operation == "c" && op.Object[0].Key == "commitIndexBuild" {
 		// commitIndexBuild was introduced in 4.4, one "commitIndexBuild" command can contain several
 		// indexes, we need to convert the command to "createIndexes" command for each single index and apply
-		fmt.Println("found: ", op)
-		ops, err:= ConvertcommitIndexBuildToCreateIndexes(op)
+		ops, err := ConvertcommitIndexBuildToCreateIndexes(op)
 		if err != nil {
 			return fmt.Errorf("error converting commitIndexBuild oplog: %v", err)
 		}
@@ -356,7 +354,6 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 
 	return op, nil
 }
-
 
 // ConvertcommitIndexBuildToCreateIndexes converts a "commitIndexBuild" oplog entry to "createIndexBuilds" Op
 // Returns true if the operation should be applied to the destination.

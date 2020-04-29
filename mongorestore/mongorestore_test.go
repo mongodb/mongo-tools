@@ -1100,6 +1100,6 @@ func TestCommitIndexBuild(t *testing.T) {
 			}
 			// Should create 2 indexes: _id and a
 			So(indexCnt, ShouldEqual, 2)
-	})
+		})
 	})
 }
