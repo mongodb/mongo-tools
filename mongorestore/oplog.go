@@ -110,6 +110,13 @@ func (restore *MongoRestore) RestoreOplog() error {
 			//skip no-ops
 			continue
 		}
+
+		entryName := entryAsOplog.Object[0].Key
+		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+			log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+			continue
+		}
+
 		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
 			log.Logvf(
 				log.DebugLow,
@@ -134,6 +141,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 			err := restore.HandleNonTxnOp(oplogCtx, entryAsOplog)
 			if err != nil {
 				return fmt.Errorf("error applying oplog: %v", err)
+
 			}
 		}
 
@@ -156,6 +164,22 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 	op, err := restore.filterUUIDs(op)
 	if err != nil {
 		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
+	}
+
+	if op.Operation == "c" && op.Object[0].Key == "commitIndexBuild" {
+		// commitIndexBuild was introduced in 4.4, one "commitIndexBuild" command can contain several
+		// indexes, we need to convert the command to "createIndexes" command for each single index and apply
+		fmt.Println("found: ", op)
+		ops, err:= ConvertcommitIndexBuildToCreateIndexes(op)
+		if err != nil {
+			return fmt.Errorf("error converting commitIndexBuild oplog: %v", err)
+		}
+		var interfaceSlice []interface{} = make([]interface{}, len(ops))
+		for i, d := range ops {
+			interfaceSlice[i] = d
+		}
+
+		return restore.ApplyOps(oplogCtx.session, interfaceSlice)
 	}
 
 	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
@@ -331,6 +355,36 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 	op.Operation = "i"
 
 	return op, nil
+}
+
+
+// ConvertcommitIndexBuildToCreateIndexes converts a "commitIndexBuild" oplog entry to "createIndexBuilds" Op
+// Returns true if the operation should be applied to the destination.
+// TODO: add special handling for commitIndexBuild during oplog sync in MGOMIRROR-343
+func ConvertcommitIndexBuildToCreateIndexes(op db.Oplog) ([]db.Oplog, error) {
+	colName := ""
+	var ops []db.Oplog
+	for _, elem := range op.Object {
+		if elem.Key == "commitIndexBuild" {
+			elem.Key = "createIndexes"
+			colName = elem.Value.(string)
+		}
+	}
+	// We need second iteration to split the indexes into single createIndex command
+	for _, elem := range op.Object {
+		if elem.Key == "indexes" {
+			indexes := elem.Value.(bson.A)
+			for _, index := range indexes {
+				createIndexOp := bson.D{
+					{"createIndexes", colName},
+				}
+				createIndexOp = append(createIndexOp, index.(bson.D)...)
+				op.Object = createIndexOp
+				ops = append(ops, op)
+			}
+		}
+	}
+	return ops, nil
 }
 
 // isApplyOpsCmd returns true if a document seems to be an applyOps command.
