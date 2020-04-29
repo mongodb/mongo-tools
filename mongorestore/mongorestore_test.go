@@ -1045,6 +1045,11 @@ func TestCommitIndexBuild(t *testing.T) {
 		t.Fatalf("No client available")
 	}
 
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV at least 4.4")
+	}
+
 	sessionProvider.GetNodeType()
 
 	Convey("With a test MongoRestore instance", t, func() {
