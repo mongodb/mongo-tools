@@ -149,11 +149,6 @@ func TestCreateAllIntentsLongCollectionName(t *testing.T) {
 				Convey("with all the proper metadata + bson merges", func() {
 					So(i0.Location, ShouldNotEqual, "")
 					So(i0.MetadataLocation, ShouldNotEqual, "")
-
-					Convey("and skipped files all present in the logs", func() {
-						logs := buff.String()
-						So(strings.Contains(logs, longInvalidBson), ShouldEqual, true)
-					})
 				})
 			})
 		})

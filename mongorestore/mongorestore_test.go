@@ -108,12 +108,6 @@ func TestMongorestore(t *testing.T) {
 			count, err = c4.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
-
-			restore.TargetDirectory = ""
-			c1.Drop(nil)
-			c2.Drop(nil)
-			c3.Drop(nil)
-			c4.Drop(nil)
 		})
 
 		Convey("and an target of '-' restores from standard input", func() {
@@ -130,12 +124,6 @@ func TestMongorestore(t *testing.T) {
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
-
-			restore.NSOptions.Collection = ""
-			restore.NSOptions.DB = ""
-			restore.InputReader = nil
-			restore.TargetDirectory = ""
-			c1.Drop(nil)
 		})
 
 		Convey("and specifying an nsExclude option", func() {
@@ -155,12 +143,6 @@ func TestMongorestore(t *testing.T) {
 			count, err = c4.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
-
-			restore.TargetDirectory = ""
-			restore.NSOptions.NSExclude = nil
-			c2.Drop(nil)
-			c3.Drop(nil)
-			c4.Drop(nil)
 		})
 
 		Convey("and specifying an nsInclude option", func() {
@@ -173,13 +155,13 @@ func TestMongorestore(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := c4.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
-
-			restore.TargetDirectory = ""
-			restore.NSOptions.NSInclude = nil
-			c4.Drop(nil)
 		})
 
 		Convey("and specifying nsFrom and nsTo options", func() {
@@ -205,14 +187,6 @@ func TestMongorestore(t *testing.T) {
 			count, err = c4.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
-
-			restore.TargetDirectory = ""
-			restore.NSOptions.NSFrom = nil
-			restore.NSOptions.NSTo = nil
-			c1renamed.Drop(nil)
-			c2.Drop(nil)
-			c3.Drop(nil)
-			c4.Drop(nil)
 		})
 	})
 }
@@ -257,9 +231,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
-			restore.TargetDirectory = ""
-			longCollection.Drop(nil)
 		})
 
 		Convey("and an target of '-' restores truncated files from standard input", func() {
@@ -276,12 +247,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
-			restore.NSOptions.Collection = ""
-			restore.NSOptions.DB = ""
-			restore.InputReader = nil
-			restore.TargetDirectory = ""
-			longCollection.Drop(nil)
 		})
 
 		Convey("and specifying an nsExclude option", func() {
@@ -297,10 +262,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
-
-			restore.TargetDirectory = ""
-			restore.NSOptions.NSExclude = nil
-			longCollection.Drop(nil)
 		})
 
 		Convey("and specifying an nsInclude option", func() {
@@ -316,10 +277,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
-			restore.TargetDirectory = ""
-			restore.NSOptions.NSInclude = nil
-			longCollection.Drop(nil)
 		})
 
 		Convey("and specifying nsFrom and nsTo options", func() {
@@ -340,11 +297,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			count, err := shortCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
-			restore.TargetDirectory = "a"
-			restore.NSOptions.NSFrom = nil
-			restore.NSOptions.NSTo = nil
-			shortCollection.Drop(nil)
 		})
 	})
 }
