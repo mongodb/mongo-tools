@@ -78,6 +78,11 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		},
 		{
 			db:     "test",
+			coll:   "system.indexBuilds",
+			output: true,
+		},
+		{
+			db:     "test",
 			coll:   "system.js",
 			output: false,
 		},
