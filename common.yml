@@ -710,6 +710,28 @@ functions:
                 *.rpm
           fi
 
+  "sign archives":
+    - command: shell.exec
+      type: system
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools/
+        silent: true
+        script: |
+          echo "${signing_auth_token}" > ./signing_auth_token
+    - command: shell.exec
+      type: system
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools/
+        script: |
+          /usr/local/bin/notary-client.py \
+              --key-name "server-Tools" \
+              --auth-token-file ./signing_auth_token \
+              --comment "Evergreen Automatic Signing (mongo-tools)" \
+              --notary-url http://notary-service.build.10gen.cc:5000 \
+              --skip-missing \
+              --outputs "sig" \
+              *.zip *.tgz
+
   "upload signed release artifacts":
     - command: s3.put
       params:
@@ -1014,6 +1036,7 @@ tasks:
     - func: "fetch dist release artifacts"
     - func: "sign msi installer"
     - func: "sign linux packages"
+    - func: "sign archives"
     - func: "upload signed release artifacts"
 
 - name: push

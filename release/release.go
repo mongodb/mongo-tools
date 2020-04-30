@@ -932,6 +932,9 @@ func uploadReleaseJSON(v version.Version) {
 		dl.Arch = pf.Arch
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
+			if ext == "sig" {
+				continue
+			}
 
 			stableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-%s%s",
@@ -1025,6 +1028,9 @@ func uploadRelease(v version.Version) {
 
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
+			if ext == "sig" {
+				ext = a.URL[len(a.URL)-6:]
+			}
 
 			unstableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-unstable%s",

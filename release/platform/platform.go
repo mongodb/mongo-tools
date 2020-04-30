@@ -88,11 +88,11 @@ func (p Platform) DebianArch() string {
 func (p Platform) ArtifactExtensions() []string {
 	switch p.OS {
 	case OSLinux:
-		return []string{"tgz", p.Pkg}
+		return []string{"tgz", "tgz.sig", p.Pkg}
 	case OSMac:
-		return []string{"tgz"}
+		return []string{"tgz", "tgz.sig"}
 	case OSWindows:
-		return []string{"zip", "msi"}
+		return []string{"zip", "zip.sig", "msi"}
 	}
 	panic("unreachable")
 }
