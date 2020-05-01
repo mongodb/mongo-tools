@@ -1028,8 +1028,8 @@ func uploadRelease(v version.Version) {
 
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
-			if ext == "sig" {
-				ext = a.URL[len(a.URL)-6:]
+			if ext == ".sig" {
+				ext = a.URL[len(a.URL)-8:]
 			}
 
 			unstableFile := fmt.Sprintf(
