@@ -53,6 +53,10 @@ var getCommonToolArguments = function() {
   return [
     '--username', AUTH_USER,
     '--password', AUTH_PASSWORD,
-    '--authenticationDatabase', 'admin'
+    '--authenticationDatabase', 'admin',
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'
   ];
 };

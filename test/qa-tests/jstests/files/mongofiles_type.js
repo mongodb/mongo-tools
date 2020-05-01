@@ -11,6 +11,8 @@ load('jstests/files/util/mongofiles_common.js');
     var conn = t.connection();
     var db = conn.getDB('test');
     var contentType = 'txt';
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Running put on file with --type with ' + passthrough.name + ' passthrough');
 
@@ -19,7 +21,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '-t', contentType,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 1');
 
     var fileObj = db.fs.files.findOne({
@@ -40,7 +43,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--type', '',
       'put', filesToInsert[1]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed unexpectedly');
 
     if (!_isWindows()) {

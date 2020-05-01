@@ -6,6 +6,10 @@ var getToolTest;
 (function() {
   var TOOLS_TEST_CONFIG = {
     binVersion: '',
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
   };
 
   getToolTest = function(name) {
@@ -17,5 +21,8 @@ var getToolTest;
 
 /* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
-  return [];
+  return ['--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'];
 };

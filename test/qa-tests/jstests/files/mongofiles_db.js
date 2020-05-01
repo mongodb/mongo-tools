@@ -1,6 +1,6 @@
 // mongofiles_db.js; ensure that running mongofiles using the db flag works as
 // expected
-var testName = 'mognofiles_db';
+var testName = 'mongofiles_db';
 load('jstests/files/util/mongofiles_common.js');
 (function() {
   jsTest.log('Testing mongofiles --host option');
@@ -10,6 +10,8 @@ load('jstests/files/util/mongofiles_common.js');
     var t = topology.init(passthrough);
     var conn = t.connection();
     var db = conn.getDB('otherdb');
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
@@ -17,14 +19,16 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--host', 'localhost',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 1 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--db', 'otherdb',
       '--port', conn.port,
       '--host', 'localhost',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 2 failed');
 
     // ensure the files were inserted into the right db
@@ -36,14 +40,16 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--host', 'localhost',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 3 failed');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '-d', 'otherdb',
       '--port', conn.port,
       '--host', 'localhost',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 4 failed');
 
     // ensure the file was inserted into the right db

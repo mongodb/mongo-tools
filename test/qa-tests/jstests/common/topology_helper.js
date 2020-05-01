@@ -22,6 +22,13 @@ var plain = {
   args: [],
 };
 
+var TOOLS_TEST_CONFIG = {
+  tlsMode: "requireTLS",
+  tlsCertificateKeyFile: "jstests/libs/client.pem",
+  tlsCAFile: "jstests/libs/ca.pem",
+  tlsAllowInvalidHostnames: "",
+};
+
 /* exported passthroughs */
 // passthroughs while running all tests
 var passthroughs = [plain, auth];
@@ -80,6 +87,10 @@ var standaloneTopology = {
     passthrough = passthrough || [];
     var startupArgs = buildStartupArgs(passthrough);
     startupArgs.port = allocatePorts(1)[0];
+    startupArgs.tlsMode = "requireTLS";
+    startupArgs.tlsCertificateKeyFile = "jstests/libs/client.pem";
+    startupArgs.tlsCAFile = "jstests/libs/ca.pem";
+    startupArgs.tlsAllowInvalidHostnames = "";
     this.conn = MongoRunner.runMongod(startupArgs);
 
     // set up the auth user if needed
@@ -111,6 +122,7 @@ var replicaSetTopology = {
     var startupArgs = buildStartupArgs(passthrough);
     startupArgs.name = testName;
     startupArgs.nodes = 2;
+    startupArgs.nodeOptions = TOOLS_TEST_CONFIG;
     this.replTest = new ReplSetTest(startupArgs);
 
     // start the replica set
@@ -156,12 +168,19 @@ var shardedClusterTopology = {
     startupArgs.name = testName;
     startupArgs.mongos = 1;
     startupArgs.shards = 1;
+    other.tlsMode = "requireTLS";
+    other.tlsCertificateKeyFile = "jstests/libs/client.pem";
+    other.tlsCAFile = "jstests/libs/ca.pem";
+    other.tlsAllowInvalidHostnames = "";
 
     // set up the auth user if needed
     if (requiresAuth(passthrough)) {
       startupArgs.keyFile = keyFile;
       startupArgs.other = {
         shardOptions: other,
+        configOptions: TOOLS_TEST_CONFIG,
+        mongosOptions: TOOLS_TEST_CONFIG,
+        nodeOptions: other,
       };
       this.shardingTest = new ShardingTest(startupArgs);
       runAuthSetup(this);
@@ -169,6 +188,9 @@ var shardedClusterTopology = {
     } else {
       startupArgs.other = {
         shardOptions: other,
+        configOptions: TOOLS_TEST_CONFIG,
+        mongosOptions: TOOLS_TEST_CONFIG,
+        nodeOptions: other,
       };
       this.shardingTest = new ShardingTest(startupArgs);
     }

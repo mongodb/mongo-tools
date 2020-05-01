@@ -3,7 +3,13 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  var toolTest = new ToolTest('write_concern', null);
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('write_concern', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
 
   var st = new ShardingTest({
@@ -19,6 +25,13 @@
     configReplSetTestOptions: {
       settings: {chainingAllowed: false},
     },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    rs: TOOLS_TEST_CONFIG,
   });
   var rs = st.rs0;
   rs.awaitReplication();

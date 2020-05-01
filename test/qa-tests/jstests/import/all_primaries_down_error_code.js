@@ -10,17 +10,34 @@
   'use strict';
   jsTest.log('Testing mongoimport when a sharded cluster has no primaries');
 
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+
   var sh = new ShardingTest({
     name: 'all_primaries_down_error_code',
-    shards: 1,
+    shards: {
+      rs0: {
+        nodes: 1,
+        settings: {chainingAllowed: false},
+      },
+    },
     verbose: 0,
     mongos: 1,
-    other: {
-      rs: true,
-      numReplicas: 3,
-      chunksize: 1,
-      enableBalancer: 0,
+    config: 1,
+    configReplSetTestOptions: {
+      settings: {chainingAllowed: false},
     },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    rs: TOOLS_TEST_CONFIG,
   });
 
   // Make sure there is no primary in any replica set.
@@ -58,7 +75,10 @@
     '--file', 'jstests/import/testdata/basic.json',
     '--db', 'test',
     '--collection', 'noPrimaryErrorCode',
-    '--host', sh.s0.host);
+    '--host', sh.s0.host,
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames');
   assert.eq(ret, 1, 'mongoimport should fail with no primary');
 
   sh.stop();

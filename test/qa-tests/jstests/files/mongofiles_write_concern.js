@@ -3,7 +3,13 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  var toolTest = new ToolTest('write_concern', null);
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('write_concern', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
 
   var rs = new ReplSetTest({
@@ -11,6 +17,7 @@
     nodes: 3,
     useHostName: true,
     settings: {chainingAllowed: false},
+    nodeOptions: TOOLS_TEST_CONFIG
   });
 
   rs.startSet();

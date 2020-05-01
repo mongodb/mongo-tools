@@ -7,6 +7,8 @@ load('jstests/files/util/mongofiles_common.js');
   var runTests = function(topology, passthrough) {
     var t = topology.init(passthrough);
     var conn = t.connection();
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Testing --version with ' + passthrough.name + ' passthrough');
 
@@ -14,7 +16,8 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       '--version']
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, '--version failed');
 
     t.stop();

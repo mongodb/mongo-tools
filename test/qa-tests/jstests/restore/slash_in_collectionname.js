@@ -34,7 +34,9 @@
   assert.eq(500, sourceDB[sourceCollName].count());
 
   // dump the data
-  var ret = toolTest.runTool.apply(toolTest, ['dump'].concat(getDumpTarget(dumpTarget)));
+  var ret = toolTest.runTool.apply(toolTest, ['dump']
+      .concat(getDumpTarget(dumpTarget))
+      .concat(commonToolArgs));
   assert.eq(0, ret);
 
   sourceDB[sourceCollName].drop();

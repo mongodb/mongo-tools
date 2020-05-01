@@ -5,7 +5,13 @@
 
   jsTest.log('Testing exporting to stdout');
 
-  var toolTest = new ToolTest('stdout');
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('stdout', TOOLS_TEST_CONFIG);
   toolTest.startDB('foo');
 
   // the db and collection we'll use
@@ -22,7 +28,12 @@
   assert.eq(20, testColl.count());
 
   // export the data, writing to stdout
-  var ret = toolTest.runTool('export', '--db', 'test', '--collection', 'data');
+  var ret = toolTest.runTool('export', '--db', 'test',
+      '--collection', 'data',
+      '--ssl',
+      '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
+      '--sslAllowInvalidHostnames');
   assert.eq(0, ret);
 
   // wait for full output to appear

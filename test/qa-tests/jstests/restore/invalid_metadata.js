@@ -7,14 +7,22 @@
 
   jsTest.log('Testing restoration from a metadata file with invalid indexes');
 
-  var toolTest = new ToolTest('invalid_metadata');
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('invalid_metadata', TOOLS_TEST_CONFIG);
+  var commonToolArgs = getCommonToolArguments();
   toolTest.startDB('foo');
 
   // run restore, targeting a collection whose metadata file contains an invalid index
   var ret = toolTest.runTool.apply(toolTest, ['restore',
     '--db', 'dbOne',
     '--collection', 'invalid_metadata']
-    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_invalid/dbOne/invalid_metadata.bson')));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_invalid/dbOne/invalid_metadata.bson'))
+    .concat(commonToolArgs));
   assert.neq(0, ret);
 
   toolTest.stop();

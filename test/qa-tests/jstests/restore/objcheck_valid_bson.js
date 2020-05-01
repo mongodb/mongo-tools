@@ -6,7 +6,14 @@
 
   jsTest.log('Testing restoration with --objcheck');
 
-  var toolTest = new ToolTest('objcheck_valid_bson');
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('objcheck_valid_bson', TOOLS_TEST_CONFIG);
+  var commonToolArgs = getCommonToolArguments();
   toolTest.startDB('foo');
 
   // where we'll put the dump
@@ -27,14 +34,18 @@
   assert.eq(50, testColl.count());
 
   // dump the data
-  var ret = toolTest.runTool.apply(toolTest, ['dump'].concat(getDumpTarget(dumpTarget)));
+  var ret = toolTest.runTool.apply(toolTest, ['dump']
+      .concat(getDumpTarget(dumpTarget))
+      .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // drop the data
   testDB.dropDatabase();
 
   // restore the data, with --objcheck
-  ret = toolTest.runTool.apply(toolTest, ['restore'].concat(getRestoreTarget(dumpTarget)));
+  ret = toolTest.runTool.apply(toolTest, ['restore']
+      .concat(getRestoreTarget(dumpTarget))
+      .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the restore completed successfully

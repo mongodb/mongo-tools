@@ -1,8 +1,17 @@
 (function() {
   jsTest.log('Testing that dump utilizes read preferences and tags');
-  var toolTest = new ToolTest('dump_preference_and_tags');
-
-  var replset1 = new ReplSetTest({nodes: 3, name: 'replset'});
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('dump_preference_and_tags', TOOLS_TEST_CONFIG);
+  var replset1 = new ReplSetTest({
+    nodes: 3,
+    name: 'replset',
+    nodeOptions: TOOLS_TEST_CONFIG
+  });
   replset1.startSet();
   replset1.initiate();
 
@@ -37,7 +46,12 @@
 
   rs.reconfig(conf);
 
-  runMongoProgram('mongodump', '-vvvv', '--host', "replset/"+primary.host, '--readPreference={mode:"nearest", tagSets:[{use:"secondary1"}]}');
+  runMongoProgram('mongodump', '-vvvv', '--host', "replset/"+primary.host,
+      '--readPreference={mode:"nearest", tagSets:[{use:"secondary1"}]}',
+      '--ssl',
+      '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
+      '--sslAllowInvalidHostnames');
 
   var primaryCount = 0;
   var secondaryCount = 0;

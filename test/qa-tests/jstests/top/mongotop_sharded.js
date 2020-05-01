@@ -21,19 +21,33 @@ var testName = 'mongotop_sharded';
     jsTest.log('Using ' + passthrough.name + ' passthrough');
     var t = topology.init(passthrough);
     var conn = t.connection();
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     // getting the version should work without error
-    assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--version'].concat(passthrough.args)), 0, 'failed 1');
+    assert.eq(runMongoProgram.apply(this, ['mongotop',
+      '--port', conn.port, '--version']
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, 'failed 1');
 
     // getting the help text should work without error
-    assert.eq(runMongoProgram.apply(this, ['mongotop', '--port', conn.port, '--help'].concat(passthrough.args)), 0, 'failed 2');
+    assert.eq(runMongoProgram.apply(this, ['mongotop',
+      '--port', conn.port, '--help']
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, 'failed 2');
 
     // anything that runs against the mongos server should fail
-    var result = executeProgram(['mongotop', '--port', conn.port].concat(passthrough.args));
+    var result = executeProgram(['mongotop',
+      '--port', conn.port]
+      .concat(passthrough.args)
+      .concat(sslOptions));
     assert.neq(result.exitCode, 0, 'expected failure against a mongos');
     verifyOutput(result.getOutput);
 
-    result = executeProgram(['mongotop', '--port', conn.port, '2'].concat(passthrough.args));
+    result = executeProgram(['mongotop',
+      '--port', conn.port, '2']
+      .concat(passthrough.args)
+      .concat(sslOptions));
     assert.neq(result.exitCode, 0, 'expected failure against a mongos');
     verifyOutput(result.getOutput);
 

@@ -4,13 +4,42 @@
   // profiling enabled. After running mongodump, we can query all of the profile collections
   // to see if the queries reached any of the secondary nodes (they shouldn't!).
 
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+
   var NODE_COUNT = 5;
-  var st = new ShardingTest({shards: {rs0: {nodes: NODE_COUNT}}});
+  var st = new ShardingTest({
+    shards: {
+      rs0: {
+        nodes: NODE_COUNT,
+        settings: {chainingAllowed: false},
+      }
+    },
+    mongos: 1,
+    config: 1,
+    configReplSetTestOptions: {
+      settings: {chainingAllowed: false},
+    },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    rs: TOOLS_TEST_CONFIG,
+  });
   var replTest = st.rs0;
   var conn = st.s;
 
   var db = conn.getDB("test");
   var replDB = replTest.getPrimary().getDB("test");
+
+  var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
   // whether or not this is mmapv1, this will effect some results
   var isMMAPV1 = replDB.serverStatus().storageEngine.name === "mmapv1";
@@ -51,7 +80,9 @@
 
   print("running mongodump on mongos");
   mongosAddr = st.getConnNames()[0];
-  runMongoProgram("mongodump", "--host", st.s.host, "-vvvv");
+  runMongoProgram.apply(this, ["mongodump",
+    "--host", st.s.host, "-vvvv"]
+      .concat(sslOptions));
   assert.eq(replDB.system.profile.find(profQuery).count(), 4, "queries are routed to primary");
   printjson(replDB.system.profile.find(profQuery).toArray());
 

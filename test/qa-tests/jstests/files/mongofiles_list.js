@@ -11,13 +11,16 @@ var testName = 'mongofiles_list';
   load('jstests/libs/extended_assert.js');
   load('jstests/files/util/mongofiles_common.js');
   var assert = extendedAssert;
+  var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
   var putFile = function(passthrough, conn, file) {
     // ensure tool runs without error
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', file]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put for ' + file + 'failed');
     var db = conn.getDB('test');
     var fileObj = db.fs.files.findOne({
@@ -51,7 +54,8 @@ var testName = 'mongofiles_list';
     var pid = startMongoProgramNoConnect.apply(this, ['mongofiles',
       '--port', conn.port,
       '--quiet', 'list']
-      .concat(passthrough.args));
+      .concat(passthrough.args)
+      .concat(sslOptions));
     assert.eq(waitProgram(pid), 0, 'list command failed but was expected to succeed');
 
     jsTest.log('Verifying list output');

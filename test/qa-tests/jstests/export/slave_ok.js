@@ -3,12 +3,19 @@
 
   jsTest.log('Testing exporting with --slaveOk');
 
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
   // bring up a replica set with 3 nodes
   var replTest = new ReplSetTest({
     name: 'slave_ok',
     nodes: 3,
     oplogSize: 5,
     useHostName: true,
+    nodeOptions: TOOLS_TEST_CONFIG
   });
   var nodes = replTest.startSet();
   replTest.initiate();
@@ -45,14 +52,22 @@
       '--collection', 'data',
       '--host', node.host,
       '--slaveOk',
-      '--out', exportTarget);
+      '--out', exportTarget,
+      '--ssl',
+      '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
+      '--sslAllowInvalidHostnames');
     assert.eq(0, ret);
 
     ret = runMongoProgram('mongoimport',
       '--db', 'test',
       '--collection', 'dest',
       '--host', primary.host,
-      '--file', exportTarget);
+      '--file', exportTarget,
+      '--ssl',
+      '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
+      '--sslAllowInvalidHostnames');
     assert.eq(0, ret);
     assert.eq(10, testDB.dest.count());
   });

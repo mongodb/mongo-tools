@@ -5,7 +5,13 @@ var getToolTest;
 
 (function() {
   getToolTest = function(name) {
-    var toolTest = new ToolTest(name, null);
+    var TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+    var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
 
     var shardingTest = new ShardingTest({name: name,
       shards: 2,
@@ -13,8 +19,12 @@ var getToolTest;
       mongos: 3,
       other: {
         chunksize: 1,
-        enableBalancer: 0
-      }
+        enableBalancer: 0,
+        configOptions: TOOLS_TEST_CONFIG,
+        mongosOptions: TOOLS_TEST_CONFIG,
+        shardOptions: TOOLS_TEST_CONFIG,
+      },
+      rs: TOOLS_TEST_CONFIG,
     });
     shardingTest.adminCommand({enablesharding: name});
 
@@ -36,5 +46,8 @@ var getToolTest;
 
 /* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
-  return [];
+  return ['--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'];
 };

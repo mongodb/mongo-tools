@@ -3,7 +3,35 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
-  var toolTest = new ToolTest('write_concern', null);
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('write_concern', TOOLS_TEST_CONFIG);
+  var startupArgs = {
+    shards: {
+      rs0: {
+        nodes: 3,
+        useHostName: true,
+        settings: {chainingAllowed: false},
+      },
+    },
+    mongos: 1,
+    config: 1,
+    configReplSetTestOptions: {
+      settings: {chainingAllowed: false},
+    },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    nodeOptions: TOOLS_TEST_CONFIG,
+  };
+  printjson(startupArgs);
   var st = new ShardingTest({
     shards: {
       rs0: {
@@ -17,6 +45,13 @@
     configReplSetTestOptions: {
       settings: {chainingAllowed: false},
     },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    rs: TOOLS_TEST_CONFIG,
   });
   var rs = st.rs0;
   rs.awaitReplication();

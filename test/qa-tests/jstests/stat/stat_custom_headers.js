@@ -7,17 +7,18 @@
   var assert = extendedAssert;
 
   var toolTest = getToolTest("stat_custom_headers");
+  var commonToolArgs = getCommonToolArguments();
   var port = toolTest.port;
 
   var x, rows;
-  x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,time", "-O", "metrics.record.moves");
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-o", "host,conn,time", "-O", "metrics.record.moves"].concat(commonToolArgs));
   assert.eq(x, exitCodeFailure, "mongostat should fail with both -o and -O options");
   clearRawMongoProgramOutput();
 
   // basic -o --humanReadable=false
-  x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,time", "-n", 4, "--humanReadable=false");
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-o", "host,conn,time", "-n", 4, "--humanReadable=false"].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
     rows = allShellRows();
@@ -30,8 +31,8 @@
   clearRawMongoProgramOutput();
 
   // basic -o
-  x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,time", "-n", 4);
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-o", "host,conn,time", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
     rows = allShellRows();
@@ -44,8 +45,8 @@
   clearRawMongoProgramOutput();
 
   // basic -O
-  x = runMongoProgram("mongostat", "--port", port,
-    "-O", "host", "-n", 4);
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-O", "host", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   rows = allShellRows();
   var fields = statFields(rows[0]);
@@ -54,8 +55,8 @@
   clearRawMongoProgramOutput();
 
   // named
-  x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host=H,conn=C,time=MYTiME", "-n", 4);
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-o", "host=H,conn=C,time=MYTiME", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
     rows = allShellRows();
@@ -68,8 +69,8 @@
   clearRawMongoProgramOutput();
 
   // serverStatus custom field
-  x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,mem.bits", "-n", 4);
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-o", "host,conn,mem.bits", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
     rows = allShellRows();
@@ -86,8 +87,8 @@
   clearRawMongoProgramOutput();
 
   // serverStatus named field
-  x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4);
+  x = runMongoProgram.apply(this, ["mongostat", "--port", port,
+    "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(5, function() {
     rows = allShellRows();

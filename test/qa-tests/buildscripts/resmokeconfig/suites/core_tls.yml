@@ -1,0 +1,38 @@
+selector:
+  js_test:
+    roots:
+        - jstests/bson/*.js
+        - jstests/dump/*.js
+        - jstests/export/*.js
+        - jstests/files/*.js
+        - jstests/import/*.js
+        - jstests/oplog/*.js
+        - jstests/restore/*.js
+        - jstests/stat/*.js
+        - jstests/top/*.js
+        - jstests/txn/*.js
+
+executor:
+  js_test:
+    config:
+      shell_options:
+        global_vars:
+          TestData:
+            useTLS: true
+        readMode: commands
+        tls: ''
+        tlsAllowInvalidCertificates: ''
+        tlsCAFile: jstests/libs/ca.pem
+        tlsCertificateKeyFile: jstests/libs/client.pem
+    hooks:
+      - class: CleanEveryN
+        n: 20
+    fixture:
+      class: MongoDFixture
+      mongod_options:
+        set_parameters:
+          enableTestCommands: 1
+        tlsMode: allowTLS
+        tlsCertificateKeyFile: jstests/libs/server.pem
+        tlsCAFile: jstests/libs/ca.pem
+        tlsAllowConnectionsWithoutCertificates: ''

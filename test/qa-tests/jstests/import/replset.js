@@ -3,7 +3,17 @@
 
   var toolTest = new ToolTest('import_repl');
 
-  var replset1 = new ReplSetTest({nodes: 3, name: 'importtest'});
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var replset1 = new ReplSetTest({
+    nodes: 3,
+    name: 'importtest',
+    nodeOptions: TOOLS_TEST_CONFIG
+  });
   replset1.startSet();
   replset1.initiate();
 
@@ -12,12 +22,16 @@
 
   var db = primary.getDB('import_repl_test');
 
+  var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
+
   // trying to write to the secondary should fail
   assert.neq(runMongoProgram.apply(this, ['mongoimport',
     '--file', 'jstests/import/testdata/basic.json',
     '--db', db.getName(),
     '--collection', db.c.getName(),
-    '--host', secondary.host, "--legacy"]), 0,
+    '--host', secondary.host, "--legacy"]
+    .concat(sslOptions)), 0,
   "writing to secondary should fail");
 
   assert.eq(db.c.count(), 0, 'database not empty');
@@ -27,7 +41,8 @@
     '--file', 'jstests/import/testdata/basic.json',
     '--db', db.getName(),
     '--collection', db.c.getName(),
-    '--host', primary.host, "--legacy"]), 0,
+    '--host', primary.host, "--legacy"]
+    .concat(sslOptions)), 0,
   "writing to primary should succeed");
 
   assert.neq(db.c.count(), 0, 'database unexpectedly empty on primary');
@@ -39,7 +54,8 @@
     '--file', 'jstests/import/testdata/basic.json',
     '--db', db.getName(),
     '--collection', db.c.getName(),
-    '--host', replset1.name + "/" + secondary.host, "--legacy"]), 0,
+    '--host', replset1.name + "/" + secondary.host, "--legacy"]
+    .concat(sslOptions)), 0,
   "writing to secondary with replset name should succeed");
 
   assert.neq(db.c.count(), 0, 'database unexpectedly empty on secondary');

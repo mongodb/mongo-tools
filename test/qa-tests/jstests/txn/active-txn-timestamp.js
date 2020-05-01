@@ -24,22 +24,34 @@
     return oplogEntries[0];
   }
 
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+    setParameter: {
+      maxNumberOfTransactionOperationsInSingleOplogEntry: 1,
+      bgSyncOplogFetcherBatchSize: 1,
+    }
+  };
+
+  var name = "active-txn-timestamps";
   const replTest = new ReplSetTest({
+    name: name,
     nodes: 3,
-    nodeOptions: {
-      setParameter: {
-        maxNumberOfTransactionOperationsInSingleOplogEntry: 1,
-        bgSyncOplogFetcherBatchSize: 1
-      }
-    },
+    nodeOptions: TOOLS_TEST_CONFIG,
   });
 
   replTest.startSet();
-  let config = replTest.getReplSetConfig();
-  config.members[2].priority = 0;
-  // Disable primary catchup and chaining.
-  config.settings = {catchUpTimeoutMillis: 0, chainingAllowed: false};
-  replTest.initiate(config);
+  var hostnames = replTest.nodeList();
+  replTest.initiate({
+    "_id": name,
+    "members": [
+      {"_id": 0, "host": hostnames[0], "priority": 2},
+      {"_id": 1, "host": hostnames[1], "priority": 0},
+      {"_id": 2, "host": hostnames[2], "priority": 0},
+    ]
+  });
 
   const dbName = jsTest.name();
   const collName = "coll";
@@ -48,6 +60,9 @@
   const testDB = primary.getDB(dbName);
   const secondary = replTest.nodes[1];
   const newTestDB = secondary.getDB(dbName);
+
+  var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
   testDB.dropDatabase();
   assert.commandWorked(testDB.runCommand({create: collName, writeConcern: {w: "majority"}}));
@@ -85,7 +100,6 @@
   assert.commandFailedWithCode(res, ErrorCodes.WriteConcernFailed);
 
   jsTestLog("Wait for the secondary to block on fail point.");
-  checkLog.contains(secondary, "stopReplProducerOnDocument fail point is enabled.");
 
   // Now the transaction should be in-progress on secondary.
   let txnTableEntry = getTxnTableEntry(newTestDB);
@@ -100,7 +114,9 @@
   // Dump with oplog from the secondary.
   let targetPath = "activeTxnOplogTest";
   resetDbpath(targetPath);
-  let rc = runMongoProgram("mongodump", '--host='+secondary.host, '--oplog', '--out='+targetPath);
+  let rc = runMongoProgram.apply(null, ["mongodump",
+    '--host='+secondary.host, '--oplog', '--out='+targetPath]
+      .concat(sslOptions));
   assert.eq(rc, 0, 'mongodump --oplog should succeed');
 
   // Check the first oplog.bson entry for the "first in txn" entry

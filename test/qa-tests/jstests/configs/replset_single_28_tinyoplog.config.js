@@ -5,13 +5,22 @@ var getToolTest;
 
 (function() {
   getToolTest = function(name) {
-    var toolTest = new ToolTest(name, null);
+    var TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+    var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
+
+    TOOLS_TEST_CONFIG.verbose = 1;
+    TOOLS_TEST_CONFIG.syncdelay = 1;
 
     var replTest = new ReplSetTest({
       name: 'tool_replset',
       nodes: 1,
       oplogSize: 2,
-      nodeOptions: {verbose: 1, syncdelay: 1}
+      nodeOptions: TOOLS_TEST_CONFIG
     });
 
     replTest.startSet();
@@ -36,5 +45,8 @@ var getToolTest;
 
 /* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
-  return [];
+  return ['--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'];
 };

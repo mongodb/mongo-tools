@@ -24,6 +24,7 @@
         encryptionKeyFile: TestData.encryptionKeyFile,
         auditDestination: TestData.auditDestination,
         useSSL: TestData.useSSL,
+        useTLS: TestData.useTLS,
         minPort: TestData.minPort,
         maxPort: TestData.maxPort,
       });
@@ -45,6 +46,15 @@
             '--sslPEMKeyFile', 'jstests/libs/server.pem',
             '--sslCAFile', 'jstests/libs/ca.pem',
             '--sslWeakCertificateValidation');
+        }
+      }
+      if (jsTestOptions().useTLS) {
+        if (argArray.indexOf('--tlsMode') < 0) {
+          argArray.push(
+            '--tlsMode', 'requireTLS',
+            '--tlsCertificateKeyFile', 'jstests/libs/server.pem',
+            '--tlsCAFile', 'jstests/libs/ca.pem',
+            '--tlsAllowConnectionsWithoutCertificates');
         }
       }
       _startMongod.apply(null, argArray);
@@ -464,7 +474,7 @@
 
   MongoRunner.mongoOptions = function(opts) {
     // Don't remember waitForConnect
-    var waitForConnect = opts.waitForConnect;
+    var waitForConnect = true;
     delete opts.waitForConnect;
 
     // If we're a mongo object
@@ -523,8 +533,9 @@
     }
 
     // Default for waitForConnect is true
-    opts.waitForConnect = (waitForConnect === undefined || waitForConnect === null) ?
-      true : waitForConnect;
+    // opts.waitForConnect = (waitForConnect === undefined || waitForConnect === null) ?
+    //   true : waitForConnect;
+    opts.waitForConnect = true;
 
     if (jsTestOptions().useSSL) {
       opts.sslMode = opts.sslMode || "requireSSL";
@@ -536,6 +547,18 @@
 
       // Needed for jstest/ssl/ssl_hostname_validation.js
       opts.sslAllowInvalidHostnames = "";
+    }
+
+    if (jsTestOptions().useTLS) {
+      opts.tlsMode = opts.tlsMode || "requireTLS";
+      opts.tlsCertificateKeyFile = opts.tlsCertificateKeyFile || "jstests/libs/server.pem";
+      opts.tlsCAFile = opts.tlsCAFile || "jstests/libs/ca.pem";
+
+      // Needed for jstest/tls/upgrade_to_tls.js
+      opts.tlsAllowConnectionsWithoutCertificates = "";
+
+      // Needed for jstest/tls/tls_hostname_validation.js
+      opts.tlsAllowInvalidHostnames = "";
     }
 
     if (jsTestOptions().useX509 && !opts.clusterAuthMode) {
@@ -606,6 +629,18 @@
 
       // Needed for jstest/ssl/ssl_hostname_validation.js
       opts.sslAllowInvalidHostnames = "";
+    }
+
+    if (jsTestOptions().useTLS) {
+      opts.tlsMode = opts.tlsMode || "requireTLS";
+      opts.tlsCertificateKeyFile = opts.tlsCertificateKeyFile || "jstests/libs/server.pem";
+      opts.tlsCAFile = opts.tlsCAFile || "jstests/libs/ca.pem";
+
+      // Needed for jstest/tls/upgrade_to_tls.js
+      opts.tlsAllowConnectionsWithoutCertificates = "";
+
+      // Needed for jstest/tls/tls_hostname_validation.js
+      opts.tlsAllowInvalidHostnames = "";
     }
 
     if (jsTestOptions().useX509 && !opts.clusterAuthMode) {
@@ -685,7 +720,8 @@
 
       useHostName = opts.useHostName || opts.useHostname;
       runId = opts.runId;
-      waitForConnect = opts.waitForConnect;
+      // waitForConnect = opts.waitForConnect;
+      waitForConnect = true;
 
       if (opts.forceLock) {
         removeFile(opts.dbpath + "/mongod.lock");
@@ -731,7 +767,8 @@
 
       useHostName = opts.useHostName || opts.useHostname;
       runId = opts.runId;
-      waitForConnect = opts.waitForConnect;
+      // waitForConnect = opts.waitForConnect;
+      waitForConnect = true;
 
       opts = MongoRunner.arrOptions("mongos", opts);
     }
@@ -908,6 +945,16 @@
         }
       }
 
+      if (jsTestOptions().useTLS) {
+        if (argArray.indexOf('--tlsMode') < 0) {
+          argArray.push(
+            '--tlsMode', 'requireTLS',
+            '--tlsCertificateKeyFile', 'jstests/libs/server.pem',
+            '--tlsCAFile', 'jstests/libs/ca.pem',
+            '--tlsAllowConnectionsWithoutCertificates');
+        }
+      }
+
       if (programName.endsWith('mongos')) {
         // mongos only options
         // apply setParameters for mongos
@@ -1035,12 +1082,19 @@
       );
     }
 
-    if (jsTestOptions().useSSL) {
+    if (jsTestOptions().useSSL || jsTestOptions().useTLS) {
       args.push("--ssl",
         "--sslPEMKeyFile", "jstests/libs/client.pem",
         "--sslCAFile", "jstests/libs/ca.pem",
         "--sslAllowInvalidHostnames");
     }
+
+    // if (jsTestOptions().useTLS) {
+    //   args.push("--tls",
+    //     "--tlsCertificateKeyFile", "jstests/libs/client.pem",
+    //     "--tlsCAFile", "jstests/libs/ca.pem",
+    //     "--tlsAllowInvalidHostnames");
+    // }
 
     if (progName === 'mongo' && !_useWriteCommandsDefault()) {
       progName = args[0];
@@ -1071,6 +1125,13 @@
         "--sslPEMKeyFile", "jstests/libs/client.pem",
         "--sslCAFile", "jstests/libs/ca.pem",
         "--sslAllowInvalidHostnames");
+    }
+
+    if (jsTestOptions().useTLS) {
+      args.push("--tls",
+        "--tlsCertificateKeyFile", "jstests/libs/client.pem",
+        "--tlsCAFile", "jstests/libs/ca.pem",
+        "--tlsAllowInvalidHostnames");
     }
 
     if (progName === 'mongo' && !_useWriteCommandsDefault()) {

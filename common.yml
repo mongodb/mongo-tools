@@ -1466,7 +1466,7 @@ tasks:
         tool: bsondump
     - func: "run qa-tests"
       vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
+        resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
@@ -1951,13 +1951,16 @@ buildvariants:
     <<: *mongo_tls_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
-    build_tags: "failpoints ssl sasl gssapi"
+    build_tags: "failpoints ssl tls sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     USE_SSL: "true"
+    USE_TLS: "true"
   tasks: *rhel_x86_64_tasks
 
 - name: rhel70
@@ -2044,19 +2047,14 @@ buildvariants:
     <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-<<<<<<< HEAD
     build_tags: "failpoints ssl tls sasl gssapi"
     smoke_use_tls: --use-tls
     resmoke_use_tls: _tls
-=======
-    build_tags: "ssl tls sasl gssapi"
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
->>>>>>> fix resmoke tls => ssl
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     USE_SSL: "true"
+    USE_TLS: "true"
   tasks: *ubuntu_x86_64_tasks
 
 - name: ubuntu1804

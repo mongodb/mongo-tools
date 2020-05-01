@@ -56,7 +56,7 @@ MongodRunner.prototype.toString = function() {
 };
 
 ToolTest = function(name, extraOptions) {
-  this.useSSL = jsTestOptions().useSSL;
+  this.useTLS = jsTestOptions().useTLS;
   this.name = name;
   this.options = extraOptions;
   this.port = allocatePorts(1)[0];
@@ -87,6 +87,15 @@ ToolTest.prototype.startDB = function(coll) {
       sslPEMKeyFile: "jstests/libs/server.pem",
       sslCAFile: "jstests/libs/ca.pem",
       sslWeakCertificateValidation: "",
+    });
+  }
+
+  if (this.useTLS) {
+    Object.extend(options, {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/server.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowConnectionsWithoutCertificates: "",
     });
   }
 
@@ -127,6 +136,13 @@ ToolTest.prototype.runTool = function() {
       "--sslCAFile", "jstests/libs/ca.pem",
       "--sslAllowInvalidHostnames"]);
   }
+
+  // if (this.useTLS) {
+  //   a = a.concat(["--tls",
+  //     "--tlsCertificateKeyFile", "jstests/libs/server.pem",
+  //     "--tlsCAFile", "jstests/libs/ca.pem",
+  //     "--tlsAllowInvalidHostnames"]);
+  // }
 
   if (!hasdbpath) {
     a.push("--host");
@@ -194,6 +210,18 @@ ReplTest.prototype.getOptions = function(master, extra, putBinaryFirst, norepl) 
       a.push("--sslCAFile", "jstests/libs/ca.pem");
     }
     a.push("--sslWeakCertificateValidation");
+  }
+  if (jsTestOptions().useTLS) {
+    if (!Array.contains(a, "--tlsMode")) {
+      a.push("--tlsMode", "requireTLS");
+    }
+    if (!Array.contains(a, "--tlsPEMKeyFile")) {
+      a.push("--tlsCertificateKeyFile", "jstests/libs/server.pem");
+    }
+    if (!Array.contains(a, "--tlsCAFile")) {
+      a.push("--tlsCAFile", "jstests/libs/ca.pem");
+    }
+    a.push("--tlsAllowConnectionsWithoutCertificates");
   }
   if (jsTestOptions().useX509 && !Array.contains(a, "--clusterAuthMode")) {
     a.push("--clusterAuthMode", "x509");

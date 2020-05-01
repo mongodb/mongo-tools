@@ -10,6 +10,8 @@ load('jstests/files/util/mongofiles_common.js');
     var t = topology.init(passthrough);
     var conn = t.connection();
     var db = conn.getDB('test');
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Running put on file with --replace with ' + passthrough.name + ' passthrough');
 
@@ -17,17 +19,20 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 1');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 2');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 3');
 
     // ensure that it is never overwritten
@@ -42,7 +47,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--replace',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 4');
 
     assert.eq(db.fs.files.count(), 1, 'expected 1 file inserted but got ' + db.fs.files.count());
@@ -51,18 +57,21 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[1]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 5');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[2]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 6');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       '--replace',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 7');
 
     assert.eq(db.fs.files.count(), 3, 'expected 3 files inserted but got ' + db.fs.files.count());
@@ -71,18 +80,20 @@ load('jstests/files/util/mongofiles_common.js');
     const dupId = '1';
 
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          'put_id', filesToInsert[0], dupId]
-            .concat(passthrough.args)),
-        0, 'put_id failed when it should have succeeded 8');
+      '--port', conn.port,
+      'put_id', filesToInsert[0], dupId]
+      .concat(passthrough.args)
+      .concat(sslOptions)),
+    0, 'put_id failed when it should have succeeded 8');
 
     const numChunks = db.fs.chunks.count();
 
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
-          '--port', conn.port,
-          'put_id', filesToInsert[0], dupId]
-            .concat(passthrough.args)),
-        0, 'put_id succeeded when it should have failed 9');
+      '--port', conn.port,
+      'put_id', filesToInsert[0], dupId]
+      .concat(passthrough.args)
+      .concat(sslOptions)),
+    0, 'put_id succeeded when it should have failed 9');
 
     assert.eq(numChunks, db.fs.chunks.count(), 'existing chunks were modified when they should not have been');
 

@@ -4,11 +4,19 @@
   }
   load("jstests/libs/output.js");
 
-  var toolTest = getToolTest("stat_discover");
+  var TOOLS_TEST_CONFIG = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  };
+  var toolTest = new ToolTest('stat_discover', TOOLS_TEST_CONFIG);
+  var commonToolArgs = getCommonToolArguments();
   var rs = new ReplSetTest({
     name: "rpls",
     nodes: 4,
     useHostName: true,
+    nodeOptions: TOOLS_TEST_CONFIG
   });
 
   rs.startSet();
@@ -25,10 +33,12 @@
     slaves = rs._slaves;
   }
 
+  toolTest.startDB();
 
   worked = statCheck(["mongostat",
     "--port", master.port,
-    "--discover"],
+    "--discover"]
+    .concat(commonToolArgs),
   hasOnlyPorts(rs.ports));
   assert(worked, "when only port is used, each host still only appears once");
 
@@ -39,7 +49,8 @@
   hosts = [master.host, slaves[0].host, slaves[1].host];
   ports = [master.port, slaves[0].port, slaves[1].port];
   worked = statCheck(['mongostat',
-    '--host', hosts.join(',')],
+    '--host', hosts.join(',')]
+    .concat(commonToolArgs),
   hasOnlyPorts(ports));
   assert(worked, "replica set specifiers are correctly used");
 
@@ -50,7 +61,7 @@
   const specified = slaves[1];
 
   clearRawMongoProgramOutput();
-  pid = startMongoProgramNoConnect("mongostat", "--host", specified.host, "--discover");
+  pid = startMongoProgramNoConnect.apply(null, ["mongostat", "--host", specified.host, "--discover"].concat(commonToolArgs));
 
   assert.soon(hasPort(discovered.port), "discovered host (" + discovered.host + ") is seen");
   assert.soon(hasPort(specified.port), "specified host (" + specified.host + ") is seen");

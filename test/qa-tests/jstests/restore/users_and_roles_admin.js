@@ -5,12 +5,25 @@
 (function () {
   // Runs the tool with the given name against the given mongod.
   function runTool(toolName, mongod, options) {
-    const opts = {host: mongod.host};
+    const opts = {
+      host: mongod.host,
+      ssl: "",
+      sslPEMKeyFile: "jstests/libs/client.pem",
+      sslCAFile: "jstests/libs/ca.pem",
+      sslAllowInvalidHostnames: "",
+    };
     Object.extend(opts, options);
-    MongoRunner.runMongoTool(toolName, opts);
+    var argsArray = MongoRunner.arrOptions(toolName, opts);
+    runMongoProgram.apply(null, argsArray);
   }
 
-  const mongod = MongoRunner.runMongod();
+  const mongodOpts = {
+    tlsMode: "requireTLS",
+    tlsCertificateKeyFile: "jstests/libs/client.pem",
+    tlsCAFile: "jstests/libs/ca.pem",
+    tlsAllowInvalidHostnames: "",
+  }
+  const mongod = MongoRunner.runMongod(mongodOpts);
   const admindb = mongod.getDB("admin");
   const foodb = mongod.getDB("foo");
   const bardb = mongod.getDB("bar");

@@ -16,6 +16,9 @@ load('jstests/files/util/mongofiles_common.js');
     // generate a random GridFS name for the file
     var putFSName = testName + (Math.random() + 1).toString(36).substring(7);
     var getFSName = testName + (Math.random() + 1).toString(36).substring(7);
+    
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Running put on file with --local');
 
@@ -24,7 +27,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '-l', filesToInsert[0],
       'put', putFSName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 1');
 
     // ensure the file exists
@@ -37,7 +41,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', filesToInsert[0] + '?',
       'put', putFSName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put succeeded when it should have failed 2');
 
     // if the argument is empty, use the putFSName - which should cause an error since it doesn't exist
@@ -45,7 +50,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', '',
       'put', putFSName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put succeeded when it should have failed 3');
 
     // if the argument is empty, and the GridFS file exists, it should run
@@ -58,7 +64,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', '',
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded 2');
 
     jsTest.log('Running get on file with --local');
@@ -68,7 +75,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', getFSName,
       'get', putFSName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'get failed when it should have succeeded 1');
 
     // ensure the right file name was written
@@ -84,7 +92,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', '',
       'get', putFSName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'get failed unexpectedly');
 
     if (!_isWindows()) {

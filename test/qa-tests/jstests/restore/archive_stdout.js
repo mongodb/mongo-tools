@@ -9,10 +9,19 @@
   if (toolTest.useSSL) {
     baseArgs = baseArgs.concat([
       '--ssl',
-      '--sslPEMKeyFile', 'jstests/libs/server.pem',
-      '--sslCAFile', 'jstests/libs/ca.pem',
+      '--sslPEMKeyFile=jstests/libs/server.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
       '--sslAllowInvalidHostnames']);
   }
+
+  if (toolTest.useTLS) {
+    baseArgs = baseArgs.concat([
+      '--tls',
+      '--tlsCertificateKeyFile=jstests/libs/server.pem',
+      '--tlsCAFile=jstests/libs/ca.pem',
+      '--tlsAllowInvalidHostnames']);
+  }
+
   if (dump_targets === 'gzip') {
     baseArgs = baseArgs.concat('--gzip');
   }
