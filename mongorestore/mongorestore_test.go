@@ -26,7 +26,18 @@ import (
 )
 
 const (
-	mioSoeFile = "testdata/10k1dup10k.bson"
+	mioSoeFile     = "testdata/10k1dup10k.bson"
+	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
+	longCollectionName = longFilePrefix +
+		"LongCollectionNameConsistingOfExactlyTwoHundredAndFortySevenCharacters"
+	longBsonName = longFilePrefix +
+		"LongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson"
+	longMetadataName = longFilePrefix +
+		"LongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json"
+	longInvalidBson = longFilePrefix +
+		"LongCollectionNameConsistingOfE%24someMadeUpInvalidHashString.bson"
 )
 
 func init() {
@@ -73,31 +84,219 @@ func TestMongorestore(t *testing.T) {
 			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 		})
 
-		c1 := db.Collection("c1")
+		c1 := db.Collection("c1") // 100 documents
 		c1.Drop(nil)
+		c2 := db.Collection("c2") // 0 documents
+		c2.Drop(nil)
+		c3 := db.Collection("c3") // 0 documents
+		c3.Drop(nil)
+		c4 := db.Collection("c4") // 10 documents
+		c4.Drop(nil)
+
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
+
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 100)
+			So(result.Successes, ShouldEqual, 110)
 			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 100)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("and an target of '-' restores from standard input", func() {
+			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
+			So(err, ShouldBeNil)
+
+			restore.NSOptions.Collection = "c1"
+			restore.NSOptions.DB = "db1"
+			restore.InputReader = bsonFile
+			restore.TargetDirectory = "-"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
 			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
 
-		Convey("and an target of '-' restores from standard input", func() {
-			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
-			restore.NSOptions.Collection = "c1"
-			restore.NSOptions.DB = "db1"
+		Convey("and specifying an nsExclude option", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+			restore.NSOptions.NSExclude = make([]string, 1)
+			restore.NSOptions.NSExclude[0] = "db1.c1"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
-			restore.InputReader = bsonFile
+			So(count, ShouldEqual, 0)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("and specifying an nsInclude option", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+			restore.NSOptions.NSInclude = make([]string, 1)
+			restore.NSOptions.NSInclude[0] = "db1.c4"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("and specifying nsFrom and nsTo options", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+
+			restore.NSOptions.NSFrom = make([]string, 1)
+			restore.NSOptions.NSFrom[0] = "db1.c1"
+			restore.NSOptions.NSTo = make([]string, 1)
+			restore.NSOptions.NSTo[0] = "db1.c1renamed"
+
+			c1renamed := db.Collection("c1renamed")
+			c1renamed.Drop(nil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 110)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1renamed.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 100)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+	})
+}
+
+func TestMongorestoreLongCollectionName(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 4.4 or later")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		db := session.Database("db1")
+		Convey("and majority is used as the default write concern", func() {
+			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
+		})
+
+		longCollection := db.Collection(longCollectionName)
+		longCollection.Drop(nil)
+
+		Convey("and an explicit target restores truncated files from that dump directory", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 1)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
+		})
+
+		Convey("and an target of '-' restores truncated files from standard input", func() {
+			longBsonFile, err := os.Open("testdata/longcollectionname/db1/" + longBsonName)
+			So(err, ShouldBeNil)
+
+			restore.NSOptions.Collection = longCollectionName
+			restore.NSOptions.DB = "db1"
+			restore.InputReader = longBsonFile
 			restore.TargetDirectory = "-"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(nil, bson.M{})
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
+			So(count, ShouldEqual, 1)
+		})
+
+		Convey("and specifying an nsExclude option", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			restore.NSOptions.NSExclude = make([]string, 1)
+			restore.NSOptions.NSExclude[0] = "db1." + longCollectionName
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("and specifying an nsInclude option", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			restore.NSOptions.NSInclude = make([]string, 1)
+			restore.NSOptions.NSInclude[0] = "db1." + longCollectionName
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 1)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := longCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
+		})
+
+		Convey("and specifying nsFrom and nsTo options", func() {
+			restore.TargetDirectory = "testdata/longcollectionname"
+			restore.NSOptions.NSFrom = make([]string, 1)
+			restore.NSOptions.NSFrom[0] = "db1." + longCollectionName
+			restore.NSOptions.NSTo = make([]string, 1)
+			restore.NSOptions.NSTo[0] = "db1.aMuchShorterCollectionName"
+
+			shortCollection := db.Collection("aMuchShorterCollectionName")
+			shortCollection.Drop(nil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 1)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := shortCollection.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
 		})
 	})
 }

@@ -217,7 +217,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
 		// log a deprecation message if restoring from a directory, or
 		// from a non-bson file with the --archive option
-		_, fileType, err := restore.getInfoFromFilename(restore.TargetDirectory)
+		_, fileType, err := restore.getInfoFromFile(restore.TargetDirectory)
 		if err != nil {
 			return err
 		}
