@@ -191,3 +191,47 @@ func TestOplogRestoreTools2002(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 	})
 }
+
+type testTable struct {
+	ns     string
+	output bool
+}
+
+func TestShouldIgnoreNamespacee(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	tests := []testTable{
+		{
+			ns:     "test.system",
+			output: false,
+		},
+		{
+			ns:     "test.system.nonsense",
+			output: false,
+		},
+		{
+			ns:     "config.system.sessions",
+			output: true,
+		},
+		{
+			ns:     "config.system.indexBuilds",
+			output: true,
+		},
+		{
+			ns:     "test.system.js",
+			output: false,
+		},
+		{
+			ns:     "test.test",
+			output: false,
+		},
+		{
+			ns:     "config.cache.any",
+			output: true,
+		},
+	}
+	for _, testVals := range tests {
+		if shouldIgnoreNamespace(testVals.ns) != testVals.output {
+			t.Errorf("%s should have been %v but failed\n", testVals.ns, testVals.output)
+		}
+	}
+}

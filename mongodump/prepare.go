@@ -151,7 +151,7 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 			return true
 		}
 	case "config":
-		if collName == "transactions" || collName == "system.sessions" || collName == "transaction_coordinators" {
+		if collName == "transactions" || collName == "system.sessions" || collName == "transaction_coordinators" || collName == "system.indexBuilds" {
 			return true
 		}
 	default:
