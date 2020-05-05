@@ -4,11 +4,14 @@
 
   jsTest.log('Testing exporting with --jsonArray specified');
 
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
   };
   var toolTest = new ToolTest('json_array', TOOLS_TEST_CONFIG);
   toolTest.startDB('foo');
@@ -33,7 +36,7 @@
   assert.eq(20, testColl.count());
 
   // export the data
-  var ret = toolTest.runTool.apply(null, ['export', '--out', exportTarget,
+  var ret = toolTest.runTool.apply(toolTest, ['export', '--out', exportTarget,
     '--db', 'test', '--collection', 'data', '--jsonArray'].concat(sslOptions));
   assert.eq(0, ret);
 
@@ -41,7 +44,7 @@
   testDB.dropDatabase();
 
   // make sure that mongoimport without --jsonArray does not work
-  ret = toolTest.runTool.apply(null, ['import', '--file', exportTarget,
+  ret = toolTest.runTool.apply(toolTest, ['import', '--file', exportTarget,
     '--db', 'test', '--collection', 'data'].concat(sslOptions));
   assert.neq(0, ret);
 
@@ -49,7 +52,7 @@
   assert.eq(0, testColl.count());
 
   // run mongoimport again, with --jsonArray
-  ret = toolTest.runTool.apply(null, ['import', '--file', exportTarget,
+  ret = toolTest.runTool.apply(toolTest, ['import', '--file', exportTarget,
     '--db', 'test', '--collection', 'data', '--jsonArray'].concat(sslOptions));
   assert.eq(0, ret);
 

@@ -3,11 +3,14 @@
 
   var toolTest = new ToolTest('import_repl');
 
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
   };
   var replset1 = new ReplSetTest({
     nodes: 3,

@@ -3,11 +3,14 @@
 
   jsTest.log('Testing exporting with --slaveOk');
 
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
   };
   // bring up a replica set with 3 nodes
   var replTest = new ReplSetTest({

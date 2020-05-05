@@ -25,14 +25,22 @@
   }
 
   var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
     setParameter: {
       maxNumberOfTransactionOperationsInSingleOplogEntry: 1,
       bgSyncOplogFetcherBatchSize: 1,
     }
+  };
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+      setParameter: {
+        maxNumberOfTransactionOperationsInSingleOplogEntry: 1,
+        bgSyncOplogFetcherBatchSize: 1,
+      }
+    };
   };
 
   var name = "active-txn-timestamps";

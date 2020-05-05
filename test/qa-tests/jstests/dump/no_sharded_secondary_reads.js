@@ -4,11 +4,14 @@
   // profiling enabled. After running mongodump, we can query all of the profile collections
   // to see if the queries reached any of the secondary nodes (they shouldn't!).
 
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
   };
 
   var NODE_COUNT = 5;

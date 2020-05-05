@@ -1,10 +1,13 @@
 (function() {
   jsTest.log('Testing that dump utilizes read preferences and tags');
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
   };
   var toolTest = new ToolTest('dump_preference_and_tags', TOOLS_TEST_CONFIG);
   var replset1 = new ReplSetTest({

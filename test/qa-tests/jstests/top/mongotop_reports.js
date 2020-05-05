@@ -40,7 +40,9 @@ load('jstests/top/util/mongotop_common.js');
     // ensure tool runs without error
     clearRawMongoProgramOutput();
     var ret = executeProgram(['mongotop',
-      '--port', conn.port, '--json', '--rowcount', 1]
+      '--port', conn.port,
+      '--json',
+      '--rowcount', 1]
       .concat(passthrough.args)
       .concat(sslOptions));
     assert.eq(ret.exitCode, 0, 'failed 1');

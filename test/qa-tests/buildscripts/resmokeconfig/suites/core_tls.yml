@@ -9,7 +9,11 @@ selector:
         - jstests/oplog/*.js
         - jstests/restore/*.js
         - jstests/stat/*.js
-        - jstests/top/*.js
+#        - jstests/top/*.js TODO: TOOLS-2572 Fix temporarily disabled test mongotop_reports.js
+        - jstests/top/mongotop_json.js
+        - jstests/top/mongotop_sharded.js
+        - jstests/top/mongotop_stress.js
+        - jstests/top/mongotop_validation.js
         - jstests/txn/*.js
 
 executor:

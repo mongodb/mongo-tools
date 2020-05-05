@@ -48,7 +48,7 @@ if (typeof getToolTest === 'undefined') {
     .concat(getDumpTarget(targetPath))
     .concat(commonToolArgs);
 
-  assert(toolTest.runTool.apply(toolTest, dumpArgs) !== 0,
+  assert(toolTest.runTool.apply(this, dumpArgs) !== 0,
     'mongodump should crash gracefully when remote server dies');
 
   var possibleErrors = [
