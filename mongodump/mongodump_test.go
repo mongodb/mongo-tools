@@ -12,14 +12,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"testing"
-
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/json"
@@ -31,6 +23,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"testing"
 )
 
 var (
@@ -265,14 +264,11 @@ func setUpMongoDumpTestData() error {
 	return nil
 }
 
-func setUpDBView() error {
+func setUpDBView(collName string, dbName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
 		return err
 	}
-
-	collName := "coll1"
-	dbName := testDB
 
 	pipeline := []bson.M{{"$project": bson.M{"b": "$a"}}}
 	createCmd := bson.D{
@@ -288,6 +284,39 @@ func setUpDBView() error {
 	return nil
 }
 
+func turnOnProfiling(dbName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	profileCmd := bson.D{
+		{"profile", 2},
+	}
+
+	var r2 bson.M
+	return sessionProvider.Run(profileCmd, &r2, dbName)
+}
+
+func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, error) {
+	return profileCollection.CountDocuments(context.Background(),
+		bson.D{
+			{"ns", ns},
+			{"op", "query"},
+			{"$or", []interface{}{
+				// 4.0+
+				bson.D{{"command.hint._id", 1}},
+				// 3.6
+				bson.D{{"command.$snapshot", true}},
+				bson.D{{"command.snapshot", true}},
+				// 3.4 and previous
+				bson.D{{"query.$snapshot", true}},
+				bson.D{{"query.snapshot", true}},
+				bson.D{{"query.hint._id", 1}},
+			}},
+		},
+	)
+}
 // backgroundInsert inserts into random collections until provided done
 // channel is closed.  The function closes the ready channel to signal that
 // background insertion has started.  When the done channel is closed, the
@@ -1019,12 +1048,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	}
 
 	// Turn on profiling.
-	profileCmd := bson.D{
-		{"profile", 2},
-	}
-
-	err = sessionProvider.Run(profileCmd, &r2, dbName)
-	if err != nil {
+	if err = turnOnProfiling(dbName); err != nil {
 		t.Fatalf("Failed to turn on profiling: %v", err)
 	}
 
@@ -1040,23 +1064,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		err = md.Dump()
 		So(err, ShouldBeNil)
 
-		count, err := profileCollection.CountDocuments(context.Background(),
-			bson.D{
-				{"ns", ns},
-				{"op", "query"},
-				{"$or", []interface{}{
-					// 4.0+
-					bson.D{{"command.hint._id", 1}},
-					// 3.6
-					bson.D{{"command.$nsapshot", true}},
-					bson.D{{"command.snapshot", true}},
-					// 3.4 and previous
-					bson.D{{"query.$snapshot", true}},
-					bson.D{{"query.snapshot", true}},
-					bson.D{{"query.hint._id", 1}},
-				}},
-			},
-		)
+		count, err := countSnapshotCmds(profileCollection, ns)
 		So(err, ShouldBeNil)
 		if isMMAPV1 {
 			// There should be exactly one query that matches.
@@ -1131,11 +1139,15 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 		err := setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
-		err = setUpDBView()
+		colName := "dump_view_as_collection"
+		dbName := testDB
+		err = setUpDBView(colName, dbName)
+		So(err, ShouldBeNil)
+
+		err = turnOnProfiling(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
-
 			md := simpleMongoDumpInstance()
 			md.ToolOptions.Namespace.DB = testDB
 			md.OutputOptions.Out = "dump"
@@ -1166,6 +1178,21 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 
 			})
 
+			Convey("testing dumping a view query hints", func() {
+				session, err := testutil.GetBareSession()
+				So(err, ShouldBeNil)
+
+				dbStruct := session.Database(dbName)
+				profileCollection := dbStruct.Collection("system.profile")
+				ns := dbName + "." + colName
+				count, err := countSnapshotCmds(profileCollection, ns)
+				So(err, ShouldBeNil)
+
+				// view dump should not do collection scan
+				So(count, ShouldEqual, 0)
+			})
+
+
 			Reset(func() {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 			})
@@ -1186,7 +1213,9 @@ func TestMongoDumpViews(t *testing.T) {
 		err := setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
-		err = setUpDBView()
+		colName := "dump_views"
+		dbName := testDB
+		err = setUpDBView(colName, dbName)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {

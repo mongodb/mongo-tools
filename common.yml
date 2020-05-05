@@ -17,9 +17,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-tests-3.2
@@ -38,9 +40,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
@@ -63,9 +67,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: kerberos
@@ -83,9 +89,11 @@ mongo_tools_variables:
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: qa-tests-4.0
@@ -97,9 +105,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
         distros:
@@ -137,9 +147,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       #- name: kerberos
@@ -157,9 +169,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       # Disabled due to TOOLS-2119
@@ -178,9 +192,11 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
@@ -544,6 +560,20 @@ functions:
         mkdir -p mongodb/db_files
         echo "Starting mongod..."
         PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
+
+  "start mmapv1 instance":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      background: true
+      script: |
+        set -x
+        set -v
+        set -e
+        rm -rf mongodb/db_files mongodb/${logfile|run.log}
+        mkdir -p mongodb/db_files
+        echo "Starting mmapv1 mongod..."
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --storageEngine=mmapv1
 
   "start mongod cluster":
     command: shell.exec
@@ -1030,6 +1060,19 @@ tasks:
       vars:
         INT_TEST: "true"
 
+- name: integration-3.6-mmapv1
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.6"
+    - func: "start mmapv1 instance"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+
 - name: integration-4.0
   commands:
     - func: "fetch source"
@@ -1078,6 +1121,19 @@ tasks:
     - func: "start mongod cluster"
     - func: "wait for mongod to be ready"
     - func: "create repl_set"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+
+- name: integration-4.0-mmapv1
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.0"
+    - func: "start mmapv1 instance"
+    - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
