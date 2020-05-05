@@ -11,7 +11,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
   var dbName = "foo";
   var colName = "bar";

@@ -32,13 +32,15 @@ if (typeof getToolTest === 'undefined') {
   // On sharded and standalone, kill the server
   var shellArgs = ['sleep(1000); ' +
     (toolTest.authCommand || '') +
-    'db.getSiblingDB(\'admin\').shutdownServer({ force: true });',
-    undefined,
-    undefined,
-    '--tls',
-    '--tlsCertificateKeyFile=jstests/libs/client.pem',
-    '--tlsCAFile=jstests/libs/ca.pem',
-    '--tlsAllowInvalidHostnames'];
+    'db.getSiblingDB(\'admin\').shutdownServer({ force: true });'];
+  if (TestData.useTLS) {
+    shellArgs = shellArgs.concat([undefined,
+      undefined,
+      '--tls',
+      '--tlsCertificateKeyFile=jstests/libs/client.pem',
+      '--tlsCAFile=jstests/libs/ca.pem',
+      '--tlsAllowInvalidHostnames']);
+  }
   var koShell = startParallelShell.apply(null, shellArgs);
 
   var dumpArgs = ['dump',

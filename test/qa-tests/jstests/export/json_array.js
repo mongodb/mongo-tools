@@ -12,7 +12,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var toolTest = new ToolTest('json_array', TOOLS_TEST_CONFIG);
   toolTest.startDB('foo');
 

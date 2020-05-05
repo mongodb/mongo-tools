@@ -10,11 +10,16 @@
 
   var options = {
     auth: '',
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
   };
+  if (TestData.useTLS) {
+    options = {
+      auth: '',
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
   var toolTest = new ToolTest('drop_authenticated_user', options);
   var commonToolArgs = getCommonToolArguments();
   toolTest.startDB('foo');

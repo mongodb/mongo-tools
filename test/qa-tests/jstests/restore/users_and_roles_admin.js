@@ -17,11 +17,14 @@
     runMongoProgram.apply(null, argsArray);
   }
 
-  const mongodOpts = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
+  var mongodOpts = {};
+  if (TestData.useTLS) {
+    mongodOpts = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
   }
   const mongod = MongoRunner.runMongod(mongodOpts);
   const admindb = mongod.getDB("admin");

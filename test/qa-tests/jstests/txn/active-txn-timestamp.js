@@ -41,7 +41,7 @@
         bgSyncOplogFetcherBatchSize: 1,
       }
     };
-  };
+  }
 
   var name = "active-txn-timestamps";
   const replTest = new ReplSetTest({

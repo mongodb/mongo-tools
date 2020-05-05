@@ -18,7 +18,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
 
   var sh = new ShardingTest({
     name: 'all_primaries_down_error_code',

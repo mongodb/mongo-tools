@@ -8,7 +8,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var toolTest = new ToolTest('dump_preference_and_tags', TOOLS_TEST_CONFIG);
   var replset1 = new ReplSetTest({
     nodes: 3,

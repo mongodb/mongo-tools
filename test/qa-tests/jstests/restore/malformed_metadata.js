@@ -6,12 +6,15 @@
 
   jsTest.log('Testing restoration from a malformed metadata file');
 
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
-  };
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
   var toolTest = new ToolTest('malformed_metadata', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
   toolTest.startDB('foo');

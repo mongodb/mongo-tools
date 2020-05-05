@@ -11,7 +11,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var replset1 = new ReplSetTest({
     nodes: 3,
     name: 'importtest',

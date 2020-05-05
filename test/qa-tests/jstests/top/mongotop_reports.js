@@ -17,34 +17,19 @@ load('jstests/top/util/mongotop_common.js');
     db.dropDatabase();
     assert.eq(db.bar.count(), 0, 'drop failed');
 
-    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
-      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
-
     // start the parallel shell command
     if (passthrough.name === auth.name) {
-      var authCommand = '\n db.getSiblingDB(\'admin\').auth(\'' + authUser + '\', \'' + authPassword + '\'); \n';
+      var authCommand = '\n db.getSiblingDB(\'admin\').auth(\'' + authUser + '\',\'' + authPassword + '\'); \n';
       test.shellCommand = authCommand + test.shellCommand;
     }
-    var shellArgs = [test.shellCommand,
-      undefined,
-      undefined,
-      '--tls',
-      '--tlsCertificateKeyFile=jstests/libs/client.pem',
-      '--tlsCAFile=jstests/libs/ca.pem',
-      '--tlsAllowInvalidHostnames'];
-    var shellWorkload = startParallelShell.apply(null, shellArgs);
+    var shellWorkload = startParallelShell(test.shellCommand);
 
     // allow for command to actually start
     sleep(5000);
 
     // ensure tool runs without error
     clearRawMongoProgramOutput();
-    var ret = executeProgram(['mongotop',
-      '--port', conn.port,
-      '--json',
-      '--rowcount', 1]
-      .concat(passthrough.args)
-      .concat(sslOptions));
+    var ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args));
     assert.eq(ret.exitCode, 0, 'failed 1');
     var parsedOutput;
     assert.eq.soon('object', function() {
@@ -106,31 +91,31 @@ load('jstests/top/util/mongotop_common.js');
         });
       });
     }
+    t.stop();
 
     // Swallow the exit code for the shell per SERVER-25777.
     shellWorkload();
-    t.stop();
   };
 
   var runTests = function(topology, passthrough) {
-    var readShell = 'print(\'starting read\'); ' +
-      'for (var i = 0; i < 1000000; ++i) { ' +
-      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){});' +
-      '  sleep(1);' +
-      '}';
+    var readShell = '\nprint(\'starting read\'); \n' +
+        'for (var i = 0; i < 1000000; ++i) \n{ ' +
+        '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
+        '  sleep(1); \n' +
+        '}\n';
 
-    var writeShell = 'print(\'starting write\');' +
-      'for (var i = 0; i < 1000000; ++i) {' +
-      '  db.getSiblingDB(\'foo\').bar.insert({ x: i });' +
-      '  sleep(1);' +
-      '}';
+    var writeShell = '\nprint(\'starting write\'); \n' +
+        'for (var i = 0; i < 1000000; ++i) { \n' +
+        '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
+        '  sleep(1); \n' +
+        '}\n';
 
-    var readWriteShell = 'print(\'starting read/write\');' +
-      'for (var i = 0; i < 1000000; ++i) { ' +
-      '  db.getSiblingDB(\'foo\').bar.insert({ x: i });' +
-      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){});' +
-      '  sleep(1);' +
-      '}';
+    var readWriteShell = '\nprint(\'starting read/write\'); \n' +
+        'for (var i = 0; i < 1000000; ++i) \n{ ' +
+        '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
+        '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
+        '  sleep(1); \n' +
+        '}\n';
 
     var testSpaces = [
       ['foo.bar'],

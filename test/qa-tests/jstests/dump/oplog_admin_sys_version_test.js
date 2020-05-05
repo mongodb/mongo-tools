@@ -16,7 +16,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var toolTest = getToolTest('oplogUUIDTest', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
 

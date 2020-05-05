@@ -13,7 +13,7 @@ var getToolTest;
         tlsCAFile: "jstests/libs/ca.pem",
         tlsAllowInvalidHostnames: "",
       };
-    };
+    }
     var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
 
     var shardingTest = new ShardingTest({name: name,

@@ -11,7 +11,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   // bring up a replica set with 3 nodes
   var replTest = new ReplSetTest({
     name: 'slave_ok',

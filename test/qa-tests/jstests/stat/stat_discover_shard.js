@@ -9,7 +9,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var st = new ShardingTest({
     name: "shard1",
     shards: {

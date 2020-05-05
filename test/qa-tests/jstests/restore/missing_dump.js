@@ -5,12 +5,15 @@
 
   jsTest.log('Testing running mongorestore with missing dump files and directories');
 
-  var TOOLS_TEST_CONFIG = {
-    tlsMode: "requireTLS",
-    tlsCertificateKeyFile: "jstests/libs/client.pem",
-    tlsCAFile: "jstests/libs/ca.pem",
-    tlsAllowInvalidHostnames: "",
-  };
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
   var toolTest = new ToolTest('missing_dump', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
   toolTest.startDB('foo');

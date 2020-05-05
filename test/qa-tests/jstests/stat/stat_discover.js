@@ -12,7 +12,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
   var toolTest = new ToolTest('stat_discover', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
   var rs = new ReplSetTest({

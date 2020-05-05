@@ -12,7 +12,7 @@
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
-  };
+  }
 
   var NODE_COUNT = 5;
   var st = new ShardingTest({
