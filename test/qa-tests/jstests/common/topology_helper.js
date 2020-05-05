@@ -22,7 +22,7 @@ var plain = {
   args: [],
 };
 
-var TOOLS_TEST_CONFIG = {
+var TLS_CONFIG = {
   tlsMode: "requireTLS",
   tlsCertificateKeyFile: "jstests/libs/client.pem",
   tlsCAFile: "jstests/libs/ca.pem",
@@ -87,10 +87,12 @@ var standaloneTopology = {
     passthrough = passthrough || [];
     var startupArgs = buildStartupArgs(passthrough);
     startupArgs.port = allocatePorts(1)[0];
-    startupArgs.tlsMode = "requireTLS";
-    startupArgs.tlsCertificateKeyFile = "jstests/libs/client.pem";
-    startupArgs.tlsCAFile = "jstests/libs/ca.pem";
-    startupArgs.tlsAllowInvalidHostnames = "";
+    if (TestData.useTLS) {
+      startupArgs.tlsMode = "requireTLS";
+      startupArgs.tlsCertificateKeyFile = "jstests/libs/client.pem";
+      startupArgs.tlsCAFile = "jstests/libs/ca.pem";
+      startupArgs.tlsAllowInvalidHostnames = "";
+    }
     this.conn = MongoRunner.runMongod(startupArgs);
 
     // set up the auth user if needed
@@ -124,7 +126,7 @@ var replicaSetTopology = {
     startupArgs.nodes = 2;
 
     if (TestData.useTLS) {
-      startupArgs.nodeOptions = TOOLS_TEST_CONFIG;
+      startupArgs.nodeOptions = TLS_CONFIG;
     }
     this.replTest = new ReplSetTest(startupArgs);
 
@@ -184,8 +186,8 @@ var shardedClusterTopology = {
       if (TestData.useTLS) {
         startupArgs.other = {
           shardOptions: other,
-          configOptions: TOOLS_TEST_CONFIG,
-          mongosOptions: TOOLS_TEST_CONFIG,
+          configOptions: TLS_CONFIG,
+          mongosOptions: TLS_CONFIG,
           nodeOptions: other,
         };
       }
@@ -196,8 +198,8 @@ var shardedClusterTopology = {
       if (TestData.useTLS) {
         startupArgs.other = {
           shardOptions: other,
-          configOptions: TOOLS_TEST_CONFIG,
-          mongosOptions: TOOLS_TEST_CONFIG,
+          configOptions: TLS_CONFIG,
+          mongosOptions: TLS_CONFIG,
           nodeOptions: other,
         };
       }

@@ -3,6 +3,7 @@
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
   }
+  var TOOLS_TEST_CONFIG = {};
   if (TestData.useTLS) {
     TOOLS_TEST_CONFIG = {
       tlsMode: "requireTLS",
