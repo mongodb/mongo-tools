@@ -17,7 +17,6 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
-      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
@@ -192,11 +191,9 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
-      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
