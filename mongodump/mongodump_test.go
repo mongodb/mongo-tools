@@ -317,6 +317,7 @@ func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, e
 		},
 	)
 }
+
 // backgroundInsert inserts into random collections until provided done
 // channel is closed.  The function closes the ready channel to signal that
 // background insertion has started.  When the done channel is closed, the
@@ -1191,7 +1192,6 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 				// view dump should not do collection scan
 				So(count, ShouldEqual, 0)
 			})
-
 
 			Reset(func() {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
