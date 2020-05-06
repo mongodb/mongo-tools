@@ -1285,7 +1285,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
-        USE_TLS: "true"
+        USE_SSL: "true"
 
 - name: integration-4.4-auth
   commands:
@@ -1315,7 +1315,7 @@ tasks:
       vars:
         INT_TEST: "true"
         AUTH_TEST: "true"
-        USE_TLS: "true"
+        USE_SSL: "true"
 
 - name: integration-4.4-cluster
   commands:
@@ -1336,7 +1336,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
-        USE_TLS: "true"
+        USE_SSL: "true"
 
 - name: kerberos
   commands:
@@ -1726,7 +1726,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "4.2"
+        mongo_version: "4.4"
     - func: "fetch tool"
       vars:
         tool: mongodump
