@@ -16,7 +16,7 @@ load('jstests/files/util/mongofiles_common.js');
     // generate a random GridFS name for the file
     var putFSName = testName + (Math.random() + 1).toString(36).substring(7);
     var getFSName = testName + (Math.random() + 1).toString(36).substring(7);
-    
+
     var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
       '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 

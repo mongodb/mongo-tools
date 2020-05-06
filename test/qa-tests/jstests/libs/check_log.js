@@ -70,7 +70,7 @@ var checkLog;
               return false;
             }
             for (let i = 0; i < logMessages.length; i++) {
-              if (logMessages[i].indexOf(msg) != -1) {
+              if (logMessages[i].indexOf(msg) !== -1) {
                 count++;
               }
               if (!exact && count >= expectedCount) {
@@ -93,7 +93,7 @@ var checkLog;
      * instances of 'msg' in the logs.
      */
     let containsWithAtLeastCount = function(conn, msg, expectedCount, timeout = 5 * 60 * 1000) {
-      containsWithCount(conn, msg, expectedCount, timeout, /*exact*/ false);
+      containsWithCount(conn, msg, expectedCount, timeout, /* exact */ false);
     };
 
     /*
@@ -118,8 +118,10 @@ var checkLog;
       let serialized = [];
       escapeStrings = toDecimal = true;
       for (let fieldName in value) {
-        const valueStr = formatAsLogLine(value[fieldName], escapeStrings, toDecimal);
-        serialized.push(Array.isArray(value) ? valueStr : `${fieldName}: ${valueStr}`);
+        if (fieldName !== "") {
+          const valueStr = formatAsLogLine(value[fieldName], escapeStrings, toDecimal);
+          serialized.push(Array.isArray(value) ? valueStr : `${fieldName}: ${valueStr}`);
+        }
       }
       return (Array.isArray(value) ? `[ ${serialized.join(', ')} ]`
           : `{ ${serialized.join(', ')} }`);
@@ -133,5 +135,5 @@ var checkLog;
       containsWithAtLeastCount: containsWithAtLeastCount,
       formatAsLogLine: formatAsLogLine
     };
-  })();
-})();
+  }());
+}());

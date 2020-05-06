@@ -1,3 +1,4 @@
+/*eslint no-global-assign: 0*/
 //
 // Utilities related to background operations while other operations are working
 //
@@ -28,7 +29,7 @@ var waitForLock = function(mongo, name) {
       printjson(ts);
     }
 
-    return gleObj.n == 1 || gleObj.updatedExisting;
+    return gleObj.n === 1 || gleObj.updatedExisting;
   }, "could not acquire lock", 30 * 1000, 100);
 
   print("Acquired lock " + tojson({_id: name, ts: ts}) +
@@ -49,17 +50,18 @@ var waitForLock = function(mongo, name) {
  * Allows a test or background op to say it's finished
  */
 var setFinished = function(mongo, name, finished) {
-  if (finished || finished == undefined)
+  if (finished || finished === undefined) {
     mongo.getCollection("config.testFinished").update({_id: name}, {_id: name}, true);
-  else
+  } else {
     mongo.getCollection("config.testFinished").remove({_id: name});
+  }
 };
 
 /**
  * Checks whether a test or background op is finished
  */
 var isFinished = function(mongo, name) {
-  return mongo.getCollection("config.testFinished").findOne({_id: name}) != null;
+  return mongo.getCollection("config.testFinished").findOne({_id: name}) !== null;
 };
 
 /**
@@ -99,6 +101,54 @@ function startParallelShell(jsCode, port) {
   };
 }
 
+var RandomFunctionContext = function(context) {
+  Random.srand(context.seed);
+
+  Random.randBool = function() {
+    return Random.rand() > 0.5;
+  };
+
+  Random.randInt = function(min, max) {
+    if (max === undefined) {
+      max = min;
+      min = 0;
+    }
+
+    return min + Math.floor(Random.rand() * max);
+  };
+
+  Random.randShardKey = function() {
+    var numFields = 2;  // Random.randInt(1, 3)
+
+    var key = {};
+    for (var i = 0; i < numFields; i++) {
+      var field = String.fromCharCode("a".charCodeAt() + i);
+      key[field] = 1;
+    }
+
+    return key;
+  };
+
+  Random.randShardKeyValue = function(shardKey) {
+    var keyValue = {};
+    for (field in shardKey) {
+      if (field) {
+        keyValue[field] = Random.randInt(1, 100);
+      }
+    }
+
+    return keyValue;
+  };
+
+  Random.randCluster = function() {
+    var numShards = 2;  // Random.randInt( 1, 10 )
+    var rs = false;     // Random.randBool()
+    var st = new ShardingTest({shards: numShards, mongos: 4, other: {rs: rs}});
+
+    return st;
+  };
+};
+
 startParallelOps = function(mongo, proc, args, context) {
   var procName = proc.name + "-" + new ObjectId();
   var seed = new ObjectId(new ObjectId().valueOf().split("").reverse().join(""))
@@ -136,24 +186,20 @@ startParallelOps = function(mongo, proc, args, context) {
 
   var bootstrapper = function(stored) {
     var procContext = stored.procContext;
-    eval("procContext = " + procContext);
     procContext.setup(procContext, stored);
 
     var contexts = stored.contexts;
-    eval("contexts = " + contexts);
 
     for (var i = 0; i < contexts.length; i++) {
-      if (typeof (contexts[i]) != "undefined") {
+      if (typeof (contexts[i]) !== "undefined") {
         // Evaluate all contexts
         contexts[i](procContext);
       }
     }
 
     var operation = stored.operation;
-    eval("operation = " + operation);
 
     var args = stored.args;
-    eval("args = " + args);
 
     result = undefined;
     err = undefined;
@@ -212,11 +258,11 @@ startParallelOps = function(mongo, proc, args, context) {
 
     assert.neq(result, null);
 
-    if (result.err)
+    if (result.err) {
       throw Error("Error in parallel ops " + procName + " : " + tojson(result.err));
-
-    else
+    } else {
       return result.result;
+    }
   };
 
   join.isFinished = function() {
@@ -232,52 +278,6 @@ startParallelOps = function(mongo, proc, args, context) {
   };
 
   return join;
-};
-
-var RandomFunctionContext = function(context) {
-  Random.srand(context.seed);
-
-  Random.randBool = function() {
-    return Random.rand() > 0.5;
-  };
-
-  Random.randInt = function(min, max) {
-    if (max == undefined) {
-      max = min;
-      min = 0;
-    }
-
-    return min + Math.floor(Random.rand() * max);
-  };
-
-  Random.randShardKey = function() {
-    var numFields = 2;  // Random.randInt(1, 3)
-
-    var key = {};
-    for (var i = 0; i < numFields; i++) {
-      var field = String.fromCharCode("a".charCodeAt() + i);
-      key[field] = 1;
-    }
-
-    return key;
-  };
-
-  Random.randShardKeyValue = function(shardKey) {
-    var keyValue = {};
-    for (field in shardKey) {
-      keyValue[field] = Random.randInt(1, 100);
-    }
-
-    return keyValue;
-  };
-
-  Random.randCluster = function() {
-    var numShards = 2;  // Random.randInt( 1, 10 )
-    var rs = false;     // Random.randBool()
-    var st = new ShardingTest({shards: numShards, mongos: 4, other: {rs: rs}});
-
-    return st;
-  };
 };
 
 //
