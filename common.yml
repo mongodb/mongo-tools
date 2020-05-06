@@ -146,11 +146,9 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
       - name: integration-3.6
-      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       #- name: kerberos
