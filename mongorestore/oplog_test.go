@@ -173,7 +173,7 @@ func TestOplogRestore(t *testing.T) {
 }
 
 func TestOplogRestoreMaxDocumentSize(t *testing.T) {
-	// testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
