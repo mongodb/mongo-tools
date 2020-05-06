@@ -1,4 +1,4 @@
-/*eslint no-global-assign: 0*/
+/* eslint no-global-assign: 0 no-native-reassign: 0 */
 //
 // Utilities related to background operations while other operations are working
 //
