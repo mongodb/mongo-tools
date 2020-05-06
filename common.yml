@@ -1747,7 +1747,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "4.2"
+        mongo_version: "4.4"
     - func: "fetch tool"
       vars:
         tool: mongodump
