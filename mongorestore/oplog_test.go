@@ -195,7 +195,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 		So(len(oplogBytes), ShouldBeGreaterThan, db.MaxBSONSize)
 
 		// Temporarily write the oplog document to testdata/oplogdumpmaxsize/oplog.bson
-		err = ioutil.WriteFile("testdata/oplogdumpmaxsize/oplog.bson", oplogBytes, 0777)
+		err = ioutil.WriteFile("testdata/oplogdumpmaxsize/oplog.bson", oplogBytes, 0644)
 		So(err, ShouldBeNil)
 		defer os.Remove("testdata/oplogdumpmaxsize/oplog.bson")
 
