@@ -19,6 +19,7 @@
     shards: {
       rs0: {
         nodes: NODE_COUNT,
+        useHostName: true,
         settings: {chainingAllowed: false},
       }
     },
@@ -36,6 +37,7 @@
     rs: TOOLS_TEST_CONFIG,
   });
   var replTest = st.rs0;
+  replTest.awaitReplication();
   var conn = st.s;
 
   var db = conn.getDB("test");

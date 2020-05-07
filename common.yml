@@ -1438,7 +1438,7 @@ tasks:
 
 - name: qa-tests-4.4
   depends_on:
-    - name: dist
+  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
