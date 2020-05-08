@@ -357,7 +357,6 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 
 // ConvertcommitIndexBuildToCreateIndexes converts a "commitIndexBuild" oplog entry to "createIndexBuilds" Op
 // Returns true if the operation should be applied to the destination.
-// TODO: add special handling for commitIndexBuild during oplog sync in MGOMIRROR-343
 func ConvertcommitIndexBuildToCreateIndexes(op db.Oplog) ([]db.Oplog, error) {
 	colName := ""
 	var ops []db.Oplog
