@@ -188,7 +188,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	c1 := session.Database("db1").Collection("c1")
 	c1.Drop(nil)
 
-	Convey("With a test MongoRestore", t, func() {
+	Convey("With a test MongoRestore replay oplog with a 16 MiB document", t, func() {
 		// Generate an oplog document and verify that size exceeds 16 MiB.
 		oplogBytes, err := generateOplogWith16MiBDocument()
 		So(err, ShouldBeNil)
