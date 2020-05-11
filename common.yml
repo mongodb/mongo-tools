@@ -502,6 +502,8 @@ functions:
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGO_ARGS="${mongo_args_tls}"
+          export TOOLS_TESTING_SSL="true"
+          export TOOLS_TESTING_INTEGRATION="true"
         fi;
         if [ "${create_mongod_users_command}" != "" ]; then
           export TOOLS_TESTING_AUTH_USERNAME=${auth_username}
