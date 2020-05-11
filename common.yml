@@ -560,7 +560,7 @@ functions:
         fi
         PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 ${storage_args}
 
- "start mongod cluster":
+  "start mongod cluster":
     command: shell.exec
     params:
       working_dir: src/github.com/mongodb/mongo-tools
