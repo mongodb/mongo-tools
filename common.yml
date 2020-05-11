@@ -554,23 +554,13 @@ functions:
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
         echo "Starting mongod..."
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
+        $storage_args=''
+        if [ "$STORAGE_ENGINE" != '' ]; then
+          storage_args='--storageEngine ${STORAGE_ENGINE}'
+        fi
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 ${storage_args}
 
-  "start mmapv1 instance":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      background: true
-      script: |
-        set -x
-        set -v
-        set -e
-        rm -rf mongodb/db_files mongodb/${logfile|run.log}
-        mkdir -p mongodb/db_files
-        echo "Starting mmapv1 mongod..."
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --storageEngine=mmapv1
-
-  "start mongod cluster":
+ "start mongod cluster":
     command: shell.exec
     params:
       working_dir: src/github.com/mongodb/mongo-tools
@@ -1062,7 +1052,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "3.6"
-    - func: "start mmapv1 instance"
+    - func: "start mongod"
+      vars:
+        STORAGE_ENGINE: "mmapv1"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
@@ -1127,7 +1119,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.0"
-    - func: "start mmapv1 instance"
+    - func: "start mongod"
+      - vars:
+          STORAGE_ENGINE: "mmapv1"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:

@@ -12,6 +12,16 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"github.com/mongodb/mongo-tools-common/failpoint"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/json"
@@ -23,13 +33,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"io/ioutil"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"testing"
 )
 
 var (
@@ -264,7 +267,7 @@ func setUpMongoDumpTestData() error {
 	return nil
 }
 
-func setUpDBView(collName string, dbName string) error {
+func setUpDBView(dbName string, colName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
 		return err
@@ -273,7 +276,7 @@ func setUpDBView(collName string, dbName string) error {
 	pipeline := []bson.M{{"$project": bson.M{"b": "$a"}}}
 	createCmd := bson.D{
 		{"create", "test view"},
-		{"viewOn", collName},
+		{"viewOn", colName},
 		{"pipeline", pipeline},
 	}
 	var r2 bson.D
@@ -294,8 +297,8 @@ func turnOnProfiling(dbName string) error {
 		{"profile", 2},
 	}
 
-	var r2 bson.M
-	return sessionProvider.Run(profileCmd, &r2, dbName)
+	var res bson.M
+	return sessionProvider.Run(profileCmd, &res, dbName)
 }
 
 func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, error) {
@@ -1008,7 +1011,7 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 	})
 }
 
-// Test dumping a collection while respecting no index scan for wired tiger.
+// Test dumping a collection while respecting no index scan for wired tiger
 func TestMongoDumpTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
@@ -1077,6 +1080,55 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	})
 }
 
+// Test the fix for nil pointer bug when getCollectionInfo failed
+func TestMongoDumpTOOLS2498(t *testing.T) {
+	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	collName := "tools-1952-dump"
+	dbName := "test"
+
+	var r1 bson.M
+	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+
+	createCmd := bson.D{
+		{"create", collName},
+	}
+	var r2 bson.M
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Error creating collection: %v", err)
+	}
+
+	Convey("testing dumping a collection query hints", t, func() {
+		md := simpleMongoDumpInstance()
+		md.ToolOptions.Namespace.Collection = collName
+		md.ToolOptions.Namespace.DB = dbName
+		md.OutputOptions.Out = "dump"
+		err = md.Init()
+		So(err, ShouldBeNil)
+
+		failpoint.ParseFailpoints("PauseBeforeDumping")
+		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
+		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
+		go func() {
+			time.Sleep(2 * time.Second)
+			session, _ := md.SessionProvider.GetSession()
+			session.Disconnect(context.Background())
+		}()
+
+		err = md.Dump()
+		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldEqual, "client is disconnected")
+	})
+}
+
 func TestMongoDumpOrderedQuery(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
@@ -1142,7 +1194,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 
 		colName := "dump_view_as_collection"
 		dbName := testDB
-		err = setUpDBView(colName, dbName)
+		err = setUpDBView(dbName, colName)
 		So(err, ShouldBeNil)
 
 		err = turnOnProfiling(testDB)
@@ -1179,7 +1231,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 
 			})
 
-			Convey("testing dumping a view query hints", func() {
+			Convey("testing dumping a view, we should not hint index", func() {
 				session, err := testutil.GetBareSession()
 				So(err, ShouldBeNil)
 
@@ -1215,7 +1267,7 @@ func TestMongoDumpViews(t *testing.T) {
 
 		colName := "dump_views"
 		dbName := testDB
-		err = setUpDBView(colName, dbName)
+		err = setUpDBView(dbName, colName)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
@@ -1245,6 +1297,20 @@ func TestMongoDumpViews(t *testing.T) {
 
 				So(c1, ShouldBeGreaterThan, 0)
 
+			})
+
+			Convey("testing dumping a view, we should not hint index", func() {
+				session, err := testutil.GetBareSession()
+				So(err, ShouldBeNil)
+
+				dbStruct := session.Database(dbName)
+				profileCollection := dbStruct.Collection("system.profile")
+				ns := dbName + "." + colName
+				count, err := countSnapshotCmds(profileCollection, ns)
+				So(err, ShouldBeNil)
+
+				// view dump should not do collection scan
+				So(count, ShouldEqual, 0)
 			})
 
 			Reset(func() {
