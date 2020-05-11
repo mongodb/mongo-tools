@@ -289,7 +289,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			restore.convertLegacyIndexes(indexes)
+			restore.convertLegacyIndexes(indexes, intent.Namespace())
 		}
 		if restore.OutputOptions.FixDottedHashedIndexes {
 			fixDottedHashedIndexes(indexes)
@@ -306,9 +306,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument) {
+func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) {
 	for _, index := range indexes {
-		bsonutil.ConvertLegacyIndexKeys(index.Key, index.Options["ns"].(string))
+		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
 
 		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
 		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.

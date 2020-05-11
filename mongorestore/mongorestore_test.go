@@ -613,6 +613,61 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 	})
 }
 
+func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 4.4 or later")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		session, _ = restore.SessionProvider.GetSession()
+
+		db := session.Database("indextest")
+
+		// 4.4 removes the 'ns' field nested under the 'index' field in metadata.json
+		coll := db.Collection("test_coll_no_index_ns")
+		coll.Drop(nil)
+		defer func() {
+			coll.Drop(nil)
+		}()
+
+		args = []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			ConvertLegacyIndexesOption, "true",
+		}
+
+		restore, err = getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		Convey("Creating index with --convertLegacyIndexes and 4.4 FCV should succeed", func() {
+			restore.TargetDirectory = "testdata/indexmetadata"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			So(result.Successes, ShouldEqual, 100)
+			So(result.Failures, ShouldEqual, 0)
+			count, err := coll.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 100)
+		})
+	})
+}
+
 func TestLongIndexName(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
