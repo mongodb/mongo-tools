@@ -168,16 +168,29 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 	if op.Operation == "c" && op.Object[0].Key == "commitIndexBuild" {
 		// commitIndexBuild was introduced in 4.4, one "commitIndexBuild" command can contain several
 		// indexes, we need to convert the command to "createIndexes" command for each single index and apply
-		ops, err := ConvertcommitIndexBuildToCreateIndexes(op)
-		if err != nil {
-			return fmt.Errorf("error converting commitIndexBuild oplog: %v", err)
-		}
-		var interfaceSlice []interface{} = make([]interface{}, len(ops))
-		for i, d := range ops {
-			interfaceSlice[i] = d
+		collectionName, indexes := extractIndexDocumentFromCommitIndexBuilds(op)
+		if indexes == nil {
+			return fmt.Errorf("failed to parse IndexDocument from commitIndexBuild in %s, %v", collectionName, op)
 		}
 
-		return restore.ApplyOps(oplogCtx.session, interfaceSlice)
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			restore.convertLegacyIndexes(indexes)
+		}
+
+		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
+	} else if op.Operation == "c" && op.Object[0].Key == "createIndexes" {
+		// server > 4.4 no longer supports applying createIndexes oplog, we need to convert the oplog to createIndexes command and execute it
+		collectionName, index := extractIndexDocumentFromCreateIndexes(op)
+		if index.Key == nil {
+			return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
+		}
+
+		indexes := []IndexDocument{index}
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			restore.convertLegacyIndexes(indexes)
+		}
+
+		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
 	}
 
 	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
@@ -355,32 +368,53 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 	return op, nil
 }
 
-// ConvertcommitIndexBuildToCreateIndexes converts a "commitIndexBuild" oplog entry to "createIndexBuilds" Op
-// Returns true if the operation should be applied to the destination.
-func ConvertcommitIndexBuildToCreateIndexes(op db.Oplog) ([]db.Oplog, error) {
-	colName := ""
-	var ops []db.Oplog
+// extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
+// returns collection name and index specs
+func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []IndexDocument) {
+	collectionName := ""
 	for _, elem := range op.Object {
 		if elem.Key == "commitIndexBuild" {
-			elem.Key = "createIndexes"
-			colName = elem.Value.(string)
+			collectionName = elem.Value.(string)
 		}
 	}
 	// We need second iteration to split the indexes into single createIndex command
 	for _, elem := range op.Object {
 		if elem.Key == "indexes" {
 			indexes := elem.Value.(bson.A)
-			for _, index := range indexes {
-				createIndexOp := bson.D{
-					{"createIndexes", colName},
+			indexDocuments := make([]IndexDocument, len(indexes))
+			for i, index := range indexes {
+				indexDocuments[i].Options = bson.M{}
+				for _, elem := range index.(bson.D) {
+					if elem.Key == "key" {
+						indexDocuments[i].Key = elem.Value.(bson.D)
+					} else {
+						indexDocuments[i].Options[elem.Key] = elem.Value
+					}
 				}
-				createIndexOp = append(createIndexOp, index.(bson.D)...)
-				op.Object = createIndexOp
-				ops = append(ops, op)
 			}
+			return collectionName, indexDocuments
 		}
 	}
-	return ops, nil
+
+	return collectionName, nil
+}
+
+// extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
+// returns collection name and index spec
+func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, IndexDocument) {
+	collectionName := ""
+	indexDocument := IndexDocument{Options: bson.M{}}
+	for _, elem := range op.Object {
+		if elem.Key == "createIndexes" {
+			collectionName = elem.Value.(string)
+		} else if elem.Key == "key" {
+			indexDocument.Key = elem.Value.(bson.D)
+		} else {
+			indexDocument.Options[elem.Key] = elem.Value
+		}
+	}
+
+	return collectionName, indexDocument
 }
 
 // isApplyOpsCmd returns true if a document seems to be an applyOps command.

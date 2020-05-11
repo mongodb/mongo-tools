@@ -1030,11 +1030,11 @@ func TestSkipSystemCollections(t *testing.T) {
 	})
 }
 
-// TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes
-// entries are skipped when restoring the oplog.
+// TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands
 func TestCommitIndexBuild(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
+	testDB := "commit_index"
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -1053,10 +1053,10 @@ func TestCommitIndexBuild(t *testing.T) {
 	sessionProvider.GetNodeType()
 
 	Convey("With a test MongoRestore instance", t, func() {
-		testdb := session.Database("test")
+		testdb := session.Database(testDB)
 
 		// Drop the collection to clean up resources
-		defer testdb.Collection("test").Drop(ctx)
+		defer testdb.Collection(testDB).Drop(ctx)
 
 		args := []string{
 			DirectoryOption, "testdata/commit_indexes_build",
@@ -1071,8 +1071,82 @@ func TestCommitIndexBuild(t *testing.T) {
 		result := restore.Restore()
 		So(result.Err, ShouldBeNil)
 
-		Convey("RestoreOplog() should convert commitIndexBuild op to createIndexes and build index", func() {
+		Convey("RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index", func() {
 			destColl := session.Database("commit_index").Collection("test")
+			indexes, _ := destColl.Indexes().List(context.Background())
+
+			type indexSpec struct {
+				Name, NS                string
+				Key                     bson.D
+				Unique                  bool    `bson:",omitempty"`
+				DropDups                bool    `bson:"dropDups,omitempty"`
+				Background              bool    `bson:",omitempty"`
+				Sparse                  bool    `bson:",omitempty"`
+				Bits                    int     `bson:",omitempty"`
+				Min                     float64 `bson:",omitempty"`
+				Max                     float64 `bson:",omitempty"`
+				BucketSize              float64 `bson:"bucketSize,omitempty"`
+				ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
+				Weights                 bson.D  `bson:",omitempty"`
+				DefaultLanguage         string  `bson:"default_language,omitempty"`
+				LanguageOverride        string  `bson:"language_override,omitempty"`
+				TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
+				PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
+
+				Collation bson.D `bson:"collation,omitempty"`
+			}
+
+			indexCnt := 0
+			for indexes.Next(context.Background()) {
+				var index indexSpec
+				err := indexes.Decode(&index)
+				So(err, ShouldBeNil)
+				indexCnt++
+			}
+			// Should create 2 indexes: _id and a
+			So(indexCnt, ShouldEqual, 2)
+		})
+	})
+}
+
+// CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4
+func TestCreateIndexes(t *testing.T) {
+	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+	testDB := "create_indexes"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(testDB)
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection(testDB).Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/create_indexes",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index", func() {
+			destColl := session.Database("create_indexes").Collection("test")
 			indexes, _ := destColl.Indexes().List(context.Background())
 
 			type indexSpec struct {

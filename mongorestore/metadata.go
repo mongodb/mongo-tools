@@ -9,7 +9,6 @@ package mongorestore
 import (
 	"encoding/hex"
 	"fmt"
-
 	"github.com/mongodb/mongo-tools-common/db"
 	"github.com/mongodb/mongo-tools-common/intents"
 	"github.com/mongodb/mongo-tools-common/log"
@@ -156,11 +155,11 @@ func (restore *MongoRestore) addToKnownCollections(intent *intents.Intent) {
 // CreateIndexes takes in an intent and an array of index documents and
 // attempts to create them using the createIndexes command. If that command
 // fails, we fall back to individual index creation.
-func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []IndexDocument, hasNonSimpleCollation bool) error {
+func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []IndexDocument, hasNonSimpleCollation bool) error {
 	// first, sanitize the indexes
 	for _, index := range indexes {
 		// update the namespace of the index before inserting
-		index.Options["ns"] = intent.Namespace()
+		index.Options["ns"] = dbName + "." + collectionName
 
 		// check for length violations before building the command
 		if restore.serverVersion.LT(db.Version{4, 2, 0}) {
@@ -192,7 +191,7 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 
 	// then attempt the createIndexes command
 	rawCommand := bson.D{
-		{"createIndexes", intent.C},
+		{"createIndexes", collectionName},
 		{"indexes", indexes},
 	}
 
@@ -200,7 +199,7 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
 	}
 
-	err = session.Database(intent.DB).RunCommand(nil, rawCommand).Err()
+	err = session.Database(dbName).RunCommand(nil, rawCommand).Err()
 	if err == nil {
 		return nil
 	}
@@ -212,7 +211,7 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 	log.Logv(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
 	for _, idx := range indexes {
 		log.Logvf(log.Info, "\tmanually creating index %v", idx.Options["name"])
-		err = restore.LegacyInsertIndex(intent, idx)
+		err = restore.LegacyInsertIndex(dbName, idx)
 		if err != nil {
 			return fmt.Errorf("error creating index %v: %v", idx.Options["name"], err)
 		}
@@ -222,13 +221,13 @@ func (restore *MongoRestore) CreateIndexes(intent *intents.Intent, indexes []Ind
 
 // LegacyInsertIndex takes in an intent and an index document and attempts to
 // create the index on the "system.indexes" collection.
-func (restore *MongoRestore) LegacyInsertIndex(intent *intents.Intent, index IndexDocument) error {
+func (restore *MongoRestore) LegacyInsertIndex(dbName string, index IndexDocument) error {
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
 
-	indexCollection := session.Database(intent.DB).Collection("system.indexes")
+	indexCollection := session.Database(dbName).Collection("system.indexes")
 	_, err = indexCollection.InsertOne(nil, index)
 	if err != nil {
 		return fmt.Errorf("insert error: %v", err)

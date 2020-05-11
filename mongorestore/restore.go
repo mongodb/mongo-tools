@@ -294,7 +294,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		if restore.OutputOptions.FixDottedHashedIndexes {
 			fixDottedHashedIndexes(indexes)
 		}
-		err = restore.CreateIndexes(intent, indexes, hasNonSimpleCollation)
+		err = restore.CreateIndexes(intent.DB, intent.C, indexes, hasNonSimpleCollation)
 		if err != nil {
 			result.Err = fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
 			return result
