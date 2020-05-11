@@ -1120,8 +1120,8 @@ tasks:
       vars:
         mongo_version: "4.0"
     - func: "start mongod"
-      - vars:
-          STORAGE_ENGINE: "mmapv1"
+      vars:
+        STORAGE_ENGINE: "mmapv1"
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
