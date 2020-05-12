@@ -1090,7 +1090,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		t.Fatalf("No cluster available: %v", err)
 	}
 
-	collName := "tools-1952-dump"
+	collName := "tools-2498-dump"
 	dbName := "test"
 
 	var r1 bson.M
