@@ -1105,7 +1105,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		t.Fatalf("Error creating collection: %v", err)
 	}
 
-	Convey("testing dumping a collection query hints", t, func() {
+	Convey("failing to get collection info should error, but not panic", t, func() {
 		md := simpleMongoDumpInstance()
 		md.ToolOptions.Namespace.Collection = collName
 		md.ToolOptions.Namespace.DB = dbName
