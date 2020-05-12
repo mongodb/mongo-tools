@@ -1114,6 +1114,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		failpoint.ParseFailpoints("PauseBeforeDumping")
+		defer failpoint.Reset()
 		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
 		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
 		go func() {

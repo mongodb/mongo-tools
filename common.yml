@@ -554,11 +554,11 @@ functions:
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
         echo "Starting mongod..."
-        $storage_args=''
-        if [ "$STORAGE_ENGINE" != '' ]; then
+        storage_args=''
+        if [ "${STORAGE_ENGINE}" != '' ]; then
           storage_args='--storageEngine ${STORAGE_ENGINE}'
         fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 ${storage_args}
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
 
   "start mongod cluster":
     command: shell.exec
@@ -1654,7 +1654,7 @@ buildvariants:
   run_on:
   - rhel62-small
   expansions:
-    build_tags: "ssl sasl gssapi"
+    build_tags: "failpoints ssl sasl gssapi"
     _platform: rhel62
   tasks:
   - name: format-go
@@ -1682,7 +1682,7 @@ buildvariants:
   run_on:
   - amazon1-2018-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1694,7 +1694,7 @@ buildvariants:
   run_on:
   - amazon2-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1710,7 +1710,7 @@ buildvariants:
   run_on:
   - debian81-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1722,7 +1722,7 @@ buildvariants:
   run_on:
   - debian92-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1734,7 +1734,7 @@ buildvariants:
   run_on:
     - debian10-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
     - name: dist
     - name: sign
@@ -1755,7 +1755,7 @@ buildvariants:
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     excludes: requires_many_files
-    build_tags: "ssl sasl gssapi"
+    build_tags: "failpoints ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     USE_SSL: "true"
@@ -1774,7 +1774,7 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
-    build_tags: "ssl sasl gssapi"
+    build_tags: "failpoints ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     edition: enterprise
@@ -1788,7 +1788,7 @@ buildvariants:
   run_on:
   - rhel70-small
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1800,7 +1800,7 @@ buildvariants:
   run_on:
     - rhel80-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
     - name: dist
     - name: sign
@@ -1816,7 +1816,7 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1828,7 +1828,7 @@ buildvariants:
   run_on:
     - suse15-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
     - name: dist
     - name: sign
@@ -1844,7 +1844,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1860,7 +1860,7 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "ssl sasl gssapi"
+    build_tags: "failpoints ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     edition: enterprise
@@ -1874,7 +1874,7 @@ buildvariants:
   run_on:
   - ubuntu1804-test
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -1895,7 +1895,7 @@ buildvariants:
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
     smoke_use_ssl: --use-ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
@@ -1923,7 +1923,7 @@ buildvariants:
     mongo_os: "ubuntu1604"
     mongo_edition: "targeted"
     mongo_arch: "arm64"
-    build_tags: "ssl"
+    build_tags: "failpoints ssl"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -1944,7 +1944,7 @@ buildvariants:
     mongo_os: "ubuntu1804"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
-    build_tags: "ssl"
+    build_tags: "failpoins ssl"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -1968,7 +1968,7 @@ buildvariants:
     mongo_os: "rhel71"
     mongo_edition: "enterprise"
     mongo_arch: "ppc64le"
-    build_tags: 'ssl sasl gssapi'
+    build_tags: 'failpoints ssl sasl gssapi'
     resmoke_use_ssl: _ssl
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
@@ -1984,7 +1984,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: 'ssl sasl gssapi'
+    build_tags: 'failpoints ssl sasl gssapi'
   tasks:
   - name: dist
   - name: sign
@@ -1999,7 +1999,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: 'ssl sasl gssapi'
+    build_tags: 'failpoints ssl sasl gssapi'
   tasks:
   - name: dist
   - name: sign
@@ -2022,7 +2022,7 @@ buildvariants:
     mongo_os: "rhel67"
     mongo_edition: "enterprise"
     mongo_arch: "s390x"
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -2037,7 +2037,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2051,7 +2051,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
     - name: dist
     - name: sign
@@ -2065,7 +2065,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2079,7 +2079,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2101,7 +2101,7 @@ buildvariants:
     <<: *mongo_default_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "sasl gssapi ssl"
+    build_tags: "failpoints sasl gssapi ssl"
     args: "-buildmode=default -race"
     excludes: requires_large_ram
   tasks: *ubuntu_x86_64_race_tasks
