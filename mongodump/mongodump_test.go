@@ -12,7 +12,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"github.com/mongodb/mongo-tools-common/failpoint"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
