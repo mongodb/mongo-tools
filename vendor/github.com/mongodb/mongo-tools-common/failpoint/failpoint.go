@@ -19,6 +19,10 @@ func init() {
 	values = make(map[string]string)
 }
 
+func Reset() {
+	values = make(map[string]string)
+}
+
 // ParseFailpoints registers a comma-separated list of failpoint=value pairs
 func ParseFailpoints(arg string) {
 	args := strings.Split(arg, ",")

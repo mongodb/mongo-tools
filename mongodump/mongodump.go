@@ -534,6 +534,8 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// determine if a collection is a view.
 	collInfo, err := db.GetCollectionInfo(coll)
 	if err != nil {
+		return err
+	} else if collInfo != nil {
 		isView = collInfo.IsView()
 	}
 	// The storage engine cannot change from namespace to namespace,

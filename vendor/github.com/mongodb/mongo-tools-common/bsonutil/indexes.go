@@ -87,6 +87,7 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 // It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
 // force the server to do this task. But that option was only added in 4.1.9. So for
 // pre 3.4 indexes being added to servers 3.4 - 4.2, we must strip the options in the client.
+// This function processes the indexes Options inside collection dump.
 func ConvertLegacyIndexOptions(indexOptions bson.M) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexOptions)
@@ -99,6 +100,29 @@ func ConvertLegacyIndexOptions(indexOptions bson.M) {
 	if converted {
 		newJSONString := CreateExtJSONString(indexOptions)
 		log.Logvf(log.Always, "convertLegacyIndexes: converted index options '%s' to '%s'",
+			originalJSONString, newJSONString)
+	}
+}
+
+// ConvertLegacyIndexOptionsFromOp removes options that don't match a known list of index options.
+// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
+// force the server to do this task. But that option was only added in 4.1.9. So for
+// pre 3.4 indexes being added to servers 3.4 - 4.2, we must strip the options in the client.
+// This function processes the index options inside createIndexes command.
+func ConvertLegacyIndexOptionsFromOp(indexOptions *bson.D) {
+	var converted bool
+	doc := *indexOptions
+	originalJSONString := CreateExtJSONString(indexOptions)
+	for i, elem := range *indexOptions {
+		if _, ok := validIndexOptions[elem.Key]; !ok && elem.Key != "createIndexes" {
+			// Remove this key.
+			*indexOptions = append(doc[:i], doc[i+1:]...)
+			converted = true
+		}
+	}
+	if converted {
+		newJSONString := CreateExtJSONString(indexOptions)
+		log.Logvf(log.Always, "ConvertLegacyIndexOptionsFromOp: converted index options '%s' to '%s'",
 			originalJSONString, newJSONString)
 	}
 }
