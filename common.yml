@@ -169,9 +169,11 @@ mongo_tools_variables:
       - name: push
         run_on: rhel70-small
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
       - name: integration-4.4
@@ -1161,6 +1163,22 @@ tasks:
         INT_TEST: "true"
         USE_SSL: "true"
 
+- name: integration-3.6-mmapv1
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.6"
+    - func: "start mongod"
+      vars:
+        STORAGE_ENGINE: "mmapv1"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        USE_SSL: "true"
+
 - name: integration-4.0
   commands:
     - func: "fetch source"
@@ -1214,6 +1232,22 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+
+- name: integration-4.0-mmapv1
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.0"
+    - func: "start mongod"
+      vars:
+        STORAGE_ENGINE: "mmapv1"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-4.0-mmapv1
   commands:
