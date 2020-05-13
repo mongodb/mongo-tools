@@ -93,7 +93,7 @@ if test $1 = 0; then
    rm -f /usr/bin/mongotop
    rm -f /usr/share/doc/mongodb-database-tools/*
    # remove the symlink too.
-   rm /usr/doc/mongodb-database-tools
+   rm -f /usr/doc/mongodb-database-tools
 fi
 
 exit 0
