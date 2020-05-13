@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"a":{"$numberDouble":"1.0"},"b":{"$numberDouble":"1.0"},"c":{"$numberDecimal":"-1"},"d":{"$numberDecimal":"-1"}},"name":"a_1_b_true"}],"uuid":"37d6627fbac74ce889d3b0b09e3bc6a8","collectionName":"test_coll_no_index_ns"}
