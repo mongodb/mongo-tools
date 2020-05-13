@@ -2058,6 +2058,8 @@ buildvariants:
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
     build_tags: "failpoints ssl tls sasl gssapi"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
     smoke_use_tls: --use-tls
     resmoke_use_tls: _tls
     edition: enterprise
