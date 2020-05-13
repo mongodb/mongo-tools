@@ -3,10 +3,20 @@
   load("jstests/configs/replset_28.config.js");
 
   var name = 'import_write_concern';
-  var toolTest = new ToolTest(name, null);
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
+  var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
   var dbName = "foo";
   var colName = "bar";
   var fileTarget = "wc_mongos.csv";
+
   var st = new ShardingTest({
     shards: {
       rs0: {
@@ -19,7 +29,15 @@
     config: 1,
     configReplSetTestOptions: {
       settings: {chainingAllowed: false},
+      nodeOptions: TOOLS_TEST_CONFIG
     },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    rs: TOOLS_TEST_CONFIG,
   });
   var rs = st.rs0;
   rs.awaitReplication();

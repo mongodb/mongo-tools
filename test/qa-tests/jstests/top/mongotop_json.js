@@ -10,12 +10,17 @@ var testName = 'mongotop_json';
     jsTest.log('Using ' + passthrough.name + ' passthrough');
     var t = topology.init(passthrough);
     var conn = t.connection();
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     // clear the output buffer
     clearRawMongoProgramOutput();
 
     // ensure tool runs without error with --rowcount = 1
-    var ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', 1].concat(passthrough.args));
+    var ret = executeProgram(['mongotop',
+      '--port', conn.port, '--json', '--rowcount', 1]
+      .concat(passthrough.args)
+      .concat(sslOptions));
     assert.eq(ret.exitCode, 0, 'failed 1');
     assert.eq.soon('object', function() {
       return typeof JSON.parse(extractJSON(ret.getOutput()));
@@ -24,7 +29,10 @@ var testName = 'mongotop_json';
     // ensure tool runs without error with --rowcount > 1
     var rowcount = 5;
     clearRawMongoProgramOutput();
-    ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
+    ret = executeProgram(['mongotop',
+      '--port', conn.port, '--json', '--rowcount', rowcount]
+      .concat(passthrough.args)
+      .concat(sslOptions));
     assert.eq(ret.exitCode, 0, 'failed 2');
     assert.eq.soon(rowcount, function() {
       return ret.getOutput().split('\n').length;

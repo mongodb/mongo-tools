@@ -10,13 +10,16 @@ load('jstests/files/util/mongofiles_common.js');
     var t = topology.init(passthrough);
     var conn = t.connection();
     var db = conn.getDB('test');
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     // ensure tool runs without error
     for (var i = 0; i < 10; i++) {
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[0]]
-        .concat(passthrough.args)),
+        .concat(passthrough.args)
+        .concat(sslOptions)),
       0, 'put failed');
     }
 
@@ -29,7 +32,8 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'delete', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'delete failed');
 
     // ensure all the files were deleted

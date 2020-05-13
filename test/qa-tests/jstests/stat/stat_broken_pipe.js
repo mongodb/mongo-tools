@@ -9,8 +9,8 @@
   if (toolTest.useSSL) {
     baseArgs = baseArgs.concat([
       '--ssl',
-      '--sslPEMKeyFile', 'jstests/libs/server.pem',
-      '--sslCAFile', 'jstests/libs/ca.pem',
+      '--sslPEMKeyFile=jstests/libs/server.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
       '--sslAllowInvalidHostnames']);
   }
   var statArgs = ['mongostat', '--rowcount=5'].concat(baseArgs);

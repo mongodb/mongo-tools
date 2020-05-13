@@ -48,7 +48,7 @@
 
   // import the data in from types.json
   ret = toolTest.runTool.apply(toolTest, ['import',
-    '--file', importFile,
+    '--file='+importFile,
     '--db', 'imported',
     '--collection', 'types',
     '--legacy']

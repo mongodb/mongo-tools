@@ -11,6 +11,8 @@ var testName = 'mongofiles_get';
     var conn = t.connection();
     var db = conn.getDB('test');
     var getFile = testName + (Math.random() + 1).toString(36).substring(7);
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Putting file with ' + passthrough.name + ' passthrough');
 
@@ -18,7 +20,8 @@ var testName = 'mongofiles_get';
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 1 failed');
 
     // ensure the file was inserted
@@ -32,7 +35,8 @@ var testName = 'mongofiles_get';
       '--port', conn.port,
       '--local', getFile,
       'get', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'get failed');
 
     // ensure the retrieved file is exactly the same as that inserted
@@ -50,7 +54,8 @@ var testName = 'mongofiles_get';
       '--port', conn.port,
       '--local', getFile,
       'get_id', idAsJSON]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'get_id failed');
     expected = md5sumFile(getFile);
     assert.eq(actual, expected, 'mismatched md5 sum on _id - expected ' + expected + ' got ' + actual);
@@ -63,7 +68,8 @@ var testName = 'mongofiles_get';
       '--port', conn.port,
       '--local', '-',
       'get', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'get stdout failed');
     var expectedContent = "this is a text file";
     assert.strContains.soon(expectedContent, rawMongoProgramOutput,

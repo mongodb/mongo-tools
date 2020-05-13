@@ -54,6 +54,10 @@ var getCommonToolArguments = function() {
     '--authenticationDatabase', '$external',
     '--authenticationMechanism', 'GSSAPI',
     '--gssapiServiceName', 'mongodb',
-    '--gssapiHostName', AUTH_HOSTNAME
+    '--gssapiHostName', AUTH_HOSTNAME,
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'
   ];
 };

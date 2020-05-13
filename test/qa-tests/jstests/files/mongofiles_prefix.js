@@ -9,6 +9,8 @@ load('jstests/files/util/mongofiles_common.js');
     var t = topology.init(passthrough);
     var conn = t.connection();
     var db = conn.getDB('test');
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Putting file without --prefix with ' + passthrough.name + ' passthrough');
 
@@ -16,7 +18,8 @@ load('jstests/files/util/mongofiles_common.js');
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 1 failed');
 
     // ensure the default collection name prefix was used
@@ -30,7 +33,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--prefix', testName,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put 2 failed');
 
     // ensure the supplied collection name prefix was used

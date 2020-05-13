@@ -9,6 +9,8 @@ load('jstests/files/util/mongofiles_common.js');
     var t = topology.init(passthrough);
     var conn = t.connection();
     var db = conn.getDB('test');
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     // create a large collection and dump it
     jsTest.log('Creating large collection with ' + passthrough.name + ' passthrough');
@@ -40,7 +42,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '-c', collection,
       '--out', dumpDir]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'dump failed when it should have succeeded');
 
     jsTest.log('Putting directory');
@@ -49,7 +52,8 @@ load('jstests/files/util/mongofiles_common.js');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'put', dumpDir]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put succeeded when it should have failed');
 
     jsTest.log('Putting file with ' + passthrough.name + ' passthrough');
@@ -61,7 +65,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', putFile,
       'put', testName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'put failed when it should have succeeded');
 
     // verify file metadata
@@ -87,7 +92,8 @@ load('jstests/files/util/mongofiles_common.js');
       '--port', conn.port,
       '--local', getFile,
       'get', testName]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'get failed');
 
     // ensure the retrieved file is exactly the same as that inserted

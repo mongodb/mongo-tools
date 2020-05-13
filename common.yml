@@ -24,12 +24,15 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
-      - name: qa-tests-unstable
+      - name: qa-tests-4.4
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
@@ -48,6 +51,9 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       # Disabled due to TOOLS-2119
       # - name: kerberos
       - name: legacy42
@@ -56,7 +62,7 @@ mongo_tools_variables:
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
-      - name: qa-tests-unstable
+      - name: qa-tests-4.4
       - name: qa-dump-restore-with-gzip-current
         run_on: rhel62-large
       - name: qa-dump-restore-with-archiving-current
@@ -76,13 +82,16 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: kerberos
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
-      - name: qa-tests-unstable
+      - name: qa-tests-4.4
       - name: qa-dump-restore-with-gzip-current
         run_on: ubuntu1604-build
       - name: qa-dump-restore-with-archiving-current
@@ -98,8 +107,12 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: qa-tests-4.0
       - name: qa-tests-4.2
+      - name: qa-tests-4.4
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: dist
@@ -113,6 +126,9 @@ mongo_tools_variables:
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
       - name: integration-4.0-mmapv1
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: integration-4.2
       - name: integration-4.2-auth
         distros:
@@ -135,13 +151,15 @@ mongo_tools_variables:
       - name: qa-tests-4.2
         distros:
         - windows-64-vs2017-test
+      - name: qa-tests-4.4
+        distros:
+        - windows-64-vs2017-test
       - name: qa-dump-restore-with-archiving-current
         distros:
         - windows-64-vs2017-test
       - name: qa-dump-restore-with-gzip-current
         distros:
         - windows-64-vs2017-test
-      - name: qa-tests-unstable
       - name: unit
       - name: native-cert-ssl-current
     rhel71_ppc64le_task_list: &rhel71_ppc64le_tasks
@@ -151,11 +169,16 @@ mongo_tools_variables:
       - name: push
         run_on: rhel70-small
       - name: integration-3.6
+      - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
+      - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       #- name: kerberos
       - name: qa-dump-restore-with-archiving-current
       - name: qa-dump-restore-with-gzip-current
@@ -163,7 +186,7 @@ mongo_tools_variables:
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
-      - name: qa-tests-unstable
+      - name: qa-tests-4.4
       - name: native-cert-ssl-current
     rhel67_s390x_task_list: &rhel67_s390x_tasks
       - name: dist
@@ -179,6 +202,9 @@ mongo_tools_variables:
       - name: integration-4.0-mmapv1
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       # Disabled due to TOOLS-2119
       # - name: kerberos
       - name: qa-dump-restore-with-archiving-current
@@ -187,7 +213,7 @@ mongo_tools_variables:
       - name: qa-tests-3.6
       - name: qa-tests-4.0
       - name: qa-tests-4.2
-      - name: qa-tests-unstable
+      - name: qa-tests-4.4
       - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
@@ -210,10 +236,13 @@ mongo_tools_variables:
         run_on: rhel70-small
       - name: integration-4.2
       - name: integration-4.2-auth
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
       - name: qa-dump-restore-with-archiving-current
       - name: qa-dump-restore-with-gzip-current
       - name: qa-tests-4.2
-      - name: qa-tests-unstable
+      - name: qa-tests-4.4
       - name: native-cert-ssl-current
 
 
@@ -225,6 +254,9 @@ mongo_tools_variables:
     ssl: &mongod_ssl_startup_args
       mongod_args: "--sslMode requireSSL --sslCAFile testdata/certs/ca.pem --sslPEMKeyFile testdata/certs/server.pem"
       mongod_port: 33333
+    tls: &mongod_tls_startup_args
+      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile testdata/certs/ca.pem --tlsCertificateKeyFile testdata/certs/server.pem"
+      mongod_port: 33333
 
   mongo_arguments:
     default: &mongo_default_startup_args
@@ -232,6 +264,9 @@ mongo_tools_variables:
       mongod_port: 33333
     ssl: &mongo_ssl_startup_args
       mongo_args: "--port 33333 --ssl --sslCAFile ./testdata/certs/ca.pem --sslPEMKeyFile ./testdata/certs/server.pem --sslAllowInvalidCertificates"
+      mongod_port: 33333
+    tls: &mongo_tls_startup_args
+      mongo_args_tls: "--port 33333 --tls --tlsCAFile ./testdata/certs/ca.pem --tlsCertificateKeyFile ./testdata/certs/server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
 functions:
@@ -466,10 +501,16 @@ functions:
         if [ "${INT_TEST}" = "true" ]; then
           export TOOLS_TESTING_INTEGRATION="true"
         fi;
+        MONGO_ARGS="${mongo_args}"
+        if [ "${USE_TLS}" = "true" ]; then
+          MONGO_ARGS="${mongo_args_tls}"
+          export TOOLS_TESTING_SSL="true"
+          export TOOLS_TESTING_INTEGRATION="true"
+        fi;
         if [ "${create_mongod_users_command}" != "" ]; then
           export TOOLS_TESTING_AUTH_USERNAME=${auth_username}
           export TOOLS_TESTING_AUTH_PASSWORD=${auth_password}
-          echo "${create_mongod_users_command}" | ./bin/mongo${extension} ${mongo_args} admin
+          echo "${create_mongod_users_command}" | ./bin/mongo${extension} $MONGO_ARGS admin
         fi;
         export ON_EVERGREEN="true"
         export TOOLS_BUILD_TAGS="${build_tags}"
@@ -561,12 +602,16 @@ functions:
         set -e
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
+        MONGOD_ARGS="${mongod_args}"
+        if [ "${USE_TLS}" = "true" ]; then
+          MONGOD_ARGS="${mongod_args_tls}"
+        fi;
         echo "Starting mongod..."
         storage_args=''
         if [ "${STORAGE_ENGINE}" != '' ]; then
           storage_args='--storageEngine ${STORAGE_ENGINE}'
         fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
 
   "start mongod cluster":
     command: shell.exec
@@ -579,8 +624,12 @@ functions:
         set -e
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
+        MONGOD_ARGS="${mongod_args}"
+        if [ "${USE_TLS}" = "true" ]; then
+          MONGOD_ARGS="${mongod_args_tls}"
+        fi;
         echo "Starting mongod cluster..."
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
 
   "wait for mongod to be ready":
     command: shell.exec
@@ -589,10 +638,15 @@ functions:
       script: |
         set -x
         set -v
-        SECS = 0
+        SECS=0
+        MONGO_ARGS="${mongo_args}"
+        if [ "${USE_TLS}" = "true" ]; then
+          MONGO_ARGS="${mongo_args_tls}"
+        fi;
         while true ; do
             set -o verbose
-            ./bin/mongo${extension} ${mongo_args} --eval 'true;'
+
+            ./bin/mongo${extension} $MONGO_ARGS --eval 'true;'
             if [ "$?" = "0" ]; then
                 echo "mongod ready";
                 exit 0
@@ -602,7 +656,7 @@ functions:
                     echo "mongod not ready after 20 seconds"
                     exit 1
                 fi
-                echo "waiting for mongod ( ${mongo_args} ) to be ready..."  ;
+                echo "waiting for mongod $MONGO_ARGS to be ready..."  ;
                 sleep 1 ;
             fi
         done
@@ -887,8 +941,12 @@ functions:
           set -v
           set -e
           echo "starting repl set"
+          MONGO_ARGS="${mongo_args}"
+          if [ "${USE_TLS}" = "true" ]; then
+            MONGO_ARGS="${mongo_args_tls}"
+          fi;
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo ${mongo_args} --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -896,7 +954,11 @@ functions:
           set -x
           set -v
           set -e
-          ./bin/mongo ${mongo_args} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+          MONGO_ARGS="${mongo_args}"
+          if [ "${USE_TLS}" = "true" ]; then
+            MONGO_ARGS="${mongo_args_tls}"
+          fi;
+          ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
 pre:
   - command: shell.exec
@@ -1084,6 +1146,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-3.6-mmapv1
   commands:
@@ -1099,6 +1162,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-4.0
   commands:
@@ -1111,7 +1175,8 @@ tasks:
     - func: "wait for mongod to be ready"
     - func: "run tool integration tests"
       vars:
-          INT_TEST: "true" 
+          INT_TEST: "true"
+          USE_SSL: "true"
 
 - name: integration-4.0-auth
   commands:
@@ -1137,6 +1202,7 @@ tasks:
       vars:
           INT_TEST: "true"
           AUTH_TEST: "true"
+          USE_SSL: "true"
 
 - name: integration-4.0-cluster
   commands:
@@ -1151,6 +1217,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-4.0-mmapv1
   commands:
@@ -1166,6 +1233,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-4.2
   commands:
@@ -1179,6 +1247,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-4.2-auth
   commands:
@@ -1204,6 +1273,76 @@ tasks:
       vars:
         INT_TEST: "true"
         AUTH_TEST: "true"
+        USE_SSL: "true"
+
+- name: integration-4.4
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        USE_SSL: "true"
+
+- name: integration-4.4-auth
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args_tls"
+            concat: " --auth"
+          - key: "auth_username"
+            value: "passwordIsTaco"
+          - key: "auth_password"
+            value: "Taco"
+          - key: "create_mongod_users_command"
+            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        AUTH_TEST: "true"
+        USE_SSL: "true"
+
+- name: integration-4.4-cluster
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod cluster"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "create repl_set"
+      vars:
+        USE_TLS: "true"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: kerberos
   commands:
@@ -1302,7 +1441,8 @@ tasks:
           /opt/node/bin/npm install eslint@3.2
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
-- name: qa-tests-unstable
+
+- name: qa-tests-4.4
   depends_on:
   - name: dist
   commands:
@@ -1311,7 +1451,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "latest"
+        mongo_version: "4.4"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -1338,8 +1478,8 @@ tasks:
         tool: bsondump
     - func: "run qa-tests"
       vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
-        excludes: "${excludes}"
+        resmoke_suite: "core${resmoke_use_tls}"
+        excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
   depends_on:
@@ -1592,7 +1732,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "4.2"
+        mongo_version: "4.4"
     - func: "fetch tool"
       vars:
         tool: mongodump
@@ -1613,7 +1753,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "4.2"
+        mongo_version: "4.4"
     - func: "fetch tool"
       vars:
         tool: mongodump
@@ -1797,6 +1937,8 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     excludes: requires_many_files
@@ -1817,15 +1959,18 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
-    build_tags: "failpoints ssl sasl gssapi"
+    build_tags: "failpoints ssl tls sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    USE_SSL: "true"
   tasks: *rhel_x86_64_tasks
 
 - name: rhel70
@@ -1908,15 +2053,18 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "failpoints ssl sasl gssapi"
+    build_tags: "failpoints ssl tls sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-    USE_SSL: "true"
   tasks: *ubuntu_x86_64_tasks
 
 - name: ubuntu1804
@@ -1943,6 +2091,8 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
@@ -1971,6 +2121,8 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "targeted"
     mongo_arch: "arm64"
@@ -1992,11 +2144,13 @@ buildvariants:
   expansions:
     <<: *mongod_ssl_startup_args
     <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1804"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
     build_tags: "failpoins ssl"
-    resmoke_use_ssl: _ssl
+    resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     edition: ssl

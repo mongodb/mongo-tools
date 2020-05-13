@@ -6,20 +6,20 @@
   load('jstests/libs/extended_assert.js');
   var assert = extendedAssert;
   var commonToolArgs = getCommonToolArguments();
-  print("common tool sargs");
+  print("common tool args");
   printjson(commonToolArgs);
 
   var toolTest = getToolTest('stat_rowcount');
   var x, pid;
   clearRawMongoProgramOutput();
 
-  x = runMongoProgram("mongostat", "--host", toolTest.m.host, "--rowcount", 7, "--noheaders");
+  x = runMongoProgram.apply(null, ["mongostat", "--host", toolTest.m.host, "--rowcount", 7, "--noheaders"].concat(commonToolArgs));
   assert.eq.soon(7, function() {
     return allDefaultStatRows().length;
   }, "--rowcount value is respected correctly");
 
   startTime = new Date();
-  x = runMongoProgram("mongostat", "--host", toolTest.m.host, "--rowcount", 3, "--noheaders", 3);
+  x = runMongoProgram.apply(this, ["mongostat", "--host", toolTest.m.host, "--rowcount", 3, "--noheaders", 3].concat(commonToolArgs));
   endTime = new Date();
   duration = Math.floor((endTime - startTime) / 1000);
   assert.gte(duration, 9, "sleep time affects the total time to produce a number or results");
@@ -30,7 +30,7 @@
   assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
   assert.eq(exitCodeFailure, stopMongoProgramByPid(pid), "stopping should cause mongostat exit with a 'failure' code");
 
-  x = runMongoProgram.apply(null, ["mongostat", "--port", toolTest.port - 1, "--rowcount", 1].concat(commonToolArgs));
+  x = runMongoProgram.apply(this, ["mongostat", "--port", toolTest.port - 1, "--rowcount", 1].concat(commonToolArgs));
   assert.neq(exitCodeSuccess, x, "can't connect causes an error exit code");
 
   x = runMongoProgram.apply(null, ["mongostat", "--rowcount", "-1"].concat(commonToolArgs));
@@ -44,8 +44,7 @@
 
   pid = startMongoProgramNoConnect.apply(null, ["mongostat", "--host", "127.0.0.1:" + toolTest.port].concat(commonToolArgs));
   assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
-
-  MongoRunner.stopMongod(toolTest.port);
+  toolTest.stop();
 
   sleep(1000);
   clearRawMongoProgramOutput();

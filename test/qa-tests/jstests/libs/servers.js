@@ -1,5 +1,5 @@
 // Wrap whole file in a function to avoid polluting the global namespace
-(function() {
+(function () {
   jsTestOptions = function () {
     if (TestData) {
       return Object.merge(_jsTestOptions, {
@@ -36,7 +36,7 @@
     stopMongod = _stopMongoProgram;
   }
   if (typeof startMongod === 'undefined') {
-    startMongod = function() {
+    startMongod = function () {
       argArray = arguments;
       if (jsTestOptions().useSSL) {
         if (argArray.indexOf('--sslMode') < 0) {
@@ -47,11 +47,11 @@
             '--sslWeakCertificateValidation');
         }
       }
-      _startMongod.apply(null, argArray);
+      startMongod.apply(null, argArray);
     };
   }
 
-  _parsePath = function() {
+  _parsePath = function () {
     var dbpath = "";
     for (var i = 0; i < arguments.length; ++i) {
       if (arguments[i] === "--dbpath") {
@@ -66,7 +66,7 @@
     return dbpath;
   };
 
-  _parsePort = function() {
+  _parsePort = function () {
     var port = "";
     for (var i = 0; i < arguments.length; ++i) {
       if (arguments[i] === "--port") {
@@ -80,7 +80,7 @@
     return port;
   };
 
-  connectionURLTheSame = function(a, b) {
+  connectionURLTheSame = function (a, b) {
 
     if (a === b) {
       return true;
@@ -136,7 +136,7 @@
   assert(connectionURLTheSame("foo/a,b", "foo/b,a"));
   assert(!connectionURLTheSame("foo/a,b", "bar/a,b"));
 
-  createMongoArgs = function(binaryName, args) {
+  createMongoArgs = function (binaryName, args) {
     var fullArgs = [binaryName];
 
     if (args.length === 1 && isObject(args[0])) {
@@ -164,7 +164,7 @@
         }
       }
     } else {
-      for (var i=0; i<args.length; i++) {
+      for (var i = 0; i < args.length; i++) {
         fullArgs.push(args[i]);
       }
     }
@@ -173,13 +173,14 @@
   };
 
 
-  MongoRunner = function() {};
+  MongoRunner = function () {
+  };
 
   MongoRunner.dataDir = "/data/db";
   MongoRunner.dataPath = "/data/db/";
   MongoRunner.usedPortMap = {};
 
-  MongoRunner.VersionSub = function(regex, version) {
+  MongoRunner.VersionSub = function (regex, version) {
     this.regex = regex;
     this.version = version;
   };
@@ -198,7 +199,7 @@
     new MongoRunner.VersionSub(/^3\.1(\..*){0,1}/, ""),
   ];
 
-  MongoRunner.getBinVersionFor = function(version) {
+  MongoRunner.getBinVersionFor = function (version) {
 
     // If this is a version iterator, iterate the version via toString()
     if (version instanceof MongoRunner.versionIterator.iterator) {
@@ -224,7 +225,7 @@
     return version;
   };
 
-  MongoRunner.areBinVersionsTheSame = function(versionA, versionB) {
+  MongoRunner.areBinVersionsTheSame = function (versionA, versionB) {
     versionA = MongoRunner.getBinVersionFor(versionA);
     versionB = MongoRunner.getBinVersionFor(versionB);
 
@@ -233,7 +234,7 @@
     }
 
     return versionA.startsWith(versionB) ||
-           versionB.startsWith(versionA);
+      versionB.startsWith(versionA);
   };
 
   MongoRunner.logicalOptions = {
@@ -260,7 +261,7 @@
     waitForConnect: true,
   };
 
-  MongoRunner.toRealPath = function(path, pathOpts) {
+  MongoRunner.toRealPath = function (path, pathOpts) {
     // Replace all $pathOptions with actual values
     pathOpts = pathOpts || {};
     path = path.replace(/\$dataPath/g, MongoRunner.dataPath);
@@ -284,7 +285,7 @@
     return path;
   };
 
-  MongoRunner.toRealDir = function(path, pathOpts) {
+  MongoRunner.toRealDir = function (path, pathOpts) {
     path = MongoRunner.toRealPath(path, pathOpts);
     if (path.endsWith("/")) {
       path = path.substring(0, path.length - 1);
@@ -294,7 +295,7 @@
 
   MongoRunner.toRealFile = MongoRunner.toRealDir;
 
-  MongoRunner.nextOpenPort = function() {
+  MongoRunner.nextOpenPort = function () {
     if (typeof allocatePort === "function") {
       return allocatePort();
     }
@@ -317,7 +318,7 @@
    *
    * @param {Array.<String>}|{String}|{versionIterator}
    */
-  MongoRunner.versionIterator = function(arr, isRandom) {
+  MongoRunner.versionIterator = function (arr, isRandom) {
 
     // If this isn't an array of versions, or is already an iterator, just use it
     if (typeof arr === "string") {
@@ -335,12 +336,12 @@
     return new MongoRunner.versionIterator.iterator(i, arr);
   };
 
-  MongoRunner.versionIterator.iterator = function(i, arr) {
+  MongoRunner.versionIterator.iterator = function (i, arr) {
 
-    this.toString = function() {
+    this.toString = function () {
       i = (i + 1) % arr.length;
       print("Returning next version : " + i +
-               " (" + arr[i] + ") from " + tojson(arr) + "...");
+        " (" + arr[i] + ") from " + tojson(arr) + "...");
       return arr[i];
     };
 
@@ -359,7 +360,7 @@
    * @return {Array.<String>} an array of parameter strings that can be passed
    *   to the binary.
    */
-  MongoRunner.arrOptions = function(binaryName, args) {
+  MongoRunner.arrOptions = function (binaryName, args) {
     var fullArgs = [""];
 
     // isObject returns true even if "args" is an array, so the else branch of this statement is
@@ -373,7 +374,7 @@
       }
 
       // Manage legacy options
-      var isValidOptionForBinary = function(option, value) {
+      var isValidOptionForBinary = function (option, value) {
         if (!o.binVersion) {
           return true;
         }
@@ -386,7 +387,7 @@
         return true;
       };
 
-      var addOptionsToFullArgs = function(k, v) {
+      var addOptionsToFullArgs = function (k, v) {
         if (v === undefined || v === null) {
           return;
         }
@@ -401,8 +402,8 @@
       for (var k in o) {
         // Make sure our logical option should be added to the array of options
         if (!o.hasOwnProperty(k) ||
-            k in MongoRunner.logicalOptions ||
-            !isValidOptionForBinary(k, o[k])) {
+          k in MongoRunner.logicalOptions ||
+          !isValidOptionForBinary(k, o[k])) {
           continue;
         }
 
@@ -430,7 +431,7 @@
         }
       }
     } else {
-      for (var i=0; i<args.length; i++) {
+      for (var i = 0; i < args.length; i++) {
         fullArgs.push(args[i]);
       }
     }
@@ -439,7 +440,7 @@
     return fullArgs;
   };
 
-  MongoRunner.arrToOpts = function(arr) {
+  MongoRunner.arrToOpts = function (arr) {
     var opts = {};
     for (var i = 1; i < arr.length; i++) {
       if (arr[i].startsWith("-")) {
@@ -462,7 +463,7 @@
 
   MongoRunner.savedOptions = {};
 
-  MongoRunner.mongoOptions = function(opts) {
+  MongoRunner.mongoOptions = function (opts) {
     // Don't remember waitForConnect
     var waitForConnect = opts.waitForConnect;
     delete opts.waitForConnect;
@@ -572,7 +573,7 @@
    *     oplogSize
    *   }
    */
-  MongoRunner.mongodOptions = function(opts) {
+  MongoRunner.mongodOptions = function (opts) {
     opts = MongoRunner.mongoOptions(opts);
     opts.dbpath = MongoRunner.toRealDir(opts.dbpath || "$dataDir/mongod-$port",
       opts.pathOpts);
@@ -622,7 +623,7 @@
     return opts;
   };
 
-  MongoRunner.mongosOptions = function(opts) {
+  MongoRunner.mongosOptions = function (opts) {
     opts = MongoRunner.mongoOptions(opts);
 
     // Normalize configdb option to be host string if currently a host
@@ -672,7 +673,7 @@
    *
    * @see MongoRunner.arrOptions
    */
-  MongoRunner.runMongod = function(opts) {
+  MongoRunner.runMongod = function (opts) {
     opts = opts || {};
     var useHostName = false;
     var runId = null;
@@ -718,7 +719,7 @@
     return mongod;
   };
 
-  MongoRunner.runMongos = function(opts) {
+  MongoRunner.runMongos = function (opts) {
     opts = opts || {};
     var useHostName = false;
     var runId = null;
@@ -771,7 +772,7 @@
    * Note: The auth option is required in a authenticated mongod running in Windows since
    *  it uses the shutdown command, which requires admin credentials.
    */
-  MongoRunner.stopMongod = function(port, signal, opts) {
+  MongoRunner.stopMongod = function (port, signal, opts) {
     if (!port) {
       print("Cannot stop mongo process " + port);
       return;
@@ -799,7 +800,7 @@
 
   MongoRunner.stopMongos = MongoRunner.stopMongod;
 
-  MongoRunner.isStopped = function(port) {
+  MongoRunner.isStopped = function (port) {
     if (!port) {
       print("Cannot detect if process " + port + " is stopped.");
       return;
@@ -830,7 +831,7 @@
    *
    * @see MongoRunner.arrOptions
    */
-  MongoRunner.runMongoTool = function(binaryName, opts) {
+  MongoRunner.runMongoTool = function (binaryName, opts) {
     opts = opts || {};
     // Normalize and get the binary version to use
     opts.binVersion = MongoRunner.getBinVersionFor(opts.binVersion);
@@ -842,7 +843,7 @@
 
   // Given a test name figures out a directory for that test to use for dump files and makes sure
   // that directory exists and is empty.
-  MongoRunner.getAndPrepareDumpDirectory = function(testName) {
+  MongoRunner.getAndPrepareDumpDirectory = function (testName) {
     var dir = MongoRunner.dataPath + testName + "_external/";
     resetDbpath(dir);
     return dir;
@@ -864,12 +865,12 @@
     print("startMongod WARNING DELETES DATA DIRECTORY THIS IS FOR TESTING ONLY");
     return startMongodEmpty.apply(null, arguments);
   };
-  startMongodNoReset = function() {
+  startMongodNoReset = function () {
     var args = createMongoArgs("mongod", arguments);
     return startMongoProgram.apply(null, args);
   };
 
-  startMongos = function(args) {
+  startMongos = function (args) {
     return MongoRunner.runMongos(args);
   };
 
@@ -886,7 +887,7 @@
         var hasAuthMechs = false;
         for (i in argArray) {
           if (typeof argArray[i] === 'string' &&
-                    argArray[i].indexOf('authenticationMechanisms') !== -1) {
+            argArray[i].indexOf('authenticationMechanisms') !== -1) {
             hasAuthMechs = true;
             break;
           }
@@ -914,7 +915,7 @@
         if (jsTest.options().setParametersMongos) {
           var params = jsTest.options().setParametersMongos.split(",");
           if (params && params.length > 0) {
-            params.forEach(function(p) {
+            params.forEach(function (p) {
               if (p) {
                 argArray.push('--setParameter', p);
               }
@@ -942,7 +943,7 @@
         if (jsTest.options().setParameters) {
           params = jsTest.options().setParameters.split(",");
           if (params && params.length > 0) {
-            params.forEach(function(p) {
+            params.forEach(function (p) {
               if (p) {
                 argArray.push('--setParameter', p);
               }
@@ -958,7 +959,7 @@
    * Start a mongo process with a particular argument array.  If we aren't waiting for connect,
    * return null.
    */
-  MongoRunner.startWithArgs = function(argArray, waitForConnect) {
+  MongoRunner.startWithArgs = function (argArray, waitForConnect) {
     // TODO: Make there only be one codepath for starting mongo processes
     argArray = appendSetParameterArgs(argArray);
     var port = _parsePort.apply(null, argArray);
@@ -966,7 +967,7 @@
 
     var conn = null;
     if (waitForConnect) {
-      assert.soon(function() {
+      assert.soon(function () {
         try {
           conn = new Mongo("127.0.0.1:" + port);
           return true;
@@ -991,7 +992,7 @@
    * and subsequent arguments to this function are passed as
    * command line arguments to the program.
    */
-  startMongoProgram = function() {
+  startMongoProgram = function () {
     var port = _parsePort.apply(null, arguments);
 
     // Enable test commands.
@@ -1002,7 +1003,7 @@
     var pid = _startMongoProgram.apply(null, args);
 
     var m;
-    assert.soon(function() {
+    assert.soon(function () {
       try {
         m = new Mongo("127.0.0.1:" + port);
         return true;
@@ -1022,7 +1023,7 @@
     return m;
   };
 
-  runMongoProgram = function() {
+  runMongoProgram = function () {
     var args = Array.from(arguments);
     var progName = args[0];
 
@@ -1054,7 +1055,7 @@
   // Start a mongo program instance.  This function's first argument is the
   // program name, and subsequent arguments to this function are passed as
   // command line arguments to the program.  Returns pid of the spawned program.
-  startMongoProgramNoConnect = function() {
+  startMongoProgramNoConnect = function () {
     var args = Array.from(arguments);
     var progName = args[0];
 
@@ -1081,7 +1082,7 @@
     return _startMongoProgram.apply(null, args);
   };
 
-  myPort = function() {
+  myPort = function () {
     var m = db.getMongo();
     if (m.host.match(/:/)) {
       return m.host.match(/:(.*)/)[1];

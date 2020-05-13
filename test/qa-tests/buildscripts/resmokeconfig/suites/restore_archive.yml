@@ -8,9 +8,15 @@ executor:
   js_test:
     config:
       shell_options:
-        eval_prepend: "load('jstests/libs/servers.js'); load('jstests/libs/servers_misc.js');"
+        global_vars:
+          TestData:
+            useTLS: true
         eval: "load('jstests/configs/archive_targets.js');"
         readMode: commands
+        tls: ''
+        tlsAllowInvalidCertificates: ''
+        tlsCAFile: jstests/libs/ca.pem
+        tlsCertificateKeyFile: jstests/libs/client.pem
     hooks:
     - class: CleanEveryN
       n: 20
@@ -19,5 +25,9 @@ executor:
       mongod_options:
         set_parameters:
           enableTestCommands: 1
+        tlsMode: allowTLS
+        tlsCertificateKeyFile: jstests/libs/server.pem
+        tlsCAFile: jstests/libs/ca.pem
+        tlsAllowConnectionsWithoutCertificates: ''
 
 

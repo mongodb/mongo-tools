@@ -7,7 +7,17 @@
   jsTest.log('Testing restoring users with a nonempty temp users collection.'+
         ' The restore should fail');
 
-  var toolTest = new ToolTest('nonempty_temp_users');
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
+  var toolTest = new ToolTest('nonempty_temp_users', TOOLS_TEST_CONFIG);
+  var commonToolArgs = getCommonToolArguments();
   toolTest.startDB('foo');
 
   // where we'll put the dump
@@ -26,7 +36,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-    .concat(getDumpTarget(dumpTarget)));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.neq(1, ret);
 
   // clear out the user
@@ -37,7 +48,8 @@
 
   // restore the data. It should succeed
   ret = toolTest.runTool.apply(toolTest, ['restore']
-    .concat(getRestoreTarget(dumpTarget)));
+    .concat(getRestoreTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.neq(1, ret);
 
   // success

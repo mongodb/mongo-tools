@@ -7,6 +7,15 @@ var getToolTest;
   var TOOLS_TEST_CONFIG = {
     binVersion: '',
   };
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      binVersion: '',
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
 
   getToolTest = function(name) {
     var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
@@ -17,5 +26,8 @@ var getToolTest;
 
 /* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
-  return [];
+  return ['--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'];
 };

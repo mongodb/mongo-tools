@@ -266,6 +266,11 @@ class mongod(NullMongod):
                      '--sslPEMKeyFile', 'jstests/libs/server.pem',
                      '--sslCAFile', 'jstests/libs/ca.pem',
                      '--sslWeakCertificateValidation']
+        if self.kwargs.get('use_tls'):
+             argv += ['--tlsMode', "requireTLS",
+                      '--tlsCertificateKeyFile', 'jstests/libs/server.pem',
+                      '--tlsCAFile', 'jstests/libs/ca.pem',
+                      '--tlsAllowConnectionsWithoutCertificates']
         if self.kwargs.get('use_x509'):
             argv += ['--clusterAuthMode','x509'];
             self.auth = True
@@ -526,7 +531,7 @@ def skipTest(path):
         if basename in ["cursor8.js", "indexh.js", "dropdb.js", "dropdb_race.js", 
                         "connections_opened.js", "opcounters_write_cmd.js", "dbadmin.js"]:
             return True
-    if use_ssl:
+    if use_ssl or use_tls:
         # Skip tests using mongobridge since it does not support SSL
         # TODO: Remove when SERVER-10910 has been resolved.  
         if basename in ["gridfs.js", "initial_sync3.js", "majority.js", "no_chaining.js",
@@ -615,6 +620,11 @@ def runTest(test, result):
                      "--sslPEMKeyFile", "jstests/libs/client.pem",
                      "--sslCAFile", "jstests/libs/ca.pem",
                      "--sslAllowInvalidCertificates"]
+        if use_tls:
+            argv += ["--tls",
+                     "--tlsCertificateKeyFile", "jstests/libs/client.pem",
+                     "--tlsCAFile", "jstests/libs/ca.pem",
+                     "--tlsAllowInvalidCertificates"]
         argv += [path]
     elif ext in ["", ".exe"]:
         # Blech.
@@ -654,8 +664,7 @@ def runTest(test, result):
     # FIXME: we don't handle the case where the subprocess
     # hangs... that's bad.
     if ( argv[0].endswith( 'mongo' ) or argv[0].endswith( 'mongo.exe' ) ) and not '--eval' in argv :
-        evalString = 'load("jstests/libs/servers.js");load("jstests/libs/servers_misc.js");' +\
-                     'TestData = new Object();' + \
+        evalString = 'TestData = new Object();' + \
                      'TestData.storageEngine = "' + ternary( storage_engine, storage_engine, "" ) + '";' + \
                      'TestData.wiredTigerEngineConfigString = "' + ternary( wiredtiger_engine_config_string, wiredtiger_engine_config_string, "" ) + '";' + \
                      'TestData.wiredTigerCollectionConfigString = "' + ternary( wiredtiger_collection_config_string, wiredtiger_collection_config_string, "" ) + '";' + \
@@ -673,6 +682,7 @@ def runTest(test, result):
                      'TestData.authMechanism = ' + ternary( authMechanism,
                                                '"' + str(authMechanism) + '"', 'null') + ";" + \
                      'TestData.useSSL = ' + ternary( use_ssl ) + ";" + \
+                     'TestData.useTLS = ' + ternary( use_tls ) + ";" + \
                      'TestData.useX509 = ' + ternary( use_x509 ) + ";"
         # this updates the default data directory for mongod processes started through shell (src/mongo/shell/servers.js)
         evalString += 'MongoRunner.dataDir = "' + os.path.abspath(smoke_db_prefix + '/data/db') + '";'
@@ -787,6 +797,7 @@ def run_tests(tests):
                             authMechanism=authMechanism,
                             keyFile=keyFile,
                             use_ssl=use_ssl,
+                            use_tls=use_tls,
                             use_x509=use_x509)
             master.start()
 
@@ -815,6 +826,7 @@ def run_tests(tests):
                            authMechanism=authMechanism,
                            keyFile=keyFile,
                            use_ssl=use_ssl,
+                           use_tls=use_tls,
                            use_x509=use_x509)
             slave.start()
             primary = MongoClient(port=master.port);
@@ -898,6 +910,7 @@ def run_tests(tests):
                                         authMechanism=authMechanism,
                                         keyFile=keyFile,
                                         use_ssl=use_ssl,
+                                        use_tls=use_tls,
                                         use_x509=use_x509)
                         master.start()
 
@@ -1006,6 +1019,7 @@ suiteGlobalConfig = {   "files": ("files/*.js", False),
                         "oplog": ("oplog/*.js", False),
                         "import": ("import/*.js", False),
                         "ssl": ("ssl/*.js", False),
+                        "tls": ("tls/*.js", False),
                         "unstable": ("unstable/*.js", False),
                     }
 
@@ -1142,7 +1156,7 @@ def set_globals(options, tests):
     global small_oplog, small_oplog_rs
     global no_journal, set_parameters, set_parameters_mongos, no_preallocj, storage_engine, wiredtiger_engine_config_string, wiredtiger_collection_config_string, wiredtiger_index_config_string
     global auth, authMechanism, keyFile, keyFileData, smoke_db_prefix, test_path, start_mongod
-    global use_ssl, use_x509
+    global use_ssl, use_tls, use_x509
     global file_of_commands_mode
     global report_file, shell_write_mode, use_write_commands
     global temp_path
@@ -1152,6 +1166,8 @@ def set_globals(options, tests):
     start_mongod = options.start_mongod
     if hasattr(options, 'use_ssl'):
         use_ssl = options.use_ssl
+    if hasattr(options, 'use_tls'):
+        use_tls = options.use_tls
     if hasattr(options, 'use_x509'):
         use_x509 = options.use_x509
         use_ssl = use_ssl or use_x509
@@ -1369,6 +1385,9 @@ def main():
     parser.add_option('--use-ssl', dest='use_ssl', default=False,
                       action='store_true',
                       help='Run mongo shell and mongod instances with SSL encryption')
+    parser.add_option('--use-tls', dest='use_tls', default=False,
+                      action='store_true',
+                      help='Run mongo shell and mongod instances with TLS encryption')
     parser.add_option('--set-parameters', dest='set_parameters', default="",
                       help='Adds --setParameter to mongod for each passed in item in the csv list - ex. "param1=1,param2=foo" ')
     parser.add_option('--set-parameters-mongos', dest='set_parameters_mongos', default="",

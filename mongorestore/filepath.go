@@ -245,7 +245,7 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	}
 
 	// If the collection name is truncated, parse the full name from the metadata file.
-	if strings.Contains(collName, "%24") {
+	if strings.Contains(collName, "%24") && len(collName) == 238 {
 		collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
 		if err != nil {
 			return "", UnknownFileType, err

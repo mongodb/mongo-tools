@@ -99,23 +99,23 @@ load('jstests/top/util/mongotop_common.js');
 
   var runTests = function(topology, passthrough) {
     var readShell = '\nprint(\'starting read\'); \n' +
-      'for (var i = 0; i < 1000000; ++i) \n{ ' +
-      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
-      '  sleep(1); \n' +
-      '}\n';
+        'for (var i = 0; i < 1000000; ++i) \n{ ' +
+        '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
+        '  sleep(1); \n' +
+        '}\n';
 
     var writeShell = '\nprint(\'starting write\'); \n' +
-      'for (var i = 0; i < 1000000; ++i) { \n' +
-      '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
-      '  sleep(1); \n' +
-      '}\n';
+        'for (var i = 0; i < 1000000; ++i) { \n' +
+        '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
+        '  sleep(1); \n' +
+        '}\n';
 
     var readWriteShell = '\nprint(\'starting read/write\'); \n' +
-      'for (var i = 0; i < 1000000; ++i) \n{ ' +
-      '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
-      '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
-      '  sleep(1); \n' +
-      '}\n';
+        'for (var i = 0; i < 1000000; ++i) \n{ ' +
+        '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); \n' +
+        '  db.getSiblingDB(\'foo\').bar.find({ x: i }).forEach(function(){}); \n' +
+        '  sleep(1); \n' +
+        '}\n';
 
     var testSpaces = [
       ['foo.bar'],

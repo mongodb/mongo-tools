@@ -21,6 +21,6 @@ var getToolTest;
 var getCommonToolArguments = function() {
   return [
     '--ssl',
-    '--sslPEMKeyFile', 'jstests/libs/client.pem'
+    '--sslPEMKeyFile=jstests/libs/client.pem'
   ];
 };
