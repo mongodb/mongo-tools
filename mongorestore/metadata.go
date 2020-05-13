@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"strings"
 )
 
 // Specially treated restore collection types.
@@ -157,6 +158,7 @@ func (restore *MongoRestore) addToKnownCollections(intent *intents.Intent) {
 // fails, we fall back to individual index creation.
 func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []IndexDocument, hasNonSimpleCollation bool) error {
 	// first, sanitize the indexes
+	var indexNames []string
 	for _, index := range indexes {
 		// update the namespace of the index before inserting
 		index.Options["ns"] = dbName + "." + collectionName
@@ -170,6 +172,7 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 						"namespace is too long (max size is 127 bytes)", fullIndexName)
 			}
 		}
+		indexNames = append(indexNames, index.Options["name"].(string))
 
 		// remove the index version, forcing an update,
 		// unless we specifically want to keep it
@@ -194,6 +197,8 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 		{"createIndexes", collectionName},
 		{"indexes", indexes},
 	}
+
+	log.Logvf(log.Info, "\trun create Index command for indexes: %v", strings.Join(indexNames, ", "))
 
 	if restore.serverVersion.GTE(db.Version{4, 1, 9}) {
 		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
