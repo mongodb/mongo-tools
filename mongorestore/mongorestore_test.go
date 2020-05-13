@@ -1170,30 +1170,32 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
+		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
+			// Run mongorestore
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
 
-		Convey("RestoreOplog() should ignore all startIndexBuild and abortIndexBuild oplog entries", func() {
-			queryObj := bson.D{
-				{"$and",
-					bson.A{
-						bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
-						bson.D{{"$or", bson.A{
-							bson.D{{"o.startIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
-							bson.D{{"o.abortIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
-						}}},
+			Convey("RestoreOplog() should ignore all startIndexBuild and abortIndexBuild oplog entries", func() {
+				queryObj := bson.D{
+					{"$and",
+						bson.A{
+							bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
+							bson.D{{"$or", bson.A{
+								bson.D{{"o.startIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
+								bson.D{{"o.abortIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
+							}}},
+						},
 					},
-				},
-			}
+				}
 
-			cursor, err := session.Database("local").Collection("oplog.rs").Find(nil, queryObj, nil)
-			So(err, ShouldBeNil)
+				cursor, err := session.Database("local").Collection("oplog.rs").Find(nil, queryObj, nil)
+				So(err, ShouldBeNil)
 
-			flag := cursor.Next(ctx)
-			So(flag, ShouldBeFalse)
+				flag := cursor.Next(ctx)
+				So(flag, ShouldBeFalse)
 
-			cursor.Close(ctx)
-		})
+				cursor.Close(ctx)
+			})
+		}
 	})
 }
