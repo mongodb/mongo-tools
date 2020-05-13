@@ -1146,6 +1146,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-3.6-mmapv1
   commands:
@@ -1216,6 +1217,7 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
+        USE_SSL: "true"
 
 - name: integration-4.0-mmapv1
   commands:
