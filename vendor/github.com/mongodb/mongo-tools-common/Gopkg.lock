@@ -2,6 +2,32 @@
 
 
 [[projects]]
+  digest = "1:1371a9062b58033f7703a6f4f84f29d148a5ece942a4186b75b055514523f7b4"
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client/metadata",
+    "aws/credentials",
+    "aws/endpoints",
+    "aws/request",
+    "aws/signer/v4",
+    "internal/context",
+    "internal/ini",
+    "internal/sdkio",
+    "internal/sdkmath",
+    "internal/shareddefaults",
+    "internal/strings",
+    "internal/sync/singleflight",
+    "private/protocol",
+    "private/protocol/rest",
+  ]
+  pruneopts = "UT"
+  revision = "e1dce00102dd471f60e349c07d934a3af5c4414b"
+  version = "v1.30.29"
+
+[[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
   name = "github.com/go-stack/stack"
   packages = ["."]
@@ -32,6 +58,13 @@
   pruneopts = "UT"
   revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
   version = "v1.4.0"
+
+[[projects]]
+  digest = "1:bb81097a5b62634f3e9fec1014657855610c82d19b9a40c17612e32651e35dca"
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c2b33e84"
 
 [[projects]]
   digest = "1:4b63210654b1f2b664f74ec434a1bb1cb442b3d75742cc064a10808d1cca6361"
@@ -104,7 +137,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:63f7dae66dc18fb59f4c9d897f5cc590d47da8af438c4f7a36098ac42a67a329"
+  digest = "1:6e98c447b898e0ef5abec0e397ee62027f488e5f311b50b324f4aa67bff7b1a8"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -141,7 +174,7 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
+  revision = "68130e6287ad8873c9e7ef55e9146d8d6c9feb7a"
 
 [[projects]]
   digest = "1:b27b4a5b31f1d7e858e7568c51030704dbea84dd2c7a7f407fb7e8d0acadb676"

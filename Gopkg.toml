@@ -29,11 +29,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  version = "v3.0.6"
-
-[[constraint]]
-  name = "go.mongodb.org/mongo-driver"
-  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
+  version = "v3.0.7"
 
 [[constraint]]
   name = "github.com/nsf/termbox-go"

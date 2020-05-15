@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -69,6 +70,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
+	redacted                 bool
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
@@ -79,6 +81,7 @@ type finishedInformation struct {
 	cmdErr    error
 	connID    string
 	startTime time.Time
+	redacted  bool
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -192,12 +195,6 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		return nil, err
 	}
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
-	}
-
 	selector := op.Selector
 	if selector == nil {
 		rp := op.ReadPreference
@@ -307,6 +304,8 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 	batching := op.Batches.Valid()
+	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
+	currIndex := 0
 	for {
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
@@ -338,6 +337,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
+		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -356,6 +356,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			requestID: startedInfo.requestID,
 			startTime: time.Now(),
 			connID:    startedInfo.connID,
+			redacted:  startedInfo.redacted,
 		}
 
 		// roundtrip using either the full roundTripper or a special one for when the moreToCome
@@ -400,8 +401,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
-			// Add a RetryableWriteError label for retryable errors from pre-4.4 servers
-			if retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9 {
+			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
+
+			// If retry is enabled, add a RetryableWriteError label for retryable errors from pre-4.4 servers
+			if retryableErr && preRetryWriteLabelVersion && retryEnabled {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 
@@ -428,6 +431,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				continue
 			}
+
+			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
+				for i := range tt.WriteErrors {
+					tt.WriteErrors[i].Index += int64(currIndex)
+				}
+			}
+
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
 			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
@@ -446,7 +456,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
 					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
-				if retryableErr {
+				if retryableErr && retryEnabled {
 					err.Labels = append(err.Labels, RetryableWriteError)
 				}
 				return err
@@ -466,8 +476,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			var retryableErr bool
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
-				// Add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
-				if tt.HasErrorLabel(NetworkError) || (retryableErr && connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9) {
+				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
+				// If retryWrites is enabled, add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
+				if retryEnabled && (tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
 					tt.Labels = append(tt.Labels, RetryableWriteError)
 				}
 			} else {
@@ -523,6 +534,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					retries = 1
 				}
 			}
+			currIndex += len(op.Batches.Current)
 			op.Batches.ClearBatch()
 			continue
 		}
@@ -921,8 +933,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	if err := client.UpdateUseTime(); err != nil {
 		return dst, err
 	}
-	lsid, _ := client.SessionID.MarshalBSON()
-	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
+	dst = bsoncore.AppendDocumentElement(dst, "lsid", client.SessionID)
 
 	var addedTxnNumber bool
 	if op.Type == Write && client.RetryWrite {
@@ -1059,7 +1070,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
-		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 {
+		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.HedgeEnabled() == nil {
 			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")
@@ -1092,6 +1103,16 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 
 	if d, ok := rp.MaxStaleness(); ok {
 		doc = bsoncore.AppendInt32Element(doc, "maxStalenessSeconds", int32(d.Seconds()))
+	}
+
+	if hedgeEnabled := rp.HedgeEnabled(); hedgeEnabled != nil {
+		var hedgeIdx int32
+		hedgeIdx, doc = bsoncore.AppendDocumentElementStart(doc, "hedge")
+		doc = bsoncore.AppendBooleanElement(doc, "enabled", *hedgeEnabled)
+		doc, err = bsoncore.AppendDocumentEnd(doc, hedgeIdx)
+		if err != nil {
+			return nil, fmt.Errorf("error creating hedge document: %v", err)
+		}
 	}
 
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
@@ -1261,9 +1282,19 @@ func (op Operation) getCommandName(doc []byte) string {
 	return string(doc[5 : idx+5])
 }
 
-func (op *Operation) canMonitor(cmd string) bool {
-	return !(cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
-		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb")
+func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
+	if cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
+		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb" {
+
+		return true
+	}
+	if strings.ToLower(cmd) != "ismaster" {
+		return false
+	}
+
+	// An isMaster without speculative authentication can be monitored.
+	_, err := doc.LookupErr("speculativeAuthenticate")
+	return err == nil
 }
 
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
@@ -1276,8 +1307,8 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
 	// If there was a type 1 payload for the current batch, convert it to a BSON array.
-	var cmdCopy []byte
-	if op.canMonitor(info.cmdName) {
+	cmdCopy := bson.Raw{}
+	if !info.redacted {
 		cmdCopy = make([]byte, len(info.cmd))
 		copy(cmdCopy, info.cmd)
 		if info.documentSequenceIncluded {
@@ -1324,7 +1355,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if success {
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
-		if op.canMonitor(info.cmdName) {
+		if !info.redacted {
 			res = make([]byte, len(info.response))
 			copy(res, info.response)
 		}
