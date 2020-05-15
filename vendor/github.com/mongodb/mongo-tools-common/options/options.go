@@ -510,7 +510,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 	return newArgs, nil
 }
 
-// NormalizeOptionsAndURI syncs the connection string an toolOptions objects.
+// NormalizeOptionsAndURI syncs the connection string and toolOptions objects.
 // It returns an error if there is any conflict between options and the connection string.
 // If a value is set on the options, but not the connection string, that value is added to the
 // connection string. If a value is set on the connection string, but not the options,
@@ -539,8 +539,9 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		return err
 	}
 
-	// connect directly, unless a replica set name is explicitly specified
-	opts.Direct = (opts.ReplicaSetName == "")
+	// Connect directly to a host if there's no replica set specified, or
+	// if the connection string already specified a direct connection.
+	opts.Direct = (opts.ReplicaSetName == "") || opts.Direct
 
 	return nil
 }
@@ -742,8 +743,6 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 	}
 
-	opts.Direct = (cs.Connect == connstring.SingleConnect)
-
 	// check replica set name equality
 	if opts.ReplicaSetName != "" && cs.ReplicaSet != "" {
 		if opts.ReplicaSetName != cs.ReplicaSet {
@@ -757,6 +756,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	if opts.ReplicaSetName == "" && cs.ReplicaSet != "" {
 		opts.ReplicaSetName = cs.ReplicaSet
 	}
+
+	// Connect directly to a host if indicated by the connection string.
+	opts.Direct = cs.DirectConnection || (cs.Connect == connstring.SingleConnect)
 
 	if (cs.SSL || opts.UseSSL) && !BuiltWithSSL {
 		if strings.HasPrefix(cs.Original, "mongodb+srv") {
