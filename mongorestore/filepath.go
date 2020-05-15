@@ -245,6 +245,12 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	}
 
 	// If the collection name is truncated, parse the full name from the metadata file.
+	// Note that db-specific collections which are prefixed with a %24 (i.e. $ symbol)
+	// aren't truncated, so we skip inspecting any metadata files for these special
+	// collections. Namely, we would skip:
+	// (1) $admin.system.users
+	// (2) $admin.system.roles
+	// (3) $admin.system.version
 	if strings.Contains(collName, "%24") && len(collName) == 238 {
 		collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
 		if err != nil {
