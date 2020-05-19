@@ -36,12 +36,12 @@
   version = "v1.8.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:e4f5819333ac698d294fe04dbf640f84719658d5c7ce195b10060cc37292ce79"
   name = "github.com/golang/snappy"
   packages = ["."]
   pruneopts = "UT"
   revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
+  version = "v0.0.1"
 
 [[projects]]
   branch = "master"
@@ -49,7 +49,7 @@
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
   pruneopts = "UT"
-  revision = "3e4dfb77656c424b6d1196a4d5fed0fcf63677cc"
+  revision = "fce0ec30dd00773d3fa974351d04ce2737b5c4d9"
 
 [[projects]]
   digest = "1:a2cff208d4759f6ba1b1cd228587b0a1869f95f22542ec9cd17fff64430113c7"
@@ -75,7 +75,7 @@
   version = "v4.20"
 
 [[projects]]
-  digest = "1:a84c156a248491e277cecde22eb81edb2d6add4a67dd1e4c192d16cd224fc61b"
+  digest = "1:9e3e13e17495f7e8e066b07e340036dc45fe9dc7b0a35dd4819dec2721929572"
   name = "github.com/klauspost/compress"
   packages = [
     "fse",
@@ -85,8 +85,8 @@
     "zstd/internal/xxhash",
   ]
   pruneopts = "UT"
-  revision = "2a5ec94050832300f2c49529dbab4b3774cbc30a"
-  version = "v1.10.1"
+  revision = "4a2d40e4b07e5b3d333bc0569facd0f2dbf4ef39"
+  version = "v1.10.5"
 
 [[projects]]
   digest = "1:9e1d37b58d17113ec3cb5608ac0382313c5b59470b94ed97d0976e69c7022314"
@@ -129,12 +129,12 @@
   revision = "7eeb5667e42c09cb51bf7b7c28aea8c56767da90"
 
 [[projects]]
-  branch = "master"
-  digest = "1:f5c1d04bc09c644c592b45b9f0bad4030521b1a7d11c7dadbb272d9439fa6e8e"
+  digest = "1:577b99fc55ee19cbf1ffd072808c91ced78cd732bd9d0517bec9b90e532069cb"
   name = "github.com/xdg/stringprep"
   packages = ["."]
   pruneopts = "UT"
-  revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
+  revision = "bd625b8dc1e3b0f57412280ccbcc317f0c69d8db"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:6e98c447b898e0ef5abec0e397ee62027f488e5f311b50b324f4aa67bff7b1a8"
@@ -189,25 +189,26 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a2fc247e64b5dafd3251f12d396ec85f163d5bb38763c4997856addddf6e78d8"
+  digest = "1:ec98ab215ad6fe290c86fe0c15b73684dd44680fc7b131fc1e0398b8dd5738f1"
   name = "golang.org/x/sync"
   packages = [
     "errgroup",
     "semaphore",
   ]
   pruneopts = "UT"
-  revision = "112230192c580c3556b8cee6403af37a4fc5f28c"
+  revision = "43a5402ce75a95522677f77c619865d66b8c57ab"
 
 [[projects]]
   branch = "master"
-  digest = "1:e32edd8d81fe0447cb6855e2d2b0549b63717539513e09b3a1e4bb20d48f46c6"
+  digest = "1:75a66ef42ee59955b0a0aecb9121c4cf6ee71fca33e81fce2cd1de42f6b29b0b"
   name = "golang.org/x/sys"
   packages = [
+    "internal/unsafeheader",
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
+  revision = "7e40ca221e254089b05fb9efcd69844a57f6a367"
 
 [[projects]]
   digest = "1:1093f2eb4b344996604f7d8b29a16c5b22ab9e1b25652140d3fede39f640d5cd"

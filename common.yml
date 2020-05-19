@@ -33,6 +33,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
@@ -63,6 +64,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: qa-dump-restore-with-gzip-current
         run_on: rhel62-large
       - name: qa-dump-restore-with-archiving-current
@@ -92,6 +94,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: qa-dump-restore-with-gzip-current
         run_on: ubuntu1604-build
       - name: qa-dump-restore-with-archiving-current
@@ -113,6 +116,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: dist
@@ -187,6 +191,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: native-cert-ssl-current
     rhel67_s390x_task_list: &rhel67_s390x_tasks
       - name: dist
@@ -214,6 +219,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
@@ -243,6 +249,7 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-gzip-current
       - name: qa-tests-4.2
       - name: qa-tests-4.4
+      - name: aws-auth-test
       - name: native-cert-ssl-current
 
 
@@ -959,6 +966,129 @@ functions:
             MONGO_ARGS="${mongo_args_tls}"
           fi;
           ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+  "add-aws-auth-variables-to-file" :
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+#        silent: true
+        script: |
+          set -x
+          set -v
+          set -e
+          cat <<EOF > $(pwd)/test/auth_aws/aws_e2e_setup.json
+          {
+            "iam_auth_assume_aws_account": "${iam_auth_assume_aws_account}",
+            "iam_auth_assume_aws_secret_access_key": "${iam_auth_assume_aws_secret_access_key}",
+            "iam_auth_assume_role_name":"${iam_auth_assume_role_name}"
+          }
+          EOF
+  "run-aws-auth-test-with-assume-role-credentials" :
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+
+          # The aws_e2e_assume_role script requires python3 with boto3.
+          venv='venv'
+          if [ -f "$venv"/bin/activate ]; then
+            echo 'using existing virtualenv'
+            . "$venv"/bin/activate
+          elif [ -f "$venv"/Scripts/activate ]; then
+            echo 'using existing virtualenv'
+            . "$venv"/Scripts/activate
+          elif virtualenv "$venv" || python -m virtualenv "$venv"; then
+            echo 'creating new virtualenv'
+            if [ -f "$venv"/bin/activate ]; then
+              . "$venv"/bin/activate
+            elif [ -f "$venv"/bin/activate ]; then
+              . "$venv"/Scripts/activate
+            fi
+            pip3 install boto3
+          fi
+          cd $(pwd)/test/auth_aws
+          ./../../bin/mongo --nodb aws_e2e_assume_role.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+#        silent: true
+        script: |
+          set -x
+          set -v
+          set -e
+          cat <<'EOF' > "$(pwd)/test/auth_aws/prepare_mongodb_aws.sh"
+            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plsu(sys.argv[1]))"'
+            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < $(pwd)/test/auth_aws/creds.json'
+            USER=$(jsonkey AccessKeyId)
+            USER=$(urlencode $USER)
+            PASS=$(jsonkey SecretAccessKey)
+            PASS=$(urlencode $PASS)
+            SESSION_TOKEN=$(jsonkey SessionToken)
+            MONGODB_URI="mongodb://$USER:$PASS@localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          . ./set_goenv.sh
+          GOROOT="" set_goenv || exit
+          export ON_EVERGREEN="true"
+          export TOOLS_TESTING_AWS_AUTH="true"
+          ./run-mongodb-aws-test.sh -v
+          exit $?
+
+  "run-aws-auth-test-with-aws-credentials-as-environment-variables":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        silent: true
+        script: |
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            export AWS_ACCESS_KEY_ID=${iam_auth_ecs_account}
+            export AWS_SECRET_ACCESS_KEY=${iam_auth_ecs_secret_access_key}
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          PROJECT_DIRECTORY=${PROJECT_DIRECTORY} $PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+
+  "run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        silent: true
+        script: |
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+            export AWS_ACCESS_KEY_ID=$(jsonkey AccessKeyId)
+            export AWS_SECRET_ACCESS_KEY_ID=$(jsonkey SecretAccessKeyId)
+            export AWS_SESSION_TOKEN=$(jsonkey SessionToken)
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
 
 pre:
   - command: shell.exec
@@ -1039,6 +1169,18 @@ timeout:
 
 
 tasks:
+
+- name: aws-auth-test
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: dist
   depends_on:
@@ -1292,6 +1434,8 @@ tasks:
       vars:
         INT_TEST: "true"
         USE_SSL: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: integration-4.4-auth
   commands:

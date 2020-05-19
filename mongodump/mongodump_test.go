@@ -44,6 +44,7 @@ var (
 )
 
 const (
+	AWSDumpDirectory = "dump-aws"
 	KerberosDumpDirectory = "dump-kerberos"
 	longPrefix            = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
@@ -1398,5 +1399,44 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
 			})
 		})
+	})
+}
+
+func TestMongoDumpAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+
+	Convey("Should be able to run mongodump with AWS STS AssumeRole auth", t, func() {
+		opts, err := testutil.GetAWSAuthOptions()
+
+		So(err, ShouldBeNil)
+
+		mongoDump := MongoDump{
+			ToolOptions:  opts,
+			InputOptions: &InputOptions{},
+			OutputOptions: &OutputOptions{
+				NumParallelCollections: 1,
+			},
+		}
+
+		mongoDump.OutputOptions.Out = AWSDumpDirectory
+
+		err = mongoDump.Init()
+		So(err, ShouldBeNil)
+		err = mongoDump.Dump()
+		So(err, ShouldBeNil)
+		path, err := os.Getwd()
+		So(err, ShouldBeNil)
+
+		dumpDir := util.ToUniversalPath(filepath.Join(path, AWSDumpDirectory))
+		dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, opts.Namespace.DB))
+		So(fileDirExists(dumpDir), ShouldBeTrue)
+		So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+		dumpCollectionFile := util.ToUniversalPath(filepath.Join(dumpDBDir, opts.Namespace.Collection+".bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+
+		countColls, err := countNonIndexBSONFiles(dumpDBDir)
+		So(err, ShouldBeNil)
+		So(countColls, ShouldEqual, 1)
 	})
 }

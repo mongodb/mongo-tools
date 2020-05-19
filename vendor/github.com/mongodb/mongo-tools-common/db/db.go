@@ -423,12 +423,15 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetWriteConcern(writeconcern.New(opts...))
 	}
 
-	if opts.Auth != nil && opts.Auth.IsSet() {
+	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil ||
+		cs.AuthSource != "" || cs.Username != "" || cs.PasswordSet {
 		cred := mopt.Credential{
-			Username:      opts.Auth.Username,
-			Password:      opts.Auth.Password,
-			AuthSource:    opts.GetAuthenticationDatabase(),
-			AuthMechanism: opts.Auth.Mechanism,
+			AuthMechanism:           cs.AuthMechanism,
+			AuthMechanismProperties: cs.AuthMechanismProperties,
+			AuthSource:              cs.AuthSource,
+			Username:                cs.Username,
+			Password:                cs.Password,
+			PasswordSet:             cs.PasswordSet,
 		}
 		// Technically, an empty password is possible, but the tools don't have the
 		// means to easily distinguish and so require a non-empty password.
