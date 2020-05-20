@@ -1159,6 +1159,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		// Drop the collection to clean up resources
 		defer testdb.Collection("skip_index_entries").Drop(ctx)
 
+		// oplog.bson only has startIndexBuild and abortIndexBuild entries
 		args := []string{
 			DirectoryOption, "testdata/oplog_ignore_index",
 			OplogReplayOption,
@@ -1175,26 +1176,13 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			Convey("RestoreOplog() should ignore all startIndexBuild and abortIndexBuild oplog entries", func() {
-				queryObj := bson.D{
-					{"$and",
-						bson.A{
-							bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
-							bson.D{{"$or", bson.A{
-								bson.D{{"o.startIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
-								bson.D{{"o.abortIndexBuild", primitive.Regex{Pattern: "skip_index_entries"}}},
-							}}},
-						},
-					},
-				}
+			Convey("No new oplog entries should be recorded", func() {
+				dbLocal := session.Database("local")
+				queryObj := bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}}
+				count, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
 
-				cursor, err := session.Database("local").Collection("oplog.rs").Find(nil, queryObj, nil)
 				So(err, ShouldBeNil)
-
-				flag := cursor.Next(ctx)
-				So(flag, ShouldBeFalse)
-
-				cursor.Close(ctx)
+				So(count, ShouldBeZeroValue)
 			})
 		}
 	})

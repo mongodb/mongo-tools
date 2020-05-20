@@ -111,7 +111,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 			continue
 		}
 
-		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
+		if entryAsOplog.Operation == "c" && len(entryAsOplog.Object) > 0 {
 			entryName := entryAsOplog.Object[0].Key
 			if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
 				log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
