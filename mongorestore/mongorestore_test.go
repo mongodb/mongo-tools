@@ -1170,18 +1170,19 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
-			currentTS := uint32(time.Now().UTC().Unix())
 			// Run mongorestore
+			dbLocal := session.Database("local")
+			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, bson.D{})
+			So(err, ShouldBeNil)
+
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
 			Convey("No new oplog entries should be recorded", func() {
-				dbLocal := session.Database("local")
-				queryObj := bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}}
-				count, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
+				countAfterRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, bson.D{})
 
 				So(err, ShouldBeNil)
-				So(count, ShouldBeZeroValue)
+				So(countBeforeRestore, ShouldEqual, countAfterRestore)
 			})
 		}
 	})
