@@ -1166,12 +1166,11 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			DropOption,
 		}
 
-		currentTS := uint32(time.Now().UTC().Unix())
-
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
 		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
+			currentTS := uint32(time.Now().UTC().Unix())
 			// Run mongorestore
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
