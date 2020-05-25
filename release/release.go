@@ -220,7 +220,7 @@ func buildArchive() {
 	check(err, "get platform")
 	if pf.OS == platform.OSWindows {
 		buildZip()
-	} else if pf.OS == platform.Macos {
+	} else if pf.OS == platform.OSMac {
 		buildMacOSZip()
 	} else {
 		buildTarball()
@@ -905,12 +905,13 @@ func buildMacOSZip() {
             }
           }
     `
-	conf = fmt.Sprintf(conf, strings.Join(files, ","), os.GetEnviron("AC_USERNAME"), os.GetEnviron("AC_PASSWORD"))
-	log.Printf(conf)
+	conf = fmt.Sprintf(conf, strings.Join(files, ","), os.Getenv("AC_USERNAME"), os.Getenv("AC_PASSWORD"))
 	f, _ := os.Create("./gon.json")
 	w := bufio.NewWriter(f)
-	os.Fprintf(w, conf)
-	out, err := run("./gon", "./gon.json")
+	fmt.Fprintf(w, conf)
+	cwd, err := os.Getwd()
+	check(err, "failed to get current directory somehow")
+	out, err = run("ssh", "-v", "-p", "2222", "localhost", "-t", "cd "+cwd+"  && ./gon ./gon.json")
 	check(err, "failed to run gon with output: "+out)
 }
 
