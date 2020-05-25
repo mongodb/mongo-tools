@@ -680,6 +680,8 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
+          export AC_USERNAME=${ac_username}
+          export AC_PASSWORD=${ac_password}
           go run release/release.go build-archive
           go run release/release.go build-packages
 
