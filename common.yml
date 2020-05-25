@@ -13,6 +13,7 @@ mongo_tools_variables:
   mongo_tools_task_lists:
     mac_task_list: &macos_tasks
       - name: dist
+        run_on: macos-1014-codesign
       - name: sign
         run_on: amazon1-2018-test
       - name: push
