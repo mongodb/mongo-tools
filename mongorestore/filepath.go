@@ -245,6 +245,12 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	}
 
 	// If the collection name is truncated, parse the full name from the metadata file.
+	// Note that db-specific files which are prefixed with a %24 (i.e. $ symbol)
+	// aren't truncated, so we skip inspecting any metadata files for these special
+	// files. Namely, we would skip:
+	// (1) $admin.system.users
+	// (2) $admin.system.roles
+	// (3) $admin.system.version
 	if strings.Contains(collName, "%24") && len(collName) == 238 {
 		collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
 		if err != nil {
@@ -416,7 +422,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 			case BSONFileType:
 				var skip bool
 				// Dumps of a single database (i.e. with the -d flag) may contain special
-				// db-specific collections that start with a "$" (for example, $admin.system.users
+				// db-specific files that start with a "$" (for example, $admin.system.users
 				// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
 				// If these special files manage to be included in a dump directory during a full
 				// (multi-db) restore, we should ignore them.
