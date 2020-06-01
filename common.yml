@@ -192,6 +192,12 @@ mongo_tools_variables:
       - name: qa-tests-4.4
       - name: aws-auth
       - name: native-cert-ssl-current
+    rhel81_ppc64le_task_list: &rhel81_ppc64le_tasks
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
+      - name: push
+        run_on: rhel70-small
     rhel67_s390x_task_list: &rhel67_s390x_tasks
       - name: dist
       - name: sign
@@ -250,6 +256,12 @@ mongo_tools_variables:
       - name: qa-tests-4.4
       - name: aws-auth
       - name: native-cert-ssl-current
+    ubuntu2004_arm64_task_list: &ubuntu2004_arm64_tasks
+      - name: dist
+      - name: sign
+        run_on: amazon1-2018-test
+      - name: push
+        run_on: rhel70-small
 
 
 ## Common mongodb arguments
@@ -329,7 +341,7 @@ functions:
         fi
 
         . ./set_goenv.sh
-        GOROOT="" set_goenv || exit
+        GOROOT=""; set_goenv || exit
         go version
         env | grep ^GO
         go build $(buildflags) -ldflags "$(print_ldflags)" ${args} -tags "$(print_tags failpoints ${build_tags})" -o bin/${tool} ${tool}/main/${tool}.go
@@ -420,7 +432,7 @@ functions:
         fi;
         export basedir=$PWD
         . ./set_goenv.sh
-        GOROOT="" set_goenv || exit
+        GOROOT=""; set_goenv || exit
         cd ${package}
         go test $(buildflags) -ldflags "$(print_ldflags)" ${coverage_args} -tags "$(print_tags ${build_tags})" -test.v > unit.suite
         export exitcode=$?
@@ -467,7 +479,7 @@ functions:
         fi;
 
         . ./set_goenv.sh
-        GOROOT="" set_goenv || exit
+        GOROOT=""; set_goenv || exit
         if [ "${UNIT_TEST}" = "true" ]; then
           export TOOLS_TESTING_UNIT="true"
         fi;
@@ -493,7 +505,7 @@ functions:
         set -x
         set -v
         . ./set_goenv.sh
-        GOROOT="" set_goenv || exit
+        GOROOT=""; set_goenv || exit
         if [ "${KERBEROS_TEST}" = "true" ]; then
           export TOOLS_TESTING_KERBEROS="true"
         elif [ "${USE_SSL}" = "true" ]; then
@@ -539,7 +551,7 @@ functions:
         fi;
 
         . ./set_goenv.sh
-        GOROOT="" set_goenv || exit
+        GOROOT=""; set_goenv || exit
 
         # XXX Need to fix up use of 'src' below somehow; for now commented out
         # because we're using an actual GOPATH instead of a hack and replaced with a copy
@@ -1104,7 +1116,7 @@ pre:
         cat <<EOT > expansions.yml
         _set_shell_env: |
           . ./set_goenv.sh
-          GOROOT="" set_goenv
+          GOROOT=""; set_goenv
           export EVG_IS_PATCH='${is_patch}'
           export EVG_BUILD_ID='${build_id}'
           export EVG_VARIANT='${build_variant}'
@@ -1550,7 +1562,7 @@ tasks:
           set -v
           set -e
           . ./set_goenv.sh
-          GOROOT="" set_goenv || exit
+          GOROOT=""; set_goenv || exit
           PATH=$PATH:$PWD/bin golangci-lint run --disable-all -E gofmt ./...
           exit $?
 
@@ -1566,7 +1578,7 @@ tasks:
           set -v
           set -e
           . ./set_goenv.sh
-          GOROOT="" set_goenv || exit
+          GOROOT=""; set_goenv || exit
           retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
 
@@ -2133,7 +2145,7 @@ buildvariants:
 - name: rhel80
   display_name: RHEL 8.0
   run_on:
-    - rhel80-test
+  - rhel80-test
   expansions:
     build_tags: "failpoints sasl gssapi ssl"
   tasks:
@@ -2224,6 +2236,19 @@ buildvariants:
   - name: push
     run_on: rhel70-small
 
+- name: ubuntu2004
+  display_name: Ubuntu 20.04
+  run_on:
+  - ubuntu2004-small
+  expansions:
+    build_tags: "failpoints sasl gssapi ssl"
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
 #######################################
 #        Windows Buildvariants        #
 #######################################
@@ -2293,13 +2318,35 @@ buildvariants:
     mongo_os: "ubuntu1804"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
-    build_tags: "failpoins ssl"
+    build_tags: "failpoints ssl"
     resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
   tasks: *ubuntu1804_arm64_tasks
+
+- name: ubuntu2004-arm64
+  display_name: ZAP ARM64 Ubuntu 20.04
+  run_on:
+    - ubuntu2004-arm64-small
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu2004"
+    mongo_edition: "targeted"
+    mongo_arch: "aarch64"
+    build_tags: "failpoints ssl"
+    resmoke_use_tls: _tls
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: ssl
+    USE_SSL: "true"
+  tasks: *ubuntu2004_arm64_tasks
 
 #######################################
 #        Power Buildvariants          #
@@ -2324,6 +2371,26 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks: *rhel71_ppc64le_tasks
+
+- name: rhel81-ppc64le
+  display_name: ZAP PPC64LE RHEL 8.1
+  run_on:
+  - rhel81-power8-small
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "rhel81"
+    mongo_edition: "enterprise"
+    mongo_arch: "ppc64le"
+    build_tags: 'failpoints ssl sasl gssapi'
+    resmoke_use_ssl: _ssl
+    resmoke_args: -j 4
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    edition: enterprise
+    run_kinit: true
+  tasks: *rhel81_ppc64le_tasks
 
 # MongoDB 3.4 - 4.0
 - name: ubuntu1604-ppc64le
@@ -2396,10 +2463,40 @@ buildvariants:
   - name: push
     run_on: rhel70-small
 
+- name: rhel80-s390x
+  display_name: ZAP s390x RHEL 8.0
+  run_on:
+    - rhel80-zseries-small
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    build_tags: "failpoints sasl gssapi ssl"
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
   run_on:
     - suse12-zseries-test
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    build_tags: "failpoints sasl gssapi ssl"
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
+- name: suse15-s390x
+  display_name: ZAP s390x SUSE 15
+  run_on:
+    - suse15-zseries-large
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2430,6 +2527,21 @@ buildvariants:
   display_name: ZAP s390x Ubuntu 18.04
   run_on:
   - ubuntu1804-zseries-test
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    build_tags: "failpoints sasl gssapi ssl"
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
+- name: ubuntu2004-s390x
+  display_name: ZAP s390x Ubuntu 20.04
+  run_on:
+    - ubuntu2004-zseries-small
   stepback: false
   batchtime: 10080 # weekly
   expansions:
