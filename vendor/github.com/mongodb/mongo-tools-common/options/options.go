@@ -881,6 +881,11 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			}
 		}
 		if opts.AWSSessionToken != "" && !cs.AuthMechanismPropertiesSet {
+			if cs.AuthMechanismProperties == nil {
+				cs.AuthMechanismProperties = map[string]string{
+					"AWS_SESSION_TOKEN": "mongodb",
+				}
+			}
 			cs.AuthMechanismProperties["AWS_SESSION_TOKEN"] = opts.AWSSessionToken
 			cs.AuthMechanismPropertiesSet = true
 		}

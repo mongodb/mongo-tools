@@ -19,11 +19,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
+	//"time"
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/failpoint"
+	//"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -1081,55 +1081,55 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	})
 }
 
-// Test the fix for nil pointer bug when getCollectionInfo failed
-func TestMongoDumpTOOLS2498(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
-
-	collName := "tools-2498-dump"
-	dbName := "test"
-
-	var r1 bson.M
-	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
-
-	createCmd := bson.D{
-		{"create", collName},
-	}
-	var r2 bson.M
-	err = sessionProvider.Run(createCmd, &r2, dbName)
-	if err != nil {
-		t.Fatalf("Error creating collection: %v", err)
-	}
-
-	Convey("failing to get collection info should error, but not panic", t, func() {
-		md := simpleMongoDumpInstance()
-		md.ToolOptions.Namespace.Collection = collName
-		md.ToolOptions.Namespace.DB = dbName
-		md.OutputOptions.Out = "dump"
-		err = md.Init()
-		So(err, ShouldBeNil)
-
-		failpoint.ParseFailpoints("PauseBeforeDumping")
-		defer failpoint.Reset()
-		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
-		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
-		go func() {
-			time.Sleep(2 * time.Second)
-			session, _ := md.SessionProvider.GetSession()
-			session.Disconnect(context.Background())
-		}()
-
-		err = md.Dump()
-		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "client is disconnected")
-	})
-}
+//// Test the fix for nil pointer bug when getCollectionInfo failed
+//func TestMongoDumpTOOLS2498(t *testing.T) {
+//	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+//	log.SetWriter(ioutil.Discard)
+//
+//	sessionProvider, _, err := testutil.GetBareSessionProvider()
+//	if err != nil {
+//		t.Fatalf("No cluster available: %v", err)
+//	}
+//
+//	collName := "tools-2498-dump"
+//	dbName := "test"
+//
+//	var r1 bson.M
+//	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+//
+//	createCmd := bson.D{
+//		{"create", collName},
+//	}
+//	var r2 bson.M
+//	err = sessionProvider.Run(createCmd, &r2, dbName)
+//	if err != nil {
+//		t.Fatalf("Error creating collection: %v", err)
+//	}
+//
+//	Convey("failing to get collection info should error, but not panic", t, func() {
+//		md := simpleMongoDumpInstance()
+//		md.ToolOptions.Namespace.Collection = collName
+//		md.ToolOptions.Namespace.DB = dbName
+//		md.OutputOptions.Out = "dump"
+//		err = md.Init()
+//		So(err, ShouldBeNil)
+//
+//		failpoint.ParseFailpoints("PauseBeforeDumping")
+//		defer failpoint.Reset()
+//		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
+//		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
+//		go func() {
+//			time.Sleep(2 * time.Second)
+//			session, _ := md.SessionProvider.GetSession()
+//			session.Disconnect(context.Background())
+//		}()
+//
+//		err = md.Dump()
+//		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
+//		So(err, ShouldNotBeNil)
+//		So(err.Error(), ShouldEqual, "client is disconnected")
+//	})
+//}
 
 func TestMongoDumpOrderedQuery(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
@@ -1406,16 +1406,42 @@ func TestMongoDumpAwsAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
 
 	Convey("Should be able to run mongodump with AWS STS AssumeRole auth", t, func() {
-		opts, err := testutil.GetAWSAuthOptions()
+		//err := setUpMongoDumpTestData()
+		//So(err, ShouldBeNil)
 
-		So(err, ShouldBeNil)
+		var opts *options.ToolOptions
+		ssl := testutil.GetSSLOptions()
+		//fmt.Printf("ca file: %v\n", ssl.SSLCAFile)
 
-		mongoDump := MongoDump{
-			ToolOptions:  opts,
-			InputOptions: &InputOptions{},
-			OutputOptions: &OutputOptions{
-				NumParallelCollections: 1,
-			},
+		// get ToolOptions from URI or defaults
+		uri := os.Getenv("MONGODB_URI")
+		fakeArgs := []string{"--uri=" + uri}
+		opts = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
+		opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
+		_, err := opts.ParseArgs(fakeArgs)
+		if err != nil {
+			panic("Could not parse MONGODB_URI environment variable")
+		}
+
+		// Limit ToolOptions to test database
+		//opts.Namespace = &options.Namespace{DB: "admin"}
+		//ssl.SSLPEMKeyFile = "../test/qa-tests/jstests/libs/client.pem"
+		//ssl.SSLCAFile = "../test/qa-tests/jstests/libs/ca.pem"
+		opts.SSL = &ssl
+
+		outputOptions := &OutputOptions{
+			NumParallelCollections: 1,
+		}
+		inputOptions := &InputOptions{}
+
+		log.SetVerbosity(&options.Verbosity{
+			VLevel: 4,
+		})
+
+		mongoDump := &MongoDump{
+			ToolOptions:   opts,
+			InputOptions:  inputOptions,
+			OutputOptions: outputOptions,
 		}
 
 		mongoDump.OutputOptions.Out = AWSDumpDirectory

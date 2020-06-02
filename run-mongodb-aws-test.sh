@@ -19,6 +19,8 @@ set +x
 # make sure we're in the directory where the script lives
 
 # COMMENT THIS OUT LATER!!!
+echo "CHECK MONGOD IS RUNNING"
+ps aux | grep mongod
 echo bash source bracket 0: "${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 cd $SCRIPT_DIR
@@ -33,9 +35,9 @@ shopt -s expand_aliases # needed for `urlencode` alias
 [ -s "$(pwd)/prepare_mongodb_aws.sh" ] && source "$(pwd)/prepare_mongodb_aws.sh"
 
 MONGODB_URI=${MONGODB_URI:-"mongodb://localhost"}
-MONGODB_URI="${MONGODB_URI}/aws?authMechanism=MONGODB-AWS"
+MONGODB_URI="${MONGODB_URI}:33333/aws?authMechanism=MONGODB-AWS"
 if [[ -n ${SESSION_TOKEN} ]]; then
-    MONGODB_URI="${MONGODB_URI}&authMechanismProperties=AWS_SESSION_TOKEN:${SESSION_TOKEN}"
+    MONGODB_URI="${MONGODB_URI}&authSource=\$external&authMechanismProperties=AWS_SESSION_TOKEN:${SESSION_TOKEN}&ssl=true" # &ssl=true
 fi
 
 export MONGODB_URI="$MONGODB_URI"
@@ -44,9 +46,10 @@ export MONGODB_URI="$MONGODB_URI"
 set -x
 
 echo "Testing mongodump aws auth..."
-
+echo "CHECK MONGOD IS RUNNING"
+ps aux | grep mongod
 if [ "$ON_EVERGREEN" = "true" ]; then
-  (cd mongodump && go test > "$OUTPUT_DIR/$COMMON_SUBPKG.suite")
+    (cd mongodump && go test -v)
 else
     (cd mongodump && go test $(buildflags) -ldflags "$(print_ldflags)" "$(print_tags $tags)" "$COVERAGE_ARGS" )
     exitcode=$?
