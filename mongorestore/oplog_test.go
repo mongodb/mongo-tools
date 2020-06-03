@@ -273,6 +273,7 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 }
 
 func TestOplogRestoreTools2002(t *testing.T) {
+	t.Skipf("Skipping TestOplogRestoreTools2002 until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
 	if err != nil {

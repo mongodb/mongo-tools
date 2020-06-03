@@ -551,6 +551,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
+	t.Skipf("Skipping TestDeprecatedIndexOptions until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -614,6 +615,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
+	t.Skipf("Skipping TestDeprecatedIndexOptionsOn44FCV until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -784,6 +786,7 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestFixHashedIndexes(t *testing.T) {
+	t.Skipf("Skipping TestFixHashedIndexes until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -1170,7 +1173,8 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
 			// Run mongorestore
 			dbLocal := session.Database("local")
-			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, bson.D{})
+			queryObj := bson.D{{"op", bson.M{"$ne": "n"}}}
+			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
@@ -1178,7 +1182,6 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 
 			Convey("No new oplog entries should be recorded", func() {
 				// Filter out no-ops
-				queryObj := bson.D{{"op", bson.M{"$ne": "n"}}}
 				countAfterRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
 
 				So(err, ShouldBeNil)
