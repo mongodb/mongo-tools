@@ -1173,20 +1173,12 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, bson.D{})
 			So(err, ShouldBeNil)
 
-			currentTS := uint32(time.Now().UTC().Unix())
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
 			Convey("No new oplog entries should be recorded", func() {
 				// Filter out no-ops
-				queryObj := bson.D{
-					{"$and",
-						bson.A{
-							bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
-							bson.D{{"op", bson.M{"$ne": "n"}}},
-						},
-					},
-				}
+				queryObj := bson.D{{"op", bson.M{"$ne": "n"}}}
 				countAfterRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
 
 				So(err, ShouldBeNil)
