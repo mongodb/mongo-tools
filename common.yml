@@ -1140,7 +1140,7 @@ tasks:
 
 - name: release-json
   depends_on:
-    - name: sign
+    - name: push
       variant: '*'
   commands:
     - func: "fetch source"
