@@ -1122,8 +1122,8 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "upload release packages to linux repos"
     - func: "upload release packages to s3"
+    - func: "upload release packages to linux repos"
 
 - name: release-json
   depends_on:
