@@ -683,6 +683,13 @@ functions:
           go run release/release.go build-archive
           go run release/release.go build-packages
 
+    # temporary workaround for TOOLS-2606
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          rm -rf ./mongorestore/testdata/longcollectionname/
+
     # upload individual release artifacts to task page
     - command: s3.put
       params:
@@ -802,6 +809,12 @@ functions:
               *.zip *.tgz
 
   "upload signed release artifacts":
+    # temporary workaround for TOOLS-2606
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          rm -rf ./mongorestore/testdata/longcollectionname/
     - command: s3.put
       params:
         aws_key: ${aws_key}
