@@ -68,8 +68,10 @@ You may need to bump the priority of some of those tasks to get them to run in a
 ### Post-Release Tasks
 Complete these tasks after the release builds have completed on evergreen.
 
-#### File a CLOUDP Ticket
-File a CLOUDP ticket notifying the Automation team that the new release is available.
+#### File CLOUDP Tickets
+File the following CLOUDP tickets for deploying the new release:
+- "Release Database Tools X.Y.Z to CM/OM" with a component of "Automation Agent" and assigned team of "Automation"
+- "Release Database Tools X.Y.Z to Atlas" with a component of "Automation Agent" and assigned team of "Atlas Triage"
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
