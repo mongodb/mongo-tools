@@ -19,7 +19,7 @@ Monitor basic usage statistics for each collection.
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongotop/ for more information.`
+See http://docs.mongodb.com/database-tools/mongotop/ for more information.`
 
 type Options struct {
 	*options.ToolOptions

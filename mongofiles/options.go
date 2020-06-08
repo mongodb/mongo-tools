@@ -31,7 +31,7 @@ Possible commands include:
 	delete    - delete all files with filename 'filename'
 	delete_id - delete a file with the given '_id'
 
-See http://docs.mongodb.org/manual/reference/program/mongofiles/ for more information.`
+See http://docs.mongodb.com/database-tools/mongofiles/ for more information.`
 
 // ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {

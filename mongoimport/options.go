@@ -20,7 +20,7 @@ Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport r
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongoimport/ for more information.`
+See http://docs.mongodb.com/database-tools/mongoimport/ for more information.`
 
 // InputOptions defines the set of options for reading input data.
 type InputOptions struct {

@@ -20,7 +20,7 @@ Monitor basic MongoDB server statistics.
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongostat/ for more information.`
+See http://docs.mongodb.com/database-tools/mongostat/ for more information.`
 
 // StatOptions defines the set of options to use for configuring mongostat.
 type StatOptions struct {

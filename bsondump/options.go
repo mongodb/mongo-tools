@@ -17,7 +17,7 @@ var Usage = `<options> <file>
 
 View and debug .bson files.
 
-See http://docs.mongodb.org/manual/reference/program/bsondump/ for more information.`
+See http://docs.mongodb.com/database-tools/bsondump/ for more information.`
 
 // Options contains all the possible options used to configure bsondump.
 type Options struct {

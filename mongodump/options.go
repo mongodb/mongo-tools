@@ -21,7 +21,7 @@ Specify a database with -d and a collection with -c to only dump that database o
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongodump/ for more information.`
+See http://docs.mongodb.com/database-tools/mongodump/ for more information.`
 
 // InputOptions defines the set of options to use in retrieving data from the server.
 type InputOptions struct {

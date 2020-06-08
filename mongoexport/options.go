@@ -21,7 +21,7 @@ Export data from MongoDB in CSV or JSON format.
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongoexport/ for more information.`
+See http://docs.mongodb.com/database-tools/mongoexport/ for more information.`
 
 // OutputFormatOptions defines the set of options to use in formatting exported data.
 type OutputFormatOptions struct {

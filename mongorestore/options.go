@@ -25,7 +25,7 @@ or use -d and -c to restore a single collection from a single .bson file.
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongorestore/ for more information.`
+See http://docs.mongodb.com/database-tools/mongorestore/ for more information.`
 
 // Options defines the set of all options for configuring mongorestore.
 type Options struct {
