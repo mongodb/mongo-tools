@@ -972,28 +972,12 @@ functions:
             MONGO_ARGS="${mongo_args_tls}"
           fi;
           ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
-  "bootstrap-mongo-orchestration":
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          cd $(pwd)/test/auth_aws
-          echo "ls"
-          ls
-          sh run-orchestration.sh
-    - command: expansions.update
-      params:
-
-        file: mo-expansion.yml
   "add-aws-auth-variables-to-file" :
     - command: shell.exec
       type: test
       params:
         working_dir: src/github.com/mongodb/mongo-tools
-#        silent: true
+        silent: true
         script: |
           set -x
           set -v
@@ -1011,6 +995,7 @@ functions:
       type: test
       params:
         working_dir: src/github.com/mongodb/mongo-tools
+        silent: true
         script: |
           set -x
           set -v
@@ -1037,12 +1022,11 @@ functions:
           ./mongo --nodb aws_e2e_assume_role.js
           mv mongod bin/
           mv mongo bin/
-  "run-aws-auth-test-with-assume-role-credentials":
     - command: shell.exec
       type: test
       params:
         working_dir: src/github.com/mongodb/mongo-tools
-#        silent: true
+        silent: true
         script: |
           set -x
           set -v
@@ -1058,7 +1042,7 @@ functions:
             SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
             MONGODB_URI="mongodb://$USER:$PASS@localhost"
           EOF
-  "another-command-for-aws":
+  "run-aws-auth-test-with-assume-role-credentials":
     - command: shell.exec
       type: test
       params:
@@ -1088,50 +1072,6 @@ functions:
           chmod +x run-mongodb-aws-test.sh
           ./run-mongodb-aws-test.sh -v
           exit $?
-
-  "run-aws-auth-test-with-aws-credentials-as-environment-variables":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        silent: true
-        script: |
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            export AWS_ACCESS_KEY_ID=${iam_auth_ecs_account}
-            export AWS_SECRET_ACCESS_KEY=${iam_auth_ecs_secret_access_key}
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          PROJECT_DIRECTORY=${PROJECT_DIRECTORY} $PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
-
-  "run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        silent: true
-        script: |
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
-            export AWS_ACCESS_KEY_ID=$(jsonkey AccessKeyId)
-            export AWS_SECRET_ACCESS_KEY_ID=$(jsonkey SecretAccessKeyId)
-            export AWS_SESSION_TOKEN=$(jsonkey SessionToken)
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
 
 pre:
   - command: shell.exec
@@ -1220,17 +1160,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-#    - func: "bootstrap-mongo-orchestration"
     - func: "add-aws-auth-variables-to-file"
     - func: "setup-aws-auth-test-with-assume-role-credentials"
-    - func: "run-aws-auth-test-with-assume-role-credentials"
     - func: "start mongod"
       vars:
         NO_SSL: "true"
     - func: "wait for mongod to be ready"
       vars:
         NO_SSL: "true"
-    - func: "another-command-for-aws"
+    - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: dist
   depends_on:

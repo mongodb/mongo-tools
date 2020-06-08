@@ -126,3 +126,8 @@ func TestIsMongos(t *testing.T) {
 		So(runCheck("mongodb/bin/mongod"), ShouldBeFalse)
 	})
 }
+
+func TestMongoStatAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+
+}

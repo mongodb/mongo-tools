@@ -23,13 +23,10 @@ def _assume_role(role_name):
 
     creds = response["Credentials"]
 
-#     print(f"""{{
-#   "AccessKeyId" : "{creds["AccessKeyId"]}",
-#   "SecretAccessKey" : "{creds["SecretAccessKey"]}",
-#   "SessionToken" : "{creds["SessionToken"]}",
-#   "Expiration" : "{str(creds["Expiration"])}"
-# }}""")
-    print('{\n"AccessKeyId" : "' + creds['AccessKeyId'] + '",\n"SecretAccessKey" : "' + creds['SecretAccessKey'] + '",\n"SessionToken" : "' + creds['SessionToken'] + '",\n"Expiration" : "' + str(creds['Expiration']) + '"\n}')
+    print('{\n"AccessKeyId" : "' + creds['AccessKeyId'] +
+     '",\n"SecretAccessKey" : "' + creds['SecretAccessKey'] +
+      '",\n"SessionToken" : "' + creds['SessionToken'] +
+       '",\n"Expiration" : "' + str(creds['Expiration']) + '"\n}')
 
 
 def main() -> None:

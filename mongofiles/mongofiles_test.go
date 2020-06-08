@@ -32,24 +32,46 @@ var (
 	testServer = "localhost"
 	testPort   = db.DefaultTestPort
 
-	ssl        = testutil.GetSSLOptions()
-	auth       = testutil.GetAuthOptions()
-	connection = &options.Connection{
-		Host: testServer,
-		Port: testPort,
-	}
-	toolOptions = &options.ToolOptions{
-		SSL:        &ssl,
-		Connection: connection,
-		Auth:       &auth,
-		Verbosity:  &options.Verbosity{},
-		URI:        &options.URI{},
-	}
+	ssl = testutil.GetSSLOptions()
+	toolOptions = setupToolOptions()
 	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID()}
 )
 
+func setupToolOptions() *options.ToolOptions {
+	var toolOptions *options.ToolOptions
+
+	// get ToolOptions from URI or defaults (should only happen when testing AWS auth)
+	if uri := os.Getenv("MONGOD"); uri != "" {
+		fakeArgs := []string{"--uri=" + uri}
+		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
+		toolOptions.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
+		_, err := toolOptions.ParseArgs(fakeArgs)
+		if err != nil {
+			panic("Could not parse MONGOD environment variable")
+		}
+
+		// Limit ToolOptions to test database
+		toolOptions.Namespace = &options.Namespace{DB: "aws_test_db"}
+	} else {
+		auth := testutil.GetAuthOptions()
+		connection := &options.Connection{
+			Host: testServer,
+			Port: testPort,
+		}
+		toolOptions = &options.ToolOptions{
+			SSL:        &ssl,
+			Connection: connection,
+			Auth:       &auth,
+			Verbosity:  &options.Verbosity{},
+			URI:        &options.URI{},
+		}
+	}
+
+	return toolOptions
+}
+
 // put in some test data into GridFS
-func setUpGridFSTestData() (map[string]int, error) {
+func setUpGridFSTestData(dbName string) (map[string]int, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, err
@@ -61,7 +83,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 
 	bytesExpected := map[string]int{}
 
-	testDb := session.Database(testDB)
+	testDb := session.Database(dbName)
 	bucket, err := gridfs.NewBucket(testDb)
 	if err != nil {
 		return nil, err
@@ -109,16 +131,16 @@ func tearDownGridFSTestData() error {
 	return nil
 }
 func simpleMongoFilesInstanceWithID(command, ID string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, "", ID)
+	return simpleMongoFilesInstanceWithFilenameAndID(command, "", ID, testDB)
 }
-func simpleMongoFilesInstanceWithFilename(command, fname string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, fname, "")
+func simpleMongoFilesInstanceWithFilename(command, fname, dbName string) (*MongoFiles, error) {
+	return simpleMongoFilesInstanceWithFilenameAndID(command, fname, "", dbName)
 }
 func simpleMongoFilesInstanceCommandOnly(command string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, "", "")
+	return simpleMongoFilesInstanceWithFilenameAndID(command, "", "", testDB)
 }
 
-func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*MongoFiles, error) {
+func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID, dbName string) (*MongoFiles, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, err
@@ -127,7 +149,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 	mongofiles := MongoFiles{
 		ToolOptions:     toolOptions,
 		InputOptions:    &InputOptions{},
-		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: dbName},
 		SessionProvider: sessionProvider,
 		Command:         command,
 		FileName:        fname,
@@ -321,11 +343,11 @@ func TestMongoFilesCommands(t *testing.T) {
 	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
 		"with a MongoDump instance", t, func() {
 
-		bytesExpected, err := setUpGridFSTestData()
+		bytesExpected, err := setUpGridFSTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("Testing the 'list' command with a file that isn't in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish")
+			mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish", testDB)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -337,7 +359,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'list' command with files that are in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("list", "testf")
+			mf, err := simpleMongoFilesInstanceWithFilename("list", "testf", testDB)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -355,7 +377,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'search' command with files that are in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("search", "file")
+			mf, err := simpleMongoFilesInstanceWithFilename("search", "file", testDB)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -373,7 +395,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
+			mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1", testDB)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -433,7 +455,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1")
+			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1", testDB)
 			id := idOfFile("testfile1")
 
 			So(err, ShouldBeNil)
@@ -478,7 +500,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'put' command by putting some lorem ipsum file with 287613 bytes should", func() {
 			filename := "lorem_ipsum_287613_bytes.txt"
-			mf, err := simpleMongoFilesInstanceWithFilename("put", filename)
+			mf, err := simpleMongoFilesInstanceWithFilename("put", filename, testDB)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 			mf.StorageOptions.LocalFileName = util.ToUniversalPath("testdata/" + filename)
@@ -503,7 +525,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 				Convey("and should have exactly the same content as the original file", func() {
 					buff.Truncate(0)
-					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", "lorem_ipsum_287613_bytes.txt")
+					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", "lorem_ipsum_287613_bytes.txt", testDB)
 					So(err, ShouldBeNil)
 					So(mf, ShouldNotBeNil)
 
@@ -546,7 +568,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'delete' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("delete", "testfile2")
+			mf, err := simpleMongoFilesInstanceWithFilename("delete", "testfile2", testDB)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -571,7 +593,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'delete_id' command with a file that is in GridFS should", func() {
 			// hack to grab an _id
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile2")
+			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile2", testDB)
 			idString := idOfFile("testfile2")
 
 			mf, err := simpleMongoFilesInstanceWithID("delete_id", idString)
@@ -627,7 +649,7 @@ func TestDefaultWriteConcern(t *testing.T) {
 
 func runPutIDTestCase(idToTest string, t *testing.T) {
 	remoteName := "remoteName"
-	mongoFilesInstance, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", remoteName, idToTest)
+	mongoFilesInstance, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", remoteName, idToTest, testDB)
 
 	var buff bytes.Buffer
 	log.SetWriter(&buff)
@@ -672,4 +694,36 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
 	So(err, ShouldBeNil)
 	So(isContentSame, ShouldBeTrue)
+}
+
+func TestMongoFilesAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+
+	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
+		"with a MongoDump instance", t, func() {
+
+		bytesExpected, err := setUpGridFSTestData("aws_test_db")
+		So(err, ShouldBeNil)
+
+		Convey("Testing the 'list' command with files that are in GridFS should", func() {
+			mf, err := simpleMongoFilesInstanceWithFilename("list", "testf", "aws_test_db")
+			So(err, ShouldBeNil)
+			So(mf, ShouldNotBeNil)
+
+
+
+			Convey("produce some output", func() {
+				str, err := mf.Run(false)
+				So(err, ShouldBeNil)
+				So(len(str), ShouldNotEqual, 0)
+
+				lines := cleanAndTokenizeTestOutput(str)
+				So(len(lines), ShouldEqual, len(testFiles))
+
+				bytesGotten := getFilesAndBytesFromLines(lines)
+				So(bytesGotten, ShouldResemble, bytesExpected)
+			})
+		})
+	})
+
 }

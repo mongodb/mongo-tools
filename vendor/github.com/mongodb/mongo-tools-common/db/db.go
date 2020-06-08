@@ -240,20 +240,10 @@ func extractX509UsernameFromSubject(subject string) string {
 	return strings.Join(pairs, ",")
 }
 
-// addCACertFromFile adds a root CA certificate to the configuration given a path
+// addCACertsFromFile adds root CA certificate and all the intermediate certificates in the same file to the configuration given a path
 // to the containing file.
-func addCACertFromFile(cfg *tls.Config, file string) error {
+func addCACertsFromFile(cfg *tls.Config, file string) error {
 	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	certBytes, err := loadCert(data)
-	if err != nil {
-		return err
-	}
-
-	cert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
 		return err
 	}
@@ -262,37 +252,10 @@ func addCACertFromFile(cfg *tls.Config, file string) error {
 		cfg.RootCAs = x509.NewCertPool()
 	}
 
-	cfg.RootCAs.AddCert(cert)
-
-	return nil
-}
-
-func loadCert(data []byte) ([]byte, error) {
-	var certBlock *pem.Block
-
-	for certBlock == nil {
-		if data == nil || len(data) == 0 {
-			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
-		}
-
-		block, rest := pem.Decode(data)
-		if block == nil {
-			return nil, errors.New("invalid .pem file")
-		}
-
-		switch block.Type {
-		case "CERTIFICATE":
-			if certBlock != nil {
-				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
-			}
-
-			certBlock = block
-		}
-
-		data = rest
+	if cfg.RootCAs.AppendCertsFromPEM(data) == false {
+		return fmt.Errorf("SSL trusted server certificates file does not contain any valid certificates. File: `%v`", file)
 	}
-
-	return certBlock.Bytes, nil
+	return nil
 }
 
 // configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
@@ -478,7 +441,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
 		}
 		if opts.SSLCAFile != "" {
-			if err := addCACertFromFile(tlsConfig, opts.SSLCAFile); err != nil {
+			if err := addCACertsFromFile(tlsConfig, opts.SSLCAFile); err != nil {
 				return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
 			}
 		}

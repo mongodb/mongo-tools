@@ -1410,16 +1410,49 @@ func TestImportMIOSOE(t *testing.T) {
 }
 
 func TestMongoImportAwsAuth(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	Convey("With a mongoimport instance", t, func() {
+		Reset(func() {
+			sessionProvider, err := db.NewSessionProvider(*testutil.GetAWSOptions())
+			if err != nil {
+				t.Fatalf("error getting session provider session: %v", err)
+			}
+			session, err := sessionProvider.GetSession()
+			if err != nil {
+				t.Fatalf("error getting session: %v", err)
+			}
+			_, err = session.Database("aws_test_db").Collection(testCollection).DeleteMany(nil, bson.D{})
+			if err != nil {
+				t.Fatalf("error dropping collection: %v", err)
+			}
+		})
+		Convey("no error should be thrown for import using AWS auth", func() {
+			toolOptions := testutil.GetAWSOptions()
+			toolOptions.Namespace.Collection = testCollection
+			inputOptions := &InputOptions{
+				ParseGrace: "stop",
+			}
+			ingestOptions := &IngestOptions{}
+			provider, err := db.NewSessionProvider(*toolOptions)
+			So(err, ShouldBeNil)
 
-	if err := generateTestData(); err != nil {
-		t.Fatalf("Could not generate test data: %v", err)
-	}
+			imp := &MongoImport{
+				ToolOptions:     toolOptions,
+				InputOptions:    inputOptions,
+				IngestOptions:   ingestOptions,
+				SessionProvider: provider,
+			}
 
-	client, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
-	database := client.Database("miodb")
-	coll := database.Collection("mio")
+			imp.IngestOptions.Mode = modeInsert
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test.csv"
+			fields := "a,b,c"
+			imp.InputOptions.Fields = &fields
+			imp.IngestOptions.WriteConcern = "majority"
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 3)
+			So(numFailed, ShouldEqual, 0)
+		})
+	})
 }

@@ -55,11 +55,10 @@ load("lib/aws_e2e_lib.js");
     roles: ['__system'],
   });
   assert(adminDB.auth("bob", "pwd123"));
-  jsTest.log("after bob auth");
 
   const externalDB = toolTest.db.getSiblingDB('$external');
   assert.commandWorked(externalDB.runCommand({createUser: ASSUMED_ROLE, roles:[{role: 'read', db: "aws_test_db"}]}));
-  assert.commandWorked(externalDB.runCommand({grantRolesToUser: ASSUMED_ROLE, roles: [{role: 'readWrite', db: "mongodump_test_db"}]}));
+  assert.commandWorked(externalDB.runCommand({grantRolesToUser: ASSUMED_ROLE, roles: [{role: 'readWrite', db: "aws_test_db"}]}));
   assert(externalDB.auth({
     user: credentials["AccessKeyId"],
     pwd: credentials["SecretAccessKey"],

@@ -240,14 +240,14 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 	return nil
 }
 
-func setUpMongoDumpTestData() error {
+func setUpMongoDumpTestData(dbName string) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
 
 	for i, collectionName := range testCollectionNames {
-		coll := session.Database(testDB).Collection(collectionName)
+		coll := session.Database(dbName).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
 			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j, "coords": bson.D{{"x", i}, {"y", j}}})
@@ -564,7 +564,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection", func() {
@@ -743,7 +743,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		md := simpleMongoDumpInstance()
@@ -801,7 +801,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
@@ -1136,7 +1136,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
@@ -1193,7 +1193,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		colName := "dump_view_as_collection"
@@ -1266,7 +1266,7 @@ func TestMongoDumpViews(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		colName := "dump_views"
@@ -1407,11 +1407,23 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 func TestMongoDumpAwsAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
 	Convey("Should be able to run mongodump with AWS STS AssumeRole auth", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData("aws_test_db")
 		So(err, ShouldBeNil)
 
-		os.Setenv("MONGOD", os.Getenv("MONGODB_URI"))
-		md := simpleMongoDumpInstance()
+		opts := testutil.GetAWSOptions()
+
+		outputOptions := &OutputOptions{
+			NumParallelCollections: 1,
+		}
+		inputOptions := &InputOptions{}
+
+		log.SetVerbosity(opts.Verbosity)
+
+		md := &MongoDump{
+			ToolOptions:   opts,
+			InputOptions:  inputOptions,
+			OutputOptions: outputOptions,
+		}
 
 		md.OutputOptions.Out = AWSDumpDirectory
 

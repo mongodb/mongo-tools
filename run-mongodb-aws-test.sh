@@ -43,16 +43,14 @@ if [[ -n ${SESSION_TOKEN} ]]; then
     MONGODB_URI="${MONGODB_URI}&authMechanismProperties=AWS_SESSION_TOKEN:${SESSION_TOKEN}" # &ssl=true
 fi
 
-export MONGODB_URI="$MONGODB_URI"
-export TOOLS_TESTING_MONGOD="$MONGODB_URI"
-
+export MONGOD="$MONGODB_URI"
+export TOOLS_TESTING_MONGOD="$MONGOD"
 ec=0
 
 # Run all tests depending on what flags are set in the environment
 # TODO: mongotop needs a test
 echo "the tags: " $tags
-for i in mongodump mongoimport ; do
-        echo "Testing ${i}..."
+for i in mongodump mongoimport mongoexport mongofiles ; do
         COMMON_SUBPKG=$(basename $i)
         COVERAGE_ARGS="";
         if [ "$RUN_COVERAGE" == "true" ]; then

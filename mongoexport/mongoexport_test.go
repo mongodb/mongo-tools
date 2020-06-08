@@ -244,3 +244,39 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		}
 	})
 }
+func TestMongoDumpAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	dbName := "aws_test_db"
+
+	var r1 bson.M
+	sessionProvider.Run(bson.D{{"drop", testCollectionName}}, &r1, dbName)
+
+	createCmd := bson.D{
+		{"create", testCollectionName},
+	}
+	var r2 bson.M
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Error creating collection: %v", err)
+	}
+
+	Convey("testing dumping a collection", t, func() {
+		opts := simpleMongoExportOpts()
+		opts.Collection = testCollectionName
+		opts.DB = dbName
+
+		me, err := New(opts)
+		So(err, ShouldBeNil)
+		defer me.Close()
+		out := &bytes.Buffer{}
+		_, err = me.Export(out)
+		So(err, ShouldBeNil)
+	})
+}
