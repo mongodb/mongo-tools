@@ -127,9 +127,6 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 		opts.Auth.Password = pass
 	}
 
-	fmt.Printf("connection string: %v\n", opts.ConnectionString)
-	fmt.Printf("host: %v\n", opts.Connection.Host)
-	fmt.Printf("port: %v\n", opts.Connection.Port)
 	client, err := configureClient(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring the connector: %v", err)

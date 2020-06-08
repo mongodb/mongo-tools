@@ -40,39 +40,30 @@ load("lib/aws_e2e_lib.js");
     auth: '',
     setParameter: {
       authenticationMechanisms: 'MONGODB-AWS,SCRAM-SHA-256'
-    }
+    },
   };
+
   mkdir("/data/db/jstests_tool_assume_role/");
   var toolTest = new ToolTest("assume_role", TOOLS_TEST_CONFIG);
   toolTest.port = 33333;
   toolTest.startDB();
-  
-  toolTest.db.getSiblingDB('admin').createUser({
+
+  var adminDB = toolTest.db.getSiblingDB('admin');
+  adminDB.createUser({
     user: "bob",
     pwd: "pwd123",
     roles: ['__system'],
   });
-
-  var adminDB = toolTest.db.getSiblingDB('admin');
   assert(adminDB.auth("bob", "pwd123"));
+  jsTest.log("after bob auth");
 
-  const external = toolTest.db.getSiblingDB('$external');
-  assert.commandWorked(external.runCommand({createUser: ASSUMED_ROLE, roles:[{role: 'read', db: "aws"}]}));
-  const user = credentials["AccessKeyId"];
-  const pwd = credentials["SecretAccessKey"];
-  const awsIamSessionToken = credentials["SessionToken"];
-  assert(external.auth({
-    user: user,
-    pwd: pwd,
-    awsIamSessionToken: awsIamSessionToken,
+  const externalDB = toolTest.db.getSiblingDB('$external');
+  assert.commandWorked(externalDB.runCommand({createUser: ASSUMED_ROLE, roles:[{role: 'read', db: "aws_test_db"}]}));
+  assert.commandWorked(externalDB.runCommand({grantRolesToUser: ASSUMED_ROLE, roles: [{role: 'readWrite', db: "mongodump_test_db"}]}));
+  assert(externalDB.auth({
+    user: credentials["AccessKeyId"],
+    pwd: credentials["SecretAccessKey"],
+    awsIamSessionToken: credentials["SessionToken"],
     mechanism: 'MONGODB-AWS'
   }));
-
-  // var ret;
-  // ret = toolTest.runTool.apply(toolTest, ['dump',
-  //   '--authenticationDatabase=$external',
-  //   '--username='+user, '--password='+pwd,
-  //   '--awsSessionToken='+awsIamSessionToken],
-  //   '--authenticationMechanism=MONGODB-AWS');
-  // assert.eq(0, ret, 'dump should succeed');
 }());

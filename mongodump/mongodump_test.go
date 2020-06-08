@@ -560,7 +560,7 @@ func TestMongoDumpKerberos(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -729,7 +729,7 @@ func TestMongoDumpBSON(t *testing.T) {
 }
 
 func TestMongoDumpBSONLongCollectionName(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -793,7 +793,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1149,6 +1149,8 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
 				md := simpleMongoDumpInstance()
+				fmt.Printf("ssl ca file: %v\n", md.ToolOptions.SSLCAFile)
+				fmt.Printf("ssl pem key file: %v\n", md.ToolOptions.SSLPEMKeyFile)
 				md.InputOptions.Query = `{"coords":{"x":0,"y":1}}`
 				md.ToolOptions.Namespace.Collection = testCollectionNames[0]
 				md.ToolOptions.Namespace.DB = testDB
@@ -1404,65 +1406,36 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 
 func TestMongoDumpAwsAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
-
 	Convey("Should be able to run mongodump with AWS STS AssumeRole auth", t, func() {
-		//err := setUpMongoDumpTestData()
-		//So(err, ShouldBeNil)
-
-		var opts *options.ToolOptions
-		ssl := testutil.GetSSLOptions()
-		//fmt.Printf("ca file: %v\n", ssl.SSLCAFile)
-
-		// get ToolOptions from URI or defaults
-		uri := os.Getenv("MONGODB_URI")
-		fakeArgs := []string{"--uri=" + uri}
-		opts = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
-		opts.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
-		_, err := opts.ParseArgs(fakeArgs)
-		if err != nil {
-			panic("Could not parse MONGODB_URI environment variable")
-		}
-
-		// Limit ToolOptions to test database
-		//opts.Namespace = &options.Namespace{DB: "admin"}
-		//ssl.SSLPEMKeyFile = "../test/qa-tests/jstests/libs/client.pem"
-		//ssl.SSLCAFile = "../test/qa-tests/jstests/libs/ca.pem"
-		opts.SSL = &ssl
-
-		outputOptions := &OutputOptions{
-			NumParallelCollections: 1,
-		}
-		inputOptions := &InputOptions{}
-
-		log.SetVerbosity(&options.Verbosity{
-			VLevel: 4,
-		})
-
-		mongoDump := &MongoDump{
-			ToolOptions:   opts,
-			InputOptions:  inputOptions,
-			OutputOptions: outputOptions,
-		}
-
-		mongoDump.OutputOptions.Out = AWSDumpDirectory
-
-		err = mongoDump.Init()
+		err := setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
-		err = mongoDump.Dump()
+
+		os.Setenv("MONGOD", os.Getenv("MONGODB_URI"))
+		md := simpleMongoDumpInstance()
+
+		md.OutputOptions.Out = AWSDumpDirectory
+
+		err = md.Init()
+		So(err, ShouldBeNil)
+		err = md.Dump()
 		So(err, ShouldBeNil)
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
 
 		dumpDir := util.ToUniversalPath(filepath.Join(path, AWSDumpDirectory))
-		dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, opts.Namespace.DB))
+		dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, md.ToolOptions.Namespace.DB))
 		So(fileDirExists(dumpDir), ShouldBeTrue)
 		So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
-		dumpCollectionFile := util.ToUniversalPath(filepath.Join(dumpDBDir, opts.Namespace.Collection+".bson"))
+		dumpCollectionFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "coll1.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+		dumpCollectionFile = util.ToUniversalPath(filepath.Join(dumpDBDir, "coll2.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+		dumpCollectionFile = util.ToUniversalPath(filepath.Join(dumpDBDir, "coll%2Fthree.bson"))
 		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
 
 		countColls, err := countNonIndexBSONFiles(dumpDBDir)
 		So(err, ShouldBeNil)
-		So(countColls, ShouldEqual, 1)
+		So(countColls, ShouldEqual, 3)
 	})
 }

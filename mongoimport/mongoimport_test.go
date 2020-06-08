@@ -1408,3 +1408,18 @@ func TestImportMIOSOE(t *testing.T) {
 
 	_ = database.Drop(nil)
 }
+
+func TestMongoImportAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	if err := generateTestData(); err != nil {
+		t.Fatalf("Could not generate test data: %v", err)
+	}
+
+	client, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	database := client.Database("miodb")
+	coll := database.Collection("mio")
+}
