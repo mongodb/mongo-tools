@@ -19,11 +19,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	//"time"
+	"time"
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
-	//"github.com/mongodb/mongo-tools-common/failpoint"
+	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -1081,55 +1081,55 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	})
 }
 
-//// Test the fix for nil pointer bug when getCollectionInfo failed
-//func TestMongoDumpTOOLS2498(t *testing.T) {
-//	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-//	log.SetWriter(ioutil.Discard)
-//
-//	sessionProvider, _, err := testutil.GetBareSessionProvider()
-//	if err != nil {
-//		t.Fatalf("No cluster available: %v", err)
-//	}
-//
-//	collName := "tools-2498-dump"
-//	dbName := "test"
-//
-//	var r1 bson.M
-//	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
-//
-//	createCmd := bson.D{
-//		{"create", collName},
-//	}
-//	var r2 bson.M
-//	err = sessionProvider.Run(createCmd, &r2, dbName)
-//	if err != nil {
-//		t.Fatalf("Error creating collection: %v", err)
-//	}
-//
-//	Convey("failing to get collection info should error, but not panic", t, func() {
-//		md := simpleMongoDumpInstance()
-//		md.ToolOptions.Namespace.Collection = collName
-//		md.ToolOptions.Namespace.DB = dbName
-//		md.OutputOptions.Out = "dump"
-//		err = md.Init()
-//		So(err, ShouldBeNil)
-//
-//		failpoint.ParseFailpoints("PauseBeforeDumping")
-//		defer failpoint.Reset()
-//		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
-//		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
-//		go func() {
-//			time.Sleep(2 * time.Second)
-//			session, _ := md.SessionProvider.GetSession()
-//			session.Disconnect(context.Background())
-//		}()
-//
-//		err = md.Dump()
-//		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
-//		So(err, ShouldNotBeNil)
-//		So(err.Error(), ShouldEqual, "client is disconnected")
-//	})
-//}
+// Test the fix for nil pointer bug when getCollectionInfo failed
+func TestMongoDumpTOOLS2498(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	collName := "tools-2498-dump"
+	dbName := "test"
+
+	var r1 bson.M
+	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+
+	createCmd := bson.D{
+		{"create", collName},
+	}
+	var r2 bson.M
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Error creating collection: %v", err)
+	}
+
+	Convey("failing to get collection info should error, but not panic", t, func() {
+		md := simpleMongoDumpInstance()
+		md.ToolOptions.Namespace.Collection = collName
+		md.ToolOptions.Namespace.DB = dbName
+		md.OutputOptions.Out = "dump"
+		err = md.Init()
+		So(err, ShouldBeNil)
+
+		failpoint.ParseFailpoints("PauseBeforeDumping")
+		defer failpoint.Reset()
+		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
+		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
+		go func() {
+			time.Sleep(2 * time.Second)
+			session, _ := md.SessionProvider.GetSession()
+			session.Disconnect(context.Background())
+		}()
+
+		err = md.Dump()
+		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldEqual, "client is disconnected")
+	})
+}
 
 func TestMongoDumpOrderedQuery(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)

@@ -26,7 +26,6 @@ load("lib/aws_e2e_lib.js");
     assert.eq(ret, 0, "Failed to assume role on the current machine");
 
     const result = cat("creds.json");
-    jsTestLog("result: " + result);
     try {
       return JSON.parse(result);
     } catch (e) {

@@ -32,35 +32,6 @@ func GetAuthOptions() options.Auth {
 	return options.Auth{}
 }
 
-func GetAWSAuthOptions() (*options.ToolOptions, error) {
-	opts := &options.ToolOptions{
-		Namespace: &options.Namespace{
-			DB:         "aws",
-			Collection: "test",
-		},
-		SSL: &options.SSL{},
-		Auth: &options.Auth{
-			Mechanism: "MONGODB-AWS",
-			AWSSessionToken: os.Getenv("SESSION_TOKEN"),
-		},
-		//Connection: &options.Connection{
-		//	Host: "ldaptest.10gen.cc",
-		//	Port: "27017",
-		//},
-		URI: &options.URI{},
-	}
-
-	//if runtime.GOOS == "windows" {
-	//	opts.Auth.Password = os.Getenv(WinKerberosPwdEnv)
-	//	if opts.Auth.Password == "" {
-	//		return nil, fmt.Errorf("Need to set %v environment variable to run "+
-	//			"kerberos tests on windows", WinKerberosPwdEnv)
-	//	}
-	//}
-
-	return opts, nil
-}
-
 func GetAuthArgs() []string {
 	authOpts := GetAuthOptions()
 	if authOpts.IsSet() {

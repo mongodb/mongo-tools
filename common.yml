@@ -608,20 +608,23 @@ functions:
         set -v
         set -e
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
-        mkdir -p /data/db/jstests_tool_assume_role/
+        mkdir -p mongodb/db_files
+        DB_PATH="mongodb/db_files"
         MONGOD_ARGS="${mongod_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
         fi;
-        if [ "${NO_SSL}" = "true" ]; then
+        if [ "${AWS_AUTH}" = "true" ]; then
           MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
+          mkdir -p /data/db/jstests_tool_assume_role/
+          DB_PATH="/data/db/jstests_tool_assume_role"
         fi;
         echo "Starting mongod..."
         storage_args=''
         if [ "${STORAGE_ENGINE}" != '' ]; then
           storage_args='--storageEngine ${STORAGE_ENGINE}'
         fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath /data/db/jstests_tool_assume_role --setParameter=enableTestCommands=1 $storage_args
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath $DB_PATH --setParameter=enableTestCommands=1 $storage_args
 
   "start mongod cluster":
     command: shell.exec
@@ -653,7 +656,7 @@ functions:
         if [ "${USE_TLS}" = "true" ]; then
           MONGO_ARGS="${mongo_args_tls}"
         fi;
-        if [ "${NO_SSL}" = "true" ]; then
+        if [ "${AWS_AUTH}" = "true" ]; then
           MONGO_ARGS="--port 33333"
         fi;
         while true ; do
@@ -1164,10 +1167,10 @@ tasks:
     - func: "setup-aws-auth-test-with-assume-role-credentials"
     - func: "start mongod"
       vars:
-        NO_SSL: "true"
+        AWS_AUTH: "true"
     - func: "wait for mongod to be ready"
       vars:
-        NO_SSL: "true"
+        AWS_AUTH: "true"
     - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: dist
@@ -1409,16 +1412,6 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-      params:
-        updates:
-          - key: "mongod_args_tls"
-            concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
