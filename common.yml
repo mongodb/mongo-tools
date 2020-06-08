@@ -130,11 +130,11 @@ mongo_tools_variables:
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
       - name: integration-4.0-mmapv1
+      - name: integration-4.2
+      - name: integration-4.2-auth
       - name: integration-4.4
       - name: integration-4.4-auth
       - name: integration-4.4-cluster
-      - name: integration-4.2
-      - name: integration-4.2-auth
         distros:
         - windows-64-vs2017-test
       - name: kerberos
@@ -1013,7 +1013,7 @@ functions:
           elif [ -f "$venv"/Scripts/activate ]; then
             echo 'using existing virtualenv'
             . "$venv"/Scripts/activate
-          elif virtualenv "$venv" || python -m virtualenv "$venv"; then
+          elif virtualenv "$venv" || python3 -m virtualenv "$venv"; then
             echo 'creating new virtualenv'
             if [ -f "$venv"/bin/activate ]; then
               . "$venv"/bin/activate
