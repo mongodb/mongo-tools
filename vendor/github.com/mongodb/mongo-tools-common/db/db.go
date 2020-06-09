@@ -388,11 +388,16 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 
 	if opts.Auth != nil && opts.Auth.IsSet() {
 		cred := mopt.Credential{
-			AuthMechanism:           cs.AuthMechanism,
-			AuthMechanismProperties: cs.AuthMechanismProperties,
-			AuthSource:              cs.AuthSource,
-			Username:                cs.Username,
-			Password:                cs.Password,
+			Username:      opts.Auth.Username,
+			Password:      opts.Auth.Password,
+			AuthSource:    cs.AuthSource,
+			AuthMechanism: opts.Auth.Mechanism,
+		}
+		if cs.AuthMechanism ==  "MONGODB-AWS" {
+			cred.Username = cs.Username
+			cred.Password = cs.Password
+			cred.AuthMechanism = cs.AuthMechanism
+			cred.AuthMechanismProperties = cs.AuthMechanismProperties
 		}
 		// Technically, an empty password is possible, but the tools don't have the
 		// means to easily distinguish and so require a non-empty password.
