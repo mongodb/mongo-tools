@@ -33,7 +33,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
@@ -64,7 +64,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: qa-dump-restore-with-gzip-current
         run_on: rhel62-large
       - name: qa-dump-restore-with-archiving-current
@@ -94,7 +94,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: qa-dump-restore-with-gzip-current
         run_on: ubuntu1604-build
       - name: qa-dump-restore-with-archiving-current
@@ -116,7 +116,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: dist
@@ -191,7 +191,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: native-cert-ssl-current
     rhel67_s390x_task_list: &rhel67_s390x_tasks
       - name: dist
@@ -219,7 +219,7 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
@@ -249,7 +249,7 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-gzip-current
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth-test
+      - name: aws-auth
       - name: native-cert-ssl-current
 
 
@@ -1155,24 +1155,6 @@ timeout:
 
 
 tasks:
-
-- name: aws-auth-test
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.4"
-    - func: "add-aws-auth-variables-to-file"
-    - func: "setup-aws-auth-test-with-assume-role-credentials"
-    - func: "start mongod"
-      vars:
-        AWS_AUTH: "true"
-    - func: "wait for mongod to be ready"
-      vars:
-        AWS_AUTH: "true"
-    - func: "run-aws-auth-test-with-assume-role-credentials"
-
 - name: dist
   depends_on:
   commands:
@@ -1491,6 +1473,23 @@ tasks:
     - func: "run tool integration tests"
       vars:
           KERBEROS_TEST: "true"
+
+- name: aws-auth
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: legacy42
   depends_on:
