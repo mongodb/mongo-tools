@@ -1149,8 +1149,6 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
 				md := simpleMongoDumpInstance()
-				fmt.Printf("ssl ca file: %v\n", md.ToolOptions.SSLCAFile)
-				fmt.Printf("ssl pem key file: %v\n", md.ToolOptions.SSLPEMKeyFile)
 				md.InputOptions.Query = `{"coords":{"x":0,"y":1}}`
 				md.ToolOptions.Namespace.Collection = testCollectionNames[0]
 				md.ToolOptions.Namespace.DB = testDB
