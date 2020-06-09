@@ -259,10 +259,10 @@ mongo_tools_variables:
       mongod_args: ""
       mongod_port: 33333
     ssl: &mongod_ssl_startup_args
-      mongod_args: "--sslMode requireSSL --sslCAFile testdata/certs/ca.pem --sslPEMKeyFile testdata/certs/server.pem"
+      mongod_args: "--sslMode requireSSL --sslCAFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem --sslPEMKeyFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem"
       mongod_port: 33333
     tls: &mongod_tls_startup_args
-      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile testdata/certs/ca.pem --tlsCertificateKeyFile testdata/certs/server.pem"
+      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem --tlsCertificateKeyFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem"
       mongod_port: 33333
 
   mongo_arguments:
@@ -270,10 +270,10 @@ mongo_tools_variables:
       mongo_args: &mongo_default_startup_args_string "--port 33333"
       mongod_port: 33333
     ssl: &mongo_ssl_startup_args
-      mongo_args: "--port 33333 --ssl --sslCAFile ./testdata/certs/ca.pem --sslPEMKeyFile ./testdata/certs/server.pem --sslAllowInvalidCertificates"
+      mongo_args: "--port 33333 --ssl --sslCAFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem --sslPEMKeyFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem --sslAllowInvalidCertificates"
       mongod_port: 33333
     tls: &mongo_tls_startup_args
-      mongo_args_tls: "--port 33333 --tls --tlsCAFile ./testdata/certs/ca.pem --tlsCertificateKeyFile ./testdata/certs/server.pem --tlsAllowInvalidCertificates"
+      mongo_args_tls: "--port 33333 --tls --tlsCAFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem --tlsCertificateKeyFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
 functions:
