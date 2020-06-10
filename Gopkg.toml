@@ -29,7 +29,7 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  revision = "ac3f3fd55ddc3d5c4294b08052692aecb580e203"
+  revision = "ebe919ffa8bb00cdc1b52701ded6370fd384ca30"
 
 [[constraint]]
   name = "github.com/nsf/termbox-go"

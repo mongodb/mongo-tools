@@ -390,12 +390,13 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		cred := mopt.Credential{
 			Username:      opts.Auth.Username,
 			Password:      opts.Auth.Password,
-			AuthSource:    cs.AuthSource,
+			AuthSource:    opts.GetAuthenticationDatabase(),
 			AuthMechanism: opts.Auth.Mechanism,
 		}
 		if cs.AuthMechanism ==  "MONGODB-AWS" {
 			cred.Username = cs.Username
 			cred.Password = cs.Password
+			cred.AuthSource = cs.AuthSource
 			cred.AuthMechanism = cs.AuthMechanism
 			cred.AuthMechanismProperties = cs.AuthMechanismProperties
 		}

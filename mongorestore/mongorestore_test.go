@@ -551,7 +551,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
@@ -614,7 +614,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -784,7 +784,7 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestFixHashedIndexes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")

@@ -64,7 +64,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: qa-dump-restore-with-gzip-current
         run_on: rhel62-large
       - name: qa-dump-restore-with-archiving-current
@@ -1406,7 +1405,6 @@ tasks:
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
-        AUTH_TEST: "true"
         USE_SSL: "true"
 
 - name: integration-4.4-auth

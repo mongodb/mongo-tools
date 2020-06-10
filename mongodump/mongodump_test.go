@@ -560,7 +560,7 @@ func TestMongoDumpKerberos(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -729,7 +729,7 @@ func TestMongoDumpBSON(t *testing.T) {
 }
 
 func TestMongoDumpBSONLongCollectionName(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -793,7 +793,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
