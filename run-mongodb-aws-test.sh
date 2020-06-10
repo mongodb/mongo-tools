@@ -50,7 +50,7 @@ ec=0
 # Run all tests depending on what flags are set in the environment
 # TODO: mongotop needs a test
 echo "the tags: " $tags
-for i in mongodump mongoimport mongoexport mongofiles ; do
+for i in mongodump mongorestore mongoimport mongoexport mongofiles ; do
         COMMON_SUBPKG=$(basename $i)
         COVERAGE_ARGS="";
         if [ "$RUN_COVERAGE" == "true" ]; then

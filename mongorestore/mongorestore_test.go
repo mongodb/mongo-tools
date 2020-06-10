@@ -1087,56 +1087,47 @@ func TestSkipSystemCollections(t *testing.T) {
 
 func TestMongorestoreAWSAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
-	_, err := testutil.GetBareSession()
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
-		t.Fatalf("No server available")
+		t.Fatalf("No server available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
 	}
 
-	Convey("With a test MongoRestore", t, func() {
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		db3 := session.Database("aws_test_db")
+
+		// Drop the collection to clean up resources
+		defer db3.Collection("c1").Drop(ctx)
+
 		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
+			DirectoryOption, "testdata/aws_test_db",
+			DropOption,
+			"-d", "aws_test_db",
+			"--host", "localhost",
+			"--port", db.DefaultTestPort,
+			"--uri", os.Getenv("MONGOD"),
 		}
 
-		restore, err := getRestoreWithArgs(args...)
-		args = append(args, "--host", "localhost", "--port", db.DefaultTestPort, os.Getenv("MONGOD"))
 		opts, err := ParseOptions(args, "", "")
 		So(err, ShouldBeNil)
-
-		restore, err = New(opts)
+		restore, err := New(opts)
 		So(err, ShouldBeNil)
 
-		session, _ := restore.SessionProvider.GetSession()
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
 
-		db := session.Database("db1")
-		Convey("and majority is used as the default write concern", func() {
-			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
-		})
-
-		c1 := db.Collection("c1") // 100 documents
-		c1.Drop(nil)
-		c2 := db.Collection("c2") // 0 documents
-		c2.Drop(nil)
-		c3 := db.Collection("c3") // 0 documents
-		c3.Drop(nil)
-		c4 := db.Collection("c4") // 10 documents
-		c4.Drop(nil)
-
-		Convey("and an explicit target restores from that dump directory", func() {
-			restore.TargetDirectory = "testdata/testdirs"
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 110)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := c1.CountDocuments(nil, bson.M{})
+		Convey("aws authentication should work and aws_test_db.c1 should be restored", func() {
+			count, err := db3.Collection("c1").CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
-
-			count, err = c4.CountDocuments(nil, bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 10)
+			So(count, ShouldEqual, 3)
 		})
 	})
 }
