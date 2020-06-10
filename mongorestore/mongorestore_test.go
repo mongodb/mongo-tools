@@ -1084,3 +1084,59 @@ func TestSkipSystemCollections(t *testing.T) {
 		})
 	})
 }
+
+func TestMongorestoreAWSAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	_, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		args = append(args, "--host", "localhost", "--port", db.DefaultTestPort, os.Getenv("MONGOD"))
+		opts, err := ParseOptions(args, "", "")
+		So(err, ShouldBeNil)
+
+		restore, err = New(opts)
+		So(err, ShouldBeNil)
+
+		session, _ := restore.SessionProvider.GetSession()
+
+		db := session.Database("db1")
+		Convey("and majority is used as the default write concern", func() {
+			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
+		})
+
+		c1 := db.Collection("c1") // 100 documents
+		c1.Drop(nil)
+		c2 := db.Collection("c2") // 0 documents
+		c2.Drop(nil)
+		c3 := db.Collection("c3") // 0 documents
+		c3.Drop(nil)
+		c4 := db.Collection("c4") // 10 documents
+		c4.Drop(nil)
+
+		Convey("and an explicit target restores from that dump directory", func() {
+			restore.TargetDirectory = "testdata/testdirs"
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 110)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := c1.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 100)
+
+			count, err = c4.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+	})
+}
