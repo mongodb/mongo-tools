@@ -32,9 +32,9 @@ var (
 	testServer = "localhost"
 	testPort   = db.DefaultTestPort
 
-	ssl = testutil.GetSSLOptions()
+	ssl         = testutil.GetSSLOptions()
 	toolOptions = setupToolOptions()
-	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID()}
+	testFiles   = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID()}
 )
 
 func setupToolOptions() *options.ToolOptions {
@@ -709,8 +709,6 @@ func TestMongoFilesAwsAuth(t *testing.T) {
 			mf, err := simpleMongoFilesInstanceWithFilename("list", "testf", "aws_test_db")
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
-
-
 
 			Convey("produce some output", func() {
 				str, err := mf.Run(false)

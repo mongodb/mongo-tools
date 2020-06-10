@@ -44,7 +44,7 @@ var (
 )
 
 const (
-	AWSDumpDirectory = "dump-aws"
+	AWSDumpDirectory      = "dump-aws"
 	KerberosDumpDirectory = "dump-kerberos"
 	longPrefix            = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
