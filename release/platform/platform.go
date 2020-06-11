@@ -278,21 +278,7 @@ var platforms = []Platform{
 		Repos: []string{RepoOrg, RepoEnterprise},
 	},
 	{
-		Name:  "rhel80",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
-	},
-	{
 		Name:  "suse12",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
-	},
-	{
-		Name:  "suse15",
 		Arch:  "s390x",
 		OS:    OSLinux,
 		Pkg:   PkgRPM,
@@ -307,13 +293,6 @@ var platforms = []Platform{
 	},
 	{
 		Name:  "ubuntu1804",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
-	},
-	{
-		Name:  "ubuntu2004",
 		Arch:  "s390x",
 		OS:    OSLinux,
 		Pkg:   PkgDeb,

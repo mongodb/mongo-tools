@@ -2463,40 +2463,10 @@ buildvariants:
   - name: push
     run_on: rhel70-small
 
-- name: rhel80-s390x
-  display_name: ZAP s390x RHEL 8.0
-  run_on:
-    - rhel80-zseries-small
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
-
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
   run_on:
     - suse12-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
-
-- name: suse15-s390x
-  display_name: ZAP s390x SUSE 15
-  run_on:
-    - suse15-zseries-large
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2527,21 +2497,6 @@ buildvariants:
   display_name: ZAP s390x Ubuntu 18.04
   run_on:
   - ubuntu1804-zseries-test
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
-
-- name: ubuntu2004-s390x
-  display_name: ZAP s390x Ubuntu 20.04
-  run_on:
-    - ubuntu2004-zseries-small
   stepback: false
   batchtime: 10080 # weekly
   expansions:
