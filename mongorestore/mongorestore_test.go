@@ -1173,7 +1173,13 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
 			// Run mongorestore
 			dbLocal := session.Database("local")
-			queryObj := bson.D{{"op", bson.M{"$ne": "n"}}}
+			queryObj := bson.D{{
+				"$or", bson.A{
+					bson.D{{"ns", primitive.Regex{Pattern: "^config.system.sessions*"}}},
+					bson.D{{"op", bson.M{"$ne": "n"}}},
+				},
+			}}
+
 			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
 			So(err, ShouldBeNil)
 
