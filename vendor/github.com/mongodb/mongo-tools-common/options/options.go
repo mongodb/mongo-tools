@@ -170,10 +170,11 @@ type SSL struct {
 
 // Struct holding auth-related options
 type Auth struct {
-	Username  string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
-	Password  string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
-	Source    string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
-	Mechanism string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
+	Username        string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
+	Password        string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
+	Source          string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
+	Mechanism       string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
+	AWSSessionToken string `long:"awsSessionToken" value-name:"<aws-session-token>" description:"session token to authenticate via AWS IAM"`
 }
 
 // Struct for Kerberos/GSSAPI-specific options
@@ -871,6 +872,22 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 	}
 
+	if strings.ToLower(cs.AuthMechanism) == "mongodb-aws" {
+		awsSessionToken, _ := cs.AuthMechanismProperties["AWS_SESSION_TOKEN"]
+
+		if opts.AWSSessionToken != "" && cs.AuthMechanismPropertiesSet {
+			if opts.AWSSessionToken != awsSessionToken {
+				return ConflictingArgsErrorFormat("AWS Session Token", awsSessionToken, opts.AWSSessionToken, "--awsSessionToken")
+			}
+		}
+		if opts.AWSSessionToken != "" && !cs.AuthMechanismPropertiesSet {
+			cs.AuthMechanismProperties["AWS_SESSION_TOKEN"] = opts.AWSSessionToken
+			cs.AuthMechanismPropertiesSet = true
+		}
+		if opts.AWSSessionToken == "" && cs.AuthMechanismPropertiesSet {
+			opts.AWSSessionToken = awsSessionToken
+		}
+	}
 	for _, extraOpts := range opts.URI.extraOptionsRegistry {
 		if uriSetter, ok := extraOpts.(URISetter); ok {
 			err := uriSetter.SetOptionsFromURI(cs)

@@ -291,7 +291,7 @@ func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 				return nil, err
 			}
 			out = append(out, bson.E{
-				Key:  value.Key,
+				Key:   value.Key,
 				Value: jsonValue,
 			})
 		}

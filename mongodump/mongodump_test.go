@@ -44,6 +44,7 @@ var (
 )
 
 const (
+	AWSDumpDirectory      = "dump-aws"
 	KerberosDumpDirectory = "dump-kerberos"
 	longPrefix            = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
@@ -239,14 +240,14 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 	return nil
 }
 
-func setUpMongoDumpTestData() error {
+func setUpMongoDumpTestData(dbName string) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
 
 	for i, collectionName := range testCollectionNames {
-		coll := session.Database(testDB).Collection(collectionName)
+		coll := session.Database(dbName).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
 			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j, "coords": bson.D{{"x", i}, {"y", j}}})
@@ -563,7 +564,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection", func() {
@@ -742,7 +743,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		md := simpleMongoDumpInstance()
@@ -800,7 +801,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
@@ -1135,7 +1136,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
@@ -1190,7 +1191,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		colName := "dump_view_as_collection"
@@ -1263,7 +1264,7 @@ func TestMongoDumpViews(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		colName := "dump_views"
@@ -1398,5 +1399,53 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
 			})
 		})
+	})
+}
+
+func TestMongoDumpAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	Convey("Should be able to run mongodump with AWS STS AssumeRole auth", t, func() {
+		err := setUpMongoDumpTestData("aws_test_db")
+		So(err, ShouldBeNil)
+
+		opts := testutil.GetAWSOptions()
+
+		outputOptions := &OutputOptions{
+			NumParallelCollections: 1,
+		}
+		inputOptions := &InputOptions{}
+
+		log.SetVerbosity(opts.Verbosity)
+
+		md := &MongoDump{
+			ToolOptions:   opts,
+			InputOptions:  inputOptions,
+			OutputOptions: outputOptions,
+		}
+
+		md.OutputOptions.Out = AWSDumpDirectory
+
+		err = md.Init()
+		So(err, ShouldBeNil)
+		err = md.Dump()
+		So(err, ShouldBeNil)
+		path, err := os.Getwd()
+		So(err, ShouldBeNil)
+
+		dumpDir := util.ToUniversalPath(filepath.Join(path, AWSDumpDirectory))
+		dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, md.ToolOptions.Namespace.DB))
+		So(fileDirExists(dumpDir), ShouldBeTrue)
+		So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+		dumpCollectionFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "coll1.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+		dumpCollectionFile = util.ToUniversalPath(filepath.Join(dumpDBDir, "coll2.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+		dumpCollectionFile = util.ToUniversalPath(filepath.Join(dumpDBDir, "coll%2Fthree.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+
+		countColls, err := countNonIndexBSONFiles(dumpDBDir)
+		So(err, ShouldBeNil)
+		So(countColls, ShouldEqual, 3)
 	})
 }

@@ -1084,3 +1084,50 @@ func TestSkipSystemCollections(t *testing.T) {
 		})
 	})
 }
+
+func TestMongorestoreAWSAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No server available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		db3 := session.Database("aws_test_db")
+
+		// Drop the collection to clean up resources
+		defer db3.Collection("c1").Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/aws_test_db",
+			DropOption,
+			"-d", "aws_test_db",
+			"--host", "localhost",
+			"--port", db.DefaultTestPort,
+			"--uri", os.Getenv("MONGOD"),
+		}
+
+		opts, err := ParseOptions(args, "", "")
+		So(err, ShouldBeNil)
+		restore, err := New(opts)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("aws authentication should work and aws_test_db.c1 should be restored", func() {
+			count, err := db3.Collection("c1").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 3)
+		})
+	})
+}
