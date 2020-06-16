@@ -244,7 +244,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		}
 	})
 }
-func TestMongoDumpAwsAuth(t *testing.T) {
+func TestMongoExportAwsAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
 	log.SetWriter(ioutil.Discard)
 
@@ -268,7 +268,7 @@ func TestMongoDumpAwsAuth(t *testing.T) {
 	}
 
 	Convey("testing dumping a collection", t, func() {
-		// set the MONGOD uri, as well as other opts
+		// set the uri, as well as other opts
 		opts := simpleMongoExportOpts()
 		opts.Collection = testCollectionName
 		opts.DB = dbName
