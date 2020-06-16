@@ -699,7 +699,7 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 func TestMongoFilesAwsAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
 
-	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
+	Convey("Testing AWS auth with mongofiles "+
 		"with a MongoDump instance", t, func() {
 
 		bytesExpected, err := setUpGridFSTestData("aws_test_db")
