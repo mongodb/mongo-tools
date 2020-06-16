@@ -1175,7 +1175,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			dbLocal := session.Database("local")
 			queryObj := bson.D{{
 				"$or", bson.A{
-					bson.D{{"ns", primitive.Regex{Pattern: "^config.system.sessions*"}}},
+					bson.D{{"ns", bson.M{"$ne": "config.system.sessions"}}},
 					bson.D{{"op", bson.M{"$ne": "n"}}},
 				},
 			}}
