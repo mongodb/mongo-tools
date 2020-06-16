@@ -268,6 +268,7 @@ func TestMongoDumpAwsAuth(t *testing.T) {
 	}
 
 	Convey("testing dumping a collection", t, func() {
+		// set the MONGOD uri, as well as other opts
 		opts := simpleMongoExportOpts()
 		opts.Collection = testCollectionName
 		opts.DB = dbName
