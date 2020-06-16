@@ -170,10 +170,10 @@ type SSL struct {
 
 // Struct holding auth-related options
 type Auth struct {
-	Username  string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
-	Password  string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
-	Source    string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
-	Mechanism string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
+	Username        string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
+	Password        string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
+	Source          string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
+	Mechanism       string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
 	AWSSessionToken string `long:"awsSessionToken" value-name:"<aws-session-token>" description:"session token to authenticate via AWS IAM"`
 }
 

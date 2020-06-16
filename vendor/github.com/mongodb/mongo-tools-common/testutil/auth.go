@@ -32,7 +32,7 @@ func GetAuthOptions() options.Auth {
 	return options.Auth{}
 }
 
-func  GetAuthArgs() []string {
+func GetAuthArgs() []string {
 	authOpts := GetAuthOptions()
 	if authOpts.IsSet() {
 		return []string{
