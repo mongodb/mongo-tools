@@ -687,6 +687,12 @@ functions:
           ls -R .
           cat ./gon.json
           echo "=============="
+          # if we are on macos, we will have created a gon.json file, go ahead and run gon.
+          # sadly, ssh does not work from our go run code.
+          if [ -f ./gon.json ]; then
+              ssh -v -p 2222 localhost -t "cd $PWD  && ./gon ./gon.json"
+          fi
+          # this command only does anything on Windows and Linux.
           go run release/release.go build-packages
 
     # upload individual release artifacts to task page
