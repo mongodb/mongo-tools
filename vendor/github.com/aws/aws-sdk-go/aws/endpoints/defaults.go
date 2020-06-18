@@ -5820,13 +5820,6 @@ var awsusgovPartition = partition{
 				"us-gov-west-1": endpoint{},
 			},
 		},
-		"xray": service{
-
-			Endpoints: endpoints{
-				"us-gov-east-1": endpoint{},
-				"us-gov-west-1": endpoint{},
-			},
-		},
 	},
 }
 
@@ -6401,12 +6394,6 @@ var awsisobPartition = partition{
 				SSLCommonName: "{region}.queue.{dnsSuffix}",
 				Protocols:     []string{"http", "https"},
 			},
-			Endpoints: endpoints{
-				"us-isob-east-1": endpoint{},
-			},
-		},
-		"ssm": service{
-
 			Endpoints: endpoints{
 				"us-isob-east-1": endpoint{},
 			},
