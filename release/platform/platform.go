@@ -257,13 +257,6 @@ var platforms = []Platform{
 		Repos: []string{RepoOrg, RepoEnterprise},
 	},
 	{
-		Name:  "ubuntu2004",
-		Arch:  "ppc64le",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
-	},
-	{
 		Name:  "rhel67",
 		Arch:  "s390x",
 		OS:    OSLinux,
