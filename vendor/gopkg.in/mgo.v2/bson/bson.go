@@ -35,13 +35,11 @@ package bson
 import (
 	"bytes"
 	"crypto/md5"
-	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"runtime"
@@ -50,8 +48,6 @@ import (
 	"sync/atomic"
 	"time"
 )
-
-//go:generate go run bson_corpus_spec_test_generator.go
 
 // --------------------------------------------------------------------------
 // The public API.
@@ -112,16 +108,6 @@ var SetZero = errors.New("set to zero")
 // undefined ordered. See also the bson.D type for an ordered alternative.
 type M map[string]interface{}
 
-// MarshalBSON marshals the document to BSON.
-func (m M) MarshalBSON() ([]byte, error) {
-	return Marshal(m)
-}
-
-// UnmarshalBSON unmarshals BSON into the document.
-func (m *M) UnmarshalBSON(data []byte) error {
-	return Unmarshal(data, m)
-}
-
 // D represents a BSON document containing ordered elements. For example:
 //
 //     bson.D{{"a", 1}, {"b", true}}
@@ -130,16 +116,6 @@ func (m *M) UnmarshalBSON(data []byte) error {
 // which the elements are defined is important.  If the order is not important,
 // using a map is generally more comfortable. See bson.M and bson.RawD.
 type D []DocElem
-
-// MarshalBSON marshals the document to BSON.
-func (d D) MarshalBSON() ([]byte, error) {
-	return Marshal(d)
-}
-
-// UnmarshalBSON unmarshals BSON into the document.
-func (d *D) UnmarshalBSON(data []byte) error {
-	return Unmarshal(data, d)
-}
 
 // DocElem is an element of the bson.D document representation.
 type DocElem struct {
@@ -175,16 +151,6 @@ type Raw struct {
 // documents of uncertain content, or when manipulating the raw content
 // documents in general.
 type RawD []RawDocElem
-
-// MarshalBSON marshals the document to BSON.
-func (d RawD) MarshalBSON() ([]byte, error) {
-	return Marshal(d)
-}
-
-// UnmarshalBSON unmarshals BSON into the document.
-func (d *RawD) UnmarshalBSON(data []byte) error {
-	return Unmarshal(data, d)
-}
 
 // See the RawD type.
 type RawDocElem struct {
@@ -226,12 +192,10 @@ var objectIdCounter uint32 = readRandomUint32()
 
 // readRandomUint32 returns a random objectIdCounter.
 func readRandomUint32() uint32 {
-	var b [4]byte
-	_, err := io.ReadFull(rand.Reader, b[:])
-	if err != nil {
-		panic(fmt.Errorf("cannot read random object id: %v", err))
-	}
-	return uint32((uint32(b[0]) << 0) | (uint32(b[1]) << 8) | (uint32(b[2]) << 16) | (uint32(b[3]) << 24))
+	// We've found systems hanging in this function due to lack of entropy.
+	// The randomness of these bytes is just preventing nearby clashes, so
+	// just look at the time.
+	return uint32(time.Now().UnixNano())
 }
 
 // machineId stores machine id generated once and used in subsequent calls
@@ -246,10 +210,10 @@ func readMachineId() []byte {
 	id := sum[:]
 	hostname, err1 := os.Hostname()
 	if err1 != nil {
-		_, err2 := io.ReadFull(rand.Reader, id)
-		if err2 != nil {
-			panic(fmt.Errorf("cannot get hostname: %v; %v", err1, err2))
-		}
+		n := uint32(time.Now().UnixNano())
+		sum[0] = byte(n >> 0)
+		sum[1] = byte(n >> 8)
+		sum[2] = byte(n >> 16)
 		return id
 	}
 	hw := md5.New()
@@ -593,9 +557,6 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	case reflect.Map:
 		d := newDecoder(in)
 		d.readDocTo(v)
-		if d.i < len(d.in) {
-			return errors.New("Document is corrupted")
-		}
 	case reflect.Struct:
 		return errors.New("Unmarshal can't deal with struct values. Use a pointer.")
 	default:

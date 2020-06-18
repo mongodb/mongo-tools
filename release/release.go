@@ -909,6 +909,7 @@ func buildMacOSZip() {
 	f, _ := os.Create("./gon.json")
 	w := bufio.NewWriter(f)
 	fmt.Fprintf(w, conf)
+	w.Flush()
 	cwd, err := os.Getwd()
 	check(err, "failed to get current directory somehow")
 	out, err = run("ssh", "-v", "-p", "2222", "localhost", "-t", "cd "+cwd+"  && ./gon ./gon.json")
