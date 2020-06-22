@@ -196,6 +196,13 @@ var platforms = []Platform{
 		Repos: []string{RepoOrg, RepoEnterprise},
 	},
 	{
+		Name:  "ubuntu2004",
+		Arch:  "x86_64",
+		OS:    OSLinux,
+		Pkg:   PkgDeb,
+		Repos: []string{RepoOrg, RepoEnterprise},
+	},
+	{
 		Name: "windows",
 		Arch: "x86_64",
 		OS:   OSWindows,
@@ -215,7 +222,21 @@ var platforms = []Platform{
 		Repos: []string{RepoOrg, RepoEnterprise},
 	},
 	{
+		Name:  "ubuntu2004",
+		Arch:  "arm64",
+		OS:    OSLinux,
+		Pkg:   PkgDeb,
+		Repos: []string{RepoOrg, RepoEnterprise},
+	},
+	{
 		Name:  "rhel71",
+		Arch:  "ppc64le",
+		OS:    OSLinux,
+		Pkg:   PkgRPM,
+		Repos: []string{RepoEnterprise},
+	},
+	{
+		Name:  "rhel81",
 		Arch:  "ppc64le",
 		OS:    OSLinux,
 		Pkg:   PkgRPM,
