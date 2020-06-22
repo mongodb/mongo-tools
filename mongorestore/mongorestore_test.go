@@ -1196,6 +1196,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		}
 	})
 }
+
 // TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands
 func TestCommitIndexBuild(t *testing.T) {
 	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
