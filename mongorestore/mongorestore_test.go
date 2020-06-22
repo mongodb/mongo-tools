@@ -1199,7 +1199,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 
 // TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands
 func TestCommitIndexBuild(t *testing.T) {
-	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
 	testDB := "commit_index"
 
@@ -1278,7 +1278,7 @@ func TestCommitIndexBuild(t *testing.T) {
 
 // CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4
 func TestCreateIndexes(t *testing.T) {
-	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
 	testDB := "create_indexes"
 
