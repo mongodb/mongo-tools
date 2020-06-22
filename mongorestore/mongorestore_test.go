@@ -1174,7 +1174,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			// Run mongorestore
 			dbLocal := session.Database("local")
 			queryObj := bson.D{{
-				"$or", bson.A{
+				"and", bson.A{
 					bson.D{{"ns", bson.M{"$ne": "config.system.sessions"}}},
 					bson.D{{"op", bson.M{"$ne": "n"}}},
 				},
