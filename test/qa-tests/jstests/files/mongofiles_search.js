@@ -7,6 +7,8 @@ var testName = 'mongofiles_search';
   var assert = extendedAssert;
 
   var conn;
+  var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
   // Given a list of search strings and an expected result - 0 for present or 1 for
   // hasMatch takes in raw mongofiles search output and a matchItem; it returns 0
@@ -40,7 +42,8 @@ var testName = 'mongofiles_search';
         '--quiet',
         '--port', conn.port,
         'search', queryString]
-        .concat(passthrough.args)),
+        .concat(passthrough.args)
+        .concat(sslOptions)),
       0, 'search command failed on ' + queryString + ' - part of ' + searchStrings);
 
       // eslint-disable-next-line no-loop-func
@@ -61,7 +64,8 @@ var testName = 'mongofiles_search';
       assert.eq(runMongoProgram.apply(this, ['mongofiles',
         '--port', conn.port,
         'put', filesToInsert[i]]
-        .concat(passthrough.args)),
+        .concat(passthrough.args)
+        .concat(sslOptions)),
       0, 'put failed on ' + filesToInsert[i] + ' when it should have succeeded');
     }
 

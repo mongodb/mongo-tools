@@ -4,7 +4,16 @@
 
   jsTest.log('Testing that the order of fields is preserved in the oplog');
 
-  var toolTest = new ToolTest('ordered_oplog');
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
+  var toolTest = new ToolTest('ordered_oplog', TOOLS_TEST_CONFIG);
   toolTest.startDB('foo');
 
   var testDb = toolTest.db.getSiblingDB('test');
@@ -19,7 +28,12 @@
   // run it several times, because with just one execution there is a chance that restore randomly selects the correct order
   // With several executions the chances of all false positives diminishes.
   for (var i=0; i<10; i++) {
-    var ret = toolTest.runTool('restore', '--oplogReplay', 'jstests/restore/testdata/dump_with_complex_id_oplog');
+    var ret = toolTest.runTool('restore', '--oplogReplay',
+        'jstests/restore/testdata/dump_with_complex_id_oplog',
+        '--ssl',
+        '--sslPEMKeyFile=jstests/libs/client.pem',
+        '--sslCAFile=jstests/libs/ca.pem',
+        '--sslAllowInvalidHostnames');
     assert.eq(0, ret);
   }
 

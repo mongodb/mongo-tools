@@ -7,6 +7,7 @@
   var assert = extendedAssert;
 
   var toolTest = getToolTest('stat_header');
+  var commonToolArgs = getCommonToolArguments();
 
   function outputIncludesHeader() {
     return rawMongoProgramOutput()
@@ -16,11 +17,13 @@
   }
 
   clearRawMongoProgramOutput();
-  x = runMongoProgram("mongostat", "--port", toolTest.port, "--rowcount", 1);
+  x = runMongoProgram.apply(this, ["mongostat", "--port", toolTest.port, "--rowcount", 1]
+      .concat(commonToolArgs));
   assert.soon(outputIncludesHeader, "normally a header appears");
 
   clearRawMongoProgramOutput();
-  x = runMongoProgram("mongostat", "--port", toolTest.port, "--rowcount", 1, "--noheaders");
+  x = runMongoProgram.apply(this, ["mongostat", "--port", toolTest.port, "--rowcount", 1, "--noheaders"]
+      .concat(commonToolArgs));
   assert.eq.soon(false, outputIncludesHeader, "--noheaders suppresses the header");
 
   toolTest.stop();

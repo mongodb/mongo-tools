@@ -19,9 +19,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
+	"github.com/mongodb/mongo-tools-common/failpoint"
 	"github.com/mongodb/mongo-tools-common/json"
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
@@ -42,6 +44,7 @@ var (
 )
 
 const (
+	AWSDumpDirectory      = "dump-aws"
 	KerberosDumpDirectory = "dump-kerberos"
 	longPrefix            = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
@@ -237,14 +240,14 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 	return nil
 }
 
-func setUpMongoDumpTestData() error {
+func setUpMongoDumpTestData(dbName string) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
 
 	for i, collectionName := range testCollectionNames {
-		coll := session.Database(testDB).Collection(collectionName)
+		coll := session.Database(dbName).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
 			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j, "coords": bson.D{{"x", i}, {"y", j}}})
@@ -265,19 +268,16 @@ func setUpMongoDumpTestData() error {
 	return nil
 }
 
-func setUpDBView() error {
+func setUpDBView(dbName string, colName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
 		return err
 	}
 
-	collName := "coll1"
-	dbName := testDB
-
 	pipeline := []bson.M{{"$project": bson.M{"b": "$a"}}}
 	createCmd := bson.D{
 		{"create", "test view"},
-		{"viewOn", collName},
+		{"viewOn", colName},
 		{"pipeline", pipeline},
 	}
 	var r2 bson.D
@@ -286,6 +286,40 @@ func setUpDBView() error {
 		return err
 	}
 	return nil
+}
+
+func turnOnProfiling(dbName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	profileCmd := bson.D{
+		{"profile", 2},
+	}
+
+	var res bson.M
+	return sessionProvider.Run(profileCmd, &res, dbName)
+}
+
+func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, error) {
+	return profileCollection.CountDocuments(context.Background(),
+		bson.D{
+			{"ns", ns},
+			{"op", "query"},
+			{"$or", []interface{}{
+				// 4.0+
+				bson.D{{"command.hint._id", 1}},
+				// 3.6
+				bson.D{{"command.$snapshot", true}},
+				bson.D{{"command.snapshot", true}},
+				// 3.4 and previous
+				bson.D{{"query.$snapshot", true}},
+				bson.D{{"query.snapshot", true}},
+				bson.D{{"query.hint._id", 1}},
+			}},
+		},
+	)
 }
 
 // backgroundInsert inserts into random collections until provided done
@@ -526,11 +560,12 @@ func TestMongoDumpKerberos(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
+	t.Skipf("Skipping TestMongoDumpBSON until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection", func() {
@@ -695,6 +730,7 @@ func TestMongoDumpBSON(t *testing.T) {
 }
 
 func TestMongoDumpBSONLongCollectionName(t *testing.T) {
+	t.Skipf("Skipping TestMongoDumpBSONLongCollectionName until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -709,7 +745,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		md := simpleMongoDumpInstance()
@@ -759,6 +795,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
+	t.Skipf("Skipping TestMongoDumpMetaData until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
@@ -767,7 +804,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
@@ -1019,12 +1056,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	}
 
 	// Turn on profiling.
-	profileCmd := bson.D{
-		{"profile", 2},
-	}
-
-	err = sessionProvider.Run(profileCmd, &r2, dbName)
-	if err != nil {
+	if err = turnOnProfiling(dbName); err != nil {
 		t.Fatalf("Failed to turn on profiling: %v", err)
 	}
 
@@ -1040,23 +1072,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		err = md.Dump()
 		So(err, ShouldBeNil)
 
-		count, err := profileCollection.CountDocuments(context.Background(),
-			bson.D{
-				{"ns", ns},
-				{"op", "query"},
-				{"$or", []interface{}{
-					// 4.0+
-					bson.D{{"command.hint._id", 1}},
-					// 3.6
-					bson.D{{"command.$nsapshot", true}},
-					bson.D{{"command.snapshot", true}},
-					// 3.4 and previous
-					bson.D{{"query.$snapshot", true}},
-					bson.D{{"query.snapshot", true}},
-					bson.D{{"query.hint._id", 1}},
-				}},
-			},
-		)
+		count, err := countSnapshotCmds(profileCollection, ns)
 		So(err, ShouldBeNil)
 		if isMMAPV1 {
 			// There should be exactly one query that matches.
@@ -1068,12 +1084,63 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	})
 }
 
+// Test the fix for nil pointer bug when getCollectionInfo failed
+func TestMongoDumpTOOLS2498(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	collName := "tools-2498-dump"
+	dbName := "test"
+
+	var r1 bson.M
+	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+
+	createCmd := bson.D{
+		{"create", collName},
+	}
+	var r2 bson.M
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		t.Fatalf("Error creating collection: %v", err)
+	}
+
+	Convey("failing to get collection info should error, but not panic", t, func() {
+		md := simpleMongoDumpInstance()
+		md.ToolOptions.Namespace.Collection = collName
+		md.ToolOptions.Namespace.DB = dbName
+		md.OutputOptions.Out = "dump"
+		err = md.Init()
+		So(err, ShouldBeNil)
+
+		failpoint.ParseFailpoints("PauseBeforeDumping")
+		defer failpoint.Reset()
+		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
+		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
+		go func() {
+			time.Sleep(2 * time.Second)
+			session, _ := md.SessionProvider.GetSession()
+			session.Disconnect(context.Background())
+		}()
+
+		err = md.Dump()
+		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
+		So(err, ShouldNotBeNil)
+		So(err.Error(), ShouldEqual, "client is disconnected")
+	})
+}
+
 func TestMongoDumpOrderedQuery(t *testing.T) {
+	t.Skipf("Skipping TestMongoDumpOrderedQuery until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
@@ -1124,18 +1191,23 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 }
 
 func TestMongoDumpViewsAsCollections(t *testing.T) {
+	t.Skipf("Skipping TestMongoDumpViewsAsCollections until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
-		err = setUpDBView()
+		colName := "dump_view_as_collection"
+		dbName := testDB
+		err = setUpDBView(dbName, colName)
+		So(err, ShouldBeNil)
+
+		err = turnOnProfiling(testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
-
 			md := simpleMongoDumpInstance()
 			md.ToolOptions.Namespace.DB = testDB
 			md.OutputOptions.Out = "dump"
@@ -1166,6 +1238,20 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 
 			})
 
+			Convey("testing dumping a view, we should not hint index", func() {
+				session, err := testutil.GetBareSession()
+				So(err, ShouldBeNil)
+
+				dbStruct := session.Database(dbName)
+				profileCollection := dbStruct.Collection("system.profile")
+				ns := dbName + "." + colName
+				count, err := countSnapshotCmds(profileCollection, ns)
+				So(err, ShouldBeNil)
+
+				// view dump should not do collection scan
+				So(count, ShouldEqual, 0)
+			})
+
 			Reset(func() {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 			})
@@ -1179,14 +1265,17 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 }
 
 func TestMongoDumpViews(t *testing.T) {
+	t.Skipf("Skipping TestMongoDumpViews until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(testDB)
 		So(err, ShouldBeNil)
 
-		err = setUpDBView()
+		colName := "dump_views"
+		dbName := testDB
+		err = setUpDBView(dbName, colName)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
@@ -1216,6 +1305,20 @@ func TestMongoDumpViews(t *testing.T) {
 
 				So(c1, ShouldBeGreaterThan, 0)
 
+			})
+
+			Convey("testing dumping a view, we should not hint index", func() {
+				session, err := testutil.GetBareSession()
+				So(err, ShouldBeNil)
+
+				dbStruct := session.Database(dbName)
+				profileCollection := dbStruct.Collection("system.profile")
+				ns := dbName + "." + colName
+				count, err := countSnapshotCmds(profileCollection, ns)
+				So(err, ShouldBeNil)
+
+				// view dump should not do collection scan
+				So(count, ShouldEqual, 0)
 			})
 
 			Reset(func() {
@@ -1302,5 +1405,53 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
 			})
 		})
+	})
+}
+
+func TestMongoDumpAwsAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	Convey("Should be able to run mongodump with AWS STS AssumeRole auth", t, func() {
+		err := setUpMongoDumpTestData("aws_test_db")
+		So(err, ShouldBeNil)
+
+		opts := testutil.GetAWSOptions()
+
+		outputOptions := &OutputOptions{
+			NumParallelCollections: 1,
+		}
+		inputOptions := &InputOptions{}
+
+		log.SetVerbosity(opts.Verbosity)
+
+		md := &MongoDump{
+			ToolOptions:   opts,
+			InputOptions:  inputOptions,
+			OutputOptions: outputOptions,
+		}
+
+		md.OutputOptions.Out = AWSDumpDirectory
+
+		err = md.Init()
+		So(err, ShouldBeNil)
+		err = md.Dump()
+		So(err, ShouldBeNil)
+		path, err := os.Getwd()
+		So(err, ShouldBeNil)
+
+		dumpDir := util.ToUniversalPath(filepath.Join(path, AWSDumpDirectory))
+		dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, md.ToolOptions.Namespace.DB))
+		So(fileDirExists(dumpDir), ShouldBeTrue)
+		So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+		dumpCollectionFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "coll1.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+		dumpCollectionFile = util.ToUniversalPath(filepath.Join(dumpDBDir, "coll2.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+		dumpCollectionFile = util.ToUniversalPath(filepath.Join(dumpDBDir, "coll%2Fthree.bson"))
+		So(fileDirExists(dumpCollectionFile), ShouldBeTrue)
+
+		countColls, err := countNonIndexBSONFiles(dumpDBDir)
+		So(err, ShouldBeNil)
+		So(countColls, ShouldEqual, 3)
 	})
 }

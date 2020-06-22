@@ -21,7 +21,7 @@ Specify a database with -d and a collection with -c to only dump that database o
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
-See http://docs.mongodb.org/manual/reference/program/mongodump/ for more information.`
+See http://docs.mongodb.com/database-tools/mongodump/ for more information.`
 
 // InputOptions defines the set of options to use in retrieving data from the server.
 type InputOptions struct {
@@ -56,7 +56,7 @@ func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
 // OutputOptions defines the set of options for writing dump data.
 type OutputOptions struct {
 	Out                        string   `long:"out" value-name:"<directory-path>" short:"o" description:"output directory, or '-' for stdout (default: 'dump')"`
-	Gzip                       bool     `long:"gzip" description:"compress archive our collection output with Gzip"`
+	Gzip                       bool     `long:"gzip" description:"compress archive or collection output with Gzip"`
 	Oplog                      bool     `long:"oplog" description:"use oplog for taking a point-in-time snapshot"`
 	Archive                    string   `long:"archive" value-name:"<file-path>" optional:"true" optional-value:"-" description:"dump as an archive to the specified path. If flag is specified without a value, archive is written to stdout"`
 	DumpDBUsersAndRoles        bool     `long:"dumpDbUsersAndRoles" description:"dump user and role definitions for the specified database"`

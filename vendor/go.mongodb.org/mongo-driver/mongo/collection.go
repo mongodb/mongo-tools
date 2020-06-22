@@ -293,7 +293,25 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	}
 	op = op.Retry(retry)
 
-	return result, op.Execute(ctx)
+	err = op.Execute(ctx)
+	wce, ok := err.(driver.WriteCommandError)
+	if !ok {
+		return result, err
+	}
+
+	// remove the ids that had writeErrors from result
+	for i, we := range wce.WriteErrors {
+		// i indexes have been removed before the current error, so the index is we.Index-i
+		idIndex := int(we.Index) - i
+		// if the insert is ordered, nothing after the error was inserted
+		if imo.Ordered == nil || *imo.Ordered {
+			result = result[:idIndex]
+			break
+		}
+		result = append(result[:idIndex], result[idIndex+1:]...)
+	}
+
+	return result, err
 }
 
 // InsertOne executes an insert command to insert a single document into the collection.
@@ -367,6 +385,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 			nil,
 		})
 	}
+
 	return imResult, BulkWriteException{
 		WriteErrors:       bwErrors,
 		WriteConcernError: writeException.WriteConcernError,
@@ -421,6 +440,14 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if do.Collation != nil {
 		doc = bsoncore.AppendDocumentElement(doc, "collation", do.Collation.ToDocument())
 	}
+	if do.Hint != nil {
+		hint, err := transformValue(coll.registry, do.Hint)
+		if err != nil {
+			return nil, err
+		}
+
+		doc = bsoncore.AppendValueElement(doc, "hint", hint)
+	}
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 
 	op := operation.NewDelete(doc).
@@ -428,6 +455,9 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.crypt)
+	if do.Hint != nil {
+		op = op.Hint(true)
+	}
 
 	// deleteMany cannot be retried
 	retryMode := driver.RetryNone
@@ -735,8 +765,24 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Crypt:          a.client.crypt,
 	}
 
-	op := operation.NewAggregate(pipelineArr).Session(sess).WriteConcern(wc).ReadConcern(rc).ReadPreference(a.readPreference).CommandMonitor(a.client.monitor).
-		ServerSelector(selector).ClusterClock(a.client.clock).Database(a.db).Collection(a.col).Deployment(a.client.deployment).Crypt(a.client.crypt)
+	op := operation.NewAggregate(pipelineArr).
+		Session(sess).
+		WriteConcern(wc).
+		ReadConcern(rc).
+		CommandMonitor(a.client.monitor).
+		ServerSelector(selector).
+		ClusterClock(a.client.clock).
+		Database(a.db).
+		Collection(a.col).
+		Deployment(a.client.deployment).
+		Crypt(a.client.crypt)
+	if !hasOutputStage {
+		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
+		// Otherwise, the read preference could be forwarded to a mongos, which would error if the aggregation were
+		// executed against a non-primary node.
+		op.ReadPreference(a.readPreference)
+	}
+
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
@@ -1334,6 +1380,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 			return &SingleResult{err: err}
 		}
 		op = op.Sort(sort)
+	}
+	if fod.Hint != nil {
+		hint, err := transformValue(coll.registry, fod.Hint)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Hint(hint)
 	}
 
 	return coll.findAndModify(ctx, op)

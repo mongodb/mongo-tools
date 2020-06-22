@@ -144,7 +144,7 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:ab971310c8461a349c0ef647a9674a0898511f54250cbb01fee183ecc87d97b1"
+  digest = "1:ec39cea51ba790f5a9e9d888d6217cca6d0469e283594a80a5e49d24b85c0c4c"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -166,8 +166,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "0d34607c2646082c58a5434235af6d41da6c1016"
-  version = "v3.0.4"
+  revision = "e81eadec6d4d3f4ac0a7237c47527e0c5d8dd04c"
+  version = "v3.0.8"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -223,7 +223,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:59caf13f1d9adf0828bf0662cc322b331704a8133393250b4569f0c47020063f"
+  digest = "1:c13f404dab7d861a0f599142a54962df237a0bc96acd7b27968bd38ac7be8d45"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -261,7 +261,7 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "T"
-  revision = "f429643407e6a1fc532048a6f81d8ea973ceda8a"
+  revision = "68130e6287ad8873c9e7ef55e9146d8d6c9feb7a"
 
 [[projects]]
   digest = "1:d6a2cbcf3914d0ff5be802485340fb8009fb4e3199b2d790f68d752c44f7e4e2"
@@ -367,6 +367,7 @@
     "go.mongodb.org/mongo-driver/mongo/readpref",
     "go.mongodb.org/mongo-driver/mongo/writeconcern",
     "go.mongodb.org/mongo-driver/x/bsonx",
+    "go.mongodb.org/mongo-driver/x/bsonx/bsoncore",
     "gopkg.in/mgo.v2/bson",
     "gopkg.in/tomb.v2",
   ]

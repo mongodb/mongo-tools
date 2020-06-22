@@ -8,6 +8,8 @@ load('jstests/files/util/mongofiles_common.js');
   var runTests = function(topology, passthrough) {
     var t = topology.init(passthrough);
     var conn = t.connection();
+    var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
     jsTest.log('Running with file with invalid options onw passthrough ' + passthrough.name);
 
@@ -15,14 +17,16 @@ load('jstests/files/util/mongofiles_common.js');
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
       '--invalid', conn.port,
       'put', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'invalid-option: mongofiles succeeded when it should have failed');
 
     // run with invalid command
     assert.neq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       'invalid', filesToInsert[0]]
-      .concat(passthrough.args)),
+      .concat(passthrough.args)
+      .concat(sslOptions)),
     0, 'invalid-command: mongofiles succeeded when it should have failed');
 
     t.stop();

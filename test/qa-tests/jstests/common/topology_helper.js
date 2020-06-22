@@ -22,6 +22,13 @@ var plain = {
   args: [],
 };
 
+var TLS_CONFIG = {
+  tlsMode: "requireTLS",
+  tlsCertificateKeyFile: "jstests/libs/client.pem",
+  tlsCAFile: "jstests/libs/ca.pem",
+  tlsAllowInvalidHostnames: "",
+};
+
 /* exported passthroughs */
 // passthroughs while running all tests
 var passthroughs = [plain, auth];
@@ -80,6 +87,12 @@ var standaloneTopology = {
     passthrough = passthrough || [];
     var startupArgs = buildStartupArgs(passthrough);
     startupArgs.port = allocatePorts(1)[0];
+    if (TestData.useTLS) {
+      startupArgs.tlsMode = "requireTLS";
+      startupArgs.tlsCertificateKeyFile = "jstests/libs/client.pem";
+      startupArgs.tlsCAFile = "jstests/libs/ca.pem";
+      startupArgs.tlsAllowInvalidHostnames = "";
+    }
     this.conn = MongoRunner.runMongod(startupArgs);
 
     // set up the auth user if needed
@@ -111,6 +124,10 @@ var replicaSetTopology = {
     var startupArgs = buildStartupArgs(passthrough);
     startupArgs.name = testName;
     startupArgs.nodes = 2;
+
+    if (TestData.useTLS) {
+      startupArgs.nodeOptions = TLS_CONFIG;
+    }
     this.replTest = new ReplSetTest(startupArgs);
 
     // start the replica set
@@ -156,20 +173,36 @@ var shardedClusterTopology = {
     startupArgs.name = testName;
     startupArgs.mongos = 1;
     startupArgs.shards = 1;
+    if (TestData.useTLS) {
+      other.tlsMode = "requireTLS";
+      other.tlsCertificateKeyFile = "jstests/libs/client.pem";
+      other.tlsCAFile = "jstests/libs/ca.pem";
+      other.tlsAllowInvalidHostnames = "";
+    }
 
     // set up the auth user if needed
     if (requiresAuth(passthrough)) {
       startupArgs.keyFile = keyFile;
-      startupArgs.other = {
-        shardOptions: other,
-      };
+      if (TestData.useTLS) {
+        startupArgs.other = {
+          shardOptions: other,
+          configOptions: TLS_CONFIG,
+          mongosOptions: TLS_CONFIG,
+          nodeOptions: other,
+        };
+      }
       this.shardingTest = new ShardingTest(startupArgs);
       runAuthSetup(this);
       this.didAuth = true;
     } else {
-      startupArgs.other = {
-        shardOptions: other,
-      };
+      if (TestData.useTLS) {
+        startupArgs.other = {
+          shardOptions: other,
+          configOptions: TLS_CONFIG,
+          mongosOptions: TLS_CONFIG,
+          nodeOptions: other,
+        };
+      }
       this.shardingTest = new ShardingTest(startupArgs);
     }
     return this;

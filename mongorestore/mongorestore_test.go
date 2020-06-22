@@ -551,6 +551,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
+	t.Skipf("Skipping TestDeprecatedIndexOptions until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -601,6 +602,62 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 
 		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
 			restore.TargetDirectory = "testdata/indextestdump"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			So(result.Successes, ShouldEqual, 100)
+			So(result.Failures, ShouldEqual, 0)
+			count, err := coll.CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 100)
+		})
+	})
+}
+
+func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
+	t.Skipf("Skipping TestDeprecatedIndexOptionsOn44FCV until TOOLS-2604 is resolved")
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 4.4 or later")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		session, _ = restore.SessionProvider.GetSession()
+
+		db := session.Database("indextest")
+
+		// 4.4 removes the 'ns' field nested under the 'index' field in metadata.json
+		coll := db.Collection("test_coll_no_index_ns")
+		coll.Drop(nil)
+		defer func() {
+			coll.Drop(nil)
+		}()
+
+		args = []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			ConvertLegacyIndexesOption, "true",
+		}
+
+		restore, err = getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		Convey("Creating index with --convertLegacyIndexes and 4.4 FCV should succeed", func() {
+			restore.TargetDirectory = "testdata/indexmetadata"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
@@ -729,6 +786,7 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestFixHashedIndexes(t *testing.T) {
+	t.Skipf("Skipping TestFixHashedIndexes until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -1030,6 +1088,114 @@ func TestSkipSystemCollections(t *testing.T) {
 	})
 }
 
+func TestMongorestoreAWSAuth(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No server available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		db3 := session.Database("aws_test_db")
+
+		// Drop the collection to clean up resources
+		defer db3.Collection("c1").Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/aws_test_db",
+			DropOption,
+			"-d", "aws_test_db",
+			"--host", "localhost",
+			"--port", db.DefaultTestPort,
+			"--uri", os.Getenv("MONGOD"),
+		}
+
+		opts, err := ParseOptions(args, "", "")
+		So(err, ShouldBeNil)
+		restore, err := New(opts)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("aws authentication should work and aws_test_db.c1 should be restored", func() {
+			count, err := db3.Collection("c1").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 3)
+		})
+	})
+}
+
+// TestSkipStartAndAbortIndexBuild asserts that all "startIndexBuild" and "abortIndexBuild" oplog
+// entries are skipped when restoring the oplog.
+func TestSkipStartAndAbortIndexBuild(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.SkipNow()
+	}
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database("test")
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection("skip_index_entries").Drop(ctx)
+
+		// oplog.bson only has startIndexBuild and abortIndexBuild entries
+		args := []string{
+			DirectoryOption, "testdata/oplog_ignore_index",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
+			// Run mongorestore
+			dbLocal := session.Database("local")
+			queryObj := bson.D{{
+				"and", bson.A{
+					bson.D{{"ns", bson.M{"$ne": "config.system.sessions"}}},
+					bson.D{{"op", bson.M{"$ne": "n"}}},
+				},
+			}}
+
+			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			Convey("No new oplog entries should be recorded", func() {
+				// Filter out no-ops
+				countAfterRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
+
+				So(err, ShouldBeNil)
+				So(countBeforeRestore, ShouldEqual, countAfterRestore)
+			})
+		}
+	})
+}
 // TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands
 func TestCommitIndexBuild(t *testing.T) {
 	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)

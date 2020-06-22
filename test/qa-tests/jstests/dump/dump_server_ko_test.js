@@ -30,10 +30,25 @@ if (typeof getToolTest === 'undefined') {
       'without auth!');
   }
   // On sharded and standalone, kill the server
-  var koShell = startParallelShell(
-    'sleep(1000); ' +
-      (toolTest.authCommand || '') +
-      'db.getSiblingDB(\'admin\').shutdownServer({ force: true });');
+  var koShell;
+  if (TestData.useTLS) {
+    var shellArgs = ['sleep(1000); ' +
+    (toolTest.authCommand || '') +
+    'db.getSiblingDB(\'admin\').shutdownServer({ force: true });',
+      undefined,
+      undefined,
+      '--tls',
+      '--tlsCertificateKeyFile=jstests/libs/client.pem',
+      '--tlsCAFile=jstests/libs/ca.pem',
+      '--tlsAllowInvalidHostnames'];
+    koShell = startParallelShell.apply(null, shellArgs);
+  } else {
+    koShell = startParallelShell(
+        'sleep(1000); ' +
+        (toolTest.authCommand || '') +
+        'db.getSiblingDB(\'admin\').shutdownServer({ force: true });');
+  }
+
 
   var dumpArgs = ['dump',
     '--db', 'foo',

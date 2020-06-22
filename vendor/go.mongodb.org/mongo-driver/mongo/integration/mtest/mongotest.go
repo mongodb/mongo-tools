@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var (
@@ -71,6 +72,7 @@ type WriteConcernErrorData struct {
 	Name        string    `bson:"codeName"`
 	Errmsg      string    `bson:"errmsg"`
 	ErrorLabels *[]string `bson:"errorLabels,omitempty"`
+	ErrInfo     bson.Raw  `bson:"errInfo,omitempty"`
 }
 
 // T is a wrapper around testing.T.
@@ -79,6 +81,7 @@ type T struct {
 
 	// members for only this T instance
 	createClient     *bool
+	createCollection *bool
 	runOn            []RunOnBlock
 	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
 	mockResponses    []bson.D
@@ -299,6 +302,45 @@ func (t *T) GetAllFailedEvents() []*event.CommandFailedEvent {
 	return t.failed
 }
 
+// FilterStartedEvents filters the existing CommandStartedEvent instances for this test using the provided filter
+// callback. An event will be retained if the filter returns true. The list of filtered events will be used to overwrite
+// the list of events for this test and will therefore change the output of t.GetAllStartedEvents().
+func (t *T) FilterStartedEvents(filter func(*event.CommandStartedEvent) bool) {
+	var newEvents []*event.CommandStartedEvent
+	for _, evt := range t.started {
+		if filter(evt) {
+			newEvents = append(newEvents, evt)
+		}
+	}
+	t.started = newEvents
+}
+
+// FilterSucceededEvents filters the existing CommandSucceededEvent instances for this test using the provided filter
+// callback. An event will be retained if the filter returns true. The list of filtered events will be used to overwrite
+// the list of events for this test and will therefore change the output of t.GetAllSucceededEvents().
+func (t *T) FilterSucceededEvents(filter func(*event.CommandSucceededEvent) bool) {
+	var newEvents []*event.CommandSucceededEvent
+	for _, evt := range t.succeeded {
+		if filter(evt) {
+			newEvents = append(newEvents, evt)
+		}
+	}
+	t.succeeded = newEvents
+}
+
+// FilterFailedEvents filters the existing CommandFailedEVent instances for this test using the provided filter
+// callback. An event will be retained if the filter returns true. The list of filtered events will be used to overwrite
+// the list of events for this test and will therefore change the output of t.GetAllFailedEvents().
+func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
+	var newEvents []*event.CommandFailedEvent
+	for _, evt := range t.failed {
+		if filter(evt) {
+			newEvents = append(newEvents, evt)
+		}
+	}
+	t.failed = newEvents
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]
@@ -479,6 +521,11 @@ func (T) GlobalClient() *mongo.Client {
 	return testContext.client
 }
 
+// GlobalTopology returns the Topology backing the global Client.
+func (T) GlobalTopology() *topology.Topology {
+	return testContext.topo
+}
+
 func sanitizeCollectionName(db string, coll string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
 	coll = strings.Replace(coll, "$", "%", -1)
@@ -534,14 +581,17 @@ func (t *T) createTestClient() {
 	switch t.clientType {
 	case Default:
 		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
+		var uriOpts *options.ClientOptions
 		if clientOpts.Deployment == nil {
-			clientOpts.ApplyURI(testContext.connString.Original)
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
 		}
-		t.Client, err = mongo.NewClient(clientOpts)
+		// Specify the URI-based options first so the test can override them.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Pinned:
 		// pin to first mongos
-		clientOpts.ApplyURI(testContext.connString.Original).SetHosts([]string{testContext.connString.Hosts[0]})
-		t.Client, err = mongo.NewClient(clientOpts)
+		pinnedHostList := []string{testContext.connString.Hosts[0]}
+		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil
@@ -560,11 +610,13 @@ func (t *T) createTestClient() {
 func (t *T) createTestCollection() {
 	t.DB = t.Client.Database(t.dbName)
 	t.createdColls = t.createdColls[:0]
+
+	createOnServer := t.createCollection == nil || *t.createCollection
 	t.Coll = t.CreateCollection(Collection{
 		Name:       t.collName,
 		CreateOpts: t.collCreateOpts,
 		Opts:       t.collOpts,
-	}, true)
+	}, createOnServer)
 }
 
 // matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be

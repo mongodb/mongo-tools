@@ -76,7 +76,9 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)
 
-		if !continueOnError && (err != nil || len(batchErr.WriteErrors) > 0 || batchErr.WriteConcernError != nil) {
+		commandErrorOccurred := err != nil && err != driver.ErrUnacknowledgedWrite
+		writeErrorOccurred := len(batchErr.WriteErrors) > 0 || batchErr.WriteConcernError != nil
+		if !continueOnError && (commandErrorOccurred || writeErrorOccurred) {
 			if err != nil {
 				return err
 			}
@@ -93,6 +95,7 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 	bw.result.MatchedCount -= bw.result.UpsertedCount
 	if lastErr != nil {
+		_, lastErr = processWriteError(lastErr)
 		return lastErr
 	}
 	if len(bwErr.WriteErrors) > 0 || bwErr.WriteConcernError != nil {
@@ -203,6 +206,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (operation.DeleteResult, error) {
 	docs := make([]bsoncore.Document, len(batch.models))
 	var i int
+	var hasHint bool
 
 	for _, model := range batch.models {
 		var doc bsoncore.Document
@@ -210,9 +214,11 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 
 		switch converted := model.(type) {
 		case *DeleteOneModel:
-			doc, err = createDeleteDoc(converted.Filter, converted.Collation, true, bw.collection.registry)
+			doc, err = createDeleteDoc(converted.Filter, converted.Collation, converted.Hint, true, bw.collection.registry)
+			hasHint = hasHint || (converted.Hint != nil)
 		case *DeleteManyModel:
-			doc, err = createDeleteDoc(converted.Filter, converted.Collation, false, bw.collection.registry)
+			doc, err = createDeleteDoc(converted.Filter, converted.Collation, converted.Hint, false, bw.collection.registry)
+			hasHint = hasHint || (converted.Hint != nil)
 		}
 
 		if err != nil {
@@ -227,7 +233,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		Session(bw.session).WriteConcern(bw.writeConcern).CommandMonitor(bw.collection.client.monitor).
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
-		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt)
+		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.crypt).Hint(hasHint)
 	if bw.ordered != nil {
 		op = op.Ordered(*bw.ordered)
 	}
@@ -242,7 +248,9 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 	return op.Result(), err
 }
 
-func createDeleteDoc(filter interface{}, collation *options.Collation, deleteOne bool, registry *bsoncodec.Registry) (bsoncore.Document, error) {
+func createDeleteDoc(filter interface{}, collation *options.Collation, hint interface{}, deleteOne bool,
+	registry *bsoncodec.Registry) (bsoncore.Document, error) {
+
 	f, err := transformBsoncoreDocument(registry, filter)
 	if err != nil {
 		return nil, err
@@ -257,6 +265,13 @@ func createDeleteDoc(filter interface{}, collation *options.Collation, deleteOne
 	doc = bsoncore.AppendInt32Element(doc, "limit", limit)
 	if collation != nil {
 		doc = bsoncore.AppendDocumentElement(doc, "collation", collation.ToDocument())
+	}
+	if hint != nil {
+		hintVal, err := transformValue(registry, hint)
+		if err != nil {
+			return nil, err
+		}
+		doc = bsoncore.AppendValueElement(doc, "hint", hintVal)
 	}
 	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
 

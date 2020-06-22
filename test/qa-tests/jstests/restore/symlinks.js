@@ -14,6 +14,7 @@
   jsTest.log('Testing restoration from a dump containing symlinks');
 
   var toolTest = getToolTest('symlinks');
+  var commonToolArgs = getCommonToolArguments();
 
   // this test uses the testdata/dump_with_soft_link. within that directory,
   // the dbTwo directory is a soft link to testdata/soft_linked_db and the
@@ -28,7 +29,8 @@
 
   // restore the data
   var ret = toolTest.runTool.apply(toolTest, ['restore']
-    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_soft_links')));
+    .concat(getRestoreTarget('jstests/restore/testdata/dump_with_soft_links'))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   // make sure the data was restored properly

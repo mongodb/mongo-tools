@@ -28,3 +28,12 @@ var getRestoreTarget;
     };
   }
 }());
+
+/* exported getCommonToolArguments */
+var getCommonToolArguments = function() {
+  return ['--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'];
+};
+

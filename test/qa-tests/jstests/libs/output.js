@@ -121,7 +121,11 @@ function discoverTest(ports, connectHost) {
   return statCheck(["mongostat",
     "--host", connectHost,
     "--noheaders",
-    "--discover"],
+    "--discover",
+    "--ssl",
+    "--sslPEMKeyFile=jstests/libs/client.pem",
+    "--sslCAFile=jstests/libs/ca.pem",
+    "--sslAllowInvalidHostnames"],
   hasOnlyPorts(ports));
 }
 

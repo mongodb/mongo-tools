@@ -60,6 +60,8 @@ type ConnString struct {
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
+	DirectConnection                   bool
+	DirectConnectionSet                bool
 	ConnectTimeout                     time.Duration
 	ConnectTimeoutSet                  bool
 	Database                           string
@@ -130,6 +132,14 @@ func (u *ConnString) String() string {
 	return u.Original
 }
 
+// HasAuthParameters returns true if this ConnString has any authentication parameters set and therefore represents
+// a request for authentication.
+func (u *ConnString) HasAuthParameters() bool {
+	// Check all auth parameters except for AuthSource because an auth source without other credentials is semantically
+	// valid and must not be interpreted as a request for authentication.
+	return u.AuthMechanism != "" || u.AuthMechanismProperties != nil || u.Username != "" || u.PasswordSet
+}
+
 // Validate checks that the Auth and SSL parameters are valid values.
 func (u *ConnString) Validate() error {
 	p := parser{
@@ -143,11 +153,25 @@ func (u *ConnString) Validate() error {
 // to the server.
 type ConnectMode uint8
 
+var _ fmt.Stringer = ConnectMode(0)
+
 // ConnectMode constants.
 const (
 	AutoConnect ConnectMode = iota
 	SingleConnect
 )
+
+// String implements the fmt.Stringer interface.
+func (c ConnectMode) String() string {
+	switch c {
+	case AutoConnect:
+		return "automatic"
+	case SingleConnect:
+		return "direct"
+	default:
+		return "unknown"
+	}
+}
 
 // Scheme constants
 const (
@@ -306,6 +330,16 @@ func (p *parser) validate() error {
 		return writeconcern.ErrInconsistent
 	}
 
+	// Check for invalid use of direct connections.
+	if (p.ConnectSet && p.Connect == SingleConnect) || (p.DirectConnectionSet && p.DirectConnection) {
+		if len(p.Hosts) > 1 {
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
+		}
+		if p.Scheme == SchemeMongoDBSRV {
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
+		}
+	}
+
 	return nil
 }
 
@@ -327,7 +361,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			p.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
 		}
 		fallthrough
-	case "mongodb-x509":
+	case "mongodb-aws", "mongodb-x509":
 		if p.AuthSource == "" {
 			p.AuthSource = "$external"
 		} else if p.AuthSource != "$external" {
@@ -345,6 +379,7 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 			}
 		}
 	case "":
+		// Only set auth source if there is a request for authentication via non-empty credentials.
 		if p.AuthSource == "" && (p.AuthMechanismProperties != nil || p.Username != "" || p.PasswordSet) {
 			p.AuthSource = dbName
 			if p.AuthSource == "" {
@@ -375,6 +410,23 @@ func (p *parser) validateAuth() error {
 		}
 		if p.AuthMechanismProperties != nil {
 			return fmt.Errorf("MONGO-X509 cannot have mechanism properties")
+		}
+	case "mongodb-aws":
+		if p.Username != "" && p.Password == "" {
+			return fmt.Errorf("username without password is invalid for MONGODB-AWS")
+		}
+		if p.Username == "" && p.Password != "" {
+			return fmt.Errorf("password without username is invalid for MONGODB-AWS")
+		}
+		var token bool
+		for k := range p.AuthMechanismProperties {
+			if k != "AWS_SESSION_TOKEN" {
+				return fmt.Errorf("invalid auth property for MONGODB-AWS")
+			}
+			token = true
+		}
+		if token && p.Username == "" && p.Password == "" {
+			return fmt.Errorf("token without username and password is invalid for MONGODB-AWS")
 		}
 	case "gssapi":
 		if p.Username == "" {
@@ -416,9 +468,6 @@ func (p *parser) validateAuth() error {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
 	case "":
-		if p.Username == "" && p.AuthSource != "" {
-			return fmt.Errorf("authsource without username is invalid")
-		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
@@ -532,8 +581,34 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid 'connect' value: %s", value)
 		}
+		if p.DirectConnectionSet {
+			expectedValue := p.Connect == SingleConnect // directConnection should be true if connect=direct
+			if p.DirectConnection != expectedValue {
+				return fmt.Errorf("options connect=%s and directConnection=%v conflict", value, p.DirectConnection)
+			}
+		}
 
 		p.ConnectSet = true
+	case "directconnection":
+		switch strings.ToLower(value) {
+		case "true":
+			p.DirectConnection = true
+		case "false":
+		default:
+			return fmt.Errorf("invalid 'directConnection' value: %s", value)
+		}
+
+		if p.ConnectSet {
+			expectedValue := AutoConnect
+			if p.DirectConnection {
+				expectedValue = SingleConnect
+			}
+
+			if p.Connect != expectedValue {
+				return fmt.Errorf("options connect=%s and directConnection=%s conflict", p.Connect, value)
+			}
+		}
+		p.DirectConnectionSet = true
 	case "connecttimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

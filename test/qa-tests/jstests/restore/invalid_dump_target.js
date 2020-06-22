@@ -7,7 +7,16 @@
 
   jsTest.log('Testing running mongorestore with a invalid dump targets');
 
-  var toolTest = new ToolTest('invalid_dump_target');
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
+  var toolTest = new ToolTest('invalid_dump_target', TOOLS_TEST_CONFIG);
   toolTest.startDB('foo');
 
   // run restore with a file, not a directory, specified as the dump location

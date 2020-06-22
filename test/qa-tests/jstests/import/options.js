@@ -8,6 +8,7 @@
   jsTest.log('Testing running import with bad command line options');
 
   var toolTest = getToolTest('bad_options');
+  var commonToolArgs = getCommonToolArguments();
   var db1 = toolTest.db;
 
   // Make a dummy file to import by writing a test collection and exporting it
@@ -16,26 +17,29 @@
   db1.c.save({a: 4, b: 5, c: 6});
   assert.eq(2, db1.c.count(), "setup2");
 
-  toolTest.runTool("export",
+  toolTest.runTool.apply(toolTest, ["export",
     "--out", toolTest.extFile,
     "-d", toolTest.baseName,
-    "-c", db1.c.getName());
+    "-c", db1.c.getName()]
+    .concat(commonToolArgs));
 
   // also make a CSV version of it
-  toolTest.runTool("export",
+  toolTest.runTool.apply(toolTest, ["export",
     "--out", toolTest.extFile + ".csv",
     "-d", toolTest.baseName,
     "-c", db1.c.getName(),
     "--fields", "a,b,c",
-    "--csv");
+    "--csv"]
+    .concat(commonToolArgs));
   db1.c.drop();
   assert.eq(0, db1.c.count(), "after drop", "-d", toolTest.baseName, "-c", "foo");
 
   // verify that the normal sane case works
-  var ret = toolTest.runTool("import",
+  var ret = toolTest.runTool.apply(toolTest, ["import",
     "--file", toolTest.extFile,
     "-d", "test",
-    "-c", "test");
+    "-c", "test"]
+    .concat(commonToolArgs));
   assert.eq(ret, 0);
 
   var testDb = db1.c.getDB().getSiblingDB("test");
@@ -115,7 +119,7 @@
 
   for (var i=0; i<testScenarios.length; i++) {
     jsTest.log('Testing: ' + testScenarios[i].desc);
-    ret = toolTest.runTool.apply(toolTest, ["import"].concat(testScenarios[i].args));
+    ret = toolTest.runTool.apply(toolTest, ["import"].concat(testScenarios[i].args).concat(commonToolArgs));
     assert.neq(0, ret, i + ": " + testScenarios[i].desc);
   }
 

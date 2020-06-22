@@ -39,6 +39,9 @@ const (
 
 	// For testing options parsing. Requires an SRV URI in the ATLAS_URI environment variable.
 	SRVConnectionStringTestType = "TOOLS_TESTING_SRV"
+
+	// For testing AWS auth via an STS AssumeRole request.
+	AWSAuthTestType = "TOOLS_TESTING_AWS_AUTH"
 )
 
 func HasTestType(testType string) bool {

@@ -34,6 +34,10 @@ var getCommonToolArguments = function() {
     '--authenticationDatabase', '$external',
     '--authenticationMechanism', 'GSSAPI',
     '--gssapiServiceName', 'mockservice',
-    '--gssapiHostName', 'kdc.10gen.me'
+    '--gssapiHostName', 'kdc.10gen.me',
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'
   ];
 };

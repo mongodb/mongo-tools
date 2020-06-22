@@ -3,7 +3,16 @@
   load("jstests/configs/replset_28.config.js");
 
   var name = 'import_write_concern';
-  var toolTest = new ToolTest(name, null);
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
+  var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
   var dbName = "foo";
   var colName = "bar";
   var rs = new ReplSetTest({
@@ -11,6 +20,7 @@
     nodes: 3,
     useHostName: true,
     settings: {chainingAllowed: false},
+    nodeOptions: TOOLS_TEST_CONFIG,
   });
 
   var commonToolArgs = getCommonToolArguments();

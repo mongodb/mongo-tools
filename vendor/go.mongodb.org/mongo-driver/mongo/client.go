@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,11 +33,14 @@ import (
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
-const batchSize = 10000
 
-// keyVaultCollOpts specifies options used to communicate with the key vault collection
-var keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
-	SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+var (
+	// keyVaultCollOpts specifies options used to communicate with the key vault collection
+	keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
+				SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+
+	endSessionsBatchSize = 10000
+)
 
 // Client is a handle representing a pool of connections to a MongoDB deployment. It is safe for concurrent use by
 // multiple goroutines.
@@ -288,31 +290,27 @@ func (c *Client) endSessions(ctx context.Context) {
 		return
 	}
 
-	ids := c.sessionPool.IDSlice()
-	idx, idArray := bsoncore.AppendArrayStart(nil)
-	for i, id := range ids {
-		idDoc, _ := id.MarshalBSON()
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
-	}
-	idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
-
-	op := operation.NewEndSessions(idArray).ClusterClock(c.clock).Deployment(c.deployment).
+	sessionIDs := c.sessionPool.IDSlice()
+	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
 		Database("admin").Crypt(c.crypt)
 
-	idx, idArray = bsoncore.AppendArrayStart(nil)
-	totalNumIDs := len(ids)
+	totalNumIDs := len(sessionIDs)
+	var currentBatch []bsoncore.Document
 	for i := 0; i < totalNumIDs; i++ {
-		idDoc, _ := ids[i].MarshalBSON()
-		idArray = bsoncore.AppendDocumentElement(idArray, strconv.Itoa(i), idDoc)
-		if ((i+1)%batchSize) == 0 || i == totalNumIDs-1 {
-			idArray, _ = bsoncore.AppendArrayEnd(idArray, idx)
-			_ = op.SessionIDs(idArray).Execute(ctx)
-			idArray = idArray[:0]
-			idx = 0
+		currentBatch = append(currentBatch, sessionIDs[i])
+
+		// If we are at the end of a batch or the end of the overall IDs array, execute the operation.
+		if ((i+1)%endSessionsBatchSize) == 0 || i == totalNumIDs-1 {
+			// Ignore all errors when ending sessions.
+			_, marshalVal, err := bson.MarshalValue(currentBatch)
+			if err == nil {
+				_ = op.SessionIDs(marshalVal).Execute(ctx)
+			}
+
+			currentBatch = currentBatch[:0]
 		}
 	}
-
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
@@ -335,6 +333,10 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	var appName string
 	if opts.AppName != nil {
 		appName = *opts.AppName
+
+		serverOpts = append(serverOpts, topology.WithServerAppName(func(string) string {
+			return appName
+		}))
 	}
 	// Compressors & ZlibLevel
 	var comps []string
@@ -716,9 +718,14 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt)
+
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)
 	}
+	if ldo.AuthorizedDatabases != nil {
+		op = op.AuthorizedDatabases(*ldo.AuthorizedDatabases)
+	}
+
 	retry := driver.RetryNone
 	if c.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -768,7 +775,7 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 //
 // Any error returned by the fn callback will be returned without any modifications.
 func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
-	return fn(contextWithSession(ctx, sess))
+	return fn(NewSessionContext(ctx, sess))
 }
 
 // UseSession creates a new Session and uses it to create a new SessionContext, which is used to call the fn callback.
@@ -791,13 +798,7 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	}
 
 	defer defaultSess.EndSession(ctx)
-
-	sessCtx := sessionContext{
-		Context: context.WithValue(ctx, sessionKey{}, defaultSess),
-		Session: defaultSess,
-	}
-
-	return fn(sessCtx)
+	return fn(NewSessionContext(ctx, defaultSess))
 }
 
 // Watch returns a change stream for all changes on the deployment. See

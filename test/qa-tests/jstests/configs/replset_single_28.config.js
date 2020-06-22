@@ -35,5 +35,8 @@ var getToolTest;
 
 /* exported getCommonToolArguments */
 var getCommonToolArguments = function() {
-  return [];
+  return ['--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames'];
 };

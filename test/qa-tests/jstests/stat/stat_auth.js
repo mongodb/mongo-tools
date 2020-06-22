@@ -1,13 +1,11 @@
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/plain_28.config.js');
+  }
   load("jstests/libs/output.js");
-  var port = allocatePort();
-  var m = startMongod(
-    "--auth",
-    "--port", port,
-    "--dbpath", MongoRunner.dataPath+"stat_auth"+port,
-    "--bind_ip", "127.0.0.1");
+  var toolTest = getToolTest('stat_auth');
+  var db = toolTest.db.getSiblingDB('admin');
 
-  var db = m.getDB("admin");
   db.createUser({
     user: "foobar",
     pwd: "foobar",
@@ -17,10 +15,14 @@
   assert(db.auth("foobar", "foobar"), "auth failed");
 
   var args = ["mongostat",
-    "--host", "127.0.0.1:" + port,
+    "--host", "127.0.0.1:" + toolTest.port,
     "--rowcount", "1",
     "--authenticationDatabase", "admin",
-    "--username", "foobar"];
+    "--username", "foobar",
+    "--ssl",
+    "--sslPEMKeyFile=jstests/libs/client.pem",
+    "--sslCAFile=jstests/libs/ca.pem",
+    "--sslAllowInvalidHostnames"];
 
   var x = runMongoProgram.apply(null, args.concat("--password", "foobar"));
   assert.eq(x, exitCodeSuccess, "mongostat should exit successfully with foobar:foobar");

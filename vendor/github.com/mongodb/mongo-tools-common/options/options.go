@@ -170,10 +170,11 @@ type SSL struct {
 
 // Struct holding auth-related options
 type Auth struct {
-	Username  string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
-	Password  string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
-	Source    string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
-	Mechanism string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
+	Username        string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
+	Password        string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
+	Source          string `long:"authenticationDatabase" value-name:"<database-name>" description:"database that holds the user's credentials"`
+	Mechanism       string `long:"authenticationMechanism" value-name:"<mechanism>" description:"authentication mechanism to use"`
+	AWSSessionToken string `long:"awsSessionToken" value-name:"<aws-session-token>" description:"session token to authenticate via AWS IAM"`
 }
 
 // Struct for Kerberos/GSSAPI-specific options
@@ -510,7 +511,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 	return newArgs, nil
 }
 
-// NormalizeOptionsAndURI syncs the connection string an toolOptions objects.
+// NormalizeOptionsAndURI syncs the connection string and toolOptions objects.
 // It returns an error if there is any conflict between options and the connection string.
 // If a value is set on the options, but not the connection string, that value is added to the
 // connection string. If a value is set on the connection string, but not the options,
@@ -539,8 +540,9 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		return err
 	}
 
-	// connect directly, unless a replica set name is explicitly specified
-	opts.Direct = (opts.ReplicaSetName == "")
+	// Connect directly to a host if there's no replica set specified, or
+	// if the connection string already specified a direct connection.
+	opts.Direct = (opts.ReplicaSetName == "") || opts.Direct
 
 	return nil
 }
@@ -742,8 +744,6 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 	}
 
-	opts.Direct = (cs.Connect == connstring.SingleConnect)
-
 	// check replica set name equality
 	if opts.ReplicaSetName != "" && cs.ReplicaSet != "" {
 		if opts.ReplicaSetName != cs.ReplicaSet {
@@ -757,6 +757,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	if opts.ReplicaSetName == "" && cs.ReplicaSet != "" {
 		opts.ReplicaSetName = cs.ReplicaSet
 	}
+
+	// Connect directly to a host if indicated by the connection string.
+	opts.Direct = cs.DirectConnection || (cs.Connect == connstring.SingleConnect)
 
 	if (cs.SSL || opts.UseSSL) && !BuiltWithSSL {
 		if strings.HasPrefix(cs.Original, "mongodb+srv") {
@@ -869,6 +872,22 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		}
 	}
 
+	if strings.ToLower(cs.AuthMechanism) == "mongodb-aws" {
+		awsSessionToken, _ := cs.AuthMechanismProperties["AWS_SESSION_TOKEN"]
+
+		if opts.AWSSessionToken != "" && cs.AuthMechanismPropertiesSet {
+			if opts.AWSSessionToken != awsSessionToken {
+				return ConflictingArgsErrorFormat("AWS Session Token", awsSessionToken, opts.AWSSessionToken, "--awsSessionToken")
+			}
+		}
+		if opts.AWSSessionToken != "" && !cs.AuthMechanismPropertiesSet {
+			cs.AuthMechanismProperties["AWS_SESSION_TOKEN"] = opts.AWSSessionToken
+			cs.AuthMechanismPropertiesSet = true
+		}
+		if opts.AWSSessionToken == "" && cs.AuthMechanismPropertiesSet {
+			opts.AWSSessionToken = awsSessionToken
+		}
+	}
 	for _, extraOpts := range opts.URI.extraOptionsRegistry {
 		if uriSetter, ok := extraOpts.(URISetter); ok {
 			err := uriSetter.SetOptionsFromURI(cs)

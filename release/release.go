@@ -912,7 +912,7 @@ func uploadReleaseJSON(v version.Version) {
 	for _, task := range signTasks {
 		pf, ok := platform.GetByVariant(task.Variant)
 		if !ok {
-			log.Fatalf("clould not find platform for variant %q", task.Variant)
+			log.Fatalf("could not find platform for variant %q", task.Variant)
 		}
 
 		log.Printf("\ngetting artifacts for %s\n", task.Variant)
@@ -932,7 +932,7 @@ func uploadReleaseJSON(v version.Version) {
 		dl.Arch = pf.Arch
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
-			if ext == "sig" {
+			if ext == ".sig" {
 				continue
 			}
 

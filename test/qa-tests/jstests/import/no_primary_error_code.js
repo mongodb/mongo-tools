@@ -10,18 +10,40 @@
   'use strict';
   jsTest.log('Testing mongoimport when a sharded cluster has no primaries');
 
+  var TOOLS_TEST_CONFIG = {};
+  if (TestData.useTLS) {
+    TOOLS_TEST_CONFIG = {
+      tlsMode: "requireTLS",
+      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCAFile: "jstests/libs/ca.pem",
+      tlsAllowInvalidHostnames: "",
+    };
+  }
   var sh = new ShardingTest({
     name: 'no_primary_error_code',
-    shards: 1,
+    shards: {
+      rs0: {
+        nodes: 1,
+        settings: {chainingAllowed: false},
+      },
+    },
     verbose: 0,
     mongos: 1,
-    other: {
-      rs: true,
-      numReplicas: 1,
-      chunksize: 1,
-      enableBalancer: 0,
+    config: 1,
+    configReplSetTestOptions: {
+      settings: {chainingAllowed: false},
     },
+    other: {
+      configOptions: TOOLS_TEST_CONFIG,
+      mongosOptions: TOOLS_TEST_CONFIG,
+      shardOptions: TOOLS_TEST_CONFIG,
+      nodeOptions: TOOLS_TEST_CONFIG,
+    },
+    rs: TOOLS_TEST_CONFIG,
   });
+
+  var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
   // If we can't find a primary in 20 seconds than assume there are no more.
   var primary = sh.rs0.getPrimary(20000);
@@ -39,11 +61,12 @@
   jsTest.log('All primaries stepped down, trying to import.');
 
 
-  var ret = runMongoProgram('mongoimport',
+  var ret = runMongoProgram.apply(null, ['mongoimport',
     '--file', 'jstests/import/testdata/basic.json',
     '--db', 'test',
     '--collection', 'noPrimaryErrorCode',
-    '--host', sh.s0.host);
+    '--host', sh.s0.host]
+    .concat(sslOptions));
   assert.eq(ret, 1, 'mongoimport should fail with no primary');
 
   sh.getDB('test').dropDatabase();
@@ -54,11 +77,12 @@
   // Check that we catch 'Connection refused'
   jsTest.log('All primaries died, trying to import.');
 
-  ret = runMongoProgram('mongoimport',
+  ret = runMongoProgram.apply(null, ['mongoimport',
     '--file', 'jstests/import/testdata/basic.json',
     '--db', 'test',
     '--collection', 'noPrimaryErrorCode',
-    '--host', sh.s0.host);
+    '--host', sh.s0.host]
+    .concat(sslOptions));
   assert.eq(ret, 1, 'mongoimport should fail with no primary');
 
   sh.stop();

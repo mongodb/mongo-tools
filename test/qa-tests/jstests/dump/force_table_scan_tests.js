@@ -18,12 +18,18 @@
   assert.eq(0, db.bar.count());
 
   // Run parallel shell to rapidly insert documents
-  var insertsShell = startParallelShell(
-    'print(\'starting insert\'); ' +
+  var shellArgs = ['print(\'starting insert\'); ' +
     (toolTest.authCommand || '') +
     'for (var i = 0; i < 10000; ++i) { ' +
     '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); ' +
-    '}');
+    '}',
+    undefined,
+    undefined,
+    '--tls',
+    '--tlsCertificateKeyFile=jstests/libs/client.pem',
+    '--tlsCAFile=jstests/libs/ca.pem',
+    '--tlsAllowInvalidHostnames'];
+  var insertsShell = startParallelShell.apply(null, shellArgs);
 
   assert.lt.soon(250, db.bar.count.bind(db.bar), 'should have some documents');
   var countBeforeMongodump = db.bar.count();

@@ -59,7 +59,6 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	cfg := &connectionConfig{
 		connectTimeout: 30 * time.Second,
 		dialer:         nil,
-		idleTimeout:    10 * time.Minute,
 		lifeTimeout:    30 * time.Minute,
 	}
 
@@ -86,15 +85,6 @@ func withServerDescriptionCallback(callback func(description.Server), opts ...Co
 
 // ConnectionOption is used to configure a connection.
 type ConnectionOption func(*connectionConfig) error
-
-// WithConnectionAppName sets the application name which gets sent to MongoDB when it
-// first connects.
-func WithConnectionAppName(fn func(string) string) ConnectionOption {
-	return func(c *connectionConfig) error {
-		c.appName = fn(c.appName)
-		return nil
-	}
-}
 
 // WithCompressors sets the compressors that can be used for communication.
 func WithCompressors(fn func([]string) []string) ConnectionOption {

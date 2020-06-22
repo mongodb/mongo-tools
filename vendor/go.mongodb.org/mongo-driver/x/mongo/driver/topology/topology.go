@@ -70,7 +70,8 @@ type Topology struct {
 	rescanSRVInterval time.Duration
 	pollHeartbeatTime atomic.Value // holds a bool
 
-	fsm *fsm
+	updateCallback updateTopologyCallback
+	fsm            *fsm
 
 	// This should really be encapsulated into it's own type. This will likely
 	// require a redesign so we can share a minimum of data between the
@@ -122,12 +123,18 @@ func New(opts ...Option) (*Topology, error) {
 		dnsResolver:       dns.DefaultResolver,
 	}
 	t.desc.Store(description.Topology{})
+	t.updateCallback = func(desc description.Server) description.Server {
+		return t.apply(context.TODO(), desc)
+	}
 
+	// A replica set name sets the initial topology type to ReplicaSetNoPrimary unless a direct connection is also
+	// specified, in which case the initial type is Single.
 	if cfg.replicaSetName != "" {
 		t.fsm.SetName = cfg.replicaSetName
 		t.fsm.Kind = description.ReplicaSetNoPrimary
 	}
 
+	// A direct connection unconditionally sets the topology type to Single.
 	if cfg.mode == SingleMode {
 		t.fsm.Kind = description.Single
 	}
@@ -459,13 +466,8 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 func (t *Topology) selectServerFromDescription(ctx context.Context, desc description.Topology,
 	selectionState serverSelectionState) ([]description.Server, error) {
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-selectionState.timeoutChan:
-		return nil, wrapServerSelectionError(ErrServerSelectionTimeout, t)
-	default:
-	}
+	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
+	// selecting a server from a description is not a blocking operation.
 
 	var allowed []description.Server
 	for _, s := range desc.Servers {
@@ -597,21 +599,24 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 
 }
 
-func (t *Topology) apply(ctx context.Context, desc description.Server) {
+// apply updates the Topology and its underlying FSM based on the provided server description and returns the server
+// description that should be stored.
+func (t *Topology) apply(ctx context.Context, desc description.Server) description.Server {
 	var err error
 
 	t.serversLock.Lock()
 	defer t.serversLock.Unlock()
 
 	if _, ok := t.servers[desc.Addr]; t.serversClosed || !ok {
-		return
+		return desc
 	}
 
 	prev := t.fsm.Topology
 
-	current, err := t.fsm.apply(desc)
+	var current description.Topology
+	current, desc, err = t.fsm.apply(desc)
 	if err != nil {
-		return
+		return desc
 	}
 
 	diff := description.DiffTopology(prev, current)
@@ -644,6 +649,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) {
 	}
 	t.subLock.Unlock()
 
+	return desc
 }
 
 func (t *Topology) addServer(addr address.Address) error {
@@ -651,10 +657,7 @@ func (t *Topology) addServer(addr address.Address) error {
 		return nil
 	}
 
-	topoFunc := func(desc description.Server) {
-		t.apply(context.TODO(), desc)
-	}
-	svr, err := ConnectServer(addr, topoFunc, t.cfg.serverOpts...)
+	svr, err := ConnectServer(addr, t.updateCallback, t.cfg.serverOpts...)
 	if err != nil {
 		return err
 	}

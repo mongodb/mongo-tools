@@ -10,6 +10,11 @@
   var toolTest = getToolTest('oplogFlagTest');
   var commonToolArgs = getCommonToolArguments();
 
+  if (!toolTest.isReplicaSet) {
+    print('Nothing to do for testing oplogs without a replica set!');
+    return assert(true);
+  }
+
   // IMPORTANT: make sure global `db` object is equal to this db, because
   // startParallelShell gives you no way of overriding db object.
   db = toolTest.db.getSiblingDB('foo'); // eslint-disable-line no-native-reassign
@@ -21,12 +26,18 @@
   }
 
   // Run parallel shell to rapidly insert documents
-  var insertsShell = startParallelShell(
-    'print(\'starting insert\'); ' +
+  var shellArgs = ['print(\'starting insert\'); ' +
     (toolTest.authCommand || '') +
     'for (var i = 1001; i < 10000; ++i) { ' +
     '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); ' +
-    '}');
+    '}',
+    undefined,
+    undefined,
+    '--tls',
+    '--tlsCertificateKeyFile=jstests/libs/client.pem',
+    '--tlsCAFile=jstests/libs/ca.pem',
+    '--tlsAllowInvalidHostnames'];
+  var insertsShell = startParallelShell.apply(null, shellArgs);
 
   assert.lt.soon(1000, db.bar.count.bind(db.bar), 'should have more documents');
   var countBeforeMongodump = db.bar.count();
@@ -63,7 +74,7 @@
     // Wait for inserts to finish so we can then drop the database
     insertsShell();
     db.dropDatabase();
-    assert.eq(0, db.bar.count());
+    assert.eq(0, dbmongofiles_invalid.js.bar.count());
 
     restoreArgs = ['restore']
       .concat(getRestoreTarget(targetPath))

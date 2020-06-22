@@ -122,8 +122,8 @@ vet:
 # Evergreen specific targets
 .PHONY: evg-test
 evg-test:
-	for TEST in $(TEST_PKGS) ; do \
-		LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
+	for TEST in $(TEST_PKGS); do \
+		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
 	done
 
 .PHONY: evg-test-auth
@@ -137,6 +137,10 @@ evg-test-atlas:
 .PHONY: evg-test-ocsp
 evg-test-ocsp:
 	go test -v ./mongo -run TestOCSP $(OCSP_TLS_SHOULD_SUCCEED) >> test.suite
+
+.PHONY: build-aws-ecs-test
+build-aws-ecs-test:
+	go build $(BUILD_TAGS) ./mongo/testaws/main.go
 
 # benchmark specific targets and support
 perf:driver-test-data.tar.gz
