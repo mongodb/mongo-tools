@@ -551,6 +551,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
+	t.Skipf("Skipping TestDeprecatedIndexOptions until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -614,6 +615,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
+	t.Skipf("Skipping TestDeprecatedIndexOptionsOn44FCV until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -784,6 +786,7 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestFixHashedIndexes(t *testing.T) {
+	t.Skipf("Skipping TestFixHashedIndexes until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -1129,5 +1132,67 @@ func TestMongorestoreAWSAuth(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 3)
 		})
+	})
+}
+
+// TestSkipStartAndAbortIndexBuild asserts that all "startIndexBuild" and "abortIndexBuild" oplog
+// entries are skipped when restoring the oplog.
+func TestSkipStartAndAbortIndexBuild(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.SkipNow()
+	}
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database("test")
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection("skip_index_entries").Drop(ctx)
+
+		// oplog.bson only has startIndexBuild and abortIndexBuild entries
+		args := []string{
+			DirectoryOption, "testdata/oplog_ignore_index",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
+			// Run mongorestore
+			dbLocal := session.Database("local")
+			queryObj := bson.D{{
+				"and", bson.A{
+					bson.D{{"ns", bson.M{"$ne": "config.system.sessions"}}},
+					bson.D{{"op", bson.M{"$ne": "n"}}},
+				},
+			}}
+
+			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			Convey("No new oplog entries should be recorded", func() {
+				// Filter out no-ops
+				countAfterRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
+
+				So(err, ShouldBeNil)
+				So(countBeforeRestore, ShouldEqual, countAfterRestore)
+			})
+		}
 	})
 }
