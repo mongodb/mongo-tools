@@ -682,6 +682,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
+          go run release/release.go build-archive
           go run release/release.go build-packages
 
     # upload individual release artifacts to task page
