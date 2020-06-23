@@ -745,18 +745,17 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
-          if [ ! -f /usr/local/bin/notary-client.py ]; then
-              exit 0
+          if [ -f /usr/local/bin/notary-client.py ]; then
+            /usr/local/bin/notary-client.py \
+                --key-name "server-Tools" \
+                --auth-token-file ./signing_auth_token \
+                --comment "Evergreen Automatic Signing (mongo-tools)" \
+                --notary-url http://notary-service.build.10gen.cc:5000 \
+                --skip-missing \
+                --outputs "sig" \
+                --package-file-suffix "" \
+                release.msi
           fi
-          /usr/local/bin/notary-client.py \
-              --key-name "server-Tools" \
-              --auth-token-file ./signing_auth_token \
-              --comment "Evergreen Automatic Signing (mongo-tools)" \
-              --notary-url http://notary-service.build.10gen.cc:5000 \
-              --skip-missing \
-              --outputs "sig" \
-              --package-file-suffix "" \
-              release.msi
 
   "sign macos zip":
     - command: shell.exec
