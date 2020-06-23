@@ -780,7 +780,7 @@ functions:
           {
             "source" : ["LICENSE.md", "README.md", "THIRD-PARTY-NOTICES",
               "bin/bsondump", "bin/mongodump",  "bin/mongoexport",
-              "bin/mongofiles", "bin/mongoimport",  "bin/mongorestore"
+              "bin/mongofiles", "bin/mongoimport",  "bin/mongorestore",
               "bin/mongostat",  "bin/mongotop"
             ],
             "bundle_id" : "com.mongodb.mongotools",
@@ -796,7 +796,6 @@ functions:
             }
           }
           EOF_GON_JSON
-          tar xvzf all-release-artifacts.tgz
           tar xvzf release.tgz
           mv mongodb-database-tools*/* ./
           ssh -v -p 2222 localhost -t "cd $PWD && ./gon -log-level=info gon.json"
