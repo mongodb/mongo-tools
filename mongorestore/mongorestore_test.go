@@ -79,7 +79,7 @@ func TestMongorestore(t *testing.T) {
 			// and ParseAndValidateOptions can idiomatically return
 			// testable error values
 			var buffer bytes.Buffer
-			
+
 			log.SetWriter(&buffer)
 			defer log.SetWriter(os.Stderr)
 
@@ -96,9 +96,9 @@ func TestMongorestore(t *testing.T) {
 				if err != nil {
 					t.Errorf("Cannot connect to test database: %v", err.Error())
 				}
-                                err = restore.ParseAndValidateOptions()
+				err = restore.ParseAndValidateOptions()
 
-                                So(err, ShouldBeNil)
+				So(err, ShouldBeNil)
 				So(buffer.String(), ShouldBeEmpty)
 			})
 
@@ -111,12 +111,12 @@ func TestMongorestore(t *testing.T) {
 
 				restore, err := getRestoreWithArgs(args...)
 
-                                if err != nil {
+				if err != nil {
 					t.Errorf("Cannot connect to database: %v", err.Error())
-                                }
-                                err = restore.ParseAndValidateOptions()
+				}
+				err = restore.ParseAndValidateOptions()
 
-                                So(err, ShouldBeNil)
+				So(err, ShouldBeNil)
 				So(buffer.String(), ShouldNotBeEmpty)
 			})
 		})
