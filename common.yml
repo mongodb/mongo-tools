@@ -14,8 +14,6 @@ mongo_tools_variables:
     mac_task_list: &macos_tasks
       - name: dist
       - name: sign
-        variables:
-          _os: macos
         run_on: macos-1014-codesign
       - name: push
         run_on: rhel70-small
@@ -745,7 +743,7 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
-          if [ "${_os}" = "macos" ]; then
+          if [ "${mongo_os}" = "osx" ]; then
               exit 0
           fi
           /usr/local/bin/notary-client.py \
@@ -767,7 +765,7 @@ functions:
           set -o xtrace
           set -o errexit
           set -o verbose
-          if [ "${_os}" != "macos" ]; then
+          if [ "${mongo_os}" != "osx" ]; then
               exit 0
           fi
           curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
@@ -807,7 +805,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools/
         silent: true
         script: |
-          if [ "${_os}" = "macos" ]; then
+          if [ "${mongo_os}" = "osx" ]; then
               exit 0
           fi
           echo "${signing_auth_token_server_4_4}" > ./signing_auth_token
@@ -846,6 +844,9 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
+          if [ "${_os}" = "macos" ]; then
+              exit 0
+          fi
           /usr/local/bin/notary-client.py \
               --key-name "server-Tools" \
               --auth-token-file ./signing_auth_token \
