@@ -15,7 +15,7 @@ mongo_tools_variables:
       - name: dist
       - name: sign
         variables:
-          _variant: macos
+          _os: macos
         run_on: macos-1014-codesign
       - name: push
         run_on: rhel70-small
@@ -745,7 +745,7 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
-          if [ ${_variant} = "macos" ]; then
+          if [ "${_os}" = "macos" ]; then
               exit 0
           fi
           /usr/local/bin/notary-client.py \
@@ -767,7 +767,7 @@ functions:
           set -o xtrace
           set -o errexit
           set -o verbose
-          if [ ${_variant} != "macos" ]; then
+          if [ "${_os}" != "macos" ]; then
               exit 0
           fi
           curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
