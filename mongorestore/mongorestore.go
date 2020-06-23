@@ -111,7 +111,6 @@ func New(opts Options) (*MongoRestore, error) {
 		ProgressManager: progressManager,
 		serverVersion:   serverVersion,
 	}
-
 	return restore, nil
 }
 
@@ -215,22 +214,11 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
-		// log a deprecation message if restoring from a directory, or
-		// from a non-bson file with the --archive option
-		_, fileType, err := restore.getInfoFromFile(restore.TargetDirectory)
-		if err != nil {
-			return err
-		}
-
-		isDir := false
-		if target, err := newActualPath(restore.TargetDirectory); err == nil {
-			isDir = target.IsDir()
-		}
-
-		if isDir || (fileType != BSONFileType && restore.InputOptions.Archive != "") {
-			log.Logvf(log.Always, "the --db and --collection args should only be used when "+
-				"restoring from a BSON file. Other uses are deprecated and will not exist "+
-				"in the future; use --nsInclude instead")
+		if filepath.Ext(restore.TargetDirectory) != ".bson" {
+			log.Logvf(log.Always,
+				`The --db and --collection flags are deprecated for 
+                                 this use-case; please use --nsInclude instead, 
+                                 i.e. with --nsInclude=${DATABASE}.${COLLECTION}`)
 		}
 	}
 	if len(restore.NSOptions.ExcludedCollections) > 0 ||
