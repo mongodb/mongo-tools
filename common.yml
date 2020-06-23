@@ -815,7 +815,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools/
         silent: false
         script: |
-          if [ "${_os}" = "macos" ]; then
+          if [ "${_os}" = "osx" ]; then
               exit 0
           fi
           set -o errexit
@@ -844,7 +844,7 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
-          if [ "${_os}" = "macos" ]; then
+          if [ "${_os}" = "osx" ]; then
               exit 0
           fi
           /usr/local/bin/notary-client.py \
