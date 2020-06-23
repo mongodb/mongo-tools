@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -69,6 +70,57 @@ func TestMongorestore(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
+		// As specified in TOOLS-2363, the --db and --collection options
+		// are well-defined only for restoration of a single BSON file
+		Convey("and proper warning is issued if --db and --collection are not supported", func() {
+			// Hack to make log readable when testing
+
+			// TODO: Handle all logging in main so that ParseOptions
+			// and ParseAndValidateOptions can idiomatically return
+			// testable error values
+			var buffer bytes.Buffer
+			
+			log.SetWriter(&buffer)
+			defer log.SetWriter(os.Stderr)
+
+			Convey("and no warning is issued in the well-defined case", func() {
+				// No error and nothing written in the log
+				args := []string{
+					"testdata/hashedIndexes.bson",
+					DBOption, "db1	",
+					CollectionOption, "coll1",
+				}
+
+				restore, err := getRestoreWithArgs(args...)
+
+				if err != nil {
+					t.Errorf("Cannot connect to test database: %v", err.Error())
+				}
+                                err = restore.ParseAndValidateOptions()
+
+                                So(err, ShouldBeNil)
+				So(buffer.String(), ShouldBeEmpty)
+			})
+
+			Convey("and a warning is issued in the deprecated case", func() {
+				// No error and some kind of warning message in the log
+				args := []string{
+					DBOption, "db1",
+					CollectionOption, "coll1",
+				}
+
+				restore, err := getRestoreWithArgs(args...)
+
+                                if err != nil {
+					t.Errorf("Cannot connect to database: %v", err.Error())
+                                }
+                                err = restore.ParseAndValidateOptions()
+
+                                So(err, ShouldBeNil)
+				So(buffer.String(), ShouldNotBeEmpty)
+			})
+		})
+
 		args := []string{
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
