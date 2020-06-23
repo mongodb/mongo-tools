@@ -796,8 +796,9 @@ functions:
             }
           }
           EOF_GON_JSON
-          unzip release.zip
-          mv mongodb-bi-*/* ./
+          tar xvzf all-release-artifacts.tgz
+          tar xvzf release.tgz
+          mv mongodb-database-tools*/* ./
           ssh -v -p 2222 localhost -t "cd $PWD && ./gon -log-level=info gon.json"
 
   "sign linux packages":
