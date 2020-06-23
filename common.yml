@@ -13,9 +13,10 @@ mongo_tools_variables:
   mongo_tools_task_lists:
     mac_task_list: &macos_tasks
       - name: dist
-        run_on: macos-1014-codesign
       - name: sign
-        run_on: amazon1-2018-test
+        variables:
+          _variant: macos
+        run_on: macos-1014-codesign
       - name: push
         run_on: rhel70-small
       - name: integration-3.6
@@ -680,21 +681,7 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          echo '111111111111111'
           ${_set_shell_env}
-          export AC_USERNAME=${ac_username}
-          export AC_PASSWORD=${ac_password}
-          go run release/release.go build-archive
-          echo "======"
-          ls -R .
-          cat ./gon.json
-          echo "=============="
-          # if we are on macos, we will have created a gon.json file, go ahead and run gon.
-          # sadly, ssh does not work from our go run code.
-          if [ -f ./gon.json ]; then
-              ssh -v -p 2222 localhost -t "cd $PWD  && ./gon ./gon.json"
-          fi
-          # this command only does anything on Windows and Linux.
           go run release/release.go build-packages
 
     # upload individual release artifacts to task page
@@ -757,6 +744,9 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
+          if [ ! -f /usr/local/bin/notary-client.py ]; then
+              exit 0
+          fi
           /usr/local/bin/notary-client.py \
               --key-name "server-Tools" \
               --auth-token-file ./signing_auth_token \
@@ -766,6 +756,48 @@ functions:
               --outputs "sig" \
               --package-file-suffix "" \
               release.msi
+
+  "sign macos zip":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools/
+        silent: false
+        script: |
+          set -o xtrace
+          set -o errexit
+          set -o verbose
+          if [ ${_variant} != "macos" ]; then
+              exit 0
+          fi
+          curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
+          unzip gon.zip
+          OUTPUT_PATH="./release.zip"
+          AC_USERNAME="${ac_username}"
+          AC_PASSWORD="${ac_password}"
+          # gon settings
+          cat <<EOF_GON_JSON > gon.json
+          {
+            "source" : ["LICENSE.md", "README.md", "THIRD-PARTY-NOTICES",
+              "bin/bsondump", "bin/mongodump",  "bin/mongoexport",
+              "bin/mongofiles", "bin/mongoimport",  "bin/mongorestore"
+              "bin/mongostat",  "bin/mongotop"
+            ],
+            "bundle_id" : "com.mongodb.mongotools",
+            "apple_id": {
+              "username": "$AC_USERNAME",
+              "password": "$AC_PASSWORD"
+            },
+            "sign" :{
+              "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
+            },
+            "zip" :{
+              "output_path": "$OUTPUT_PATH"
+            }
+          }
+          EOF_GON_JSON
+          unzip release.zip
+          mv mongodb-bi-*/* ./
+          ssh -v -p 2222 localhost -t "cd $PWD && ./gon -log-level=info gon.json"
 
   "sign linux packages":
     - command: shell.exec
@@ -1126,6 +1158,7 @@ tasks:
   commands:
     - func: "fetch dist release artifacts"
     - func: "sign msi installer"
+    - func: "sign macos zip"
     - func: "sign linux packages"
     - func: "sign archives"
     - func: "upload signed release artifacts"

@@ -220,8 +220,6 @@ func buildArchive() {
 	check(err, "get platform")
 	if pf.OS == platform.OSWindows {
 		buildZip()
-	} else if pf.OS == platform.OSMac {
-		setupGon()
 	} else {
 		buildTarball()
 	}
@@ -871,45 +869,6 @@ func buildZip() {
 		dst := filepath.Join(releaseName, "bin", binName+".exe")
 		addToZip(zw, dst, src)
 	}
-}
-
-func setupGon() {
-	out, err := run("curl", "-sL", "https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip", "|", "unzip")
-	check(err, "failed to run curl and unzip of gon with output: "+out)
-	files := []string{}
-	for _, name := range staticFiles {
-		log.Printf("adding %s to zip list in gon.json\n", name)
-		src := name
-		files = append(files, src)
-	}
-
-	for _, binName := range binaries {
-		log.Printf("adding %s binary to zip list in gon.json\n", binName)
-		src := filepath.Join(".", "bin", binName)
-		files = append(files, src)
-	}
-
-	conf := `
-          {
-            "source" : [%s],
-            "bundle_id" : "com.mongodb.mongo-tools",
-            "apple_id": {
-              "username": "%s",
-              "password": "%s"
-            },
-            "sign" :{
-              "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
-            },
-            "zip" :{
-              "output_path": "./release.zip"
-            }
-          }
-    `
-	conf = fmt.Sprintf(conf, strings.Join(files, ","), os.Getenv("AC_USERNAME"), os.Getenv("AC_PASSWORD"))
-	f, _ := os.Create("./gon.json")
-	w := bufio.NewWriter(f)
-	fmt.Fprintf(w, conf)
-	w.Flush()
 }
 
 func uploadReleaseJSON(v version.Version) {
