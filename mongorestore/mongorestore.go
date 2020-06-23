@@ -34,6 +34,12 @@ const (
 	progressBarWaitTime = time.Second * 3
 )
 
+const (
+	DEPRECATED_DB_AND_COLLECTION_WARNING = "The --db and --collection flags are deprecated for " +
+		"this use-case; please use --nsInclude instead, " +
+		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
+)
+
 // MongoRestore is a container for the user-specified options and
 // internal state used for running mongorestore.
 type MongoRestore struct {
@@ -215,10 +221,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
 		if filepath.Ext(restore.TargetDirectory) != ".bson" {
-			log.Logvf(log.Always,
-				`The --db and --collection flags are deprecated for 
-                                 this use-case; please use --nsInclude instead, 
-                                 i.e. with --nsInclude=${DATABASE}.${COLLECTION}`)
+			log.Logvf(log.Always, DEPRECATED_DB_AND_COLLECTION_WARNING)
 		}
 	}
 	if len(restore.NSOptions.ExcludedCollections) > 0 ||
