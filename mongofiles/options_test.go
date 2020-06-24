@@ -64,6 +64,7 @@ type PositionalArgumentTestCase struct {
 	ExpectedOpts Options
 	ExpectedMF   MongoFiles
 	ExpectErr    string
+	AuthType     string
 }
 
 func TestPositionalArgumentParsing(t *testing.T) {
@@ -311,6 +312,50 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
+				InputArgs: []string{"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token", "list", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+						},
+						Auth: &options.Auth{
+							Username: "user",
+							Password: "pass",
+							AWSSessionToken: "token",
+							Mechanism: "MONGODB-AWS",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "list",
+				},
+				AuthType: "aws",
+			},
+			{
+				InputArgs: []string{"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI", "list", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI",
+						},
+						Auth: &options.Auth{
+							Username: "user",
+							Source: "$external",
+							Mechanism: "GSSAPI",
+						},
+						Kerberos: &options.Kerberos{
+							Service:     "service",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "list",
+				},
+				AuthType: "kerberos",
+			},
+			{
 				InputArgs: []string{"put_id", "mongodb://foo", "mongodb://bar"},
 				ExpectErr: "too many URIs found in positional arguments: only one URI can be set as a positional argument",
 			},
@@ -365,7 +410,16 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				So(mf.Id, ShouldEqual, tc.ExpectedMF.Id)
 				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
 			}
-
+			if tc.AuthType == "aws" {
+				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
+				So(opts.Auth.Password, ShouldEqual, tc.ExpectedOpts.Auth.Password)
+				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
+				So(opts.Auth.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.Auth.AWSSessionToken)
+			} else if tc.AuthType == "kerberos" {
+				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
+				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
+				So(opts.Auth.Source, ShouldEqual, tc.ExpectedOpts.Auth.Source)
+			}
 		}
 	})
 }
