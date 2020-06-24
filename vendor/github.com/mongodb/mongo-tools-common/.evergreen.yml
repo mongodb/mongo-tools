@@ -258,8 +258,13 @@ functions:
             elif [ -f "$venv"/bin/activate ]; then
               . "$venv"/Scripts/activate
             fi
-            pip3 install boto3
+            if [ "Windows_NT" = "$OS" ]; then
+              pip install boto3
+            else
+              python3 -m pip install --user boto3
+            fi
           fi
+          pip list
           ./bin/mongo --nodb aws_e2e_assume_role.js
     - command: shell.exec
       type: test
@@ -689,7 +694,6 @@ buildvariants:
   - name: integration-4.2-auth
   - name: integration-4.4
   - name: integration-4.4-auth
-  - name: aws-auth
   - name: kerberos
   - name: vet
   - name: lint
@@ -795,6 +799,7 @@ buildvariants:
   - name: integration-4.2-auth
   - name: integration-4.4
   - name: integration-4.4-auth
+  - name: aws-auth
 
 - name: ubuntu1604-enterprise
   display_name: Ubuntu 16.04 Enterprise

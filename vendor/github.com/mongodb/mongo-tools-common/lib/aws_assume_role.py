@@ -29,7 +29,7 @@ def _assume_role(role_name):
        '",\n"Expiration" : "' + str(creds['Expiration']) + '"\n}')
 
 
-def main() -> None:
+def main():
     """Execute Main entry point."""
 
     parser = argparse.ArgumentParser(description='Assume Role frontend.')
