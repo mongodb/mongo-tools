@@ -65,15 +65,16 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
+	// As specified in TOOLS-2363, the --db and --collection options
+	// are well-defined only for restoration of a single BSON file
 	Convey("The proper warning message is issued if --db and --collection "+
 		"are used in a case where they are deprecated", func() {
-		/* Hacky way of looking at the application log at test-time
-
-		   Ideally, we would be able to use some form of explicit dependency
-		   injection to specify the sink for the parsing/validation log. However,
-		   the validation logic here is coupled with the mongorestore.MongoRestore
-		   type, which does not support such an injection.
-		*/
+		// Hacky way of looking at the application log at test-time
+		
+		// Ideally, we would be able to use some form of explicit dependency
+		// injection to specify the sink for the parsing/validation log. However,
+		// the validation logic here is coupled with the mongorestore.MongoRestore
+		// type, which does not support such an injection.
 
 		var buffer bytes.Buffer
 
@@ -114,7 +115,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 			err = restore.ParseAndValidateOptions()
 
 			So(err, ShouldBeNil)
-			So(buffer.String(), ShouldContainSubstring, deprecated_db_and_collection_option_warning)
+			So(buffer.String(), ShouldContainSubstring, deprecatedDBAndCollectionsOptionsWarning)
 		})
 	})
 }
@@ -127,9 +128,6 @@ func TestMongorestore(t *testing.T) {
 	}
 
 	Convey("With a test MongoRestore", t, func() {
-		// As specified in TOOLS-2363, the --db and --collection options
-		// are well-defined only for restoration of a single BSON file
-
 		args := []string{
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",

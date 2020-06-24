@@ -35,7 +35,7 @@ const (
 )
 
 const (
-	deprecated_db_and_collection_options_warning = "The --db and --collection flags are deprecated for " +
+	deprecatedDBAndCollectionsOptionsWarning = "The --db and --collection flags are deprecated for " +
 		"this use-case; please use --nsInclude instead, " +
 		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
 )
@@ -221,7 +221,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
 		if filepath.Ext(restore.TargetDirectory) != ".bson" {
-			log.Logvf(log.Always, deprecated_db_and_collection_option_warning)
+			log.Logvf(log.Always, deprecatedDBAndCollectionsOptionsWarning)
 		}
 	}
 	if len(restore.NSOptions.ExcludedCollections) > 0 ||
