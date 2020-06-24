@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -59,6 +60,64 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 	}
 
 	return restore, nil
+}
+
+func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	// As specified in TOOLS-2363, the --db and --collection options
+	// are well-defined only for restoration of a single BSON file
+	Convey("The proper warning message is issued if --db and --collection "+
+		"are used in a case where they are deprecated", func() {
+		// Hacky way of looking at the application log at test-time
+
+		// Ideally, we would be able to use some form of explicit dependency
+		// injection to specify the sink for the parsing/validation log. However,
+		// the validation logic here is coupled with the mongorestore.MongoRestore
+		// type, which does not support such an injection.
+
+		var buffer bytes.Buffer
+
+		log.SetWriter(&buffer)
+		defer log.SetWriter(os.Stderr)
+
+		Convey("and no warning is issued in the well-defined case", func() {
+			// No error and nothing written in the log
+			args := []string{
+				"testdata/hashedIndexes.bson",
+				DBOption, "db1	",
+				CollectionOption, "coll1",
+			}
+
+			restore, err := getRestoreWithArgs(args...)
+
+			if err != nil {
+				t.Errorf("Cannot bootstrap test harness: %v", err.Error())
+			}
+			err = restore.ParseAndValidateOptions()
+
+			So(err, ShouldBeNil)
+			So(buffer.String(), ShouldBeEmpty)
+		})
+
+		Convey("and a warning is issued in the deprecated case", func() {
+			// No error and some kind of warning message in the log
+			args := []string{
+				DBOption, "db1",
+				CollectionOption, "coll1",
+			}
+
+			restore, err := getRestoreWithArgs(args...)
+
+			if err != nil {
+				t.Errorf("Cannot bootstrap test harness: %v", err.Error())
+			}
+			err = restore.ParseAndValidateOptions()
+
+			So(err, ShouldBeNil)
+			So(buffer.String(), ShouldContainSubstring, deprecatedDBAndCollectionsOptionsWarning)
+		})
+	})
 }
 
 func TestMongorestore(t *testing.T) {
