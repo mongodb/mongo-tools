@@ -1117,7 +1117,7 @@ functions:
             SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
             MONGODB_URI="mongodb://$USER:$PASS@localhost"
           EOF
-  "run-aws-auth-tests":
+  "run-aws-auth-test-with-assume-role-credentials":
     - command: shell.exec
       type: test
       params:
@@ -1550,7 +1550,7 @@ tasks:
         AWS_AUTH: "true"
     - func: "add-aws-auth-variables-to-file"
     - func: "setup-aws-auth-test-with-assume-role-credentials"
-    - func: "run-aws-auth-tests"
+    - func: "run-aws-auth-test-with-assume-role-credentials"
       vars:
         AWS_AUTH: "true"
 
