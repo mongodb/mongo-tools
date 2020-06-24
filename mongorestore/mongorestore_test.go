@@ -81,7 +81,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 		log.SetWriter(&buffer)
 		defer log.SetWriter(os.Stderr)
 
-		Convey("and no warning is issued in the well-defined case", func() {
+		Convey("and no warning is issued in the well-defined case", t, func() {
 			// No error and nothing written in the log
 			args := []string{
 				"testdata/hashedIndexes.bson",
@@ -100,7 +100,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 			So(buffer.String(), ShouldBeEmpty)
 		})
 
-		Convey("and a warning is issued in the deprecated case", func() {
+		Convey("and a warning is issued in the deprecated case", t, func() {
 			// No error and some kind of warning message in the log
 			args := []string{
 				DBOption, "db1",
