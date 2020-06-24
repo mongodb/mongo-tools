@@ -344,9 +344,6 @@ func TestPositionalArgumentParsing(t *testing.T) {
 							Source: "$external",
 							Mechanism: "GSSAPI",
 						},
-						Kerberos: &options.Kerberos{
-							Service:     "service",
-						},
 					},
 				},
 				ExpectedMF: MongoFiles{
