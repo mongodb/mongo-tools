@@ -15,9 +15,11 @@ Report any bugs, improvements, or new feature requests at https://jira.mongodb.o
 Building Tools
 ---------------
 To build the tools, you need to have Go version 1.9 and up. `go get` will not work; you
-need to clone the repository to build it.
+need to clone the repository to build it. Be sure to clone the repository into your Go workspace.
 
 ```
+mkdir -p $GOPATH/src/github.com/mongodb
+cd $GOPATH/src/github.com/mongodb
 git clone https://github.com/mongodb/mongo-tools
 cd mongo-tools
 ```
