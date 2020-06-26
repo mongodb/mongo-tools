@@ -17,6 +17,21 @@ set_goenv || exit
 # remove stale packages
 rm -rf vendor/pkg
 
+if [ "${TOOLS_TESTING_AWS_AUTH}" = "true" ]; then
+  echo "Running MONGODB-AWS authentication tests"
+  # load the script
+  shopt -s expand_aliases # needed for `urlencode` alias
+  [ -s "$(pwd)/prepare_mongodb_aws.sh" ] && source "$(pwd)/prepare_mongodb_aws.sh"
+
+  MONGODB_URI=${MONGODB_URI:-"mongodb://localhost"}
+  MONGODB_URI="${MONGODB_URI}:33333/aws?authMechanism=MONGODB-AWS"
+  if [[ -n ${SESSION_TOKEN} ]]; then
+      MONGODB_URI="${MONGODB_URI}&authMechanismProperties=AWS_SESSION_TOKEN:${SESSION_TOKEN}"
+  fi
+fi;
+
+export MONGOD=$MONGODB_URI
+
 ec=0
 
 # Run all tests depending on what flags are set in the environment

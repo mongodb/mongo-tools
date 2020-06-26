@@ -11,6 +11,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"testing"
 )
@@ -142,12 +143,15 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
 							ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+							ConnString: connstring.ConnString{
+								AuthMechanismProperties: map[string]string{"AWS_SESSION_TOKEN": "token"},
+							},
 						},
 						Auth: &options.Auth{
-							Username: "user",
-							Password: "pass",
+							Username:        "user",
+							Password:        "pass",
 							AWSSessionToken: "token",
-							Mechanism: "MONGODB-AWS",
+							Mechanism:       "MONGODB-AWS",
 						},
 					},
 					TargetDirectory: "",
@@ -155,16 +159,26 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				AuthType: "aws",
 			},
 			{
-				InputArgs: []string{"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI"},
+				InputArgs: []string{"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm"},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
-							ConnectionString: "mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI",
+							ConnectionString: "mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
+							ConnString: connstring.ConnString{
+								AuthMechanismProperties: map[string]string{
+									"SERVICE_NAME":           "service",
+									"CANONICALIZE_HOST_NAME": "host",
+									"SERVICE_REALM":          "realm",
+								},
+							},
 						},
 						Auth: &options.Auth{
-							Username: "user",
-							Source: "$external",
+							Username:  "user",
+							Source:    "$external",
 							Mechanism: "GSSAPI",
+						},
+						Kerberos: &options.Kerberos{
+							Service: "service",
 						},
 					},
 					TargetDirectory: "",
@@ -215,12 +229,17 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			if tc.AuthType == "aws" {
 				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
 				So(opts.Auth.Password, ShouldEqual, tc.ExpectedOpts.Auth.Password)
-				So(opts.Auth.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.Auth.AWSSessionToken)
 				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
+				So(opts.Auth.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.Auth.AWSSessionToken)
+				So(opts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"])
 			} else if tc.AuthType == "kerberos" {
 				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
 				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
 				So(opts.Auth.Source, ShouldEqual, tc.ExpectedOpts.Auth.Source)
+				So(opts.URI.ConnString.AuthMechanismProperties["SERVICE_NAME"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["SERVICE_NAME"])
+				So(opts.URI.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"])
+				So(opts.URI.ConnString.AuthMechanismProperties["SERVICE_REALM"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["SERVICE_REALM"])
+				So(opts.Kerberos.Service, ShouldEqual, tc.ExpectedOpts.Kerberos.Service)
 			}
 		}
 	})
