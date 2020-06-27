@@ -271,9 +271,11 @@ mongo_tools_variables:
       mongod_port: 33333
     ssl: &mongod_ssl_startup_args
       mongod_args: "--sslMode requireSSL --sslCAFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem --sslPEMKeyFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem"
+      replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem\\\", sslCAFile: \\\"vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
     tls: &mongod_tls_startup_args
       mongod_args_tls: "--tlsMode requireTLS --tlsCAFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem --tlsCertificateKeyFile vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem"
+      replsettest_tls_config: "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"vendor/github.com/mongodb/mongo-tools-common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"vendor/github.com/mongodb/mongo-tools-common/db/testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
 
   mongo_arguments:
@@ -1037,11 +1039,17 @@ functions:
           set -e
           echo "starting repl set"
           MONGO_ARGS="${mongo_args}"
-          if [ "${USE_TLS}" = "true" ]; then
-            MONGO_ARGS="${mongo_args_tls}"
-          fi;
+          NODE_OPTIONS=""
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester"});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          if [ "${USE_TLS}" = "true" ]; then
+            NODE_OPTIONS="${replsettest_tls_config}"
+            MONGO_ARGS="${mongo_args_tls}"
+          elif [ "${USE_SSL}" = "true" ]; then
+            NODE_OPTIONS="${replsettest_ssl_config}"
+          fi
+
+          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -1406,9 +1414,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.0"
-    - func: "start mongod cluster"
-    - func: "wait for mongod to be ready"
     - func: "create repl_set"
+      vars:
+        USE_SSL: "true"
     - func: "run tool integration tests"
       vars:
         INT_TEST: "true"
@@ -1525,12 +1533,6 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "start mongod cluster"
-      vars:
-        USE_TLS: "true"
-    - func: "wait for mongod to be ready"
-      vars:
-        USE_TLS: "true"
     - func: "create repl_set"
       vars:
         USE_TLS: "true"

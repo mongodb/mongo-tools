@@ -610,7 +610,6 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
-	t.Skipf("Skipping TestDeprecatedIndexOptions until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -674,7 +673,6 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
-	t.Skipf("Skipping TestDeprecatedIndexOptionsOn44FCV until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -845,7 +843,6 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestFixHashedIndexes(t *testing.T) {
-	t.Skipf("Skipping TestFixHashedIndexes until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -1253,5 +1250,158 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 				So(countBeforeRestore, ShouldEqual, countAfterRestore)
 			})
 		}
+	})
+}
+
+// TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands
+func TestCommitIndexBuild(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+	testDB := "commit_index"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV at least 4.4")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(testDB)
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection(testDB).Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/commit_indexes_build",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index", func() {
+			destColl := session.Database("commit_index").Collection("test")
+			indexes, _ := destColl.Indexes().List(context.Background())
+
+			type indexSpec struct {
+				Name, NS                string
+				Key                     bson.D
+				Unique                  bool    `bson:",omitempty"`
+				DropDups                bool    `bson:"dropDups,omitempty"`
+				Background              bool    `bson:",omitempty"`
+				Sparse                  bool    `bson:",omitempty"`
+				Bits                    int     `bson:",omitempty"`
+				Min                     float64 `bson:",omitempty"`
+				Max                     float64 `bson:",omitempty"`
+				BucketSize              float64 `bson:"bucketSize,omitempty"`
+				ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
+				Weights                 bson.D  `bson:",omitempty"`
+				DefaultLanguage         string  `bson:"default_language,omitempty"`
+				LanguageOverride        string  `bson:"language_override,omitempty"`
+				TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
+				PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
+
+				Collation bson.D `bson:"collation,omitempty"`
+			}
+
+			indexCnt := 0
+			for indexes.Next(context.Background()) {
+				var index indexSpec
+				err := indexes.Decode(&index)
+				So(err, ShouldBeNil)
+				indexCnt++
+			}
+			// Should create 2 indexes: _id and a
+			So(indexCnt, ShouldEqual, 2)
+		})
+	})
+}
+
+// CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4
+func TestCreateIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+	testDB := "create_indexes"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(testDB)
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection(testDB).Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/create_indexes",
+			OplogReplayOption,
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+
+		Convey("RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index", func() {
+			destColl := session.Database("create_indexes").Collection("test")
+			indexes, _ := destColl.Indexes().List(context.Background())
+
+			type indexSpec struct {
+				Name, NS                string
+				Key                     bson.D
+				Unique                  bool    `bson:",omitempty"`
+				DropDups                bool    `bson:"dropDups,omitempty"`
+				Background              bool    `bson:",omitempty"`
+				Sparse                  bool    `bson:",omitempty"`
+				Bits                    int     `bson:",omitempty"`
+				Min                     float64 `bson:",omitempty"`
+				Max                     float64 `bson:",omitempty"`
+				BucketSize              float64 `bson:"bucketSize,omitempty"`
+				ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
+				Weights                 bson.D  `bson:",omitempty"`
+				DefaultLanguage         string  `bson:"default_language,omitempty"`
+				LanguageOverride        string  `bson:"language_override,omitempty"`
+				TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
+				PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
+
+				Collation bson.D `bson:"collation,omitempty"`
+			}
+
+			indexCnt := 0
+			for indexes.Next(context.Background()) {
+				var index indexSpec
+				err := indexes.Decode(&index)
+				So(err, ShouldBeNil)
+				indexCnt++
+			}
+			// Should create 2 indexes: _id and a
+			So(indexCnt, ShouldEqual, 2)
+		})
 	})
 }
