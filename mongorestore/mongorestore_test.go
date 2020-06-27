@@ -551,7 +551,6 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
-	t.Skipf("Skipping TestDeprecatedIndexOptions until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -615,7 +614,6 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
-	t.Skipf("Skipping TestDeprecatedIndexOptionsOn44FCV until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -786,7 +784,6 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestFixHashedIndexes(t *testing.T) {
-	t.Skipf("Skipping TestFixHashedIndexes until TOOLS-2604 is resolved")
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
 	if err != nil {
