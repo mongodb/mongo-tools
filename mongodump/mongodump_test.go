@@ -44,7 +44,7 @@ var (
 )
 
 const (
-	longPrefix            = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+	longPrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
 	longCollectionName = longPrefix + "/Long/Collection/Name/Consisting/Of/Many/Characters"
