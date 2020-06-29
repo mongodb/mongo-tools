@@ -1267,10 +1267,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -1338,10 +1334,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -1382,10 +1374,6 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
