@@ -68,7 +68,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 	// As specified in TOOLS-2363, the --db and --collection options
 	// are well-defined only for restoration of a single BSON file
 	Convey("The proper warning message is issued if --db and --collection "+
-		"are used in a case where they are deprecated", func() {
+		"are used in a case where they are deprecated", t, func() {
 		// Hacky way of looking at the application log at test-time
 
 		// Ideally, we would be able to use some form of explicit dependency
