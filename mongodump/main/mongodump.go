@@ -65,8 +65,7 @@ func main() {
 		ProgressManager: progressManager,
 	}
 
-	finishedChan := signals.HandleWithInterrupt(dump.HandleInterrupt)
-	defer close(finishedChan)
+	signals.HandleWithInterrupt(dump.HandleInterrupt)
 
 	if err = dump.Init(); err != nil {
 		log.Logvf(log.Always, "Failed: %v", err)

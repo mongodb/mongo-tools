@@ -46,8 +46,7 @@ func main() {
 	}
 	defer restore.Close()
 
-	finishedChan := signals.HandleWithInterrupt(restore.HandleInterrupt)
-	defer close(finishedChan)
+	signals.HandleWithInterrupt(restore.HandleInterrupt)
 
 	result := restore.Restore()
 	if result.Err != nil {

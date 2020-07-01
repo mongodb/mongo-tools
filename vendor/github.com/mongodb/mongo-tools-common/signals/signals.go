@@ -17,22 +17,20 @@ import (
 
 // Handle is like HandleWithInterrupt but it doesn't take a finalizer and will
 // exit immediately after the first signal is received.
-func Handle() chan struct{} {
-	return HandleWithInterrupt(nil)
+func Handle() {
+	HandleWithInterrupt(nil)
 }
 
 // HandleWithInterrupt starts a goroutine which listens for SIGTERM, SIGINT, and
-// SIGKILL and explicitly ignores SIGPIPE. It calls the finalizer function when
-// the first signal is received and forcibly terminates the program after the
+// SIGKILL and explicitly ignores SIGPIPE. It calls the finalizer function and exits
+// when the first signal is received and forcibly terminates the program after the
 // second. If a nil function is provided, the program will exit after the first
 // signal.
-func HandleWithInterrupt(finalizer func()) chan struct{} {
-	finishedChan := make(chan struct{})
-	go handleSignals(finalizer, finishedChan)
-	return finishedChan
+func HandleWithInterrupt(finalizer func()) {
+	go handleSignals(finalizer)
 }
 
-func handleSignals(finalizer func(), finishedChan chan struct{}) {
+func handleSignals(finalizer func()) {
 	// explicitly ignore SIGPIPE; the tools should deal with write errors
 	noopChan := make(chan os.Signal)
 	signal.Notify(noopChan, syscall.SIGPIPE)
@@ -42,21 +40,23 @@ func handleSignals(finalizer func(), finishedChan chan struct{}) {
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	defer signal.Stop(sigChan)
 	if finalizer != nil {
-		select {
-		case sig := <-sigChan:
-			// first signal use finalizer to terminate cleanly
+		switch sig := <-sigChan; sig {
+		// SIGINT & SIGTERM: use finalizer & terminate cleanly
+		case syscall.SIGINT, syscall.SIGTERM:
 			log.Logvf(log.Always, "signal '%s' received; attempting to shut down", sig)
 			finalizer()
-		case <-finishedChan:
-			return
+			os.Exit(util.ExitFailure)
+		// SIGKILL: terminate immediately
+		case syscall.SIGKILL:
+			log.Logvf(log.Always, "signal '%s' received; forcefully terminating", sig)
+			os.Exit(util.ExitFailure)
 		}
 	}
+
 	select {
 	case sig := <-sigChan:
-		// second signal exits immediately
+		// exit immediately
 		log.Logvf(log.Always, "signal '%s' received; forcefully terminating", sig)
 		os.Exit(util.ExitFailure)
-	case <-finishedChan:
-		return
 	}
 }
