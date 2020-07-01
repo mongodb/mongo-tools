@@ -144,7 +144,7 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:70b79c6b602d63b5dbb1ce88e90025ad02cb93c85ff69a5c1d93d660789cdc38"
+  digest = "1:220f3c6a1812d0eb1c534a7497663fae313f4ca5bbea09b6e8b5f4d2cc4ec0e5"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -166,7 +166,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "7caebb5fc9e7a91ff37758fec9b578536ec8c1e9"
+  revision = "d524d648bde8362d26c1cc41760dd9faef779295"
+  version = "3.0.9"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -367,6 +368,7 @@
     "go.mongodb.org/mongo-driver/mongo/writeconcern",
     "go.mongodb.org/mongo-driver/x/bsonx",
     "go.mongodb.org/mongo-driver/x/bsonx/bsoncore",
+    "go.mongodb.org/mongo-driver/x/mongo/driver/connstring",
     "gopkg.in/mgo.v2/bson",
     "gopkg.in/tomb.v2",
   ]

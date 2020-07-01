@@ -248,15 +248,10 @@ functions:
           if [ -f "$venv"/bin/activate ]; then
             echo 'using existing virtualenv'
             . "$venv"/bin/activate
-          elif [ -f "$venv"/Scripts/activate ]; then
-            echo 'using existing virtualenv'
-            . "$venv"/Scripts/activate
           elif virtualenv "$venv" || python3 -m virtualenv "$venv"; then
             echo 'creating new virtualenv'
             if [ -f "$venv"/bin/activate ]; then
               . "$venv"/bin/activate
-            elif [ -f "$venv"/bin/activate ]; then
-              . "$venv"/Scripts/activate
             fi
             if [ "Windows_NT" = "$OS" ]; then
               pip install boto3
@@ -296,11 +291,8 @@ functions:
           set -v
           . ./set_goenv.sh
           GOROOT="" set_goenv || exit
-          MONGO_ARGS="${mongo_args}"
-          if [ "${AWS_AUTH}" = "true" ]; then
-            export TOOLS_TESTING_AWS_AUTH="true"
-          fi;
           export ON_EVERGREEN="true"
+          export TOOLS_TESTING_AWS_AUTH="true"
           export TOOLS_BUILD_TAGS="failpoints sasl gssapi"
           chmod +x runTests.sh
           ./runTests.sh -v
@@ -341,10 +333,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -381,10 +369,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -421,10 +405,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -454,8 +434,6 @@ tasks:
     - func: "add-aws-auth-variables-to-file"
     - func: "setup-aws-auth-test-with-assume-role-credentials"
     - func: "run-aws-auth-test-with-assume-role-credentials"
-      vars:
-        AWS_AUTH: "true"
 
 - name: kerberos
   commands:
