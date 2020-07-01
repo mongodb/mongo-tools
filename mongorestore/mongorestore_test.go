@@ -63,7 +63,7 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 }
 
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	// As specified in TOOLS-2363, the --db and --collection options
 	// are well-defined only for restoration of a single BSON file
