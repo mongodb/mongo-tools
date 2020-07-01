@@ -35,19 +35,11 @@ load("lib/aws_e2e_lib.js");
   }
 
   const credentials = getAssumeCredentials();
-  var TOOLS_TEST_CONFIG = {
-    auth: '',
-    setParameter: {
-      authenticationMechanisms: 'MONGODB-AWS,SCRAM-SHA-256'
-    },
-  };
 
-  mkdir("/data/db/jstests_tool_assume_role/");
-  var toolTest = new ToolTest("assume_role", TOOLS_TEST_CONFIG);
-  toolTest.port = 33333;
-  toolTest.startDB();
+  // Connect to the mongod that's currently running on port 33333
+  const mongo = Mongo("localhost:33333");
+  const adminDB = mongo.getDB("admin");
 
-  var adminDB = toolTest.db.getSiblingDB('admin');
   adminDB.createUser({
     user: "bob",
     pwd: "pwd123",
@@ -55,9 +47,15 @@ load("lib/aws_e2e_lib.js");
   });
   assert(adminDB.auth("bob", "pwd123"));
 
-  const externalDB = toolTest.db.getSiblingDB('$external');
-  assert.commandWorked(externalDB.runCommand({createUser: ASSUMED_ROLE, roles:[{role: 'read', db: "aws_test_db"}]}));
-  assert.commandWorked(externalDB.runCommand({grantRolesToUser: ASSUMED_ROLE, roles: [{role: 'readWrite', db: "aws_test_db"}]}));
+  const externalDB = mongo.getDB("$external");
+
+  assert.commandWorked(externalDB.runCommand({
+    createUser: ASSUMED_ROLE,
+    roles:[
+      {role: 'read', db: "aws_test_db"},
+    ]
+  }));
+
   assert(externalDB.auth({
     user: credentials["AccessKeyId"],
     pwd: credentials["SecretAccessKey"],

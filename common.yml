@@ -33,7 +33,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: qa-dump-restore-with-gzip-current
       - name: qa-dump-restore-with-archiving-current
       - name: native-cert-ssl-current
@@ -93,7 +92,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: qa-dump-restore-with-gzip-current
         run_on: ubuntu1604-build
       - name: qa-dump-restore-with-archiving-current
@@ -115,7 +113,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: unit
     windows_64_task_list: &windows_64_tasks
       - name: dist
@@ -190,7 +187,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: native-cert-ssl-current
     rhel81_ppc64le_task_list: &rhel81_ppc64le_tasks
       - name: dist
@@ -224,7 +220,6 @@ mongo_tools_variables:
       - name: qa-tests-4.0
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
@@ -254,7 +249,6 @@ mongo_tools_variables:
       - name: qa-dump-restore-with-gzip-current
       - name: qa-tests-4.2
       - name: qa-tests-4.4
-      - name: aws-auth
       - name: native-cert-ssl-current
     ubuntu2004_arm64_task_list: &ubuntu2004_arm64_tasks
       - name: dist
@@ -622,22 +616,16 @@ functions:
         set -e
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
-        DB_PATH="mongodb/db_files"
         MONGOD_ARGS="${mongod_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
-        fi;
-        if [ "${AWS_AUTH}" = "true" ]; then
-          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
-          mkdir -p /data/db/jstests_tool_assume_role/
-          DB_PATH="/data/db/jstests_tool_assume_role"
         fi;
         echo "Starting mongod..."
         storage_args=''
         if [ "${STORAGE_ENGINE}" != '' ]; then
           storage_args='--storageEngine ${STORAGE_ENGINE}'
         fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath $DB_PATH --setParameter=enableTestCommands=1 $storage_args
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
 
   "start mongod cluster":
     command: shell.exec
@@ -668,9 +656,6 @@ functions:
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGO_ARGS="${mongo_args_tls}"
-        fi;
-        if [ "${AWS_AUTH}" = "true" ]; then
-          MONGO_ARGS="--port 33333"
         fi;
         while true ; do
             set -o verbose
@@ -1062,106 +1047,6 @@ functions:
             MONGO_ARGS="${mongo_args_tls}"
           fi;
           ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
-  "add-aws-auth-variables-to-file" :
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        silent: true
-        script: |
-          set -x
-          set -v
-          set -e
-          cat <<EOF > $(pwd)/aws_e2e_setup.json
-          {
-            "iam_auth_assume_aws_account": "${iam_auth_assume_aws_account}",
-            "iam_auth_assume_aws_secret_access_key": "${iam_auth_assume_aws_secret_access_key}",
-            "iam_auth_assume_role_name":"${iam_auth_assume_role_name}"
-          }
-          EOF
-          export AWS_ASSUMED_ROLE=${iam_auth_assume_role_name}
-  "setup-aws-auth-test-with-assume-role-credentials" :
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        silent: true
-        script: |
-          set -x
-          set -v
-          set -e
-          chmod +x bin/*
-          mv bin/* .
-          # The aws_e2e_assume_role script requires python3 with boto3.
-          venv='venv'
-          if [ -f "$venv"/bin/activate ]; then
-            echo 'using existing virtualenv'
-            . "$venv"/bin/activate
-          elif [ -f "$venv"/Scripts/activate ]; then
-            echo 'using existing virtualenv'
-            . "$venv"/Scripts/activate
-          elif virtualenv "$venv" || python3 -m virtualenv "$venv"; then
-            echo 'creating new virtualenv'
-            if [ -f "$venv"/bin/activate ]; then
-              . "$venv"/bin/activate
-            elif [ -f "$venv"/bin/activate ]; then
-              . "$venv"/Scripts/activate
-            fi
-            pip3 install boto3
-          fi
-          ./mongo --nodb aws_e2e_assume_role.js
-          mv mongod bin/
-          mv mongo bin/
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        silent: true
-        script: |
-          set -x
-          set -v
-          set -e
-          cat <<'EOF' > "$(pwd)/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
-            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < $(pwd)/creds.json'
-            USER=$(jsonkey AccessKeyId)
-            USER=$(urlencode $USER)
-            PASS=$(jsonkey SecretAccessKey)
-            PASS=$(urlencode $PASS)
-            SESSION_TOKEN=$(jsonkey SessionToken)
-            SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
-            MONGODB_URI="mongodb://$USER:$PASS@localhost"
-          EOF
-  "run-aws-auth-test-with-assume-role-credentials":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          . ./set_goenv.sh
-          GOROOT="" set_goenv || exit
-          MONGO_ARGS="${mongo_args}"
-          export TOOLS_TESTING_AWS_AUTH="true"
-          if [ "${USE_TLS}" = "true" ]; then
-            MONGO_ARGS="${mongo_args_tls}"
-            export TOOLS_TESTING_SSL="true"
-            export TOOLS_TESTING_AWS_AUTH="true"
-          fi;
-          if [ "${AUTH_TEST}" = "true" ]; then
-            export TOOLS_TESTING_AUTH="true"
-          fi;
-          if [ "${create_mongod_users_command}" != "" ]; then
-            export TOOLS_TESTING_AUTH_USERNAME=${auth_username}
-            export TOOLS_TESTING_AUTH_PASSWORD=${auth_password}
-            echo "${create_mongod_users_command}" | ./bin/mongo${extension} $MONGO_ARGS admin
-          fi;
-          export ON_EVERGREEN="true"
-          export TOOLS_BUILD_TAGS=""failpoints sasl gssapi""
-          chmod +x run-mongodb-aws-test.sh
-          ./run-mongodb-aws-test.sh -v
-          exit $?
 
 pre:
   - command: shell.exec
@@ -1390,10 +1275,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -1461,10 +1342,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -1505,10 +1382,6 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -1554,23 +1427,6 @@ tasks:
     - func: "run tool integration tests"
       vars:
           KERBEROS_TEST: "true"
-
-- name: aws-auth
-  commands:
-    - func: "fetch source"
-    - command: expansions.update
-    - func: "download mongod"
-      vars:
-        mongo_version: "4.4"
-    - func: "add-aws-auth-variables-to-file"
-    - func: "setup-aws-auth-test-with-assume-role-credentials"
-    - func: "start mongod"
-      vars:
-        AWS_AUTH: "true"
-    - func: "wait for mongod to be ready"
-      vars:
-        AWS_AUTH: "true"
-    - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: legacy42
   depends_on:

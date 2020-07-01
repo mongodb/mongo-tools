@@ -83,8 +83,12 @@ functions:
         set -e
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
+        MONGOD_ARGS="${mongod_args}"
+        if [ "${AWS_AUTH}" = "true" ]; then
+          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
+        fi;
         echo "Starting mongod..."
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} ${mongod_args} ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1
 
   "wait for mongod to be ready":
     command: shell.exec
@@ -94,9 +98,13 @@ functions:
         set -x
         set -v
         SECS=0
+        MONGO_ARGS="${mongo_args}"
+        if [ "${AWS_AUTH}" = "true" ]; then
+          MONGO_ARGS="--port 33333"
+        fi;
         while true ; do
             set -o verbose
-            ./bin/mongo${extension} ${mongo_args} --eval 'true;'
+            ./bin/mongo${extension} $MONGO_ARGS --eval 'true;'
             if [ "$?" = "0" ]; then
                 echo "mongod ready";
                 exit 0
@@ -192,6 +200,9 @@ functions:
           export TOOLS_TESTING_AUTH="true"
           export TOOLS_TESTING_INTEGRATION="true"
         fi;
+        if [ "${AWS_AUTH}" = "true" ]; then
+          export TOOLS_TESTING_AWS_AUTH="true"
+        fi;
         if [ "${KERBEROS_TEST}" = "true" ]; then
           export TOOLS_TESTING_KERBEROS="true"
         fi;
@@ -203,6 +214,89 @@ functions:
         export ON_EVERGREEN="true"
         ./runTests.sh -v
         exit $?
+
+  "add-aws-auth-variables-to-file":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools-common
+        silent: true
+        script: |
+          set -x
+          set -v
+          set -e
+          cat <<EOF > $(pwd)/aws_e2e_setup.json
+          {
+            "iam_auth_assume_aws_account": "${iam_auth_assume_aws_account}",
+            "iam_auth_assume_aws_secret_access_key": "${iam_auth_assume_aws_secret_access_key}",
+            "iam_auth_assume_role_name":"${iam_auth_assume_role_name}"
+          }
+          EOF
+          export AWS_ASSUMED_ROLE=${iam_auth_assume_role_name}
+  "setup-aws-auth-test-with-assume-role-credentials":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools-common
+        silent: true
+        script: |
+          set -x
+          set -v
+          set -e
+          # The aws_e2e_assume_role script requires python3 with boto3.
+          venv='venv'
+          if [ -f "$venv"/bin/activate ]; then
+            echo 'using existing virtualenv'
+            . "$venv"/bin/activate
+          elif virtualenv "$venv" || python3 -m virtualenv "$venv"; then
+            echo 'creating new virtualenv'
+            if [ -f "$venv"/bin/activate ]; then
+              . "$venv"/bin/activate
+            fi
+            if [ "Windows_NT" = "$OS" ]; then
+              pip install boto3
+            else
+              python3 -m pip install --user boto3
+            fi
+          fi
+          pip list
+          ./bin/mongo --nodb aws_e2e_assume_role.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools-common
+        silent: true
+        script: |
+          set -x
+          set -v
+          set -e
+          cat <<'EOF' > "$(pwd)/prepare_mongodb_aws.sh"
+            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < $(pwd)/creds.json'
+            USER=$(jsonkey AccessKeyId)
+            USER=$(urlencode $USER)
+            PASS=$(jsonkey SecretAccessKey)
+            PASS=$(urlencode $PASS)
+            SESSION_TOKEN=$(jsonkey SessionToken)
+            SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
+            MONGODB_URI="mongodb://$USER:$PASS@localhost"
+          EOF
+  "run-aws-auth-test-with-assume-role-credentials":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools-common
+        script: |
+          set -x
+          set -v
+          . ./set_goenv.sh
+          GOROOT="" set_goenv || exit
+          export ON_EVERGREEN="true"
+          export TOOLS_TESTING_AWS_AUTH="true"
+          export TOOLS_BUILD_TAGS="failpoints sasl gssapi"
+          chmod +x runTests.sh
+          ./runTests.sh -v
+          exit $?
 
 tasks:
 
@@ -239,10 +333,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -279,10 +369,6 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "auth_username"
-            value: "passwordIsTaco"
-          - key: "auth_password"
-            value: "Taco"
           - key: "create_mongod_users_command"
             value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
@@ -295,6 +381,59 @@ tasks:
           INT_TEST: "true"
           AUTH_TEST: "true"
     - func: "attach-test-results"
+
+- name: integration-4.4
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+    - func: "attach-test-results"
+
+- name: integration-4.4-auth
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args"
+            concat: " --auth"
+          - key: "create_mongod_users_command"
+            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        AUTH_TEST: "true"
+    - func: "attach-test-results"
+
+- name: aws-auth
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "run-aws-auth-test-with-assume-role-credentials"
 
 - name: kerberos
   commands:
@@ -444,6 +583,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 - name: macOS-1014-ssl
   display_name: MacOS 10.12 SSL
@@ -463,6 +604,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -484,6 +627,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 - name: rhel62-ssl
   display_name: RHEL 6.2 SSL
@@ -504,6 +649,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 - name: rhel62-enterprise
   display_name: RHEL 6.2 Enterprise
@@ -523,6 +670,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
   - name: kerberos
   - name: vet
   - name: lint
@@ -605,6 +754,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 - name: ubuntu1604-ssl
   display_name: Ubuntu 16.04 SSL
@@ -624,6 +775,9 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
+  - name: aws-auth
 
 - name: ubuntu1604-enterprise
   display_name: Ubuntu 16.04 Enterprise
@@ -643,6 +797,9 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
+  - name: aws-auth
   - name: kerberos
 
 - name: ubuntu1804
@@ -683,6 +840,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 - name: windows-64-ssl
   display_name: Windows 64-bit SSL
@@ -703,6 +862,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 - name: windows-64-enterprise
   display_name: Windows 64-bit Enterprise
@@ -723,6 +884,9 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
+  - name: aws-auth
   - name: kerberos
 
 #######################################
@@ -770,6 +934,8 @@ buildvariants:
   - name: unit
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 #######################################
 #        Power Buildvariants          #
@@ -796,6 +962,8 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
 
 # MongoDB 3.4 - 4.0
 - name: ubuntu1604-ppc64le-enterprise
@@ -846,6 +1014,9 @@ buildvariants:
   - name: integration-4.0-auth
   - name: integration-4.2
   - name: integration-4.2-auth
+  - name: integration-4.4
+  - name: integration-4.4-auth
+  - name: aws-auth
   - name: kerberos
 
 - name: rhel72-s390x-enterprise
