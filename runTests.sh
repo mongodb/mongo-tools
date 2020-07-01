@@ -16,6 +16,7 @@ set_goenv || exit
 
 # remove stale packages
 rm -rf vendor/pkg
+
 # build binaries for any tests that expect them for blackbox testing
 ./build.sh $tags
 ec=0
