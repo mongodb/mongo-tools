@@ -499,7 +499,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 			}
 			foundURI = true
 			parsedURI = cs
-		} else if err.Error() == "error parsing uri: scheme must be 'mongodb'' or 'mongodb+srv'" {
+		} else if err.Error() == "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"" {
 			newArgs = append(newArgs, arg)
 		} else {
 			return []string{}, err
