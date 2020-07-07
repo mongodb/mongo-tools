@@ -63,12 +63,12 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 }
 
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	// As specified in TOOLS-2363, the --db and --collection options
 	// are well-defined only for restoration of a single BSON file
 	Convey("The proper warning message is issued if --db and --collection "+
-		"are used in a case where they are deprecated", func() {
+		"are used in a case where they are deprecated", t, func() {
 		// Hacky way of looking at the application log at test-time
 
 		// Ideally, we would be able to use some form of explicit dependency
@@ -1140,53 +1140,6 @@ func TestSkipSystemCollections(t *testing.T) {
 			So(flag, ShouldBeFalse)
 
 			cursor.Close(ctx)
-		})
-	})
-}
-
-func TestMongorestoreAWSAuth(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.AWSAuthTestType)
-	ctx := context.Background()
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No server available: %v", err)
-	}
-	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
-
-	sessionProvider.GetNodeType()
-
-	Convey("With a test MongoRestore instance", t, func() {
-		db3 := session.Database("aws_test_db")
-
-		// Drop the collection to clean up resources
-		defer db3.Collection("c1").Drop(ctx)
-
-		args := []string{
-			DirectoryOption, "testdata/aws_test_db",
-			DropOption,
-			"-d", "aws_test_db",
-			"--host", "localhost",
-			"--port", db.DefaultTestPort,
-			"--uri", os.Getenv("MONGOD"),
-		}
-
-		opts, err := ParseOptions(args, "", "")
-		So(err, ShouldBeNil)
-		restore, err := New(opts)
-		So(err, ShouldBeNil)
-
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-
-		Convey("aws authentication should work and aws_test_db.c1 should be restored", func() {
-			count, err := db3.Collection("c1").CountDocuments(nil, bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 3)
 		})
 	})
 }
