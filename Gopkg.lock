@@ -9,7 +9,7 @@
   revision = "3550fdcf1f43b89aaeabaa4559eaae6dc4407e42"
 
 [[projects]]
-  digest = "1:94b10248f0a7f2e71bd0a2702741599135f9737ff74a29b73c66e4b4c2b1dbe3"
+  digest = "1:42ad88cf90b3fcd2fa1d101f59ec2c2b1274484d7c7dda2c1ad29200b0cc7bc1"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -41,7 +41,6 @@
     "internal/shareddefaults",
     "internal/strings",
     "internal/sync/singleflight",
-    "private/checksum",
     "private/protocol",
     "private/protocol/eventstream",
     "private/protocol/eventstream/eventstreamapi",
@@ -59,8 +58,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "T"
-  revision = "98a279965b6174326bd3fe3283cc534f2027b79d"
-  version = "v1.33.3"
+  revision = "2ff90b519baf8ee626cf6c3d451d54664ac72345"
+  version = "v1.29.11"
 
 [[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
@@ -78,7 +77,7 @@
   revision = "d9eb7a3d35ec988b8585d4a0068e462c27d28380"
 
 [[projects]]
-  digest = "1:3c7a7d9662ca25d54d8e17945ff27bbd48916fb80cc2f3cc269217a0a5e8ec5f"
+  digest = "1:ec7c114271a6226a146c64cb0d95348ac85350fde7dbb2564a1911165aa63ced"
   name = "github.com/google/go-cmp"
   packages = [
     "cmp",
@@ -88,16 +87,16 @@
     "cmp/internal/value",
   ]
   pruneopts = "T"
-  revision = "2d0692c2e9617365a95b295612ac0d4415ba4627"
-  version = "v0.3.1"
+  revision = "6f77996f0c42f7b84e5a2b252227263f93432e9b"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:d42ddba036e34f48981d6afa1b90c296e926ff7d1f30ccc086fe2caf2eda791f"
+  digest = "1:4cbb75bd3317ea6f590834c19dc22d13fb406c0629905bd17c28ee2c22637bf1"
   name = "github.com/gopherjs/gopherjs"
   packages = ["js"]
   pruneopts = "T"
-  revision = "fce0ec30dd00773d3fa974351d04ce2737b5c4d9"
+  revision = "3e4dfb77656c424b6d1196a4d5fed0fcf63677cc"
 
 [[projects]]
   digest = "1:3f222a291d2810bdeccb8ba10af58fd087269863c8196f7754cfa0de098a2b56"
@@ -123,7 +122,7 @@
   version = "v4.20"
 
 [[projects]]
-  digest = "1:00e271a7ed0d6e47c333864cfc231dbb275250236922f7f2f51a0b3f329ee6fb"
+  digest = "1:156ecee39c83ea5a44aa5df015d817d3f9b38ce339eeae42f5be97dc8ba9d745"
   name = "github.com/klauspost/compress"
   packages = [
     "fse",
@@ -133,20 +132,19 @@
     "zstd/internal/xxhash",
   ]
   pruneopts = "T"
-  revision = "a8f778f32d263b3a95d1e5a90534f5f680560abe"
-  version = "v1.10.10"
+  revision = "2a5ec94050832300f2c49529dbab4b3774cbc30a"
+  version = "v1.10.1"
 
 [[projects]]
-  digest = "1:4b579a61b8b06600c320d922a0009635b3699ca5067d057292c86d85bc546030"
+  digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
   pruneopts = "T"
-  revision = "14e809f6d78fcf9f48ff9b70981472b64c05f754"
-  version = "v0.0.9"
+  revision = "3ee7d812e62a0804a7d0a324e0249ca2db3476d3"
+  version = "v0.0.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:e6f480eae171fa055540d5450f61af2d9e219137ea4e3a5eed1f03c306eae053"
+  digest = "1:220f3c6a1812d0eb1c534a7497663fae313f4ca5bbea09b6e8b5f4d2cc4ec0e5"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -168,8 +166,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "51688ec1d0fcd50d7c5bb41b89f10162b953ba7a"
-  source = "https://github.com/hariamoor/mongo-tools-common.git"
+  revision = "d524d648bde8362d26c1cc41760dd9faef779295"
+  version = "3.0.9"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -217,12 +215,12 @@
   revision = "7eeb5667e42c09cb51bf7b7c28aea8c56767da90"
 
 [[projects]]
-  digest = "1:577b99fc55ee19cbf1ffd072808c91ced78cd732bd9d0517bec9b90e532069cb"
+  branch = "master"
+  digest = "1:f5c1d04bc09c644c592b45b9f0bad4030521b1a7d11c7dadbb272d9439fa6e8e"
   name = "github.com/xdg/stringprep"
   packages = ["."]
   pruneopts = "T"
-  revision = "bd625b8dc1e3b0f57412280ccbcc317f0c69d8db"
-  version = "v1.0.0"
+  revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
   digest = "1:c13f404dab7d861a0f599142a54962df237a0bc96acd7b27968bd38ac7be8d45"
@@ -278,29 +276,28 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b1ae6af58dd8e4eb2e79e8e83f713950f88a6a3f7ba25cb68feb151a69096597"
+  digest = "1:31eb938007354c1ad51e4a5c08c815cd242dbf32bc3a426013a0ce0578eb2e5c"
   name = "golang.org/x/sync"
   packages = [
     "errgroup",
     "semaphore",
   ]
   pruneopts = "T"
-  revision = "6e8e738ad208923de99951fe0b48239bfd864f28"
+  revision = "112230192c580c3556b8cee6403af37a4fc5f28c"
 
 [[projects]]
   branch = "master"
-  digest = "1:f78e9279da434c766a6ffe8e9c527cb53f164975a3a2b75a369108df246f19fb"
+  digest = "1:85cd50ff41bc0ef9a9fa6654bcba702d021d99dfbecb716579ebb2e9162db955"
   name = "golang.org/x/sys"
   packages = [
-    "internal/unsafeheader",
     "unix",
     "windows",
   ]
   pruneopts = "T"
-  revision = "ddb9806d33aed8dbaac1cd6f1cba58952e87f933"
+  revision = "5c8b2ff67527cb88b770f693cebf3799036d8bc0"
 
 [[projects]]
-  digest = "1:514f778824d7307cb3452f6b63b650b0024e320eeca7056d286c665a52e1f89f"
+  digest = "1:0a6103b1dc59b52f7e64a491b398b854c0fcaacde43c25ce468610a64311b72d"
   name = "golang.org/x/text"
   packages = [
     "internal/gen",
@@ -311,8 +308,8 @@
     "unicode/norm",
   ]
   pruneopts = "T"
-  revision = "23ae387dee1f90d29a23c0e87ee0b46038fbed0e"
-  version = "v0.3.3"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
 
 [[projects]]
   digest = "1:202d7e19a366151a68e5d96a09caaf02d0e951ece729ac2c760b837af05558a9"
