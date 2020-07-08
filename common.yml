@@ -1075,7 +1075,7 @@ pre:
           export NOTARY_KEY_NAME='server-4.4'
           export NOTARY_TOKEN='${signing_auth_token_server_4_4}'
           export BARQUE_USERNAME='${evg_user}'
-          export BARQUE_PASSWORD='${evg_password}'
+          export BARQUE_API_KEY='${barque_api_key}'
           set -o xtrace
           set -o verbose
           set -o errexit
