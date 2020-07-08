@@ -59,7 +59,6 @@ func simpleMongoDumpInstance() *MongoDump {
 	if uri := os.Getenv("MONGOD"); uri != "" {
 		fakeArgs := []string{"--uri=" + uri}
 		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
-		toolOptions.URI.AddKnownURIParameters(options.KnownURIOptionsReadPreference)
 		_, err := toolOptions.ParseArgs(fakeArgs)
 		if err != nil {
 			panic("Could not parse MONGOD environment variable")

@@ -125,7 +125,6 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	ingestOpts := &IngestOptions{}
 	opts.AddOptions(inputOpts)
 	opts.AddOptions(ingestOpts)
-	opts.URI.AddKnownURIParameters(options.KnownURIOptionsWriteConcern)
 
 	extraArgs, err := opts.ParseArgs(rawArgs)
 	if err != nil {
