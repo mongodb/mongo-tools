@@ -1152,7 +1152,7 @@ func linuxRelease(v version.Version) {
 							"--version", mv,
 							"--packages", packagesURL,
 							"--username", os.Getenv("BARQUE_USERNAME"),
-							"--password", os.Getenv("BARQUE_PASSWORD"),
+							"--api_key", os.Getenv("BARQUE_API_KEY"),
 						}
 
 						if retries == maxRetries {
