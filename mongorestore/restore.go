@@ -207,7 +207,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			indexes = metadata.Indexes
 			if restore.OutputOptions.PreserveUUID {
 				if metadata.UUID == "" {
-					return Result{Err: fmt.Errorf("--preserveUUID used but no UUID found in %v", intent.MetadataLocation)}
+					log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
 				}
 				uuid = metadata.UUID
 			}
