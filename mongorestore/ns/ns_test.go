@@ -45,7 +45,7 @@ func TestUnescape(t *testing.T) {
 }
 
 func TestReplacer(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	//testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("with replacements", t, func() {
 		Convey(`'$db$.user$$' -> 'test.user$$_$db$', 'pr\*d\.*' -> 'st\*g\\ing.*'`, func() {
@@ -72,6 +72,15 @@ func TestReplacer(t *testing.T) {
 			So(r.Get("stuff.user"), ShouldEqual, "stuff_test.user")
 			So(r.Get("stuff.users"), ShouldEqual, "stuff_test.users")
 			So(r.Get("prod.turbo.encabulators"), ShouldEqual, "prod_test.turbo.encabulators")
+		})
+		Convey("special characters", func() {
+			r, err := NewRenamer([]string{`restaurants.cafés`, `ÿœz.tāx`, `clay.pottery`},
+			[]string{`ÿœp.tāx`, `sales.tax`, `óboe.instrumeñt`})
+			So(r, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			So(r.Get("restaurants.cafés"), ShouldEqual, "ÿœp.tāx")
+			So(r.Get("ÿœz.tāx"), ShouldEqual, "sales.tax")
+			So(r.Get("clay.pottery"), ShouldEqual, "óboe.instrumeñt")
 		})
 	})
 	Convey("with invalid replacements", t, func() {
