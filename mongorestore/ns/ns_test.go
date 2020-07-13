@@ -112,6 +112,13 @@ func TestMatcher(t *testing.T) {
 			So(m.Has("stuff.users"), ShouldBeTrue)
 			So(m.Has("prod.turbo.encabulators"), ShouldBeTrue)
 		})
+		Convey("special characters", func(){
+			m, err := NewMatcher([]string{`restaurants.cafés`, `ÿœp.tāx`})
+			So(m, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			So(m.Has("restaurants.cafés"), ShouldBeTrue)
+			So(m.Has("ÿœp.tāx"), ShouldBeTrue)
+		})
 	})
 	Convey("with invalid matcher", t, func() {
 		Convey("'$.user$'", func() {
