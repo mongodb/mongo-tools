@@ -12,9 +12,10 @@ import (
 
 // FindOptions represents options that can be used to configure a Find operation.
 type FindOptions struct {
-	// If true, the server can write temporary data to disk while executing the find operation. The default value
-	// is false. This option is only valid for MongoDB versions >= 4.4. Older servers >= 3.2 will report an error for
-	// using this option. For servers < 3.2, this setting is ignored.
+	// If true, the server can write temporary data to disk while executing the find operation. This option is only
+	// valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option is specified. For
+	// server versions < 3.2, the driver will return a client-side error if this option is specified. The default value
+	// is false.
 	AllowDiskUse *bool
 
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
@@ -580,9 +581,10 @@ type FindOneAndReplaceOptions struct {
 	Upsert *bool
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
-	// MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if this option is set. For MongoDB versions <
-	// 4.2, the driver will return an error if this option is set.
+	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
+	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
+	// The driver will return an error if this option is used with during an unacknowledged write operation. The default
+	// value is nil, which means that no hint will be sent.
 	Hint interface{}
 }
 
@@ -716,9 +718,10 @@ type FindOneAndUpdateOptions struct {
 	Upsert *bool
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
-	// MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if this option is set. For MongoDB versions <
-	// 4.2, the driver will return an error if this option is set.
+	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
+	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
+	// The driver will return an error if this option is used with during an unacknowledged write operation. The default
+	// value is nil, which means that no hint will be sent.
 	Hint interface{}
 }
 
@@ -842,9 +845,10 @@ type FindOneAndDeleteOptions struct {
 	Sort interface{}
 
 	// The index to use for the operation. This should either be the index name as a string or the index specification
-	// as a document. The default value is nil, which means that no hint will be sent. This option is only valid for
-	// MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if this option is set. For MongoDB versions <
-	// 4.2, the driver will return an error if this option is set.
+	// as a document. This option is only valid for MongoDB versions >= 4.4. MongoDB version 4.2 will report an error if
+	// this option is specified. For server versions < 4.2, the driver will return an error if this option is specified.
+	// The driver will return an error if this option is used with during an unacknowledged write operation. The default
+	// value is nil, which means that no hint will be sent.
 	Hint interface{}
 }
 

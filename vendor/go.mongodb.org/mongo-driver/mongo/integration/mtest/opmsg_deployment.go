@@ -87,6 +87,11 @@ func (*connection) Address() address.Address {
 	return serverAddress
 }
 
+// Stale returns if the connection is stale.
+func (*connection) Stale() bool {
+	return false
+}
+
 // mockDeployment wraps a connection and implements the driver.Deployment interface.
 type mockDeployment struct {
 	conn    *connection
@@ -104,12 +109,6 @@ var _ driver.Subscriber = &mockDeployment{}
 // Connection method have a no-op Close method.
 func (md *mockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
 	return md, nil
-}
-
-// SupportsRetry implements the Deployment interface. It always returns true to allow for testing
-// retryability.
-func (md *mockDeployment) SupportsRetryWrites() bool {
-	return true
 }
 
 // Kind implements the Deployment interface. It always returns description.Single.
