@@ -371,7 +371,7 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 		t.Skip("Requires server with FCV less than 3.6")
 	}
 
-	Convey("PreserveUUID restore with incompatible destination FCV errors", func() {
+	Convey("PreserveUUID restore with incompatible destination FCV errors", t, func() {
 		args := []string{
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
@@ -406,7 +406,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 		c1 := session.Database("db1").Collection("c1")
 		c1.Drop(nil)
 
-		Convey("normal restore gives new UUID", func() {
+		Convey("normal restore gives new UUID", t, func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
@@ -425,7 +425,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(info.GetUUID(), ShouldNotEqual, originalUUID)
 		})
 
-		Convey("PreserveUUID restore without drop errors", func() {
+		Convey("PreserveUUID restore without drop errors", t, func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
@@ -440,7 +440,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(result.Err.Error(), ShouldContainSubstring, "cannot specify --preserveUUID without --drop")
 		})
 
-		Convey("PreserveUUID with drop preserves UUID", func() {
+		Convey("PreserveUUID with drop preserves UUID", t, func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
@@ -461,7 +461,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(info.GetUUID(), ShouldEqual, originalUUID)
 		})
 
-		Convey("PreserveUUID on a file without UUID metadata errors", func() {
+		Convey("PreserveUUID on a file without UUID metadata errors", t, func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
