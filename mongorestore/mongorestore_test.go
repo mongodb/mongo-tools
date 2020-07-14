@@ -307,7 +307,7 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 
 		})
 
-		Convey("and --nsTo a collection name without special characters " +
+		Convey("and --nsTo a collection name without special characters "+
 			"--nsFrom a collection name with special characters", func() {
 			restore.TargetDirectory = "testdata/specialcharacter"
 			restore.NSOptions.NSFrom = make([]string, 1)
@@ -329,7 +329,7 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 
 		})
 
-		Convey("and --nsTo a collection name with special characters " +
+		Convey("and --nsTo a collection name with special characters "+
 			"--nsFrom a collection name with special characters", func() {
 			restore.TargetDirectory = "testdata/specialcharacter"
 			restore.NSOptions.NSFrom = make([]string, 1)
@@ -353,10 +353,7 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 
 	})
 
-
-
 }
-
 
 func TestMongorestoreLongCollectionName(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)

@@ -136,8 +136,6 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 			continue
 		}
 
-		//c := rune(from[0])
-
 		c, width := utf8.DecodeRuneInString(from[0:])
 
 		if c == '$' {
@@ -168,7 +166,6 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 			continue
 		}
 
-		//c := rune(to[0])
 		c, width := utf8.DecodeRuneInString(to[0:])
 
 		if c == '$' {

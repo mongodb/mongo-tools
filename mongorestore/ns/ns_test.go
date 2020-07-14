@@ -75,7 +75,7 @@ func TestReplacer(t *testing.T) {
 		})
 		Convey("special characters", func() {
 			r, err := NewRenamer([]string{`restaurants.cafés`, `ÿœz.tāx`, `normal.characters`},
-			[]string{`ÿœp.tāx`, `yes.tax`, `special.charâctęrs`})
+				[]string{`ÿœp.tāx`, `yes.tax`, `special.charâctęrs`})
 			So(r, ShouldNotBeNil)
 			So(err, ShouldBeNil)
 			So(r.Get("restaurants.cafés"), ShouldEqual, "ÿœp.tāx")
@@ -121,7 +121,7 @@ func TestMatcher(t *testing.T) {
 			So(m.Has("stuff.users"), ShouldBeTrue)
 			So(m.Has("prod.turbo.encabulators"), ShouldBeTrue)
 		})
-		Convey("special characters", func(){
+		Convey("special characters", func() {
 			m, err := NewMatcher([]string{`restaurants.cafés`, `ÿœp.tāx`})
 			So(m, ShouldNotBeNil)
 			So(err, ShouldBeNil)
