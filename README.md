@@ -14,7 +14,7 @@ Report any bugs, improvements, or new feature requests at https://jira.mongodb.o
 
 Building Tools
 ---------------
-To build the tools, you need to have Go version 1.9 and up. Note, we only support Go version 1.12. `go get` will not 
+We currently build the tools with Go version 1.12, other Go versions may work but they are untested. `go get` will not 
 work; you need to clone the repository to build it. Be sure to clone the repository into your Go workspace inside your 
 $GOPATH.
 
