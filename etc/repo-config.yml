@@ -415,6 +415,7 @@ repos:
       - amd64
       - ppc64el
       - s390x
+      - arm64
       - i386
     repos:
       - apt/ubuntu/dists/precise/mongodb-enterprise
@@ -429,6 +430,7 @@ repos:
       - amd64
       - ppc64el
       - s390x
+      - arm64
       - i386
     repos:
       - apt/ubuntu/dists/trusty/mongodb-enterprise

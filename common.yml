@@ -1594,7 +1594,7 @@ tasks:
         tool: bsondump
     - func: "run qa-tests"
       vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
+        resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.0
@@ -2313,7 +2313,6 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks: *rhel81_ppc64le_tasks
-
 
 # MongoDB 3.4 - 4.0
 - name: ubuntu1604-ppc64le
