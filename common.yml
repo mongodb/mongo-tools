@@ -105,8 +105,6 @@ mongo_tools_variables:
       - name: unit
     ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
       - name: dist
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-3.6-mmapv1
       - name: integration-4.0
@@ -128,8 +126,6 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-3.6-mmapv1
       - name: integration-4.0
@@ -212,8 +208,6 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-3.6-mmapv1
       - name: integration-4.0
@@ -242,7 +236,6 @@ mongo_tools_variables:
       - name: push
         run_on: rhel70-small
       - name: integration-3.4
-      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
