@@ -384,7 +384,7 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 
 		result := restore.Restore()
 		So(result.Err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "target host does not support --preserveUUID")
+		So(result.Err.Error(), ShouldContainSubstring, "target host does not support --preserveUUID")
 	})
 }
 
