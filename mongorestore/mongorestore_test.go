@@ -250,6 +250,25 @@ func TestMongorestore(t *testing.T) {
 	})
 }
 
+func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+	})
+
+
+
+}
+
+
 func TestMongorestoreLongCollectionName(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
