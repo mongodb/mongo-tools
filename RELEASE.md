@@ -75,3 +75,46 @@ File the following CLOUDP tickets for deploying the new release:
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
+
+#### Update the changelog
+
+- Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385) on JIRA. Choose the version you are releasing and HTML as the style. This will show you the list of tickets tagged with the release version. (If the link doesn't work, you can access this through the release page for the version you are releasing.)
+- Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.). Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
+- Copy the following to the top of CHANGELOG.md under the title:
+
+```
+## X.Y.Z
+
+We are pleased to announce version X.Y.Z of the MongoDB Database Tools.
+
+<INSERT-DESCRIPTION>
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with database-tools. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+<INSERT-LIST-OF-TICKETS>
+```
+
+- Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of `<INSERT-LIST-OF-TICKETS>`.
+- Remove the top line of the list of tickets that says `Release Notes - MongoDB Database Tools - Version X.Y.Z`
+- Change the ticket type titles from `<h2>`s to `<h3>`s. For example,
+
+    ```
+    <h2>        Build Failure
+    </h2>
+    ```
+
+    Becomes:
+
+    ```
+    ### Build Failure
+    ```
+- Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too much unnecessary detail. 
+- If in doubt, look at previous entries in the changelog for guidance.
+
+#### Update the changelog in the docs
+
+Open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
+
+#### Announce the release
+
+Copy your entry from CHANGELOG.md and post it to the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools) in the "Developer Tools" section with the tag `database-tools`.
