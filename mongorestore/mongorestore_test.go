@@ -251,7 +251,7 @@ func TestMongorestore(t *testing.T) {
 	})
 }
 
-func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
+func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -269,12 +269,9 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		db := session.Database("db1")
-		Convey("and majority is used as the default write concern", func() {
-			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
-		})
 
-		longCollection := db.Collection(specialCharactersCollectionName)
-		longCollection.Drop(nil)
+		specialCharacterCollection := db.Collection(specialCharactersCollectionName)
+		specialCharacterCollection.Drop(nil)
 
 		Convey("and --nsInclude a collection name with special characters", func() {
 			restore.TargetDirectory = "testdata/specialcharacter"
@@ -286,10 +283,9 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := longCollection.CountDocuments(nil, bson.M{})
+			count, err := specialCharacterCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
 		})
 
 		Convey("and --nsExclude a collection name with special characters", func() {
@@ -301,10 +297,9 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := longCollection.CountDocuments(nil, bson.M{})
+			count, err := specialCharacterCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
-
 		})
 
 		Convey("and --nsTo a collection name without special characters "+
@@ -315,18 +310,17 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 			restore.NSOptions.NSTo = make([]string, 1)
 			restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithoutSpecialCharacters"
 
-			shortCollection := db.Collection("aCollectionNameWithoutSpecialCharacters")
-			shortCollection.Drop(nil)
+			standardCharactersCollection := db.Collection("aCollectionNameWithoutSpecialCharacters")
+			standardCharactersCollection.Drop(nil)
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := shortCollection.CountDocuments(nil, bson.M{})
+			count, err := standardCharactersCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
 		})
 
 		Convey("and --nsTo a collection name with special characters "+
@@ -337,22 +331,19 @@ func TestMongoRestoreSpecialCharactersNameSpaces(t *testing.T) {
 			restore.NSOptions.NSTo = make([]string, 1)
 			restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithSpećiálCharacters"
 
-			shortCollection := db.Collection("aCollectionNameWithSpećiálCharacters")
-			shortCollection.Drop(nil)
+			standardCharactersCollection := db.Collection("aCollectionNameWithSpećiálCharacters")
+			standardCharactersCollection.Drop(nil)
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := shortCollection.CountDocuments(nil, bson.M{})
+			count, err := standardCharactersCollection.CountDocuments(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
-
 		})
-
 	})
-
 }
 
 func TestMongorestoreLongCollectionName(t *testing.T) {
