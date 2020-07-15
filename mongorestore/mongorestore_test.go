@@ -406,7 +406,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 		c1 := session.Database("db1").Collection("c1")
 		c1.Drop(nil)
 
-		Convey("normal restore gives new UUID", t, func() {
+		Convey("normal restore gives new UUID", func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
