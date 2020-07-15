@@ -95,7 +95,7 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 <INSERT-LIST-OF-TICKETS>
 ```
 
-- Update the release date to the date the release-json task completed on Evergreen. 
+- Update the release date to the date the release-json task finished on Evergreen in Eastern Time. You can set your timezone in "User Settings". 
 - Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385) on JIRA. Choose the version you are releasing and HTML as the style. This will show you the list of tickets tagged with the release version. (If the link doesn't work, you can access this through the release page for the version you are releasing.)
 - Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.). Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
 - Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of `<INSERT-LIST-OF-TICKETS>`.
