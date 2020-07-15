@@ -11,7 +11,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -27,8 +29,9 @@ import (
 )
 
 const (
-	mioSoeFile     = "testdata/10k1dup10k.bson"
-	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+	mioSoeFile           = "testdata/10k1dup10k.bson"
+	benchmarkDataRootDir = "testdata/tools-1856/results"
+	longFilePrefix       = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
 	longCollectionName = longFilePrefix +
@@ -60,6 +63,93 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 	}
 
 	return restore, nil
+}
+
+func BenchmarkCPUAndMemoryConsumption(b *testing.B) {
+	files, err := ioutil.ReadDir(benchmarkDataRootDir)
+
+	if err != nil {
+		b.Fatalf("Could not find test directory: %v\n", err)
+	}
+
+	defer func() {
+		// Teardown collection so benchmarks are idempotent
+		client, err := testutil.GetBareSession()
+
+		if err != nil {
+			b.Fatalf("Failed to tear down database: %v", err)
+		}
+
+		err = client.Connect(context.Background())
+
+		if err != nil {
+			b.Fatalf("Failed to tear down database: %v", err)
+		}
+
+		err = client.Ping(context.Background(), nil)
+
+		if err != nil {
+			b.Fatalf("Failed to tear down database: %v", err)
+		}
+
+		db := client.Database("benchmark")
+		err = db.Drop(nil)
+
+		if err != nil {
+			b.Fatalf("Failed to tear down database: %v", err)
+		}
+	}()
+
+	for _, file := range files {
+		if file.Mode().IsRegular() {
+			testName := fmt.Sprintf("Benchmark for %v", file.Name())
+			b.Run(testName, func(b *testing.B) {
+				// Setup arguments and MongoRestore context
+				benchFilePath := filepath.Join(benchmarkDataRootDir, file.Name())
+
+				args := []string{
+					benchFilePath,
+					NSIncludeOption,
+					fmt.Sprintf("benchmark.%v", file.Name()),
+				}
+
+				restore, err := getRestoreWithArgs(args...)
+
+				if err != nil {
+					b.Fatalf("Failed to generate restore context: %v", err)
+				}
+
+				defer func(b *testing.B) {
+					// Teardown collection so benchmarks are idempotent
+					client, err := testutil.GetBareSession()
+
+					if err != nil {
+						b.Fatalf("Failed to tear down collection: %v", err)
+					}
+
+					err = client.Connect(context.Background())
+
+					if err != nil {
+						b.Fatalf("Failed to tear down collection: %v", err)
+					}
+
+					err = client.Ping(context.Background(), nil)
+
+					if err != nil {
+						b.Fatalf("Failed to tear down collection: %v", err)
+					}
+
+					db := client.Database("benchmark")
+					coll := db.Collection(file.Name())
+
+					coll.Drop(nil)
+				}(b)
+
+				b.ResetTimer()
+				restore.Restore()
+			})
+		}
+	}
 }
 
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
