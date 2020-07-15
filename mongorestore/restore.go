@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
@@ -371,7 +372,16 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 	collection := session.Database(dbName).Collection(colName)
 
-	documentCount := int64(0)
+	pool := sync.Pool{
+		New: func() interface{} {
+			documents := make([]bson.Raw, restore.OutputOptions.BulkBufferSize)
+			for i := range documents {
+				documents[i] = make([]byte, 256)
+			}
+			return documents
+		},
+	}
+
 	watchProgressor := progress.NewCounter(fileSize)
 	if restore.ProgressManager != nil {
 		name := fmt.Sprintf("%v.%v", dbName, colName)
@@ -381,11 +391,15 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 	maxInsertWorkers := restore.OutputOptions.NumInsertionWorkers
 
-	docChan := make(chan bson.Raw, insertBufferFactor)
+	docsBatchChan := make(chan []bson.Raw, insertBufferFactor)
 	resultChan := make(chan Result, maxInsertWorkers)
 
 	// stream documents for this collection on docChan
 	go func() {
+
+		count := 0
+		docsBatch := pool.Get().([]bson.Raw)
+
 		for {
 			doc := bsonSource.LoadNext()
 			if doc == nil {
@@ -395,16 +409,31 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			if restore.terminate {
 				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
 				termErr = util.ErrTerminated
-				close(docChan)
+				close(docsBatchChan)
 				return
 			}
 
-			rawBytes := make([]byte, len(doc))
-			copy(rawBytes, doc)
-			docChan <- bson.Raw(rawBytes)
-			documentCount++
+			if count == restore.OutputOptions.BulkBufferSize {
+				docsBatchChan <- docsBatch
+				count = 0
+				docsBatch = pool.Get().([]bson.Raw)
+			}
+
+			if len(doc) > cap(docsBatch[count]) {
+				docsBatch[count] = make([]byte, len(doc))
+			} else {
+				docsBatch[count] = docsBatch[count][0:len(doc)]
+			}
+
+			copy(docsBatch[count], doc)
+			count++
 		}
-		close(docChan)
+
+		if count > 0 {
+			docsBatchChan <- docsBatch[0:count]
+		}
+
+		close(docsBatchChan)
 	}()
 
 	log.Logvf(log.DebugLow, "using %v insertion workers", maxInsertWorkers)
@@ -416,20 +445,26 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			bulk := db.NewUnorderedBufferedBulkInserter(collection, restore.OutputOptions.BulkBufferSize).
 				SetOrdered(restore.OutputOptions.MaintainInsertionOrder)
 			bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
-			for rawDoc := range docChan {
+			for docsBatch := range docsBatchChan {
 				if restore.objCheck {
-					result.Err = bson.Unmarshal(rawDoc, &bson.D{})
+					for _, rawDoc := range docsBatch {
+						result.Err = bson.Unmarshal(rawDoc, &bson.D{})
+						if result.Err != nil {
+							resultChan <- result
+							return
+						}
+					}
+				}
+				for _, rawDoc := range docsBatch {
+					result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
+					result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
 					if result.Err != nil {
 						resultChan <- result
 						return
 					}
 				}
-				result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
-				result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
-				if result.Err != nil {
-					resultChan <- result
-					return
-				}
+
+				pool.Put(docsBatch)
 				watchProgressor.Set(file.Pos())
 			}
 			// flush the remaining docs
