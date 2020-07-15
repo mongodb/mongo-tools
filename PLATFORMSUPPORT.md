@@ -6,7 +6,7 @@ In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
 
 2. Since this is an ARM platform, add the following config in the `ARM Buildvariants` section in `common.yml`
 ```
-                        - name: ubuntu2004-arm64
+- name: ubuntu2004-arm64
   display_name: ZAP ARM64 Ubuntu 20.04
   run_on:
     - ubuntu2004-arm64-small
