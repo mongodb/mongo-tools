@@ -6,19 +6,21 @@ We are pleased to announce version 100.0.0 of the MongoDB Database Tools.
 
 This is the first separate release of the Database Tools from the Server. We decided to move to a separate release so we can ship new features and bugfixes more frequently. The new separate release version starts from 100.0.0 to make it clear the versioning is separate from the Server. You can read more about this on the [MongoDB blog](alendar.google.com/calendar/render?tab=mc#main_7).
 
+There are no longer restrictions on using `--uri` with other connection options such as `--port` and `--password` as long as the URI and the explicit option don't provide conflicting information. Connection strings can now be specified as a positional argument without the `--uri` option.
 
+The [`--convertLegacyIndexes`](https://docs.mongodb.com/database-tools/mongorestore/#cmdoption-mongorestore-convertlegacyindexes) flag for mongorestore removes any invalid index options specified in the corresponding mongodump output, and rewrites any legacy index key values to use valid values.
+
+The [`--useArrayIndexFields`](https://docs.mongodb.com/database-tools/mongoimport/#cmdoption-mongoimport-usearrayindexfields) flag for mongoimport interprets natural numbers in fields as array indexes when importing csv or tsv files.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with database-tools. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
                                                 
-<h2>        Build Failure
-</h2>
+### Build Failure
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2489'>TOOLS-2489</a>] -         format-go task failing on master
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
-<h2>        Bug
-</h2>
+                                                                                                           
+### Bug
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-1493'>TOOLS-1493</a>] -         Tools crash running help when terminal width is low
 </li>
@@ -50,8 +52,6 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2423'>TOOLS-2423</a>] -         mongorestore does not drop admin.tempusers if it exists in the dump
 </li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2436'>TOOLS-2436</a>] -         Backport TOOLS-2422 and TOOLS-2423
-</li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2455'>TOOLS-2455</a>] -         mongorestore hangs on invalid archive
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2462'>TOOLS-2462</a>] -         Password prompt does not work on windows
@@ -68,25 +68,31 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 </li>
 </ul>
         
-<h2>        New Feature
-</h2>
-<ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2268'>TOOLS-2268</a>] -         Add remove mode to mongoimport
-</li>
-</ul>
-        
-<h2>        Task
-</h2>
+### New Feature
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-1954'>TOOLS-1954</a>] -         Support roundtrip of mongoexport array notation in mongoimport
 </li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2268'>TOOLS-2268</a>] -         Add remove mode to mongoimport
+</li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2412'>TOOLS-2412</a>] -         Strip unsupported legacy index options
 </li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2430'>TOOLS-2430</a>] -         mongorestore: in dotted index keys, replace &quot;hashed&quot; with &quot;1&quot; 
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2459'>TOOLS-2459</a>] -         Allow --uri to be used with other connection string options
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2460'>TOOLS-2460</a>] -         A connection string can be set as a positional argument
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2521'>TOOLS-2521</a>] -         Add support for the tlsDisableOCSPEndpointCheck URI option
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2529'>TOOLS-2529</a>] -         Mongodump outputs new file format for long collection names
+</li>
+</ul>
+        
+### Task
+<ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2418'>TOOLS-2418</a>] -         Remove mongoreplay from mongo-tools
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2421'>TOOLS-2421</a>] -         Maintain test coverage after moving tools tests from server
-</li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2430'>TOOLS-2430</a>] -         mongorestore: in dotted index keys, replace &quot;hashed&quot; with &quot;1&quot; 
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2438'>TOOLS-2438</a>] -         Create MSI installer in dist task
 </li>
@@ -103,10 +109,6 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2444'>TOOLS-2444</a>] -         Generate deb packages in dist task
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2449'>TOOLS-2449</a>] -         Create sign task
-</li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2459'>TOOLS-2459</a>] -         Allow --uri to be used with other connection string options
-</li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2460'>TOOLS-2460</a>] -         A connection string can be set as a positional argument
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2464'>TOOLS-2464</a>] -         Update platform support
 </li>
@@ -128,11 +130,7 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2506'>TOOLS-2506</a>] -         Update maintainer in linux packages
 </li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2521'>TOOLS-2521</a>] -         Add support for the tlsDisableOCSPEndpointCheck URI option
-</li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2523'>TOOLS-2523</a>] -         Remove Ubuntu 12.04 and Debian 7.1 variants
-</li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2529'>TOOLS-2529</a>] -         Mongodump outputs new file format for long collection names
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2536'>TOOLS-2536</a>] -         ignoreUnknownIndexOptions option in the createIndexes command for servers &gt;4.1.9
 </li>
@@ -147,4 +145,4 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2551'>TOOLS-2551</a>] -         Split release uploading into per-distro tasks
 </li>
 </ul>
-                                            
+                                                                            
