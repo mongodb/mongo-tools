@@ -425,7 +425,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(info.GetUUID(), ShouldNotEqual, originalUUID)
 		})
 
-		Convey("PreserveUUID restore without drop errors", t, func() {
+		Convey("PreserveUUID restore without drop errors", func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
@@ -440,7 +440,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(result.Err.Error(), ShouldContainSubstring, "cannot specify --preserveUUID without --drop")
 		})
 
-		Convey("PreserveUUID with drop preserves UUID", t, func() {
+		Convey("PreserveUUID with drop preserves UUID", func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
@@ -461,7 +461,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(info.GetUUID(), ShouldEqual, originalUUID)
 		})
 
-		Convey("PreserveUUID on a file without UUID metadata errors", t, func() {
+		Convey("PreserveUUID on a file without UUID metadata errors", func() {
 			args := []string{
 				NumParallelCollectionsOption, "1",
 				NumInsertionWorkersOption, "1",
