@@ -6,11 +6,12 @@ We are pleased to announce version 100.0.0 of the MongoDB Database Tools.
 
 This is the first separate release of the Database Tools from the Server. We decided to move to a separate release so we can ship new features and bugfixes more frequently. The new separate release version starts from 100.0.0 to make it clear the versioning is separate from the Server. You can read more about this on the [MongoDB blog](alendar.google.com/calendar/render?tab=mc#main_7).
 
-There are no longer restrictions on using `--uri` with other connection options such as `--port` and `--password` as long as the URI and the explicit option don't provide conflicting information. Connection strings can now be specified as a positional argument without the `--uri` option.
+This release contains bugfixes, some new command-line options, and quality of life improvements. A full list can be found below, but here are some highlights: 
 
-The [`--convertLegacyIndexes`](https://docs.mongodb.com/database-tools/mongorestore/#cmdoption-mongorestore-convertlegacyindexes) flag for mongorestore removes any invalid index options specified in the corresponding mongodump output, and rewrites any legacy index key values to use valid values.
-
-The [`--useArrayIndexFields`](https://docs.mongodb.com/database-tools/mongoimport/#cmdoption-mongoimport-usearrayindexfields) flag for mongoimport interprets natural numbers in fields as array indexes when importing csv or tsv files.
+- There are no longer restrictions on using `--uri` with other connection options such as `--port` and `--password` as long as the URI and the explicit option don't provide conflicting information. Connection strings can now be specified as a positional argument without the `--uri` option.
+- The new [`--useArrayIndexFields`](https://docs.mongodb.com/database-tools/mongoimport/#cmdoption-mongoimport-usearrayindexfields) flag for mongoimport interprets natural numbers in fields as array indexes when importing csv or tsv files.
+- The new [`--convertLegacyIndexes`](https://docs.mongodb.com/database-tools/mongorestore/#cmdoption-mongorestore-convertlegacyindexes) flag for mongorestore removes any invalid index options specified in the corresponding mongodump output, and rewrites any legacy index key values to use valid values.
+- A new [`delete` mode](https://docs.mongodb.com/database-tools/mongoimport/#ex-mongoimport-delete) for mongoimport. With `--mode delete`, mongoimport deletes existing documents in the database that match a document in the import file.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with database-tools. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
                                                 
