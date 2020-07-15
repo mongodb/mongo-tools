@@ -1,14 +1,73 @@
 # Database Tools Changelog
 
-## 100.0.1
+## 100.0.2
 
-We are pleased to announce version 100.0.0 of the MongoDB Database Tools.
+_Released 2020-06-04_
 
+We are pleased to announce version 100.0.2 of the MongoDB Database Tools.
 
+This release contains several bugfixes. It also adds support for dumping and restoring collections with long names since the 120 byte name limit will be raised to 255 bytes in MongoDB version 4.4.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with database-tools. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+                                                             
+### Bug
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-1785'>TOOLS-1785</a>] -         Typo in mongodump help
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2495'>TOOLS-2495</a>] -         Oplog replay can&#39;t handle entries &gt; 16 MB
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2498'>TOOLS-2498</a>] -         Nil pointer error mongodump
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2559'>TOOLS-2559</a>] -         Error on uninstalling database-tools 99.0.1-1 RPM
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2575'>TOOLS-2575</a>] -         mongorestore panic during convertLegacyIndexes from 4.4 mongodump
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2593'>TOOLS-2593</a>] -         Fix special handling of $admin filenames
+</li>
+</ul>
+                
+### Task
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2446'>TOOLS-2446</a>] -         Add MMAPV1 testing to Tools tests
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2469'>TOOLS-2469</a>] -         Accept multiple certs in CA 
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2530'>TOOLS-2530</a>] -         Mongorestore can restore from new mongodump format
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2537'>TOOLS-2537</a>] -         Ignore config.system.indexBuilds namespace
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2544'>TOOLS-2544</a>] -         Add 4.4 tests to Evergreen
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2551'>TOOLS-2551</a>] -         Split release uploading into per-distro tasks
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2555'>TOOLS-2555</a>] -         Support directConnection option
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2561'>TOOLS-2561</a>] -         Sign mongodb-tools tarballs
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2605'>TOOLS-2605</a>] -         Cut 100.0.2 release
+</li>
+</ul>
+                                            
+
+## 100.0.1
+
+_Released 2020-04-28_
+
+We are pleased to announce version 100.0.1 of the MongoDB Database Tools.
+
+This release was a test of our new release infrastructure and contains no changes from 100.0.0.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with database-tools. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+                                                                                        
+### Task
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2493'>TOOLS-2493</a>] -         Cut tools 100.0.0 and 100.0.1 GA releases
+</li>
+</ul>
 
 ## 100.0.0
+
+_Released 2020-04-28_
 
 We are pleased to announce version 100.0.0 of the MongoDB Database Tools.
 

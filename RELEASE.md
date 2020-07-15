@@ -78,12 +78,13 @@ In order to make the latest release available via our Homebrew tap, submit a pul
 
 #### Update the changelog
 
-- Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385) on JIRA. Choose the version you are releasing and HTML as the style. This will show you the list of tickets tagged with the release version. (If the link doesn't work, you can access this through the release page for the version you are releasing.)
-- Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.). Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
+- Checkout a new branch.
 - Copy the following to the top of CHANGELOG.md under the title:
 
 ```
 ## X.Y.Z
+
+_Released YYYY-MM-DD_
 
 We are pleased to announce version X.Y.Z of the MongoDB Database Tools.
 
@@ -94,6 +95,9 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 <INSERT-LIST-OF-TICKETS>
 ```
 
+- Update the release date to the date the release-json task completed on Evergreen. 
+- Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385) on JIRA. Choose the version you are releasing and HTML as the style. This will show you the list of tickets tagged with the release version. (If the link doesn't work, you can access this through the release page for the version you are releasing.)
+- Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.). Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
 - Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of `<INSERT-LIST-OF-TICKETS>`.
 - Remove the top line of the list of tickets that says `Release Notes - MongoDB Database Tools - Version X.Y.Z`
 - Change the ticket type titles from `<h2>`s to `<h3>`s. For example,
@@ -109,11 +113,11 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
     ### Build Failure
     ```
 - Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too much unnecessary detail. 
-- If in doubt, look at previous entries in the changelog for guidance.
+- Submit a PR with your changes.
 
 #### Update the changelog in the docs
 
-Open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
+Once the PR has been approved and merged, open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
 
 #### Announce the release
 
