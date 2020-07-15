@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Renamer maps namespaces given user-defined patterns
@@ -135,7 +136,8 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 			continue
 		}
 
-		c := rune(from[0])
+		c, width := utf8.DecodeRuneInString(from[0:])
+
 		if c == '$' {
 			err = fmt.Errorf("Extraneous '$'")
 			return
@@ -145,7 +147,7 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 			matcher += `\`
 		}
 		matcher += string(c)
-		from = from[1:]
+		from = from[width:]
 	}
 	matcher = fmt.Sprintf("^%s$", matcher)
 	// The regexp we generated should always compile (it's not the user's fault)
@@ -164,13 +166,14 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 			continue
 		}
 
-		c := rune(to[0])
+		c, width := utf8.DecodeRuneInString(to[0:])
+
 		if c == '$' {
 			err = fmt.Errorf("Extraneous '$'")
 			return
 		}
 		replacer += string(c)
-		to = to[1:]
+		to = to[width:]
 	}
 	return
 }
