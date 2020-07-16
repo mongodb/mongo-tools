@@ -7,7 +7,7 @@
   if (TestData.useTLS) {
     TOOLS_TEST_CONFIG = {
       tlsMode: "requireTLS",
-      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCertificateKeyFile: "jstests/libs/server.pem",
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };
