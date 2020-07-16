@@ -11,7 +11,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,8 +30,10 @@ import (
 )
 
 const (
-	mioSoeFile     = "testdata/10k1dup10k.bson"
-	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
+	mioSoeFile           = "testdata/10k1dup10k.bson"
+	benchmarkDataRootDir = "testdata/tools-1856/results"
+	benchmarkDBName      = "benchmark"
+	longFilePrefix       = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
 		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
 	longCollectionName = longFilePrefix +
@@ -61,6 +66,59 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 	}
 
 	return restore, nil
+}
+
+func BenchmarkCPUAndMemoryConsumption(b *testing.B) {
+	files, err := ioutil.ReadDir(benchmarkDataRootDir)
+
+	if err != nil {
+		b.Fatalf("Could not find test directory: %v\n", err)
+	}
+
+	for _, file := range files {
+		if file.Mode().IsRegular() {
+			testName := fmt.Sprintf("benchmark for %v", file.Name())
+
+			b.Run(testName, func(b *testing.B) {
+				// Setup arguments and MongoRestore context
+				benchFilePath := filepath.Join(benchmarkDataRootDir, file.Name())
+				collectionName := strings.TrimRight(file.Name(), filepath.Ext(file.Name()))
+
+				args := []string{
+					benchFilePath,
+					DBOption,
+					benchmarkDBName,
+					CollectionOption,
+					collectionName,
+				}
+
+				restore, err := getRestoreWithArgs(args...)
+
+				if err != nil {
+					b.Fatalf("Failed to generate restore context: %v", err)
+				}
+
+				defer func() {
+					client, err := restore.SessionProvider.GetSession()
+					defer restore.Close()
+
+					if err != nil {
+						b.Fatalf("Could not gather context from MongoRestore for %v: %v", testName, err)
+					}
+
+					db := client.Database("benchmark")
+					err = db.Drop(context.Background())
+
+					if err != nil {
+						b.Fatalf("Could not drop database for %v: %v", testName, err)
+					}
+				}()
+
+				b.ResetTimer()
+				restore.Restore()
+			})
+		}
+	}
 }
 
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
