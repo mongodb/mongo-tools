@@ -467,7 +467,7 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 		t.Skip("Requires server with FCV less than 3.6")
 	}
 
-	Convey("PreserveUUID restore with incompatible destination FCV errors", func() {
+	Convey("PreserveUUID restore with incompatible destination FCV errors", t, func() {
 		args := []string{
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
@@ -480,7 +480,7 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 
 		result := restore.Restore()
 		So(result.Err, ShouldNotBeNil)
-		So(err.Error(), ShouldContainSubstring, "target host does not support --preserveUUID")
+		So(result.Err.Error(), ShouldContainSubstring, "target host does not support --preserveUUID")
 	})
 }
 
