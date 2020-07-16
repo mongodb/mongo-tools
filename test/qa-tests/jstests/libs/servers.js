@@ -1038,7 +1038,7 @@
 
     if (jsTestOptions().useSSL) {
       args.push("--ssl",
-        "--sslPEMKeyFile", "jstests/libs/client.pem",
+        "--sslPEMKeyFile", "jstests/libs/server.pem",
         "--sslCAFile", "jstests/libs/ca.pem",
         "--sslAllowInvalidHostnames");
     }
@@ -1069,7 +1069,7 @@
 
     if (jsTestOptions().useSSL) {
       args.push("--ssl",
-        "--sslPEMKeyFile", "jstests/libs/client.pem",
+        "--sslPEMKeyFile", "jstests/libs/server.pem",
         "--sslCAFile", "jstests/libs/ca.pem",
         "--sslAllowInvalidHostnames");
     }
