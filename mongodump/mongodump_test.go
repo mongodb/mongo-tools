@@ -687,6 +687,9 @@ func TestMongoDumpBSON(t *testing.T) {
 }
 
 func TestMongoDumpBSONLongCollectionName(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -1289,6 +1292,9 @@ func TestMongoDumpViews(t *testing.T) {
 }
 
 func TestMongoDumpCollectionOutputPath(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	log.SetWriter(ioutil.Discard)
 
