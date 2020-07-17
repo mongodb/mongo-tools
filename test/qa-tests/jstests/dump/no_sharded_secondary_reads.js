@@ -1,3 +1,4 @@
+/* Disabled: see TOOLS-2661
 (function() {
   // This test makes sure that mongodump does not do secondary reads when talking to a mongos.
   // We do this by creating a sharded topology against a replica set where all the nodes have
@@ -123,3 +124,4 @@
   }
 
 }());
+*/
