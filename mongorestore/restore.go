@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
@@ -23,7 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const insertBufferFactor = 16
+const insertBufferFactor = 3
 
 // Result encapsulates the outcome of a particular restore attempt.
 type Result struct {
@@ -339,6 +340,11 @@ func fixDottedHashedIndex(index IndexDocument) {
 	}
 }
 
+type chunk struct {
+	documents  []bson.Raw
+	nbToInsert int
+}
+
 // RestoreCollectionToDB pipes the given BSON data into the database.
 // Returns the number of documents restored and any errors that occurred.
 func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
@@ -352,6 +358,18 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 	collection := session.Database(dbName).Collection(colName)
 
+	pool := sync.Pool{
+		New: func() interface{} {
+			documents := make([]bson.Raw, 1000)
+			for i := range documents {
+				documents[i] = make([]byte, 256)
+			}
+			return &chunk{
+				documents: documents,
+			}
+		},
+	}
+
 	documentCount := int64(0)
 	watchProgressor := progress.NewCounter(fileSize)
 	if restore.ProgressManager != nil {
@@ -362,11 +380,15 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 	maxInsertWorkers := restore.OutputOptions.NumInsertionWorkers
 
-	docChan := make(chan bson.Raw, insertBufferFactor)
+	docChan := make(chan *chunk, insertBufferFactor)
 	resultChan := make(chan Result, maxInsertWorkers)
 
 	// stream documents for this collection on docChan
 	go func() {
+
+		count := 0
+		docs := pool.Get().(*chunk)
+
 		for {
 			doc := bsonSource.LoadNext()
 			if doc == nil {
@@ -379,12 +401,32 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				close(docChan)
 				return
 			default:
-				rawBytes := make([]byte, len(doc))
-				copy(rawBytes, doc)
-				docChan <- bson.Raw(rawBytes)
-				documentCount++
+
+				if count == 1000 {
+					docs.nbToInsert = 1000
+					docChan <- docs
+					count = 0
+					documentCount += 1000
+					docs = pool.Get().(*chunk)
+				}
+
+				if len(doc) > cap(docs.documents[count]) {
+					docs.documents[count] = make([]byte, len(doc))
+				} else {
+					docs.documents[count] = docs.documents[count][0:len(doc)]
+				}
+
+				copy(docs.documents[count], doc)
+				count++
 			}
 		}
+
+		if count > 0 {
+			docs.nbToInsert = count
+			docChan <- docs
+			documentCount += int64(docs.nbToInsert)
+		}
+
 		close(docChan)
 	}()
 
@@ -399,18 +441,24 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
 			for rawDoc := range docChan {
 				if restore.objCheck {
-					result.Err = bson.Unmarshal(rawDoc, &bson.D{})
+					for j := 0; j < rawDoc.nbToInsert; j++ {
+						result.Err = bson.Unmarshal(rawDoc.documents[j], &bson.D{})
+						if result.Err != nil {
+							resultChan <- result
+							return
+						}
+					}
+				}
+
+				for j := 0; j < rawDoc.nbToInsert; j++ {
+					result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc.documents[j])))
+					result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
 					if result.Err != nil {
 						resultChan <- result
 						return
 					}
 				}
-				result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
-				result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
-				if result.Err != nil {
-					resultChan <- result
-					return
-				}
+				pool.Put(rawDoc)
 				watchProgressor.Set(file.Pos())
 			}
 			// flush the remaining docs
