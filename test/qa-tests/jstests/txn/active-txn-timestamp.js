@@ -6,6 +6,8 @@
 // prepared transactions as well.
 //
 // @tags: [requires_min_mongo_42]
+
+/* Disabled: see TOOLS-2660
 (function() {
   "use strict";
   load("jstests/libs/check_log.js");
@@ -145,3 +147,4 @@
   );
   replTest.stopSet();
 }());
+*/
