@@ -842,6 +842,9 @@ func TestMongoDumpMetaData(t *testing.T) {
 }
 
 func TestMongoDumpOplog(t *testing.T) {
+	// Disabled: see TOOLS-2657
+	t.Skip()
+
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
