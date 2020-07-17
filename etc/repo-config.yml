@@ -466,7 +466,7 @@ repos:
   - name: ubuntu2004
     type: deb
     code_name: "bionic"
-    edition: org
+    edition: enterprise
     bucket: repo.mongodb.org
     component: multiverse
     architectures:
