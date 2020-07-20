@@ -431,7 +431,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		totalResult.combineWith(<-resultChan)
 		if finalErr == nil && totalResult.Err != nil {
 			finalErr = totalResult.Err
-			close(restore.termChan)
+			restore.termChan <- struct{}{}
 		}
 	}
 
