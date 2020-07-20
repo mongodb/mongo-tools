@@ -36,6 +36,7 @@ var (
 	minResumableLabelWireVersion int32 = 9 // Wire version at which the server includes the resumable error label
 	networkErrorLabel                  = "NetworkError"
 	resumableErrorLabel                = "ResumableChangeStreamError"
+	errorCursorNotFound          int32 = 43 // CursorNotFound error code
 
 	// Whitelist of error codes that are considered resumable.
 	resumableChangeStreamErrors = map[int32]struct{}{
@@ -92,6 +93,7 @@ type changeStreamConfig struct {
 	streamType     StreamType
 	collectionName string
 	databaseName   string
+	crypt          *driver.Crypt
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
@@ -123,8 +125,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone)
+		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
+		Crypt(config.crypt)
 
+	if config.crypt != nil {
+		cs.cursorOptions.Crypt = config.crypt
+	}
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
@@ -180,6 +186,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	return cs, cs.Err()
 }
 
+func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection driver.Connection) driver.Deployment {
+	return &changeStreamDeployment{
+		topologyKind: cs.client.deployment.Kind(),
+		server:       server,
+		conn:         connection,
+	}
+}
+
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
 	var conn driver.Connection
@@ -194,9 +208,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	defer conn.Close()
 	cs.wireVersion = conn.Description().WireVersion
 
-	cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-		C: conn,
-	})
+	cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 
 	if resuming {
 		cs.replaceOptions(ctx, cs.wireVersion)
@@ -247,9 +259,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 				break
 			}
 
-			cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-				C: conn,
-			})
+			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 			cs.err = cs.aggregate.Execute(ctx)
 		}
 
@@ -507,7 +517,7 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 }
 
 func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
-	// return false right away if the change stream has already errored.
+	// return false right away if the change stream has already errored or if cursor is closed.
 	if cs.err != nil {
 		return false
 	}
@@ -550,6 +560,11 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 
 		cs.err = replaceErrors(cs.cursor.Err())
 		if cs.err == nil {
+			// Check if cursor is alive
+			if cs.ID() == 0 {
+				return
+			}
+
 			// If a getMore was done but the batch was empty, the batch cursor will return false with no error.
 			// Update the tracked resume token to catch the post batch resume token from the server response.
 			cs.updatePbrtFromCommand()
@@ -576,6 +591,10 @@ func (cs *ChangeStream) isResumableError() bool {
 	commandErr, ok := cs.err.(CommandError)
 	if !ok || commandErr.HasErrorLabel(networkErrorLabel) {
 		// All non-server errors or network errors are resumable.
+		return true
+	}
+
+	if commandErr.Code == errorCursorNotFound {
 		return true
 	}
 

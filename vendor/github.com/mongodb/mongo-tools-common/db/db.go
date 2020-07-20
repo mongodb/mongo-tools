@@ -393,7 +393,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			AuthSource:    opts.GetAuthenticationDatabase(),
 			AuthMechanism: opts.Auth.Mechanism,
 		}
-		if cs.AuthMechanism ==  "MONGODB-AWS" {
+		if cs.AuthMechanism == "MONGODB-AWS" {
 			cred.Username = cs.Username
 			cred.Password = cs.Password
 			cred.AuthSource = cs.AuthSource

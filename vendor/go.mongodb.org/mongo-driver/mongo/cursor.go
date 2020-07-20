@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 
@@ -28,6 +29,7 @@ type Cursor struct {
 
 	bc            batchCursor
 	batch         *bsoncore.DocumentSequence
+	batchLength   int
 	registry      *bsoncodec.Registry
 	clientSession *session.Client
 
@@ -53,6 +55,10 @@ func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry, clientSe
 	if bc.ID() == 0 {
 		c.closeImplicitSession()
 	}
+
+	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result. The actual batch
+	// will be pulled up by the first Next/TryNext call.
+	c.batchLength = c.bc.Batch().DocumentCount()
 	return c, nil
 }
 
@@ -102,6 +108,8 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 	doc, err := c.batch.Next()
 	switch err {
 	case nil:
+		// Consume the next document in the current batch.
+		c.batchLength--
 		c.Current = bson.Raw(doc)
 		return true
 	case io.EOF: // Need to do a getMore
@@ -138,10 +146,13 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 			c.closeImplicitSession()
 		}
 
+		// Use the new batch to update the batch and batchLength fields. Consume the first document in the batch.
 		c.batch = c.bc.Batch()
+		c.batchLength = c.batch.DocumentCount()
 		doc, err = c.batch.Next()
 		switch err {
 		case nil:
+			c.batchLength--
 			c.Current = bson.Raw(doc)
 			return true
 		case io.EOF: // Empty batch so we continue
@@ -176,10 +187,18 @@ func (c *Cursor) Close(ctx context.Context) error {
 func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	resultsVal := reflect.ValueOf(results)
 	if resultsVal.Kind() != reflect.Ptr {
-		return errors.New("results argument must be a pointer to a slice")
+		return fmt.Errorf("results argument must be a pointer to a slice, but was a %s", resultsVal.Kind())
 	}
 
 	sliceVal := resultsVal.Elem()
+	if sliceVal.Kind() == reflect.Interface {
+		sliceVal = sliceVal.Elem()
+	}
+
+	if sliceVal.Kind() != reflect.Slice {
+		return fmt.Errorf("results argument must be a pointer to a slice, but was a pointer to %s", sliceVal.Kind())
+	}
+
 	elementType := sliceVal.Type().Elem()
 	var index int
 	var err error
@@ -206,6 +225,12 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 
 	resultsVal.Elem().Set(sliceVal.Slice(0, index))
 	return nil
+}
+
+// RemainingBatchLength returns the number of documents left in the current batch. If this returns zero, the subsequent
+// call to Next or TryNext will do a network request to fetch the next batch.
+func (c *Cursor) RemainingBatchLength() int {
+	return c.batchLength
 }
 
 // addFromBatch adds all documents from batch to sliceVal starting at the given index. It returns the new slice value,

@@ -26,16 +26,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
-var (
-	KnownURIOptionsAuth           = []string{"authsource", "authmechanism"}
-	KnownURIOptionsConnection     = []string{"connecttimeoutms"}
-	KnownURIOptionsSSL            = []string{"ssl"}
-	KnownURIOptionsReadPreference = []string{"readpreference"}
-	KnownURIOptionsKerberos       = []string{"gssapiservicename", "gssapihostname"}
-	KnownURIOptionsWriteConcern   = []string{"wtimeout", "w", "j", "fsync"}
-	KnownURIOptionsReplicaSet     = []string{"replicaset"}
-)
-
 // XXX Force these true as the Go driver supports them always.  Once the
 // conditionals that depend on them are removed, these can be removed.
 var (
@@ -44,6 +34,8 @@ var (
 )
 
 const IncompatibleArgsErrorFormat = "illegal argument combination: cannot specify %s and --uri"
+
+const unknownOptionsWarningFormat = "WARNING: ignoring unsupported URI parameter '%v'"
 
 func ConflictingArgsErrorFormat(optionName, uriValue, cliValue, cliOptionName string) error {
 	return fmt.Errorf("Invalid Options: Cannot specify different %s in connection URI and command-line option (\"%s\" was specified in the URI and \"%s\" was specified in the %s option)", optionName, uriValue, cliValue, cliOptionName)
@@ -252,8 +244,6 @@ func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsU
 
 	opts.parser.UnknownOptionHandler = opts.handleUnknownOption
 
-	opts.URI.AddKnownURIParameters(KnownURIOptionsReplicaSet)
-
 	if _, err := opts.parser.AddGroup("general options", "", opts.General); err != nil {
 		panic(fmt.Errorf("couldn't register general options: %v", err))
 	}
@@ -265,22 +255,18 @@ func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsU
 	EnableFailpoints(opts)
 
 	if enabled.Connection {
-		opts.URI.AddKnownURIParameters(KnownURIOptionsConnection)
 		if _, err := opts.parser.AddGroup("connection options", "", opts.Connection); err != nil {
 			panic(fmt.Errorf("couldn't register connection options: %v", err))
 		}
-		opts.URI.AddKnownURIParameters(KnownURIOptionsSSL)
 		if _, err := opts.parser.AddGroup("ssl options", "", opts.SSL); err != nil {
 			panic(fmt.Errorf("couldn't register SSL options: %v", err))
 		}
 	}
 
 	if enabled.Auth {
-		opts.URI.AddKnownURIParameters(KnownURIOptionsAuth)
 		if _, err := opts.parser.AddGroup("authentication options", "", opts.Auth); err != nil {
 			panic(fmt.Errorf("couldn't register auth options"))
 		}
-		opts.URI.AddKnownURIParameters(KnownURIOptionsKerberos)
 		if _, err := opts.parser.AddGroup("kerberos options", "", opts.Kerberos); err != nil {
 			panic(fmt.Errorf("couldn't register Kerberos options"))
 		}
@@ -394,40 +380,16 @@ func (uri *URI) ParsedConnString() *connstring.ConnString {
 	}
 	return &uri.ConnString
 }
-func (uri *URI) AddKnownURIParameters(uriFieldNames []string) {
-	uri.knownURIParameters = append(uri.knownURIParameters, uriFieldNames...)
-}
 
 func (opts *ToolOptions) EnabledToolOptions() EnabledOptions {
 	return opts.enabledOptions
 }
 
+// LogUnsupportedOptions logs warnings regarding unknown/unsupported URI parameters.
+// The unknown options are determined by the driver.
 func (uri *URI) LogUnsupportedOptions() {
-	allOptionsFromURI := map[string]struct{}{}
-
-	for optName := range uri.ConnString.Options {
-		allOptionsFromURI[optName] = struct{}{}
-	}
-
-	for optName := range uri.ConnString.UnknownOptions {
-		allOptionsFromURI[optName] = struct{}{}
-	}
-
-	for _, optName := range uri.knownURIParameters {
-		if _, ok := allOptionsFromURI[optName]; ok {
-			delete(allOptionsFromURI, optName)
-		}
-	}
-
-	unsupportedOptions := make([]string, len(allOptionsFromURI))
-	optionIndex := 0
-	for optionName := range allOptionsFromURI {
-		unsupportedOptions[optionIndex] = optionName
-		optionIndex++
-	}
-
-	for _, optName := range unsupportedOptions {
-		log.Logvf(log.Always, "WARNING: ignoring unsupported URI parameter '%v'", optName)
+	for key := range uri.ConnString.UnknownOptions {
+		log.Logvf(log.Always, unknownOptionsWarningFormat, key)
 	}
 }
 
@@ -489,6 +451,9 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 	var parsedURI connstring.ConnString
 
 	for _, arg := range args {
+		if arg == "" {
+			continue
+		}
 		cs, err := connstring.Parse(arg)
 		if err == nil {
 			if foundURI {
@@ -496,8 +461,10 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 			}
 			foundURI = true
 			parsedURI = cs
-		} else {
+		} else if err.Error() == "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"" {
 			newArgs = append(newArgs, arg)
+		} else {
+			return []string{}, err
 		}
 	}
 
