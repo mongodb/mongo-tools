@@ -953,9 +953,14 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 		// Drop the collection to clean up resources
 		defer dbName.Collection("test_auto_idx").Drop(ctx)
 
-		var args []string
+		opts, err := ParseOptions(append(testutil.GetBareArgs()), "", "")
+		So(err, ShouldBeNil)
 
-		restore, err := getRestoreWithArgs(args...)
+		// Set retryWrites to false since it is unsupported on `local` db.
+		retryWrites := false
+		opts.RetryWrites = &retryWrites
+
+		restore, err := New(opts)
 		So(err, ShouldBeNil)
 
 		restore.TargetDirectory = "testdata/local/test_auto_idx.bson"
