@@ -1,0 +1,1360 @@
+bash-3.2$ go test -bench=. -run=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0
+2020-07-20T13:12:42.763-0400	Setting num cpus to 8
+2020-07-20T13:12:42.769-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:42.829-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:42.893-0400	no indexes to restore
+2020-07-20T13:12:42.893-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0-8         	2020-07-20T13:12:42.923-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:42.964-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.035-0400	no indexes to restore
+2020-07-20T13:12:43.035-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.061-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.102-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.172-0400	no indexes to restore
+2020-07-20T13:12:43.172-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.198-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.240-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.307-0400	no indexes to restore
+2020-07-20T13:12:43.307-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.334-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.384-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.450-0400	no indexes to restore
+2020-07-20T13:12:43.450-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.477-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.521-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.585-0400	no indexes to restore
+2020-07-20T13:12:43.585-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.614-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.656-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.726-0400	no indexes to restore
+2020-07-20T13:12:43.726-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.756-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.797-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.863-0400	no indexes to restore
+2020-07-20T13:12:43.863-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:43.889-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:43.941-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:44.008-0400	no indexes to restore
+2020-07-20T13:12:44.008-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:44.035-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:44.075-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:44.142-0400	no indexes to restore
+2020-07-20T13:12:44.142-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:12:44.168-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:44.209-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:12:44.273-0400	no indexes to restore
+2020-07-20T13:12:44.273-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+1000000000	         0.125 ns/op
+2020-07-20T13:12:44.297-0400	checking for collection data in testdata/tools-1856/results/dataset1.bson
+2020-07-20T13:12:44.338-0400	restoring benchmark.dataset1 from testdata/tools-1856/results/dataset1.bson
+2020-07-20T13:12:47.298-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T13:12:50.297-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+  C-c C-csignal: interrupt
+FAIL	github.com/mongodb/mongo-tools/mongorestore	8.890s
+bash-3.2$ go test -bench=. -run=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson
+2020-07-20T13:15:06.416-0400	Setting num cpus to 8
+2020-07-20T13:15:06.421-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.489-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.558-0400	no indexes to restore
+2020-07-20T13:15:06.558-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson-8         	2020-07-20T13:15:06.610-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.650-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.723-0400	no indexes to restore
+2020-07-20T13:15:06.723-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:06.750-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.793-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.862-0400	no indexes to restore
+2020-07-20T13:15:06.862-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:06.888-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:06.933-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.005-0400	no indexes to restore
+2020-07-20T13:15:07.005-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.037-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.078-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.151-0400	no indexes to restore
+2020-07-20T13:15:07.151-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.180-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.221-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.290-0400	no indexes to restore
+2020-07-20T13:15:07.290-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.315-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.356-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.426-0400	no indexes to restore
+2020-07-20T13:15:07.426-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.451-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.501-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.570-0400	no indexes to restore
+2020-07-20T13:15:07.570-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.606-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.647-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.716-0400	no indexes to restore
+2020-07-20T13:15:07.717-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.744-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.787-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.854-0400	no indexes to restore
+2020-07-20T13:15:07.854-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:07.882-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.925-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:07.997-0400	no indexes to restore
+2020-07-20T13:15:07.997-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+1000000000	         0.137 ns/op
+2020-07-20T13:15:08.023-0400	checking for collection data in testdata/tools-1856/results/dataset1.bson
+2020-07-20T13:15:08.065-0400	restoring benchmark.dataset1 from testdata/tools-1856/results/dataset1.bson
+2020-07-20T13:15:11.023-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+  C-c C-csignal: interrupt
+FAIL	github.com/mongodb/mongo-tools/mongorestore	9.182s
+bash-3.2$ go test -bench=. -run=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson-8
+
+2020-07-20T13:15:33.640-0400	Setting num cpus to 8
+2020-07-20T13:15:33.646-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:33.701-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:33.771-0400	no indexes to restore
+2020-07-20T13:15:33.772-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson-8         	2020-07-20T13:15:33.816-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:33.856-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:33.929-0400	no indexes to restore
+2020-07-20T13:15:33.929-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:33.955-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.006-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.072-0400	no indexes to restore
+2020-07-20T13:15:34.072-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.098-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.142-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.212-0400	no indexes to restore
+2020-07-20T13:15:34.212-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.240-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.281-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.344-0400	no indexes to restore
+2020-07-20T13:15:34.344-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.371-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.413-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.480-0400	no indexes to restore
+2020-07-20T13:15:34.480-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.506-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.549-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.618-0400	no indexes to restore
+2020-07-20T13:15:34.618-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.650-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.692-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.762-0400	no indexes to restore
+2020-07-20T13:15:34.762-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.791-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.839-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.904-0400	no indexes to restore
+2020-07-20T13:15:34.904-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:34.930-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:34.975-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:35.041-0400	no indexes to restore
+2020-07-20T13:15:35.042-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:15:35.068-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:35.115-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:15:35.188-0400	no indexes to restore
+2020-07-20T13:15:35.188-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+1000000000	         0.153 ns/op
+2020-07-20T13:15:35.224-0400	checking for collection data in testdata/tools-1856/results/dataset1.bson
+2020-07-20T13:15:35.266-0400	restoring benchmark.dataset1 from testdata/tools-1856/results/dataset1.bson
+  C-c C-csignal: interrupt
+FAIL	github.com/mongodb/mongo-tools/mongorestore	3.541s
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson
+2020-07-20T13:16:06.249-0400	Setting num cpus to 8
+2020-07-20T13:16:06.254-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.313-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.376-0400	no indexes to restore
+2020-07-20T13:16:06.376-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson-8         	2020-07-20T13:16:06.423-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.464-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.532-0400	no indexes to restore
+2020-07-20T13:16:06.532-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:06.556-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.597-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.663-0400	no indexes to restore
+2020-07-20T13:16:06.663-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:06.691-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.732-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.799-0400	no indexes to restore
+2020-07-20T13:16:06.799-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:06.827-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.877-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:06.941-0400	no indexes to restore
+2020-07-20T13:16:06.941-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:06.967-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.008-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.071-0400	no indexes to restore
+2020-07-20T13:16:07.071-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:07.104-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.145-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.213-0400	no indexes to restore
+2020-07-20T13:16:07.213-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:07.242-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.285-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.355-0400	no indexes to restore
+2020-07-20T13:16:07.355-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:07.384-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.432-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.498-0400	no indexes to restore
+2020-07-20T13:16:07.498-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:07.523-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.566-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.634-0400	no indexes to restore
+2020-07-20T13:16:07.634-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T13:16:07.664-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.707-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T13:16:07.778-0400	no indexes to restore
+2020-07-20T13:16:07.778-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+1000000000	         0.139 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	1.790s
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset1.bson
+--- FAIL: BenchmarkCPUAndMemoryConsumption
+    mongorestore_test.go:75: Could not find test directory: open testdata/tools-1856/results: no such file or directory
+FAIL
+exit status 1
+FAIL	github.com/mongodb/mongo-tools/mongorestore	0.272s
+bash-3.2$ cd testdata/tools-1856/results
+bash: cd: testdata/tools-1856/results: No such file or directory
+bash-3.2$ mkdir testdata/tools-1856/results
+bash-3.2$ cd testdata/tools-1856/results
+bash-3.2$ ls
+bash-3.2$ ls ..
+ profiles   results   traces
+bash-3.2$ ls
+bash-3.2$ ls
+bash-3.2$ ls
+bash-3.2$ cd ..
+bash-3.2$ ls
+ js   profiles   results   traces
+bash-3.2$ cd js
+bash-3.2$ ls
+ accidental_dataset.js   d1.js   d3.js   d5.js   d7.js   dropall.js
+ d0.js                   d2.js   d4.js   d6.js   d8.js   results
+bash-3.2$ mongo < d0.js
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+2020-07-20T13:30:32.450-0400 E  QUERY    [js] Error: couldn't connect to server 127.0.0.1:27017, connection attempt failed: SocketException: Error connecting to 127.0.0.1:27017 :: caused by :: Connection refused :
+connect@src/mongo/shell/mongo.js:341:17
+@(connect):2:6
+2020-07-20T13:30:32.452-0400 F  -        [main] exception: connect failed
+2020-07-20T13:30:32.452-0400 E  -        [main] exiting with code 1
+bash-3.2$ sudo mlaunch start
+Password:
+Can't read /Users/hari.amoor/go/src/github.com/mongodb/mongo-tools/mongorestore/testdata/tools-1856/js/data/.mlaunch_startup, use 'mlaunch init ...' first.
+bash-3.2$ cd
+bash-3.2$ ls
+ Applications   Desktop     Downloads   Google Drive File Stream ⇒ /Volumes/GoogleDrive   M001     Music   notes      Public   sqlproxy
+ data           Documents   go          Library                                           Movies   News    Pictures   Resume   test-debug
+bash-3.2$ sudo mlaunch start --single --port 27017
+warning: ignoring unknown argument --single for mongod
+no nodes started.
+bash-3.2$ ls
+ Applications   Desktop     Downloads   Google Drive File Stream ⇒ /Volumes/GoogleDrive   M001     Music   notes      Public   sqlproxy
+ data           Documents   go          Library                                           Movies   News    Pictures   Resume   test-debug
+bash-3.2$ sudo mlaunch init --single --port 27017
+A different environment already exists at /Users/hari.amoor/data.
+bash-3.2$ sudo mlaunch list
+
+PROCESS    PORT     STATUS     PID
+
+single     33333    running    4464
+
+bash-3.2$ sudo mlaunch init
+usage: mlaunch init [-h] (--single | --replicaset) [--nodes NUM] [--arbiter] [--name NAME] [--priority] [--sharded N [N ...]] [--config NUM] [--csrs] [--mongos NUM] [--verbose] [--port PORT]
+                    [--binarypath PATH] [--dir DIR] [--hostname HOSTNAME] [--auth] [--username USERNAME] [--password PASSWORD] [--auth-db DB] [--auth-roles [ROLE [ROLE ...]]] [--auth-role-docs]
+                    [--no-initial-user] [--sslCAFile SSLCAFILE] [--sslCRLFile SSLCRLFILE] [--sslAllowInvalidHostnames] [--sslAllowInvalidCertificates]
+                    [--sslMode {disabled,allowSSL,preferSSL,requireSSL}] [--sslPEMKeyFile SSLPEMKEYFILE] [--sslPEMKeyPassword SSLPEMKEYPASSWORD] [--sslClusterFile SSLCLUSTERFILE]
+                    [--sslClusterPassword SSLCLUSTERPASSWORD] [--sslDisabledProtocols SSLDISABLEDPROTOCOLS] [--sslAllowConnectionsWithoutCertificates] [--sslFIPSMode]
+                    [--sslClientCertificate SSLCLIENTCERTIFICATE] [--sslClientPEMKeyFile SSLCLIENTPEMKEYFILE] [--sslClientPEMKeyPassword SSLCLIENTPEMKEYPASSWORD]
+mlaunch init: error: one of the arguments --single --replicaset is required
+bash-3.2$ sudo mlaunch init --single --port 27017
+A different environment already exists at /Users/hari.amoor/data.
+bash-3.2$ rm -rf data/  C-c C-c
+bash-3.2$ sudo mlaunch init data-collect --single --port 27017
+A different environment already exists at /Users/hari.amoor/data.
+bash-3.2$ ls
+ Applications   Desktop     Downloads   Google Drive File Stream ⇒ /Volumes/GoogleDrive   M001     Music   notes      Public   sqlproxy
+ data           Documents   go          Library                                           Movies   News    Pictures   Resume   test-debug
+bash-3.2$ sudo rm -rf data/
+bash-3.2$ sudo mlaunch list
+Can't read /Users/hari.amoor/data/.mlaunch_startup, use 'mlaunch init ...' first.
+bash-3.2$ sudo mlaunch init --single --port 33333
+launching: "mongod" on port 33333
+bash-3.2$ sudo mlaunch start --single --port 27017
+warning: ignoring unknown argument --single for mongod
+no nodes started.
+bash-3.2$ sudo mlaunch start
+no nodes started.
+bash-3.2$ sudo mlaunch start --help
+usage: mlaunch start [-h] [--verbose] [--dir DIR] [--binarypath PATH] [TAG [TAG ...]]
+
+starts existing MongoDB instances. Example: "mlaunch start config" will start all config servers.
+
+positional arguments:
+  TAG                without tags, all non-running nodes will be restarted. Provide additional tags to narrow down the set of nodes to start.
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --verbose          outputs more verbose information.
+  --dir DIR          base directory to start nodes (default=./data/)
+  --binarypath PATH  search for mongod/s binaries in the specified PATH.
+bash-3.2$ sudo mlaunch init --help
+usage: mlaunch init [-h] (--single | --replicaset) [--nodes NUM] [--arbiter] [--name NAME] [--priority] [--sharded N [N ...]] [--config NUM] [--csrs] [--mongos NUM] [--verbose] [--port PORT]
+                    [--binarypath PATH] [--dir DIR] [--hostname HOSTNAME] [--auth] [--username USERNAME] [--password PASSWORD] [--auth-db DB] [--auth-roles [ROLE [ROLE ...]]] [--auth-role-docs]
+                    [--no-initial-user] [--sslCAFile SSLCAFILE] [--sslCRLFile SSLCRLFILE] [--sslAllowInvalidHostnames] [--sslAllowInvalidCertificates]
+                    [--sslMode {disabled,allowSSL,preferSSL,requireSSL}] [--sslPEMKeyFile SSLPEMKEYFILE] [--sslPEMKeyPassword SSLPEMKEYPASSWORD] [--sslClusterFile SSLCLUSTERFILE]
+                    [--sslClusterPassword SSLCLUSTERPASSWORD] [--sslDisabledProtocols SSLDISABLEDPROTOCOLS] [--sslAllowConnectionsWithoutCertificates] [--sslFIPSMode]
+                    [--sslClientCertificate SSLCLIENTCERTIFICATE] [--sslClientPEMKeyFile SSLCLIENTPEMKEYFILE] [--sslClientPEMKeyPassword SSLCLIENTPEMKEYPASSWORD]
+
+Initialize a new MongoDB environment and start stand-alone instances, replica sets, or sharded clusters. Command line arguments which are not handled by mlaunch will be passed through to
+mongod/mongos if those options are listed in the --help output for the current binary. For example: --storageEngine, --logappend, or --config.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --single              creates a single stand-alone mongod instance
+  --replicaset          creates replica set with several mongod instances
+  --nodes NUM           adds NUM data nodes to replica set (requires --replicaset, default=3)
+  --arbiter             adds arbiter to replica set (requires --replicaset)
+  --name NAME           name for replica set (default=replset)
+  --priority            make lowest-port member primary
+  --sharded N [N ...], --shards N [N ...]
+                        creates a sharded setup consisting of several singles or replica sets. Provide either list of shard names or number of shards.
+  --config NUM          adds NUM config servers to sharded setup (requires --sharded, default=1, with --csrs default=3)
+  --csrs                deploy config servers as a replica set (requires MongoDB >= 3.2.0)
+  --mongos NUM          starts NUM mongos processes (requires --sharded, default=1)
+  --verbose             outputs more verbose information.
+  --port PORT           port for mongod, start of port range in case of replica set or shards (default=27017)
+  --binarypath PATH     search for mongod/s binaries in the specified PATH.
+  --dir DIR             base directory to create db and log paths (default=./data/)
+  --hostname HOSTNAME   override hostname for replica set configuration
+  --auth                enable authentication and create a key file and admin user (default=user/password)
+  --username USERNAME   username to add (requires --auth, default=user)
+  --password PASSWORD   password for given username (requires --auth, default=password)
+  --auth-db DB          database where user will be added (requires --auth, default=admin)
+  --auth-roles [ROLE [ROLE ...]]
+                        admin users privilege roles; notethat the clusterAdmin role is required to run the stop command (requires --auth, default="dbAdminAnyDatabase readWriteAnyDatabase
+                        userAdminAnyDatabase clusterAdmin")
+  --auth-role-docs      auth-roles are JSON documents
+  --no-initial-user     Do not create an initial user if auth is enabled
+
+TLS/SSL options:
+  --sslCAFile SSLCAFILE
+                        Certificate Authority file for TLS/SSL
+  --sslCRLFile SSLCRLFILE
+                        Certificate Revocation List file for TLS/SSL
+  --sslAllowInvalidHostnames
+                        allow client and server certificates to provide non-matching hostnames
+  --sslAllowInvalidCertificates
+                        allow client or server connections with invalid certificates
+
+Server TLS/SSL options:
+  --sslMode {disabled,allowSSL,preferSSL,requireSSL}
+                        set the TLS/SSL operation mode
+  --sslPEMKeyFile SSLPEMKEYFILE
+                        PEM file for TLS/SSL
+  --sslPEMKeyPassword SSLPEMKEYPASSWORD
+                        PEM file password
+  --sslClusterFile SSLCLUSTERFILE
+                        key file for internal TLS/SSL authentication
+  --sslClusterPassword SSLCLUSTERPASSWORD
+                        internal authentication key file password
+  --sslDisabledProtocols SSLDISABLEDPROTOCOLS
+                        comma separated list of TLS protocols to disable [TLS1_0,TLS1_1,TLS1_2]
+  --sslAllowConnectionsWithoutCertificates
+                        allow client to connect without presenting a certificate
+  --sslFIPSMode         activate FIPS 140-2 mode
+
+Client TLS/SSL options:
+  --sslClientCertificate SSLCLIENTCERTIFICATE
+                        client certificate file for TLS/SSL
+  --sslClientPEMKeyFile SSLCLIENTPEMKEYFILE
+                        client PEM file for TLS/SSL
+  --sslClientPEMKeyPassword SSLCLIENTPEMKEYPASSWORD
+                        client PEM file password
+bash-3.2$ sudo mlaunch start --single
+warning: ignoring unknown argument --single for mongod
+no nodes started.
+bash-3.2$ sudo mlaunch init --single
+A different environment already exists at /Users/hari.amoor/data.
+bash-3.2$ sudo rm -rf data/
+bash-3.2$ ls
+ Applications   Documents   go                                                Library   Movies   News    Pictures   Resume     test-debug
+ Desktop        Downloads   Google Drive File Stream ⇒ /Volumes/GoogleDrive   M001      Music    notes   Public     sqlproxy  
+bash-3.2$ sudo mlaunch init --single
+launching: "mongod" on port 27017
+bash-3.2$ cd go/src/github.com/mongodb/mongo-tools/ 
+bash-3.2$ l
+bash: l: command not found
+bash-3.2$ ls
+ bin            build.sh         CONTRIBUTING.md   Gopkg.toml   mongodump     mongoimport    mongotop    RELEASE.md     test       testing_output
+ binaryurl.py   common-pvt.yml   etc               installer    mongoexport   mongorestore   README.md   runTests.sh    test.sh    THIRD-PARTY-NOTICES
+ bsondump       common.yml       Gopkg.lock        LICENSE.md   mongofiles    mongostat      release     set_goenv.sh   testdata   vendor
+bash-3.2$ sudo mlaunch init --sinlge --port 33333
+usage: mlaunch init [-h] (--single | --replicaset) [--nodes NUM] [--arbiter] [--name NAME] [--priority] [--sharded N [N ...]] [--config NUM] [--csrs] [--mongos NUM] [--verbose] [--port PORT]
+                    [--binarypath PATH] [--dir DIR] [--hostname HOSTNAME] [--auth] [--username USERNAME] [--password PASSWORD] [--auth-db DB] [--auth-roles [ROLE [ROLE ...]]] [--auth-role-docs]
+                    [--no-initial-user] [--sslCAFile SSLCAFILE] [--sslCRLFile SSLCRLFILE] [--sslAllowInvalidHostnames] [--sslAllowInvalidCertificates]
+                    [--sslMode {disabled,allowSSL,preferSSL,requireSSL}] [--sslPEMKeyFile SSLPEMKEYFILE] [--sslPEMKeyPassword SSLPEMKEYPASSWORD] [--sslClusterFile SSLCLUSTERFILE]
+                    [--sslClusterPassword SSLCLUSTERPASSWORD] [--sslDisabledProtocols SSLDISABLEDPROTOCOLS] [--sslAllowConnectionsWithoutCertificates] [--sslFIPSMode]
+                    [--sslClientCertificate SSLCLIENTCERTIFICATE] [--sslClientPEMKeyFile SSLCLIENTPEMKEYFILE] [--sslClientPEMKeyPassword SSLCLIENTPEMKEYPASSWORD]
+mlaunch init: error: one of the arguments --single --replicaset is required
+bash-3.2$ sudo mlaunch init --single --port 33333
+launching: "mongod" on port 33333
+bash-3.2$ ls
+ bin            build.sh         CONTRIBUTING.md   Gopkg.lock   LICENSE.md    mongofiles     mongostat   release       set_goenv.sh   testdata              vendor
+ binaryurl.py   common-pvt.yml   data              Gopkg.toml   mongodump     mongoimport    mongotop    RELEASE.md    test           testing_output       
+ bsondump       common.yml       etc               installer    mongoexport   mongorestore   README.md   runTests.sh   test.sh        THIRD-PARTY-NOTICES  
+bash-3.2$ cd mongorestore/testdata/tools-1856/
+bash-3.2$ ls
+ js   profiles   results   traces
+bash-3.2$ cd js
+bash-3.2$ mongo < d0.js
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("d554bcfe-fc4d-4aed-ab01-153cd1e8cfe7") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db config
+dropping db local
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("1abdae44-1c34-4d83-9045-00b3e176a013") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+bash-3.2$ ls
+ accidental_dataset.js   d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   d6.js   d7.js   d8.js   dropall.js   results
+bash-3.2$ mongodump
+2020-07-20T13:37:53.507-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:37:53.508-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:37:53.508-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:37:53.511-0400	done dumping memtest.test (1000 documents)
+bash-3.2$ ls
+ accidental_dataset.js   d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   d6.js   d7.js   d8.js   dropall.js   dump   results
+bash-3.2$ ls dump/
+ admin   memtest
+bash-3.2$ mv dump/memtest/test.bson ../results/dataset0.bson 
+bash-3.2$ mongo < d1.js
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("31765524-d7b6-4d88-8794-856680579aed") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("94a0c5e0-2795-4fb7-b2ad-847c9f2567e2") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+bash-3.2$ rm -rf dump/
+bash-3.2$ mongodump
+2020-07-20T13:41:21.813-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:41:21.814-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:41:21.814-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:41:24.806-0400	[##......................]  memtest.test  94/1000  (9.4%)
+2020-07-20T13:41:27.807-0400	[####....................]  memtest.test  202/1000  (20.2%)
+2020-07-20T13:41:30.806-0400	[#######.................]  memtest.test  318/1000  (31.8%)
+2020-07-20T13:41:33.807-0400	[##########..............]  memtest.test  418/1000  (41.8%)
+2020-07-20T13:41:36.807-0400	[############............]  memtest.test  538/1000  (53.8%)
+2020-07-20T13:41:39.807-0400	[###############.........]  memtest.test  661/1000  (66.1%)
+2020-07-20T13:41:42.806-0400	[##################......]  memtest.test  778/1000  (77.8%)
+2020-07-20T13:41:45.807-0400	[#####################...]  memtest.test  876/1000  (87.6%)
+2020-07-20T13:41:48.807-0400	[#######################.]  memtest.test  982/1000  (98.2%)
+2020-07-20T13:41:49.329-0400	[########################]  memtest.test  1000/1000  (100.0%)
+2020-07-20T13:41:49.329-0400	done dumping memtest.test (1000 documents)
+bash-3.2$ mv dump/memtest/test.bson ../results/dataset1.bson
+bash-3.2$ rm -rf dump/
+bash-3.2$ rm -rf ../results/* 
+bash-3.2$ ls
+ accidental_dataset.js   d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   d6.js   d7.js   d8.js   dropall.js   populate.sh   results
+bash-3.2$ rm d4.js d5.js 
+bash-3.2$ ls
+ accidental_dataset.js   d0.js   d1.js   d2.js   d3.js   d6.js   d7.js   d8.js   dropall.js   populate.sh   results
+bash-3.2$ rm d6.js rm accidental_dataset.js 
+rm: rm: No such file or directory
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d7.js   d8.js   dropall.js   populate.sh   results
+bash-3.2$ mv d7.js d4.js
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d8.js   dropall.js   populate.sh   results
+bash-3.2$ mv d8.js d5.js
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate.sh   results
+bash-3.2$ chmod +x populate.sh 
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate.sh   results
+bash-3.2$ pwd 
+/Users/hari.amoor/go/src/github.com/mongodb/mongo-tools/mongorestore/testdata/tools-1856/js
+bash-3.2$ ls results/
+ gctrace   pprof   x_gctrace
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate.sh   results
+bash-3.2$ rm -rf results/
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate.sh
+bash-3.2$ ./populate.sh 
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("221fc788-620b-485d-ad72-816bf3ad26ef") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db config
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("4d424c8e-efab-469c-9e39-255c770c3829") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:49:44.716-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:49:44.717-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:49:44.718-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:49:44.720-0400	done dumping memtest.test (1000 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("9bc2dd33-c053-4ccf-9bc6-e746afe7061e") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("b4108030-21ee-4950-81e3-40f4451120c3") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:49:50.921-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:49:50.943-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:49:50.943-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:49:50.944-0400	writing memtest.test to dump/memtest/test.bson
+  C-c C-c2020-07-20T13:49:52.159-0400	signal 'interrupt' received; attempting to shut down
+2020-07-20T13:49:52.307-0400	Failed: error writing data for collection `memtest.test` to disk: received termination signal
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("7d25aa6f-7d51-40b9-9469-6ee2f3daf78c") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("82a2d2d7-7dfe-4027-b1fb-2cd90770ed72") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+  C-c C-c2020-07-20T13:49:53.106-0400	signal 'interrupt' received; attempting to shut down
+2020-07-20T13:49:53.107-0400	Failed: error writing data for collection `memtest.test` to disk: received termination signal
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("a2106844-4177-4cc2-9ebd-aecf3decdeb6") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("eef8a285-155a-4f6a-bcc2-37d3d3edba35") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:49:53.467-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:49:53.485-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:49:53.485-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:49:53.485-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:49:53.489-0400	done dumping memtest.test (36 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("f9f64017-89b6-4c76-82e2-6acf5a358cea") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("23aca1d1-c27b-4528-a260-6ed3ab8d1a63") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:49:53.863-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:49:53.881-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:49:53.882-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:49:53.882-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:49:53.885-0400	done dumping memtest.test (432 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("5fa22f58-03e7-45fd-b84b-8bff5d2757e6") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("aaa3b3c2-7ca6-488e-b8c2-8db204600477") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:49:54.334-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:49:54.353-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:49:54.354-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:49:54.354-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:49:54.361-0400	done dumping memtest.test (557 documents)
+bash-3.2$   C-c C-c
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate.sh
+bash-3.2$ rm ../results/*
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate.sh
+bash-3.2$ mv populate.sh populate
+bash-3.2$ ./populate 
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("69e8024f-05e4-4515-961c-aa9eac78f02e") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("864c4eaa-daec-4d73-9a62-5f27277b319f") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:50:23.561-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:50:23.561-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:50:23.562-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:50:23.563-0400	done dumping memtest.test (1000 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("33c68636-5676-44bf-b03c-eafd78b48b77") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("eacc92ec-cbd6-44ac-86ee-d2d83713359e") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:50:24.422-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:50:24.442-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:50:24.443-0400	done dumping admin.system.version (1 document)
+mv: rename dump/memtest/test.bson to ../results/dataset1.bson: No such file or directory
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("ff921cf7-fd9e-4494-97e7-35d5fde44ec4") }
+MongoDB server version: 4.2.8
+dropping db admin
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("74e0435a-cd8c-4cbd-b792-0d9f4325abfb") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:50:25.062-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:50:25.063-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:50:25.063-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:50:25.071-0400	done dumping memtest.test (1000 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("471818ea-b13d-4c4a-90bd-2c843fbc9f4c") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("f7e922cf-8fb0-45bc-ad3e-7310535e2778") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:50:25.500-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:50:25.520-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:50:25.520-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:50:25.521-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:50:25.526-0400	done dumping memtest.test (53 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("97edfca3-2708-4cd9-9659-119931d4682b") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("9151b338-1994-4a7a-9799-da7a667b5c19") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:50:25.869-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:50:25.888-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:50:25.889-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:50:25.889-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:50:25.891-0400	done dumping memtest.test (319 documents)
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("fa46ac75-b79c-43d4-91fc-726bfb020c3a") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("882dd9e1-e238-4b23-a707-f6ffe6041b7a") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:50:26.259-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:50:26.276-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:50:26.278-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:50:26.278-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:50:26.283-0400	done dumping memtest.test (317 documents)
+bash-3.2$   C-c C-c
+bash-3.2$ rm ../results/* 
+bash-3.2$ ls
+ d0.js   d1.js   d2.js   d3.js   d4.js   d5.js   dropall.js   populate
+bash-3.2$ ./populate 
+Processing: d0.js
+\n\n
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("16334dc2-71a9-4df7-97ad-4df99b6fc864") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("9f94b101-9a31-4d53-8f35-037fb5cb69df") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:51:30.900-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:51:30.901-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:51:30.901-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:51:30.903-0400	done dumping memtest.test (1000 documents)
+Processing: d1.js
+\n\n
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("4c4049c2-ffed-497c-a3be-dd68aa1d35a6") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("139f4cb5-3fe0-4c55-a00b-1bd628e5a292") }
+MongoDB server version: 4.2.8
+  C-c C-c
+do you want to kill the current op(s) on the server? (y/n): 2020-07-20T13:51:36.038-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:51:36.062-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:51:36.063-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:51:36.063-0400	writing memtest.test to dump/memtest/test.bson
+  C-c C-c2020-07-20T13:51:36.399-0400	signal 'interrupt' received; attempting to shut down
+2020-07-20T13:51:36.422-0400	Failed: error writing data for collection `memtest.test` to disk: received termination signal
+Processing: d2.js
+\n\n
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("4e744901-935a-4e3f-8c58-0bb4052bd6d0") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+  C-c C-c2020-07-20T13:51:36.812-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:51:36.829-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:51:36.830-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:51:36.831-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:51:36.832-0400	done dumping memtest.test (39 documents)
+Processing: d3.js
+\n\n
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("a4e2d411-d969-4f55-aeb6-23cdbea3b84a") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("0fc71779-9107-44c6-bc78-a2ec224bdce0") }
+MongoDB server version: 4.2.8
+  C-c C-c2020-07-20T13:51:37.188-0400 I  CONTROL  [main] shutting down with code:0
+2020-07-20T13:51:37.206-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:51:37.206-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:51:37.207-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:51:37.211-0400	done dumping memtest.test (34 documents)
+Processing: d4.js
+\n\n
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("4c3dc6a9-1d3b-47cc-b4ee-f37e7843decc") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("f0a49968-3798-4c9f-9b49-d5ba7c9e2bb5") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+  C-c C-c
+bash-3.2$ clear
+bash-3.2$ 
+bash-3.2$ ./populate 
+Creating: dataset0.bson
+
+
+
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("11f424e7-e2c4-4bc1-87cf-7627e9237d15") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db config
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("5678301d-ddbe-485f-a09b-3475cb5fb03e") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:54:07.288-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:54:07.288-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:54:07.288-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:54:07.290-0400	done dumping memtest.test (1000 documents)
+Creating: dataset1.bson
+
+
+
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("1663b990-1b26-44de-ae5e-88ea99bab621") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("2840baae-212b-4b30-ab35-de9ad680478b") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:56:32.957-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:56:32.957-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:56:32.958-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:56:35.955-0400	[........................]  memtest.test  32/1000  (3.2%)
+2020-07-20T13:56:38.954-0400	[#.......................]  memtest.test  59/1000  (5.9%)
+2020-07-20T13:56:41.956-0400	[##......................]  memtest.test  110/1000  (11.0%)
+2020-07-20T13:56:44.956-0400	[###.....................]  memtest.test  151/1000  (15.1%)
+2020-07-20T13:56:47.956-0400	[#####...................]  memtest.test  212/1000  (21.2%)
+2020-07-20T13:56:50.954-0400	[######..................]  memtest.test  274/1000  (27.4%)
+2020-07-20T13:56:53.951-0400	[########................]  memtest.test  346/1000  (34.6%)
+2020-07-20T13:56:56.956-0400	[###########.............]  memtest.test  462/1000  (46.2%)
+2020-07-20T13:56:59.955-0400	[#############...........]  memtest.test  580/1000  (58.0%)
+2020-07-20T13:57:02.956-0400	[################........]  memtest.test  694/1000  (69.4%)
+2020-07-20T13:57:05.951-0400	[###################.....]  memtest.test  804/1000  (80.4%)
+2020-07-20T13:57:08.954-0400	[#####################...]  memtest.test  915/1000  (91.5%)
+2020-07-20T13:57:11.410-0400	[########################]  memtest.test  1000/1000  (100.0%)
+2020-07-20T13:57:11.410-0400	done dumping memtest.test (1000 documents)
+Creating: dataset2.bson
+
+
+
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("4a77eded-f7b0-4cc8-87b0-f43c8382ad20") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db config
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("c9eb3d0f-68f1-4651-9e7e-64716c2ae4b6") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:57:12.343-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:57:12.343-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:57:12.344-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:57:12.351-0400	done dumping memtest.test (1000 documents)
+Creating: dataset3.bson
+
+
+
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("4ce18dde-3964-4f6c-8ba3-cd41302e3cca") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("5a800103-cab4-4dd7-8358-cefa9066dfe8") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:57:17.025-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:57:17.026-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:57:17.027-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:57:17.104-0400	done dumping memtest.test (1000 documents)
+Creating: dataset4.bson
+
+
+
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("557db2f5-6d2e-4508-90f8-36a7d712933e") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("ee6ddb93-6c9c-4e85-98f8-1ff21dbc6ca7") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:57:17.724-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:57:17.724-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:57:17.725-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:57:17.728-0400	done dumping memtest.test (1000 documents)
+Creating: dataset5.bson
+
+
+
+MongoDB shell version v4.2.8
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("65da6530-c525-4187-b3e5-5e5b0448a2ad") }
+MongoDB server version: 4.2.8
+dropping db admin
+dropping db memtest
+true
+connecting to: mongodb://127.0.0.1:27017/memtest
+Implicit session: session { "id" : UUID("69b46c78-34ef-4a4d-b0f8-b19a1d5e0d70") }
+MongoDB server version: 4.2.8
+WriteResult({ "nInserted" : 1 })
+bye
+2020-07-20T13:57:18.358-0400	writing admin.system.version to dump/admin/system.version.bson
+2020-07-20T13:57:18.359-0400	done dumping admin.system.version (1 document)
+2020-07-20T13:57:18.359-0400	writing memtest.test to dump/memtest/test.bson
+2020-07-20T13:57:18.369-0400	done dumping memtest.test (1000 documents)
+bash-3.2$ ls ../results/
+ dataset0.bson   dataset1.bson   dataset2.bson   dataset3.bson   dataset4.bson   dataset5.bson
+bash-3.2$ cd ..
+bash-3.2$ ls
+ js   profiles   results   traces
+bash-3.2$ cd results/
+bash-3.2$ ls
+ dataset0.bson   dataset1.bson   dataset2.bson   dataset3.bson   dataset4.bson   dataset5.bson
+bash-3.2$ cd ..
+bash-3.2$ rm -rf traces/
+bash-3.2$ ls
+ js   profiles   results
+bash-3.2$ ls
+ js   profiles   results
+bash-3.2$ pwd 
+/Users/hari.amoor/go/src/github.com/mongodb/mongo-tools/mongorestore/testdata/tools-1856
+bash-3.2$ cd ..
+bash-3.2$ ls
+ 10k1dup10k.bson       bad-format.archive     foodump                       index_collation.json   longcollectionname    oplogdump          test_auto_idx.bson            tools-2002
+ auth_version_3.bson   commit_indexes_build   hashedIndexes.bson            indexmetadata          longindextestdump     oplogdumpmaxsize   test_auto_idx.metadata.json   transactions.json
+ auth_version_5.bson   create_indexes         hashedIndexes.metadata.json   indextestdump          oplog_ignore_index    specialcharacter   testdirs                      txntest
+ aws_test_db           dump-w-oplog.archive   index_collation               local                  oplog_partial_skips   test.bar.archive   tools-1856                    usersdump
+bash-3.2$ cd tools-1856/
+bash-3.2$ ls
+ js   profiles   results
+bash-3.2$ mkdir traces
+bash-3.2$ ls
+ js   profiles   results   traces
+bash-3.2$ cd ..
+bash-3.2$ ls
+ 10k1dup10k.bson       bad-format.archive     foodump                       index_collation.json   longcollectionname    oplogdump          test_auto_idx.bson            tools-2002
+ auth_version_3.bson   commit_indexes_build   hashedIndexes.bson            indexmetadata          longindextestdump     oplogdumpmaxsize   test_auto_idx.metadata.json   transactions.json
+ auth_version_5.bson   create_indexes         hashedIndexes.metadata.json   indextestdump          oplog_ignore_index    specialcharacter   testdirs                      txntest
+ aws_test_db           dump-w-oplog.archive   index_collation               local                  oplog_partial_skips   test.bar.archive   tools-1856                    usersdump
+bash-3.2$ cd ..
+bash-3.2$ ls
+ filepath.go        fixtures_test.go   metadata.go        mongorestore.go                mongorestore_test.go       ns         oplog_test.go   options_test.go   testdata
+ filepath_test.go   main               metadata_test.go   mongorestore_archive_test.go   mongorestore_txn_test.go   oplog.go   options.go      restore.go       
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson
+2020-07-20T14:00:08.042-0400	Setting num cpus to 8
+2020-07-20T14:00:08.048-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.107-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.174-0400	no indexes to restore
+2020-07-20T14:00:08.175-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson-8         	2020-07-20T14:00:08.200-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.240-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.307-0400	no indexes to restore
+2020-07-20T14:00:08.307-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.336-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.383-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.448-0400	no indexes to restore
+2020-07-20T14:00:08.448-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.473-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.519-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.590-0400	no indexes to restore
+2020-07-20T14:00:08.590-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.616-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.657-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.721-0400	no indexes to restore
+2020-07-20T14:00:08.721-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.749-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.790-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.858-0400	no indexes to restore
+2020-07-20T14:00:08.858-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.884-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.930-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.996-0400	no indexes to restore
+2020-07-20T14:00:08.996-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.026-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.067-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.134-0400	no indexes to restore
+2020-07-20T14:00:09.134-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.159-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.201-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.267-0400	no indexes to restore
+2020-07-20T14:00:09.267-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.295-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.337-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.404-0400	no indexes to restore
+2020-07-20T14:00:09.404-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.433-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.477-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.546-0400	no indexes to restore
+2020-07-20T14:00:09.546-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+1000000000	         0.135 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	1.846s
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset1.bson
+2020-07-20T14:01:02.641-0400	Setting num cpus to 8
+2020-07-20T14:01:02.646-0400	checking for collection data in testdata/tools-1856/results/dataset1.bson
+2020-07-20T14:01:02.707-0400	restoring benchmark.dataset1 from testdata/tools-1856/results/dataset1.bson
+2020-07-20T14:01:05.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:08.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:11.646-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:14.646-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:17.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:20.658-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:23.656-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:26.650-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:29.654-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:32.651-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:35.646-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:38.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:41.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:44.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:47.651-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:50.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:53.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:56.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:01:59.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:02.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:05.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:08.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:11.649-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:14.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:17.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:20.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:23.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:26.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:29.647-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:32.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:35.655-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:38.653-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:41.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:44.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:47.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:50.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:53.650-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:56.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:02:59.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:02.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:05.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:08.649-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:11.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:14.649-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:17.648-0400	[........................]  benchmark.dataset1  0B/15.6GB  (0.0%)
+2020-07-20T14:03:17.935-0400	[########################]  benchmark.dataset1  15.6GB/15.6GB  (100.0%)
+2020-07-20T14:03:17.935-0400	no indexes to restore
+2020-07-20T14:03:17.936-0400	finished restoring benchmark.dataset1 (1 document, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset1.bson-8         	       1	135589398209 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	136.816s
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset2.bson
+2020-07-20T14:04:00.326-0400	Setting num cpus to 8
+2020-07-20T14:04:00.332-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.408-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.478-0400	no indexes to restore
+2020-07-20T14:04:00.479-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset2.bson-8         	2020-07-20T14:04:00.513-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.559-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.631-0400	no indexes to restore
+2020-07-20T14:04:00.631-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:00.659-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.700-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.767-0400	no indexes to restore
+2020-07-20T14:04:00.767-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:00.797-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.844-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.912-0400	no indexes to restore
+2020-07-20T14:04:00.912-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:00.941-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:00.982-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.048-0400	no indexes to restore
+2020-07-20T14:04:01.048-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:01.078-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.118-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.181-0400	no indexes to restore
+2020-07-20T14:04:01.181-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:01.210-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.253-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.320-0400	no indexes to restore
+2020-07-20T14:04:01.321-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:01.349-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.390-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.458-0400	no indexes to restore
+2020-07-20T14:04:01.458-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:01.489-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.530-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.597-0400	no indexes to restore
+2020-07-20T14:04:01.597-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:01.628-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.669-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.734-0400	no indexes to restore
+2020-07-20T14:04:01.734-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+2020-07-20T14:04:01.763-0400	checking for collection data in testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.805-0400	restoring benchmark.dataset2 from testdata/tools-1856/results/dataset2.bson
+2020-07-20T14:04:01.869-0400	no indexes to restore
+2020-07-20T14:04:01.870-0400	finished restoring benchmark.dataset2 (1000 documents, 0 failures)
+1000000000	         0.129 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	2.063s
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset3.bson
+2020-07-20T14:04:20.329-0400	Setting num cpus to 8
+2020-07-20T14:04:20.333-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:20.405-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.062-0400	no indexes to restore
+2020-07-20T14:04:21.062-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset3.bson-8         	2020-07-20T14:04:21.094-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.142-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.717-0400	no indexes to restore
+2020-07-20T14:04:21.717-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:21.764-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.804-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:22.355-0400	no indexes to restore
+2020-07-20T14:04:22.355-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:22.399-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:22.439-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:22.961-0400	no indexes to restore
+2020-07-20T14:04:22.961-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:22.990-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:23.032-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:23.553-0400	no indexes to restore
+2020-07-20T14:04:23.553-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:23.586-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:23.630-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.159-0400	no indexes to restore
+2020-07-20T14:04:24.159-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:24.190-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.232-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.748-0400	no indexes to restore
+2020-07-20T14:04:24.748-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:24.778-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.820-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:25.359-0400	no indexes to restore
+2020-07-20T14:04:25.359-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:25.392-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:25.431-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:25.963-0400	no indexes to restore
+2020-07-20T14:04:25.963-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:25.993-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:26.034-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:26.555-0400	no indexes to restore
+2020-07-20T14:04:26.555-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:26.587-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:26.627-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.139-0400	no indexes to restore
+2020-07-20T14:04:27.139-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:27.170-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.210-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.726-0400	no indexes to restore
+2020-07-20T14:04:27.726-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:27.754-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.796-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:28.317-0400	no indexes to restore
+2020-07-20T14:04:28.317-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:28.367-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:28.409-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:28.971-0400	no indexes to restore
+2020-07-20T14:04:28.971-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:29.013-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:29.054-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:29.567-0400	no indexes to restore
+2020-07-20T14:04:29.567-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:29.594-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:29.653-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.170-0400	no indexes to restore
+2020-07-20T14:04:30.170-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:30.176-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.248-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.766-0400	no indexes to restore
+2020-07-20T14:04:30.766-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:30.807-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.847-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:31.364-0400	no indexes to restore
+2020-07-20T14:04:31.364-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:31.394-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:31.433-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:31.969-0400	no indexes to restore
+2020-07-20T14:04:31.969-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:32.002-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:32.051-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:32.595-0400	no indexes to restore
+2020-07-20T14:04:32.595-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:32.625-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:32.671-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.188-0400	no indexes to restore
+2020-07-20T14:04:33.188-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:33.223-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.272-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.790-0400	no indexes to restore
+2020-07-20T14:04:33.791-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:33.823-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.864-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:34.380-0400	no indexes to restore
+2020-07-20T14:04:34.380-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:34.408-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:34.447-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:34.962-0400	no indexes to restore
+2020-07-20T14:04:34.962-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:34.994-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:35.033-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:35.568-0400	no indexes to restore
+2020-07-20T14:04:35.568-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:35.608-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:35.648-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.169-0400	no indexes to restore
+2020-07-20T14:04:36.169-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:36.196-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.238-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.761-0400	no indexes to restore
+2020-07-20T14:04:36.761-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:36.792-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.845-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:37.362-0400	no indexes to restore
+2020-07-20T14:04:37.362-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:37.394-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:37.434-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:37.944-0400	no indexes to restore
+2020-07-20T14:04:37.944-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:37.970-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:38.010-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:38.521-0400	no indexes to restore
+2020-07-20T14:04:38.521-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:38.570-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:38.617-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.231-0400	no indexes to restore
+2020-07-20T14:04:39.231-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:39.263-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.304-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.833-0400	no indexes to restore
+2020-07-20T14:04:39.833-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:39.891-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.932-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:40.443-0400	no indexes to restore
+2020-07-20T14:04:40.443-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+1000000000	         0.577 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	20.402s
+2020-07-20T14:05:03.525-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:03.589-0400	no indexes to restore
+2020-07-20T14:05:03.589-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset4.bson-8         	2020-07-20T14:05:03.618-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:03.666-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:03.733-0400	no indexes to restore
+2020-07-20T14:05:03.733-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:03.758-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:03.799-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:03.866-0400	no indexes to restore
+2020-07-20T14:05:03.866-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:03.896-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:03.938-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.003-0400	no indexes to restore
+2020-07-20T14:05:04.003-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.033-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.073-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.137-0400	no indexes to restore
+2020-07-20T14:05:04.137-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.166-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.215-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.283-0400	no indexes to restore
+2020-07-20T14:05:04.283-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.310-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.351-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.417-0400	no indexes to restore
+2020-07-20T14:05:04.418-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.442-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.485-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.550-0400	no indexes to restore
+2020-07-20T14:05:04.550-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.575-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.616-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.682-0400	no indexes to restore
+2020-07-20T14:05:04.682-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.706-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.756-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.825-0400	no indexes to restore
+2020-07-20T14:05:04.825-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:04.856-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.897-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:04.966-0400	no indexes to restore
+2020-07-20T14:05:04.966-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+1000000000	         0.132 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	1.889s
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset4.bson
+2020-07-20T14:05:38.975-0400	Setting num cpus to 8
+2020-07-20T14:05:38.981-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.035-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.097-0400	no indexes to restore
+2020-07-20T14:05:39.097-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset4.bson-8         	2020-07-20T14:05:39.123-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.163-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.236-0400	no indexes to restore
+2020-07-20T14:05:39.236-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:39.263-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.317-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.383-0400	no indexes to restore
+2020-07-20T14:05:39.384-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:39.414-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.455-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.524-0400	no indexes to restore
+2020-07-20T14:05:39.524-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:39.550-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.591-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.657-0400	no indexes to restore
+2020-07-20T14:05:39.657-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:39.683-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.724-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.792-0400	no indexes to restore
+2020-07-20T14:05:39.792-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:39.821-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.872-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:39.940-0400	no indexes to restore
+2020-07-20T14:05:39.940-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:39.967-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.010-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.074-0400	no indexes to restore
+2020-07-20T14:05:40.074-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:40.098-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.162-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.230-0400	no indexes to restore
+2020-07-20T14:05:40.230-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:40.285-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.330-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.396-0400	no indexes to restore
+2020-07-20T14:05:40.396-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+2020-07-20T14:05:40.420-0400	checking for collection data in testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.460-0400	restoring benchmark.dataset4 from testdata/tools-1856/results/dataset4.bson
+2020-07-20T14:05:40.527-0400	no indexes to restore
+2020-07-20T14:05:40.527-0400	finished restoring benchmark.dataset4 (1000 documents, 0 failures)
+1000000000	         0.133 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	1.820s

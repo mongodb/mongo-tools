@@ -1,0 +1,140 @@
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset3.bson
+2020-07-20T14:04:20.329-0400	Setting num cpus to 8
+2020-07-20T14:04:20.333-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:20.405-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.062-0400	no indexes to restore
+2020-07-20T14:04:21.062-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset3.bson-8         	2020-07-20T14:04:21.094-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.142-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.717-0400	no indexes to restore
+2020-07-20T14:04:21.717-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:21.764-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:21.804-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:22.355-0400	no indexes to restore
+2020-07-20T14:04:22.355-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:22.399-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:22.439-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:22.961-0400	no indexes to restore
+2020-07-20T14:04:22.961-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:22.990-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:23.032-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:23.553-0400	no indexes to restore
+2020-07-20T14:04:23.553-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:23.586-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:23.630-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.159-0400	no indexes to restore
+2020-07-20T14:04:24.159-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:24.190-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.232-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.748-0400	no indexes to restore
+2020-07-20T14:04:24.748-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:24.778-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:24.820-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:25.359-0400	no indexes to restore
+2020-07-20T14:04:25.359-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:25.392-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:25.431-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:25.963-0400	no indexes to restore
+2020-07-20T14:04:25.963-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:25.993-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:26.034-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:26.555-0400	no indexes to restore
+2020-07-20T14:04:26.555-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:26.587-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:26.627-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.139-0400	no indexes to restore
+2020-07-20T14:04:27.139-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:27.170-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.210-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.726-0400	no indexes to restore
+2020-07-20T14:04:27.726-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:27.754-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:27.796-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:28.317-0400	no indexes to restore
+2020-07-20T14:04:28.317-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:28.367-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:28.409-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:28.971-0400	no indexes to restore
+2020-07-20T14:04:28.971-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:29.013-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:29.054-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:29.567-0400	no indexes to restore
+2020-07-20T14:04:29.567-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:29.594-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:29.653-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.170-0400	no indexes to restore
+2020-07-20T14:04:30.170-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:30.176-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.248-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.766-0400	no indexes to restore
+2020-07-20T14:04:30.766-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:30.807-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:30.847-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:31.364-0400	no indexes to restore
+2020-07-20T14:04:31.364-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:31.394-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:31.433-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:31.969-0400	no indexes to restore
+2020-07-20T14:04:31.969-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:32.002-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:32.051-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:32.595-0400	no indexes to restore
+2020-07-20T14:04:32.595-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:32.625-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:32.671-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.188-0400	no indexes to restore
+2020-07-20T14:04:33.188-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:33.223-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.272-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.790-0400	no indexes to restore
+2020-07-20T14:04:33.791-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:33.823-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:33.864-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:34.380-0400	no indexes to restore
+2020-07-20T14:04:34.380-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:34.408-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:34.447-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:34.962-0400	no indexes to restore
+2020-07-20T14:04:34.962-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:34.994-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:35.033-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:35.568-0400	no indexes to restore
+2020-07-20T14:04:35.568-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:35.608-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:35.648-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.169-0400	no indexes to restore
+2020-07-20T14:04:36.169-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:36.196-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.238-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.761-0400	no indexes to restore
+2020-07-20T14:04:36.761-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:36.792-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:36.845-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:37.362-0400	no indexes to restore
+2020-07-20T14:04:37.362-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:37.394-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:37.434-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:37.944-0400	no indexes to restore
+2020-07-20T14:04:37.944-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:37.970-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:38.010-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:38.521-0400	no indexes to restore
+2020-07-20T14:04:38.521-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:38.570-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:38.617-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.231-0400	no indexes to restore
+2020-07-20T14:04:39.231-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:39.263-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.304-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.833-0400	no indexes to restore
+2020-07-20T14:04:39.833-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+2020-07-20T14:04:39.891-0400	checking for collection data in testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:39.932-0400	restoring benchmark.dataset3 from testdata/tools-1856/results/dataset3.bson
+2020-07-20T14:04:40.443-0400	no indexes to restore
+2020-07-20T14:04:40.443-0400	finished restoring benchmark.dataset3 (35 documents, 0 failures)
+1000000000	         0.577 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	20.402s

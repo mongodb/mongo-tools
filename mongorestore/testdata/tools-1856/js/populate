@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+for i in $(seq 0 5); do
+    JS_FILE="d${i}.js"
+    RESULTS_DIR="../results/"
+    BSON_OUTPUT="dataset${i}.bson"
+
+    echo "Creating: ${BSON_OUTPUT}"
+    echo -e "\n\n"
+
+    mongo < $JS_FILE
+    mongodump
+    mv dump/memtest/test.bson "${RESULTS_DIR}${BSON_OUTPUT}"
+
+    rm -rf dump
+done

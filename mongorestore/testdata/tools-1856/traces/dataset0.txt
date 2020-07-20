@@ -1,0 +1,52 @@
+bash-3.2$ go test -bench=BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson
+2020-07-20T14:00:08.042-0400	Setting num cpus to 8
+2020-07-20T14:00:08.048-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.107-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.174-0400	no indexes to restore
+2020-07-20T14:00:08.175-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+goos: darwin
+goarch: amd64
+pkg: github.com/mongodb/mongo-tools/mongorestore
+BenchmarkCPUAndMemoryConsumption/benchmark_for_dataset0.bson-8         	2020-07-20T14:00:08.200-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.240-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.307-0400	no indexes to restore
+2020-07-20T14:00:08.307-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.336-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.383-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.448-0400	no indexes to restore
+2020-07-20T14:00:08.448-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.473-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.519-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.590-0400	no indexes to restore
+2020-07-20T14:00:08.590-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.616-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.657-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.721-0400	no indexes to restore
+2020-07-20T14:00:08.721-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.749-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.790-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.858-0400	no indexes to restore
+2020-07-20T14:00:08.858-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:08.884-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.930-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:08.996-0400	no indexes to restore
+2020-07-20T14:00:08.996-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.026-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.067-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.134-0400	no indexes to restore
+2020-07-20T14:00:09.134-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.159-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.201-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.267-0400	no indexes to restore
+2020-07-20T14:00:09.267-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.295-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.337-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.404-0400	no indexes to restore
+2020-07-20T14:00:09.404-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+2020-07-20T14:00:09.433-0400	checking for collection data in testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.477-0400	restoring benchmark.dataset0 from testdata/tools-1856/results/dataset0.bson
+2020-07-20T14:00:09.546-0400	no indexes to restore
+2020-07-20T14:00:09.546-0400	finished restoring benchmark.dataset0 (1000 documents, 0 failures)
+1000000000	         0.135 ns/op
+PASS
+ok  	github.com/mongodb/mongo-tools/mongorestore	1.846s
