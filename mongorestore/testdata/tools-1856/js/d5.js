@@ -1,4 +1,4 @@
-// Dataset 8: Deeply nested arrays (100 layers of nesting)
+// Dataset 5: Deeply nested arrays (100 layers of nesting)
 
 load("dropall.js")
 var db = connect('127.0.0.1:27017/memtest');
