@@ -116,7 +116,7 @@ func New(opts Options) (*MongoRestore, error) {
 		SessionProvider: provider,
 		ProgressManager: progressManager,
 		serverVersion:   serverVersion,
-		terminate: false,
+		terminate:       false,
 	}
 	return restore, nil
 }
