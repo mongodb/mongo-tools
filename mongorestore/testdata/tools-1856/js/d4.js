@@ -1,4 +1,4 @@
-// Dataset 7: Many (1,000) arrays
+// Dataset 4: Many (1,000) arrays
 
 load("dropall.js")
 var db = connect('127.0.0.1:27017/memtest');
