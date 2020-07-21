@@ -373,18 +373,17 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				break
 			}
 
-			switch restore.terminate {
-			case true:
+			if restore.terminate {
 				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
 				termErr = util.ErrTerminated
 				close(docChan)
 				return
-			default:
-				rawBytes := make([]byte, len(doc))
-				copy(rawBytes, doc)
-				docChan <- bson.Raw(rawBytes)
-				documentCount++
 			}
+
+			rawBytes := make([]byte, len(doc))
+			copy(rawBytes, doc)
+			docChan <- bson.Raw(rawBytes)
+			documentCount++
 		}
 		close(docChan)
 	}()
