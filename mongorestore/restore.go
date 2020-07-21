@@ -372,8 +372,9 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			if doc == nil {
 				break
 			}
-			select {
-			case <-restore.termChan:
+
+			switch restore.terminate {
+			case true:
 				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
 				termErr = util.ErrTerminated
 				close(docChan)
@@ -431,7 +432,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		totalResult.combineWith(<-resultChan)
 		if finalErr == nil && totalResult.Err != nil {
 			finalErr = totalResult.Err
-			restore.termChan <- struct{}{}
+			restore.terminate = true
 		}
 	}
 
