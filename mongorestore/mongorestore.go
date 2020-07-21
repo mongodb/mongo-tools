@@ -557,8 +557,6 @@ func (restore *MongoRestore) Restore() Result {
 		restore.manager.Finalize(intents.Legacy)
 	}
 
-	restore.termChan = make(chan struct{})
-
 	result := restore.RestoreIntents()
 	if result.Err != nil {
 		return result
