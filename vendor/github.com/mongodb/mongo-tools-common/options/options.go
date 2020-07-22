@@ -845,6 +845,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			}
 		}
 		if opts.AWSSessionToken != "" && !cs.AuthMechanismPropertiesSet {
+			if cs.AuthMechanismProperties == nil {
+				cs.AuthMechanismProperties = make(map[string]string)
+			}
 			cs.AuthMechanismProperties["AWS_SESSION_TOKEN"] = opts.AWSSessionToken
 			cs.AuthMechanismPropertiesSet = true
 		}
