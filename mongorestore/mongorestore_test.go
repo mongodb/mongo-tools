@@ -765,7 +765,7 @@ func TestFixDuplicatedLegacyIndexesOff(t *testing.T) {
 			restore.TargetDirectory = "testdata/duplicate_index_key"
 			result := restore.Restore()
 			fmt.Println(result.Err.Error())
-			errorString := "(IndexOptionsConflict) Index with name: foo_1 already exists with a different name"
+			errorString := "Index with name: foo_1 already exists with a different name"
 			if cmp, err := testutil.CompareFCV(fcv, "4.2"); err != nil || cmp < 0 {
 				errorString = "(IndexAlreadyExists) index already exists with different name: foo_1"
 			}
