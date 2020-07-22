@@ -742,7 +742,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 // TestFixDuplicatedLegacyIndexesOff restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}, but without --fixDuplicatedLegacyIndexes
 // This should cause failure to restore
 func TestFixDuplicatedLegacyIndexesOff(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -764,7 +764,12 @@ func TestFixDuplicatedLegacyIndexesOff(t *testing.T) {
 		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
 			restore.TargetDirectory = "testdata/duplicate_index_key"
 			result := restore.Restore()
-			So(strings.Contains(result.Err.Error(), "(IndexAlreadyExists) index already exists with different name: foo_1"), ShouldBeTrue)
+			fmt.Println(result.Err.Error())
+			errorString := "(IndexOptionsConflict) Index with name: foo_1 already exists with a different name"
+			if cmp, err := testutil.CompareFCV(fcv, "4.2"); err != nil || cmp < 0 {
+				errorString = "(IndexAlreadyExists) index already exists with different name: foo_1"
+			}
+			So(strings.Contains(result.Err.Error(), errorString), ShouldBeTrue)
 			defer func() {
 				err = session.Database("indextest").Drop(nil)
 				if err != nil {
