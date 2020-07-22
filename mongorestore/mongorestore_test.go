@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -670,6 +671,109 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			So(count, ShouldEqual, 100)
 		})
 	})
+}
+
+// TestFixDuplicatedLegacyIndexes restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}
+// Only one index {foo: 1} should be created
+func TestFixDuplicatedLegacyIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "3.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 3.4 or later")
+	}
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			ConvertLegacyIndexesOption,
+			FixDuplicatedLegacyIndexesOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
+			restore.TargetDirectory = "testdata/duplicate_index_key"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+			So(err, ShouldBeNil)
+
+			testDB := session.Database("indextest")
+			defer func() {
+				err = testDB.Drop(nil)
+				if err != nil {
+					t.Fatalf("Failed to drop test database testdata")
+				}
+			}()
+
+			indexes := testDB.Collection("duplicate_index_key").Indexes()
+			c, err := indexes.List(context.Background())
+			So(err, ShouldBeNil)
+			type indexRes struct {
+				Key bson.D
+			}
+
+			var res indexRes
+
+			// Only one index should be created in addition to the _id.
+			c.Next(context.Background())
+			err = c.Decode(&res)
+			So(err, ShouldBeNil)
+			So(len(res.Key), ShouldEqual, 1)
+			So(res.Key[0].Key, ShouldEqual, "_id")
+			So(res.Key[0].Value, ShouldEqual, 1)
+
+			c.Next(context.Background())
+			err = c.Decode(&res)
+			So(err, ShouldBeNil)
+			So(len(res.Key), ShouldEqual, 1)
+			So(res.Key[0].Key, ShouldEqual, "foo")
+			So(res.Key[0].Value, ShouldEqual, 1)
+		})
+	})
+}
+
+// TestFixDuplicatedLegacyIndexesOff restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}, but without --fixDuplicatedLegacyIndexes
+// This should cause failure to restore
+func TestFixDuplicatedLegacyIndexesOff(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "3.4"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 3.4 or later")
+	}
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			ConvertLegacyIndexesOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+
+		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
+			restore.TargetDirectory = "testdata/duplicate_index_key"
+			result := restore.Restore()
+			So(strings.Contains(result.Err.Error(), "(IndexAlreadyExists) index already exists with different name: foo_1"), ShouldBeTrue)
+			defer func() {
+				err = session.Database("indextest").Drop(nil)
+				if err != nil {
+					t.Fatalf("Failed to drop test database indextest")
+				}
+			}()
+		})
+	})
+
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {

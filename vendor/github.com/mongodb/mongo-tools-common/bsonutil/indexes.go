@@ -1,6 +1,8 @@
 package bsonutil
 
 import (
+	"strconv"
+
 	"github.com/mongodb/mongo-tools-common/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -40,39 +42,50 @@ var validIndexOptions = map[string]bool{
 // All other strings that aren't one of ["2d", "geoHaystack", "2dsphere", "hashed", "text", ""]
 // will cause the index build to fail. See TOOLS-2412 for more information.
 //
-// Note, this function doesn't convert Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
-//
 // This function logs the keys that are converted.
 func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexKey)
 	for j, elem := range indexKey {
+		indexVal := 1
+		needsConversion := false
 		switch v := elem.Value.(type) {
-		case int32, int64, float64:
-			// Only convert 0 value
-			if v == 0 {
-				indexKey[j].Value = 1
-				converted = true
-			}
+		case int32:
+			indexVal = int(v)
+			needsConversion = true
+		case int64:
+			indexVal = int(v)
+			needsConversion = true
+		case float64:
+			indexVal = int(v)
+			needsConversion = true
 		case primitive.Decimal128:
-			// Note, this doesn't catch Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
-			// These values are so unlikely we just ignore them
-			zeroVal, err := primitive.ParseDecimal128("0")
-			if err == nil {
-				if v == zeroVal {
-					indexKey[j].Value = 1
-					converted = true
-				}
+			if intVal, _, err := v.BigInt(); err == nil {
+				indexVal = int(intVal.Int64())
+				
+				needsConversion = true
 			}
 		case string:
-			// Only convert an empty string
 			if v == "" {
 				indexKey[j].Value = 1
 				converted = true
+			} else {
+				if intVal, err := strconv.Atoi(v); err == nil {
+					indexVal = intVal
+					needsConversion = true
+				}
 			}
 		default:
 			// Convert all types that aren't strings or numbers
 			indexKey[j].Value = 1
+			converted = true
+		}
+		if needsConversion {
+			if indexVal < 0 {
+				indexKey[j].Value = -1
+			} else {
+				indexKey[j].Value = 1
+			}
 			converted = true
 		}
 	}

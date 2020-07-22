@@ -67,23 +67,24 @@ func (*InputOptions) Name() string {
 
 // OutputOptions command line argument long names
 const (
-	DropOption                     = "--drop"
-	DryRunOption                   = "--dryRun"
-	WriteConcernOption             = "--writeConcern"
-	NoIndexRestoreOption           = "--noIndexRestore"
-	ConvertLegacyIndexesOption     = "--convertLegacyIndexes"
-	NoOptionsRestoreOption         = "--noOptionsRestore"
-	KeepIndexVersionOption         = "--keepIndexVersion"
-	MaintainInsertionOrderOption   = "--maintainInsertionOrder"
-	NumParallelCollectionsOption   = "--numParallelCollections"
-	NumInsertionWorkersOption      = "--numInsertionWorkersPerCollection"
-	StopOnErrorOption              = "--stopOnError"
-	BypassDocumentValidationOption = "--bypassDocumentValidation"
-	PreserveUUIDOption             = "--preserveUUID"
-	TempUsersCollOption            = "--tempUsersColl"
-	TempRolesCollOption            = "--tempRolesColl"
-	BulkBufferSizeOption           = "--batchSize"
-	FixDottedHashedIndexesOption   = "--fixDottedHashIndex"
+	DropOption                      = "--drop"
+	DryRunOption                    = "--dryRun"
+	WriteConcernOption              = "--writeConcern"
+	NoIndexRestoreOption            = "--noIndexRestore"
+	ConvertLegacyIndexesOption      = "--convertLegacyIndexes"
+	NoOptionsRestoreOption          = "--noOptionsRestore"
+	KeepIndexVersionOption          = "--keepIndexVersion"
+	MaintainInsertionOrderOption    = "--maintainInsertionOrder"
+	NumParallelCollectionsOption     = "--numParallelCollections"
+	NumInsertionWorkersOption        = "--numInsertionWorkersPerCollection"
+	StopOnErrorOption                = "--stopOnError"
+	BypassDocumentValidationOption   = "--bypassDocumentValidation"
+	PreserveUUIDOption               = "--preserveUUID"
+	TempUsersCollOption              = "--tempUsersColl"
+	TempRolesCollOption              = "--tempRolesColl"
+	BulkBufferSizeOption             = "--batchSize"
+	FixDottedHashedIndexesOption     = "--fixDottedHashIndex"
+	FixDuplicatedLegacyIndexesOption = "--fixDuplicatedLegacyIndexes"
 )
 
 // OutputOptions defines the set of options for restoring dump data.
@@ -102,11 +103,12 @@ type OutputOptions struct {
 	NumInsertionWorkers      int    `long:"numInsertionWorkersPerCollection" description:"number of insert operations to run concurrently per collection" default:"1" default-mask:"-"`
 	StopOnError              bool   `long:"stopOnError" description:"halt after encountering any error during insertion. By default, mongorestore will attempt to continue through document validation and DuplicateKey errors, but with this option enabled, the tool will stop instead. A small number of documents may be inserted after encountering an error even with this option enabled; use --maintainInsertionOrder to halt immediately after an error"`
 	BypassDocumentValidation bool   `long:"bypassDocumentValidation" description:"bypass document validation"`
-	PreserveUUID             bool   `long:"preserveUUID" description:"preserve original collection UUIDs (off by default, requires drop)"`
-	TempUsersColl            string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
-	TempRolesColl            string `long:"tempRolesColl" default:"temproles" hidden:"true"`
-	BulkBufferSize           int    `long:"batchSize" default:"1000" hidden:"true"`
-	FixDottedHashedIndexes   bool   `long:"fixDottedHashIndex" description:"when enabled, all the hashed indexes on dotted fields will be created as single field ascending indexes on the destination"`
+	PreserveUUID               bool   `long:"preserveUUID" description:"preserve original collection UUIDs (off by default, requires drop)"`
+	TempUsersColl              string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
+	TempRolesColl              string `long:"tempRolesColl" default:"temproles" hidden:"true"`
+	BulkBufferSize             int    `long:"batchSize" default:"1000" hidden:"true"`
+	FixDottedHashedIndexes     bool   `long:"fixDottedHashIndex" description:"when enabled, all the hashed indexes on dotted fields will be created as single field ascending indexes on the destination"`
+	FixDuplicatedLegacyIndexes bool   `long:"fixDuplicatedLegacyIndexes" description:"When ConvertLegacyIndexes is enabled, there could be cases two legacy indexes are converted into the same index key and cause error, when this flag is enabled, these two legacy indexes will be merged into one"`
 }
 
 // Name returns a human-readable group name for output options.

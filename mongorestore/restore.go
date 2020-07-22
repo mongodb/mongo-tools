@@ -289,7 +289,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			restore.convertLegacyIndexes(indexes, intent.Namespace())
+			indexes = restore.convertLegacyIndexes(indexes, intent.Namespace())
 		}
 		if restore.OutputOptions.FixDottedHashedIndexes {
 			fixDottedHashedIndexes(indexes)
@@ -306,9 +306,17 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) {
+func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) []IndexDocument {
+	indexKeys := make(map[string]bool) // A set contains all the unique index's json strings
+	indexesConverted := []IndexDocument{}
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
+		indexString := bsonutil.CreateExtJSONString(index.Key)
+		if restore.OutputOptions.FixDuplicatedLegacyIndexes && indexKeys[indexString] == true {
+			// skip duplicated indexes
+			continue
+		}
+		indexKeys[indexString] = true
 
 		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
 		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.
@@ -316,7 +324,9 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns st
 		if restore.serverVersion.LT(db.Version{4, 1, 9}) {
 			bsonutil.ConvertLegacyIndexOptions(index.Options)
 		}
+		indexesConverted = append(indexesConverted, index)
 	}
+	return indexesConverted
 }
 
 func fixDottedHashedIndexes(indexes []IndexDocument) {
