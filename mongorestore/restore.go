@@ -372,18 +372,18 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			if doc == nil {
 				break
 			}
-			select {
-			case <-restore.termChan:
+
+			if restore.terminate {
 				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
 				termErr = util.ErrTerminated
 				close(docChan)
 				return
-			default:
-				rawBytes := make([]byte, len(doc))
-				copy(rawBytes, doc)
-				docChan <- bson.Raw(rawBytes)
-				documentCount++
 			}
+
+			rawBytes := make([]byte, len(doc))
+			copy(rawBytes, doc)
+			docChan <- bson.Raw(rawBytes)
+			documentCount++
 		}
 		close(docChan)
 	}()
@@ -431,7 +431,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		totalResult.combineWith(<-resultChan)
 		if finalErr == nil && totalResult.Err != nil {
 			finalErr = totalResult.Err
-			close(restore.termChan)
+			restore.terminate = true
 		}
 	}
 
