@@ -61,6 +61,10 @@ type MongoFiles struct {
 	// ID to put into GridFS
 	Id string
 
+        // List of filenames for use as supporting
+        // arguments in --put and --get
+        FileNameList []string
+
 	// GridFS bucket to operate on
 	bucket *gridfs.Bucket
 }
@@ -111,7 +115,19 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		} else {
 			mf.FileName = args[1]
 		}
-	case Search, Put, Get, Delete:
+	case Put, Get:
+		// monogofiles --put and mongofiles --get should work over
+                // a list of files, i.e. by using mf.FileNameList -- see
+                // TOOLS-2667 for user-level specification
+                if len(args) == 1 || args[1] == "" {
+			return fmt.Errorf("'%v' argument missing", args[0])
+                }
+
+		if len(args) == 2 {
+			mf.FileName = args[1]
+                }
+		mf.FileNameList = args[1:]
+	case Search, Delete:
 		if len(args) > 2 {
 			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
 		}
@@ -182,16 +198,18 @@ func (mf *MongoFiles) getLocalFileName(gridFile *gfsFile) string {
 
 // handleGet contains the logic for the 'get' and 'get_id' commands
 func (mf *MongoFiles) handleGet() (err error) {
-	file, err := mf.getTargetGFSFile()
+	files, err := mf.getTargetGFSFile()
 	if err != nil {
 		return err
 	}
 
-	if err = mf.writeGFSFileToLocal(file); err != nil {
-		return err
-	}
+        for _, file := range files {
+		if err = mf.writeGFSFileToLocal(file); err != nil {
+			return err
+		}
+        }
 
-	return err
+	return nil
 }
 
 // Gets all GridFS files that match the given query.
@@ -216,40 +234,54 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 }
 
 // Gets the GridFS file the options specify. Use this for the get family of commands.
-func (mf *MongoFiles) getTargetGFSFile() (*gfsFile, error) {
-	var gridFiles []*gfsFile
-	var err error
+func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
+	// If mongofiles --get ... is called, then query for all files
+        // specified in mf.FileNameList -- otherwise, preserve correct
+        // behavior for mongofiles --get_id ...
+	if len(mf.FileNameList) > 0 {
+                query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
 
-	var queryProp string
-	var query string
-
-	if mf.Id != "" {
-		queryProp = "_id"
-		query = mf.Id
-
-		id, err := mf.parseOrCreateID()
+                gridFiles, err := mf.findGFSFiles(query)
 		if err != nil {
 			return nil, err
-		}
-		gridFiles, err = mf.findGFSFiles(bson.M{"_id": id})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		queryProp = "name"
-		query = mf.FileName
+                }
 
-		gridFiles, err = mf.findGFSFiles(bson.M{"filename": mf.FileName})
-		if err != nil {
-			return nil, err
+                return gridFiles, nil
+        } else {
+		var gridFiles []*gfsFile
+		var err error
+
+		var queryProp string
+		var query string
+
+		if mf.Id != "" {
+			queryProp = "_id"
+			query = mf.Id
+
+			id, err := mf.parseOrCreateID()
+			if err != nil {
+				return nil, err
+			}
+			gridFiles, err = mf.findGFSFiles(bson.M{"_id": id})
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			queryProp = "name"
+			query = mf.FileName
+
+			gridFiles, err = mf.findGFSFiles(bson.M{"filename": mf.FileName})
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
 
-	if len(gridFiles) == 0 {
-		return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
-	}
-
-	return gridFiles[0], nil
+		if len(gridFiles) == 0 {
+			return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
+		}
+		
+		return gridFiles[0:], nil
+        }
 }
 
 // Delete all files with the given filename.
@@ -271,11 +303,12 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 
 // handleDeleteID contains the logic for the 'delete_id' command
 func (mf *MongoFiles) handleDeleteID() error {
-	file, err := mf.getTargetGFSFile()
+	files, err := mf.getTargetGFSFile()
 	if err != nil {
 		return err
 	}
 
+        file := files[0]
 	if err := file.Delete(); err != nil {
 		return err
 	}
@@ -389,18 +422,41 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 
 // handlePut contains the logic for the 'put' and 'put_id' commands
 func (mf *MongoFiles) handlePut() error {
-	id, err := mf.parseOrCreateID()
-	if err != nil {
-		return err
-	}
+	// If mongofiles --put ... is called, i.e. with multiple supporting
+        // arguments, then add gridFiles specified in mf.FileNameList
+	// (see TOOLS-2667). Otherwise, if mongofiles --put_id is called, then
+        // preserve existing behavior.
+	if len(mf.FileNameList) > 0 {
+		for _, file := range mf.FileNameList {
+			id, err := mf.parseOrCreateID()
+			if err != nil {
+				return err
+			}
 
-	n, err := mf.put(id, mf.FileName)
-	if err != nil {
-		return err
-	}
+			log.Logvf(log.Always, "adding gridFile: %v\n", file)
 
-	log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-	log.Logvf(log.Always, fmt.Sprintf("added gridFile: %v\n", mf.FileName))
+			n, err := mf.put(id, file)
+			if err != nil {
+				log.Logvf(log.Always, "error adding gridFile: %v\n", err)
+				return err
+			}
+			log.Logvf(log.DebugLow, "copied %v bytes to server", n)
+			log.Logvf(log.Always, "added gridFile: %v\n", file)
+		}
+                log.Logv(log.Always, "Finished adding gridFiles -- cleaning up")
+        } else {
+		id, err := mf.parseOrCreateID()
+		if err != nil {
+			return err
+		}
+		
+		n, err := mf.put(id, mf.FileName)
+		if err != nil {
+			return err
+		}
+		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
+		log.Logvf(log.Always, fmt.Sprintf("added gridFile: %v\n", mf.FileName))
+        }
 
 	return nil
 }

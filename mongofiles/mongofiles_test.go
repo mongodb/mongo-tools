@@ -265,8 +265,8 @@ func TestValidArguments(t *testing.T) {
 			So(err.Error(), ShouldEqual, "no command specified")
 		})
 
-		Convey("(list|get|put|delete|search|get_id|delete_id) should error out when more than 1 positional argument (except URI) is provided", func() {
-			for _, command := range []string{"list", "get", "put", "delete", "search", "get_id", "delete_id"} {
+		Convey("(list|delete|search|get_id|delete_id) should error out when more than 1 positional argument (except URI) is provided", func() {
+			for _, command := range []string{"list", "delete", "search", "get_id", "delete_id"} {
 				args := []string{command, "arg1", "arg2"}
 				err := mf.ValidateCommand(args)
 				So(err, ShouldNotBeNil)
