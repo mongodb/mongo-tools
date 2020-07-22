@@ -61,9 +61,9 @@ type MongoFiles struct {
 	// ID to put into GridFS
 	Id string
 
-        // List of filenames for use as supporting
-        // arguments in --put and --get
-        FileNameList []string
+	// List of filenames for use as supporting
+	// arguments in --put and --get
+	FileNameList []string
 
 	// GridFS bucket to operate on
 	bucket *gridfs.Bucket
@@ -117,15 +117,15 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		}
 	case Put, Get:
 		// monogofiles --put and mongofiles --get should work over
-                // a list of files, i.e. by using mf.FileNameList -- see
-                // TOOLS-2667 for user-level specification
-                if len(args) == 1 || args[1] == "" {
+		// a list of files, i.e. by using mf.FileNameList -- see
+		// TOOLS-2667 for user-level specification
+		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
-                }
+		}
 
 		if len(args) == 2 {
 			mf.FileName = args[1]
-                }
+		}
 		mf.FileNameList = args[1:]
 	case Search, Delete:
 		if len(args) > 2 {
@@ -203,11 +203,11 @@ func (mf *MongoFiles) handleGet() (err error) {
 		return err
 	}
 
-        for _, file := range files {
+	for _, file := range files {
 		if err = mf.writeGFSFileToLocal(file); err != nil {
 			return err
 		}
-        }
+	}
 
 	return nil
 }
@@ -236,18 +236,18 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
 	// If mongofiles --get ... is called, then query for all files
-        // specified in mf.FileNameList -- otherwise, preserve correct
-        // behavior for mongofiles --get_id ...
+	// specified in mf.FileNameList -- otherwise, preserve correct
+	// behavior for mongofiles --get_id ...
 	if len(mf.FileNameList) > 0 {
-                query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
+		query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
 
-                gridFiles, err := mf.findGFSFiles(query)
+		gridFiles, err := mf.findGFSFiles(query)
 		if err != nil {
 			return nil, err
-                }
+		}
 
-                return gridFiles, nil
-        } else {
+		return gridFiles, nil
+	} else {
 		var gridFiles []*gfsFile
 		var err error
 
@@ -279,9 +279,9 @@ func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
 		if len(gridFiles) == 0 {
 			return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
 		}
-		
+
 		return gridFiles[0:], nil
-        }
+	}
 }
 
 // Delete all files with the given filename.
@@ -308,7 +308,7 @@ func (mf *MongoFiles) handleDeleteID() error {
 		return err
 	}
 
-        file := files[0]
+	file := files[0]
 	if err := file.Delete(); err != nil {
 		return err
 	}
@@ -423,9 +423,9 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 // handlePut contains the logic for the 'put' and 'put_id' commands
 func (mf *MongoFiles) handlePut() error {
 	// If mongofiles --put ... is called, i.e. with multiple supporting
-        // arguments, then add gridFiles specified in mf.FileNameList
+	// arguments, then add gridFiles specified in mf.FileNameList
 	// (see TOOLS-2667). Otherwise, if mongofiles --put_id is called, then
-        // preserve existing behavior.
+	// preserve existing behavior.
 	if len(mf.FileNameList) > 0 {
 		for _, file := range mf.FileNameList {
 			id, err := mf.parseOrCreateID()
@@ -443,20 +443,20 @@ func (mf *MongoFiles) handlePut() error {
 			log.Logvf(log.DebugLow, "copied %v bytes to server", n)
 			log.Logvf(log.Always, "added gridFile: %v\n", file)
 		}
-                log.Logv(log.Always, "Finished adding gridFiles -- cleaning up")
-        } else {
+		log.Logv(log.Always, "Finished adding gridFiles -- cleaning up")
+	} else {
 		id, err := mf.parseOrCreateID()
 		if err != nil {
 			return err
 		}
-		
+
 		n, err := mf.put(id, mf.FileName)
 		if err != nil {
 			return err
 		}
 		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
 		log.Logvf(log.Always, fmt.Sprintf("added gridFile: %v\n", mf.FileName))
-        }
+	}
 
 	return nil
 }
