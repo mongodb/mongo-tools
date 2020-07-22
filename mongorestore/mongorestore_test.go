@@ -569,8 +569,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
-			So(result.Err, ShouldNotBeNil)
-			So(result.Err.Error(), ShouldContainSubstring, "--preserveUUID used but no UUID found")
+			So(result.Err, ShouldBeNil)
 		})
 
 	})
