@@ -1,8 +1,6 @@
 package bsonutil
 
 import (
-	"strconv"
-
 	"github.com/mongodb/mongo-tools-common/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -62,18 +60,13 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 		case primitive.Decimal128:
 			if intVal, _, err := v.BigInt(); err == nil {
 				indexVal = int(intVal.Int64())
-				
+
 				needsConversion = true
 			}
 		case string:
 			if v == "" {
 				indexKey[j].Value = 1
 				converted = true
-			} else {
-				if intVal, err := strconv.Atoi(v); err == nil {
-					indexVal = intVal
-					needsConversion = true
-				}
 			}
 		default:
 			// Convert all types that aren't strings or numbers
