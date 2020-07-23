@@ -347,6 +347,9 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 }
 
 func TestMongorestoreLongCollectionName(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
@@ -569,8 +572,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
-			So(result.Err, ShouldNotBeNil)
-			So(result.Err.Error(), ShouldContainSubstring, "--preserveUUID used but no UUID found")
+			So(result.Err, ShouldBeNil)
 		})
 
 	})
