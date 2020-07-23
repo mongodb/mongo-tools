@@ -454,7 +454,7 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
-		Convey("Testing the 'get;;; command with multiple files that are in GridFS should", func() {
+		Convey("Testing the 'get' command with multiple files that are in GridFS should", func() {
 			testFiles := []string{"testfile1", "testfile2", "testfile3"}
 			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", testFiles...)
 			So(err, ShouldBeNil)
