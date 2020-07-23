@@ -73,6 +73,15 @@ func TestReplacer(t *testing.T) {
 			So(r.Get("stuff.users"), ShouldEqual, "stuff_test.users")
 			So(r.Get("prod.turbo.encabulators"), ShouldEqual, "prod_test.turbo.encabulators")
 		})
+		Convey("special characters", func() {
+			r, err := NewRenamer([]string{`restaurants.cafés`, `ÿœz.tāx`, `normal.characters`},
+				[]string{`ÿœp.tāx`, `yes.tax`, `special.charâctęrs`})
+			So(r, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			So(r.Get("restaurants.cafés"), ShouldEqual, "ÿœp.tāx")
+			So(r.Get("ÿœz.tāx"), ShouldEqual, "yes.tax")
+			So(r.Get("normal.characters"), ShouldEqual, "special.charâctęrs")
+		})
 	})
 	Convey("with invalid replacements", t, func() {
 		Convey("'$db$.user$db$' -> 'test.user-$db$'", func() {
@@ -111,6 +120,13 @@ func TestMatcher(t *testing.T) {
 			So(m.Has("stuff.user"), ShouldBeTrue)
 			So(m.Has("stuff.users"), ShouldBeTrue)
 			So(m.Has("prod.turbo.encabulators"), ShouldBeTrue)
+		})
+		Convey("special characters", func() {
+			m, err := NewMatcher([]string{`restaurants.cafés`, `ÿœp.tāx`})
+			So(m, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			So(m.Has("restaurants.cafés"), ShouldBeTrue)
+			So(m.Has("ÿœp.tāx"), ShouldBeTrue)
 		})
 	})
 	Convey("with invalid matcher", t, func() {

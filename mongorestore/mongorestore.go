@@ -78,8 +78,8 @@ type MongoRestore struct {
 
 	archive *archive.Reader
 
-	// channel on which to notify if/when a termination signal is received
-	termChan chan struct{}
+	// boolean set if termination signal received; false by default
+	terminate bool
 
 	// Reader to take care of BSON input if not reading from the local filesystem.
 	// This is initialized to os.Stdin if unset.
@@ -116,6 +116,7 @@ func New(opts Options) (*MongoRestore, error) {
 		SessionProvider: provider,
 		ProgressManager: progressManager,
 		serverVersion:   serverVersion,
+		terminate:       false,
 	}
 	return restore, nil
 }
@@ -556,8 +557,6 @@ func (restore *MongoRestore) Restore() Result {
 		restore.manager.Finalize(intents.Legacy)
 	}
 
-	restore.termChan = make(chan struct{})
-
 	result := restore.RestoreIntents()
 	if result.Err != nil {
 		return result
@@ -622,7 +621,5 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 }
 
 func (restore *MongoRestore) HandleInterrupt() {
-	if restore.termChan != nil {
-		close(restore.termChan)
-	}
+	restore.terminate = true
 }

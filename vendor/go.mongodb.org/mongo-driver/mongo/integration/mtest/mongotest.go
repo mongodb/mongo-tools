@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,6 +65,9 @@ type FailPointData struct {
 	FailBeforeCommitExceptionCode int32                  `bson:"failBeforeCommitExceptionCode,omitempty"`
 	ErrorLabels                   *[]string              `bson:"errorLabels,omitempty"`
 	WriteConcernError             *WriteConcernErrorData `bson:"writeConcernError,omitempty"`
+	BlockConnection               bool                   `bson:"blockConnection,omitempty"`
+	BlockTimeMS                   int32                  `bson:"blockTimeMS,omitempty"`
+	AppName                       string                 `bson:"appName,omitempty"`
 }
 
 // WriteConcernErrorData is a representation of the FailPoint.Data.WriteConcern field.
@@ -85,7 +89,8 @@ type T struct {
 	runOn            []RunOnBlock
 	mockDeployment   *mockDeployment // nil if the test is not being run against a mock
 	mockResponses    []bson.D
-	createdColls     []*mongo.Collection // collections created in this test
+	createdColls     []*Collection // collections created in this test
+	proxyDialer      *proxyDialer
 	dbName, collName string
 	failPointNames   []string
 	minServerVersion string
@@ -93,6 +98,7 @@ type T struct {
 	validTopologies  []TopologyKind
 	auth             *bool
 	enterprise       *bool
+	ssl              *bool
 	collCreateOpts   bson.D
 	connsCheckedOut  int // net number of connections checked out during test execution
 
@@ -105,9 +111,10 @@ type T struct {
 	baseOpts *Options // used to create subtests
 
 	// command monitoring channels
-	started   []*event.CommandStartedEvent
-	succeeded []*event.CommandSucceededEvent
-	failed    []*event.CommandFailedEvent
+	monitorLock sync.Mutex
+	started     []*event.CommandStartedEvent
+	succeeded   []*event.CommandSucceededEvent
+	failed      []*event.CommandFailedEvent
 
 	Client *mongo.Client
 	DB     *mongo.Database
@@ -341,6 +348,15 @@ func (t *T) FilterFailedEvents(filter func(*event.CommandFailedEvent) bool) {
 	t.failed = newEvents
 }
 
+// GetProxiedMessages returns the messages proxied to the server by the test. If the client type is not Proxy, this
+// returns nil.
+func (t *T) GetProxiedMessages() []*ProxyMessage {
+	if t.proxyDialer == nil {
+		return nil
+	}
+	return t.proxyDialer.messages
+}
+
 // ClearEvents clears the existing command monitoring events.
 func (t *T) ClearEvents() {
 	t.started = t.started[:0]
@@ -360,18 +376,23 @@ func (t *T) ResetClient(opts *options.ClientOptions) {
 	_ = t.Client.Disconnect(Background)
 	t.createTestClient()
 	t.DB = t.Client.Database(t.dbName)
-	t.Coll = t.DB.Collection(t.collName)
+	t.Coll = t.DB.Collection(t.collName, t.collOpts)
 
-	created := make([]*mongo.Collection, len(t.createdColls))
-	for i, coll := range t.createdColls {
-		if coll.Name() == t.collName {
-			created[i] = t.Coll
+	for _, coll := range t.createdColls {
+		// If the collection was created using a different Client, it doesn't need to be reset.
+		if coll.hasDifferentClient {
 			continue
 		}
 
-		created[i] = t.DB.Collection(coll.Name())
+		// If the namespace is the same as t.Coll, we can use t.Coll.
+		if coll.created.Name() == t.collName && coll.created.Database().Name() == t.dbName {
+			coll.created = t.Coll
+			continue
+		}
+
+		// Otherwise, reset the collection to use the new Client.
+		coll.created = t.Client.Database(coll.DB).Collection(coll.Name, coll.Opts)
 	}
-	t.createdColls = created
 }
 
 // Collection is used to configure a new collection created during a test.
@@ -381,35 +402,25 @@ type Collection struct {
 	Client     *mongo.Client // defaults to mt.Client if not specified
 	Opts       *options.CollectionOptions
 	CreateOpts bson.D
-}
 
-// returns database to use for creating a new collection
-func (t *T) extractDatabase(coll Collection) *mongo.Database {
-	// default to t.DB unless coll overrides it
-	var createNewDb bool
-	dbName := t.DB.Name()
-	if coll.DB != "" {
-		createNewDb = true
-		dbName = coll.DB
-	}
-
-	// if a client is specified, a new database must be created
-	if coll.Client != nil {
-		return coll.Client.Database(dbName)
-	}
-	// if dbName is the same as t.DB.Name(), t.DB can be used
-	if !createNewDb {
-		return t.DB
-	}
-	// a new database must be created from t.Client
-	return t.Client.Database(dbName)
+	hasDifferentClient bool
+	created            *mongo.Collection // the actual collection that was created
 }
 
 // CreateCollection creates a new collection with the given configuration. The collection will be dropped after the test
 // finishes running. If createOnServer is true, the function ensures that the collection has been created server-side
 // by running the create command. The create command will appear in command monitoring channels.
 func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collection {
-	db := t.extractDatabase(coll)
+	if coll.DB == "" {
+		coll.DB = t.DB.Name()
+	}
+	if coll.Client == nil {
+		coll.Client = t.Client
+	}
+	coll.hasDifferentClient = coll.Client != t.Client
+
+	db := coll.Client.Database(coll.DB)
+
 	if createOnServer && t.clientType != Mock {
 		cmd := bson.D{{"create", coll.Name}}
 		cmd = append(cmd, coll.CreateOpts...)
@@ -424,15 +435,15 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 		}
 	}
 
-	created := db.Collection(coll.Name, coll.Opts)
-	t.createdColls = append(t.createdColls, created)
-	return created
+	coll.created = db.Collection(coll.Name, coll.Opts)
+	t.createdColls = append(t.createdColls, &coll)
+	return coll.created
 }
 
 // ClearCollections drops all collections previously created by this test.
 func (t *T) ClearCollections() {
 	for _, coll := range t.createdColls {
-		_ = coll.Drop(Background)
+		_ = coll.created.Drop(Background)
 	}
 	t.createdColls = t.createdColls[:0]
 }
@@ -466,6 +477,20 @@ func (t *T) SetFailPoint(fp FailPoint) {
 	t.failPointNames = append(t.failPointNames, fp.ConfigureFailPoint)
 }
 
+// SetFailPointFromDocument sets the fail point represented by the given document for the client associated with T. This
+// method assumes that the given document is in the form {configureFailPoint: <failPointName>, ...}. Commands to create
+// the failpoint will appear in command monitoring channels. The fail point will be automatically disabled after this
+// test has run.
+func (t *T) SetFailPointFromDocument(fp bson.Raw) {
+	admin := t.Client.Database("admin")
+	if err := admin.RunCommand(Background, fp).Err(); err != nil {
+		t.Fatalf("error creating fail point on server: %v", err)
+	}
+
+	name := fp.Index(0).Value().StringValue()
+	t.failPointNames = append(t.failPointNames, name)
+}
+
 // TrackFailPoint adds the given fail point to the list of fail points to be disabled when the current test finishes.
 // This function does not create a fail point on the server.
 func (t *T) TrackFailPoint(fpName string) {
@@ -493,6 +518,11 @@ func (t *T) AuthEnabled() bool {
 	return testContext.authEnabled
 }
 
+// SSLEnabled returns whether or not this test is running in an environment with SSL.
+func (t *T) SSLEnabled() bool {
+	return testContext.sslEnabled
+}
+
 // TopologyKind returns the topology kind of the environment
 func (t *T) TopologyKind() TopologyKind {
 	return testContext.topoKind
@@ -517,13 +547,19 @@ func (t *T) CloneCollection(opts *options.CollectionOptions) {
 
 // GlobalClient returns a client configured with read concern majority, write concern majority, and read preference
 // primary. The returned client is not tied to the receiver and is valid outside the lifetime of the receiver.
-func (T) GlobalClient() *mongo.Client {
+func (*T) GlobalClient() *mongo.Client {
 	return testContext.client
 }
 
 // GlobalTopology returns the Topology backing the global Client.
-func (T) GlobalTopology() *topology.Topology {
+func (*T) GlobalTopology() *topology.Topology {
 	return testContext.topo
+}
+
+// ServerVersion returns the server version of the cluster. This assumes that all nodes in the cluster have the same
+// version.
+func (*T) ServerVersion() string {
+	return testContext.serverVersion
 }
 
 func sanitizeCollectionName(db string, coll string) string {
@@ -548,12 +584,18 @@ func (t *T) createTestClient() {
 	// command monitor
 	clientOpts.SetMonitor(&event.CommandMonitor{
 		Started: func(_ context.Context, cse *event.CommandStartedEvent) {
+			t.monitorLock.Lock()
+			defer t.monitorLock.Unlock()
 			t.started = append(t.started, cse)
 		},
 		Succeeded: func(_ context.Context, cse *event.CommandSucceededEvent) {
+			t.monitorLock.Lock()
+			defer t.monitorLock.Unlock()
 			t.succeeded = append(t.succeeded, cse)
 		},
 		Failed: func(_ context.Context, cfe *event.CommandFailedEvent) {
+			t.monitorLock.Lock()
+			defer t.monitorLock.Unlock()
 			t.failed = append(t.failed, cfe)
 		},
 	})
@@ -579,14 +621,6 @@ func (t *T) createTestClient() {
 
 	var err error
 	switch t.clientType {
-	case Default:
-		// only specify URI if the deployment is not set to avoid setting topology/server options along with the deployment
-		var uriOpts *options.ClientOptions
-		if clientOpts.Deployment == nil {
-			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
-		}
-		// Specify the URI-based options first so the test can override them.
-		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	case Pinned:
 		// pin to first mongos
 		pinnedHostList := []string{testContext.connString.Hosts[0]}
@@ -598,6 +632,24 @@ func (t *T) createTestClient() {
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
 		t.Client, err = mongo.NewClient(clientOpts)
+	case Proxy:
+		t.proxyDialer = newProxyDialer()
+		clientOpts.SetDialer(t.proxyDialer)
+
+		// After setting the Dialer, fall-through to the Default case to apply the correct URI
+		fallthrough
+	case Default:
+		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
+		// specified.
+		var uriOpts *options.ClientOptions
+		if clientOpts.Deployment == nil {
+			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
+			// deployment.
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
+		}
+
+		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
 	}
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)
@@ -622,10 +674,10 @@ func (t *T) createTestCollection() {
 // matchesServerVersion checks if the current server version is in the range [min, max]. Server versions will only be
 // compared if they are non-empty.
 func matchesServerVersion(min, max string) bool {
-	if min != "" && compareVersions(testContext.serverVersion, min) < 0 {
+	if min != "" && CompareServerVersions(testContext.serverVersion, min) < 0 {
 		return false
 	}
-	return max == "" || compareVersions(testContext.serverVersion, max) <= 0
+	return max == "" || CompareServerVersions(testContext.serverVersion, max) <= 0
 }
 
 // matchesTopology checks if the current topology is present in topologies.
@@ -660,6 +712,9 @@ func (t *T) shouldSkip() bool {
 		return true
 	}
 	if t.auth != nil && *t.auth != testContext.authEnabled {
+		return true
+	}
+	if t.ssl != nil && *t.ssl != testContext.sslEnabled {
 		return true
 	}
 	if t.enterprise != nil && *t.enterprise != testContext.enterpriseServer {

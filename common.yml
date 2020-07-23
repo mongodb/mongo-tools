@@ -17,6 +17,8 @@ mongo_tools_variables:
         run_on: macos-1014-codesign
       - name: push
         run_on: rhel70-small
+      - name: integration-3.4
+      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -43,6 +45,8 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
+      - name: integration-3.4
+      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-3.6-mmapv1
       - name: integration-4.0
@@ -74,6 +78,8 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
+      - name: integration-3.4
+      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-3.6-mmapv1
       - name: integration-4.0
@@ -120,8 +126,9 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
-      - name: integration-3.6
-      - name: integration-3.6-mmapv1
+      # Disabled: see TOOLS-2662
+      # - name: integration-3.6
+      # - name: integration-3.6-mmapv1
       - name: integration-4.0
       - name: integration-4.0-auth
       - name: integration-4.0-cluster
@@ -168,6 +175,8 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
+      - name: integration-3.4
+      - name: integration-3.4-mmapv1
       - name: integration-3.6
       - name: integration-3.6-mmapv1
       - name: integration-4.0
@@ -227,6 +236,7 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
+      - name: integration-3.4
       - name: integration-3.6
       - name: integration-4.0
       - name: integration-4.0-auth
@@ -256,6 +266,13 @@ mongo_tools_variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
+      - name: integration-4.4
+      - name: integration-4.4-auth
+      - name: integration-4.4-cluster
+      - name: qa-dump-restore-with-archiving-current
+      - name: qa-dump-restore-with-gzip-current
+      - name: qa-tests-4.4
+      - name: native-cert-ssl-current
 
 
 ## Common mongodb arguments
@@ -1222,6 +1239,36 @@ tasks:
     - command: expansions.update
     - func: "upload release json feed to s3"
 
+- name: integration-3.4
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        USE_SSL: "true"
+
+- name: integration-3.4-mmapv1
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "3.4"
+    - func: "start mongod"
+      vars:
+        STORAGE_ENGINE: "mmapv1"
+    - func: "wait for mongod to be ready"
+    - func: "run tool integration tests"
+      vars:
+        INT_TEST: "true"
+        USE_SSL: "true"
+
 - name: integration-3.6
   commands:
     - func: "fetch source"
@@ -1587,7 +1634,7 @@ tasks:
         tool: bsondump
     - func: "run qa-tests"
       vars:
-        resmoke_suite: "core${resmoke_use_ssl}"
+        resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.0
@@ -1755,7 +1802,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "4.2"
+        mongo_version: "4.4"
     - func: "fetch tool"
       vars:
         tool: mongoimport
@@ -2240,6 +2287,7 @@ buildvariants:
     USE_SSL: "true"
   tasks: *ubuntu1804_arm64_tasks
 
+# MongoDB 4.4+
 - name: ubuntu2004-arm64
   display_name: ZAP ARM64 Ubuntu 20.04
   run_on:

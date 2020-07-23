@@ -427,7 +427,8 @@ func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
 }
 
 // SetDialer specifies a custom ContextDialer to be used to create new connections to the server. The default is a
-// net.Dialer instance with a 300 second keepalive time.
+// net.Dialer with the Timeout field set to ConnectTimeout. See https://golang.org/pkg/net/#Dialer for more information
+// about the net.Dialer type.
 func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 	c.Dialer = d
 	return c
@@ -814,47 +815,14 @@ func addCACertFromFile(cfg *tls.Config, file string) error {
 		return err
 	}
 
-	certBytes, err := loadCACert(data)
-	if err != nil {
-		return fmt.Errorf("error loading CA cert: %v", err)
-	}
-
-	cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return err
-	}
-
 	if cfg.RootCAs == nil {
 		cfg.RootCAs = x509.NewCertPool()
 	}
-
-	cfg.RootCAs.AddCert(cert)
-
-	return nil
-}
-
-func loadCACert(data []byte) ([]byte, error) {
-	var certBlock *pem.Block
-
-	for certBlock == nil {
-		if data == nil || len(data) == 0 {
-			return nil, errors.New("no CERTIFICATE section found")
-		}
-
-		block, rest := pem.Decode(data)
-		if block == nil {
-			return nil, errors.New("invalid .pem file")
-		}
-
-		switch block.Type {
-		case "CERTIFICATE":
-			certBlock = block
-		}
-
-		data = rest
+	if !cfg.RootCAs.AppendCertsFromPEM(data) {
+		return errors.New("the specified CA file does not contain any valid certificates")
 	}
 
-	return certBlock.Bytes, nil
+	return nil
 }
 
 func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {

@@ -8,15 +8,6 @@
   var targetPath = 'dump_oplog_uuid_test';
   resetDbpath(targetPath);
 
-  var TOOLS_TEST_CONFIG = {};
-  if (TestData.useTLS) {
-    TOOLS_TEST_CONFIG = {
-      tlsMode: "requireTLS",
-      tlsCertificateKeyFile: "jstests/libs/client.pem",
-      tlsCAFile: "jstests/libs/ca.pem",
-      tlsAllowInvalidHostnames: "",
-    };
-  }
   var toolTest = getToolTest('oplogUUIDTest', TOOLS_TEST_CONFIG);
   var commonToolArgs = getCommonToolArguments();
 

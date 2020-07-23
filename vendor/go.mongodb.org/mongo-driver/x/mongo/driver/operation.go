@@ -329,7 +329,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc)
+		wm, startedInfo, err := op.createWireMessage(ctx, scratch, desc, conn)
 		if err != nil {
 			return err
 		}
@@ -367,28 +367,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		res, err = roundTrip(ctx, conn, wm)
 		if ep, ok := srvr.(ErrorProcessor); ok {
-			ep.ProcessError(err)
+			ep.ProcessError(err, conn)
 		}
 
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
-		// Pull out $clusterTime and operationTime and update session and clock. We handle this before
-		// handling the error to ensure we are properly gossiping the cluster time.
-		op.updateClusterTimes(res)
-		op.updateOperationTime(res)
-		op.Client.UpdateRecoveryToken(bson.Raw(res))
-
-		// automatically attempt to decrypt all results if client side encryption enabled
-		if op.Crypt != nil {
-			// use decryptErr isntead of err because err is used below for retrying
-			var decryptErr error
-			res, decryptErr = op.Crypt.Decrypt(ctx, res)
-			if decryptErr != nil {
-				return decryptErr
-			}
-		}
 		var perr error
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
@@ -402,9 +387,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			connDesc := conn.Description()
 			retryableErr := tt.Retryable(connDesc.WireVersion)
 			preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-
-			// If retry is enabled, add a RetryableWriteError label for retryable errors from pre-4.4 servers
-			if retryableErr && preRetryWriteLabelVersion && retryEnabled {
+			inTransaction := !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+			// If retry is enabled and the operation isn't in a transaction, add a RetryableWriteError label for
+			// retryable errors from pre-4.4 servers
+			if retryableErr && preRetryWriteLabelVersion && retryEnabled && !inTransaction {
 				tt.Labels = append(tt.Labels, RetryableWriteError)
 			}
 
@@ -477,8 +463,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if op.Type == Write {
 				retryableErr = tt.RetryableWrite(connDesc.WireVersion)
 				preRetryWriteLabelVersion := connDesc.WireVersion != nil && connDesc.WireVersion.Max < 9
-				// If retryWrites is enabled, add a RetryableWriteError label for network errors and retryable errors from pre-4.4 servers
-				if retryEnabled && (tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
+				inTransaction := !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning()
+				// If retryWrites is enabled and the operation isn't in a transaction, add a RetryableWriteError label
+				// for network errors and retryable errors from pre-4.4 servers
+				if retryEnabled && !inTransaction &&
+					(tt.HasErrorLabel(NetworkError) || (retryableErr && preRetryWriteLabelVersion)) {
 					tt.Labels = append(tt.Labels, RetryableWriteError)
 				}
 			} else {
@@ -554,7 +543,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if op.Deployment.SupportsRetryWrites() &&
+		if desc.SupportsRetryWrites() &&
 			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
@@ -590,6 +579,12 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
 	}
 
+	return op.readWireMessage(ctx, conn, wm)
+}
+
+func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	var err error
+
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
 		labels := []string{NetworkError}
@@ -605,6 +600,12 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 		return nil, Error{Message: err.Error(), Labels: labels, Wrapped: err}
 	}
 
+	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
+	// response.
+	if streamer, ok := conn.(StreamerConnection); ok {
+		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
+	}
+
 	// decompress wiremessage
 	wm, err = op.decompressWireMessage(wm)
 	if err != nil {
@@ -613,12 +614,21 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 
 	// decode
 	res, err := op.decodeResult(wm)
-	// Pull out $clusterTime and operationTime and update session and clock. We handle this before
-	// handling the error to ensure we are properly gossiping the cluster time.
+	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
+	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
+	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
-	return res, err
+	if err != nil {
+		return res, err
+	}
+
+	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
+	if op.Crypt != nil {
+		return op.Crypt.Decrypt(ctx, res)
+	}
+	return res, nil
 }
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
@@ -681,12 +691,12 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 }
 
 func (op Operation) createWireMessage(ctx context.Context, dst []byte,
-	desc description.SelectedServer) ([]byte, startedInformation, error) {
+	desc description.SelectedServer, conn Connection) ([]byte, startedInformation, error) {
 
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return op.createQueryWireMessage(dst, desc)
 	}
-	return op.createMsgWireMessage(ctx, dst, desc)
+	return op.createMsgWireMessage(ctx, dst, desc, conn)
 }
 
 func (op Operation) addBatchArray(dst []byte) []byte {
@@ -764,7 +774,9 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
+func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc description.SelectedServer,
+	conn Connection) ([]byte, startedInformation, error) {
+
 	var info startedInformation
 	var flags wiremessage.MsgFlag
 	var wmindex int32
@@ -773,6 +785,12 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
 		flags = wiremessage.MoreToCome
 	}
+	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
+	// respond with the MoreToCome flag and then stream responses over this connection.
+	if streamer, ok := conn.(StreamerConnection); ok && streamer.SupportsStreaming() {
+		flags |= wiremessage.ExhaustAllowed
+	}
+
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)

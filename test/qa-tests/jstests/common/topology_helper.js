@@ -24,7 +24,7 @@ var plain = {
 
 var TLS_CONFIG = {
   tlsMode: "requireTLS",
-  tlsCertificateKeyFile: "jstests/libs/client.pem",
+  tlsCertificateKeyFile: "jstests/libs/server.pem",
   tlsCAFile: "jstests/libs/ca.pem",
   tlsAllowInvalidHostnames: "",
 };
@@ -89,7 +89,7 @@ var standaloneTopology = {
     startupArgs.port = allocatePorts(1)[0];
     if (TestData.useTLS) {
       startupArgs.tlsMode = "requireTLS";
-      startupArgs.tlsCertificateKeyFile = "jstests/libs/client.pem";
+      startupArgs.tlsCertificateKeyFile = "jstests/libs/server.pem";
       startupArgs.tlsCAFile = "jstests/libs/ca.pem";
       startupArgs.tlsAllowInvalidHostnames = "";
     }
@@ -175,7 +175,7 @@ var shardedClusterTopology = {
     startupArgs.shards = 1;
     if (TestData.useTLS) {
       other.tlsMode = "requireTLS";
-      other.tlsCertificateKeyFile = "jstests/libs/client.pem";
+      other.tlsCertificateKeyFile = "jstests/libs/server.pem";
       other.tlsCAFile = "jstests/libs/ca.pem";
       other.tlsAllowInvalidHostnames = "";
     }

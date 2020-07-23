@@ -120,6 +120,9 @@ func TestCreateAllIntents(t *testing.T) {
 }
 
 func TestCreateAllIntentsLongCollectionName(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	// This tests creates intents based on the test file tree:
 	//   testdata/longcollectionname
 	//   testdata/longcollectionname/db1
@@ -224,6 +227,9 @@ func TestCreateIntentsForDB(t *testing.T) {
 }
 
 func TestCreateIntentsForDBLongCollectionName(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	// This tests creates intents based on the test file tree:
 	//   testdata/longcollectionname/db1
 	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson
@@ -301,6 +307,9 @@ func TestCreateIntentsRenamed(t *testing.T) {
 }
 
 func TestHandlingBSON(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	var mr *MongoRestore
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -446,6 +455,9 @@ func TestCreateIntentsForCollection(t *testing.T) {
 }
 
 func TestCreateIntentsForLongCollectionName(t *testing.T) {
+	// Disabled: see TOOLS-2658
+	t.Skip()
+
 	var mr *MongoRestore
 	var buff bytes.Buffer
 

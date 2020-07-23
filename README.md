@@ -81,3 +81,7 @@ For documentation on older versions of the MongoDB, reference that version of th
 - [MongoDB 4.2 Tools](https://docs.mongodb.org/v4.2/reference/program)
 - [MongoDB 4.0 Tools](https://docs.mongodb.org/v4.0/reference/program)
 - [MongoDB 3.6 Tools](https://docs.mongodb.org/v3.6/reference/program)
+
+Adding New Platforms Support
+---------------
+See our [Adding New Platform Support Guide](PLATFORMSUPPORT.md).

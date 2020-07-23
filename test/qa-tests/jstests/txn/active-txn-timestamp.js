@@ -6,6 +6,8 @@
 // prepared transactions as well.
 //
 // @tags: [requires_min_mongo_42]
+
+/* Disabled: see TOOLS-2660
 (function() {
   "use strict";
   load("jstests/libs/check_log.js");
@@ -33,7 +35,7 @@
   if (TestData.useTLS) {
     TOOLS_TEST_CONFIG = {
       tlsMode: "requireTLS",
-      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCertificateKeyFile: "jstests/libs/server.pem",
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
       setParameter: {
@@ -145,3 +147,4 @@
   );
   replTest.stopSet();
 }());
+*/

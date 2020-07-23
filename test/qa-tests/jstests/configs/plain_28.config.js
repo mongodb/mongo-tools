@@ -2,16 +2,16 @@ load("jstests/configs/standard_dump_targets.config.js");
 
 /* exported getToolTest */
 var getToolTest;
+var TOOLS_TEST_CONFIG = {
+  binVersion: '',
+};
 
 (function() {
-  var TOOLS_TEST_CONFIG = {
-    binVersion: '',
-  };
   if (TestData.useTLS) {
     TOOLS_TEST_CONFIG = {
       binVersion: '',
       tlsMode: "requireTLS",
-      tlsCertificateKeyFile: "jstests/libs/client.pem",
+      tlsCertificateKeyFile: "jstests/libs/server.pem",
       tlsCAFile: "jstests/libs/ca.pem",
       tlsAllowInvalidHostnames: "",
     };

@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -77,6 +78,30 @@ func NotNil(t testing.TB, obj interface{}, msg string, args ...interface{}) {
 	t.Helper()
 	if isNil(obj) {
 		t.Fatalf(msg, args...)
+	}
+}
+
+// Soon runs the provided callback for a maximum of timeoutMS milliseconds. It returns the callback error
+// if the callback returned and ErrCallbackTimedOut if the timeout expired.
+func Soon(t testing.TB, callback func(), timeout time.Duration) {
+	t.Helper()
+
+	done := make(chan struct{})
+	fullCallback := func() {
+		callback()
+		done <- struct{}{}
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	go fullCallback()
+
+	select {
+	case <-done:
+		return
+	case <-timer.C:
+		t.Fatalf("timed out in %s waiting for callback", timeout)
 	}
 }
 
