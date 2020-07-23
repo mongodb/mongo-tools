@@ -307,16 +307,17 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 }
 
 func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) []IndexDocument {
-	indexKeys := make(map[string]bool) // A set contains all the unique index's json strings
-	indexesConverted := []IndexDocument{}
+	indexKeys := make(map[string]struct{}) // A set contains all the unique index's json strings
+	var indexesConverted []IndexDocument
+	var exists = struct{}{}
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
 		indexString := bsonutil.CreateExtJSONString(index.Key)
-		if indexKeys[indexString] == true {
+		if _, ok := indexKeys[indexString]; ok {
 			// skip duplicated indexes
 			continue
 		}
-		indexKeys[indexString] = true
+		indexKeys[indexString] = exists
 
 		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
 		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.
