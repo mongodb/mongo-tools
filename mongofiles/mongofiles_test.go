@@ -394,67 +394,7 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
-		Convey("Testing the 'get' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
-
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			Convey("copy the file to the local filesystem", func() {
-				buff.Truncate(0)
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(str, ShouldEqual, "")
-				So(buff.Len(), ShouldNotEqual, 0)
-
-				testFile, err := os.Open("testfile1")
-				So(err, ShouldBeNil)
-				defer testFile.Close()
-
-				// pretty small file; so read all
-				testFile1Bytes, err := ioutil.ReadAll(testFile)
-				So(err, ShouldBeNil)
-				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
-			})
-
-			Convey("store the file contents in a file with different name if '--local' flag used", func() {
-				buff.Truncate(0)
-				mf.StorageOptions.LocalFileName = "testfile1copy"
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(str, ShouldEqual, "")
-				So(buff.Len(), ShouldNotEqual, 0)
-
-				testFile, err := os.Open("testfile1copy")
-				So(err, ShouldBeNil)
-				defer testFile.Close()
-
-				// pretty small file; so read all
-				testFile1Bytes, err := ioutil.ReadAll(testFile)
-				So(err, ShouldBeNil)
-				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
-			})
-
-			// cleanup file we just copied to the local FS
-			Reset(func() {
-
-				// remove 'testfile1' or 'testfile1copy'
-				if fileExists("testfile1") {
-					err = os.Remove("testfile1")
-				}
-				So(err, ShouldBeNil)
-
-				if fileExists("testfile1copy") {
-					err = os.Remove("testfile1copy")
-				}
-				So(err, ShouldBeNil)
-
-			})
-		})
-
-		Convey("Testing the 'get' command with multiple files that are in GridFS should", func() {
+		Convey("Testing the 'get' command with files that are in GridFS should", func() {
 			testFiles := []string{"testfile1", "testfile2", "testfile3"}
 			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", testFiles...)
 			So(err, ShouldBeNil)
@@ -544,70 +484,7 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
-		Convey("Testing the 'put' command by putting some lorem ipsum file with 287613 bytes should", func() {
-			filename := "lorem_ipsum_287613_bytes.txt"
-			mf, err := simpleMongoFilesInstanceWithFilename("put", filename)
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
-			mf.StorageOptions.LocalFileName = util.ToUniversalPath("testdata/" + filename)
-
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			Convey("insert the file by creating two chunks (ceil(287,613 / 255 * 1024)) in GridFS", func() {
-				buff.Truncate(0)
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(str, ShouldEqual, "")
-				So(buff.Len(), ShouldNotEqual, 0)
-
-				Convey("and files should exist in gridfs", func() {
-					bytesGotten, err := getFilesAndBytesListFromGridFS()
-					So(err, ShouldBeNil)
-					So(len(bytesGotten), ShouldEqual, len(testFiles)+1)
-					So(bytesGotten[filename], ShouldEqual, 287613)
-					So(bytesGotten, ShouldContainKey, filename)
-				})
-
-				Convey("and should have exactly the same content as the original file", func() {
-					buff.Truncate(0)
-					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", "lorem_ipsum_287613_bytes.txt")
-					So(err, ShouldBeNil)
-					So(mf, ShouldNotBeNil)
-
-					mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
-					str, err = mfAfter.Run(false)
-					So(err, ShouldBeNil)
-					So(str, ShouldEqual, "")
-					So(buff.Len(), ShouldNotEqual, 0)
-
-					loremIpsumOrig, err := os.Open(util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt"))
-					So(err, ShouldBeNil)
-
-					loremIpsumCopy, err := os.Open("lorem_ipsum_copy.txt")
-					So(err, ShouldBeNil)
-
-					Convey("compare the copy of the lorem ipsum file with the original", func() {
-
-						defer loremIpsumOrig.Close()
-						defer loremIpsumCopy.Close()
-						isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
-						So(err, ShouldBeNil)
-						So(isContentSame, ShouldBeTrue)
-					})
-
-					Reset(func() {
-						err = os.Remove("lorem_ipsum_copy.txt")
-						So(err, ShouldBeNil)
-					})
-
-				})
-
-			})
-
-		})
-
-		Convey("Testing the 'put' command with multiple copies of the lorem ipsum file with 287613 bytes should", func() {
+		Convey("Testing the 'put' command with copies of a lorem ipsum file with 287613 bytes should", func() {
 			const (
 				numCopies  = 3
 				numBytes   = 287613
