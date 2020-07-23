@@ -156,6 +156,20 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					Command:  "put",
 				},
 			},
+                        {
+				InputArgs: []string{"put", "foo", "bar", "baz"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileNameList: []string{"foo", "bar", "baz"},
+					Command:  "put",
+				},
+			},
 			{
 				InputArgs: []string{"mongodb://foo", "put", "foo"},
 				ExpectedOpts: Options{
@@ -215,7 +229,21 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
-				InputArgs: []string{"mongodb://foo", "get", "foo"},
+				InputArgs: []string{"get", "foo"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileName: "foo",
+					Command:  "get",
+				},
+			},
+			{
+				InputArgs: []string{"mongodb://foo", "get", "foo", "bar", "baz"},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
@@ -224,7 +252,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					},
 				},
 				ExpectedMF: MongoFiles{
-					FileName: "foo",
+					FileNameList: []string{"foo", "bar", "baz"},
 					Command:  "get",
 				},
 			},
