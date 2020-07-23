@@ -235,22 +235,20 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
+	var gridFiles []*gfsFile
+	var err error
+	
 	// If mongofiles --get ... is called, then query for all files
 	// specified in mf.FileNameList -- otherwise, preserve correct
 	// behavior for mongofiles --get_id ...
 	if len(mf.FileNameList) > 0 {
 		query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
 
-		gridFiles, err := mf.findGFSFiles(query)
+		gridFiles, err = mf.findGFSFiles(query)
 		if err != nil {
 			return nil, err
 		}
-
-		return gridFiles, nil
 	} else {
-		var gridFiles []*gfsFile
-		var err error
-
 		var queryProp string
 		var query string
 
@@ -279,9 +277,9 @@ func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
 		if len(gridFiles) == 0 {
 			return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
 		}
-
-		return gridFiles[0:], nil
 	}
+
+        return gridFiles, err
 }
 
 // Delete all files with the given filename.
