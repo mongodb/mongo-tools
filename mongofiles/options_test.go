@@ -156,7 +156,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					Command:  "put",
 				},
 			},
-                        {
+			{
 				InputArgs: []string{"put", "foo", "bar", "baz"},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
@@ -167,7 +167,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 				ExpectedMF: MongoFiles{
 					FileNameList: []string{"foo", "bar", "baz"},
-					Command:  "put",
+					Command:      "put",
 				},
 			},
 			{
@@ -253,7 +253,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 				ExpectedMF: MongoFiles{
 					FileNameList: []string{"foo", "bar", "baz"},
-					Command:  "get",
+					Command:      "get",
 				},
 			},
 			{

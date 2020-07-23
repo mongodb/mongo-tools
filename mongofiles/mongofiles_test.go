@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-        "io"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -122,10 +122,10 @@ func simpleMongoFilesInstanceWithMultipleFileNames(command string, fnames ...str
 	mongofiles, err := simpleMongoFilesInstanceCommandOnly(command)
 	if err != nil {
 		return nil, err
-        }
+	}
 
-        mongofiles.FileNameList = fnames
-        return mongofiles, nil
+	mongofiles.FileNameList = fnames
+	return mongofiles, nil
 }
 
 func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*MongoFiles, error) {
@@ -306,15 +306,15 @@ func TestValidArguments(t *testing.T) {
 
 		Convey("It should not error out when the get command is given multiple supporting arguments", func() {
 			args := []string{"get", "foo", "bar", "baz"}
-                        So(mf.ValidateCommand(args), ShouldBeNil)
-                        So(mf.FileNameList, ShouldResemble, []string{"foo", "bar", "baz"})
-                })
+			So(mf.ValidateCommand(args), ShouldBeNil)
+			So(mf.FileNameList, ShouldResemble, []string{"foo", "bar", "baz"})
+		})
 
 		Convey("It should not error out when the put command is given multiple supporting arguments", func() {
 			args := []string{"put", "foo", "bar", "baz"}
-                        So(mf.ValidateCommand(args), ShouldBeNil)
-                        So(mf.FileNameList, ShouldResemble, []string{"foo", "bar", "baz"})
-                })
+			So(mf.ValidateCommand(args), ShouldBeNil)
+			So(mf.FileNameList, ShouldResemble, []string{"foo", "bar", "baz"})
+		})
 
 		Convey("It should error out when any of (get|put|delete|search|get_id|delete_id) not given supporting argument", func() {
 			for _, command := range []string{"get", "put", "delete", "search", "get_id", "delete_id"} {
@@ -454,51 +454,51 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
-                Convey("Testing the 'get;;; command with multiple files that are in GridFS should", func() {
+		Convey("Testing the 'get;;; command with multiple files that are in GridFS should", func() {
 			testFiles := []string{"testfile1", "testfile2", "testfile3"}
 			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", testFiles...)
-                        So(err, ShouldBeNil)
-                        So(mf, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+			So(mf, ShouldNotBeNil)
 
-                        var buff bytes.Buffer
-                        log.SetWriter(&buff)
+			var buff bytes.Buffer
+			log.SetWriter(&buff)
 
-                        str, err := mf.Run(false)
-                        So(err, ShouldBeNil)
-                        So(str, ShouldBeEmpty)
+			str, err := mf.Run(false)
+			So(err, ShouldBeNil)
+			So(str, ShouldBeEmpty)
 
-                        Convey("log an event specifying the completion of each file", func() {
+			Convey("log an event specifying the completion of each file", func() {
 				logOutput := buff.String()
 
-                                for _, testFile := range testFiles {
+				for _, testFile := range testFiles {
 					logEvent := fmt.Sprintf("finished writing to %v", testFile)
 					So(logOutput, ShouldContainSubstring, logEvent)
-                                }
-                        })
+				}
+			})
 
-                        Convey("copy the files to the local filesystem", func() {
+			Convey("copy the files to the local filesystem", func() {
 				for _, testFileName := range testFiles {
 					testFile, err := os.Open(testFileName)
-                                        So(err, ShouldBeNil)
-                                        defer testFile.Close()
+					So(err, ShouldBeNil)
+					defer testFile.Close()
 
-                                        bytesGotten, err := ioutil.ReadAll(testFile)
-                                        So(err, ShouldBeNil)
-                                        So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
-                                }
-                        })
+					bytesGotten, err := ioutil.ReadAll(testFile)
+					So(err, ShouldBeNil)
+					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
+				}
+			})
 
-                        // Remove test files from local FS so that there
-                        // no naming collisions
-                        Reset(func() {
+			// Remove test files from local FS so that there
+			// no naming collisions
+			Reset(func() {
 				for _, testFile := range testFiles {
 					if fileExists(testFile) {
 						err = os.Remove(testFile)
-                                                So(err, ShouldBeNil)
-                                        }
-                                }
-                        })
-                })
+						So(err, ShouldBeNil)
+					}
+				}
+			})
+		})
 
 		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
 			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1")
@@ -607,18 +607,17 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		})
 
-                Convey("Testing the 'put' command with multiple copies of the lorem ipsum file with 287613 bytes should", func() {
+		Convey("Testing the 'put' command with multiple copies of the lorem ipsum file with 287613 bytes should", func() {
 			const (
-				numCopies = 3
-                                numBytes = 287613
-                                copyFormat = "lorem_ipsum_copy_%v.txt"
+				numCopies  = 3
+				numBytes   = 287613
+				copyFormat = "lorem_ipsum_copy_%v.txt"
 			)
 
 			originalFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
-			
-                        
-                        testFiles := make([]string, numCopies)
-                        for i := 0; i < numCopies; i++ {
+
+			testFiles := make([]string, numCopies)
+			for i := 0; i < numCopies; i++ {
 				newFile := util.ToUniversalPath("testdata/" + fmt.Sprintf(copyFormat, i))
 
 				// Makes new copies of lorem ipsum file
@@ -639,57 +638,57 @@ func TestMongoFilesCommands(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					
+
 					return nil
-                                }(originalFile, newFile)
-                                So(err, ShouldBeNil)
-                                
+				}(originalFile, newFile)
+				So(err, ShouldBeNil)
+
 				testFiles[i] = newFile
-                        }
+			}
 
-                        mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", testFiles...)
-                        So(err, ShouldBeNil)
+			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", testFiles...)
+			So(err, ShouldBeNil)
 
-                        var buff bytes.Buffer
-                        log.SetWriter(&buff)
+			var buff bytes.Buffer
+			log.SetWriter(&buff)
 
-                        str, err := mf.Run(false)
-                        So(err, ShouldBeNil)
-                        So(str, ShouldBeEmpty)
+			str, err := mf.Run(false)
+			So(err, ShouldBeNil)
+			So(str, ShouldBeEmpty)
 
-                        Convey("log an event specifying the completion of each file", func() {
+			Convey("log an event specifying the completion of each file", func() {
 				const (
 					logAdding = "adding gridFile: %v"
-                                        logAdded = "added gridFile: %v"
-                                )
+					logAdded  = "added gridFile: %v"
+				)
 
-                                logOutput := buff.String()
+				logOutput := buff.String()
 
-                                for _, testFile := range testFiles {
+				for _, testFile := range testFiles {
 					So(logOutput, ShouldContainSubstring, fmt.Sprintf(logAdding, testFile))
 					So(logOutput, ShouldContainSubstring, fmt.Sprintf(logAdded, testFile))
 
-                                }
-                        })
+				}
+			})
 
-                        Convey("and files should exist in GridFS", func() {
+			Convey("and files should exist in GridFS", func() {
 				bytesGotten, err := getFilesAndBytesListFromGridFS()
-                                So(err, ShouldBeNil)
+				So(err, ShouldBeNil)
 
 				for _, testFile := range testFiles {
-                                        So(bytesGotten, ShouldContainKey, testFile)
-                                        So(bytesGotten[testFile], ShouldEqual, numBytes)
+					So(bytesGotten, ShouldContainKey, testFile)
+					So(bytesGotten[testFile], ShouldEqual, numBytes)
 				}
-                        })
+			})
 
 			Convey("and each file should have exactly the same content as the original file", func() {
 				loremIpsumOrig, err := os.Open(util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt"))
 				So(err, ShouldBeNil)
-                                defer loremIpsumOrig.Close()
+				defer loremIpsumOrig.Close()
 
 				const localFileName = "lorem_ipsum_copy.txt"
 				buff.Truncate(0)
-                                for _, testFile := range testFiles {
+				for _, testFile := range testFiles {
 					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", testFile)
 					So(err, ShouldBeNil)
 					So(mf, ShouldNotBeNil)
@@ -704,12 +703,12 @@ func TestMongoFilesCommands(t *testing.T) {
 						loremIpsumCopy, err := os.Open(localFileName)
 						So(err, ShouldBeNil)
 						defer loremIpsumCopy.Close()
-						
+
 						isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
 						So(err, ShouldBeNil)
 						So(isContentSame, ShouldBeTrue)
 					})
-                                }
+				}
 
 				Reset(func() {
 					err = os.Remove(localFileName)
@@ -717,16 +716,16 @@ func TestMongoFilesCommands(t *testing.T) {
 				})
 
 			})
-                        
-                        Reset(func() {
+
+			Reset(func() {
 				for _, testFile := range testFiles {
 					if fileExists(testFile) {
 						err = os.Remove(testFile)
-                                        }
-                                        So(err, ShouldBeNil)
-                                }
-                        })
-                })
+					}
+					So(err, ShouldBeNil)
+				}
+			})
+		})
 
 		Convey("Testing the 'put_id' command by putting some lorem ipsum file with 287613 bytes with different ids should succeed", func() {
 			for _, idToTest := range []string{`test_id`, `{"a":"b"}`, `{"$numberLong":"999999999999999"}`, `{"a":{"b":{"c":{}}}}`} {
