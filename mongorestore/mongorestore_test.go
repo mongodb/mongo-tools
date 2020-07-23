@@ -12,7 +12,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -788,7 +787,6 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 	Convey("With a test MongoRestore", t, func() {
 		args := []string{
 			ConvertLegacyIndexesOption,
-			FixDuplicatedLegacyIndexesOption,
 		}
 
 		restore, err := getRestoreWithArgs(args...)
@@ -833,50 +831,10 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 			So(len(res.Key), ShouldEqual, 1)
 			So(res.Key[0].Key, ShouldEqual, "foo")
 			So(res.Key[0].Value, ShouldEqual, 1)
+
+			So(c.TryNext(context.Background()), ShouldBeFalse)
 		})
 	})
-}
-
-// TestFixDuplicatedLegacyIndexesOff restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}, but without --fixDuplicatedLegacyIndexes
-// This should cause failure to restore
-func TestFixDuplicatedLegacyIndexesOff(t *testing.T) {
-	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
-
-	fcv := testutil.GetFCV(session)
-	if cmp, err := testutil.CompareFCV(fcv, "3.4"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 3.4 or later")
-	}
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			ConvertLegacyIndexesOption,
-		}
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-
-		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
-			restore.TargetDirectory = "testdata/duplicate_index_key"
-			result := restore.Restore()
-			fmt.Println(result.Err.Error())
-			errorString := "Index with name: foo_1 already exists with a different name"
-			if cmp, err := testutil.CompareFCV(fcv, "4.2"); err != nil || cmp < 0 {
-				errorString = "(IndexAlreadyExists) index already exists with different name: foo_1"
-			}
-			So(strings.Contains(result.Err.Error(), errorString), ShouldBeTrue)
-			defer func() {
-				err = session.Database("indextest").Drop(nil)
-				if err != nil {
-					t.Fatalf("Failed to drop test database indextest")
-				}
-			}()
-		})
-	})
-
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {

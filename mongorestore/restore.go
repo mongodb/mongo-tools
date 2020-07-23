@@ -312,7 +312,7 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns st
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
 		indexString := bsonutil.CreateExtJSONString(index.Key)
-		if restore.OutputOptions.FixDuplicatedLegacyIndexes && indexKeys[indexString] == true {
+		if indexKeys[indexString] == true {
 			// skip duplicated indexes
 			continue
 		}
