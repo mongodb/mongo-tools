@@ -419,42 +419,16 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 }
 
 // handlePut contains the logic for the 'put' and 'put_id' commands
-func (mf *MongoFiles) handlePut() error {
-	// If mongofiles --put ... is called, i.e. with multiple supporting
-	// arguments, then add gridFiles specified in mf.FileNameList
-	// (see TOOLS-2667). Otherwise, if mongofiles --put_id is called, then
-	// preserve existing behavior.
-	if len(mf.FileNameList) > 0 {
-		for _, file := range mf.FileNameList {
-			id, err := mf.parseOrCreateID()
-			if err != nil {
-				return err
-			}
+func (mf *MongoFiles) handlePut(id interface{}, file string) error {
+	log.Logvf(log.Always, "adding gridFile: %v\n", file)
 
-			log.Logvf(log.Always, "adding gridFile: %v\n", file)
-
-			n, err := mf.put(id, file)
-			if err != nil {
-				log.Logvf(log.Always, "error adding gridFile: %v\n", err)
-				return err
-			}
-			log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-			log.Logvf(log.Always, "added gridFile: %v\n", file)
-		}
-		log.Logv(log.Always, "Finished adding gridFiles -- cleaning up")
-	} else {
-		id, err := mf.parseOrCreateID()
-		if err != nil {
-			return err
-		}
-
-		n, err := mf.put(id, mf.FileName)
-		if err != nil {
-			return err
-		}
-		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-		log.Logvf(log.Always, fmt.Sprintf("added gridFile: %v\n", mf.FileName))
+	n, err := mf.put(id, file)
+	if err != nil {
+		log.Logvf(log.Always, "error adding gridFile: %v\n", err)
+		return err
 	}
+	log.Logvf(log.DebugLow, "copied %v bytes to server", n)
+	log.Logvf(log.Always, "added gridFile: %v\n", file)
 
 	return nil
 }
@@ -521,8 +495,33 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	case Get, GetID:
 		err = mf.handleGet()
 
-	case Put, PutID:
-		err = mf.handlePut()
+		// If mongofiles --put ... is called, i.e. with multiple supporting
+		// arguments, then add gridFiles specified in mf.FileNameList
+		// (see TOOLS-2667). Otherwise, if mongofiles --put_id is called, then
+		// preserve existing behavior.
+	case Put:
+		for _, file := range mf.FileNameList {
+			id, err := mf.parseOrCreateID()
+			if err != nil {
+				return "", err
+			}
+
+			err = mf.handlePut(id, file)
+			if err != nil {
+				return "", err
+			}
+		}
+
+	case PutID:
+		id, err := mf.parseOrCreateID()
+		if err != nil {
+			return "", err
+		}
+
+		err = mf.handlePut(id, mf.FileName)
+		if err != nil {
+			return "", err
+		}
 
 	case DeleteID:
 		err = mf.handleDeleteID()
