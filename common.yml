@@ -800,24 +800,41 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools/
         silent: false
         script: |
+          # put apple credentials into env vars
+          AC_USERNAME="${ac_username}"
+          AC_PASSWORD="${ac_password}"
+
+          # turn on verbose debugging for remainder of script
           set -o xtrace
           set -o errexit
           set -o verbose
+
+          # this function should do nothing on non-mac platforms
           if [ "${mongo_os}" != "osx" ]; then
               exit 0
           fi
+
+          # download and unzip gon
           curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
           unzip gon.zip
-          OUTPUT_PATH="./release.zip"
-          AC_USERNAME="${ac_username}"
-          AC_PASSWORD="${ac_password}"
-          # gon settings
-          cat <<EOF_GON_JSON > gon.json
+
+          # untar the release package and rename dir to "release"
+          tar xvzf release.tgz
+          mv mongodb-database-tools* release
+          rm release.tgz
+
+          # gon signing config
+          cat <<EOF_GON_SIGN_JSON > gon-sign.json
           {
-            "source" : ["LICENSE.md", "README.md", "THIRD-PARTY-NOTICES",
-              "bin/bsondump", "bin/mongodump",  "bin/mongoexport",
-              "bin/mongofiles", "bin/mongoimport",  "bin/mongorestore",
-              "bin/mongostat",  "bin/mongotop"
+            "source" : [
+              "release/bin/bsondump",
+              "release/bin/mongodump",
+              "release/bin/mongoexport",
+              "release/bin/mongofiles",
+              "release/bin/mongoimport",
+              "release/bin/mongorestore",
+              "release/bin/mongostat",
+              "release/bin/mongotop"
             ],
             "bundle_id" : "com.mongodb.mongotools",
             "apple_id": {
@@ -826,15 +843,34 @@ functions:
             },
             "sign" :{
               "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
-            },
-            "zip" :{
-              "output_path": "$OUTPUT_PATH"
             }
           }
-          EOF_GON_JSON
-          tar xvzf release.tgz
-          mv mongodb-database-tools*/* ./
-          ssh -v -p 2222 localhost -t "cd $PWD && ./gon -log-level=info gon.json"
+          EOF_GON_SIGN_JSON
+
+          # gon notarization config
+          cat <<EOF_GON_NOTARIZE_JSON > gon-notarize.json
+          {
+            "notarize": [{
+              "path": "$PWD/release.zip",
+              "bundle_id" : "com.mongodb.mongotools",
+              "staple": false
+            }],
+            "apple_id": {
+              "username": "$AC_USERNAME",
+              "password": "$AC_PASSWORD"
+            }
+          }
+          EOF_GON_NOTARIZE_JSON
+
+          # sign binaries, re-package as zip, and notarize zip
+          ssh -v -p 2222 localhost -t "
+            cd $PWD \
+            && ./gon -log-level=info gon-sign.json \
+            && cd release \
+            && zip -r ../release.zip . \
+            && cd .. \
+            && ./gon -log-level=info gon-notarize.json
+          "
 
   "sign linux packages":
     - command: shell.exec
