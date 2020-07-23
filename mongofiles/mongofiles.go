@@ -237,7 +237,7 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
 	var gridFiles []*gfsFile
 	var err error
-	
+
 	// If mongofiles --get ... is called, then query for all files
 	// specified in mf.FileNameList -- otherwise, preserve correct
 	// behavior for mongofiles --get_id ...
@@ -279,7 +279,7 @@ func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
 		}
 	}
 
-        return gridFiles, err
+	return gridFiles, err
 }
 
 // Delete all files with the given filename.
