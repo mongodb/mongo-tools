@@ -25,12 +25,17 @@ This section describes the steps for releasing a new version of the Tools.
 ### Pre-Release Tasks
 Complete these tasks before tagging a new release.
 
+#### Start Release Ticket
+Move the JIRA ticket for the release to the "In Progress" state.
+Ensure that its fixVersion matches the version being released.
+
 #### Ensure Evergreen Passing
 Ensure that the build you are releasing is passing the tests on the evergreen waterfall.
 A completely green build is not mandatory, since we do have flaky tests; however, failing tasks should be manually investigated to ensure they are not actual test failures.
 
 #### Complete the Release in JIRA
 Go to the [Tools releases page](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased), and ensure that all the tickets in the fixVersion to be released are closed.
+The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
 Close the release on JIRA, adding the current date.
 
@@ -50,28 +55,34 @@ For example, consider the version `<x>.<y>.<z>`.
 Bumping the patch version would give version `<x>.<y>.<z+1>`.
 Bumping the minor version would give version `<x>.<y+1>.0`.
 
-##### Create and push the tag
+##### Create the bump commit
 Ensure you have the `master` branch checked out.
-This document assumes that you are tagging the latest commit on master for release.
-You should ensure that this commit has been pushed, and that tests are passing on evergreen.
-
-Next, create an annotated tag and push it:
+Create an empty commit with a commit message of the following format:
 ```
-git tag -a -m "vX.Y.Z" X.Y.Z
-git push origin X.Y.Z
+git commit --allow-empty -m 'TOOLS-XXXX: Release vX.Y.Z'
 ```
 
-##### Restart evergreen tasks
-Restart all `dist`, `sign`, and `push` tasks, as well as all tasks in the `Release Manager` buildvariant.
-You may need to bump the priority of some of those tasks to get them to run in a timely manner.
+##### Create the tag and push
+Create an annotated tag and push it:
+```
+git tag -a -m vX.Y.Z X.Y.Z
+git push && git push --tags
+```
 
 ### Post-Release Tasks
 Complete these tasks after the release builds have completed on evergreen.
+
+#### Verify Release Downloads
+Go to the [Download Center](https://www.mongodb.com/try/download/database-tools) and verify that the new release is available there.
+Download the package for your OS and confirm that `mongodump --version` prints the correct version.
 
 #### File CLOUDP Tickets
 File the following CLOUDP tickets for deploying the new release:
 - "Release Database Tools X.Y.Z to CM/OM" with a component of "Automation Agent" and assigned team of "Automation"
 - "Release Database Tools X.Y.Z to Atlas" with a component of "Automation Agent" and assigned team of "Atlas Triage"
+
+### Close Release Ticket
+Move the JIRA ticket tracking this release to the "Closed" state.
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
