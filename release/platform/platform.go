@@ -90,7 +90,7 @@ func (p Platform) ArtifactExtensions() []string {
 	case OSLinux:
 		return []string{"tgz", "tgz.sig", p.Pkg}
 	case OSMac:
-		return []string{"tgz", "tgz.sig"}
+		return []string{"zip"}
 	case OSWindows:
 		return []string{"zip", "zip.sig", "msi"}
 	}
