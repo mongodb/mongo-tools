@@ -820,21 +820,21 @@ functions:
 
           # untar the release package and rename dir to "release"
           tar xvzf release.tgz
-          mv mongodb-database-tools* release
+          pkgname=$(ls | grep mongodb-database-tools)
           rm release.tgz
 
           # gon signing config
           cat <<EOF_GON_SIGN_JSON > gon-sign.json
           {
             "source" : [
-              "release/bin/bsondump",
-              "release/bin/mongodump",
-              "release/bin/mongoexport",
-              "release/bin/mongofiles",
-              "release/bin/mongoimport",
-              "release/bin/mongorestore",
-              "release/bin/mongostat",
-              "release/bin/mongotop"
+              "$pkgname/bin/bsondump",
+              "$pkgname/bin/mongodump",
+              "$pkgname/bin/mongoexport",
+              "$pkgname/bin/mongofiles",
+              "$pkgname/bin/mongoimport",
+              "$pkgname/bin/mongorestore",
+              "$pkgname/bin/mongostat",
+              "$pkgname/bin/mongotop"
             ],
             "bundle_id" : "com.mongodb.mongotools",
             "apple_id": {
@@ -866,9 +866,7 @@ functions:
           ssh -v -p 2222 localhost -t "
             cd $PWD \
             && ./gon -log-level=info gon-sign.json \
-            && cd release \
-            && zip -r ../release.zip . \
-            && cd .. \
+            && zip -r release.zip $pkgname \
             && ./gon -log-level=info gon-notarize.json
           "
 
