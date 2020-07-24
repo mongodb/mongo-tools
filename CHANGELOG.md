@@ -1,5 +1,99 @@
 # Database Tools Changelog
 
+## 100.1.0
+
+_Released 2020-07-24_
+
+We are pleased to announce version 100.1.0 of the MongoDB Database Tools.
+
+This release officially adds support for MongoDB 4.4.
+In addition to various bug fixes, it adds support for MongoDB 4.4's new MONGODB-AWS authentication mechanism.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+<h3>        Build Failure
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2604'>TOOLS-2604</a>] -         integration-4.4-cluster is failing on master
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2638'>TOOLS-2638</a>] -         Test-case failure for mongorestore
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2643'>TOOLS-2643</a>] -         New linux distros missing from repo-config.yaml
+</li>
+</ul>
+                                                                        
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2630'>TOOLS-2630</a>] -         Release Database Tools 100.1.0
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2287'>TOOLS-2287</a>] -         URI parser incorrectly prints unsupported parameter warnings
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2337'>TOOLS-2337</a>] -         nsInclude does not work with percent encoded namespaces
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2366'>TOOLS-2366</a>] -         ^C isn&#39;t handled by mongodump
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2494'>TOOLS-2494</a>] -         mongorestore thorw error &quot;panic: close of closed channel&quot;
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2531'>TOOLS-2531</a>] -         mongorestore hung if restoring views with --preserveUUID --drop options
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2596'>TOOLS-2596</a>] -         DBTools --help links to old Manual doc pages
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2597'>TOOLS-2597</a>] -           swallows errors from URI parsing
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2609'>TOOLS-2609</a>] -         Detached signatures incorrectly appearing in download JSON
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2622'>TOOLS-2622</a>] -         Tools do not build following README instructions
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2669'>TOOLS-2669</a>] -         macOS zip archive structure incorrect
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2670'>TOOLS-2670</a>] -         Troubleshoot IAM auth options errors
+</li>
+</ul>
+        
+<h3>        New Feature
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2369'>TOOLS-2369</a>] -         IAM Role-based authentication
+</li>
+</ul>
+        
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2363'>TOOLS-2363</a>] -         Update warning message for &quot;mongorestore&quot;
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2476'>TOOLS-2476</a>] -         Notarize builds for macOS catalina
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2505'>TOOLS-2505</a>] -         Add missing 4.4 Platforms
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2534'>TOOLS-2534</a>] -         Ignore startIndexBuild and abortIndexBuild oplog entries in oplog replay
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2535'>TOOLS-2535</a>] -         commitIndexBuild and createIndexes oplog entries should build indexes with the createIndexes command during oplog replay
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2554'>TOOLS-2554</a>] -         Remove ReplSetTest file dependencies from repo
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2569'>TOOLS-2569</a>] -         Update tools to go driver 1.4.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2618'>TOOLS-2618</a>] -         Refactor AWS IAM auth testing code
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2628'>TOOLS-2628</a>] -         Add 3.4 tests to evg
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2644'>TOOLS-2644</a>] -         Update barque authentication
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2650'>TOOLS-2650</a>] -         Create changelog for tools releases
+</li>
+</ul>
+
 ## 100.0.2
 
 _Released 2020-06-04_
