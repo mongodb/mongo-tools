@@ -467,7 +467,7 @@ repos:
     type: deb
     code_name: "focal"
     edition: enterprise
-    bucket: repo.mongodb.org
+    bucket: repo.mongodb.com
     component: multiverse
     architectures:
       - amd64
