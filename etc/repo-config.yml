@@ -248,7 +248,7 @@ repos:
 
   - name: ubuntu2004
     type: deb
-    code_name: "bionic"
+    code_name: "focal"
     edition: org
     bucket: repo.mongodb.org
     component: multiverse
@@ -465,7 +465,7 @@ repos:
 
   - name: ubuntu2004
     type: deb
-    code_name: "bionic"
+    code_name: "focal"
     edition: enterprise
     bucket: repo.mongodb.org
     component: multiverse
