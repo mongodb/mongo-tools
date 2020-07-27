@@ -62,7 +62,7 @@ type MongoFiles struct {
 	Id string
 
 	// List of filenames for use as supporting
-	// arguments in --put and --get
+	// arguments in put and get commands
 	FileNameList []string
 
 	// GridFS bucket to operate on
@@ -116,8 +116,8 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 			mf.FileName = args[1]
 		}
 	case Put, Get:
-		// monogofiles --put and mongofiles --get should work over
-		// a list of files, i.e. by using mf.FileNameList
+		// monogofiles put ... and mongofiles get ... should work
+		// over a list of files, i.e. by using mf.FileNameList
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
 		}
@@ -238,9 +238,9 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	var gridFiles []*gfsFile
 	var err error
 
-	// If mongofiles --get ... is called, then query for all files
+	// If mongofiles get ... is called, then query for all files
 	// specified in mf.FileNameList -- otherwise, preserve correct
-	// behavior for mongofiles --get_id ...
+	// behavior for mongofiles get_id ...
 	if len(mf.FileNameList) > 0 {
 		query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
 
