@@ -117,8 +117,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		}
 	case Put, Get:
 		// monogofiles --put and mongofiles --get should work over
-		// a list of files, i.e. by using mf.FileNameList -- see
-		// TOOLS-2667 for user-level specification
+		// a list of files, i.e. by using mf.FileNameList
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
 		}
@@ -126,6 +125,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		if len(args) == 2 {
 			mf.FileName = args[1]
 		}
+
 		mf.FileNameList = args[1:]
 	case Search, Delete:
 		if len(args) > 2 {
@@ -198,7 +198,7 @@ func (mf *MongoFiles) getLocalFileName(gridFile *gfsFile) string {
 
 // handleGet contains the logic for the 'get' and 'get_id' commands
 func (mf *MongoFiles) handleGet() (err error) {
-	files, err := mf.getTargetGFSFile()
+	files, err := mf.getTargetGFSFiles()
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 }
 
 // Gets the GridFS file the options specify. Use this for the get family of commands.
-func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
+func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	var gridFiles []*gfsFile
 	var err error
 
@@ -247,6 +247,10 @@ func (mf *MongoFiles) getTargetGFSFile() ([]*gfsFile, error) {
 		gridFiles, err = mf.findGFSFiles(query)
 		if err != nil {
 			return nil, err
+		}
+
+		if len(gridFiles) < len(mf.FileNameList) {
+			return nil, fmt.Errorf("requested files not found: %v", mf.FileNameList)
 		}
 	} else {
 		var queryProp string
@@ -301,7 +305,7 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 
 // handleDeleteID contains the logic for the 'delete_id' command
 func (mf *MongoFiles) handleDeleteID() error {
-	files, err := mf.getTargetGFSFile()
+	files, err := mf.getTargetGFSFiles()
 	if err != nil {
 		return err
 	}
@@ -419,7 +423,12 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 }
 
 // handlePut contains the logic for the 'put' and 'put_id' commands
-func (mf *MongoFiles) handlePut(id interface{}, file string) error {
+func (mf *MongoFiles) handlePut(file string) error {
+	id, err := mf.parseOrCreateID()
+	if err != nil {
+		return err
+	}
+
 	log.Logvf(log.Always, "adding gridFile: %v\n", file)
 
 	n, err := mf.put(id, file)
@@ -495,30 +504,18 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	case Get, GetID:
 		err = mf.handleGet()
 
+	case Put:
 		// If mongofiles --put ... is called, i.e. with multiple supporting
 		// arguments, then add gridFiles specified in mf.FileNameList
-		// (see TOOLS-2667). Otherwise, if mongofiles --put_id is called, then
-		// preserve existing behavior.
-	case Put:
-		for _, file := range mf.FileNameList {
-			id, err := mf.parseOrCreateID()
-			if err != nil {
-				return "", err
-			}
-
-			err = mf.handlePut(id, file)
+		for _, filename := range mf.FileNameList {
+			err = mf.handlePut(filename)
 			if err != nil {
 				return "", err
 			}
 		}
 
 	case PutID:
-		id, err := mf.parseOrCreateID()
-		if err != nil {
-			return "", err
-		}
-
-		err = mf.handlePut(id, mf.FileName)
+		err = mf.handlePut(mf.FileName)
 		if err != nil {
 			return "", err
 		}
