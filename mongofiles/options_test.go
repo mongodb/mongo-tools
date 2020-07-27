@@ -215,11 +215,11 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
-				InputArgs: []string{"get", "foo"},
+				InputArgs: []string{"mongodb://foo", "get", "foo"},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
-							ConnectionString: "mongodb://localhost/",
+							ConnectionString: "mongodb://foo",
 						},
 					},
 				},
