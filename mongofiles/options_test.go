@@ -152,8 +152,8 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					},
 				},
 				ExpectedMF: MongoFiles{
-					FileName: "foo",
-					Command:  "put",
+					FileNameList: []string{"foo"},
+					Command:      "put",
 				},
 			},
 			{
@@ -180,8 +180,8 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					},
 				},
 				ExpectedMF: MongoFiles{
-					FileName: "foo",
-					Command:  "put",
+					FileNameList: []string{"foo"},
+					Command:      "put",
 				},
 			},
 			{
@@ -224,8 +224,8 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					},
 				},
 				ExpectedMF: MongoFiles{
-					FileName: "foo",
-					Command:  "get",
+					FileNameList: []string{"foo"},
+					Command:      "get",
 				},
 			},
 			{
@@ -238,8 +238,8 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					},
 				},
 				ExpectedMF: MongoFiles{
-					FileName: "foo",
-					Command:  "get",
+					FileNameList: []string{"foo"},
+					Command:      "get",
 				},
 			},
 			{
@@ -445,6 +445,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			} else {
 				So(err, ShouldBeNil)
 				So(mf.FileName, ShouldEqual, tc.ExpectedMF.FileName)
+				So(mf.FileNameList, ShouldResemble, tc.ExpectedMF.FileNameList)
 				So(mf.Command, ShouldEqual, tc.ExpectedMF.Command)
 				So(mf.Id, ShouldEqual, tc.ExpectedMF.Id)
 				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)

@@ -122,10 +122,6 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 			return fmt.Errorf("'%v' argument missing", args[0])
 		}
 
-		if len(args) == 2 {
-			mf.FileName = args[1]
-		}
-
 		mf.FileNameList = args[1:]
 	case Search, Delete:
 		if len(args) > 2 {
