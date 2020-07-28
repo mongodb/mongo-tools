@@ -469,8 +469,8 @@ func TestMongoFilesCommands(t *testing.T) {
 					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
 				}
 
-                                // Make sure that only the files that we queried
-                                // for are included in the local FS
+				// Make sure that only the files that we queried
+				// for are included in the local FS
 				unincludedTestFile := "testfile4"
 				_, err := os.Open(unincludedTestFile)
 				So(err, ShouldNotBeNil)
@@ -532,13 +532,13 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 		Convey("Testing the 'put' command with multiple lorem ipsum files bytes should", func() {
-			testFiles := []string{
+			localTestFiles := []string{
 				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt"),
 				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_1.txt"),
 				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_2.txt"),
 			}
 
-			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", testFiles...)
+			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", localTestFiles...)
 			So(err, ShouldBeNil)
 
 			var buff bytes.Buffer
@@ -556,7 +556,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 				logOutput := buff.String()
 
-				for _, testFile := range testFiles {
+				for _, testFile := range localTestFiles {
 					So(logOutput, ShouldContainSubstring, fmt.Sprintf(logAdding, testFile))
 					So(logOutput, ShouldContainSubstring, fmt.Sprintf(logAdded, testFile))
 
@@ -567,7 +567,12 @@ func TestMongoFilesCommands(t *testing.T) {
 				bytesGotten, err := getFilesAndBytesListFromGridFS()
 				So(err, ShouldBeNil)
 
-				for _, testFile := range testFiles {
+				// Check that the only files included are the local test
+				// files, i.e. in localTestFiles, and the global test
+				// files, i.e. in testFiles
+				So(len(bytesGotten), ShouldEqual, len(localTestFiles)+len(testFiles))
+
+				for _, testFile := range localTestFiles {
 					So(bytesGotten, ShouldContainKey, testFile)
 				}
 			})
@@ -575,7 +580,7 @@ func TestMongoFilesCommands(t *testing.T) {
 			Convey("and each file should have exactly the same content as the original file", func() {
 				const localFileName = "lorem_ipsum_copy.txt"
 				buff.Truncate(0)
-				for _, testFile := range testFiles {
+				for _, testFile := range localTestFiles {
 					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", testFile)
 					So(err, ShouldBeNil)
 					So(mf, ShouldNotBeNil)
