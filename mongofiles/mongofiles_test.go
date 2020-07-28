@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -526,44 +525,11 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 		})
-
-		Convey("Testing the 'put' command with multiple copies of the lorem ipsum file with 287613 bytes should", func() {
-			const (
-				numCopies  = 3
-				numBytes   = 287613
-				copyFormat = "lorem_ipsum_copy_%v.txt"
-			)
-
-			originalFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
-
-			testFiles := make([]string, numCopies)
-			for i := 0; i < numCopies; i++ {
-				newFile := util.ToUniversalPath("testdata/" + fmt.Sprintf(copyFormat, i))
-
-				// Makes new copies of lorem ipsum file
-				err = func(src, dst string) error {
-					in, err := os.Open(src)
-					if err != nil {
-						return err
-					}
-					defer in.Close()
-
-					out, err := os.Create(dst)
-					if err != nil {
-						return err
-					}
-					defer out.Close()
-
-					_, err = io.Copy(out, in)
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}(originalFile, newFile)
-				So(err, ShouldBeNil)
-
-				testFiles[i] = newFile
+		Convey("Testing the 'put' command with multiple lorem ipsum files bytes should", func() {
+			testFiles := []string{
+				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt"),
+				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_1.txt"),
+				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_2.txt"),
 			}
 
 			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", testFiles...)
@@ -597,15 +563,10 @@ func TestMongoFilesCommands(t *testing.T) {
 
 				for _, testFile := range testFiles {
 					So(bytesGotten, ShouldContainKey, testFile)
-					So(bytesGotten[testFile], ShouldEqual, numBytes)
 				}
 			})
 
 			Convey("and each file should have exactly the same content as the original file", func() {
-				loremIpsumOrig, err := os.Open(util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt"))
-				So(err, ShouldBeNil)
-				defer loremIpsumOrig.Close()
-
 				const localFileName = "lorem_ipsum_copy.txt"
 				buff.Truncate(0)
 				for _, testFile := range testFiles {
@@ -620,6 +581,10 @@ func TestMongoFilesCommands(t *testing.T) {
 
 					testName := fmt.Sprintf("compare contents of %v and original lorem ipsum file", testFile)
 					Convey(testName, func() {
+						loremIpsumOrig, err := os.Open(testFile)
+						So(err, ShouldBeNil)
+						defer loremIpsumOrig.Close()
+
 						loremIpsumCopy, err := os.Open(localFileName)
 						So(err, ShouldBeNil)
 						defer loremIpsumCopy.Close()
@@ -635,15 +600,6 @@ func TestMongoFilesCommands(t *testing.T) {
 					So(err, ShouldBeNil)
 				})
 
-			})
-
-			Reset(func() {
-				for _, testFile := range testFiles {
-					if fileExists(testFile) {
-						err = os.Remove(testFile)
-					}
-					So(err, ShouldBeNil)
-				}
 			})
 		})
 
