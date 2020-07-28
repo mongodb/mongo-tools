@@ -436,6 +436,51 @@ func TestMongoFilesCommands(t *testing.T) {
 
 			})
 		})
+		Convey("Testing the 'get' command with a regex specifying multiple files should", func() {
+			testRegex := "test*"
+			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", testRegex)
+			So(err, ShouldBeNil)
+			So(mf, ShouldNotBeNil)
+
+			str, err := mf.Run(false)
+
+			Convey("result in a 'requested files not found: ...' error message", func() {
+				expectedErr := fmt.Sprintf("requested files not found: %v", mf.FileNameList)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, expectedErr)
+				So(str, ShouldBeEmpty)
+			})
+
+			Convey("not copy any files over to the local filesystem", func() {
+				for testFileName := range testFiles {
+					_, err := os.Stat(testFileName)
+					So(err, ShouldNotBeNil)
+				}
+			})
+		})
+
+		Convey("Testing the 'get' command with a regex specifying multiple files in the /<pattern>/ syntax should", func() {
+			testRegex := "/test*/"
+			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", testRegex)
+			So(err, ShouldBeNil)
+			So(mf, ShouldNotBeNil)
+
+			str, err := mf.Run(false)
+
+			Convey("result in a 'requested files not found: ...' error message", func() {
+				expectedErr := fmt.Sprintf("requested files not found: %v", mf.FileNameList)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, expectedErr)
+				So(str, ShouldBeEmpty)
+			})
+
+			Convey("not copy any files over to the local filesystem", func() {
+				for testFileName := range testFiles {
+					_, err := os.Stat(testFileName)
+					So(err, ShouldNotBeNil)
+				}
+			})
+		})
 
 		Convey("Testing the 'get' command with multiple files that are in GridFS should", func() {
 			testFiles := []string{"testfile1", "testfile2", "testfile3"}
