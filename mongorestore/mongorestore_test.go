@@ -792,7 +792,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
+		Convey("Index with duplicate key after convertLegacyIndexes should be skipped", func() {
 			restore.TargetDirectory = "testdata/duplicate_index_key"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
