@@ -437,8 +437,8 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get' command with multiple files that are in GridFS should", func() {
-			testFiles := []string{"testfile1", "testfile2", "testfile3"}
-			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", testFiles...)
+			localTestFiles := []string{"testfile1", "testfile2", "testfile3"}
+			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", localTestFiles...)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -452,14 +452,14 @@ func TestMongoFilesCommands(t *testing.T) {
 			Convey("log an event specifying the completion of each file", func() {
 				logOutput := buff.String()
 
-				for _, testFile := range testFiles {
+				for _, testFile := range localTestFiles {
 					logEvent := fmt.Sprintf("finished writing to %v", testFile)
 					So(logOutput, ShouldContainSubstring, logEvent)
 				}
 			})
 
 			Convey("copy the files to the local filesystem", func() {
-				for _, testFileName := range testFiles {
+				for _, testFileName := range localTestFiles {
 					testFile, err := os.Open(testFileName)
 					So(err, ShouldBeNil)
 					defer testFile.Close()
@@ -479,7 +479,7 @@ func TestMongoFilesCommands(t *testing.T) {
 			// Remove test files from local FS so that there
 			// no naming collisions
 			Reset(func() {
-				for _, testFile := range testFiles {
+				for _, testFile := range localTestFiles {
 					if fileExists(testFile) {
 						err = os.Remove(testFile)
 						So(err, ShouldBeNil)
