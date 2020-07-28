@@ -244,7 +244,7 @@ repos:
       - s390x
       - arm64
     repos:
-      - apt/ubuntu/dists/focal/mongodb-org
+      - apt/ubuntu/dists/bionic/mongodb-org
 
   - name: ubuntu2004
     type: deb
