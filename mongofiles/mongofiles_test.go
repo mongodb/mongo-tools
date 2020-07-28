@@ -45,7 +45,7 @@ var (
 		Verbosity:  &options.Verbosity{},
 		URI:        &options.URI{},
 	}
-	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID()}
+	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID(), "testfile4": primitive.NewObjectID()}
 )
 
 // put in some test data into GridFS
@@ -468,6 +468,12 @@ func TestMongoFilesCommands(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
 				}
+			})
+
+			Convey("not copy any files not requested in the query", func() {
+				unincludedTestFile := "testfile4"
+				_, err := os.Open(unincludedTestFile)
+				So(err, ShouldNotBeNil)
 			})
 
 			// Remove test files from local FS so that there
