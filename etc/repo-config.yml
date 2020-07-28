@@ -473,4 +473,4 @@ repos:
       - amd64
       - i386
     repos:
-      - apt/ubuntu/dists/bionic/mongodb-enterprise
+      - apt/ubuntu/dists/focal/mongodb-enterprise
