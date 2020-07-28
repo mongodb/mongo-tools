@@ -468,9 +468,9 @@ func TestMongoFilesCommands(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
 				}
-			})
 
-			Convey("not copy any files not requested in the query", func() {
+                                // Make sure that only the files that we queried
+                                // for are included in the local FS
 				unincludedTestFile := "testfile4"
 				_, err := os.Open(unincludedTestFile)
 				So(err, ShouldNotBeNil)
