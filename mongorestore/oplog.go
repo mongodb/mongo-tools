@@ -176,7 +176,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		}
 
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			restore.convertLegacyIndexes(indexes, op.Namespace)
+			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
 		}
 
 		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
@@ -189,7 +189,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 
 		indexes := []IndexDocument{index}
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			restore.convertLegacyIndexes(indexes, op.Namespace)
+			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
 		}
 
 		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
