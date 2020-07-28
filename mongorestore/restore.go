@@ -315,7 +315,7 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns st
 		indexString := bsonutil.CreateExtJSONString(index.Key)
 		if _, ok := indexKeys[indexString]; ok {
 			// skip duplicated indexes
-			log.Logvf(log.Always, "index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...", bsonutil.CreateExtJSONString(index))
+			log.Logvf(log.Always, "index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...", index.Options["name"])
 			continue
 		}
 		indexKeys[indexString] = exists
