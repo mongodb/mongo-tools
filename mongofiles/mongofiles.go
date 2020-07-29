@@ -419,21 +419,27 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 }
 
 // handlePut contains the logic for the 'put' and 'put_id' commands
-func (mf *MongoFiles) handlePut(file string) error {
-	id, err := mf.parseOrCreateID()
-	if err != nil {
-		return err
+func (mf *MongoFiles) handlePut() error {
+	if len(mf.FileNameList) == 0 {
+		mf.FileNameList = []string{mf.FileName}
 	}
 
-	log.Logvf(log.Always, "adding gridFile: %v\n", file)
+	for _, filename := range mf.FileNameList {
+		id, err := mf.parseOrCreateID()
+		if err != nil {
+			return err
+		}
 
-	n, err := mf.put(id, file)
-	if err != nil {
-		log.Logvf(log.Always, "error adding gridFile: %v\n", err)
-		return err
+		log.Logvf(log.Always, "adding gridFile: %v\n", filename)
+
+		n, err := mf.put(id, filename)
+		if err != nil {
+			log.Logvf(log.Always, "error adding gridFile: %v\n", err)
+			return err
+		}
+		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
+		log.Logvf(log.Always, "added gridFile: %v\n", filename)
 	}
-	log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-	log.Logvf(log.Always, "added gridFile: %v\n", file)
 
 	return nil
 }
@@ -500,18 +506,8 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	case Get, GetID:
 		err = mf.handleGet()
 
-	case Put:
-		// If mongofiles --put ... is called, i.e. with multiple supporting
-		// arguments, then add gridFiles specified in mf.FileNameList
-		for _, filename := range mf.FileNameList {
-			err = mf.handlePut(filename)
-			if err != nil {
-				return "", err
-			}
-		}
-
-	case PutID:
-		err = mf.handlePut(mf.FileName)
+	case Put, PutID:
+		err = mf.handlePut()
 
 	case DeleteID:
 		err = mf.handleDeleteID()
