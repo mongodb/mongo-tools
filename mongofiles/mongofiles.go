@@ -512,9 +512,6 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 
 	case PutID:
 		err = mf.handlePut(mf.FileName)
-		if err != nil {
-			return "", err
-		}
 
 	case DeleteID:
 		err = mf.handleDeleteID()
