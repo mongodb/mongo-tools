@@ -13,7 +13,7 @@ Description: mongodb-database-tools package provides tools for working with the 
     (see: http://docs.mongodb.org/manual/core/gridfs/)
  *mongotop - Monitor read/write activity on a mongo server
 Homepage: http://www.mongodb.com
-Depends: libc6, libgssapi-krb5-2, libkrb5-3, libk5crypto3, libcom-err2, libkrb5support0, libkeyutils1
+Depends: libc6, libgssapi-krb5-2, libkrb5-3, libk5crypto3, libcomerr2, libkrb5support0, libkeyutils1
 Provides: mongodb-database-tools
 Conflicts: mongodb-org-tools (<= 4.3.2), mongodb-enterprise-tools (<= 4.3.2), mongodb-database-tools
 Replaces: mongodb-database-tools (<= @TOOLS_VERSION@)
