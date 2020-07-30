@@ -102,6 +102,10 @@ type StorageOptions struct {
 	// By default, mongofiles waits for a majority of members from the replica set to respond before returning.
 	// Cannot be used simultaneously with write concern options in a URI.
 	WriteConcern string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
+
+	// RegexOptions specifies the options passed to "$regex" queries that are used for get_regex
+        // The default is to use no options, i.e. standard PCRE syntax
+	RegexOptions string `long:"options" value-name:"<regex-options>" short:"o" description:"regex options used for get_regex"`
 }
 
 // Name returns a human-readable group name for storage options.
