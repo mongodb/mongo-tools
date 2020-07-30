@@ -256,6 +256,37 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					Command:      "get",
 				},
 			},
+                        {
+				InputArgs: []string{"get_regex", "test_regex(\\d)"},
+                                ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+                                ExpectedMF: MongoFiles {
+					FileNameRegex: "test_regex(\\d)",
+					Command: "get_regex",
+                                },
+                        },
+                        {
+				InputArgs: []string{"get_regex", "another_regex[a-zA-Z]", "--options", "mx"},
+                                ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+                                ExpectedMF: MongoFiles {
+					FileNameRegex: "another_regex[a-zA-Z]",
+					Command: "get_regex",
+                                        StorageOptions: &StorageOptions{
+						RegexOptions: "mx",
+                                        },
+                                },
+			},
 			{
 				InputArgs: []string{"get_id", "id"},
 				ExpectedOpts: Options{
@@ -446,6 +477,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(mf.FileName, ShouldEqual, tc.ExpectedMF.FileName)
 				So(mf.FileNameList, ShouldResemble, tc.ExpectedMF.FileNameList)
+                                So(mf.FileNameRegex, ShouldEqual, tc.ExpectedMF.FileNameRegex)
 				So(mf.Command, ShouldEqual, tc.ExpectedMF.Command)
 				So(mf.Id, ShouldEqual, tc.ExpectedMF.Id)
 				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
