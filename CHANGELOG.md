@@ -1,5 +1,35 @@
 # Database Tools Changelog
 
+## 100.1.1
+
+_Released 2020-07-31_
+
+We are pleased to announce version 100.1.1 of the MongoDB Database Tools.
+
+This release fixes contains a fix for a linux packaging bug and a mongorestore bug related to the convertLegacyIndexes flag.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2685'>TOOLS-2685</a>] -         Release Database Tools 100.1.1
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2645'>TOOLS-2645</a>] -         Check for duplicate index keys after converting legacy index definitions
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2683'>TOOLS-2683</a>] -         Ubuntu 16.04 DB Tools 100.1.0 DEB depends on libcom-err2, should be libcomerr2
+</li>
+</ul>
+
 ## 100.1.0
 
 _Released 2020-07-24_
