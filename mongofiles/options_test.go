@@ -271,23 +271,6 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
-				InputArgs: []string{"get_regex", "another_regex[a-zA-Z]", "--options", "mx"},
-				ExpectedOpts: Options{
-					ToolOptions: &options.ToolOptions{
-						URI: &options.URI{
-							ConnectionString: "mongodb://localhost/",
-						},
-					},
-				},
-				ExpectedMF: MongoFiles{
-					FileNameRegex: "another_regex[a-zA-Z]",
-					Command:       "get_regex",
-					StorageOptions: &StorageOptions{
-						RegexOptions: "mx",
-					},
-				},
-			},
-			{
 				InputArgs: []string{"get_id", "id"},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
