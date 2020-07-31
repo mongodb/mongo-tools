@@ -24,9 +24,9 @@ Connection strings must begin with mongodb:// or mongodb+srv://.
 Possible commands include:
 	list      - list all files; 'filename' is an optional prefix which listed filenames must begin with
 	search    - search all files; 'filename' is a regex which listed filenames must match
-	put       - add a file with filename 'filename'
+	put       - add files with filenames specified in the supporting arguments
 	put_id    - add a file with filename 'filename' and a given '_id'
-	get       - get a file with filename 'filename'
+	get       - get files with filenames specified in the supporting arguments
 	get_id    - get a file with the given '_id'
 	delete    - delete all files with filename 'filename'
 	delete_id - delete a file with the given '_id'
