@@ -78,8 +78,8 @@ Download the package for your OS and confirm that `mongodump --version` prints t
 
 #### File CLOUDP Tickets
 File the following CLOUDP tickets for deploying the new release:
-- "Release Database Tools X.Y.Z to CM/OM" with a component of "Automation Agent" and assigned team of "Automation"
-- "Release Database Tools X.Y.Z to Atlas" with a component of "Automation Agent" and assigned team of "Atlas Triage"
+- "Release Database Tools X.Y.Z to CM/OM" with a component of "Cloud Manager Upgrade" and assigned team of "Automation"
+- "Release Database Tools X.Y.Z to Atlas" with a component of "Atlas Upgrade" and assigned team of "Atlas Triage"
 
 #### Close Release Ticket
 Move the JIRA ticket tracking this release to the "Closed" state.
