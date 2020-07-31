@@ -33,7 +33,7 @@ const (
 	PutID    = "put_id"
 	Get      = "get"
 	GetID    = "get_id"
-        GetRegex = "get_regex"
+	GetRegex = "get_regex"
 	Delete   = "delete"
 	DeleteID = "delete_id"
 )
@@ -66,9 +66,9 @@ type MongoFiles struct {
 	// arguments in put and get commands
 	FileNameList []string
 
-        // Regular expression as supporting argument
-        // for get_regex
-        FileNameRegex string
+	// Regular expression as supporting argument
+	// for get_regex
+	FileNameRegex string
 
 	// GridFS bucket to operate on
 	bucket *gridfs.Bucket
@@ -130,12 +130,12 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		mf.FileNameList = args[1:]
 	case GetRegex:
 		// mongofiles get_regex ... should work over a PCRE
-                // and a string of options passed to the $regex query
-                if len(args) == 1 {
+		// and a string of options passed to the $regex query
+		if len(args) == 1 {
 			return fmt.Errorf("'%v' argument missing", args[0])
-                }
+		}
 
-                mf.FileNameRegex = args[1]
+		mf.FileNameRegex = args[1]
 	case Search, Delete:
 		if len(args) > 2 {
 			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
@@ -262,16 +262,21 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 			return nil, fmt.Errorf("requested files not found: %v", mf.FileNameList)
 		}
 	} else if mf.FileNameRegex != "" {
-		query := bson.M{"filename": bson.M{"$regex": mf.FileNameRegex, "$options": mf.StorageOptions.RegexOptions}}
+		query := bson.M{
+			"filename": bson.M{
+				"$regex":   mf.FileNameRegex,
+				"$options": mf.StorageOptions.RegexOptions,
+			},
+		}
 
 		gridFiles, err = mf.findGFSFiles(query)
-                if err != nil {
+		if err != nil {
 			return nil, err
-                }
+		}
 
-                if len(gridFiles) == 0 {
+		if len(gridFiles) == 0 {
 			return nil, fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
-                }
+		}
 	} else {
 		var queryProp string
 		var query string
