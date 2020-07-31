@@ -482,4 +482,29 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			}
 		}
 	})
+
+	Convey("Testing 'get_regex' with '--options' should parse the regex and the options properly", t, func() {
+		// This depends on (*MongoFiles).StorageOptions
+		// It needs to be checked separately from "Testing parsing positional arguments"
+		args := []string{
+			"get_regex",
+			"another_regex[a-zA-Z]",
+			"--options",
+			"mx",
+		}
+
+		opts, err := ParseOptions(args, "", "")
+		So(err, ShouldBeNil)
+
+		mf := &MongoFiles{
+			ToolOptions:    opts.ToolOptions,
+			StorageOptions: opts.StorageOptions,
+		}
+
+		err = mf.ValidateCommand(opts.ParsedArgs)
+		So(err, ShouldBeNil)
+
+		So(mf.FileNameRegex, ShouldEqual, args[1])
+		So(mf.StorageOptions.RegexOptions, ShouldEqual, args[3])
+	})
 }
