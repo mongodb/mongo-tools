@@ -131,7 +131,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 	case GetRegex:
 		// mongofiles get_regex ... should work over a PCRE
 		// and a string of options passed to the $regex query
-		if len(args) == 1 {
+		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
 		}
 
