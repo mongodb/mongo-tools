@@ -489,7 +489,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 		args := []string{
 			"get_regex",
 			"another_regex[a-zA-Z]",
-			"--options",
+			"--regexOptions",
 			"mx",
 		}
 

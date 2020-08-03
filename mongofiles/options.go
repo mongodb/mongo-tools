@@ -106,7 +106,7 @@ type StorageOptions struct {
 
 	// RegexOptions specifies the options passed to "$regex" queries that are used for get_regex
 	// The default is to use no options, i.e. standard PCRE syntax
-	RegexOptions string `long:"options" value-name:"<regex-options>" short:"o" description:"regex options used for get_regex"`
+	RegexOptions string `long:"regexOptions" default:"" value-name:"<regex-options>" description:"regex options used for get_regex"`
 }
 
 // Name returns a human-readable group name for storage options.
