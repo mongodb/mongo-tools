@@ -28,7 +28,7 @@ Possible commands include:
 	put_id    - add a file with filename 'filename' and a given '_id'
 	get       - get files with filenames specified in the supporting arguments
 	get_id    - get a file with the given '_id'
-        get_regex - get files matching the supplied 'regex'
+	get_regex - get files matching the supplied 'regex'
 	delete    - delete all files with filename 'filename'
 	delete_id - delete a file with the given '_id'
 
