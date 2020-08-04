@@ -2,6 +2,8 @@ package platform
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/release/env"
 )
@@ -41,8 +43,8 @@ func (p Platform) Variant() string {
 
 const evgVariantVar = "EVG_VARIANT"
 
-// Get returns the Platform for this host, based on the value of
-// EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set
+// GetFromEnv returns the Platform for this host, based on the value
+// of EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set
 // to an unknown value.
 func GetFromEnv() (Platform, error) {
 	variant, err := env.EvgVariant()
@@ -55,6 +57,33 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, fmt.Errorf("unknown evg variant %q", variant)
 	}
 	return pf, nil
+}
+
+// DetectLocal detects the platform for non-evergreen use cases.
+func DetectLocal() (Platform, error) {
+	cmd := exec.Command("uname", "-s")
+	out, err := cmd.Output()
+	if err != nil {
+		return Platform{}, fmt.Errorf("failed to run uname: %w", err)
+	}
+	kernelName := strings.TrimSpace(string(out))
+
+	switch kernelName {
+	case "Linux":
+		pf, ok := GetByVariant("ubuntu1804")
+		if !ok {
+			panic("ubuntu1804 platform name changed")
+		}
+		return pf, nil
+	case "Darwin":
+		pf, ok := GetByVariant("macos")
+		if !ok {
+			panic("macos platform name changed")
+		}
+		return pf, nil
+	}
+
+	return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
 }
 
 func GetByVariant(variant string) (Platform, bool) {

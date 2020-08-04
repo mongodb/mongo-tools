@@ -73,7 +73,7 @@ func TestIntegration(ctx *task.Context) error {
 // buildToolBinary builds the tool with the specified name, putting
 // the resulting binary into outDir.
 func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
-	pf, err := platform.GetFromEnv()
+	pf, err := getPlatform()
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func runToolTests(ctx *task.Context, tool string, testType string) error {
 // getTags gets the go build tags that should be used for the current
 // platform.
 func getTags(ctx *task.Context) ([]string, error) {
-	pf, err := platform.GetFromEnv()
+	pf, err := getPlatform()
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func getBuildFlags(ctx *task.Context) ([]string, error) {
 		"-tags", strings.Join(tags, " "),
 	}
 
-	pf, err := platform.GetFromEnv()
+	pf, err := getPlatform()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get platform: %w", err)
 	}
@@ -228,4 +228,11 @@ func selectedTools(ctx *task.Context) []string {
 		selectedTools = strings.Split(tools, ",")
 	}
 	return selectedTools
+}
+
+func getPlatform() (platform.Platform, error) {
+	if os.Getenv("CI") != "" {
+		return platform.GetFromEnv()
+	}
+	return platform.DetectLocal()
 }
