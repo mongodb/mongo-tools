@@ -133,6 +133,8 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		// and a string of options passed to the $regex query
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
+		} else if len(args) > 2 {
+			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
 		}
 
 		mf.FileNameRegex = args[1]
