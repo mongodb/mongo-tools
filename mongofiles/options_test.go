@@ -482,6 +482,10 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestGetRegexWithOptions(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Testing 'get_regex' with '--options' should parse the regex and the options properly", t, func() {
 		// This depends on (*MongoFiles).StorageOptions
