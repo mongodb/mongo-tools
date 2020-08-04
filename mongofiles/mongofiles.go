@@ -273,15 +273,15 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	} else {
 		query = bson.M{"filename": mf.FileName}
 	}
-	
-	gridFiles, err = mf.findGFSFiles(query)
-        if err != nil {
-		return nil, err
-        }
 
-        if len(gridFiles) == 0 {
+	gridFiles, err = mf.findGFSFiles(query)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(gridFiles) == 0 {
 		return nil, fmt.Errorf("Could not find any files matching the query specified")
-        }
+	}
 
 	return gridFiles, err
 }
