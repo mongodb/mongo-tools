@@ -246,71 +246,51 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
-	var gridFiles []*gfsFile
-	var err error
+	var query bson.M
+	var expectedNumDocs int = 1
+	var expectedNumDocsError error
 
-	// If mongofiles get ... is called, then query for all files
-	// specified in mf.FileNameList -- otherwise, preserve correct
-	// behavior for mongofiles get_id ...
 	if len(mf.FileNameList) > 0 {
-		query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
-
-		gridFiles, err = mf.findGFSFiles(query)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(gridFiles) < len(mf.FileNameList) {
-			return nil, fmt.Errorf("requested files not found: %v", mf.FileNameList)
-		}
+		// Case supporting queries one or many files specified in mongofiles ... get ...
+		query = bson.M{"filename": bson.M{"$in": mf.FileNameList}}
+		expectedNumDocs = len(mf.FileNameList)
+		expectedNumDocsError = fmt.Errorf("requested files not found: %v", mf.FileNameList)
 	} else if mf.FileNameRegex != "" {
-		query := bson.M{
+		// Case supporting queries by regex specified in mongofiles ... get_regex ...
+		query = bson.M{
 			"filename": bson.M{
 				"$regex":   mf.FileNameRegex,
 				"$options": mf.StorageOptions.RegexOptions,
 			},
 		}
+		expectedNumDocsError = fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
+	} else if mf.Id != "" {
+		// Case supporting queries by file ID specified in mongofiles ... get_id ...
+		expectedNumDocsError = fmt.Errorf("no such file with _id: %v", mf.Id)
 
-		gridFiles, err = mf.findGFSFiles(query)
+		id, err := mf.parseOrCreateID()
 		if err != nil {
 			return nil, err
 		}
 
-		if len(gridFiles) == 0 {
-			return nil, fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
-		}
+		query = bson.M{"_id": id}
 	} else {
-		var queryProp string
-		var query string
-
-		if mf.Id != "" {
-			queryProp = "_id"
-			query = mf.Id
-
-			id, err := mf.parseOrCreateID()
-			if err != nil {
-				return nil, err
-			}
-			gridFiles, err = mf.findGFSFiles(bson.M{"_id": id})
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			queryProp = "name"
-			query = mf.FileName
-
-			gridFiles, err = mf.findGFSFiles(bson.M{"filename": mf.FileName})
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if len(gridFiles) == 0 {
-			return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
-		}
+		// Case supporting queries of a single file with specific local
+		// file name, i.e. with mongofiles ... get ... --local ...
+		query = bson.M{"filename": mf.FileName}
+		expectedNumDocsError = fmt.Errorf("no such file with name: %v", mf.FileName)
 	}
 
-	return gridFiles, err
+	gridFiles, err := mf.findGFSFiles(query)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(gridFiles) < expectedNumDocs {
+		return nil, expectedNumDocsError
+	}
+
+	return gridFiles, nil
 }
 
 // Delete all files with the given filename.
