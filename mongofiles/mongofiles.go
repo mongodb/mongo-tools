@@ -249,38 +249,65 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	var gridFiles []*gfsFile
 	var err error
 
-	var query bson.M
-
 	// If mongofiles get ... is called, then query for all files
 	// specified in mf.FileNameList -- otherwise, preserve correct
 	// behavior for mongofiles get_id ...
 	if len(mf.FileNameList) > 0 {
-		query = bson.M{"filename": bson.M{"$in": mf.FileNameList}}
+		query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
+
+		gridFiles, err = mf.findGFSFiles(query)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(gridFiles) < len(mf.FileNameList) {
+			return nil, fmt.Errorf("requested files not found: %v", mf.FileNameList)
+		}
 	} else if mf.FileNameRegex != "" {
-		query = bson.M{
+		query := bson.M{
 			"filename": bson.M{
 				"$regex":   mf.FileNameRegex,
 				"$options": mf.StorageOptions.RegexOptions,
 			},
 		}
-	} else if mf.Id != "" {
-		id, err := mf.parseOrCreateID()
+
+		gridFiles, err = mf.findGFSFiles(query)
 		if err != nil {
 			return nil, err
 		}
 
-		query = bson.M{"_id": id}
+		if len(gridFiles) == 0 {
+			return nil, fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
+		}
 	} else {
-		query = bson.M{"filename": mf.FileName}
-	}
+		var queryProp string
+		var query string
 
-	gridFiles, err = mf.findGFSFiles(query)
-	if err != nil {
-		return nil, err
-	}
+		if mf.Id != "" {
+			queryProp = "_id"
+			query = mf.Id
 
-	if len(gridFiles) == 0 {
-		return nil, fmt.Errorf("Could not find any files matching the query specified")
+			id, err := mf.parseOrCreateID()
+			if err != nil {
+				return nil, err
+			}
+			gridFiles, err = mf.findGFSFiles(bson.M{"_id": id})
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			queryProp = "name"
+			query = mf.FileName
+
+			gridFiles, err = mf.findGFSFiles(bson.M{"filename": mf.FileName})
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if len(gridFiles) == 0 {
+			return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
+		}
 	}
 
 	return gridFiles, err
