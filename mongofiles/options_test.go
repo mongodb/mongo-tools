@@ -257,6 +257,20 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
+				InputArgs: []string{"get_regex", "test_regex(\\d)"},
+				ExpectedOpts: Options{
+					ToolOptions: &options.ToolOptions{
+						URI: &options.URI{
+							ConnectionString: "mongodb://localhost/",
+						},
+					},
+				},
+				ExpectedMF: MongoFiles{
+					FileNameRegex: "test_regex(\\d)",
+					Command:       "get_regex",
+				},
+			},
+			{
 				InputArgs: []string{"get_id", "id"},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
@@ -446,6 +460,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(mf.FileName, ShouldEqual, tc.ExpectedMF.FileName)
 				So(mf.FileNameList, ShouldResemble, tc.ExpectedMF.FileNameList)
+				So(mf.FileNameRegex, ShouldEqual, tc.ExpectedMF.FileNameRegex)
 				So(mf.Command, ShouldEqual, tc.ExpectedMF.Command)
 				So(mf.Id, ShouldEqual, tc.ExpectedMF.Id)
 				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
@@ -466,5 +481,34 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				So(opts.Kerberos.Service, ShouldEqual, tc.ExpectedOpts.Kerberos.Service)
 			}
 		}
+	})
+}
+
+func TestGetRegexWithOptions(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	Convey("Testing 'get_regex' with '--options' should parse the regex and the options properly", t, func() {
+		// This depends on (*MongoFiles).StorageOptions
+		// It needs to be checked separately from "Testing parsing positional arguments"
+		args := []string{
+			"get_regex",
+			"another_regex[a-zA-Z]",
+			"--regexOptions",
+			"mx",
+		}
+
+		opts, err := ParseOptions(args, "", "")
+		So(err, ShouldBeNil)
+
+		mf := &MongoFiles{
+			ToolOptions:    opts.ToolOptions,
+			StorageOptions: opts.StorageOptions,
+		}
+
+		err = mf.ValidateCommand(opts.ParsedArgs)
+		So(err, ShouldBeNil)
+
+		So(mf.FileNameRegex, ShouldEqual, args[1])
+		So(mf.StorageOptions.RegexOptions, ShouldEqual, args[3])
 	})
 }

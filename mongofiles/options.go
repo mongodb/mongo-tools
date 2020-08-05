@@ -28,6 +28,7 @@ Possible commands include:
 	put_id    - add a file with filename 'filename' and a given '_id'
 	get       - get files with filenames specified in the supporting arguments
 	get_id    - get a file with the given '_id'
+	get_regex - get files matching the supplied 'regex'
 	delete    - delete all files with filename 'filename'
 	delete_id - delete a file with the given '_id'
 
@@ -102,6 +103,10 @@ type StorageOptions struct {
 	// By default, mongofiles waits for a majority of members from the replica set to respond before returning.
 	// Cannot be used simultaneously with write concern options in a URI.
 	WriteConcern string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
+
+	// RegexOptions specifies the options passed to "$regex" queries that are used for get_regex
+	// The default is to use no options, i.e. standard PCRE syntax
+	RegexOptions string `long:"regexOptions" default:"" value-name:"<regex-options>" description:"regex options used for get_regex"`
 }
 
 // Name returns a human-readable group name for storage options.

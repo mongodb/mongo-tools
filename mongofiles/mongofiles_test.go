@@ -531,6 +531,70 @@ func TestMongoFilesCommands(t *testing.T) {
 				So(err, ShouldBeNil)
 			})
 		})
+
+		Convey("Testing the 'get_regex' command should", func() {
+			mf, err := simpleMongoFilesInstanceCommandOnly(GetRegex)
+			So(err, ShouldBeNil)
+
+			Convey("return expected test files, but no others, when called without any server options", func() {
+				mf.FileNameRegex = "testfile[1-3]"
+
+				str, err := mf.Run(false)
+				So(err, ShouldBeNil)
+				So(str, ShouldBeEmpty)
+
+				// Regex should get all testfiles but testfile4
+				expectedTestFiles := map[string]struct{}{
+					"testfile1": {},
+					"testfile2": {},
+					"testfile3": {},
+				}
+
+				for testFile := range testFiles {
+					_, err := os.Stat(testFile)
+					if _, ok := expectedTestFiles[testFile]; ok {
+						So(err, ShouldBeNil)
+					} else {
+						So(err, ShouldNotBeNil)
+					}
+				}
+			})
+
+			Convey("return expected test files, but no others, when called with server options", func() {
+				// Check with case-insensitivity
+				mf.FileNameRegex = "tEsTfIlE[1-2]"
+				mf.StorageOptions.RegexOptions = "i"
+
+				str, err := mf.Run(false)
+				So(err, ShouldBeNil)
+				So(str, ShouldBeEmpty)
+
+				expectedTestFiles := map[string]struct{}{
+					"testfile1": {},
+					"testfile2": {},
+				}
+
+				for testFile := range testFiles {
+					_, err := os.Stat(testFile)
+					if _, ok := expectedTestFiles[testFile]; ok {
+						So(err, ShouldBeNil)
+					} else {
+						So(err, ShouldNotBeNil)
+					}
+				}
+			})
+
+			Reset(func() {
+				// Remove any testfiles written to local filesystem
+				for testFile := range testFiles {
+					if _, err := os.Stat(testFile); err == nil {
+						err = os.Remove(testFile)
+						So(err, ShouldBeNil)
+					}
+				}
+			})
+		})
+
 		Convey("Testing the 'put' command with multiple lorem ipsum files bytes should", func() {
 			localTestFiles := []string{
 				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt"),

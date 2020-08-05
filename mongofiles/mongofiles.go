@@ -33,6 +33,7 @@ const (
 	PutID    = "put_id"
 	Get      = "get"
 	GetID    = "get_id"
+	GetRegex = "get_regex"
 	Delete   = "delete"
 	DeleteID = "delete_id"
 )
@@ -64,6 +65,10 @@ type MongoFiles struct {
 	// List of filenames for use as supporting
 	// arguments in put and get commands
 	FileNameList []string
+
+	// Regular expression as supporting argument
+	// for get_regex
+	FileNameRegex string
 
 	// GridFS bucket to operate on
 	bucket *gridfs.Bucket
@@ -123,6 +128,16 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		}
 
 		mf.FileNameList = args[1:]
+	case GetRegex:
+		// mongofiles get_regex ... should work over a PCRE
+		// and a string of options passed to the $regex query
+		if len(args) == 1 || args[1] == "" {
+			return fmt.Errorf("'%v' argument missing", args[0])
+		} else if len(args) > 2 {
+			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
+		}
+
+		mf.FileNameRegex = args[1]
 	case Search, Delete:
 		if len(args) > 2 {
 			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
@@ -231,55 +246,51 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
-	var gridFiles []*gfsFile
-	var err error
+	var query bson.M
+	var minimumExpectedDocs = 1
+	var minimumExpectedDocsError error
 
-	// If mongofiles get ... is called, then query for all files
-	// specified in mf.FileNameList -- otherwise, preserve correct
-	// behavior for mongofiles get_id ...
 	if len(mf.FileNameList) > 0 {
-		query := bson.M{"filename": bson.M{"$in": mf.FileNameList}}
+		// Case supporting queries one or many files specified in mongofiles ... get ...
+		query = bson.M{"filename": bson.M{"$in": mf.FileNameList}}
+		minimumExpectedDocs = len(mf.FileNameList)
+		minimumExpectedDocsError = fmt.Errorf("requested files not found: %v", mf.FileNameList)
+	} else if mf.FileNameRegex != "" {
+		// Case supporting queries by regex specified in mongofiles ... get_regex ...
+		query = bson.M{
+			"filename": bson.M{
+				"$regex":   mf.FileNameRegex,
+				"$options": mf.StorageOptions.RegexOptions,
+			},
+		}
+		minimumExpectedDocsError = fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
+	} else if mf.Id != "" {
+		// Case supporting queries by file ID specified in mongofiles ... get_id ...
+		minimumExpectedDocsError = fmt.Errorf("no such file with _id: %v", mf.Id)
 
-		gridFiles, err = mf.findGFSFiles(query)
+		id, err := mf.parseOrCreateID()
 		if err != nil {
 			return nil, err
 		}
 
-		if len(gridFiles) < len(mf.FileNameList) {
-			return nil, fmt.Errorf("requested files not found: %v", mf.FileNameList)
-		}
+		query = bson.M{"_id": id}
 	} else {
-		var queryProp string
-		var query string
-
-		if mf.Id != "" {
-			queryProp = "_id"
-			query = mf.Id
-
-			id, err := mf.parseOrCreateID()
-			if err != nil {
-				return nil, err
-			}
-			gridFiles, err = mf.findGFSFiles(bson.M{"_id": id})
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			queryProp = "name"
-			query = mf.FileName
-
-			gridFiles, err = mf.findGFSFiles(bson.M{"filename": mf.FileName})
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if len(gridFiles) == 0 {
-			return nil, fmt.Errorf("no such file with %v: %v", queryProp, query)
-		}
+		// Case supporting queries of a single file with specific local
+		// file name, i.e. with mongofiles ... get ... --local ...
+		query = bson.M{"filename": mf.FileName}
+		minimumExpectedDocsError = fmt.Errorf("no such file with name: %v", mf.FileName)
 	}
 
-	return gridFiles, err
+	gridFiles, err := mf.findGFSFiles(query)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(gridFiles) < minimumExpectedDocs {
+		return nil, minimumExpectedDocsError
+	}
+
+	return gridFiles, nil
 }
 
 // Delete all files with the given filename.
@@ -503,7 +514,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 
 		output, err = mf.findAndDisplay(query)
 
-	case Get, GetID:
+	case Get, GetID, GetRegex:
 		err = mf.handleGet()
 
 	case Put, PutID:
