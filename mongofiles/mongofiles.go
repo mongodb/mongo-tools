@@ -247,14 +247,14 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	var query bson.M
-	var expectedNumDocs int = 1
-	var expectedNumDocsError error
+	var minimumExpectedDocs int = 1
+	var minimumExpectedDocsError error
 
 	if len(mf.FileNameList) > 0 {
 		// Case supporting queries one or many files specified in mongofiles ... get ...
 		query = bson.M{"filename": bson.M{"$in": mf.FileNameList}}
-		expectedNumDocs = len(mf.FileNameList)
-		expectedNumDocsError = fmt.Errorf("requested files not found: %v", mf.FileNameList)
+		minimumExpectedDocs = len(mf.FileNameList)
+		minimumExpectedDocsError = fmt.Errorf("requested files not found: %v", mf.FileNameList)
 	} else if mf.FileNameRegex != "" {
 		// Case supporting queries by regex specified in mongofiles ... get_regex ...
 		query = bson.M{
@@ -263,10 +263,10 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 				"$options": mf.StorageOptions.RegexOptions,
 			},
 		}
-		expectedNumDocsError = fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
+		minimumExpectedDocsError = fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
 	} else if mf.Id != "" {
 		// Case supporting queries by file ID specified in mongofiles ... get_id ...
-		expectedNumDocsError = fmt.Errorf("no such file with _id: %v", mf.Id)
+		minimumExpectedDocsError = fmt.Errorf("no such file with _id: %v", mf.Id)
 
 		id, err := mf.parseOrCreateID()
 		if err != nil {
@@ -278,7 +278,7 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 		// Case supporting queries of a single file with specific local
 		// file name, i.e. with mongofiles ... get ... --local ...
 		query = bson.M{"filename": mf.FileName}
-		expectedNumDocsError = fmt.Errorf("no such file with name: %v", mf.FileName)
+		minimumExpectedDocsError = fmt.Errorf("no such file with name: %v", mf.FileName)
 	}
 
 	gridFiles, err := mf.findGFSFiles(query)
@@ -286,8 +286,8 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 		return nil, err
 	}
 
-	if len(gridFiles) < expectedNumDocs {
-		return nil, expectedNumDocsError
+	if len(gridFiles) < minimumExpectedDocs {
+		return nil, minimumExpectedDocsError
 	}
 
 	return gridFiles, nil
