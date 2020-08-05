@@ -247,7 +247,7 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	var query bson.M
-	var minimumExpectedDocs int = 1
+	var minimumExpectedDocs = 1
 	var minimumExpectedDocsError error
 
 	if len(mf.FileNameList) > 0 {
