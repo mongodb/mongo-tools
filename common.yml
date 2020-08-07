@@ -1119,6 +1119,9 @@ pre:
           export EVG_IS_PATCH='${is_patch}'
           export EVG_BUILD_ID='${build_id}'
           export EVG_VARIANT='${build_variant}'
+          if [ '${_platform}' != '' ]; then
+            export EVG_VARIANT='${_platform}'
+          fi
           export EVG_USER='${evg_user}'
           export EVG_KEY='${evg_key}'
           export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
@@ -2515,11 +2518,17 @@ buildvariants:
   run_on:
   - ubuntu1604-test
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    _platform: ubuntu1604-s390x
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
     build_tags: "failpoints sasl gssapi ssl"
     args: "-buildmode=default -race"
     excludes: requires_large_ram
+    resmoke_use_tls: _tls
+    resmoke_use_ssl: _ssl
+    USE_SSL: "true"
   tasks: *ubuntu_x86_64_race_tasks
