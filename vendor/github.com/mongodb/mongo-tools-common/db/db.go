@@ -426,7 +426,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		}
 
 		tlsConfig := &tls.Config{}
-		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
+		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
 			tlsConfig.InsecureSkipVerify = true
 		}
 
