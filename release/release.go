@@ -1066,10 +1066,15 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-var linuxRepoVersions = []string{
-	"4.0.0-rc0", // any rc version will send the package to the "testing" repo
-	"4.3.0",     // any 4.3 stable release version will send the package to the "4.3" repo
-	"4.4.0",     // any 4.4 stable release version will send the package to the "4.4" repo
+var linuxRepoVersionsStable = map[string]string{
+	"development": "4.0.0-15-gabcde123", // any non-rc pre-release version will send the package to the "development" repo
+	"testing":     "4.0.0-rc0",          // any rc version will send the package to the "testing" repo
+	"4.3":         "4.3.0",              // any 4.3 stable release version will send the package to the "4.3" repo
+	"4.4":         "4.4.0",              // any 4.4 stable release version will send the package to the "4.4" repo
+}
+
+var linuxRepoVersionsUnstable = map[string]string{
+	"development": "4.0.0-15-gabcde123", // any non-rc pre-release version will send the package to the "development" repo
 }
 
 func linuxRelease(v version.Version) {
@@ -1122,22 +1127,17 @@ func linuxRelease(v version.Version) {
 		}
 
 		editionsToRelease := pf.Repos
-		versionsToRelease := linuxRepoVersions
+		versionsToRelease := linuxRepoVersionsStable
 		if !v.IsStable() {
-			// If we're not releasing a stable version, just using the
-			// current version string will cause the packages to be
-			// pushed to the "development" repos.
-			versionsToRelease = []string{v.String()}
+			versionsToRelease = linuxRepoVersionsUnstable
 		}
 
-		for _, mongoVersion := range versionsToRelease {
+		for mongoVersionName, mongoVersionNumber := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
-				mv := mongoVersion
-				me := mongoEdition
 				wg.Add(1)
 				go func() {
 					var err error
-					prefix := fmt.Sprintf("%s-%s", pf.Variant(), me)
+					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, mongoVersionName)
 					// retry twice on failure.
 					maxRetries := 2
 					for retries := maxRetries; retries >= 0; retries-- {
@@ -1148,8 +1148,8 @@ func linuxRelease(v version.Version) {
 							"--config", "etc/repo-config.yml",
 							"--distro", pf.Name,
 							"--arch", pf.Arch,
-							"--edition", me,
-							"--version", mv,
+							"--edition", mongoEdition,
+							"--version", mongoVersionNumber,
 							"--packages", packagesURL,
 							"--username", os.Getenv("BARQUE_USERNAME"),
 							"--api_key", os.Getenv("BARQUE_API_KEY"),
