@@ -41,8 +41,6 @@ func ConflictingArgsErrorFormat(optionName, uriValue, cliValue, cliOptionName st
 	return fmt.Errorf("Invalid Options: Cannot specify different %s in connection URI and command-line option (\"%s\" was specified in the URI and \"%s\" was specified in the %s option)", optionName, uriValue, cliValue, cliOptionName)
 }
 
-const deprecationWarningSSLAllow = "WARNING: --sslAllowInvalidCertificates and --sslAllowInvalidHostnames are deprecated, please use --tlsInsecure instead"
-
 // Struct encompassing all of the options that are reused across tools: "help",
 // "version", verbosity settings, ssl settings, etc.
 type ToolOptions struct {
@@ -157,10 +155,9 @@ type SSL struct {
 	SSLPEMKeyFile       string `long:"sslPEMKeyFile" value-name:"<filename>" description:"the .pem file containing the certificate and key"`
 	SSLPEMKeyPassword   string `long:"sslPEMKeyPassword" value-name:"<password>" description:"the password to decrypt the sslPEMKeyFile, if necessary"`
 	SSLCRLFile          string `long:"sslCRLFile" value-name:"<filename>" description:"the .pem file containing the certificate revocation list"`
-	SSLAllowInvalidCert bool   `long:"sslAllowInvalidCertificates" hidden:"true" description:"bypass the validation for server certificates"`
-	SSLAllowInvalidHost bool   `long:"sslAllowInvalidHostnames" hidden:"true" description:"bypass the validation for server name"`
+	SSLAllowInvalidCert bool   `long:"sslAllowInvalidCertificates" description:"bypass the validation for server certificates"`
+	SSLAllowInvalidHost bool   `long:"sslAllowInvalidHostnames" description:"bypass the validation for server name"`
 	SSLFipsMode         bool   `long:"sslFIPSMode" description:"use FIPS mode of the installed openssl library"`
-	TLSInsecure         bool   `long:"tlsInsecure" description:"bypass the validation for server's certificate chain and host name"`
 }
 
 // Struct holding auth-related options
@@ -429,10 +426,6 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 	args, err := opts.parser.ParseArgs(args)
 	if err != nil {
 		return []string{}, err
-	}
-
-	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
-		log.Logvf(log.Always, deprecationWarningSSLAllow)
 	}
 
 	if opts.parsePositionalArgsAsURI {
@@ -808,19 +801,18 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 	// ignore (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) being false due to zero-value problem (TOOLS-2459 PR for details)
 	// Have cs take precedence in cases where it is unclear
-	if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure) && cs.SSLInsecureSet {
+	if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) && cs.SSLInsecureSet {
 		if !cs.SSLInsecure {
 			return ConflictingArgsErrorFormat("sslInsecure or tlsInsecure", "false", "true", "--sslAllowInvalidCert or --sslAllowInvalidHost")
 		}
 	}
-	if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure) && !cs.SSLInsecureSet {
+	if (opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost) && !cs.SSLInsecureSet {
 		cs.SSLInsecure = true
 		cs.SSLInsecureSet = true
 	}
-	if (!opts.SSLAllowInvalidCert && !opts.SSLAllowInvalidHost || !opts.TLSInsecure) && cs.SSLInsecureSet {
+	if (!opts.SSLAllowInvalidCert && !opts.SSLAllowInvalidHost) && cs.SSLInsecureSet {
 		opts.SSLAllowInvalidCert = cs.SSLInsecure
 		opts.SSLAllowInvalidHost = cs.SSLInsecure
-		opts.TLSInsecure = cs.SSLInsecure
 	}
 
 	if strings.ToLower(cs.AuthMechanism) == "gssapi" {
