@@ -24,9 +24,9 @@
     rows = allShellRows();
     return rows.length;
   }, "expected 6 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,conn,time",
-    "first row doesn't match 'host conn time'");
-  assert.eq(statFields(rows[1]).length, 3,
+  assert.eq(statFields(rows[1]).join(), "host,conn,time",
+    "second row doesn't match 'host conn time'");
+  assert.eq(statFields(rows[2]).length, 3,
     "there should be exactly three entries for a row of this stat output");
   clearRawMongoProgramOutput();
 
