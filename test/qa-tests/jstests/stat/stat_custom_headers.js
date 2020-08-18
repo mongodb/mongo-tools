@@ -20,10 +20,10 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn,time", "-n", 4, "--humanReadable=false"].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
+  }, "expected 6 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
     "first row doesn't match 'host conn time'");
   assert.eq(statFields(rows[1]).length, 3,
@@ -34,10 +34,10 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn,time", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
+  }, "expected 6 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
     "first row doesn't match 'host conn time'");
   assert.eq(statFields(rows[1]).length, 5,
@@ -58,10 +58,10 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host=H,conn=C,time=MYTiME", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
+  }, "expected 6 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "H,C,MYTiME",
     "first row doesn't match 'H C MYTiME'");
   assert.eq(statFields(rows[1]).length, 5,
