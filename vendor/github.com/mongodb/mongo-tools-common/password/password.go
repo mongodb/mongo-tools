@@ -10,6 +10,7 @@ package password
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/mongodb/mongo-tools-common/log"
@@ -50,10 +51,20 @@ func Prompt() (string, error) {
 // we aren't using a terminal for standard input
 func readPassFromStdin() (string, error) {
 	pass := []byte{}
+	var err error
+	fi, _ := os.Stdin.Stat()
+
+	if (fi.Mode() & os.ModeCharDevice) == 0 {
+		log.Logv(log.DebugLow, "reading data from stdin pipe")
+		pass, err = ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return "", err
+		}
+	}
 	for {
 		var chBuf [1]byte
 		n, err := os.Stdin.Read(chBuf[:])
-		if err != nil {
+		if err != nil && err.Error() != "EOF" {
 			return "", err
 		}
 		if n == 0 {
