@@ -27,7 +27,7 @@ var testName = 'mongotop_json';
     }, 'invalid JSON 1');
 
     // ensure tool runs without error with --rowcount > 1
-    var rowcount = 8;
+    var rowcount = 9;
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop',
       '--port', conn.port, '--json', '--rowcount', rowcount]

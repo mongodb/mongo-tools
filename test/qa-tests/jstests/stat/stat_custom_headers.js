@@ -49,7 +49,7 @@
     "-O", "host", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   rows = allShellRows();
-  var fields = statFields(rows[0]);
+  var fields = statFields(rows[1]);
   assert.eq(fields[fields.length-1], "host",
     "first row should end with added 'host' field");
   clearRawMongoProgramOutput();
