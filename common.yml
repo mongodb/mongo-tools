@@ -1182,6 +1182,7 @@ timeout:
 
 tasks:
 - name: dist
+  tags: ["git_tag"]
   depends_on:
   commands:
     - func: "fetch source"
@@ -1248,6 +1249,7 @@ tasks:
 # amazon1-2018-test for this purpose. The notary client is not
 # available on all distros, which is why sign must be a separate task.
 - name: sign
+  tags: ["git_tag"]
   depends_on:
     - name: dist
   commands:
@@ -1259,6 +1261,7 @@ tasks:
     - func: "upload signed release artifacts"
 
 - name: push
+  tags: ["git_tag"]
   depends_on:
     - name: sign
   commands:
@@ -2002,6 +2005,7 @@ buildvariants:
 
 - name: release
   display_name: 'Release Manager'
+  tags: ["git_tag"]
   run_on:
   - amazon1-2018-test
   tasks:
