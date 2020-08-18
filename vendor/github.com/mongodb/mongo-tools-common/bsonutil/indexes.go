@@ -35,6 +35,51 @@ var validIndexOptions = map[string]bool{
 	"wildcardProjection":      true,
 }
 
+const epsilon = 1e-9
+
+
+func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
+	if len(indexKey1) != len(indexKey2) {
+		// two indexes have different number of keys
+		return false
+	}
+
+	for j, elem := range indexKey1 {
+		if elem.Key != indexKey2[j].Key {
+			return false
+		}
+
+		// After ConvertLegacyIndexKeys, index key value should only be numerical or string value
+		switch key1Value := elem.Value.(type) {
+		case string:
+			if key2Value, ok := indexKey2[j].Value.(string); !ok {
+				// key2Value is numerical type
+				if key2Value, ok := Bson2Float64(indexKey2[j].Value); ok {
+					if key1Value, ok:= Bson2Float64(key1Value); ok {
+						if math.Abs(key1Value - key2Value) < epsilon {
+							continue
+						}
+					}
+				}
+			} else if key1Value == key2Value {
+				// Both are string
+				continue
+			}
+			return false
+		default:
+			if key1Value, ok := Bson2Float64(key1Value); ok {
+				if key2Value, ok := Bson2Float64(indexKey2[j].Value); ok {
+					if math.Abs(key1Value - key2Value) < epsilon {
+						continue
+					}
+				}
+			}
+			return false
+		}
+	}
+	return true
+}
+
 // ConvertLegacyIndexKeys transforms the values of index definitions pre 3.4 into
 // the stricter index definitions of 3.4+. Prior to 3.4, any value in an index key
 // that isn't a negative number or that isn't a string is treated as 1.
@@ -63,13 +108,9 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 				converted = true
 			}
 		case float64:
-			const epsilon = 1e-9
-			if math.Abs(v - float64(0)) < epsilon{
+			if math.Abs(v - 0) < epsilon{
 				indexKey[j].Value = float64(1)
 				converted = true
-			} else if v == float64(int(v)) {
-				// Integer value will be converted to int32
-				indexKey[j].Value = int32(v)
 			}
 		case primitive.Decimal128:
 			if bi, _, err := v.BigInt(); err == nil {
