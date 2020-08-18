@@ -38,10 +38,10 @@
     rows = allShellRows();
     return rows.length;
   }, "expected 6 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,conn,time",
-    "first row doesn't match 'host conn time'");
-  assert.eq(statFields(rows[1]).length, 5,
-    "there should be exactly five entries for a row of this stat output (time counts as three)");
+  assert.eq(statFields(rows[1]).join(), "host,conn,time",
+    "second row doesn't match 'host conn time'");
+  assert.eq(statFields(rows[2]).length, 5,
+    "third row should be exactly five entries for a row of this stat output (time counts as three)");
   clearRawMongoProgramOutput();
 
   // basic -O
