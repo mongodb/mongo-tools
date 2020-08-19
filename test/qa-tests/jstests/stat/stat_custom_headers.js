@@ -90,7 +90,7 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
