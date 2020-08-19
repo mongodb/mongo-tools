@@ -72,10 +72,10 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn,mem.bits", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
+  }, "expected 6 rows in mongostat output");
   assert.eq(statFields(rows[1]).join(), "host,conn,mem.bits",
     "first row doesn't match 'host time mem.bits'");
   fields = statFields(rows[2]);
