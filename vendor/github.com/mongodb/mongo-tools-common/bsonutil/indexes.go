@@ -4,6 +4,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"math"
 )
 
 // validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
@@ -33,52 +34,90 @@ var validIndexOptions = map[string]bool{
 	"wildcardProjection":      true,
 }
 
+const epsilon = 1e-9
+
+func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
+	if len(indexKey1) != len(indexKey2) {
+		// two indexes have different number of keys
+		return false
+	}
+
+	for j, elem := range indexKey1 {
+		if elem.Key != indexKey2[j].Key {
+			return false
+		}
+
+		// After ConvertLegacyIndexKeys, index key value should only be numerical or string value
+		switch key1Value := elem.Value.(type) {
+		case string:
+			if key2Value, ok := indexKey2[j].Value.(string); !ok {
+				// key2Value is numerical type
+				if key2Value, ok := Bson2Float64(indexKey2[j].Value); ok {
+					if key1Value, ok := Bson2Float64(key1Value); ok {
+						if math.Abs(key1Value-key2Value) < epsilon {
+							continue
+						}
+					}
+				}
+			} else if key1Value == key2Value {
+				// Both are string
+				continue
+			}
+			return false
+		default:
+			if key1Value, ok := Bson2Float64(key1Value); ok {
+				if key2Value, ok := Bson2Float64(indexKey2[j].Value); ok {
+					if math.Abs(key1Value-key2Value) < epsilon {
+						continue
+					}
+				}
+			}
+			return false
+		}
+	}
+	return true
+}
+
 // ConvertLegacyIndexKeys transforms the values of index definitions pre 3.4 into
 // the stricter index definitions of 3.4+. Prior to 3.4, any value in an index key
-// that isn't a negative number or that isn't a string is treated as 1.
-// The one exception is an empty string is treated as 1.
+// that isn't a negative number or that isn't a string is treated as int32(1).
+// The one exception is an empty string is treated as int32(1).
 // All other strings that aren't one of ["2d", "geoHaystack", "2dsphere", "hashed", "text", ""]
 // will cause the index build to fail. See TOOLS-2412 for more information.
+//
+// Note, this function doesn't convert Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
 //
 // This function logs the keys that are converted.
 func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexKey)
 	for j, elem := range indexKey {
-		indexVal := 1
-		needsConversion := false
 		switch v := elem.Value.(type) {
-		case int32:
-			indexVal = int(v)
-			needsConversion = true
-		case int64:
-			indexVal = int(v)
-			needsConversion = true
-		case float64:
-			indexVal = int(v)
-			needsConversion = true
+		case int, int32, int64, float64:
+			// Only convert 0 value
+			if v == 0 {
+				indexKey[j].Value = int32(1)
+				converted = true
+			}
 		case primitive.Decimal128:
-			if intVal, _, err := v.BigInt(); err == nil {
-				indexVal = int(intVal.Int64())
-
-				needsConversion = true
+			// Note, this doesn't catch Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
+			// These values are so unlikely we just ignore them
+			zeroVal, err := primitive.ParseDecimal128("0")
+			if err == nil {
+				if v == zeroVal {
+					indexKey[j].Value = int32(1)
+					converted = true
+				}
 			}
 		case string:
+			// Only convert an empty string
 			if v == "" {
-				indexKey[j].Value = 1
+				indexKey[j].Value = int32(1)
 				converted = true
 			}
 		default:
 			// Convert all types that aren't strings or numbers
-			indexKey[j].Value = 1
-			converted = true
-		}
-		if needsConversion {
-			if indexVal < 0 {
-				indexKey[j].Value = -1
-			} else {
-				indexKey[j].Value = 1
-			}
+			indexKey[j].Value = int32(1)
 			converted = true
 		}
 	}

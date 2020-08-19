@@ -29,7 +29,8 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  version = "v4.0.4"
+  source = "https://github.com/huan-Mongo/mongo-tools-common.git"
+  revision = "41ae827db96b632da58e031c59d4b79393f1fe8f"
 
 [[constraint]]
   name = "github.com/nsf/termbox-go"
