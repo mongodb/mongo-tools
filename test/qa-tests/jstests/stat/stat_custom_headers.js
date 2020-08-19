@@ -20,13 +20,13 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn,time", "-n", 4, "--humanReadable=false"].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,conn,time",
-    "first row doesn't match 'host conn time'");
-  assert.eq(statFields(rows[1]).length, 3,
+  }, "expected 6 rows in mongostat output");
+  assert.eq(statFields(rows[1]).join(), "host,conn,time",
+    "second row doesn't match 'host conn time'");
+  assert.eq(statFields(rows[2]).length, 3,
     "there should be exactly three entries for a row of this stat output");
   clearRawMongoProgramOutput();
 
@@ -34,14 +34,14 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn,time", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,conn,time",
-    "first row doesn't match 'host conn time'");
-  assert.eq(statFields(rows[1]).length, 5,
-    "there should be exactly five entries for a row of this stat output (time counts as three)");
+  }, "expected 6 rows in mongostat output");
+  assert.eq(statFields(rows[1]).join(), "host,conn,time",
+    "second row doesn't match 'host conn time'");
+  assert.eq(statFields(rows[2]).length, 5,
+    "third row should be exactly five entries for a row of this stat output (time counts as three)");
   clearRawMongoProgramOutput();
 
   // basic -O
@@ -49,7 +49,7 @@
     "-O", "host", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   rows = allShellRows();
-  var fields = statFields(rows[0]);
+  var fields = statFields(rows[1]);
   assert.eq(fields[fields.length-1], "host",
     "first row should end with added 'host' field");
   clearRawMongoProgramOutput();
@@ -58,13 +58,13 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host=H,conn=C,time=MYTiME", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "H,C,MYTiME",
+  }, "expected 6 rows in mongostat output");
+  assert.eq(statFields(rows[1]).join(), "H,C,MYTiME",
     "first row doesn't match 'H C MYTiME'");
-  assert.eq(statFields(rows[1]).length, 5,
+  assert.eq(statFields(rows[2]).length, 5,
     "there should be exactly five entries for a row of this stat output (time counts as three)");
   clearRawMongoProgramOutput();
 
@@ -72,13 +72,13 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn,mem.bits", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
-  }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,conn,mem.bits",
+  }, "expected 6 rows in mongostat output");
+  assert.eq(statFields(rows[1]).join(), "host,conn,mem.bits",
     "first row doesn't match 'host time mem.bits'");
-  fields = statFields(rows[1]);
+  fields = statFields(rows[2]);
   assert.eq(fields.length, 3,
     "there should be exactly three entries for a row of this stat output");
   assert(fields[2] === "32" || fields[2] === "64",
@@ -90,13 +90,13 @@
   x = runMongoProgram.apply(this, ["mongostat", "--port", port,
     "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4].concat(commonToolArgs));
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(6, function() {
     rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,MYCoNN,BiTs",
+  assert.eq(statFields(rows[1]).join(), "host,MYCoNN,BiTs",
     "first row doesn't match 'host MYTiME BiTs'");
-  fields = statFields(rows[1]);
+  fields = statFields(rows[2]);
   assert.eq(fields.length, 3,
     "there should be exactly three entries for a row of this stat output");
   assert(fields[2] === "32" || fields[2] === "64",
