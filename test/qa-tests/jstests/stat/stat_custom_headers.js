@@ -41,7 +41,7 @@
   assert.eq(statFields(rows[1]).join(), "host,conn,time",
     "second row doesn't match 'host conn time'");
   assert.eq(statFields(rows[2]).length, 5,
-    "third row should be exactly five entries for a row of this stat output (time counts as three)");
+    "third row should have exactly five entries (time counts as three)");
   clearRawMongoProgramOutput();
 
   // basic -O
