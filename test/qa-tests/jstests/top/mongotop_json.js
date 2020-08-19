@@ -34,10 +34,10 @@ var testName = 'mongotop_json';
       .concat(passthrough.args)
       .concat(sslOptions));
     assert.eq(ret.exitCode, 0, 'failed 2');
-    assert.eq.soon(rowcount, function() {
+    assert.eq.soon(rowcount + 1, function() {
       return ret.getOutput().split('\n').length;
-    }, "expected " + rowcount + " top results");
-    ret.getOutput().split('\n').forEach(function(line) {
+    }, "expected " + (rowcount + 1) + " top results");
+    ret.getOutput().split('\n').slice(1).forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
 
