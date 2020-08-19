@@ -93,10 +93,24 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	originalJSONString := CreateExtJSONString(indexKey)
 	for j, elem := range indexKey {
 		switch v := elem.Value.(type) {
-		case int, int32, int64, float64:
-			// Only convert 0 value
+		case int:
 			if v == 0 {
+				indexKey[j].Value = 1
+				converted = true
+			}
+		case int32:
+			if v == int32(0) {
 				indexKey[j].Value = int32(1)
+				converted = true
+			}
+		case int64:
+			if v == int64(0) {
+				indexKey[j].Value = int64(1)
+				converted = true
+			}
+		case float64:
+			if math.Abs(v - float64(0)) < epsilon{
+				indexKey[j].Value = float64(1)
 				converted = true
 			}
 		case primitive.Decimal128:
