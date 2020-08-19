@@ -773,7 +773,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 // TestFixDuplicatedLegacyIndexes restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}
 // Only one index {foo: 1} should be created
 func TestFixDuplicatedLegacyIndexes(t *testing.T) {
-	//testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {

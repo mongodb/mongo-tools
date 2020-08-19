@@ -62,9 +62,9 @@
     rows = allShellRows();
     return rows.length;
   }, "expected 6 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "H,C,MYTiME",
+  assert.eq(statFields(rows[1]).join(), "H,C,MYTiME",
     "first row doesn't match 'H C MYTiME'");
-  assert.eq(statFields(rows[1]).length, 5,
+  assert.eq(statFields(rows[2]).length, 5,
     "there should be exactly five entries for a row of this stat output (time counts as three)");
   clearRawMongoProgramOutput();
 
@@ -76,9 +76,9 @@
     rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,conn,mem.bits",
+  assert.eq(statFields(rows[1]).join(), "host,conn,mem.bits",
     "first row doesn't match 'host time mem.bits'");
-  fields = statFields(rows[1]);
+  fields = statFields(rows[2]);
   assert.eq(fields.length, 3,
     "there should be exactly three entries for a row of this stat output");
   assert(fields[2] === "32" || fields[2] === "64",
@@ -94,9 +94,9 @@
     rows = allShellRows();
     return rows.length;
   }, "expected 5 rows in mongostat output");
-  assert.eq(statFields(rows[0]).join(), "host,MYCoNN,BiTs",
+  assert.eq(statFields(rows[1]).join(), "host,MYCoNN,BiTs",
     "first row doesn't match 'host MYTiME BiTs'");
-  fields = statFields(rows[1]);
+  fields = statFields(rows[2]);
   assert.eq(fields.length, 3,
     "there should be exactly three entries for a row of this stat output");
   assert(fields[2] === "32" || fields[2] === "64",

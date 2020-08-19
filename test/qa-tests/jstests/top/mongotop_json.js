@@ -27,16 +27,16 @@ var testName = 'mongotop_json';
     }, 'invalid JSON 1');
 
     // ensure tool runs without error with --rowcount > 1
-    var rowcount = 9;
+    var rowcount = 8;
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop',
       '--port', conn.port, '--json', '--rowcount', rowcount]
       .concat(passthrough.args)
       .concat(sslOptions));
     assert.eq(ret.exitCode, 0, 'failed 2');
-    assert.eq.soon(rowcount, function() {
+    assert.eq.soon(rowcount + 1, function() {
       return ret.getOutput().split('\n').length;
-    }, "expected " + rowcount + " top results");
+    }, "expected " + (rowcount + 1) +  " top results");
     ret.getOutput().split('\n').forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });

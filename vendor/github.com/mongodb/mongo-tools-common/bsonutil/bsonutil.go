@@ -458,9 +458,8 @@ func Bson2Float64(data interface{}) (float64, bool) {
 		if bi, _, err := v.BigInt(); err == nil {
 			intVal := bi.Int64()
 			return float64(intVal), true
-		} else {
-			return 0, false
 		}
+		return 0, false
 	case string:
 		if val, err := strconv.ParseFloat(v, 64); err == nil {
 			return val, true
