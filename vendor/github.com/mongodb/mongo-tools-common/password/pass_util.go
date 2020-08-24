@@ -24,7 +24,7 @@ func IsTerminal() bool {
 	return terminal.IsTerminal(int(syscall.Stdin))
 }
 
-func GetPass() (string, error) {
+func readPassInteractively(reader io.Reader) (string, error) {
 	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
@@ -34,7 +34,7 @@ func GetPass() (string, error) {
 	screen := struct {
 		io.Reader
 		io.Writer
-	}{os.Stdin, os.Stderr}
+	}{reader, os.Stderr}
 
 	t := terminal.NewTerminal(screen, "")
 	pass, err := t.ReadPassword("")

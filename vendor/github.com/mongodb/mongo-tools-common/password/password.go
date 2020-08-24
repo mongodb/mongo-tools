@@ -10,6 +10,7 @@ package password
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -34,11 +35,11 @@ func Prompt() (string, error) {
 	if IsTerminal() {
 		log.Logv(log.DebugLow, "standard input is a terminal; reading password from terminal")
 		fmt.Fprintf(os.Stderr, "Enter password:")
-		pass, err = GetPass()
+		pass, err = readPassInteractively(os.Stdin)
 	} else {
 		log.Logv(log.Always, "reading password from standard input")
 		fmt.Fprintf(os.Stderr, "Enter password:")
-		pass, err = readPassFromStdin()
+		pass, err = readPassNonInteractively(os.Stdin)
 	}
 	if err != nil {
 		return "", err
@@ -47,30 +48,17 @@ func Prompt() (string, error) {
 	return pass, nil
 }
 
-// readPassFromStdin pipes in a password from stdin if
+// readPassNonInteractively pipes in a password from stdin if
 // we aren't using a terminal for standard input
-func readPassFromStdin() (string, error) {
+func readPassNonInteractively(reader io.Reader) (string, error) {
 	pass := []byte{}
-	var err error
-	fi, _ := os.Stdin.Stat()
 
-	if (fi.Mode() & os.ModeCharDevice) == 0 {
-		log.Logv(log.DebugLow, "reading data from stdin pipe")
-		pass, err = ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			return "", err
-		}
+	chBuf, err := ioutil.ReadAll(reader)
+	if err != nil && err.Error() != "EOF" {
+		return "", err
 	}
-	for {
-		var chBuf [1]byte
-		n, err := os.Stdin.Read(chBuf[:])
-		if err != nil && err.Error() != "EOF" {
-			return "", err
-		}
-		if n == 0 {
-			break
-		}
-		ch := chBuf[0]
+
+	for _, ch := range chBuf {
 		if ch == backspaceKey || ch == deleteKey {
 			if len(pass) > 0 {
 				pass = pass[:len(pass)-1]
