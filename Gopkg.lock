@@ -167,11 +167,15 @@
   ]
   pruneopts = "T"
 <<<<<<< HEAD
+<<<<<<< HEAD
   revision = "e30c859c2e9fb1d7bb524012e868341cf912f246"
   version = "v4.0.5"
 =======
   revision = "5638e06dc9fac0784258dc8827be6ed0cd34a3cd"
 >>>>>>> rebase on master
+=======
+  revision = "4a93b681c06ce8eed2916598054f1365764f6eaf"
+>>>>>>> revendor mtc
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"

@@ -11,7 +11,6 @@ package password
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/mongodb/mongo-tools-common/log"
@@ -21,8 +20,8 @@ import (
 const (
 	backspaceKey      = 8
 	deleteKey         = 127
-	eotKey            = 3
-	eofKey            = 4
+	etxKey            = 3
+	eotKey            = 4
 	newLineKey        = 10
 	carriageReturnKey = 13
 )
@@ -35,7 +34,7 @@ func Prompt() (string, error) {
 	if IsTerminal() {
 		log.Logv(log.DebugLow, "standard input is a terminal; reading password from terminal")
 		fmt.Fprintf(os.Stderr, "Enter password:")
-		pass, err = readPassInteractively(os.Stdin)
+		pass, err = readPassInteractively()
 	} else {
 		log.Logv(log.Always, "reading password from standard input")
 		fmt.Fprintf(os.Stderr, "Enter password:")
@@ -52,18 +51,25 @@ func Prompt() (string, error) {
 // we aren't using a terminal for standard input
 func readPassNonInteractively(reader io.Reader) (string, error) {
 	pass := []byte{}
+	for {
+		var chBuf [1]byte
+		n, err := reader.Read(chBuf[:])
 
-	chBuf, err := ioutil.ReadAll(reader)
-	if err != nil && err.Error() != "EOF" {
-		return "", err
-	}
-
-	for _, ch := range chBuf {
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		if n == 0 {
+			break
+		}
+		ch := chBuf[0]
 		if ch == backspaceKey || ch == deleteKey {
 			if len(pass) > 0 {
 				pass = pass[:len(pass)-1]
 			}
-		} else if ch == carriageReturnKey || ch == newLineKey || ch == eotKey || ch == eofKey {
+		} else if ch == carriageReturnKey || ch == newLineKey || ch == etxKey || ch == eotKey {
 			break
 		} else if ch != 0 {
 			pass = append(pass, ch)

@@ -21,10 +21,10 @@ import (
 // operating systems that aren't solaris
 
 func IsTerminal() bool {
-	return terminal.IsTerminal(int(syscall.Stdin))
+	return terminal.IsTerminal(syscall.Stdin)
 }
 
-func readPassInteractively(reader io.Reader) (string, error) {
+func readPassInteractively() (string, error) {
 	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
@@ -34,12 +34,12 @@ func readPassInteractively(reader io.Reader) (string, error) {
 	screen := struct {
 		io.Reader
 		io.Writer
-	}{reader, os.Stderr}
+	}{os.Stdin, os.Stderr}
 
 	t := terminal.NewTerminal(screen, "")
 	pass, err := t.ReadPassword("")
 	if err != nil {
 		return "", err
 	}
-	return string(pass), nil
+	return pass, nil
 }
