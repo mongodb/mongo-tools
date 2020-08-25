@@ -30,7 +30,7 @@ required = ["github.com/3rf/mongo-lint"]
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
   source = "https://github.com/huan-Mongo/mongo-tools-common.git"
-  revision = "18a265a5f9a8254109010e113ca0d6767a7c9633"
+  revision = "838869745a08d93a702583bd67fef711d7793285"
 
 [[constraint]]
   name = "go.mongodb.org/mongo-driver"
