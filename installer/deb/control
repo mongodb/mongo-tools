@@ -15,7 +15,8 @@ Description: mongodb-database-tools package provides tools for working with the 
 Homepage: http://www.mongodb.com
 Depends: libc6, libgssapi-krb5-2, libkrb5-3, libk5crypto3, libcomerr2, libkrb5support0, libkeyutils1
 Provides: mongodb-database-tools
-Conflicts: mongodb-org-tools (<= 4.3.2), mongodb-enterprise-tools (<= 4.3.2), mongodb-database-tools
-Replaces: mongodb-database-tools (<= @TOOLS_VERSION@)
+Conflicts: mongodb-database-tools
+Breaks: mongodb-org-tools (<= 4.3.2), mongodb-org-tools-unstable (<= 4.3.2), mongodb-enterprise-tools (<= 4.3.2), mongodb-enterprise-tools-unstable (<= 4.3.2)
+Replaces: mongodb-database-tools (<= @TOOLS_VERSION@), mongodb-org-tools (<= 4.3.2), mongodb-org-tools-unstable (<= 4.3.2), mongodb-enterprise-tools (<= 4.3.2), mongodb-enterprise-tools-unstable (<= 4.3.2)
 Section: database
 Priority: optional
