@@ -307,18 +307,25 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 }
 
 func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) []IndexDocument {
-	indexKeys := make(map[string]struct{}) // A set contains all the unique index's json strings
+	var indexKeys []bson.D
 	var indexesConverted []IndexDocument
-	var exists = struct{}{}
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
-		indexString := bsonutil.CreateExtJSONString(index.Key)
-		if _, ok := indexKeys[indexString]; ok {
-			// skip duplicated indexes
+
+		foundIdenticalIndex := false
+		for _, keys := range indexKeys {
+			if bsonutil.IsIndexKeysEqual(keys, index.Key) {
+				foundIdenticalIndex = true
+				break
+			}
+		}
+
+		if foundIdenticalIndex {
 			log.Logvf(log.Always, "index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...", index.Options["name"])
 			continue
 		}
-		indexKeys[indexString] = exists
+
+		indexKeys = append(indexKeys, index.Key)
 
 		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
 		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.
