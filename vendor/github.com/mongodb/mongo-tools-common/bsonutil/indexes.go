@@ -78,8 +78,6 @@ func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
 // All other strings that aren't one of ["2d", "geoHaystack", "2dsphere", "hashed", "text", ""]
 // will cause the index build to fail. See TOOLS-2412 for more information.
 //
-// Note, this function doesn't convert Decimal values which are equivalent to "0" (e.g. 0.00 or -0).
-//
 // This function logs the keys that are converted.
 func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
