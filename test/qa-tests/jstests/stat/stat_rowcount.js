@@ -14,10 +14,9 @@
   clearRawMongoProgramOutput();
 
   x = runMongoProgram("mongostat", "--host", toolTest.m.host, "--rowcount", 7, "--noheaders");
-  var expectecRows = 7
-  var toolTest = getToolTest('export_broken_pipe');
+  var expectecRows = 7;
   if (toolTest.useSSL) {
-      expectecRows = 8
+    expectecRows = 8;
   }
   assert.eq.soon(expectecRows, function() {
     return rawMongoProgramOutput().split("\n").filter(function(r) {
