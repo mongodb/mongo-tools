@@ -23,13 +23,21 @@ var testName = 'mongotop_json';
 
     // ensure tool runs without error with --rowcount > 1
     var rowcount = 5;
+    var toolTest = getToolTest('export_broken_pipe');
+    if (toolTest.useSSL) {
+      rowcount = 6;
+    }
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
     assert.eq(ret.exitCode, 0, 'failed 2');
-    assert.eq.soon(rowcount, function() {
+    assert.eq.soon(rowcount + 1, function() {
       return ret.getOutput().split('\n').length;
-    }, "expected " + rowcount + " top results");
-    ret.getOutput().split('\n').forEach(function(line) {
+    }, "expected " + rowcount + 1 + " top results");
+    var output = ret.getOutput().split('\n')
+    if (toolTest.useSSL) {
+        output = output.slice(1)
+    }
+    output.forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
 

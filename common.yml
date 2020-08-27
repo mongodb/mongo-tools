@@ -219,7 +219,7 @@ mongo_tools_variables:
       mongo_args: &mongo_default_startup_args_string "--port 33333"
       mongod_port: 33333
     ssl: &mongo_ssl_startup_args
-      mongo_args: "--port 33333 --ssl --sslCAFile ./common/db/openssl/testdata/ca-ia.pem --sslPEMKeyFile ./common/db/openssl/testdata/test-server.pem --sslAllowInvalidCertificates"
+      mongo_args: "--port 33333 --ssl --sslCAFile ./common/db/openssl/testdata/ca-ia.pem --sslPEMKeyFile ./common/db/openssl/testdata/test-client.pem --sslAllowInvalidCertificates"
       mongod_port: 33333
 
 functions:
