@@ -24,7 +24,7 @@ func IsTerminal() bool {
 	return terminal.IsTerminal(int(syscall.Stdin))
 }
 
-func GetPass() (string, error) {
+func readPassInteractively() (string, error) {
 	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
