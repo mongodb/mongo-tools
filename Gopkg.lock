@@ -148,8 +148,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "838869745a08d93a702583bd67fef711d7793285"
-  source = "https://github.com/huan-Mongo/mongo-tools-common.git"
+  revision = "218ac9da085f3a330e16c1acc69f933a83a8f2cb"
+  version = "v2.1.0"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
