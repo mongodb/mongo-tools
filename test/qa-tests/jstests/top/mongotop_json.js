@@ -26,7 +26,6 @@ var testName = 'mongotop_json';
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
     assert.eq(ret.exitCode, 0, 'failed 2');
-    var toolTest = getToolTest('mongotop_json');
     if (jsTestOptions().useSSL) {
       rowcount += 1;
     }

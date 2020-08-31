@@ -38,9 +38,6 @@
   x = runMongoProgram("mongostat", "--port", port,
     "-o", "host,conn,time", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  if (toolTest.useSSL) {
-    expectedRowCnt += 1;
-  }
   assert.eq.soon(expectedRowCnt + 1, function() {
     rows = allShellRows();
     if (toolTest.useSSL) {
@@ -73,9 +70,6 @@
   x = runMongoProgram("mongostat", "--port", port,
     "-o", "host=H,conn=C,time=MYTiME", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  if (toolTest.useSSL) {
-    expectedRowCnt += 1;
-  }
   assert.eq.soon(expectedRowCnt + 1, function() {
     rows = allShellRows();
     if (toolTest.useSSL) {
@@ -93,9 +87,6 @@
   expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
     "-o", "host,conn,mem.bits", "-n", expectedRowCnt);
-  if (toolTest.useSSL) {
-    expectedRowCnt += 1;
-  }
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   assert.eq.soon(expectedRowCnt + 1, function() {
     rows = allShellRows();
