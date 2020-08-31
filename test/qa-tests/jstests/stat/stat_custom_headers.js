@@ -110,9 +110,6 @@
   x = runMongoProgram("mongostat", "--port", port,
     "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  if (toolTest.useSSL) {
-    expectedRowCnt += 1;
-  }
   assert.eq.soon(expectedRowCnt + 1, function() {
     rows = allShellRows();
     if (toolTest.useSSL) {
