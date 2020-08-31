@@ -25,6 +25,9 @@
   }
   assert.eq.soon(expectedRowCnt + 1, function() {
     rows = allShellRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
@@ -43,6 +46,9 @@
   }
   assert.eq.soon(expectedRowCnt + 1, function() {
     rows = allShellRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",

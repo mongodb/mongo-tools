@@ -2,6 +2,9 @@
 // fails with a useful error message
 var testName = 'mongotop_sharded';
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/replset_28.config.js');
+  }
   jsTest.log('Testing mongotop against sharded cluster');
   load('jstests/top/util/mongotop_common.js');
   var assert = extendedAssert;

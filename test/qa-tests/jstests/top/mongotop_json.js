@@ -2,6 +2,9 @@
 // expected
 var testName = 'mongotop_json';
 (function() {
+  if (typeof getToolTest === 'undefined') {
+    load('jstests/configs/replset_28.config.js');
+  }
   jsTest.log('Testing mongotop --json option');
   load('jstests/top/util/mongotop_common.js');
   var assert = extendedAssert;
@@ -28,9 +31,9 @@ var testName = 'mongotop_json';
     assert.eq(ret.exitCode, 0, 'failed 2');
     var toolTest = getToolTest('mongotop_json');
     if (toolTest.useSSL) {
-        rowcount += 1;
+      rowcount += 1;
     }
-      assert.eq.soon(rowcount, function() {
+    assert.eq.soon(rowcount, function() {
       return ret.getOutput().split('\n').length;
     }, "expected " + rowcount + " top results");
     ret.getOutput().split('\n').forEach(function(line) {
