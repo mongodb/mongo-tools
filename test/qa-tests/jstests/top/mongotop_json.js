@@ -36,7 +36,11 @@ var testName = 'mongotop_json';
     assert.eq.soon(rowcount, function() {
       return ret.getOutput().split('\n').length;
     }, "expected " + rowcount + " top results");
-    ret.getOutput().split('\n').forEach(function(line) {
+    var output = ret.getOutput().split('\n');
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
+    output.forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
 
