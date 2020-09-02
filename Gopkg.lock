@@ -144,7 +144,8 @@
   version = "v0.0.4"
 
 [[projects]]
-  digest = "1:f032041666256e74c215a1c75ce222f921f185fde38b4142d40cebc81dbb4266"
+  branch = "TOOLS-2711"
+  digest = "1:4956acb8a817f289c9b80ab1f110c1c51af3795a5130dea14d36d7a2d50f7c00"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -166,8 +167,7 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "12d17b45edc8fc3d19d52fda2bce7ff58c3e07d4"
-  version = "v4.0.6"
+  revision = "8472d0cfbc1a8d03356d4811e28e670a4b0f44c8"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
