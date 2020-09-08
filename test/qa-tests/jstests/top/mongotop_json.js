@@ -29,14 +29,14 @@ var testName = 'mongotop_json';
     var rowcount = 5;
     var toolTest = getToolTest('mongotop_json');
     if (toolTest.useSSL) {
-      rowcount = 6;
+      rowcount += 1;
     }
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
     assert.eq(ret.exitCode, 0, 'failed 2');
-    assert.eq.soon(rowcount + 1, function() {
+    assert.eq.soon(rowcount, function() {
       return ret.getOutput().split('\n').length;
-    }, "expected " + rowcount + 1 + " top results");
+    }, "expected " + rowcount + " top results");
     var output = ret.getOutput().split('\n');
     if (toolTest.useSSL) {
       output = output.slice(1);
