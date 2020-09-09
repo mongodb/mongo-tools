@@ -206,7 +206,7 @@ func (cluster *AsyncClusterMonitor) Monitor(sleep time.Duration) error {
 	go func() {
 		for {
 			select {
-			case stat := <-cluster.ReportChan:c
+			case stat := <-cluster.ReportChan:
 				statLine, ok := cluster.Consumer.Update(stat)
 				if ok {
 					cluster.updateHostInfo(statLine)
