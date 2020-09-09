@@ -2,10 +2,6 @@
 // expected
 var testName = 'mongotop_json';
 (function() {
-  if (typeof getToolTest === 'undefined') {
-    load('jstests/configs/plain_28.config.js');
-  }
-
   jsTest.log('Testing mongotop --json option');
   load('jstests/top/util/mongotop_common.js');
   var assert = extendedAssert;
@@ -27,20 +23,17 @@ var testName = 'mongotop_json';
 
     // ensure tool runs without error with --rowcount > 1
     var rowcount = 5;
-    var toolTest = getToolTest('mongotop_json');
-    if (toolTest.useSSL) {
-      rowcount += 1;
-    }
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
     assert.eq(ret.exitCode, 0, 'failed 2');
+    var output;
     assert.eq.soon(rowcount, function() {
-      return ret.getOutput().split('\n').length;
+      output = ret.getOutput().split('\n');
+      if (jsTestOptions().useSSL) {
+        output = output.slice(1);
+      }
+      return output.length;
     }, "expected " + rowcount + " top results");
-    var output = ret.getOutput().split('\n');
-    if (toolTest.useSSL) {
-      output = output.slice(1);
-    }
     output.forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
