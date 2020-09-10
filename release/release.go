@@ -782,9 +782,10 @@ func addToTarball(tw *tar.Writer, dst, src string) {
 	check(err, "stat file")
 
 	header := &tar.Header{
-		Name: dst,
-		Size: stat.Size(),
-		Mode: int64(stat.Mode()),
+		Name:    dst,
+		Size:    stat.Size(),
+		Mode:    int64(stat.Mode()),
+		ModTime: time.Now(),
 	}
 
 	err = tw.WriteHeader(header)
