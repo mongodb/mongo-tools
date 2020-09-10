@@ -209,6 +209,9 @@ mongo_tools_variables:
     ssl: &mongod_ssl_startup_args
       mongod_args: "--sslMode requireSSL --sslCAFile common/db/openssl/testdata/ca-ia.pem --sslPEMKeyFile common/db/openssl/testdata/test-server.pem --bind_ip localhost"
       mongod_port: 33333
+    ssl: &mongod_ssl_startup_args_windows
+      mongod_args: "--sslMode requireSSL --sslCAFile common/db/openssl/testdata/ia-ca.pem --sslPEMKeyFile common/db/openssl/testdata/test-server.pem --bind_ip localhost"
+      mongod_port: 33333
     # Set storage engine as mmapv1 for 32 bit variants because WiredTiger requires 64 bit support.
     win32: &mongod_win32_startup_args
       mongod_args: "--storageEngine=mmapv1"
@@ -1832,7 +1835,7 @@ buildvariants:
   run_on:
   - windows-64-vs2013-compile
   expansions:
-    <<: *mongod_ssl_startup_args
+    <<: *mongod_ssl_startup_args_windows
     <<: *mongo_ssl_startup_args
     mongo_os: "windows-64"
     mongo_target: "windows_x86_64-2008plus-ssl"
