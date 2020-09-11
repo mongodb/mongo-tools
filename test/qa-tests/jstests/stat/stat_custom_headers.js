@@ -16,11 +16,16 @@
   clearRawMongoProgramOutput();
 
   // basic -o --humanReadable=false
+  var expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,time", "-n", 4, "--humanReadable=false");
+    "-o", "host,conn,time", "-n", expectedRowCnt, "--humanReadable=false");
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+
+  assert.eq.soon(expectedRowCnt + 1, function() {
     rows = statRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
@@ -30,11 +35,15 @@
   clearRawMongoProgramOutput();
 
   // basic -o
+  expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,time", "-n", 4);
+    "-o", "host,conn,time", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(expectedRowCnt + 1, function() {
     rows = statRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,time",
@@ -44,21 +53,29 @@
   clearRawMongoProgramOutput();
 
   // basic -O
+  expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
-    "-O", "host", "-n", 4);
+    "-O", "host", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
   rows = statRows();
+  if (toolTest.useSSL) {
+    rows = rows.slice(1);
+  }
   var fields = statFields(rows[0]);
   assert.eq(fields[fields.length-1], "host",
     "first row should end with added 'host' field");
   clearRawMongoProgramOutput();
 
   // named
+  expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host=H,conn=C,time=MYTiME", "-n", 4);
+    "-o", "host=H,conn=C,time=MYTiME", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(expectedRowCnt + 1, function() {
     rows = statRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "H,C,MYTiME",
@@ -68,11 +85,15 @@
   clearRawMongoProgramOutput();
 
   // serverStatus custom field
+  expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn,mem.bits", "-n", 4);
+    "-o", "host,conn,mem.bits", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(expectedRowCnt + 1, function() {
     rows = statRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,conn,mem.bits",
@@ -86,11 +107,15 @@
   clearRawMongoProgramOutput();
 
   // serverStatus named field
+  expectedRowCnt = 4;
   x = runMongoProgram("mongostat", "--port", port,
-    "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", 4);
+    "-o", "host,conn=MYCoNN,mem.bits=BiTs", "-n", expectedRowCnt);
   assert.eq(x, 0, "mongostat should succeed with -o and -n options");
-  assert.eq.soon(5, function() {
+  assert.eq.soon(expectedRowCnt + 1, function() {
     rows = statRows();
+    if (toolTest.useSSL) {
+      rows = rows.slice(1);
+    }
     return rows.length;
   }, "expected 5 rows in mongostat output");
   assert.eq(statFields(rows[0]).join(), "host,MYCoNN,BiTs",
