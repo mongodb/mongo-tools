@@ -428,7 +428,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 }
 
 func TestDeprecationWarning(t *testing.T) {
-	if !(testtype.HasTestType(testtype.SSLTestType) && testtype.HasTestType(testtype.SSLTestType)) {
+	if !testtype.HasTestType(testtype.SSLTestType) {
 		t.SkipNow()
 	}
 
