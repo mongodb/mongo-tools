@@ -26,10 +26,15 @@ var testName = 'mongotop_json';
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
     assert.eq(ret.exitCode, 0, 'failed 2');
+    var output;
     assert.eq.soon(rowcount, function() {
-      return ret.getOutput().split('\n').length;
+      output = ret.getOutput().split('\n');
+      if (jsTestOptions().useSSL) {
+        output = output.slice(1);
+      }
+      return output.length;
     }, "expected " + rowcount + " top results");
-    ret.getOutput().split('\n').forEach(function(line) {
+    output.forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
 
