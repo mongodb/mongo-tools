@@ -1477,7 +1477,7 @@ buildvariants:
   run_on:
   - debian71-test
   expansions:
-    gorootvars: 'PATH="/opt/go1.8/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.8/go'
+    gorootvars: 'PATH="/opt/go1.10/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.10/go'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1789,7 +1789,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    gorootvars: 'PATH="/opt/go1.8/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.8/go CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
+    gorootvars: 'PATH="/opt/go1.10/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.10/go CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
@@ -1824,7 +1824,7 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   expansions:
-    gorootvars: 'PATH="/opt/go1.8/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.8/go CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
+    gorootvars: 'PATH="/opt/go1.10/go/bin:/opt/mongodbtoolchain/v2/bin/:$PATH" GOROOT=/opt/go1.10/go CC=/opt/mongodbtoolchain/v2/bin/s390x-mongodb-linux-gcc'
     build_tags: "sasl ssl"
   tasks:
   - name: dist
