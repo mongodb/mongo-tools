@@ -650,7 +650,7 @@ func quoteChar(c int) string {
 	}
 
 	// use quoted string with different quotation marks
-	s := strconv.Quote(string(rune(c)))
+	s := strconv.Quote(string(c))
 	return "'" + s[1:len(s)-1] + "'"
 }
 
