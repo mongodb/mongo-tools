@@ -25,11 +25,18 @@ var testName = 'mongotop_json';
     var rowcount = 5;
     clearRawMongoProgramOutput();
     ret = executeProgram(['mongotop', '--port', conn.port, '--json', '--rowcount', rowcount].concat(passthrough.args));
+    if (jsTestOptions().useSSL) {
+      rowcount += 1;
+    }
     assert.eq(ret.exitCode, 0, 'failed 2');
     assert.eq.soon(rowcount, function() {
       return ret.getOutput().split('\n').length;
     }, "expected " + rowcount + " top results");
-    ret.getOutput().split('\n').forEach(function(line) {
+    var output = ret.getOutput().split('\n');
+    if (jsTestOptions().useSSL) {
+      output = output.slice(1);
+    }
+    output.forEach(function(line) {
       assert(typeof JSON.parse(extractJSON(line)) === 'object', 'invalid JSON 2');
     });
 

@@ -11,9 +11,13 @@ var testName = 'mongotop_sharded';
     assert.strContains.soon(expectedError, getOutput, 'error message must appear at least once');
     var shellOutput = getOutput();
     jsTest.log('shell output: ' + shellOutput);
-    shellOutput.split('\n').forEach(function(line) {
+    var output = shellOutput.split('\n');
+    if (jsTestOptions().useSSL) {
+      output = output.slice(1);
+    }
+    output.forEach(function(line) {
       // check the displayed error message
-      assert.neq(line.match(expectedError), null, 'unexpeced error message');
+      assert.neq(line.match(expectedError), null, 'unexpected error message');
     });
   };
 

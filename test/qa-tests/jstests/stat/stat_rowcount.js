@@ -13,8 +13,12 @@
   var x, pid;
   clearRawMongoProgramOutput();
 
-  x = runMongoProgram("mongostat", "--host", toolTest.m.host, "--rowcount", 7, "--noheaders");
-  assert.eq.soon(7, function() {
+  var expectRowCnt = 7;
+  x = runMongoProgram("mongostat", "--host", toolTest.m.host, "--rowcount", expectRowCnt, "--noheaders");
+  if (toolTest.useSSL) {
+    expectRowCnt += 1;
+  }
+  assert.eq.soon(expectRowCnt, function() {
     return rawMongoProgramOutput().split("\n").filter(function(r) {
       return r.match(rowRegex);
     }).length;
@@ -32,7 +36,7 @@
   assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
   assert.eq(exitCodeStopped, stopMongoProgramByPid(pid), "stopping should cause mongostat exit with a 'stopped' code");
 
-  x = runMongoProgram.apply(null, ["mongostat", "--port", toolTest.port - 1, "--rowcount", 1].concat(commonToolArgs));
+  x = runMongoProgram.apply(null, ["mongostat", "--port", toolTest.port - 1, "--rowcount", 2].concat(commonToolArgs));
   assert.neq(exitCodeSuccess, x, "can't connect causes an error exit code");
 
   x = runMongoProgram.apply(null, ["mongostat", "--rowcount", "-1"].concat(commonToolArgs));

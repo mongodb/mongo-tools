@@ -126,8 +126,7 @@ ToolTest.prototype.runTool = function() {
   if (this.useSSL) {
     a = a.concat(["--ssl",
       "--sslPEMKeyFile", "jstests/libs/server.pem",
-      "--sslCAFile", "jstests/libs/ca.pem",
-      "--sslAllowInvalidHostnames"]);
+      "--sslCAFile", "jstests/libs/ca.pem"]);
   }
 
   if (!hasdbpath) {
