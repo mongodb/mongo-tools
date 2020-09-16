@@ -1,5 +1,70 @@
 # Database Tools Changelog
 
+## 100.2.0
+
+_Released YYYY-MM-DD_
+
+We are pleased to announce version 100.2.0 of the MongoDB Database Tools.
+
+This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files matching a regex pattern. 
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+                                                
+<h3>        Build Failure
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2693'>TOOLS-2693</a>] -         Most tasks failing on race detector variant
+</li>
+</ul>
+                                                                        
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2704'>TOOLS-2704</a>] -         Release Database Tools 100.2.0
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2587'>TOOLS-2587</a>] -         sslAllowInvalidHostnames bypass ssl/tls server certification validation entirely
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2688'>TOOLS-2688</a>] -         mongodump does not handle EOF when passing in the password as STDIN
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2706'>TOOLS-2706</a>] -         tar: implausibly old time stamp error on Amazon Linux/RHEL
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2710'>TOOLS-2710</a>] -         Non-zero index key values are not preserved in ConvertLegacyIndexes
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2716'>TOOLS-2716</a>] -         mongodb-database-tools package should break older versions of mongodb-*-tools
+</li>
+</ul>
+        
+<h3>        New Feature
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2667'>TOOLS-2667</a>] -         Support list of files for put and get subcommands in mongofiles
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2668'>TOOLS-2668</a>] -         Create regex interface for getting files from remote FS in mongofiles
+</li>
+</ul>
+        
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2674'>TOOLS-2674</a>] -         Clarify contribution guidelines
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2700'>TOOLS-2700</a>] -         Use git tags for triggering release versions
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2701'>TOOLS-2701</a>] -         Log target linux repo in push task
+</li>
+</ul>
+                                           
+
 ## 100.1.1
 
 _Released 2020-07-31_
