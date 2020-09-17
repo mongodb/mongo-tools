@@ -478,10 +478,10 @@ func FilterError(stopOnError bool, err error) error {
 		// Just log the error but don't propagate it.
 		if bwe, ok := err.(mongo.BulkWriteException); ok {
 			for _, be := range bwe.WriteErrors {
-				log.Logvf(log.Always, continueThroughErrorFormat, be.Message)
+				log.Logvf(log.Error, false, continueThroughErrorFormat, be.Message)
 			}
 		} else {
-			log.Logvf(log.Always, continueThroughErrorFormat, err)
+			log.Logvf(log.Error, false, continueThroughErrorFormat, err)
 		}
 		return nil
 	}
@@ -508,7 +508,7 @@ func CanIgnoreError(err error) bool {
 		}
 
 		if mongoErr.WriteConcernError != nil {
-			log.Logvf(log.Always, "write concern error when inserting documents: %v", mongoErr.WriteConcernError)
+			log.Logvf(log.Error, false, "write concern error when inserting documents: %v", mongoErr.WriteConcernError)
 			return false
 		}
 		return true

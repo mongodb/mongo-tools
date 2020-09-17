@@ -29,18 +29,18 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 		return fmt.Errorf("error running command: %v", err)
 	}
 	if _, ok := masterDoc["hosts"]; ok {
-		log.Logvf(log.DebugLow, "determined cluster to be a replica set")
-		log.Logvf(log.DebugHigh, "oplog located in local.oplog.rs")
+		log.Logvf(log.Trace, false, "determined cluster to be a replica set")
+		log.Logvf(log.Trace, false, "oplog located in local.oplog.rs")
 		dump.oplogCollection = "oplog.rs"
 		return nil
 	}
 	if isMaster := masterDoc["ismaster"]; util.IsFalsy(isMaster) {
-		log.Logvf(log.Info, "mongodump is not connected to a master")
+		log.Logvf(log.Debug, false, "mongodump is not connected to a master")
 		return fmt.Errorf("not connected to master")
 	}
 
-	log.Logvf(log.DebugLow, "not connected to a replica set, assuming master/slave")
-	log.Logvf(log.DebugHigh, "oplog located in local.oplog.$main")
+	log.Logvf(log.Trace, false, "not connected to a replica set, assuming master/slave")
+	log.Logvf(log.Trace, false, "oplog located in local.oplog.$main")
 	dump.oplogCollection = "oplog.$main"
 	return nil
 
@@ -114,9 +114,9 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 		return false, err
 	}
 
-	log.Logvf(log.DebugHigh, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
+	log.Logvf(log.Trace, false, "oldest oplog entry has timestamp %v", oldestOplogEntry.Timestamp)
 	if util.TimestampGreaterThan(oldestOplogEntry.Timestamp, ts) {
-		log.Logvf(log.Info, "oldest oplog entry of timestamp %v is newer than %v",
+		log.Logvf(log.Debug, false, "oldest oplog entry of timestamp %v is newer than %v",
 			oldestOplogEntry.Timestamp, ts)
 		return false, nil
 	}
@@ -156,7 +156,7 @@ func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end primitive.Timestamp
 	}
 	oplogCount, err := dump.dumpValidatedQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentValidator)
 	if err == nil {
-		log.Logvf(log.Always, "\tdumped %v oplog %v",
+		log.Logvf(log.Info, false, "\tdumped %v oplog %v",
 			oplogCount, util.Pluralize(int(oplogCount), "entry", "entries"))
 	}
 	return err

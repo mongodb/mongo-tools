@@ -72,10 +72,10 @@ func (demux *Demultiplexer) Run() error {
 	parser := Parser{In: demux.In}
 	err := parser.ReadAllBlocks(demux)
 	if len(demux.outs) > 0 {
-		log.Logvf(log.Always, "demux finishing when there are still outs (%v)", len(demux.outs))
+		log.Logvf(log.Info, false, "demux finishing when there are still outs (%v)", len(demux.outs))
 	}
 
-	log.Logvf(log.DebugLow, "demux finishing (err:%v)", err)
+	log.Logvf(log.Trace, false, "demux finishing (err:%v)", err)
 	return err
 }
 
@@ -116,7 +116,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 	if err != nil {
 		return newWrappedError("header bson doesn't unmarshal as a collection header", err)
 	}
-	log.Logvf(log.DebugHigh, "demux namespaceHeader: %v", colHeader)
+	log.Logvf(log.Trace, false, "demux namespaceHeader: %v", colHeader)
 	if colHeader.Collection == "" {
 		return newError("collection header is missing a Collection")
 	}
@@ -158,12 +158,12 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 					colHeader.CRC,
 				)
 			}
-			log.Logvf(log.DebugHigh,
-				"demux checksum for namespace %v is correct (%v), %v bytes",
+			log.Logvf(log.Trace,
+				false, "demux checksum for namespace %v is correct (%v), %v bytes",
 				demux.currentNamespace, crc, length)
 		} else {
-			log.Logvf(log.DebugHigh,
-				"demux checksum for namespace %v was not calculated.",
+			log.Logvf(log.Trace,
+				false, "demux checksum for namespace %v was not calculated.",
 				demux.currentNamespace)
 		}
 		delete(demux.outs, demux.currentNamespace)
@@ -177,7 +177,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 
 // End is part of the ParserConsumer interface and receives the end of archive notification.
 func (demux *Demultiplexer) End() error {
-	log.Logvf(log.DebugHigh, "demux End")
+	log.Logvf(log.Trace, false, "demux End")
 	var err error
 	if len(demux.outs) != 0 {
 		openNss := []string{}
@@ -227,7 +227,7 @@ func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 	// or while the demutiplexer is inside of the NamespaceChan NamespaceErrorChan conversation
 	// I think that we don't need to lock outs, but I suspect that if the implementation changes
 	// we may need to lock when outs is accessed
-	log.Logvf(log.DebugHigh, "demux Open")
+	log.Logvf(log.Trace, false, "demux Open")
 	if demux.outs == nil {
 		demux.outs = make(map[string]DemuxOut)
 		demux.lengths = make(map[string]int64)

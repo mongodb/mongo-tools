@@ -44,7 +44,7 @@ func (ci *CollectionInfo) GetUUID() string {
 				return hex.EncodeToString(x.Data)
 			}
 		default:
-			log.Logvf(log.DebugHigh, "unknown UUID BSON type '%T'", v)
+			log.Logvf(log.Trace, false, "unknown UUID BSON type '%T'", v)
 		}
 	}
 	return ""

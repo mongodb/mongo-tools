@@ -240,7 +240,7 @@ func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsU
 		} else if val == "" {
 			opts.VLevel = opts.VLevel + 1 // Increment for every occurrence of flag
 		} else {
-			log.Logvf(log.Always, "Invalid verbosity value given")
+			log.Logvf(log.Error, false, "Invalid verbosity value given")
 			os.Exit(-1)
 		}
 	}
@@ -287,7 +287,7 @@ func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsU
 	if opts.MaxProcs <= 0 {
 		opts.MaxProcs = runtime.NumCPU()
 	}
-	log.Logvf(log.Info, "Setting num cpus to %v", opts.MaxProcs)
+	log.Logvf(log.Debug, false, "Setting num cpus to %v", opts.MaxProcs)
 	runtime.GOMAXPROCS(opts.MaxProcs)
 	return opts
 }
@@ -392,7 +392,7 @@ func (opts *ToolOptions) EnabledToolOptions() EnabledOptions {
 // The unknown options are determined by the driver.
 func (uri *URI) LogUnsupportedOptions() {
 	for key := range uri.ConnString.UnknownOptions {
-		log.Logvf(log.Always, unknownOptionsWarningFormat, key)
+		log.Logvf(log.Warn, false, unknownOptionsWarningFormat, key)
 	}
 }
 
@@ -432,7 +432,7 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 	}
 
 	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
-		log.Logvf(log.Always, deprecationWarningSSLAllow)
+		log.Logvf(log.Warn, false, deprecationWarningSSLAllow)
 	}
 
 	if opts.parsePositionalArgsAsURI {

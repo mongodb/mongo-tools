@@ -146,7 +146,7 @@ func (bd *BSONDump) JSON() (int, error) {
 		}
 
 		if bytes, err := formatJSON(&result, bd.OutputOptions.Pretty); err != nil {
-			log.Logvf(log.Always, "unable to dump document %v: %v", numFound+1, err)
+			log.Logvf(log.Error, false, "unable to dump document %v: %v", numFound+1, err)
 
 			//if objcheck is turned on, stop now. otherwise keep on dumpin'
 			if bd.OutputOptions.ObjCheck {
@@ -199,7 +199,7 @@ func (bd *BSONDump) Debug() (int, error) {
 		}
 		err := printBSON(result, 0, bd.OutputWriter)
 		if err != nil {
-			log.Logvf(log.Always, "encountered error debugging BSON data: %v", err)
+			log.Logvf(log.Error, false, "encountered error debugging BSON data: %v", err)
 		}
 		numFound++
 	}

@@ -34,7 +34,7 @@ func NewMongoWriteConcern(writeConcern string, cs *connstring.ConnString) (wc *w
 	// Log whatever write concern was generated
 	defer func() {
 		if wc != nil {
-			log.Logvf(log.Info, "using write concern: %v", wc)
+			log.Logvf(log.Debug, false, "using write concern: %v", wc)
 		}
 	}()
 

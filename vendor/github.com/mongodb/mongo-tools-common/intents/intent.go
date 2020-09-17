@@ -298,7 +298,7 @@ func (mgr *Manager) putNormalIntentWithNamespace(ns string, intent *Intent) {
 // Put inserts an intent into the manager with the same source namespace as
 // its destinations.
 func (mgr *Manager) Put(intent *Intent) {
-	log.Logvf(log.DebugLow, "enqueued collection '%v'", intent.Namespace())
+	log.Logvf(log.Trace, false, "enqueued collection '%v'", intent.Namespace())
 	mgr.PutWithNamespace(intent.Namespace(), intent)
 }
 
@@ -467,13 +467,13 @@ func (mgr *Manager) AuthVersion() *Intent {
 func (mgr *Manager) Finalize(pType PriorityType) {
 	switch pType {
 	case Legacy:
-		log.Logv(log.DebugHigh, "finalizing intent manager with legacy prioritizer")
+		log.Logv(log.Trace, false, "finalizing intent manager with legacy prioritizer")
 		mgr.prioritizer = newLegacyPrioritizer(mgr.intentsByDiscoveryOrder)
 	case LongestTaskFirst:
-		log.Logv(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
+		log.Logv(log.Trace, false, "finalizing intent manager with longest task first prioritizer")
 		mgr.prioritizer = newLongestTaskFirstPrioritizer(mgr.intentsByDiscoveryOrder)
 	case MultiDatabaseLTF:
-		log.Logv(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
+		log.Logv(log.Trace, false, "finalizing intent manager with multi-database longest task first prioritizer")
 		mgr.prioritizer = newMultiDatabaseLTFPrioritizer(mgr.intentsByDiscoveryOrder)
 	default:
 		panic("cannot initialize IntentPrioritizer with unknown type")

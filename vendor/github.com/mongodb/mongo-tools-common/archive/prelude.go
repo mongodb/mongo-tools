@@ -135,7 +135,7 @@ func (prelude *Prelude) AddMetadata(cm *CollectionMetadata) {
 		prelude.DBS = append(prelude.DBS, cm.Database)
 	}
 	prelude.NamespaceMetadatasByDB[cm.Database] = append(prelude.NamespaceMetadatasByDB[cm.Database], cm)
-	log.Logvf(log.Info, "archive prelude %v.%v", cm.Database, cm.Collection)
+	log.Logvf(log.Debug, false, "archive prelude %v.%v", cm.Database, cm.Collection)
 }
 
 // Write writes the archive header.

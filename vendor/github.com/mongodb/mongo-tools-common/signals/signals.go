@@ -37,7 +37,7 @@ func handleSignals(finalizer func(), finishedChan chan struct{}) {
 	noopChan := make(chan os.Signal)
 	signal.Notify(noopChan, syscall.SIGPIPE)
 
-	log.Logv(log.DebugLow, "will listen for SIGTERM, SIGINT, and SIGKILL")
+	log.Logv(log.Trace, false, "will listen for SIGTERM, SIGINT, and SIGKILL")
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 	defer signal.Stop(sigChan)
@@ -45,7 +45,7 @@ func handleSignals(finalizer func(), finishedChan chan struct{}) {
 		select {
 		case sig := <-sigChan:
 			// first signal use finalizer to terminate cleanly
-			log.Logvf(log.Always, "signal '%s' received; attempting to shut down", sig)
+			log.Logvf(log.Info, false, "signal '%s' received; attempting to shut down", sig)
 			finalizer()
 		case <-finishedChan:
 			return
@@ -54,7 +54,7 @@ func handleSignals(finalizer func(), finishedChan chan struct{}) {
 	select {
 	case sig := <-sigChan:
 		// second signal exits immediately
-		log.Logvf(log.Always, "signal '%s' received; forcefully terminating", sig)
+		log.Logvf(log.Info, false, "signal '%s' received; forcefully terminating", sig)
 		os.Exit(util.ExitFailure)
 	case <-finishedChan:
 		return

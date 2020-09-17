@@ -32,11 +32,11 @@ func Prompt() (string, error) {
 	var pass string
 	var err error
 	if IsTerminal() {
-		log.Logv(log.DebugLow, "standard input is a terminal; reading password from terminal")
+		log.Logv(log.Trace, false, "standard input is a terminal; reading password from terminal")
 		fmt.Fprintf(os.Stderr, "Enter password:")
 		pass, err = readPassInteractively()
 	} else {
-		log.Logv(log.Always, "reading password from standard input")
+		log.Logv(log.Info, false, "reading password from standard input")
 		fmt.Fprintf(os.Stderr, "Enter password:")
 		pass, err = readPassNonInteractively(os.Stdin)
 	}

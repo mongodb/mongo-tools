@@ -274,28 +274,28 @@ func (node *NodeMonitor) Disconnect() {
 // the "discover" channel if checkShards is true.
 func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.ServerStatus, error) {
 	stat := &status.ServerStatus{}
-	log.Logvf(log.DebugHigh, "getting session on server: %v", node.host)
+	log.Logvf(log.Trace, false, "getting session on server: %v", node.host)
 	session, err := node.sessionProvider.GetSession()
 	if err != nil {
-		log.Logvf(log.DebugLow, "got error getting session to server %v", node.host)
+		log.Logvf(log.Trace, false, "got error getting session to server %v", node.host)
 		return nil, err
 	}
-	log.Logvf(log.DebugHigh, "got session on server: %v", node.host)
+	log.Logvf(log.Trace, false, "got session on server: %v", node.host)
 
 	result := session.Database("admin").RunCommand(nil, bson.D{{"serverStatus", 1}, {"recordStats", 0}})
 	err = result.Err()
 	if err != nil {
-		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
+		log.Logvf(log.Trace, false,  "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
 	tempBson, err := result.DecodeBytes()
 	if err != nil {
-		log.Logvf(log.Always, "Encountered error decoding serverStatus: %v\n", err)
+		log.Logvf(log.Error, false,  "Encountered error decoding serverStatus: %v\n", err)
 		return nil, fmt.Errorf("Error decoding serverStatus: %v\n", err)
 	}
 	err = bson.Unmarshal(tempBson, &stat)
 	if err != nil {
-		log.Logvf(log.Always, "Encountered error reading serverStatus: %v\n", err)
+		log.Logvf(log.Error, false,  "Encountered error reading serverStatus: %v\n", err)
 		return nil, fmt.Errorf("Error reading serverStatus: %v\n", err)
 	}
 	// The flattened version is required by some lookup functions
@@ -320,7 +320,7 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	node.alias = stat.Host
 	stat.Host = node.host
 	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
-		log.Logvf(log.DebugLow, "checking config database to discover shards")
+		log.Logvf(log.Trace, false, "checking config database to discover shards")
 		shardCursor, err := session.Database("config").Collection("shards").Find(nil, bson.M{}, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error discovering shards: %v", err)
@@ -347,11 +347,11 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 func (node *NodeMonitor) Watch(sleep time.Duration, discover chan string, cluster ClusterMonitor) {
 	var cycle uint64
 	for ticker := time.Tick(sleep); ; <-ticker {
-		log.Logvf(log.DebugHigh, "polling server: %v", node.host)
+		log.Logvf(log.Trace, false,  "polling server: %v", node.host)
 		stat, err := node.Poll(discover, cycle%10 == 0)
 
 		if stat != nil {
-			log.Logvf(log.DebugHigh, "successfully got statline from host: %v", node.host)
+			log.Logvf(log.Trace, false,  "successfully got statline from host: %v", node.host)
 		}
 		var nodeError *status.NodeError
 		if err != nil {
@@ -387,7 +387,7 @@ func (mstat *MongoStat) AddNewNode(fullhost string) error {
 			return nil
 		}
 	}
-	log.Logvf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
+	log.Logvf(log.Trace, false,  "adding new host to monitoring: %v", fullhost)
 	// Create a new node monitor for this host
 	node, err := NewNodeMonitor(*mstat.Options, fullhost)
 	if err != nil {
@@ -407,7 +407,7 @@ func (mstat *MongoStat) Run() error {
 				newHost := <-mstat.Discovered
 				err := mstat.AddNewNode(newHost)
 				if err != nil {
-					log.Logvf(log.Always, "can't add discovered node %v: %v", newHost, err)
+					log.Logvf(log.Error, false,  "can't add discovered node %v: %v", newHost, err)
 				}
 			}
 		}()

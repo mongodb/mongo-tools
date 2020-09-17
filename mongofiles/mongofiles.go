@@ -305,7 +305,7 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 			return err
 		}
 	}
-	log.Logvf(log.Always, "successfully deleted all instances of '%v' from GridFS\n", mf.FileName)
+	log.Logvf(log.Info, false, "successfully deleted all instances of '%v' from GridFS\n", mf.FileName)
 
 	return nil
 }
@@ -321,7 +321,7 @@ func (mf *MongoFiles) handleDeleteID() error {
 	if err := file.Delete(); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS", mf.Id))
+	log.Logvf(log.Info, false, fmt.Sprintf("successfully deleted file with _id %v from GridFS", mf.Id))
 
 	return nil
 }
@@ -363,7 +363,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		}
 		dc := util.DeferredCloser{Closer: localFile}
 		defer dc.CloseWithErrorCapture(&err)
-		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
+		log.Logvf(log.Trace, false, "created local file '%v'", localFileName)
 	}
 
 	stream, err := gridFile.OpenStreamForReading()
@@ -377,7 +377,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
 	}
 
-	log.Logvf(log.Always, fmt.Sprintf("finished writing to %s\n", localFileName))
+	log.Logvf(log.Info, false, fmt.Sprintf("finished writing to %s\n", localFileName))
 	return nil
 }
 
@@ -400,7 +400,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		}
 		dc := util.DeferredCloser{Closer: localFile}
 		defer dc.CloseWithErrorCapture(&err)
-		log.Logvf(log.DebugLow, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
+		log.Logvf(log.Trace, false, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
 	}
 
 	// check if --replace flag turned on
@@ -441,15 +441,15 @@ func (mf *MongoFiles) handlePut() error {
 			return err
 		}
 
-		log.Logvf(log.Always, "adding gridFile: %v\n", filename)
+		log.Logvf(log.Info, false, "adding gridFile: %v\n", filename)
 
 		n, err := mf.put(id, filename)
 		if err != nil {
-			log.Logvf(log.Always, "error adding gridFile: %v\n", err)
+			log.Logvf(log.Error, false, "error adding gridFile: %v\n", err)
 			return err
 		}
-		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-		log.Logvf(log.Always, "added gridFile: %v\n", filename)
+		log.Logvf(log.Info, false,"copied %v bytes to server", n)
+		log.Logvf(log.Info, false,"added gridFile: %v\n", filename)
 	}
 
 	return nil
@@ -466,7 +466,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		return "", fmt.Errorf("error determining type of node connected: %v", err)
 	}
 
-	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
+	log.Logvf(log.Trace, false, "connected to node type: %v", nodeType)
 
 	client, err := mf.SessionProvider.GetSession()
 	if err != nil {
@@ -485,7 +485,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	}
 
 	if displayHost {
-		log.Logvf(log.Always, "connected to: %v", util.SanitizeURI(mf.ToolOptions.URI.ConnectionString))
+		log.Logvf(log.Info, false, "connected to: %v", util.SanitizeURI(mf.ToolOptions.URI.ConnectionString))
 	}
 
 	// first validate the namespaces we'll be using: <db>.<prefix>.files and <db>.<prefix>.chunks

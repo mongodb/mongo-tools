@@ -25,8 +25,8 @@ func main() {
 	// initialize command-line opts
 	opts, err := bsondump.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "%v", err)
-		log.Logvf(log.Always, util.ShortUsage("bsondump"))
+		log.Logvf(log.Error, false,  "%v", err)
+		log.Logvf(log.Info, false,  util.ShortUsage("bsondump"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -44,18 +44,18 @@ func main() {
 
 	dumper, err := bsondump.New(opts)
 	if err != nil {
-		log.Logv(log.Always, err.Error())
+		log.Logv(log.Error, false,  err.Error())
 		os.Exit(util.ExitFailure)
 	}
 	defer func() {
 		err := dumper.Close()
 		if err != nil {
-			log.Logvf(log.Always, "error cleaning up: %v", err)
+			log.Logvf(log.Error, false,  "error cleaning up: %v", err)
 			os.Exit(util.ExitFailure)
 		}
 	}()
 
-	log.Logvf(log.DebugLow, "running bsondump with --objcheck: %v", opts.ObjCheck)
+	log.Logvf(log.Trace, false,  "running bsondump with --objcheck: %v", opts.ObjCheck)
 
 	var numFound int
 	if opts.Type == bsondump.DebugOutputType {
@@ -64,9 +64,9 @@ func main() {
 		numFound, err = dumper.JSON()
 	}
 
-	log.Logvf(log.Always, "%v objects found", numFound)
+	log.Logvf(log.Info, false,  "%v objects found", numFound)
 	if err != nil {
-		log.Logv(log.Always, err.Error())
+		log.Logv(log.Error, false,  err.Error())
 		os.Exit(util.ExitFailure)
 	}
 }

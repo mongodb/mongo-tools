@@ -125,7 +125,7 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	}
 	if converted {
 		newJSONString := CreateExtJSONString(indexKey)
-		log.Logvf(log.Always, "convertLegacyIndexes: converted index values '%s' to '%s' on collection '%s'",
+		log.Logvf(log.Info, false, "convertLegacyIndexes: converted index values '%s' to '%s' on collection '%s'",
 			originalJSONString, newJSONString, ns)
 	}
 }
@@ -146,7 +146,7 @@ func ConvertLegacyIndexOptions(indexOptions bson.M) {
 	}
 	if converted {
 		newJSONString := CreateExtJSONString(indexOptions)
-		log.Logvf(log.Always, "convertLegacyIndexes: converted index options '%s' to '%s'",
+		log.Logvf(log.Info, false, "convertLegacyIndexes: converted index options '%s' to '%s'",
 			originalJSONString, newJSONString)
 	}
 }
@@ -169,7 +169,7 @@ func ConvertLegacyIndexOptionsFromOp(indexOptions *bson.D) {
 	}
 	if converted {
 		newJSONString := CreateExtJSONString(indexOptions)
-		log.Logvf(log.Always, "ConvertLegacyIndexOptionsFromOp: converted index options '%s' to '%s'",
+		log.Logvf(log.Info, false, "ConvertLegacyIndexOptionsFromOp: converted index options '%s' to '%s'",
 			originalJSONString, newJSONString)
 	}
 }

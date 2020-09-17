@@ -25,8 +25,8 @@ var (
 func main() {
 	opts, err := mongofiles.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logv(log.Always, util.ShortUsage("mongofiles"))
+		log.Logvf(log.Error, false,  "error parsing command line options: %s", err.Error())
+		log.Logv(log.Info, false,  util.ShortUsage("mongofiles"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -44,9 +44,9 @@ func main() {
 
 	mf, err := mongofiles.New(opts)
 	if err != nil {
-		log.Logv(log.Always, err.Error())
+		log.Logv(log.Error,false,  err.Error())
 		if setupErr, ok := err.(util.SetupError); ok && setupErr.Message != "" {
-			log.Logvf(log.Always, setupErr.Message)
+			log.Logvf(log.Error, false,  setupErr.Message)
 		}
 		os.Exit(util.ExitFailure)
 	}
@@ -54,7 +54,7 @@ func main() {
 
 	output, err := mf.Run(true)
 	if err != nil {
-		log.Logvf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Error,false,  "Failed: %v", err)
 		os.Exit(util.ExitFailure)
 	}
 	fmt.Printf("%s", output)

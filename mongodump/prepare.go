@@ -271,7 +271,7 @@ func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 // puts it into the intent manager.
 func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if dump.shouldSkipCollection(colName) {
-		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, colName)
+		log.Logvf(log.Trace, false,  "skipping dump of %v.%v, it is excluded", dbName, colName)
 		return nil
 	}
 
@@ -327,7 +327,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		} else {
 			// otherwise, it's a view and the options specify not dumping a view
 			// so don't dump it.
-			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
+			log.Logvf(log.Trace,false,  "not dumping data for %v.%v because it is a view", dbName, ci.Name)
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && ci.IsView() {
@@ -391,16 +391,16 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 			return fmt.Errorf("error decoding collection info: %v", err)
 		}
 		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
-			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
+			log.Logvf(log.Trace, false, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
 			continue
 		}
 		if dump.shouldSkipCollection(collInfo.Name) {
-			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)
+			log.Logvf(log.Trace,false,  "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)
 			continue
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && !collInfo.IsView() {
-			log.Logvf(log.DebugLow, "skipping dump of %v.%v because it is not a view", dbName, collInfo.Name)
+			log.Logvf(log.Trace,false,  "skipping dump of %v.%v because it is not a view", dbName, collInfo.Name)
 			continue
 		}
 		intent, err := dump.NewIntentFromOptions(dbName, collInfo)
@@ -419,7 +419,7 @@ func (dump *MongoDump) CreateAllIntents() error {
 	if err != nil {
 		return fmt.Errorf("error getting database names: %v", err)
 	}
-	log.Logvf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
+	log.Logvf(log.Trace,false,  "found databases: %v", strings.Join(dbs, ", "))
 	for _, dbName := range dbs {
 		if dbName == "local" {
 			// local can only be explicitly dumped
