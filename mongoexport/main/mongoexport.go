@@ -24,8 +24,8 @@ var (
 func main() {
 	opts, err := mongoexport.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, util.ShortUsage("mongoexport"))
+		log.Logvf(log.Error, false,"error parsing command line options: %v", err)
+		log.Logvf(log.Info, false, util.ShortUsage("mongoexport"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -43,10 +43,10 @@ func main() {
 
 	exporter, err := mongoexport.New(opts)
 	if err != nil {
-		log.Logvf(log.Always, "%v", err)
+		log.Logvf(log.Error, false, "%v", err)
 
 		if se, ok := err.(util.SetupError); ok && se.Message != "" {
-			log.Logv(log.Always, se.Message)
+			log.Logv(log.Error, false, se.Message)
 		}
 
 		os.Exit(util.ExitFailure)
@@ -55,7 +55,7 @@ func main() {
 
 	writer, err := exporter.GetOutputWriter()
 	if err != nil {
-		log.Logvf(log.Always, "error opening output stream: %v", err)
+		log.Logvf(log.Error, false, "error opening output stream: %v", err)
 		os.Exit(util.ExitFailure)
 	}
 	if writer == nil {
@@ -66,14 +66,14 @@ func main() {
 
 	numDocs, err := exporter.Export(writer)
 	if err != nil {
-		log.Logvf(log.Always, "Failed: %v", err)
+		log.Logvf(log.Error, false, "Failed: %v", err)
 		os.Exit(util.ExitFailure)
 	}
 
 	if numDocs == 1 {
-		log.Logvf(log.Always, "exported %v record", numDocs)
+		log.Logvf(log.Info, false, "exported %v record", numDocs)
 	} else {
-		log.Logvf(log.Always, "exported %v records", numDocs)
+		log.Logvf(log.Info, false, "exported %v records", numDocs)
 	}
 
 }

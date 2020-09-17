@@ -132,7 +132,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 			return Options{}, fmt.Errorf("--slaveOk can't be specified when --readPreference is specified")
 		}
 
-		log.Logvf(log.Always, "--slaveOk is deprecated and --readPreference=nearest should be used instead")
+		log.Logvf(log.Warn, false, "--slaveOk is deprecated and --readPreference=nearest should be used instead")
 		inputOpts.ReadPreference = "nearest"
 	}
 

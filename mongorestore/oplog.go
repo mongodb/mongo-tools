@@ -38,7 +38,7 @@ type oplogContext struct {
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
 	if strings.HasPrefix(ns, "config.cache.") || ns == "config.system.sessions" || ns == "config.system.indexBuilds" {
-		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
+		log.Logv(log.Info, false, "skipping applying the "+ns+" namespace in applyOps")
 		return true
 	}
 	return false
@@ -46,11 +46,11 @@ func shouldIgnoreNamespace(ns string) bool {
 
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
-	log.Logv(log.Always, "replaying oplog")
+	log.Logv(log.Info, false, "replaying oplog")
 	intent := restore.manager.Oplog()
 	if intent == nil {
 		// this should not be reached
-		log.Logv(log.Always, "no oplog file provided, skipping oplog application")
+		log.Logv(log.Info, false, "no oplog file provided, skipping oplog application")
 		return nil
 	}
 	if err := intent.BSONFile.Open(); err != nil {
@@ -114,14 +114,14 @@ func (restore *MongoRestore) RestoreOplog() error {
 		if entryAsOplog.Operation == "c" && len(entryAsOplog.Object) > 0 {
 			entryName := entryAsOplog.Object[0].Key
 			if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
-				log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+				log.Logv(log.Info, false, "skipping applying the oplog entry "+entryName)
 				continue
 			}
 		}
 
 		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
 			log.Logvf(
-				log.DebugLow,
+				log.Trace, false,
 				"timestamp %v is not below limit of %v; ending oplog restoration",
 				entryAsOplog.Timestamp,
 				restore.oplogLimit,
@@ -151,7 +151,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 		fileNeedsIOBuffer.ReleaseIOBuffer()
 	}
 
-	log.Logvf(log.Always, "applied %v oplog entries", oplogCtx.totalOps)
+	log.Logvf(log.Info, false, "applied %v oplog entries", oplogCtx.totalOps)
 	if err := decodedBsonSource.Err(); err != nil {
 		return fmt.Errorf("error reading oplog bson input: %v", err)
 	}

@@ -25,8 +25,8 @@ func main() {
 	opts, err := mongorestore.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Always, util.ShortUsage("mongorestore"))
+		log.Logvf(log.Error, false, "error parsing command line options: %s", err.Error())
+		log.Logvf(log.Info, false, util.ShortUsage("mongorestore"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -41,7 +41,7 @@ func main() {
 
 	restore, err := mongorestore.New(opts)
 	if err != nil {
-		log.Logvf(log.Always, err.Error())
+		log.Logvf(log.Error, false, err.Error())
 		os.Exit(util.ExitFailure)
 	}
 	defer restore.Close()
@@ -51,13 +51,13 @@ func main() {
 
 	result := restore.Restore()
 	if result.Err != nil {
-		log.Logvf(log.Always, "Failed: %v", result.Err)
+		log.Logvf(log.Error, false, "Failed: %v", result.Err)
 	}
 
 	if restore.ToolOptions.WriteConcern.Acknowledged() {
-		log.Logvf(log.Always, "%v document(s) restored successfully. %v document(s) failed to restore.", result.Successes, result.Failures)
+		log.Logvf(log.Info, false, "%v document(s) restored successfully. %v document(s) failed to restore.", result.Successes, result.Failures)
 	} else {
-		log.Logvf(log.Always, "done")
+		log.Logvf(log.Info, false, "done")
 	}
 
 	if result.Err != nil {

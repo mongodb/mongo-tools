@@ -496,7 +496,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		return "", err
 	}
 
-	log.Logvf(log.Info, "handling mongofiles '%v' command...", mf.Command)
+	log.Logvf(log.Debug, false, "handling mongofiles '%v' command...", mf.Command)
 
 	switch mf.Command {
 

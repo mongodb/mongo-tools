@@ -224,7 +224,7 @@ func getUpsertValue(field string, document bson.D) interface{} {
 	left := field[0:index]
 	subDoc, _ := bsonutil.FindValueByKey(left, &document)
 	if subDoc == nil {
-		log.Logvf(log.DebugHigh, "no subdoc found for '%v'", left)
+		log.Logvf(log.Trace, false, "no subdoc found for '%v'", left)
 		return nil
 	}
 	switch subDoc.(type) {
@@ -235,7 +235,7 @@ func getUpsertValue(field string, document bson.D) interface{} {
 		subDocD := subDoc.(*bson.D)
 		return getUpsertValue(field[index+1:], *subDocD)
 	default:
-		log.Logvf(log.DebugHigh, "subdoc found for '%v', but couldn't coerce to bson.D", left)
+		log.Logvf(log.Trace, false, "subdoc found for '%v', but couldn't coerce to bson.D", left)
 		return nil
 	}
 }
@@ -491,7 +491,7 @@ func (coercionError) Error() string { return "coercionError" }
 // tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
 func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool, useArrayIndexFields bool) (bson.D, error) {
-	log.Logvf(log.DebugHigh, "got line: %v", tokens)
+	log.Logvf(log.Trace, false, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
 	for index, token := range tokens {
@@ -501,7 +501,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 		if index < len(colSpecs) {
 			parsedValue, err := colSpecs[index].Parser.Parse(token)
 			if err != nil {
-				log.Logvf(log.DebugHigh, "parse failure in document #%d for column '%s',"+
+				log.Logvf(log.Trace, false, "parse failure in document #%d for column '%s',"+
 					"could not parse token '%s' to type %s",
 					numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
 				switch colSpecs[index].ParseGrace {
@@ -510,7 +510,7 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 				case pgSkipField:
 					continue
 				case pgSkipRow:
-					log.Logvf(log.Always, "skipping row #%d: %v", numProcessed, tokens)
+					log.Logvf(log.Info, false, "skipping row #%d: %v", numProcessed, tokens)
 					return nil, coercionError{}
 				case pgStop:
 					return nil, fmt.Errorf("type coercion failure in document #%d for column '%s', "+
@@ -785,9 +785,9 @@ func validateReaderFields(fields []string, useArrayIndexFields bool) error {
 		return err
 	}
 	if len(fields) == 1 {
-		log.Logvf(log.Info, "using field: %v", fields[0])
+		log.Logvf(log.Debug, false,"using field: %v", fields[0])
 	} else {
-		log.Logvf(log.Info, "using fields: %v", strings.Join(fields, ","))
+		log.Logvf(log.Debug, false, "using fields: %v", strings.Join(fields, ","))
 	}
 	return nil
 }

@@ -60,7 +60,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 		fileSize := fi.Size()
 
 		for i := fileSize; i >= 0; i -= fileSize / 10 {
-			log.Logvf(log.Always, "Restoring from the first %v bytes of a archive of size %v", i, fileSize)
+			log.Logvf(log.Info, false, "Restoring from the first %v bytes of a archive of size %v", i, fileSize)
 
 			_, err = file.Seek(0, 0)
 			So(err, ShouldBeNil)

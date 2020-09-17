@@ -13,8 +13,8 @@ We will use the following guidelines to determine when each version component wi
 
 The team recognizes that log messages, while intended to be informational, may cause breakage if scripts attempt to parse output.
 While we will not commit to a formal versioning policy for log message changes, we will attempt to adhere to the following guidelines:
-- **log.Always** level (the default): adding logging is a "minor" change; changing or removing logging is a "major" change.
-- **log.Info** and higher levels (-v to -vvv): additions, modifications and removals are "patch" changes. We make no promises about message stability at these levels. 
+- **log.Error, log.Info, and log.Warn** levels (the default): adding logging is a "minor" change; changing or removing logging is a "major" change.
+- **log.Debug** and higher levels (-v to -vvv): additions, modifications and removals are "patch" changes. We make no promises about message stability at these levels. 
 
 At the moment, there are no pre-release (alpha, beta, rc, etc.) versions of the Tools.
 If there is a need to support pre-release versions of the Tools, we will need to update our release infrastructure to support them.

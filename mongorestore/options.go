@@ -210,7 +210,7 @@ func getTargetDirFromArgs(extraArgs []string, dirFlag string) (string, error) {
 
 	case dirFlag != "":
 		// if we have no extra args and a --dir flag, use the --dir flag
-		log.Logv(log.Info, "using "+DirectoryOption+" flag instead of arguments")
+		log.Logv(log.Debug, false, "using "+DirectoryOption+" flag instead of arguments")
 		return dirFlag, nil
 
 	default:

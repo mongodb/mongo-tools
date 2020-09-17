@@ -155,12 +155,12 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	// Can't use option pkg defaults for --objcheck because it's two separate flags,
 	// and we need to be able to see if they're both being used. We default to
 	// true here and then see if noobjcheck is enabled.
-	log.Logv(log.DebugHigh, "checking options")
+	log.Logv(log.Trace, false, "checking options")
 	if restore.InputOptions.Objcheck {
 		restore.objCheck = true
-		log.Logv(log.DebugHigh, "\tdumping with object check enabled")
+		log.Logv(log.Trace, false, "\tdumping with object check enabled")
 	} else {
-		log.Logv(log.DebugHigh, "\tdumping with object check disabled")
+		log.Logv(log.Trace, false, "\tdumping with object check disabled")
 	}
 
 	if restore.NSOptions.DB == "" && restore.NSOptions.Collection != "" {
@@ -190,7 +190,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return err
 	}
 	if restore.isMongos {
-		log.Logv(log.DebugLow, "restoring to a sharded system")
+		log.Logv(log.Trace, false, "restoring to a sharded system")
 	}
 
 	if restore.InputOptions.OplogLimit != "" {
@@ -217,17 +217,17 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return fmt.Errorf("error determining type of connected node: %v", err)
 	}
 
-	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
+	log.Logvf(log.Trace, false, "connected to node type: %v", nodeType)
 
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
 		if filepath.Ext(restore.TargetDirectory) != ".bson" {
-			log.Logvf(log.Always, deprecatedDBAndCollectionsOptionsWarning)
+			log.Logvf(log.Warn, false, deprecatedDBAndCollectionsOptionsWarning)
 		}
 	}
 	if len(restore.NSOptions.ExcludedCollections) > 0 ||
 		len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 {
-		log.Logvf(log.Always, "the --excludeCollections and --excludeCollectionPrefixes options "+
+		log.Logvf(log.Warn, false, "the --excludeCollections and --excludeCollectionPrefixes options "+
 			"are deprecated and will not exist in the future; use --nsExclude instead")
 	}
 	if restore.InputOptions.OplogReplay {
@@ -330,7 +330,7 @@ func (restore *MongoRestore) Restore() Result {
 	var target archive.DirLike
 	err := restore.ParseAndValidateOptions()
 	if err != nil {
-		log.Logvf(log.DebugLow, "got error from options parsing: %v", err)
+		log.Logvf(log.Trace, false, "got error from options parsing: %v", err)
 		return Result{Err: err}
 	}
 
@@ -355,9 +355,9 @@ func (restore *MongoRestore) Restore() Result {
 		if err != nil {
 			return Result{Err: err}
 		}
-		log.Logvf(log.DebugLow, `archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
-		log.Logvf(log.DebugLow, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
-		log.Logvf(log.DebugLow, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
+		log.Logvf(log.Trace, false,`archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
+		log.Logvf(log.Trace, false, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
+		log.Logvf(log.Trace, false, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
 		target, err = restore.archive.Prelude.NewPreludeExplorer()
 		if err != nil {
 			return Result{Err: err}
@@ -366,25 +366,25 @@ func (restore *MongoRestore) Restore() Result {
 		var usedDefaultTarget bool
 		if restore.TargetDirectory == "" {
 			restore.TargetDirectory = "dump"
-			log.Logv(log.Always, "using default 'dump' directory")
+			log.Logv(log.Info, false, "using default 'dump' directory")
 			usedDefaultTarget = true
 		}
 		target, err = newActualPath(restore.TargetDirectory)
 		if err != nil {
 			if usedDefaultTarget {
-				log.Logv(log.Always, util.ShortUsage("mongorestore"))
+				log.Logv(log.Info, false, util.ShortUsage("mongorestore"))
 			}
 			return Result{Err: fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)}
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
-			log.Logv(log.DebugLow, "mongorestore target is a file, not a directory")
+			log.Logv(log.Trace, false, "mongorestore target is a file, not a directory")
 			err = restore.handleBSONInsteadOfDirectory(restore.TargetDirectory)
 			if err != nil {
 				return Result{Err: err}
 			}
 		} else {
-			log.Logv(log.DebugLow, "mongorestore target is a directory, not a file")
+			log.Logv(log.Trace, false, "mongorestore target is a directory, not a file")
 		}
 	}
 	if restore.NSOptions.Collection != "" &&
@@ -393,7 +393,7 @@ func (restore *MongoRestore) Restore() Result {
 		!restore.OutputOptions.MaintainInsertionOrder {
 		// handle special parallelization case when we are only restoring one collection
 		// by mapping -j to insertion workers rather than parallel collections
-		log.Logvf(log.DebugHigh,
+		log.Logvf(log.Trace, false,
 			"setting number of insertions workers to number of parallel collections (%v)",
 			restore.OutputOptions.NumParallelCollections)
 		restore.OutputOptions.NumInsertionWorkers = restore.OutputOptions.NumParallelCollections
@@ -401,7 +401,7 @@ func (restore *MongoRestore) Restore() Result {
 	if restore.InputOptions.Archive != "" {
 		if int(restore.archive.Prelude.Header.ConcurrentCollections) > restore.OutputOptions.NumParallelCollections {
 			restore.OutputOptions.NumParallelCollections = int(restore.archive.Prelude.Header.ConcurrentCollections)
-			log.Logvf(log.Always,
+			log.Logvf(log.Info, false,
 				"setting number of parallel collections to number of parallel collections in archive (%v)",
 				restore.archive.Prelude.Header.ConcurrentCollections,
 			)
@@ -416,10 +416,10 @@ func (restore *MongoRestore) Restore() Result {
 
 	switch {
 	case restore.InputOptions.Archive != "":
-		log.Logvf(log.Always, "preparing collections to restore from")
+		log.Logvf(log.Info, false, "preparing collections to restore from")
 		err = restore.CreateAllIntents(target)
 	case restore.NSOptions.DB != "" && restore.NSOptions.Collection == "":
-		log.Logvf(log.Always,
+		log.Logvf(log.Info, false,
 			"building a list of collections to restore from %v dir",
 			target.Path())
 		err = restore.CreateIntentsForDB(
@@ -427,20 +427,20 @@ func (restore *MongoRestore) Restore() Result {
 			target,
 		)
 	case restore.NSOptions.DB != "" && restore.NSOptions.Collection != "" && restore.TargetDirectory == "-":
-		log.Logvf(log.Always, "setting up a collection to be read from standard input")
+		log.Logvf(log.Info, false, "setting up a collection to be read from standard input")
 		err = restore.CreateStdinIntentForCollection(
 			restore.NSOptions.DB,
 			restore.NSOptions.Collection,
 		)
 	case restore.NSOptions.DB != "" && restore.NSOptions.Collection != "":
-		log.Logvf(log.Always, "checking for collection data in %v", target.Path())
+		log.Logvf(log.Info, false, "checking for collection data in %v", target.Path())
 		err = restore.CreateIntentForCollection(
 			restore.NSOptions.DB,
 			restore.NSOptions.Collection,
 			target,
 		)
 	default:
-		log.Logvf(log.Always, "preparing collections to restore from")
+		log.Logvf(log.Info, false, "preparing collections to restore from")
 		err = restore.CreateAllIntents(target)
 	}
 	if err != nil {
@@ -469,13 +469,13 @@ func (restore *MongoRestore) Restore() Result {
 	conflicts := restore.manager.GetDestinationConflicts()
 	if len(conflicts) > 0 {
 		for _, conflict := range conflicts {
-			log.Logvf(log.Always, "%s", conflict.Error())
+			log.Logvf(log.Error, false, "%s", conflict.Error())
 		}
 		return Result{Err: fmt.Errorf("cannot restore with conflicting namespace destinations")}
 	}
 
 	if restore.OutputOptions.DryRun {
-		log.Logvf(log.Always, "dry run completed")
+		log.Logvf(log.Info, false, "dry run completed")
 		return Result{}
 	}
 
@@ -510,12 +510,12 @@ func (restore *MongoRestore) Restore() Result {
 				intent.IsUsers() ||
 				intent.IsRoles() ||
 				intent.IsAuthVersion() {
-				log.Logvf(log.DebugLow, "special collection %v found", ns)
+				log.Logvf(log.Trace, false, "special collection %v found", ns)
 				namespaceErrorChan <- nil
 			} else {
 				// Put the ns back on the announcement chan so that the
 				// demultiplexer can start correctly
-				log.Logvf(log.DebugLow, "first non special collection %v found."+
+				log.Logvf(log.Trace, false, "first non special collection %v found."+
 					" The demultiplexer will handle it and the remainder", ns)
 				namespaceChan <- ns
 				break
@@ -525,7 +525,7 @@ func (restore *MongoRestore) Restore() Result {
 
 	// If restoring users and roles, make sure we validate auth versions
 	if restore.ShouldRestoreUsersAndRoles() {
-		log.Logv(log.Info, "comparing auth version of the dump directory and target server")
+		log.Logv(log.Debug, false, "comparing auth version of the dump directory and target server")
 		restore.authVersions.Dump, err = restore.GetDumpAuthVersion()
 		if err != nil {
 			return Result{Err: fmt.Errorf("error getting auth version from dump: %v", err)}

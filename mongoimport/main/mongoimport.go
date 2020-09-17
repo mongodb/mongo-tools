@@ -24,8 +24,8 @@ var (
 func main() {
 	opts, err := mongoimport.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, util.ShortUsage("mongoimport"))
+		log.Logvf(log.Error, false, "error parsing command line options: %v", err)
+		log.Logvf(log.Info, false, util.ShortUsage("mongoimport"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -43,7 +43,7 @@ func main() {
 
 	m, err := mongoimport.New(opts)
 	if err != nil {
-		log.Logvf(log.Always, err.Error())
+		log.Logvf(log.Error, false, err.Error())
 		os.Exit(util.ExitFailure)
 	}
 	defer m.Close()
@@ -51,16 +51,16 @@ func main() {
 	numDocs, numFailure, err := m.ImportDocuments()
 	if !opts.Quiet {
 		if err != nil {
-			log.Logvf(log.Always, "Failed: %v", err)
+			log.Logvf(log.Error, false, "Failed: %v", err)
 		}
 		if m.ToolOptions.WriteConcern.Acknowledged() {
 			if opts.Mode == "delete" {
-				log.Logvf(log.Always, "%v document(s) deleted successfully. %v document(s) failed to delete.", numDocs, numFailure)
+				log.Logvf(log.Info, false, "%v document(s) deleted successfully. %v document(s) failed to delete.", numDocs, numFailure)
 			} else {
-				log.Logvf(log.Always, "%v document(s) imported successfully. %v document(s) failed to import.", numDocs, numFailure)
+				log.Logvf(log.Info, false, "%v document(s) imported successfully. %v document(s) failed to import.", numDocs, numFailure)
 			}
 		} else {
-			log.Logvf(log.Always, "done")
+			log.Logvf(log.Info, false, "done")
 		}
 	}
 	if err != nil {

@@ -236,7 +236,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 
 	if imp.IngestOptions.Mode != modeInsert {
 		imp.IngestOptions.MaintainInsertionOrder = true
-		log.Logvf(log.Info, "using upsert fields: %v", imp.upsertFields)
+		log.Logvf(log.Debug, false,"using upsert fields: %v", imp.upsertFields)
 	}
 
 	if imp.IngestOptions.MaintainInsertionOrder {
@@ -252,8 +252,8 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			imp.IngestOptions.NumInsertionWorkers = 1
 		}
 	}
-	log.Logvf(log.DebugLow, "using %v decoding workers", imp.IngestOptions.NumDecodingWorkers)
-	log.Logvf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
+	log.Logvf(log.Trace, false, "using %v decoding workers", imp.IngestOptions.NumDecodingWorkers)
+	log.Logvf(log.Trace, false, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
 
 	// get the number of documents per batch
 	if imp.IngestOptions.BulkBufferSize <= 0 || imp.IngestOptions.BulkBufferSize > 1000 {
@@ -262,13 +262,13 @@ func (imp *MongoImport) validateSettings(args []string) error {
 
 	// ensure we have a valid string to use for the collection
 	if imp.ToolOptions.Collection == "" {
-		log.Logvf(log.Always, "no collection specified")
+		log.Logvf(log.Info, false, "no collection specified")
 		fileBaseName := filepath.Base(imp.InputOptions.File)
 		lastDotIndex := strings.LastIndex(fileBaseName, ".")
 		if lastDotIndex != -1 {
 			fileBaseName = fileBaseName[0:lastDotIndex]
 		}
-		log.Logvf(log.Always, "using filename '%v' as collection", fileBaseName)
+		log.Logvf(log.Info, false, "using filename '%v' as collection", fileBaseName)
 		imp.ToolOptions.Collection = fileBaseName
 	}
 	err = util.ValidateCollectionName(imp.ToolOptions.Collection)
@@ -291,11 +291,11 @@ func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 		if err != nil {
 			return nil, -1, err
 		}
-		log.Logvf(log.Info, "filesize: %v bytes", fileStat.Size())
+		log.Logvf(log.Debug, false, "filesize: %v bytes", fileStat.Size())
 		return file, int64(fileStat.Size()), err
 	}
 
-	log.Logvf(log.Info, "reading from stdin")
+	log.Logvf(log.Debug, false, "reading from stdin")
 
 	// Stdin has undefined max size, so return 0
 	return os.Stdin, 0, nil
@@ -361,9 +361,9 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		return 0, 0, err
 	}
 
-	log.Logvf(log.Always, "connected to: %v", util.SanitizeURI(imp.ToolOptions.URI.ConnectionString))
+	log.Logvf(log.Info, false, "connected to: %v", util.SanitizeURI(imp.ToolOptions.URI.ConnectionString))
 
-	log.Logvf(log.Info, "ns: %v.%v",
+	log.Logvf(log.Debug, false, "ns: %v.%v",
 		imp.ToolOptions.Namespace.DB,
 		imp.ToolOptions.Namespace.Collection)
 
@@ -372,11 +372,11 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 	if err != nil {
 		return 0, 0, fmt.Errorf("error checking connected node type: %v", err)
 	}
-	log.Logvf(log.Info, "connected to node type: %v", imp.nodeType)
+	log.Logvf(log.Debug, false,"connected to node type: %v", imp.nodeType)
 
 	// drop the database if necessary
 	if imp.IngestOptions.Drop {
-		log.Logvf(log.Always, "dropping: %v.%v",
+		log.Logvf(log.Info, false, "dropping: %v.%v",
 			imp.ToolOptions.DB,
 			imp.ToolOptions.Collection)
 		collection := session.Database(imp.ToolOptions.DB).
@@ -506,7 +506,7 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 		}
 	} else if imp.IngestOptions.Mode == modeDelete {
 		if selector == nil {
-			log.Logvf(log.Info, "Could not construct selector from %v, skipping document", imp.upsertFields)
+			log.Logvf(log.Debug, false, "Could not construct selector from %v, skipping document", imp.upsertFields)
 		} else {
 			result, err = inserter.Delete(selector, document)
 		}
@@ -521,7 +521,7 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 }
 
 func (imp *MongoImport) fallbackToInsert(inserter *db.BufferedBulkInserter, document bson.D) (result *mongo.BulkWriteResult, err error) {
-	log.Logvf(log.Info, "Could not construct selector from %v, falling back to insert mode", imp.upsertFields)
+	log.Logvf(log.Debug, false, "Could not construct selector from %v, falling back to insert mode", imp.upsertFields)
 	result, err = inserter.Insert(document)
 	return
 }

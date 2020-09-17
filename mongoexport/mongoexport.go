@@ -111,7 +111,7 @@ func New(opts Options) (*MongoExport, error) {
 		return nil, util.SetupError{Err: err}
 	}
 
-	log.Logvf(log.Always, "connected to: %v", util.SanitizeURI(opts.URI.ConnectionString))
+	log.Logvf(log.Info, false, "connected to: %v", util.SanitizeURI(opts.URI.ConnectionString))
 
 	isMongos, err := provider.IsMongos()
 	if err != nil {
@@ -122,7 +122,7 @@ func New(opts Options) (*MongoExport, error) {
 	// warn if we are trying to export from a secondary in a sharded cluster
 	pref := opts.ToolOptions.ReadPreference
 	if isMongos && pref != nil && pref.Mode() != readpref.PrimaryMode {
-		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
+		log.Logvf(log.Warn, false, db.WarningNonPrimaryMongosConnection)
 	}
 
 	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, false)
@@ -164,7 +164,7 @@ func (exp *MongoExport) validateSettings() error {
 	exp.OutputOpts.Type = strings.ToLower(exp.OutputOpts.Type)
 
 	if exp.OutputOpts.CSVOutputType {
-		log.Logv(log.Always, "csv flag is deprecated; please use --type=csv instead")
+		log.Logv(log.Warn, false, "csv flag is deprecated; please use --type=csv instead")
 		exp.OutputOpts.Type = CSV
 	}
 
@@ -333,7 +333,7 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		collection := intendedDB.Collection(exp.ToolOptions.Namespace.Collection)
 		collectionInfo, err := db.GetCollectionInfo(collection)
 		if err != nil || !collectionInfo.IsView() {
-			log.Logvf(log.Always,
+			log.Logvf(log.Error, false,
 				"failed to determine storage engine, an mmapv1 storage engine could"+
 					" result in inconsistent export results, error was: %v", err)
 		}

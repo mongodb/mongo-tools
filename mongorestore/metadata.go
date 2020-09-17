@@ -199,7 +199,7 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 		{"indexes", indexes},
 	}
 
-	log.Logvf(log.Info, "\trun create Index command for indexes: %v", strings.Join(indexNames, ", "))
+	log.Logvf(log.Debug, false, "\trun create Index command for indexes: %v", strings.Join(indexNames, ", "))
 
 	if restore.serverVersion.GTE(db.Version{4, 1, 9}) {
 		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
@@ -214,9 +214,9 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 	}
 
 	// if we're here, the connected server does not support the command, so we fall back
-	log.Logv(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
+	log.Logv(log.Debug, false, "\tcreateIndexes command not supported, attemping legacy index insertion")
 	for _, idx := range indexes {
-		log.Logvf(log.Info, "\tmanually creating index %v", idx.Options["name"])
+		log.Logvf(log.Debug, false, "\tmanually creating index %v", idx.Options["name"])
 		err = restore.LegacyInsertIndex(dbName, idx)
 		if err != nil {
 			return fmt.Errorf("error creating index %v: %v", idx.Options["name"], err)
@@ -267,7 +267,7 @@ func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
 		for i, elem := range options {
 			if elem.Key == "autoIndexId" && elem.Value == false && restore.NSOptions.DB != "local" {
 				options[i].Value = true
-				log.Logvf(log.Always, "{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.")
+				log.Logvf(log.Warn, false, "{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.")
 			}
 		}
 	}
@@ -392,9 +392,9 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		if arg.intent.Size == 0 {
 			// MongoDB complains if we try and remove a non-existent collection, so we should
 			// just skip auth collections with empty .bson files to avoid gnarly logic later on.
-			log.Logvf(log.Always, "%v file '%v' is empty; skipping %v restoration", arg.intentType, arg.intent.Location, arg.intentType)
+			log.Logvf(log.Info, false, "%v file '%v' is empty; skipping %v restoration", arg.intentType, arg.intent.Location, arg.intentType)
 		}
-		log.Logvf(log.Always, "restoring %v from %v", arg.intentType, arg.intent.Location)
+		log.Logvf(log.Info, false, "restoring %v from %v", arg.intentType, arg.intent.Location)
 
 		mergeArgs = append(mergeArgs, bson.E{
 			Key:   arg.mergeParamName,
@@ -414,14 +414,14 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			return err
 		}
 		if tempCollectionNameExists {
-			log.Logvf(log.Info, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
+			log.Logvf(log.Debug, false, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
 			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(nil)
 			if err != nil {
 				return fmt.Errorf("error dropping preexisting temporary collection %v: %v", arg.tempCollectionName, err)
 			}
 		}
 
-		log.Logvf(log.DebugLow, "restoring %v to temporary collection", arg.intentType)
+		log.Logvf(log.Trace, false, "restoring %v to temporary collection", arg.intentType)
 		result := restore.RestoreCollectionToDB("admin", arg.tempCollectionName, bsonSource, arg.intent.BSONFile, 0)
 		if result.Err != nil {
 			return fmt.Errorf("error restoring %v: %v", arg.intentType, result.Err)
@@ -432,13 +432,13 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			session, e := restore.SessionProvider.GetSession()
 			if e != nil {
 				// logging errors here because this has no way of returning that doesn't mask other errors
-				log.Logvf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
+				log.Logvf(log.Debug, false, "error establishing connection to drop temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
 				return
 			}
-			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", cleanupArg.tempCollectionName)
+			log.Logvf(log.Trace, false, "dropping temporary collection admin.%v", cleanupArg.tempCollectionName)
 			e = session.Database("admin").Collection(cleanupArg.tempCollectionName).Drop(nil)
 			if e != nil {
-				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
+				log.Logvf(log.Debug, false, "error dropping temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
 			}
 		}(arg)
 		userTargetDB = arg.intent.DB
@@ -475,7 +475,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		command = append(command, bson.E{Key: "writeConcern", Value: writeConcern})
 	}
 
-	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
+	log.Logvf(log.Trace, false, "merging users/roles from temp collections")
 	resSingle := adminDB.RunCommand(nil, command)
 	if err = resSingle.Err(); err != nil {
 		return fmt.Errorf("error running merge command: %v", err)
@@ -500,13 +500,13 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			// If we are using --restoreDbUsersAndRoles, we cannot guarantee an
 			// $admin.system.version collection from a 2.6 server,
 			// so we can assume up to version 3.
-			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.NSOptions.DB)
-			log.Logv(log.Always, "warning: assuming users and roles collections are of auth version 3")
-			log.Logv(log.Always, "if users are from an earlier version of MongoDB, they may not restore properly")
+			log.Logvf(log.Info, false, "no system.version bson file found in '%v' database dump", restore.NSOptions.DB)
+			log.Logv(log.Warn, false, "warning: assuming users and roles collections are of auth version 3")
+			log.Logv(log.Warn, false, "if users are from an earlier version of MongoDB, they may not restore properly")
 			return 3, nil
 		}
-		log.Logv(log.Info, "no system.version bson file found in dump")
-		log.Logv(log.Always, "assuming users in the dump directory are from <= 2.4 (auth version 1)")
+		log.Logv(log.Debug, false, "no system.version bson file found in dump")
+		log.Logv(log.Info, false, "assuming users in the dump directory are from <= 2.4 (auth version 1)")
 		return 1, nil
 	}
 
@@ -537,11 +537,11 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 				return 0, fmt.Errorf("can't unmarshal system.version curentVersion as an int: %v", versionDoc["currentVersion"])
 			}
 		}
-		log.Logvf(log.DebugLow, "system.version document is not an authSchema %v", versionDoc["_id"])
+		log.Logvf(log.Trace, false, "system.version document is not an authSchema %v", versionDoc["_id"])
 	}
 	err = bsonSource.Err()
 	if err != nil {
-		log.Logvf(log.Info, "can't unmarshal system.version document: %v", err)
+		log.Logvf(log.Debug, false, "can't unmarshal system.version document: %v", err)
 	}
 	return 0, fmt.Errorf("system.version bson file does not have authSchema document")
 }
@@ -562,25 +562,25 @@ func (restore *MongoRestore) ValidateAuthVersions() error {
 	}
 	switch restore.authVersions {
 	case authVersionPair{3, 5}:
-		log.Logv(log.Info,
+		log.Logv(log.Debug, false,
 			"restoring users and roles of auth version 3 to a server of auth version 5")
 	case authVersionPair{5, 5}:
-		log.Logv(log.Info,
+		log.Logv(log.Debug, false,
 			"restoring users and roles of auth version 5 to a server of auth version 5")
 	case authVersionPair{3, 3}:
-		log.Logv(log.Info,
+		log.Logv(log.Debug, false,
 			"restoring users and roles of auth version 3 to a server of auth version 3")
 	case authVersionPair{1, 1}:
-		log.Logv(log.Info,
+		log.Logv(log.Debug, false,
 			"restoring users and roles of auth version 1 to a server of auth version 1")
 	case authVersionPair{1, 5}:
 		return fmt.Errorf("cannot restore users of auth version 1 to a server of auth version 5")
 	case authVersionPair{5, 3}:
 		return fmt.Errorf("cannot restore users of auth version 5 to a server of auth version 3")
 	case authVersionPair{1, 3}:
-		log.Logv(log.Info,
+		log.Logv(log.Debug, false,
 			"restoring users and roles of auth version 1 to a server of auth version 3")
-		log.Logv(log.Always,
+		log.Logv(log.Warn, false,
 			"users and roles will have to be updated with the authSchemaUpgrade command")
 	case authVersionPair{5, 1}:
 		fallthrough
