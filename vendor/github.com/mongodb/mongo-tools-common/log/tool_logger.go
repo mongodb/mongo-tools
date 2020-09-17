@@ -18,17 +18,17 @@ import (
 // Tool Logger verbosity constants
 const (
 	Error = iota
-	Warn
-	Info
 	Debug
 	Trace
+	Warn
+	Info
 )
 
 const (
 	ToolTimeFormat = "2006-01-02T15:04:05.000-0700"
 )
 
-var errAbbreviations = []string{"ERR", "WRN", "INF", "DEB", "TRC"}
+var errAbbreviations = []string{"ERR", "DEB", "TRC", "WRN", "INF"}
 
 //// Tool Logger Definition
 
@@ -70,7 +70,11 @@ func (tl *ToolLogger) Logvf(minVerb int, printLogType bool, format string, a ...
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}
 
-	if minVerb <= tl.verbosity {
+	logLevel := minVerb
+	if minVerb == Error || minVerb == Info || minVerb == Warn {
+		logLevel = 0
+	}
+	if logLevel <= tl.verbosity {
 		tl.mutex.Lock()
 		defer tl.mutex.Unlock()
 		if printLogType {
@@ -86,7 +90,11 @@ func (tl *ToolLogger) Logv(minVerb int, printLogType bool, msg string) {
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}
 
-	if minVerb <= tl.verbosity {
+	logLevel := minVerb
+	if minVerb == Error || minVerb == Info || minVerb == Warn {
+		logLevel = 0
+	}
+	if logLevel <= tl.verbosity {
 		tl.mutex.Lock()
 		defer tl.mutex.Unlock()
 		if printLogType {
