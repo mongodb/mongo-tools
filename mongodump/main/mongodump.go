@@ -32,13 +32,13 @@ func main() {
 	// initialize command-line opts
 	opts, err := mongodump.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Error, false,  "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Info, false,  util.ShortUsage("mongodump"))
+		log.Logvf(log.Error, false, "error parsing command line options: %s", err.Error())
+		log.Logvf(log.Info, false, util.ShortUsage("mongodump"))
 		os.Exit(util.ExitFailure)
 	}
 
 	// print help, if specified
-	if opts.PrintHelp( false) {
+	if opts.PrintHelp(false) {
 		return
 	}
 
@@ -69,12 +69,12 @@ func main() {
 	defer close(finishedChan)
 
 	if err = dump.Init(); err != nil {
-		log.Logvf(log.Error, false,  "Failed: %v", err)
+		log.Logvf(log.Error, false, "Failed: %v", err)
 		os.Exit(util.ExitFailure)
 	}
 
 	if err = dump.Dump(); err != nil {
-		log.Logvf(log.Error, false,  "Failed: %v", err)
+		log.Logvf(log.Error, false, "Failed: %v", err)
 		os.Exit(util.ExitFailure)
 	}
 }

@@ -58,8 +58,8 @@ func main() {
 	// initialize command-line opts
 	opts, err := mongostat.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
-		log.Logvf(log.Error, false,  "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Info, false,  util.ShortUsage("mongostat"))
+		log.Logvf(log.Error, false, "error parsing command line options: %s", err.Error())
+		log.Logvf(log.Info, false, util.ShortUsage("mongostat"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -82,31 +82,31 @@ func main() {
 	if opts.Auth.Username != "" && opts.GetAuthenticationDatabase() == "" && !opts.Auth.RequiresExternalDB() {
 		// add logic to have different error if using uri
 		if opts.URI != nil && opts.URI.ConnectionString != "" {
-			log.Logvf(log.Error, false,  "authSource is required when authenticating against a non $external database")
+			log.Logvf(log.Error, false, "authSource is required when authenticating against a non $external database")
 			os.Exit(util.ExitFailure)
 		}
 
-		log.Logvf(log.Error, false,  "--authenticationDatabase is required when authenticating against a non $external database")
+		log.Logvf(log.Error, false, "--authenticationDatabase is required when authenticating against a non $external database")
 		os.Exit(util.ExitFailure)
 	}
 
 	if opts.Interactive && opts.Json {
-		log.Logvf(log.Error, false,  "cannot use output formats --json and --interactive together")
+		log.Logvf(log.Error, false, "cannot use output formats --json and --interactive together")
 		os.Exit(util.ExitFailure)
 	}
 
 	if opts.Deprecated && !opts.Json {
-		log.Logvf(log.Error, false,  "--useDeprecatedJsonKeys can only be used when --json is also specified")
+		log.Logvf(log.Error, false, "--useDeprecatedJsonKeys can only be used when --json is also specified")
 		os.Exit(util.ExitFailure)
 	}
 
 	if opts.Columns != "" && opts.AppendColumns != "" {
-		log.Logvf(log.Error, false,  "-O cannot be used if -o is also specified")
+		log.Logvf(log.Error, false, "-O cannot be used if -o is also specified")
 		os.Exit(util.ExitFailure)
 	}
 
 	if opts.HumanReadable != "true" && opts.HumanReadable != "false" {
-		log.Logvf(log.Error, false,  "--humanReadable must be set to either 'true' or 'false'")
+		log.Logvf(log.Error, false, "--humanReadable must be set to either 'true' or 'false'")
 		os.Exit(util.ExitFailure)
 	}
 
@@ -115,7 +115,7 @@ func main() {
 	if opts.Auth.ShouldAskForPassword() {
 		pass, err := password.Prompt()
 		if err != nil {
-			log.Logvf(log.Error, false,  "Failed: %v", err)
+			log.Logvf(log.Error, false, "Failed: %v", err)
 			os.Exit(util.ExitFailure)
 		}
 		opts.Auth.Password = pass
@@ -211,7 +211,7 @@ func main() {
 
 	for _, v := range seedHosts {
 		if err := stat.AddNewNode(v); err != nil {
-			log.Logv(log.Error, false,  err.Error())
+			log.Logv(log.Error, false, err.Error())
 			os.Exit(util.ExitFailure)
 		}
 	}
@@ -223,7 +223,7 @@ func main() {
 	}
 	formatter.Finish()
 	if err != nil {
-		log.Logvf(log.Error, false,  "Failed: %v", err)
+		log.Logvf(log.Error, false, "Failed: %v", err)
 		os.Exit(util.ExitFailure)
 	}
 }
