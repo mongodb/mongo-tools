@@ -448,7 +448,7 @@ func (mf *MongoFiles) handlePut() error {
 			log.Logvf(log.Error, false, "error adding gridFile: %v\n", err)
 			return err
 		}
-		log.Logvf(log.Info, false, "copied %v bytes to server", n)
+		log.Logvf(log.Trace, false, "copied %v bytes to server", n)
 		log.Logvf(log.Info, false, "added gridFile: %v\n", filename)
 	}
 
