@@ -285,7 +285,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
 
 	clientopt.SetAppName(opts.AppName)
-	if opts.Direct {
+	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
 		t := true
 		clientopt.AuthenticateToAnything = &t
