@@ -131,7 +131,7 @@ func (dump *MongoDump) ValidateOptions() error {
 
 // Init performs preliminary setup operations for MongoDump.
 func (dump *MongoDump) Init() error {
-	log.Logvf(log.Trace, false,  "initializing mongodump object")
+	log.Logvf(log.Trace, false, "initializing mongodump object")
 
 	// this would be default, but explicit setting protects us from any
 	// redefinition of the constants.
@@ -167,7 +167,7 @@ func (dump *MongoDump) Init() error {
 
 	// warn if we are trying to dump from a secondary in a sharded cluster
 	if dump.isMongos && pref != readpref.Primary() {
-		log.Logvf(log.Warn, false,  db.WarningNonPrimaryMongosConnection)
+		log.Logvf(log.Warn, false, db.WarningNonPrimaryMongosConnection)
 	}
 
 	dump.manager = intents.NewIntentManager()
@@ -200,12 +200,12 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error verifying collection info: %v", err)
 	}
 	if !exists {
-		log.Logvf(log.Warn, false,  "namespace with DB %s and collection %s does not exist",
+		log.Logvf(log.Warn, false, "namespace with DB %s and collection %s does not exist",
 			dump.ToolOptions.Namespace.DB, dump.ToolOptions.Namespace.Collection)
 		return nil
 	}
 
-	log.Logvf(log.Trace, false,  "starting Dump()")
+	log.Logvf(log.Trace, false, "starting Dump()")
 
 	dump.shutdownIntentsNotifier = newNotifier()
 
@@ -231,7 +231,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error getting auth schema version for dumpDbUsersAndRoles: %v", err)
 		}
-		log.Logvf(log.Info, false,  "using auth schema version %v", dump.authVersion)
+		log.Logvf(log.Info, false, "using auth schema version %v", dump.authVersion)
 		if dump.authVersion < 3 {
 			return fmt.Errorf("backing up users and roles is only supported for "+
 				"deployments with auth schema versions >= 3, found: %v", dump.authVersion)
@@ -263,9 +263,9 @@ func (dump *MongoDump) Dump() (err error) {
 				} else {
 					err = fmt.Errorf("archive writer: %v", muxErr)
 				}
-				log.Logvf(log.Trace, false,  "%v", err)
+				log.Logvf(log.Trace, false, "%v", err)
 			} else {
-				log.Logvf(log.Trace, false,  "mux completed successfully")
+				log.Logvf(log.Trace, false, "mux completed successfully")
 			}
 		}()
 	}
@@ -311,7 +311,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// metadata, users, roles, and versions
 
 	// TODO, either remove this debug or improve the language
-	log.Logvf(log.Trace, false,  "dump phase I: metadata, indexes, users, roles, version")
+	log.Logvf(log.Trace, false, "dump phase I: metadata, indexes, users, roles, version")
 
 	err = dump.DumpMetadata()
 	if err != nil {
@@ -321,7 +321,7 @@ func (dump *MongoDump) Dump() (err error) {
 	if dump.OutputOptions.Archive != "" {
 		serverVersion, err := dump.SessionProvider.ServerVersion()
 		if err != nil {
-			log.Logvf(log.Warn, false,  "warning, couldn't get version information from server: %v", err)
+			log.Logvf(log.Warn, false, "warning, couldn't get version information from server: %v", err)
 			serverVersion = "unknown"
 		}
 		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.OutputOptions.NumParallelCollections, serverVersion, dump.ToolOptions.VersionStr)
@@ -347,9 +347,9 @@ func (dump *MongoDump) Dump() (err error) {
 			}
 		}
 		if dump.OutputOptions.DumpDBUsersAndRoles {
-			log.Logvf(log.Info, false,  "dumping users and roles for %v", dump.ToolOptions.DB)
+			log.Logvf(log.Info, false, "dumping users and roles for %v", dump.ToolOptions.DB)
 			if dump.ToolOptions.DB == "admin" {
-				log.Logvf(log.Info, false,  "skipping users/roles dump, already dumped admin database")
+				log.Logvf(log.Info, false, "skipping users/roles dump, already dumped admin database")
 			} else {
 				err = dump.DumpUsersAndRolesForDB(dump.ToolOptions.DB)
 				if err != nil {
@@ -368,7 +368,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error finding oplog: %v", err)
 		}
-		log.Logvf(log.Debug, false,  "getting most recent oplog timestamp")
+		log.Logvf(log.Debug, false, "getting most recent oplog timestamp")
 		dump.oplogStart, err = dump.getOplogCopyStartTime()
 		if err != nil {
 			return fmt.Errorf("error getting oplog start: %v", err)
@@ -376,7 +376,7 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 
 	if failpoint.Enabled(failpoint.PauseBeforeDumping) {
-		log.Logvf(log.Debug, false,  "failpoint.PauseBeforeDumping: sleeping 15 sec")
+		log.Logvf(log.Debug, false, "failpoint.PauseBeforeDumping: sleeping 15 sec")
 		time.Sleep(15 * time.Second)
 	}
 
@@ -384,7 +384,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// regular collections
 
 	// TODO, either remove this debug or improve the language
-	log.Logvf(log.Trace, false,  "dump phase II: regular collections")
+	log.Logvf(log.Trace, false, "dump phase II: regular collections")
 
 	// begin dumping intents
 	if err := dump.DumpIntents(); err != nil {
@@ -395,7 +395,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// oplog
 
 	// TODO, either remove this debug or improve the language
-	log.Logvf(log.Trace, false,  "dump phase III: the oplog")
+	log.Logvf(log.Trace, false, "dump phase III: the oplog")
 
 	// If we are capturing the oplog, we dump all oplog entries that occurred
 	// while dumping the database. Before and after dumping the oplog,
@@ -407,7 +407,7 @@ func (dump *MongoDump) Dump() (err error) {
 			return fmt.Errorf("error getting oplog end: %v", err)
 		}
 
-		log.Logvf(log.Trace, false,  "checking if oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.Trace, false, "checking if oplog entry %v still exists", dump.oplogStart)
 		exists, err := dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
 			return fmt.Errorf(
@@ -416,9 +416,9 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
-		log.Logvf(log.Trace, false,  "oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.Trace, false, "oplog entry %v still exists", dump.oplogStart)
 
-		log.Logvf(log.Info, false,  "writing captured oplog to %v", dump.manager.Oplog().Location)
+		log.Logvf(log.Info, false, "writing captured oplog to %v", dump.manager.Oplog().Location)
 
 		err = dump.DumpOplogBetweenTimestamps(dump.oplogStart, dump.oplogEnd)
 		if err != nil {
@@ -428,7 +428,7 @@ func (dump *MongoDump) Dump() (err error) {
 		// check the oplog for a rollover one last time, to avoid a race condition
 		// wherein the oplog rolls over in the time after our first check, but before
 		// we copy it.
-		log.Logvf(log.Trace, false,  "checking again if oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.Trace, false, "checking again if oplog entry %v still exists", dump.oplogStart)
 		exists, err = dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
 			return fmt.Errorf(
@@ -437,10 +437,10 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
-		log.Logvf(log.Trace, false,  "oplog entry %v still exists", dump.oplogStart)
+		log.Logvf(log.Trace, false, "oplog entry %v still exists", dump.oplogStart)
 	}
 
-	log.Logvf(log.Trace, false,  "finishing dump")
+	log.Logvf(log.Trace, false, "finishing dump")
 
 	return err
 }
@@ -484,17 +484,17 @@ func (dump *MongoDump) DumpIntents() error {
 		dump.manager.Finalize(intents.Legacy)
 	}
 
-	log.Logvf(log.Debug, false,  "dumping up to %v collections in parallel", jobs)
+	log.Logvf(log.Debug, false, "dumping up to %v collections in parallel", jobs)
 
 	// start a goroutine for each job thread
 	for i := 0; i < jobs; i++ {
 		go func(id int) {
 			buffer := dump.getResettableOutputBuffer()
-			log.Logvf(log.Trace, false,  "starting dump routine with id=%v", id)
+			log.Logvf(log.Trace, false, "starting dump routine with id=%v", id)
 			for {
 				intent := dump.manager.Pop()
 				if intent == nil {
-					log.Logvf(log.Trace, false,  "ending dump routine with id=%v, no more work to do", id)
+					log.Logvf(log.Trace, false, "ending dump routine with id=%v, no more work to do", id)
 					resultChan <- nil
 					return
 				}
@@ -579,21 +579,21 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	var dumpCount int64
 
 	if dump.OutputOptions.Out == "-" {
-		log.Logvf(log.Info, false,  "writing %v to stdout", intent.Namespace())
+		log.Logvf(log.Info, false, "writing %v to stdout", intent.Namespace())
 		dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer)
 		if err == nil {
 			// on success, print the document count
-			log.Logvf(log.Info, false,  "dumped %v %v", dumpCount, docPlural(dumpCount))
+			log.Logvf(log.Info, false, "dumped %v %v", dumpCount, docPlural(dumpCount))
 		}
 		return err
 	}
 
-	log.Logvf(log.Info, false,  "writing %v to %v", intent.Namespace(), intent.Location)
+	log.Logvf(log.Info, false, "writing %v to %v", intent.Namespace(), intent.Location)
 	if dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer); err != nil {
 		return err
 	}
 
-	log.Logvf(log.Info, false,  "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))
+	log.Logvf(log.Info, false, "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))
 	return nil
 }
 
@@ -613,7 +613,7 @@ func (dump *MongoDump) dumpQueryToIntent(
 // the oplog collection to avoid the performance issue in TOOLS-2068.
 func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent) (int64, error) {
 	if len(dump.query) != 0 || intent.IsOplog() {
-		log.Logvf(log.Trace, false,  "not counting query on %v", intent.Namespace())
+		log.Logvf(log.Trace, false, "not counting query on %v", intent.Namespace())
 		return 0, nil
 	}
 
@@ -622,7 +622,7 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 		return 0, fmt.Errorf("error getting count from db: %v", err)
 	}
 
-	log.Logvf(log.Trace, false,  "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
+	log.Logvf(log.Trace, false, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
 	return int64(total), nil
 }
 
@@ -709,7 +709,7 @@ func (dump *MongoDump) dumpValidatedIterToWriter(
 		for {
 			select {
 			case <-dump.shutdownIntentsNotifier.notified:
-				log.Logvf(log.Trace, false,  "terminating writes")
+				log.Logvf(log.Trace, false, "terminating writes")
 				termErr = util.ErrTerminated
 				close(buffChan)
 				return

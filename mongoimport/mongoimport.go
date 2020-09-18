@@ -236,7 +236,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 
 	if imp.IngestOptions.Mode != modeInsert {
 		imp.IngestOptions.MaintainInsertionOrder = true
-		log.Logvf(log.Debug, false,"using upsert fields: %v", imp.upsertFields)
+		log.Logvf(log.Debug, false, "using upsert fields: %v", imp.upsertFields)
 	}
 
 	if imp.IngestOptions.MaintainInsertionOrder {
@@ -372,7 +372,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 	if err != nil {
 		return 0, 0, fmt.Errorf("error checking connected node type: %v", err)
 	}
-	log.Logvf(log.Debug, false,"connected to node type: %v", imp.nodeType)
+	log.Logvf(log.Debug, false, "connected to node type: %v", imp.nodeType)
 
 	// drop the database if necessary
 	if imp.IngestOptions.Drop {

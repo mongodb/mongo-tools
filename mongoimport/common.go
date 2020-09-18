@@ -785,7 +785,7 @@ func validateReaderFields(fields []string, useArrayIndexFields bool) error {
 		return err
 	}
 	if len(fields) == 1 {
-		log.Logvf(log.Debug, false,"using field: %v", fields[0])
+		log.Logvf(log.Debug, false, "using field: %v", fields[0])
 	} else {
 		log.Logvf(log.Debug, false, "using fields: %v", strings.Join(fields, ","))
 	}

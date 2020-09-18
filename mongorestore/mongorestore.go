@@ -355,7 +355,7 @@ func (restore *MongoRestore) Restore() Result {
 		if err != nil {
 			return Result{Err: err}
 		}
-		log.Logvf(log.Trace, false,`archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
+		log.Logvf(log.Trace, false, `archive format version "%v"`, restore.archive.Prelude.Header.FormatVersion)
 		log.Logvf(log.Trace, false, `archive server version "%v"`, restore.archive.Prelude.Header.ServerVersion)
 		log.Logvf(log.Trace, false, `archive tool version "%v"`, restore.archive.Prelude.Header.ToolVersion)
 		target, err = restore.archive.Prelude.NewPreludeExplorer()
