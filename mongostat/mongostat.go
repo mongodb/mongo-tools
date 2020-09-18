@@ -237,17 +237,17 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, er
 	optsCopy.Connection.Host = host
 	optsCopy.Connection.Port = port
 	uriCopy := *opts.URI
-	newCS, err := rewriteURI(uriCopy.ConnectionString, fullHost)
-	if err != nil {
-		return nil, err
-	}
-	uriCopy.ConnectionString = newCS
 	optsCopy.URI = &uriCopy
 
 	if len(optsCopy.ConnString.Hosts) > 1 {
 		optsCopy.Direct = false
 	} else {
 		optsCopy.Direct = true
+		newCS, err := rewriteURI(uriCopy.ConnectionString, fullHost)
+		if err != nil {
+			return nil, err
+		}
+		uriCopy.ConnectionString = newCS
 	}
 	sessionProvider, err := db.NewSessionProvider(optsCopy)
 	if err != nil {
