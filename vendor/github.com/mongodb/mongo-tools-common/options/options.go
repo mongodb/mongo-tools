@@ -534,7 +534,7 @@ func (opts *ToolOptions) handleUnknownOption(option string, arg flags.SplitArgum
 // which is eventually added to the connString field.
 // Most CLI and URI options are normalized in three steps:
 //
-// 1. If both CLI option and URI option are set, throw an erroor if they conflict.
+// 1. If both CLI option and URI option are set, throw an error if they conflict.
 // 2. If the CLI option is set, but the URI option isn't, set the URI option
 // 3. If the URI option is set, but the CLI option isn't, set the CLI option
 //
@@ -594,6 +594,20 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			for host := range csHostSet {
 				if _, ok := optionHostSet[host]; !ok {
 					return ConflictingArgsErrorFormat("host", strings.Join(cs.Hosts, ","), opts.Host, "--host")
+				}
+			}
+		} else if len(cs.Hosts) > 0 {
+			hostPort := strings.Split(cs.Hosts[0], ":")
+			opts.Host = hostPort[0]
+
+			// a port might not be specified, e.g. `mongostat --discover`
+			if len(hostPort) == 2 {
+				if opts.Port != "" {
+					if hostPort[1] != opts.Port {
+						return ConflictingArgsErrorFormat("port", strings.Join(cs.Hosts, ","), opts.Port, "--port")
+					}
+				} else {
+					opts.Port = hostPort[1]
 				}
 			}
 		}
