@@ -439,7 +439,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		}()
 
 		// sleep to prevent all threads from inserting at the same time at start
-		time.Sleep(time.Duration(i) * 10 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	var totalResult Result
