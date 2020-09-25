@@ -1271,6 +1271,7 @@ tasks:
     - func: "upload release packages to linux repos"
 
 - name: release-json
+  tags: ["git_tag"]
   depends_on:
     - name: push
       variant: '*'
