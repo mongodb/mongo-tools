@@ -597,19 +597,35 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 				}
 			}
 		} else if len(cs.Hosts) > 0 {
-			hostPort := strings.Split(cs.Hosts[0], ":")
-			opts.Host = hostPort[0]
+			if cs.ReplicaSet != "" {
+				opts.Host = cs.ReplicaSet + "/"
+			}
 
-			// a port might not be specified, e.g. `mongostat --discover`
-			if len(hostPort) == 2 {
-				if opts.Port != "" {
-					if hostPort[1] != opts.Port {
-						return ConflictingArgsErrorFormat("port", strings.Join(cs.Hosts, ","), opts.Port, "--port")
+			// check if there is a <host:port> pair with a port that matches --port <port>
+			conflictingPorts := true
+			for _, host := range cs.Hosts {
+				hostPort := strings.Split(host, ":")
+				opts.Host += hostPort[0] + ","
+
+				// a port might not be specified, e.g. `mongostat --discover`
+				if len(hostPort) == 2 {
+					if opts.Port != "" {
+						if hostPort[1] == opts.Port {
+							conflictingPorts = false
+						}
+					} else {
+						opts.Port = hostPort[1]
+						conflictingPorts = false
 					}
 				} else {
-					opts.Port = hostPort[1]
+					conflictingPorts = false
 				}
 			}
+			if conflictingPorts {
+				return ConflictingArgsErrorFormat("port", strings.Join(cs.Hosts, ","), opts.Port, "--port")
+			}
+			// remove trailing comma
+			opts.Host = opts.Host[:len(opts.Host)-1]
 		}
 
 		if opts.Connection.ServerSelectionTimeout != 0 && cs.ServerSelectionTimeoutSet {
