@@ -99,24 +99,6 @@ func GetArtifactsForTask(id string) ([]Artifact, error) {
 	return task.Artifacts, nil
 }
 
-// GetTasksForRevision gets all the evergreen tasks associated with a
-// git revision. This also includes tasks from patches that were based
-// on the provided revision.
-func GetTasksForRevision(rev string) ([]Task, error) {
-	res, err := get("/projects/mongo-tools/revisions/" + rev + "/tasks?limit=100000")
-	if err != nil {
-		return nil, err
-	}
-
-	tasks := []Task{}
-	bodyDecoder := json.NewDecoder(res.Body)
-	err = bodyDecoder.Decode(&tasks)
-	if err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
-
 // GetTasksForVersion gets all the evergreen tasks associated with a version.
 func GetTasksForVersion(version string) ([]Task, error) {
 	res, err := get("/versions/" + version)
