@@ -1118,6 +1118,7 @@ pre:
           GOROOT=""; set_goenv
           export EVG_IS_PATCH='${is_patch}'
           export EVG_BUILD_ID='${build_id}'
+          export EVG_VERSION='${version_id}'
           export EVG_VARIANT='${build_variant}'
           if [ '${_platform}' != '' ]; then
             export EVG_VARIANT='${_platform}'

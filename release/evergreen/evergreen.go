@@ -26,6 +26,16 @@ type Task struct {
 	DisplayName string `json:"display_name"`
 }
 
+type BuildDetail struct {
+	BuildVariant string `json:"build_variant"`
+	BuildID      string `json:"build_id"`
+}
+
+// We only decode build_variants_status since that's all we care about
+type EvgVersion struct {
+	BuildVariantStatus []BuildDetail `json:"build_variants_status"`
+}
+
 // IsPatch indicates whether the task is part of a patchbuild (as
 // opposed to a task from the waterfall).
 func (t Task) IsPatch() bool {
@@ -94,6 +104,47 @@ func GetArtifactsForTask(id string) ([]Artifact, error) {
 // on the provided revision.
 func GetTasksForRevision(rev string) ([]Task, error) {
 	res, err := get("/projects/mongo-tools/revisions/" + rev + "/tasks?limit=100000")
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := []Task{}
+	bodyDecoder := json.NewDecoder(res.Body)
+	err = bodyDecoder.Decode(&tasks)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// GetTasksForVersion gets all the evergreen tasks associated with a version.
+func GetTasksForVersion(version string) ([]Task, error) {
+	res, err := get("/versions/" + version)
+	if err != nil {
+		return nil, err
+	}
+
+	var evgVersion EvgVersion
+	bodyDecoder := json.NewDecoder(res.Body)
+	err = bodyDecoder.Decode(evgVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := []Task{}
+	for _, buildDetail := range evgVersion.BuildVariantStatus {
+		buildTasks, err := GetTasksForBuild(buildDetail.BuildID)
+		if err != nil {
+			return nil, err
+		}
+		append(tasks, buildTasks...)
+	}
+	return tasks, nil
+}
+
+// GetTasksForBuild gets all the evergreen tasks associated with a build.
+func GetTasksForBuild(build string) ([]Task, error) {
+	res, err := get("/builds/" + build + "/tasks?limit=100000")
 	if err != nil {
 		return nil, err
 	}

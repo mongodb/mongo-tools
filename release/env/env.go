@@ -38,3 +38,9 @@ func EvgBuildID() (string, error) {
 func EvgVariant() (string, error) {
 	return mustGet("EVG_VARIANT")
 }
+
+// EvgVersionID returns the current evergreen version,
+// based on the value of an env variable set by the evg project file.
+func EvgVersionID() (string, error) {
+	return mustGet("EVG_VERSION")
+}

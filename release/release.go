@@ -883,7 +883,8 @@ func uploadReleaseJSON(v version.Version) {
 		return
 	}
 
-	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	versionID := EvgVersionID()
+	tasks, err := evergreen.GetTasksForVersion(versionID)
 	check(err, "get evergreen tasks")
 
 	signTasks := []evergreen.Task{}
@@ -991,16 +992,13 @@ func uploadRelease(v version.Version) {
 	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
 
-	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	buildID := EvgBuildID()
+	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
 	signTasks := []evergreen.Task{}
 	for _, task := range tasks {
 		if task.IsPatch() || task.DisplayName != "sign" {
-			continue
-		}
-
-		if pf.Variant() != task.Variant {
 			continue
 		}
 
@@ -1092,16 +1090,13 @@ func linuxRelease(v version.Version) {
 		return
 	}
 
-	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	buildID := EvgBuildID()
+	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
 	distTasks := []evergreen.Task{}
 	for _, task := range tasks {
 		if task.IsPatch() || task.DisplayName != "dist" {
-			continue
-		}
-
-		if pf.Variant() != task.Variant {
 			continue
 		}
 
