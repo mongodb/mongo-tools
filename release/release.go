@@ -883,7 +883,8 @@ func uploadReleaseJSON(v version.Version) {
 		return
 	}
 
-	versionID := env.EvgVersionID()
+	versionID, err := env.EvgVersionID()
+	check(err, "get evergreen version ID")
 	tasks, err := evergreen.GetTasksForVersion(versionID)
 	check(err, "get evergreen tasks")
 
@@ -992,7 +993,8 @@ func uploadRelease(v version.Version) {
 	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
 
-	buildID := env.EvgBuildID()
+	buildID, err := env.EvgBuildID()
+	check(err, "get evergreen build ID")
 	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
@@ -1090,7 +1092,8 @@ func linuxRelease(v version.Version) {
 		return
 	}
 
-	buildID := env.EvgBuildID()
+	buildID, err := env.EvgBuildID()
+	check(err, "get evergreen build ID")
 	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
