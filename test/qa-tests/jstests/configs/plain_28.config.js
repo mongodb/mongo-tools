@@ -9,6 +9,7 @@ var getToolTest;
   };
 
   getToolTest = function(name) {
+    this.useSSL = jsTestOptions().useSSL;
     var toolTest = new ToolTest(name, TOOLS_TEST_CONFIG);
     toolTest.startDB();
     return toolTest;
