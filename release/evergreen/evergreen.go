@@ -119,7 +119,7 @@ func GetTasksForVersion(version string) ([]Task, error) {
 		if err != nil {
 			return nil, err
 		}
-		append(tasks, buildTasks...)
+		tasks = append(tasks, buildTasks...)
 	}
 	return tasks, nil
 }
