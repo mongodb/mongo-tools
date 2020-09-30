@@ -140,47 +140,6 @@ func GetTasksForBuild(build string) ([]Task, error) {
 	return tasks, nil
 }
 
-// GetTasksForVersion gets all the evergreen tasks associated with a version.
-func GetTasksForVersion(version string) ([]Task, error) {
-	res, err := get("/versions/" + version)
-	if err != nil {
-		return nil, err
-	}
-
-	var evgVersion EvgVersion
-	bodyDecoder := json.NewDecoder(res.Body)
-	err = bodyDecoder.Decode(evgVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	tasks := []Task{}
-	for _, buildDetail := range evgVersion.BuildVariantStatus {
-		buildTasks, err := GetTasksForBuild(buildDetail.BuildID)
-		if err != nil {
-			return nil, err
-		}
-		append(tasks, buildTasks...)
-	}
-	return tasks, nil
-}
-
-// GetTasksForBuild gets all the evergreen tasks associated with a build.
-func GetTasksForBuild(build string) ([]Task, error) {
-	res, err := get("/builds/" + build + "/tasks?limit=100000")
-	if err != nil {
-		return nil, err
-	}
-
-	tasks := []Task{}
-	bodyDecoder := json.NewDecoder(res.Body)
-	err = bodyDecoder.Decode(&tasks)
-	if err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
-
 func get(relPath string) (*http.Response, error) {
 	uri, err := url.Parse(EVG_API_BASE_URI + relPath)
 	if err != nil {
