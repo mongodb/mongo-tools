@@ -2,11 +2,11 @@
 
 ## 100.2.0
 
-_Released YYYY-MM-DD_
+_Released 2020-10-07_
 
 We are pleased to announce version 100.2.0 of the MongoDB Database Tools.
 
-This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files matching a regex pattern. 
+This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files matching a regex pattern. The 100.2.0 release also contains fixes for several bugs. It fixes a bug introduced in version 100.1.0 that made it impossible to connect to clusers with an SRV connection string (<a href='https://jira.mongodb.org/browse/TOOLS-2711'>TOOLS-2711</a>).
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
@@ -20,6 +20,10 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2693'>TOOLS-2693</a>] -         Most tasks failing on race detector variant
 </li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2737'>TOOLS-2737</a>] -         Fix TLS tests on Mac and Windows
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2747'>TOOLS-2747</a>] -         Git tag release process does not work
+</li>
 </ul>
                                                                         
 <h3>        Release
@@ -28,7 +32,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2704'>TOOLS-2704</a>] -         Release Database Tools 100.2.0
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+                                                       
 <h3>        Bug
 </h3>
 <ul>
@@ -38,7 +42,11 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2706'>TOOLS-2706</a>] -         tar: implausibly old time stamp error on Amazon Linux/RHEL
 </li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2708'>TOOLS-2708</a>] -         Atlas recommended connection string for mongostat doesn&#39;t work
+</li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2710'>TOOLS-2710</a>] -         Non-zero index key values are not preserved in ConvertLegacyIndexes
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2711'>TOOLS-2711</a>] -         Tools fail with &quot;a direct connection cannot be made if multiple hosts are specified&quot; if mongodb+srv URI or a legacy uri containing multiple mongos is specified
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2716'>TOOLS-2716</a>] -         mongodb-database-tools package should break older versions of mongodb-*-tools
 </li>
