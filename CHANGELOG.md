@@ -2,7 +2,7 @@
 
 ## 100.2.0
 
-_Released 2020-10-07_
+_Released 2020-10-15_
 
 We are pleased to announce version 100.2.0 of the MongoDB Database Tools.
 
