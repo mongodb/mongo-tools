@@ -6,7 +6,7 @@ _Released 2020-10-15_
 
 We are pleased to announce version 100.2.0 of the MongoDB Database Tools.
 
-This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files matching a regex pattern. The 100.2.0 release also contains fixes for several bugs. It fixes a bug introduced in version 100.1.0 that made it impossible to connect to clusers with an SRV connection string (<a href='https://jira.mongodb.org/browse/TOOLS-2711'>TOOLS-2711</a>).
+This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files matching a regex pattern. The 100.2.0 release also contains fixes for several bugs. It fixes a bug introduced in version 100.1.0 that made it impossible to connect to clusters with an SRV connection string (<a href='https://jira.mongodb.org/browse/TOOLS-2711'>TOOLS-2711</a>).
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
