@@ -31,7 +31,8 @@ type BuildDetail struct {
 	BuildID      string `json:"build_id"`
 }
 
-// We only decode build_variants_status since that's all we care about
+// EvgVersion is a container for the /versions/<id> endpoint response.
+// We only decode build_variants_status since that's all we care about.
 type EvgVersion struct {
 	BuildVariantStatus []BuildDetail `json:"build_variants_status"`
 }

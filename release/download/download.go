@@ -74,6 +74,9 @@ func (f *JSONFeed) findOrCreateVersion(version string) *ToolsVersion {
 	return v
 }
 
+// FindOrCreateDownload will find the ToolsDownload in f that matches the version, platform, and arch.
+// If the ToolsDownload  does not exist, it will be added to f. If the parent ToolsVersion doesn't exist
+// either, that will also be created.
 func (f *JSONFeed) FindOrCreateDownload(version, platform, arch string) *ToolsDownload {
 	v := f.findOrCreateVersion(version)
 
@@ -91,6 +94,8 @@ func (f *JSONFeed) FindOrCreateDownload(version, platform, arch string) *ToolsDo
 	return dl
 }
 
+// Sort will sort f.Versions by semver version. Version preference for the suffix of pre-release
+// versions are alphabetical. Within each version, Downloads are sorted by OS name and architecture.
 func (f *JSONFeed) Sort() {
 	for _, v := range f.Versions {
 		sort.Slice(v.Downloads, func(i, j int) bool {
@@ -105,6 +110,7 @@ func (f *JSONFeed) Sort() {
 	})
 }
 
+// compareVersions compares two semver version strings. version suffixes are compared alphabetiaclly.
 func compareVersions(v1, v2 string) bool {
 	versionParts := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)-?(.*)$`)
 	v1Parts := versionParts.FindStringSubmatch(v1)[1:]

@@ -44,6 +44,8 @@ func initializeClient() error {
 	return nil
 }
 
+// GetClient returns the global AWS client.
+// It initializes the AWS client if it hasn't already been initialized.
 func GetClient() (*AWS, error) {
 	if awsClient == nil {
 		err := initializeClient()
@@ -54,6 +56,8 @@ func GetClient() (*AWS, error) {
 	return awsClient, nil
 }
 
+// UploadFile will upload a file from the filesystem to the bucket and
+// path specified. The uploaded file keeps its filename.
 func (a *AWS) UploadFile(bucket, objPath, filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -63,6 +67,7 @@ func (a *AWS) UploadFile(bucket, objPath, filename string) error {
 	return a.UploadBytes(bucket, objPath, filename, file)
 }
 
+// UploadBytes uploads data from a reader to the bucket, path, and filename specified.
 func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) error {
 	key := path.Join(objPath, filename)
 
@@ -80,6 +85,7 @@ func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) er
 	return nil
 }
 
+// DownloadFile downloads filename from bucket and
 func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
 	downloader := s3manager.NewDownloader(a.session)
 
@@ -98,6 +104,9 @@ func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
+// GenerateFullReleaseFeedFromObjects will download all release artifacts from
+// the tools s3 bucket, caluclate their md5, sha1, and sha256 digests, and create
+// a download.JSONFeed object representing every artifact for every tools version.
 func (a *AWS) GenerateFullReleaseFeedFromObjects() (*download.JSONFeed, error) {
 	svc := s3.New(a.session)
 	downloader := s3manager.NewDownloader(a.session)
