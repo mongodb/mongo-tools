@@ -973,6 +973,14 @@ functions:
         content_type: application/json
         bucket: mciuploads
         permissions: public-read
+  
+  "generate full JSON feed":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          go run release/release.go generate-full-json
 
   "upload release packages to linux repos":
     - command: shell.exec
@@ -1280,6 +1288,12 @@ tasks:
     - func: "fetch source"
     - command: expansions.update
     - func: "upload release json feed to s3"
+
+- name: generate-full-json
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "generate full JSON feed"
 
 - name: integration-3.4
   commands:
@@ -2012,6 +2026,14 @@ buildvariants:
   - amazon1-2018-test
   tasks:
   - name: release-json
+
+
+- name: full-json
+  display_name: 'Generate Full JSON'
+  run_on:
+  - amazon1-2018-large
+  tasks:
+  - name: generate-full-json
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
