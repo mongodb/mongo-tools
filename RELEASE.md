@@ -47,26 +47,18 @@ Those changes will need to be made before we can do a new major release.
 At the time when the major release process is formalized, this section will be replaced with more specific instructions.
 
 #### Minor/Patch Release
-##### Determine the new version
-First, determine the version number of the new release.
-The new version should be the smallest possible minor or patch increment from the current version.
 
-For example, consider the version `<x>.<y>.<z>`.
-Bumping the patch version would give version `<x>.<y>.<z+1>`.
-Bumping the minor version would give version `<x>.<y+1>.0`.
+##### Ensure evergreen version created
+Check the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools) to ensure that an evergreen version has been created for the most recent commit updating the changelog.
 
-##### Create the bump commit
-Ensure you have the `master` branch checked out.
-Create an empty commit with a commit message of the following format:
-```
-git commit --allow-empty -m 'TOOLS-XXXX: Release vX.Y.Z'
-```
+##### Ensure master up to date
+Ensure you have the `master` branch checked out, and that you have pulled the latest commit from `mongodb/mongo-tools`.
 
 ##### Create the tag and push
 Create an annotated tag and push it:
 ```
 git tag -a -m vX.Y.Z X.Y.Z
-git push && git push --tags
+git push --tags
 ```
 
 ### Post-Release Tasks
@@ -128,7 +120,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
     ### Build Failure
     ```
 - Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too much unnecessary detail. 
-- Submit a PR with your changes.
+- Submit a PR with your changes under the release ticket number, and merge once approved.
 
 #### Update the changelog in the docs
 

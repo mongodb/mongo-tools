@@ -427,3 +427,21 @@ func parseNumberLongField(jsonValue interface{}) (int64, error) {
 		return 0, errors.New("expected $numberLong field to have string value")
 	}
 }
+
+func Bson2Float64(data interface{}) (float64, bool) {
+	switch v := data.(type) {
+	case int32:
+		return float64(v), true
+	case int64:
+		return float64(v), true
+	case float64:
+		return v, true
+	case primitive.Decimal128:
+		if bi, _, err := v.BigInt(); err == nil {
+			intVal := bi.Int64()
+			return float64(intVal), true
+		}
+		return 0, false
+	}
+	return 0, false
+}

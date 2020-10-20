@@ -770,6 +770,14 @@ functions:
         content_type: application/json
         bucket: mciuploads
         permissions: public-read
+  
+  "generate full JSON feed":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          go run release/release.go generate-full-json
 
   "upload release packages to linux repos":
     - command: shell.exec
@@ -915,7 +923,11 @@ pre:
           GOROOT=""; set_goenv || exit
           export EVG_IS_PATCH='${is_patch}'
           export EVG_BUILD_ID='${build_id}'
+          export EVG_VERSION='${version_id}'
           export EVG_VARIANT='${build_variant}'
+          if [ '${_platform}' != '' ]; then
+            export EVG_VARIANT='${_platform}'
+          fi
           export EVG_USER='${evg_user}'
           export EVG_KEY='${evg_key}'
           export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
@@ -979,6 +991,8 @@ timeout:
 
 tasks:
 - name: dist
+  tags: ["git_tag"]
+  depends_on:
   commands:
     - func: "fetch source"
     # bsondump
@@ -992,6 +1006,7 @@ tasks:
 # amazon1-2018-test for this purpose. The notary client is not
 # available on all distros, which is why sign must be a separate task.
 - name: sign
+  tags: ["git_tag"]
   depends_on:
     - name: dist
   commands:
@@ -1003,6 +1018,7 @@ tasks:
     - func: "upload signed release artifacts"
 
 - name: push
+  tags: ["git_tag"]
   depends_on:
     - name: sign
   commands:
@@ -1012,6 +1028,7 @@ tasks:
     - func: "upload release packages to linux repos"
 
 - name: release-json
+  tags: ["git_tag"]
   depends_on:
     - name: push
       variant: '*'
@@ -1019,6 +1036,12 @@ tasks:
     - func: "fetch source"
     - command: expansions.update
     - func: "upload release json feed to s3"
+
+- name: generate-full-json
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "generate full JSON feed"
 
 - name: integration-3.4
   commands:
@@ -1537,10 +1560,19 @@ buildvariants:
 
 - name: release
   display_name: 'Release Manager'
+  tags: ["git_tag"]
   run_on:
   - amazon1-2018-test
   tasks:
   - name: release-json
+
+
+- name: full-json
+  display_name: 'Generate Full JSON'
+  run_on:
+  - amazon1-2018-large
+  tasks:
+  - name: generate-full-json
 
 #######################################
 #     Amazon x86_64 Buildvariants     #
@@ -1623,6 +1655,8 @@ buildvariants:
     excludes: requires_many_files
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
     USE_SSL: "true"
   tasks: *macos_tasks
 
@@ -1774,6 +1808,8 @@ buildvariants:
     smoke_use_ssl: --use-ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
     excludes: requires_large_ram,requires_mongo_24
     edition: enterprise
     extension: .exe
@@ -2007,10 +2043,16 @@ buildvariants:
   run_on:
   - ubuntu1604-test
   expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    _platform: ubuntu1604-s390x
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
     args: "-buildmode=default -race"
     excludes: requires_large_ram
+    resmoke_use_tls: _tls
+    resmoke_use_ssl: _ssl
+    USE_SSL: "true"
   tasks: *ubuntu_x86_64_race_tasks

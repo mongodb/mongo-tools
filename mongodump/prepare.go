@@ -360,6 +360,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	if err != nil {
 		return nil, err
 	}
+	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", dbName, ci.Name)
 	count, err := session.Database(dbName).Collection(ci.Name).EstimatedDocumentCount(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("error counting %v: %v", intent.Namespace(), err)

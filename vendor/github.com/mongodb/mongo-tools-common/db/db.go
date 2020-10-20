@@ -285,7 +285,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
 
 	clientopt.SetAppName(opts.AppName)
-	if opts.Direct {
+	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
 		t := true
 		clientopt.AuthenticateToAnything = &t
@@ -426,7 +426,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		}
 
 		tlsConfig := &tls.Config{}
-		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
+		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
 			tlsConfig.InsecureSkipVerify = true
 		}
 

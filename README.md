@@ -56,3 +56,7 @@ For documentation on older versions of the MongoDB, reference that version of th
 Adding New Platforms Support
 ---------------
 See our [Adding New Platform Support Guide](PLATFORMSUPPORT.md).
+
+Vendoring the Change into Server Repo
+---------------
+See our [Vendor the Change into Server Repo](SERVERVENDORING.md).

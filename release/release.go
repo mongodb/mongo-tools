@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"crypto/md5"
 	"crypto/sha1"
@@ -92,6 +93,8 @@ func main() {
 		uploadRelease(v)
 	case "upload-json":
 		uploadReleaseJSON(v)
+	case "generate-full-json":
+		generateFullReleaseJSON()
 	case "linux-release":
 		linuxRelease(v)
 	default:
@@ -782,9 +785,10 @@ func addToTarball(tw *tar.Writer, dst, src string) {
 	check(err, "stat file")
 
 	header := &tar.Header{
-		Name: dst,
-		Size: stat.Size(),
-		Mode: int64(stat.Mode()),
+		Name:    dst,
+		Size:    stat.Size(),
+		Mode:    int64(stat.Mode()),
+		ModTime: time.Now(),
 	}
 
 	err = tw.WriteHeader(header)
@@ -872,6 +876,16 @@ func buildZip() {
 	}
 }
 
+func generateFullReleaseJSON() {
+	awsClient, err := aws.GetClient()
+	check(err, "get aws client")
+
+	feed, err := awsClient.GenerateFullReleaseFeedFromObjects()
+	check(err, "generate full release feed from s3 objects")
+
+	uploadFeedFile("full.json", feed, awsClient)
+}
+
 func uploadReleaseJSON(v version.Version) {
 	if env.EvgIsPatch() {
 		log.Println("current build is a patch; not uploading release JSON feed")
@@ -883,7 +897,9 @@ func uploadReleaseJSON(v version.Version) {
 		return
 	}
 
-	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	versionID, err := env.EvgVersionID()
+	check(err, "get evergreen version ID")
+	tasks, err := evergreen.GetTasksForVersion(versionID)
 	check(err, "get evergreen tasks")
 
 	signTasks := []evergreen.Task{}
@@ -908,7 +924,7 @@ func uploadReleaseJSON(v version.Version) {
 	check(err, "get aws client")
 
 	// Accumulate all downloaded artifacts from sign tasks for JSON feed.
-	var dls []download.ToolsDownload
+	var dls []*download.ToolsDownload
 
 	for _, task := range signTasks {
 		pf, ok := platform.GetByVariant(task.Variant)
@@ -960,26 +976,39 @@ func uploadReleaseJSON(v version.Version) {
 			}
 		}
 
-		dls = append(dls, dl)
+		dls = append(dls, &dl)
 	}
 
-	// We only have one version for now, so we can just append one
-	// ToolsVersion to the JSON feed and upload immediately.
+	// Download the current full.json
+	buff, err := awsClient.DownloadFile("downloads.mongodb.org", "tools/db/full.json")
+	check(err, "download full.json")
+
+	var fullFeed download.JSONFeed
+
+	err = json.Unmarshal(buff, &fullFeed)
+	check(err, "unmarshal full.json into download.JSONFeed")
+
+	// Append the new version to full.json and upload
+	fullFeed.Versions = append(fullFeed.Versions, &download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+	uploadFeedFile("full.json", &fullFeed, awsClient)
+
+	// Upload only the most recent version to release.json
 	var feed download.JSONFeed
-	feed.Versions = append(feed.Versions, download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+	feed.Versions = append(feed.Versions, &download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
 
-	feedFilename := "release.json"
-	feedFile, err := os.Create(feedFilename)
-	check(err, "create release.json")
-	defer feedFile.Close()
+	uploadFeedFile("release.json", &feed, awsClient)
+}
 
-	jsonEncoder := json.NewEncoder(feedFile)
+func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS) {
+	var feedBuffer bytes.Buffer
+
+	jsonEncoder := json.NewEncoder(&feedBuffer)
 	jsonEncoder.SetIndent("", "  ")
-	err = jsonEncoder.Encode(feed)
+	err := jsonEncoder.Encode(*feed)
 	check(err, "encode json feed")
 
-	log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", feedFilename)
-	awsClient.UploadFile("downloads.mongodb.org", "/tools/db", feedFilename)
+	log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", filename)
+	awsClient.UploadBytes("downloads.mongodb.org", "/tools/db", filename, &feedBuffer)
 }
 
 func uploadRelease(v version.Version) {
@@ -991,16 +1020,14 @@ func uploadRelease(v version.Version) {
 	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
 
-	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	buildID, err := env.EvgBuildID()
+	check(err, "get evergreen build ID")
+	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
 	signTasks := []evergreen.Task{}
 	for _, task := range tasks {
 		if task.IsPatch() || task.DisplayName != "sign" {
-			continue
-		}
-
-		if pf.Variant() != task.Variant {
 			continue
 		}
 
@@ -1067,10 +1094,15 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-var linuxRepoVersions = []string{
-	"4.0.0-rc0", // any rc version will send the package to the "testing" repo
-	"4.3.0",     // any 4.3 stable release version will send the package to the "4.3" repo
-	"4.4.0",     // any 4.4 stable release version will send the package to the "4.4" repo
+var linuxRepoVersionsStable = map[string]string{
+	"development": "4.0.0-15-gabcde123", // any non-rc pre-release version will send the package to the "development" repo
+	"testing":     "4.0.0-rc0",          // any rc version will send the package to the "testing" repo
+	"4.3":         "4.3.0",              // any 4.3 stable release version will send the package to the "4.3" repo
+	"4.4":         "4.4.0",              // any 4.4 stable release version will send the package to the "4.4" repo
+}
+
+var linuxRepoVersionsUnstable = map[string]string{
+	"development": "4.0.0-15-gabcde123", // any non-rc pre-release version will send the package to the "development" repo
 }
 
 func linuxRelease(v version.Version) {
@@ -1087,16 +1119,14 @@ func linuxRelease(v version.Version) {
 		return
 	}
 
-	tasks, err := evergreen.GetTasksForRevision(v.Commit)
+	buildID, err := env.EvgBuildID()
+	check(err, "get evergreen build ID")
+	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
 	distTasks := []evergreen.Task{}
 	for _, task := range tasks {
 		if task.IsPatch() || task.DisplayName != "dist" {
-			continue
-		}
-
-		if pf.Variant() != task.Variant {
 			continue
 		}
 
@@ -1123,22 +1153,17 @@ func linuxRelease(v version.Version) {
 		}
 
 		editionsToRelease := pf.Repos
-		versionsToRelease := linuxRepoVersions
+		versionsToRelease := linuxRepoVersionsStable
 		if !v.IsStable() {
-			// If we're not releasing a stable version, just using the
-			// current version string will cause the packages to be
-			// pushed to the "development" repos.
-			versionsToRelease = []string{v.String()}
+			versionsToRelease = linuxRepoVersionsUnstable
 		}
 
-		for _, mongoVersion := range versionsToRelease {
+		for mongoVersionName, mongoVersionNumber := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
-				mv := mongoVersion
-				me := mongoEdition
 				wg.Add(1)
 				go func() {
 					var err error
-					prefix := fmt.Sprintf("%s-%s", pf.Variant(), me)
+					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, mongoVersionName)
 					// retry twice on failure.
 					maxRetries := 2
 					for retries := maxRetries; retries >= 0; retries-- {
@@ -1149,8 +1174,8 @@ func linuxRelease(v version.Version) {
 							"--config", "etc/repo-config.yml",
 							"--distro", pf.Name,
 							"--arch", pf.Arch,
-							"--edition", me,
-							"--version", mv,
+							"--edition", mongoEdition,
+							"--version", mongoVersionNumber,
 							"--packages", packagesURL,
 							"--username", os.Getenv("BARQUE_USERNAME"),
 							"--api_key", os.Getenv("BARQUE_API_KEY"),
