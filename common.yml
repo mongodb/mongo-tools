@@ -332,33 +332,14 @@ functions:
 
         python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
-  "build tool":
+  "run make target":
     command: shell.exec
     type: test
     params:
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
-        set -x
-        set -v
-        set -e
-        echo "Building ${tool}..."
-        if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-        fi;
-        # In RHEL 5.5, /usr/bin/ld can't handle --build-id parameters, so
-        # use a wrapper if it's present on the system
-        #
-        if [ -d /opt/ldwrapper/bin ]
-        then
-          export PATH=/opt/ldwrapper/bin:$PATH
-        fi
-
-        . ./set_goenv.sh
-        GOROOT=""; set_goenv || exit
-        go version
-        env | grep ^GO
-        go build $(buildflags) -ldflags "$(print_ldflags)" ${args} -tags "$(print_tags failpoints ${build_tags})" -o bin/${tool} ${tool}/main/${tool}.go
-        ./bin/${tool} --version
+        ${_set_shell_env}
+        go run build.go -v ${target}
 
   "download mongod":
     command: shell.exec
@@ -386,72 +367,11 @@ functions:
         chmod +x ./bin/*
         rm -rf ./mongodb-*
 
-  "fetch tool" :
-    command: s3.get
-    params:
-      bucket: mciuploads
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}${extension}
-      remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
-
-  "generate coverage html + text":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        if [ "${coverage}" = "true" ]; then
-          if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-          fi;
-          go tool cover -html=coverage.out -o coverage.html
-          go tool cover -func=coverage.out -o coverage.txt
-        fi;
-
   "get buildnumber":
     command: keyval.inc
     params:
       key: "${build_variant}_tools"
       destination: "builder_num"
-
-  "move coverage data":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        if [ "${coverage}" = "true" ]; then
-          mv ${package}/coverage.out .
-        fi
-
-  "run unit test":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        # export sensitive info before `set -x`
-        export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
-        set -x
-        set -v
-        if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-        fi;
-        export basedir=$PWD
-        . ./set_goenv.sh
-        GOROOT=""; set_goenv || exit
-        cd ${package}
-        go test $(buildflags) -ldflags "$(print_ldflags)" ${coverage_args} -tags "$(print_tags ${build_tags})" -test.v > unit.suite
-        export exitcode=$?
-        cat unit.suite
-        cp unit.suite $basedir/.
-        exit $exitcode
 
   "setup integration test":
     command: shell.exec
@@ -478,129 +398,6 @@ functions:
         if [ "Windows_NT" = "$OS" ]; then
           cmd /c "REG ADD HKLM\SYSTEM\ControlSet001\Control\Lsa\Kerberos\Domains\LDAPTEST.10GEN.CC /v KdcNames /d ldaptest.10gen.cc /t REG_MULTI_SZ /f"
         fi;
-
-  "run tool unit tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-        fi;
-
-        . ./set_goenv.sh
-        GOROOT=""; set_goenv || exit
-        if [ "${UNIT_TEST}" = "true" ]; then
-          export TOOLS_TESTING_UNIT="true"
-        fi;
-        if [ "${run_coverage}" = "true" ]; then
-            export RUN_COVERAGE="true"
-        fi
-        export ON_EVERGREEN="true"
-        export TOOLS_BUILD_TAGS=${build_tags}
-        ./runTests.sh -v
-        exit $?
-
-  "run tool integration tests":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        # export sensitive info before `set -x`
-        if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-            export MONGODB_KERBEROS_PASSWORD=${kerberos_password}
-        fi;
-        set -x
-        set -v
-        . ./set_goenv.sh
-        GOROOT=""; set_goenv || exit
-        if [ "${KERBEROS_TEST}" = "true" ]; then
-          export TOOLS_TESTING_KERBEROS="true"
-        elif [ "${USE_SSL}" = "true" ]; then
-          export TOOLS_TESTING_SSL="true"
-          export TOOLS_TESTING_INTEGRATION="true"
-        fi;
-        if [ "${AUTH_TEST}" = "true" ]; then
-          export TOOLS_TESTING_AUTH="true"
-          export TOOLS_TESTING_INTEGRATION="true"
-        fi;
-        if [ "${INT_TEST}" = "true" ]; then
-          export TOOLS_TESTING_INTEGRATION="true"
-        fi;
-        MONGO_ARGS="${mongo_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGO_ARGS="${mongo_args_tls}"
-          export TOOLS_TESTING_SSL="true"
-          export TOOLS_TESTING_INTEGRATION="true"
-        fi;
-        if [ "${create_mongod_users_command}" != "" ]; then
-          export TOOLS_TESTING_AUTH_USERNAME=${auth_username}
-          export TOOLS_TESTING_AUTH_PASSWORD=${auth_password}
-          echo "${create_mongod_users_command}" | ./bin/mongo${extension} $MONGO_ARGS admin
-        fi;
-        export ON_EVERGREEN="true"
-        export TOOLS_BUILD_TAGS="${build_tags}"
-        ./runTests.sh -v
-        exit $?
-
-
-  "create coverage reports":
-    command: shell.exec
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        set -o verbose
-        if [ "Windows_NT" = "$OS" ]; then
-            set -o igncr
-        fi;
-
-        . ./set_goenv.sh
-        GOROOT=""; set_goenv || exit
-
-        # XXX Need to fix up use of 'src' below somehow; for now commented out
-        # because we're using an actual GOPATH instead of a hack and replaced with a copy
-        for i in mongoimport mongoexport mongostat mongorestore mongodump mongofiles; do
-            cd $i
-            # perl -pe 's/.*src/github.com\/mongodb\/mongo-tools/' coverage_$i.out > coverage_$i_rewrite.out
-            go tool cover -html=coverage_$i.out -o coverage_$i.html
-            go tool cover -func=coverage_$i.out -o coverage_$i.txt
-            cd ..
-        done
-
-  "upload html coverage":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/${coverage_pkg}/coverage_${coverage_pkg}.html
-      remote_file: mongo-tools/coverage/${coverage_pkg}/${task_id}.html
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/html
-      build_variants: ["ubuntu", "windows-64"]
-      display_name: ${coverage_pkg}-html
-
-  "upload text coverage":
-    command: s3.put
-    params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/${coverage_pkg}/coverage_${coverage_pkg}.txt
-      remote_file: mongo-tools/coverage/${coverage_pkg}/${task_id}.txt
-      bucket: mciuploads
-      permissions: public-read
-      content_type: text/plain
-      build_variants: ["ubuntu", "windows-64"]
-      display_name: ${coverage_pkg}-text
 
   "setup credentials" :
     command: shell.exec
@@ -692,17 +489,17 @@ functions:
             fi
         done
 
-  "upload tool":
-    command: s3.put
+  "create mongod users":
+    command: shell.exec
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
-      local_file: src/github.com/mongodb/mongo-tools/bin/${tool}
-      remote_file: mongo-tools/binaries/${build_id}/${edition|community}/${tool}${extension}
-      bucket: mciuploads
-      permissions: public-read
-      content_type: application/octet-stream
-      display_name: ${tool}
+      working_dir: src/github.com/mongodb/mongo-tools
+      script: |
+        ${_set_shell_env}
+        MONGO_ARGS="${mongo_args}"
+        if [ "${USE_TLS}" = "true" ]; then
+          MONGO_ARGS="${mongo_args_tls}"
+        fi
+        echo "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });" | ./bin/mongo${extension} $MONGO_ARGS admin
 
   "create release artifacts":
     # build release artifacts
@@ -1123,7 +920,7 @@ pre:
         cat <<EOT > expansions.yml
         _set_shell_env: |
           . ./set_goenv.sh
-          GOROOT=""; set_goenv
+          GOROOT=""; set_goenv || exit
           export EVG_IS_PATCH='${is_patch}'
           export EVG_BUILD_ID='${build_id}'
           export EVG_VERSION='${version_id}'
@@ -1139,6 +936,9 @@ pre:
           export NOTARY_TOKEN='${signing_auth_token_server_4_4}'
           export BARQUE_USERNAME='${evg_user}'
           export BARQUE_API_KEY='${barque_api_key}'
+          export TOOLS_TESTING_AUTH_USERNAME='${auth_username}'
+          export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
+          export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -1196,61 +996,9 @@ tasks:
   commands:
     - func: "fetch source"
     # bsondump
-    - func: "build tool"
+    - func: "run make target"
       vars:
-        tool: bsondump
-    - func: "upload tool"
-      vars:
-        tool: bsondump
-    # mongodump
-    - func: "build tool"
-      vars:
-        tool: mongodump
-    - func: "upload tool"
-      vars:
-        tool: mongodump
-    # mongoexport
-    - func: "build tool"
-      vars:
-        tool: mongoexport
-    - func: "upload tool"
-      vars:
-        tool: mongoexport
-    # mongofiles
-    - func: "build tool"
-      vars:
-        tool: mongofiles
-    - func: "upload tool"
-      vars:
-        tool: mongofiles
-    # mongoimport
-    - func: "build tool"
-      vars:
-        tool: mongoimport
-    - func: "upload tool"
-      vars:
-        tool: mongoimport
-    # mongorestore
-    - func: "build tool"
-      vars:
-        tool: mongorestore
-    - func: "upload tool"
-      vars:
-        tool: mongorestore
-    # mongostat
-    - func: "build tool"
-      vars:
-        tool: mongostat
-    - func: "upload tool"
-      vars:
-        tool: mongostat
-    # mongotop
-    - func: "build tool"
-      vars:
-        tool: mongotop
-    - func: "upload tool"
-      vars:
-        tool: mongotop
+        target: build
     - func: "create release artifacts"
 
 # Regardless of the buildvariant, the sign task must be run on a
@@ -1304,10 +1052,12 @@ tasks:
         mongo_version: "3.4"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-3.4-mmapv1
   commands:
@@ -1320,10 +1070,12 @@ tasks:
       vars:
         STORAGE_ENGINE: "mmapv1"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-3.6
   commands:
@@ -1334,10 +1086,12 @@ tasks:
         mongo_version: "3.6"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-3.6-mmapv1
   commands:
@@ -1350,10 +1104,12 @@ tasks:
       vars:
         STORAGE_ENGINE: "mmapv1"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-4.0
   commands:
@@ -1364,10 +1120,12 @@ tasks:
         mongo_version: "4.0"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-          INT_TEST: "true"
-          USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-4.0-auth
   commands:
@@ -1378,18 +1136,18 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
       vars:
         mongo_version: "4.0"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "create mongod users"
+    - func: "run make target"
       vars:
-          INT_TEST: "true"
-          AUTH_TEST: "true"
-          USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true -auth=true
 
 - name: integration-4.0-cluster
   commands:
@@ -1401,10 +1159,12 @@ tasks:
     - func: "create repl_set"
       vars:
         USE_SSL: "true"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-4.0-mmapv1
   commands:
@@ -1417,10 +1177,12 @@ tasks:
       vars:
         STORAGE_ENGINE: "mmapv1"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-4.2
   commands:
@@ -1431,10 +1193,12 @@ tasks:
         mongo_version: "4.2"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-4.2-auth
   commands:
@@ -1445,18 +1209,18 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
       vars:
         mongo_version: "4.2"
     - func: "start mongod"
     - func: "wait for mongod to be ready"
-    - func: "run tool integration tests"
+    - func: "create mongod users"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        AUTH_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true -auth=true
 
 - name: integration-4.4
   commands:
@@ -1471,10 +1235,12 @@ tasks:
     - func: "wait for mongod to be ready"
       vars:
         USE_TLS: "true"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true
 
 - name: integration-4.4-auth
   commands:
@@ -1485,8 +1251,6 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-          - key: "create_mongod_users_command"
-            value: "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });"
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
@@ -1496,11 +1260,15 @@ tasks:
     - func: "wait for mongod to be ready"
       vars:
         USE_TLS: "true"
-    - func: "run tool integration tests"
+    - func: "create mongod users"
       vars:
-        INT_TEST: "true"
-        AUTH_TEST: "true"
-        USE_SSL: "true"
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true -auth=true
 
 - name: integration-4.4-cluster
   commands:
@@ -1512,10 +1280,12 @@ tasks:
     - func: "create repl_set"
       vars:
         USE_TLS: "true"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-        INT_TEST: "true"
-        USE_SSL: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration -ssl=true -topology=replSet
 
 - name: kerberos
   commands:
@@ -1527,13 +1297,14 @@ tasks:
           - key: "args"
             value: "${args} -test.types=kerberos"
     - func: "setup integration test"
-    - func: "run tool integration tests"
+    - func: "run make target"
       vars:
-          KERBEROS_TEST: "true"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:kerberos
 
 - name: legacy42
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1541,27 +1312,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.2"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run legacy tests"
       vars:
         test_path: "test/legacy42"
@@ -1575,11 +1328,7 @@ tasks:
       params:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          set -x
-          set -v
-          set -e
-          . ./set_goenv.sh
-          GOROOT=""; set_goenv || exit
+          ${_set_shell_env}
           PATH=$PATH:$PWD/bin golangci-lint run --disable-all -E gofmt ./...
           exit $?
 
@@ -1591,11 +1340,7 @@ tasks:
       params:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          set -x
-          set -v
-          set -e
-          . ./set_goenv.sh
-          GOROOT=""; set_goenv || exit
+          ${_set_shell_env}
           retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
           if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
 
@@ -1616,8 +1361,6 @@ tasks:
 
 
 - name: qa-tests-4.4
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1625,38 +1368,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1664,38 +1384,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.2"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.0
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1703,38 +1400,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.0"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.6
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1742,38 +1416,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "3.6"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.4
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1781,38 +1432,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "3.4"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.2
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1820,38 +1448,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "3.2"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - func: "run qa-tests"
       vars:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_min_mongo_34,requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: native-cert-ssl-current
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1859,30 +1464,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongoimport
-    - func: "fetch tool"
-      vars:
-        tool: mongoexport
-    - func: "fetch tool"
-      vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
-    - func: "fetch tool"
-      vars:
-        tool: mongostat
-    - func: "fetch tool"
-      vars:
-        tool: mongotop
-    - func: "fetch tool"
-      vars:
-        tool: mongofiles
-    - func: "fetch tool"
-      vars:
-        tool: bsondump
+        target: build
     - command: shell.exec
       type: test
       params:
@@ -1897,8 +1481,6 @@ tasks:
           python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
 - name: qa-dump-restore-with-archiving-current
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1906,20 +1488,15 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
+        target: build -tools=mongodump,mongorestore
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_archive"
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-dump-restore-with-gzip-current
-  depends_on:
-  - name: dist
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1927,12 +1504,9 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
-    - func: "fetch tool"
+    - func: "run make target"
       vars:
-        tool: mongodump
-    - func: "fetch tool"
-      vars:
-        tool: mongorestore
+        target: build -tools=mongodump,mongorestore
     - func: "run qa-tests"
       vars:
         resmoke_suite: "restore_gzip"
@@ -1942,46 +1516,12 @@ tasks:
   commands:
     - command: expansions.update
     - func: "fetch source"
-    - func: "run tool unit tests"
+    - func: "run make target"
       vars:
-          UNIT_TEST: "true"
-          run_coverage: "true"
-    - func: "create coverage reports"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongoimport"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongoexport"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongostat"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongodump"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
-    - command: expansions.update
-      params:
-        updates:
-          - key: "coverage_pkg"
-            value: "mongorestore"
-    - func: "upload html coverage"
-    - func: "upload text coverage"
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:unit
 
 - name: vet
   commands:
@@ -2007,7 +1547,6 @@ buildvariants:
   run_on:
   - rhel62-small
   expansions:
-    build_tags: "failpoints ssl sasl gssapi"
     _platform: rhel62
   tasks:
   - name: format-go
@@ -2043,8 +1582,6 @@ buildvariants:
   display_name: Amazon Linux 64
   run_on:
   - amazon1-2018-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2056,8 +1593,6 @@ buildvariants:
   display_name: Amazon Linux 64 v2
   run_on:
   - amazon2-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2073,8 +1608,6 @@ buildvariants:
   display_name: Debian 8.1
   run_on:
   - debian81-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2086,8 +1619,6 @@ buildvariants:
   display_name: Debian 9.2
   run_on:
   - debian92-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2099,8 +1630,6 @@ buildvariants:
   display_name: Debian 10
   run_on:
     - debian10-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2124,7 +1653,6 @@ buildvariants:
     mongo_os: "osx"
     mongo_target: "osx-ssl"
     excludes: requires_many_files
-    build_tags: "failpoints ssl sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     smoke_use_tls: --use-tls
@@ -2147,7 +1675,6 @@ buildvariants:
     <<: *mongo_tls_startup_args
     mongo_os: "rhel62"
     mongo_edition: "enterprise"
-    build_tags: "failpoints ssl tls sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     smoke_use_tls: --use-tls
@@ -2161,8 +1688,6 @@ buildvariants:
   display_name: RHEL 7.0
   run_on:
   - rhel70-small
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2174,8 +1699,6 @@ buildvariants:
   display_name: RHEL 8.0
   run_on:
   - rhel80-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2191,8 +1714,6 @@ buildvariants:
   display_name: SUSE 12
   run_on:
   - suse12-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2204,8 +1725,6 @@ buildvariants:
   display_name: SUSE 15
   run_on:
     - suse15-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2221,8 +1740,6 @@ buildvariants:
   display_name: Ubuntu 14.04
   run_on:
   - ubuntu1404-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2241,7 +1758,6 @@ buildvariants:
     <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "failpoints ssl tls sasl gssapi"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
     smoke_use_tls: --use-tls
@@ -2255,8 +1771,6 @@ buildvariants:
   display_name: Ubuntu 18.04
   run_on:
   - ubuntu1804-test
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2268,8 +1782,6 @@ buildvariants:
   display_name: Ubuntu 20.04
   run_on:
   - ubuntu2004-small
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2293,7 +1805,6 @@ buildvariants:
     mongo_os: "windows-64"
     mongo_edition: "enterprise"
     mongo_target: "windows"
-    build_tags: "failpoints sasl gssapi ssl"
     smoke_use_ssl: --use-ssl
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
     resmoke_use_ssl: _ssl
@@ -2325,7 +1836,6 @@ buildvariants:
     mongo_os: "ubuntu1604"
     mongo_edition: "targeted"
     mongo_arch: "arm64"
-    build_tags: "failpoints ssl"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -2348,7 +1858,6 @@ buildvariants:
     mongo_os: "ubuntu1804"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
-    build_tags: "failpoints ssl"
     resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -2371,7 +1880,6 @@ buildvariants:
     mongo_os: "ubuntu2004"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
-    build_tags: "failpoints ssl"
     resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -2395,7 +1903,6 @@ buildvariants:
     mongo_os: "rhel71"
     mongo_edition: "enterprise"
     mongo_arch: "ppc64le"
-    build_tags: 'failpoints ssl sasl gssapi'
     resmoke_use_ssl: _ssl
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
@@ -2415,7 +1922,6 @@ buildvariants:
     mongo_os: "rhel81"
     mongo_edition: "enterprise"
     mongo_arch: "ppc64le"
-    build_tags: 'failpoints ssl sasl gssapi'
     resmoke_use_ssl: _ssl
     resmoke_args: -j 4
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
@@ -2430,8 +1936,6 @@ buildvariants:
   - ubuntu1604-power8-test
   stepback: false
   batchtime: 10080 # weekly
-  expansions:
-    build_tags: 'failpoints ssl sasl gssapi'
   tasks:
   - name: dist
   - name: sign
@@ -2446,8 +1950,6 @@ buildvariants:
   - ubuntu1804-power8-test
   stepback: false
   batchtime: 10080 # weekly
-  expansions:
-    build_tags: 'failpoints ssl sasl gssapi'
   tasks:
   - name: dist
   - name: sign
@@ -2471,7 +1973,6 @@ buildvariants:
     mongo_os: "rhel67"
     mongo_edition: "enterprise"
     mongo_arch: "s390x"
-    build_tags: "failpoints sasl gssapi ssl"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
@@ -2485,8 +1986,6 @@ buildvariants:
   - rhel72-zseries-test
   stepback: false
   batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2500,8 +1999,6 @@ buildvariants:
     - suse12-zseries-test
   stepback: false
   batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2515,8 +2012,6 @@ buildvariants:
   - ubuntu1604-zseries-small
   stepback: false
   batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2530,8 +2025,6 @@ buildvariants:
   - ubuntu1804-zseries-test
   stepback: false
   batchtime: 10080 # weekly
-  expansions:
-    build_tags: "failpoints sasl gssapi ssl"
   tasks:
   - name: dist
   - name: sign
@@ -2557,7 +2050,6 @@ buildvariants:
     _platform: ubuntu1604-s390x
     mongo_os: "ubuntu1604"
     mongo_edition: "enterprise"
-    build_tags: "failpoints sasl gssapi ssl"
     args: "-buildmode=default -race"
     excludes: requires_large_ram
     resmoke_use_tls: _tls

@@ -36,37 +36,8 @@ To use build/test scripts in the repo, you *MUST* set GOROOT to your Go root dir
 export GOROOT=/usr/local/go
 ```
 
-### Quick build
-
-The `build.sh` script builds all the tools, placing them in the `bin`
-directory.  Pass any build tags (like `ssl` or `sasl`) as additional command
-line arguments.
-
-```
-./build.sh
-./build.sh ssl
-./build.sh ssl sasl
-```
-
-### Manual build
-
-Source `set_goenv.sh` and run the `set_goenv` function to setup your GOPATH and
-architecture-specific configuration flags:
-
-```
-. ./set_goenv.sh
-set_goenv
-```
-
-Pass tags to the `go build` command as needed in order to build the tools with
-support for SSL and/or SASL. For example:
-
-```
-mkdir bin
-go build -o bin/mongoimport mongoimport/main/mongoimport.go
-go build -o bin/mongoimport -tags ssl mongoimport/main/mongoimport.go
-go build -o bin/mongoimport -tags "ssl sasl" mongoimport/main/mongoimport.go
-```
+Run `./make build` to build all the tools, placing them in the `bin`
+directory.
 
 Contributing
 ---------------

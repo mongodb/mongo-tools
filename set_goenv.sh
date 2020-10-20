@@ -81,39 +81,3 @@ set_goenv() {
 
     return
 }
-
-print_ldflags() {
-    VersionStr="$(go run release/release.go get-version)"
-    GitCommit="$(git rev-parse HEAD)"
-    importpath="main"
-    echo "-X ${importpath}.VersionStr=${VersionStr} -X ${importpath}.GitCommit=${GitCommit}"
-}
-
-print_tags() {
-    tags=""
-    if [ ! -z "$1" ]
-    then
-            tags="$@"
-    fi
-    UNAME_S=$(PATH="/usr/bin:/bin" uname -s)
-    case $UNAME_S in
-        Darwin)
-            if expr "$tags" : '.*ssl' > /dev/null ; then
-                tags="$tags openssl_pre_1.0"
-            fi
-        ;;
-    esac
-    echo "$tags"
-}
-
-# On linux, we want to set buildmode=pie for ASLR support
-buildflags() {
-    flags=""
-    UNAME_S=$(PATH="/usr/bin:/bin" uname -s)
-    case $UNAME_S in
-        Linux)
-            flags="-buildmode=pie"
-        ;;
-    esac
-    echo "$flags"
-}

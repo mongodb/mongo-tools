@@ -62,6 +62,22 @@
   version = "v1.29.11"
 
 [[projects]]
+  branch = "master"
+  digest = "1:dd5c7c8c895b8edf6d9ed11dab95c175ccd7b6e94f19e41fdfd2f896677e91cf"
+  name = "github.com/craiggwilson/goke"
+  packages = [
+    ".",
+    "build",
+    "pkg/editor",
+    "pkg/golang",
+    "pkg/sh",
+    "task",
+    "task/internal",
+  ]
+  pruneopts = "T"
+  revision = "69a77cdfe646a3f39691903d7cb3b93d071c0feb"
+
+[[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
   name = "github.com/go-stack/stack"
   packages = ["."]
@@ -136,12 +152,36 @@
   version = "v1.10.1"
 
 [[projects]]
+  digest = "1:e15cd01e7991994cbf58151c79abc5f0a80c8d3eb3a95b4501ff02d7a52ac5eb"
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "f6c00982823144337e56cdb71c712eaac151d29c"
+  version = "v0.1.7"
+
+[[projects]]
+  digest = "1:7a42645bfd802bb87392720f2e400178bb5c2da645e6ff57b2bebd5b9565b5d3"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "7b513a986450394f7bbf1476909911b3aa3a55ce"
+  version = "v0.0.12"
+
+[[projects]]
   digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
   name = "github.com/mattn/go-runewidth"
   packages = ["."]
   pruneopts = "T"
   revision = "3ee7d812e62a0804a7d0a324e0249ca2db3476d3"
   version = "v0.0.4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:a71afc8120f4c16fd642c021cf27720fadb91a7a190488bb6bc6f0d358e11708"
+  name = "github.com/mgutz/ansi"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "d51e80ef957dba7f19388ca64afefbd5a096af30"
 
 [[projects]]
   digest = "1:cdffea5e57e45949bcd9a7adca1b665f1aeaed4b7b07d96d3a8ff3aea2871dea"
@@ -338,6 +378,9 @@
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
+    "github.com/craiggwilson/goke",
+    "github.com/craiggwilson/goke/pkg/sh",
+    "github.com/craiggwilson/goke/task",
     "github.com/google/go-cmp/cmp",
     "github.com/mongodb/mongo-tools-common/archive",
     "github.com/mongodb/mongo-tools-common/auth",

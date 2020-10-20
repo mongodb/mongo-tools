@@ -2,6 +2,8 @@ package platform
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/release/env"
 )
@@ -23,11 +25,13 @@ const (
 // There should be at least one evergreen buildvariant per platform,
 // and there may be multiple.
 type Platform struct {
-	Name  string
-	Arch  string
-	OS    string
-	Pkg   string
-	Repos []string
+	Name      string
+	Arch      string
+	OS        string
+	Pkg       string
+	Repos     []string
+	BuildTags []string
+	BinaryExt string
 }
 
 func (p Platform) Variant() string {
@@ -39,8 +43,8 @@ func (p Platform) Variant() string {
 
 const evgVariantVar = "EVG_VARIANT"
 
-// Get returns the Platform for this host, based on the value of
-// EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set
+// GetFromEnv returns the Platform for this host, based on the value
+// of EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set
 // to an unknown value.
 func GetFromEnv() (Platform, error) {
 	variant, err := env.EvgVariant()
@@ -53,6 +57,33 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, fmt.Errorf("unknown evg variant %q", variant)
 	}
 	return pf, nil
+}
+
+// DetectLocal detects the platform for non-evergreen use cases.
+func DetectLocal() (Platform, error) {
+	cmd := exec.Command("uname", "-s")
+	out, err := cmd.Output()
+	if err != nil {
+		return Platform{}, fmt.Errorf("failed to run uname: %w", err)
+	}
+	kernelName := strings.TrimSpace(string(out))
+
+	switch kernelName {
+	case "Linux":
+		pf, ok := GetByVariant("ubuntu1804")
+		if !ok {
+			panic("ubuntu1804 platform name changed")
+		}
+		return pf, nil
+	case "Darwin":
+		pf, ok := GetByVariant("macos")
+		if !ok {
+			panic("macos platform name changed")
+		}
+		return pf, nil
+	}
+
+	return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
 }
 
 func GetByVariant(variant string) (Platform, bool) {
@@ -100,195 +131,224 @@ func (p Platform) ArtifactExtensions() []string {
 var platformsByVariant map[string]Platform
 var platforms = []Platform{
 	{
-		Name:  "amazon",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "amazon",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "amazon2",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "amazon2",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "debian81",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "debian81",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "debian92",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "debian92",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "debian10",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "debian10",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name: "macos",
-		Arch: "x86_64",
-		OS:   OSMac,
+		Name:      "macos",
+		Arch:      "x86_64",
+		OS:        OSMac,
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "rhel62",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "rhel62",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "rhel70",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "rhel70",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "rhel80",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "rhel80",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "suse12",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "suse12",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "suse15",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "suse15",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1404",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1404",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1604",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1604",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1804",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1804",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu2004",
-		Arch:  "x86_64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu2004",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name: "windows",
-		Arch: "x86_64",
-		OS:   OSWindows,
+		Name:      "windows",
+		Arch:      "x86_64",
+		OS:        OSWindows,
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BinaryExt: ".exe",
 	},
 	{
-		Name:  "ubuntu1604",
-		Arch:  "arm64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1604",
+		Arch:      "arm64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1804",
-		Arch:  "arm64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1804",
+		Arch:      "arm64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "failpoints"},
 	},
 	{
-		Name:  "ubuntu2004",
-		Arch:  "arm64",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu2004",
+		Arch:      "arm64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "failpoints"},
 	},
 	{
-		Name:  "rhel71",
-		Arch:  "ppc64le",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoEnterprise},
+		Name:      "rhel71",
+		Arch:      "ppc64le",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "rhel81",
-		Arch:  "ppc64le",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoEnterprise},
+		Name:      "rhel81",
+		Arch:      "ppc64le",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1604",
-		Arch:  "ppc64le",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1604",
+		Arch:      "ppc64le",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1804",
-		Arch:  "ppc64le",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1804",
+		Arch:      "ppc64le",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "rhel67",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "rhel67",
+		Arch:      "s390x",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "rhel72",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "rhel72",
+		Arch:      "s390x",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "suse12",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgRPM,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "suse12",
+		Arch:      "s390x",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1604",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1604",
+		Arch:      "s390x",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:  "ubuntu1804",
-		Arch:  "s390x",
-		OS:    OSLinux,
-		Pkg:   PkgDeb,
-		Repos: []string{RepoOrg, RepoEnterprise},
+		Name:      "ubuntu1804",
+		Arch:      "s390x",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 }
