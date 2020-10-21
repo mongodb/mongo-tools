@@ -15,7 +15,6 @@ import (
 
 	"github.com/mongodb/mongo-tools-common/bsonutil"
 	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -23,8 +22,6 @@ import (
 var ErrBufferClosed = errors.New("transaction buffer already closed")
 var ErrTxnAborted = errors.New("transaction aborted")
 var ErrNotTransaction = errors.New("oplog entry is not a transaction")
-
-var zeroTimestamp = primitive.Timestamp{}
 
 type txnTask struct {
 	meta Meta
@@ -40,7 +37,7 @@ type txnState struct {
 	ingestDone chan struct{}
 	ingestErr  error
 	stopChan   chan struct{}
-	startTime  primitive.Timestamp
+	startTime  db.OpTime
 	wg         sync.WaitGroup
 }
 
@@ -50,7 +47,7 @@ func newTxnState(op db.Oplog) *txnState {
 		ingestDone: make(chan struct{}),
 		stopChan:   make(chan struct{}),
 		buffer:     make([]db.Oplog, 0),
-		startTime:  op.Timestamp,
+		startTime:  db.GetOpTimeFromOplogEntry(&op),
 	}
 }
 
@@ -216,15 +213,15 @@ LOOP:
 	b.wg.Done()
 }
 
-// OldestTimestamp returns the timestamp of the oldest buffered transaction, or
-// a zero-value timestamp if no transactions are buffered.  This will include
+// OldestOpTime returns the optime of the oldest buffered transaction, or
+// an empty optime if no transactions are buffered. This will include
 // committed transactions until they are purged.
-func (b *Buffer) OldestTimestamp() primitive.Timestamp {
+func (b *Buffer) OldestOpTime() db.OpTime {
 	b.Lock()
 	defer b.Unlock()
-	oldest := zeroTimestamp
+	oldest := db.OpTime{}
 	for _, v := range b.txns {
-		if oldest == zeroTimestamp || util.TimestampLessThan(v.startTime, oldest) {
+		if db.OpTimeIsEmpty(oldest) || db.OpTimeLessThan(v.startTime, oldest) {
 			oldest = v.startTime
 		}
 	}

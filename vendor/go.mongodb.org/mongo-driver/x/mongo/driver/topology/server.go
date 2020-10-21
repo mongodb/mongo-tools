@@ -276,6 +276,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
 	s.pool.clear()
+	s.cancelCheck()
 }
 
 // Description returns a description of the server as of the last heartbeat.
@@ -331,6 +332,22 @@ func (s *Server) RequestImmediateCheck() {
 	}
 }
 
+// getWriteConcernErrorForProcessing extracts a driver.WriteConcernError from the provided error. This function returns
+// (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
+// handling and (nil, false) otherwise.
+func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
+	writeCmdErr, ok := err.(driver.WriteCommandError)
+	if !ok {
+		return nil, false
+	}
+
+	wcerr := writeCmdErr.WriteConcernError
+	if wcerr != nil && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+		return wcerr, true
+	}
+	return nil, false
+}
+
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error, conn driver.Connection) {
 	// ignore nil error
@@ -364,7 +381,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) {
 		}
 		return
 	}
-	if wcerr, ok := err.(driver.WriteConcernError); ok && (wcerr.NodeIsRecovering() || wcerr.NotMaster()) {
+	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// ignore stale error
 		if description.CompareTopologyVersion(desc.TopologyVersion, wcerr.TopologyVersion) >= 0 {
 			return
@@ -545,18 +562,15 @@ func (s *Server) createConnection() (*connection, error) {
 		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+		// We override whatever handshaker is currently attached to the options with a basic
+		// one because need to make sure we don't do auth.
+		WithHandshaker(func(h Handshaker) Handshaker {
+			return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
+		}),
+		// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
+		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
 	}
-	opts = append(opts, s.cfg.connectionOpts...)
-	// We override whatever handshaker is currently attached to the options with a basic
-	// one because need to make sure we don't do auth.
-	opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
-		return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
-	}))
-
-	// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
-	opts = append(opts, WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-		return nil
-	}))
+	opts = append(s.cfg.connectionOpts, opts...)
 
 	return newConnection(s.address, opts...)
 }

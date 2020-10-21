@@ -66,10 +66,7 @@
   digest = "1:dd5c7c8c895b8edf6d9ed11dab95c175ccd7b6e94f19e41fdfd2f896677e91cf"
   name = "github.com/craiggwilson/goke"
   packages = [
-    ".",
-    "build",
-    "pkg/editor",
-    "pkg/golang",
+    "pkg/git",
     "pkg/sh",
     "task",
     "task/internal",
@@ -184,7 +181,7 @@
   revision = "d51e80ef957dba7f19388ca64afefbd5a096af30"
 
 [[projects]]
-  digest = "1:cdffea5e57e45949bcd9a7adca1b665f1aeaed4b7b07d96d3a8ff3aea2871dea"
+  digest = "1:d0212064c5a35209a70f1fdef85ebe80cdf325c89fd542b585b04074590d2296"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -206,8 +203,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "d4a090fedd3d457640f7661a7ef1c24c0fe6a382"
-  version = "v4.0.10"
+  revision = "efdb79d2bf6fca11c8f109b609a99be2814af3fd"
+  source = "github.com/huan-Mongo/mongo-tools-common"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -263,7 +260,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:347ef9ea01aea31c0b58cb8f11327797f68e97656c722e6f484b0cc181335f8f"
+  digest = "1:0c36e0dc4cdbed1fe6ef16442987988f7ecb7c2283a0813ed06732f8b86708b5"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -301,8 +298,8 @@
     "x/mongo/driver/wiremessage",
   ]
   pruneopts = "T"
-  revision = "cfc0cb9248826358c5066d03d32a62bf5b8c2fc6"
-  version = "v1.4.0-rc0"
+  revision = "140a982e2bad05fb469723ea9046c9699b3fe161"
+  version = "v1.4.2"
 
 [[projects]]
   digest = "1:d6a2cbcf3914d0ff5be802485340fb8009fb4e3199b2d790f68d752c44f7e4e2"
@@ -377,8 +374,9 @@
     "github.com/3rf/mongo-lint",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/session",
+    "github.com/aws/aws-sdk-go/service/s3",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
-    "github.com/craiggwilson/goke",
+    "github.com/craiggwilson/goke/pkg/git",
     "github.com/craiggwilson/goke/pkg/sh",
     "github.com/craiggwilson/goke/task",
     "github.com/google/go-cmp/cmp",
