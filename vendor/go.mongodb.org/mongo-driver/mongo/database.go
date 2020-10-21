@@ -168,10 +168,12 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return operation.NewCommand(runCmdDoc).
 		Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).Crypt(db.client.crypt), sess, nil
+		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
+		Crypt(db.client.crypt).ReadPreference(ro.ReadPreference), sess, nil
 }
 
-// RunCommand executes the given command against the database.
+// RunCommand executes the given command against the database. This function does not obey the Database's read
+// preference. To specify a read preference, the RunCmdOptions.ReadPreference option must be used.
 //
 // The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.
@@ -190,16 +192,19 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	}
 
 	err = op.Execute(ctx)
+	// RunCommand can be used to run a write, thus execute may return a write error
+	_, convErr := processWriteError(err)
 	return &SingleResult{
-		err: replaceErrors(err),
+		err: convErr,
 		rdr: bson.Raw(op.Result()),
 		reg: db.registry,
 	}
 }
 
 // RunCommandCursor executes the given command against the database and parses the response as a cursor. If the command
-// being executed does not return a cursor (e.g. insert), the command will be executed on the server and an error
-// will be returned because the server response cannot be parsed as a cursor.
+// being executed does not return a cursor (e.g. insert), the command will be executed on the server and an error will
+// be returned because the server response cannot be parsed as a cursor. This function does not obey the Database's read
+// preference. To specify a read preference, the RunCmdOptions.ReadPreference option must be used.
 //
 // The runCommand parameter must be a document for the command to be executed. It cannot be nil.
 // This must be an order-preserving type such as bson.D. Map types such as bson.M are not valid.

@@ -124,7 +124,7 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		// If we don't have a next batch
 		if !c.bc.Next(ctx) {
 			// Do we have an error? If so we return false.
-			c.err = c.bc.Err()
+			c.err = replaceErrors(c.bc.Err())
 			if c.err != nil {
 				return false
 			}
@@ -176,7 +176,7 @@ func (c *Cursor) Err() error { return c.err }
 // the first call, any subsequent calls will not change the state.
 func (c *Cursor) Close(ctx context.Context) error {
 	defer c.closeImplicitSession()
-	return c.bc.Close(ctx)
+	return replaceErrors(c.bc.Close(ctx))
 }
 
 // All iterates the cursor and decodes each document into results. The results parameter must be a pointer to a slice.
@@ -219,7 +219,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 		batch = c.bc.Batch()
 	}
 
-	if err = c.bc.Err(); err != nil {
+	if err = replaceErrors(c.bc.Err()); err != nil {
 		return err
 	}
 
@@ -269,8 +269,10 @@ func (c *Cursor) closeImplicitSession() {
 }
 
 // BatchCursorFromCursor returns a driver.BatchCursor for the given Cursor. If there is no underlying
-// driver.BatchCursor, nil is returned. This method is deprecated and does not have any stability guarantees. It may be
-// removed in the future.
+// driver.BatchCursor, nil is returned.
+//
+// Deprecated: This is an unstable function because the driver.BatchCursor type exists in the "x" package. Neither this
+// function nor the driver.BatchCursor type should be used by applications and may be changed or removed in any release.
 func BatchCursorFromCursor(c *Cursor) *driver.BatchCursor {
 	bc, _ := c.bc.(*driver.BatchCursor)
 	return bc
