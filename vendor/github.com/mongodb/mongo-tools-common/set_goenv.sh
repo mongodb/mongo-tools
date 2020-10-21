@@ -11,11 +11,14 @@ set_goenv() {
     UNAME_S=$(PATH="/usr/bin:/bin" uname -s)
     case $UNAME_S in
         CYGWIN*)
-            PREF_GOROOT="c:/golang/go1.11"
-            PREF_PATH="/cygdrive/c/golang/go1.11/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH"
+            PREF_GOROOT="c:/golang/go1.15"
+            PREF_PATH="/cygdrive/c/golang/go1.15/bin:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH"
+            if [[ $GOCACHE != C:* ]]; then
+                export GOCACHE="C:$GOCACHE"
+            fi
         ;;
         *)
-            PREF_GOROOT="/opt/golang/go1.11"
+            PREF_GOROOT="/opt/golang/go1.15"
             # XXX might not need mongodbtoolchain anymore
             PREF_PATH="$PREF_GOROOT/bin:/opt/mongodbtoolchain/v3/bin/:$PATH"
         ;;
