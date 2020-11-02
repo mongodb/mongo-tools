@@ -39,7 +39,7 @@ Ensure that all the tickets have the correct type. Take this opportunity to edit
 If you are releasing a patch but a ticket needs a minor/major bump, move the ticket to the next major/minor release. Likewise, if you are releasing a minor version but a ticket needs a major bump, move it to the next major release.
 The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
-Close the release on JIRA, adding the current date.
+Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
 
 ### Releasing
 
