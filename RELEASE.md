@@ -35,9 +35,11 @@ A completely green build is not mandatory, since we do have flaky tests; however
 
 #### Complete the Release in JIRA
 Go to the [Tools releases page](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased), and ensure that all the tickets in the fixVersion to be released are closed.
+Ensure that all the tickets have the correct type. Take this opportunity to edit ticket titles if they can be made more descriptive. The ticket titles will be published in the changelog.
+If you are releasing a patch but a ticket needs a minor/major bump, move the ticket to the next major/minor release. Likewise, if you are releasing a minor version but a ticket needs a major bump, move it to the next major release.
 The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
-Close the release on JIRA, adding the current date.
+Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
 
 ### Releasing
 
@@ -61,6 +63,9 @@ git tag -a -m vX.Y.Z X.Y.Z
 git push --tags
 ```
 
+##### Set Evergreen Priorities
+Some evergreen variants (particularly zSeries and PowerPC variants) may have a long schedule queue. To speed up release tasks, you can set the task priority for any variant to 101 for release candidates and 200 for actual releases.
+
 ### Post-Release Tasks
 Complete these tasks after the release builds have completed on evergreen.
 
@@ -69,7 +74,7 @@ Go to the [Download Center](https://www.mongodb.com/try/download/database-tools)
 Download the package for your OS and confirm that `mongodump --version` prints the correct version.
 
 #### File CLOUDP Tickets
-File the following CLOUDP tickets for deploying the new release:
+File the following CLOUDP tickets for deploying the new release (you may need to ask the TOOLS project manager to do this):
 - "Release Database Tools X.Y.Z to CM/OM" with a component of "Cloud Manager Upgrade" and assigned team of "Automation"
 - "Release Database Tools X.Y.Z to Atlas" with a component of "Atlas Upgrade" and assigned team of "Atlas Triage"
 

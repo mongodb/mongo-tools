@@ -109,7 +109,7 @@ func GetTasksForVersion(version string) ([]Task, error) {
 
 	var evgVersion EvgVersion
 	bodyDecoder := json.NewDecoder(res.Body)
-	err = bodyDecoder.Decode(evgVersion)
+	err = bodyDecoder.Decode(&evgVersion)
 	if err != nil {
 		return nil, err
 	}
