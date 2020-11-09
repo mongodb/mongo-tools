@@ -562,7 +562,7 @@ func buildMSI() {
 		return
 	}
 
-	// The msi msiUpgradeCode must be updated when the minor version changes.
+	// The msi msiUpgradeCode must be updated when the major version changes.
 	msiUpgradeCode := "effc2f80-8f82-413f-a3ba-4a96f3d2883a"
 
 	binariesPath := filepath.Join("..", "bin")
@@ -637,9 +637,26 @@ func buildMSI() {
 
 	for _, name := range binaries {
 		err := os.Link(
-			filepath.Join(binariesPath, name),
+			filepath.Join(binariesPath, name+".exe"),
 			name+".exe",
 		)
+		files, err := ioutil.ReadDir(binariesPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("ls output:")
+		for _, f := range files {
+			fmt.Println(f.Name())
+		}
+		fmt.Println("end of ls output")
+		out, err := exec.Command("pwd").Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("The pwd output %s\n----------\n", out)
+
+		//fmt.Printf("DIRECTORY of .exe: %v\n", path.Dir(name+".exe"))
+		//fmt.Printf("DIRECTORY of binary: %v\n", path.Dir(filepath.Join(binariesPath, name)))
 		check(err, "link binary files into "+msiBuildDir)
 	}
 
@@ -663,6 +680,7 @@ func buildMSI() {
 	versionLabel := fmt.Sprintf("%d", v.Major)
 
 	currentVersionLabel := "100"
+	fmt.Printf("version label: %v\n", v.String())
 	if versionLabel != currentVersionLabel {
 		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be updated")
 	}
