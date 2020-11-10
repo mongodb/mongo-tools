@@ -637,7 +637,7 @@ func buildMSI() {
 
 	for _, name := range binaries {
 		err := os.Link(
-			filepath.Join(binariesPath, name),
+			filepath.Join(binariesPath, name+".exe"),
 			name+".exe",
 		)
 		check(err, "link binary files into "+msiBuildDir)
