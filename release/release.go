@@ -562,7 +562,7 @@ func buildMSI() {
 		return
 	}
 
-	// The msi msiUpgradeCode must be updated when the minor version changes.
+	// The msi msiUpgradeCode must be updated when the major version changes.
 	msiUpgradeCode := "effc2f80-8f82-413f-a3ba-4a96f3d2883a"
 
 	binariesPath := filepath.Join("..", "bin")
