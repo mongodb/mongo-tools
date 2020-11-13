@@ -1,5 +1,66 @@
 # Database Tools Changelog
 
+## 100.2.1
+
+_Released 2020-11-13
+
+We are pleased to announce version 100.2.1 of the MongoDB Database Tools.
+
+This release bumps the Go driver version to 1.4.2, adds a releases archive for the Tools, and logs when issuing count commands in `mongodump` and `mongoexport` so slow collection counts aren't misinterpreted as hangs. It also fixes a bug that prevented mongorestore from scaling properly.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+
+<h3>        Build Failure
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2767'>TOOLS-2767</a>] -         Windows 64 dist task fails
+</li>
+</ul>
+                                                                        
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2741'>TOOLS-2741</a>] -         Release Database Tools 100.2.1
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2744'>TOOLS-2744</a>] -         mongorestore not scaling due to unnecessary incremental sleep time
+</li>
+</ul>
+        
+<h3>        New Feature
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2750'>TOOLS-2750</a>] -         Log before getting collection counts
+</li>
+</ul>
+        
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-1856'>TOOLS-1856</a>] -         use a memory pool in mongorestore 
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2651'>TOOLS-2651</a>] -         Simplify build scripts
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2687'>TOOLS-2687</a>] -         Add archived releases JSON feed for Database Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2735'>TOOLS-2735</a>] -         Move server vendoring instructions to a README in the repo
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2748'>TOOLS-2748</a>] -         Add a String() to OpTime
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2758'>TOOLS-2758</a>] -         Bump Go driver to 1.4.2
+</li>
+</ul>
+                                            
+
 ## 100.2.0
 
 _Released 2020-10-15_
