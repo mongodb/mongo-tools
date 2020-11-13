@@ -33,7 +33,7 @@ Ensure that its fixVersion matches the version being released.
 Ensure that the build you are releasing is passing the tests on the evergreen waterfall.
 A completely green build is not mandatory, since we do have flaky tests; however, failing tasks should be manually investigated to ensure they are not actual test failures.
 
-#### Complete the Release in JIRA
+#### Check Tickets in Release
 Go to the [Tools releases page](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased), and ensure that all the tickets in the fixVersion to be released are closed.
 Ensure that all the tickets have the correct type. Take this opportunity to edit ticket titles if they can be made more descriptive. The ticket titles will be published in the changelog.
 If you are releasing a patch but a ticket needs a minor/major bump, move the ticket to the next major/minor release. Likewise, if you are releasing a minor version but a ticket needs a major bump, move it to the next major release.
@@ -75,8 +75,8 @@ File the following CLOUDP tickets for deploying the new release (you may need to
 - "Release Database Tools X.Y.Z to CM/OM" with a component of "Cloud Manager Upgrade" and assigned team of "Automation"
 - "Release Database Tools X.Y.Z to Atlas" with a component of "Atlas Upgrade" and assigned team of "Atlas Triage"
 
-#### Close Release Ticket
-Move the JIRA ticket tracking this release to the "Closed" state. Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
+#### Complete the Release on JIRA
+Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
@@ -127,6 +127,10 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 #### Update the changelog in the docs
 
 Once the PR has been approved and merged, open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
+
+#### Close Release Ticket
+
+Move the JIRA ticket tracking this release to the "Closed" state.
 
 #### Announce the release
 
