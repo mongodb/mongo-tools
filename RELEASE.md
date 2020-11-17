@@ -39,6 +39,7 @@ Ensure that all the tickets have the correct type. Take this opportunity to edit
 If you are releasing a patch but a ticket needs a minor/major bump, move the ticket to the next major/minor release. Likewise, if you are releasing a minor version but a ticket needs a major bump, move it to the next major release.
 The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
+Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
 
 ### Releasing
 
@@ -127,10 +128,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 #### Update the changelog in the docs
 
 Once the PR has been approved and merged, open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
-
-#### Close Release Ticket
-
-Move the JIRA ticket tracking this release to the "Closed" state.
 
 #### Announce the release
 

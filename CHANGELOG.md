@@ -6,7 +6,7 @@ _Released 2020-11-13
 
 We are pleased to announce version 100.2.1 of the MongoDB Database Tools.
 
-This release bumps the Go driver version to 1.4.2, adds a releases archive for the Tools, and logs when issuing count commands in `mongodump` and `mongoexport` so slow collection counts aren't misinterpreted as hangs. It also fixes a bug that prevented mongorestore from scaling properly.
+This release includes a `mongorestore` performance improvement, a fix for a bug affecting highly parallel `mongorestore`s, and an observability improvement to `mongodump` and `mongoexport`, in addition to a number of internal build/release changes.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
