@@ -126,6 +126,9 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 
 Once the PR has been approved and merged, open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
 
+#### Close Release Ticket
+Move the JIRA ticket tracking this release to the "Closed" state.
+
 #### Announce the release
 
 Copy your entry from CHANGELOG.md and post it to the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools) in the "Developer Tools" section with the tag `database-tools`. Also post it in the #mongo-tools slack channel to announce it internally.
