@@ -1285,7 +1285,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 			imp.ToolOptions.Collection = "col"
 			So(imp.validateSettings([]string{}), ShouldBeNil)
 			So(imp.IngestOptions.NumDecodingWorkers, ShouldEqual, runtime.NumCPU())
-			So(imp.IngestOptions.BulkBufferSize, ShouldEqual, 1000)
+			So(imp.IngestOptions.BulkBufferSize, ShouldEqual, 100000)
 		})
 	})
 }

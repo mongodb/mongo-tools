@@ -105,7 +105,7 @@ type OutputOptions struct {
 	PreserveUUID             bool   `long:"preserveUUID" description:"preserve original collection UUIDs (off by default, requires drop)"`
 	TempUsersColl            string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
 	TempRolesColl            string `long:"tempRolesColl" default:"temproles" hidden:"true"`
-	BulkBufferSize           int    `long:"batchSize" default:"1000" hidden:"true"`
+	BulkBufferSize           int    `long:"batchSize" default:"100000" hidden:"true"`
 	FixDottedHashedIndexes   bool   `long:"fixDottedHashIndex" description:"when enabled, all the hashed indexes on dotted fields will be created as single field ascending indexes on the destination"`
 }
 

@@ -294,6 +294,10 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		restore.OutputOptions.NumInsertionWorkers = 1
 	}
 
+	if restore.OutputOptions.BulkBufferSize <= 0 || restore.OutputOptions.BulkBufferSize > 100000 {
+		restore.OutputOptions.BulkBufferSize = 100000
+	}
+
 	if restore.OutputOptions.PreserveUUID {
 		if !restore.OutputOptions.Drop {
 			return fmt.Errorf("cannot specify --preserveUUID without --drop")

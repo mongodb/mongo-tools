@@ -255,9 +255,8 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	log.Logvf(log.DebugLow, "using %v decoding workers", imp.IngestOptions.NumDecodingWorkers)
 	log.Logvf(log.DebugLow, "using %v insert workers", imp.IngestOptions.NumInsertionWorkers)
 
-	// get the number of documents per batch
-	if imp.IngestOptions.BulkBufferSize <= 0 || imp.IngestOptions.BulkBufferSize > 1000 {
-		imp.IngestOptions.BulkBufferSize = 1000
+	if imp.IngestOptions.BulkBufferSize <= 0 || imp.IngestOptions.BulkBufferSize > 100000 {
+		imp.IngestOptions.BulkBufferSize = 100000
 	}
 
 	// ensure we have a valid string to use for the collection

@@ -101,7 +101,7 @@ type IngestOptions struct {
 	// Specifies the number of threads to use in processing data read from the input source
 	NumDecodingWorkers int `long:"numDecodingWorkers" default:"0" hidden:"true"`
 
-	BulkBufferSize int `long:"batchSize" default:"1000" hidden:"true"`
+	BulkBufferSize int `long:"batchSize" default:"100000" hidden:"true"`
 }
 
 // Name returns a description of the IngestOptions struct.
