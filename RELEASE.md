@@ -50,9 +50,6 @@ At the time when the major release process is formalized, this section will be r
 
 #### Minor/Patch Release
 
-##### Ensure evergreen version created
-Check the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools) to ensure that an evergreen version has been created for the most recent commit updating the changelog.
-
 ##### Ensure master up to date
 Ensure you have the `master` branch checked out, and that you have pulled the latest commit from `mongodb/mongo-tools`.
 
@@ -62,6 +59,7 @@ Create an annotated tag and push it:
 git tag -a -m vX.Y.Z X.Y.Z
 git push --tags
 ```
+This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools). If it doesn't, you may have to ask the project manager to give you the right permissions to do so.
 
 ##### Set Evergreen Priorities
 Some evergreen variants (particularly zSeries and PowerPC variants) may have a long schedule queue. To speed up release tasks, you can set the task priority for any variant to 101 for release candidates and 200 for actual releases.
@@ -77,9 +75,6 @@ Download the package for your OS and confirm that `mongodump --version` prints t
 File the following CLOUDP tickets for deploying the new release (you may need to ask the TOOLS project manager to do this):
 - "Release Database Tools X.Y.Z to CM/OM" with a component of "Cloud Manager Upgrade" and assigned team of "Automation"
 - "Release Database Tools X.Y.Z to Atlas" with a component of "Atlas Upgrade" and assigned team of "Atlas Triage"
-
-#### Close Release Ticket
-Move the JIRA ticket tracking this release to the "Closed" state.
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
@@ -130,6 +125,9 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 #### Update the changelog in the docs
 
 Once the PR has been approved and merged, open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
+
+#### Close Release Ticket
+Move the JIRA ticket tracking this release to the "Closed" state.
 
 #### Announce the release
 
