@@ -9,7 +9,6 @@ License: Apache
 URL:        http://www.mongodb.com
 Vendor:     MongoDB
 BuildArchitectures: @ARCHITECTURE@
-Obsoletes:  mongodb-database-tools <= @TOOLS_VERSION@
 Requires: openssl, cyrus-sasl, cyrus-sasl-plain, cyrus-sasl-gssapi
 Conflicts: mongodb-org-tools <= 4.3.2, mongodb-org-unstable-tools <= 4.3.2, mongodb-enterprise-tools <= 4.3.2, mongodb-enterprise-unstable-tools <= 4.3.2
 BuildRoot: %{_topdir}/BUILD/%{name}-%{version}-%{release}
