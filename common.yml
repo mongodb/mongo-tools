@@ -1713,7 +1713,7 @@ buildvariants:
 - name: suse12
   display_name: SUSE 12
   run_on:
-  - suse12-test
+  - suse12-sp5-small
   tasks:
   - name: dist
   - name: sign
@@ -1724,7 +1724,7 @@ buildvariants:
 - name: suse15
   display_name: SUSE 15
   run_on:
-    - suse12-sp5-small
+    - suse15-sp5-small
   tasks:
   - name: dist
   - name: sign
