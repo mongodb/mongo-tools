@@ -68,6 +68,14 @@ func DetectLocal() (Platform, error) {
 	}
 	kernelName := strings.TrimSpace(string(out))
 
+	if strings.HasPrefix(kernelName, "CYGWIN") {
+		pf, ok := GetByVariant("windows")
+		if !ok {
+			panic("windows platform name changed")
+		}
+		return pf, nil
+	}
+
 	switch kernelName {
 	case "Linux":
 		pf, ok := GetByVariant("ubuntu1804")

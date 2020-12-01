@@ -206,6 +206,8 @@ func getBuildFlags(ctx *task.Context) ([]string, error) {
 
 	if pf.OS == platform.OSLinux {
 		flags = append(flags, "-buildmode=pie")
+	} else if pf.OS == platform.OSWindows {
+		flags = append(flags, "-buildmode=exe")
 	}
 
 	return flags, nil
