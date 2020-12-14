@@ -33,6 +33,10 @@
   version = "^v1.4.0"
 
 [[constraint]]
+  name = "gopkg.in/yaml.v2"
+  version = "^v2.3.0"
+
+[[constraint]]
   name = "github.com/smartystreets/goconvey"
   revision = "bf58a9a1291224109919756b4dcc469c670cc7e4"
 

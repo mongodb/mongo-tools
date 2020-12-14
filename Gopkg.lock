@@ -181,7 +181,7 @@
   revision = "d51e80ef957dba7f19388ca64afefbd5a096af30"
 
 [[projects]]
-  digest = "1:417ea03f9accdfbaf36bb126ef48b7f9523fe905437e6016276246ec495ef859"
+  digest = "1:2b5406754040af1bd30c73320698ee928f84e38b73d647dd319c4d55eb83b175"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -203,8 +203,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "ab136cad0105ba99306e091219a852ddea06ad9b"
-  source = "github.com/huan-Mongo/mongo-tools-common"
+  revision = "69bb6138cc5b2ce08d703a3e31bc674493233657"
+  version = "v4.0.15"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -366,6 +366,14 @@
   packages = ["."]
   pruneopts = "T"
   revision = "14b3d72120e8d10ea6e6b7f87f7175734b1faab8"
+
+[[projects]]
+  digest = "1:5054a1f394226de9e6ddc47b0ba77e35092a4112f4a1cd9cb94aba1f5bdc3ec6"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "7649d4548cb53a614db133b2a8ac1f31859dda8c"
+  version = "v2.4.0"
 
 [solve-meta]
   analyzer-name = "dep"
