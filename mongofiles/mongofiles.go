@@ -214,6 +214,10 @@ func (mf *MongoFiles) handleGet() (err error) {
 		return err
 	}
 
+	if len(files) > 1 && mf.StorageOptions.LocalFileName != "" {
+		return fmt.Errorf("cannot get multiple files with --local specified")
+	}
+
 	for _, file := range files {
 		if err = mf.writeGFSFileToLocal(file); err != nil {
 			return err
