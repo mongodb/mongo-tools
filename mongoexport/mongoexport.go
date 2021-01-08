@@ -276,7 +276,7 @@ func (exp *MongoExport) getCount() (int64, error) {
 	}
 
 	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", exp.ToolOptions.Namespace.DB, exp.ToolOptions.Namespace.Collection)
-	c, err := coll.EstimatedDocumentCount(nil)
+	c, err := coll.Count(nil)
 	if err != nil {
 		return 0, err
 	}

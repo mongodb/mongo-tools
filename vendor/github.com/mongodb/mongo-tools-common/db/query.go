@@ -14,10 +14,26 @@ type DeferredQuery struct {
 	LogReplay bool
 }
 
-// EstimatedDocumentCount issues a count command.
-func (q *DeferredQuery) EstimatedDocumentCount() (int, error) {
-	opt := mopt.EstimatedDocumentCount()
-	c, err := q.Coll.EstimatedDocumentCount(nil, opt)
+// Count issues a EstimatedDocumentCount command when there is no Filter in the query and a CountDocuments command otherwise.
+func (q *DeferredQuery) Count() (int, error) {
+	emptyFilter := false
+
+	if q.Filter == nil {
+		emptyFilter = true
+	} else if val, ok := q.Filter.(bson.D); ok && (val == nil || len(val.Map()) == 0) {
+		emptyFilter = true
+	} else if val, ok := q.Filter.(bson.M); ok && (val == nil || len(val) == 0) {
+		emptyFilter = true
+	}
+
+	if emptyFilter {
+		opt := mopt.EstimatedDocumentCount()
+		c, err := q.Coll.EstimatedDocumentCount(nil, opt)
+		return int(c), err
+	}
+
+	opt := mopt.Count()
+	c, err := q.Coll.CountDocuments(nil, q.Filter, opt)
 	return int(c), err
 }
 

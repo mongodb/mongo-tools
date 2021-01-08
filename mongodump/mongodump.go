@@ -618,7 +618,7 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 	}
 
 	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", query.Coll.Database().Name(), query.Coll.Name())
-	total, err := query.EstimatedDocumentCount()
+	total, err := query.Count()
 	if err != nil {
 		return 0, fmt.Errorf("error getting count from db: %v", err)
 	}
