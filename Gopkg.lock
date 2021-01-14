@@ -181,7 +181,7 @@
   revision = "d51e80ef957dba7f19388ca64afefbd5a096af30"
 
 [[projects]]
-  digest = "1:2b5406754040af1bd30c73320698ee928f84e38b73d647dd319c4d55eb83b175"
+  digest = "1:a32e86d5487a24a81643ffac407d2f2018745a31827795d88e5691e99829571f"
   name = "github.com/mongodb/mongo-tools-common"
   packages = [
     "archive",
@@ -203,8 +203,8 @@
     "util",
   ]
   pruneopts = "T"
-  revision = "69bb6138cc5b2ce08d703a3e31bc674493233657"
-  version = "v4.0.15"
+  revision = "8e61d96c628f5c3458ce5060a8c4359c68c792b5"
+  version = "v4.0.16"
 
 [[projects]]
   digest = "1:f363c75e8cac5653bc5c0c2b90cbd8a522fdc48c13a5f8d85078750f82d1a009"
@@ -258,6 +258,14 @@
   packages = ["."]
   pruneopts = "T"
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
+
+[[projects]]
+  digest = "1:1c81a3a4880ad32382ab73d8bf43eb9a75132a9055354cd08f492fea9b2e4598"
+  name = "github.com/youmark/pkcs8"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "1be2e3e5546da8a58903ff4adcfab015022538ea"
+  version = "v1.1"
 
 [[projects]]
   digest = "1:0c36e0dc4cdbed1fe6ef16442987988f7ecb7c2283a0813ed06732f8b86708b5"
