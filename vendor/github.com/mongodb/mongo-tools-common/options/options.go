@@ -348,6 +348,12 @@ type ExtraOptions interface {
 	Name() string
 }
 
+// Interface for extra options used in mongomirror.
+type DestinationAuthOptions interface {
+	// Set the password for authentication on the destination.
+	SetDestinationPassword(string)
+}
+
 type URISetter interface {
 	// SetOptionsFromURI provides a way for tools to fetch any options that were
 	// set in the URI and set them on the ExtraOptions that they pass to the options
@@ -423,8 +429,14 @@ func (opts *ToolOptions) AddOptions(extraOpts ExtraOptions) {
 	}
 
 	if opts.enabledOptions.URI {
-		opts.URI.extraOptionsRegistry = append(opts.URI.extraOptionsRegistry, extraOpts)
+		opts.AddToExtraOptionsRegistry(extraOpts)
 	}
+}
+
+// AddToExtraOptionsRegistry appends an additional options group to the extra options
+// registry found in opts.URI.
+func (opts *ToolOptions) AddToExtraOptionsRegistry(extraOpts ExtraOptions) {
+	opts.URI.extraOptionsRegistry = append(opts.URI.extraOptionsRegistry, extraOpts)
 }
 
 // ParseArgs parses a potential config file followed by the command line args, overriding
@@ -517,6 +529,7 @@ func LogSensitiveOptionWarnings(args []string) {
 // If found, we read the contents of the specified config file in YAML format. We parse
 // any values corresponding to --password, --uri and --sslPEMKeyPassword, and store them
 // in the opts.
+// This also applies to --destinationPassword for mongomirror only.
 func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	// Get config file path from the arguments, if specified.
 	_, err := opts.parser.ParseArgs(args)
@@ -537,9 +550,10 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 
 	// Unmarshal the config file as a top-level YAML file.
 	var config struct {
-		Password          string `yaml:"password"`
-		ConnectionString  string `yaml:"uri"`
-		SSLPEMKeyPassword string `yaml:"sslPEMKeyPassword"`
+		Password            string `yaml:"password"`
+		ConnectionString    string `yaml:"uri"`
+		SSLPEMKeyPassword   string `yaml:"sslPEMKeyPassword"`
+		DestinationPassword string `yaml:"destinationPassword"`
 	}
 	err = yaml.UnmarshalStrict(configBytes, &config)
 	if err != nil {
@@ -550,6 +564,14 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	opts.Auth.Password = config.Password
 	opts.URI.ConnectionString = config.ConnectionString
 	opts.SSL.SSLPEMKeyPassword = config.SSLPEMKeyPassword
+
+	// Mongomirror has an extra option to set.
+	for _, extraOpt := range opts.URI.extraOptionsRegistry {
+		if destinationAuth, ok := extraOpt.(DestinationAuthOptions); ok {
+			destinationAuth.SetDestinationPassword(config.DestinationPassword)
+			break
+		}
+	}
 
 	return nil
 }

@@ -1368,3 +1368,50 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 		})
 	})
 }
+
+func TestCount(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	Convey("test count collection", t, func() {
+		err := setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		session, err := testutil.GetBareSession()
+		So(err, ShouldBeNil)
+
+		collection := session.Database(testDB).Collection(testCollectionNames[0])
+		restoredDB := session.Database(testDB)
+		defer restoredDB.Drop(nil)
+
+		Convey("count collection without filter", func() {
+			findQuery := &db.DeferredQuery{Coll: collection}
+			cnt, err := findQuery.Count()
+			So(err, ShouldBeNil)
+			So(cnt, ShouldEqual, 10)
+
+			findQuery = &db.DeferredQuery{Coll: collection, Filter: bson.M{}}
+			cnt, err = findQuery.Count()
+			So(err, ShouldBeNil)
+			So(cnt, ShouldEqual, 10)
+
+			findQuery = &db.DeferredQuery{Coll: collection, Filter: bson.D{}}
+			cnt, err = findQuery.Count()
+			So(err, ShouldBeNil)
+			So(cnt, ShouldEqual, 10)
+		})
+
+		Convey("count collection with filter in BSON.M", func() {
+			findQuery := &db.DeferredQuery{Coll: collection, Filter: bson.M{"age": 1}}
+			cnt, err := findQuery.Count()
+			So(err, ShouldBeNil)
+			So(cnt, ShouldEqual, 1)
+		})
+
+		Convey("count collection with filter in BSON.D", func() {
+			findQuery := &db.DeferredQuery{Coll: collection, Filter: bson.D{{"age", 1}}}
+			cnt, err := findQuery.Count()
+			So(err, ShouldBeNil)
+			So(cnt, ShouldEqual, 1)
+		})
+	})
+}
