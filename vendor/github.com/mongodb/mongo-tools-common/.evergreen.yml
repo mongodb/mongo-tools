@@ -195,6 +195,7 @@ functions:
         if [ "${USE_SSL}" = "true" ]; then
           export TOOLS_TESTING_SSL="true"
           export TOOLS_TESTING_INTEGRATION="true"
+          export TOOLS_TESTING_PKCS8_PASSWORD=${pkcs8_password}
         fi;
         if [ "${AUTH_TEST}" = "true" ]; then
           export TOOLS_TESTING_AUTH="true"

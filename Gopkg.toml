@@ -29,7 +29,6 @@ required = ["github.com/3rf/mongo-lint"]
 
 [[constraint]]
   name = "github.com/mongodb/mongo-tools-common"
-  source = "github.com/huan-Mongo/mongo-tools-common"
   version = "v4.0.18"
 
 [[constraint]]

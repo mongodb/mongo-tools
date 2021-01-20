@@ -137,6 +137,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:1c81a3a4880ad32382ab73d8bf43eb9a75132a9055354cd08f492fea9b2e4598"
+  name = "github.com/youmark/pkcs8"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1be2e3e5546da8a58903ff4adcfab015022538ea"
+  version = "v1.1"
+
+[[projects]]
   digest = "1:da1ae5bfda71c3bf82d45eefa245d44de72a12a85d004e24e4964515324e5500"
   name = "go.mongodb.org/mongo-driver"
   packages = [
@@ -241,6 +249,7 @@
     "github.com/jessevdk/go-flags",
     "github.com/pkg/errors",
     "github.com/smartystreets/goconvey/convey",
+    "github.com/youmark/pkcs8",
     "go.mongodb.org/mongo-driver/bson",
     "go.mongodb.org/mongo-driver/bson/primitive",
     "go.mongodb.org/mongo-driver/mongo",
