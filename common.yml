@@ -1724,7 +1724,7 @@ buildvariants:
 - name: suse15
   display_name: SUSE 15
   run_on:
-    - suse15-sp5-small
+    - suse15sp2-small
   tasks:
   - name: dist
   - name: sign
