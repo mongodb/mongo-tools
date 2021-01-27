@@ -16,8 +16,7 @@ set_goenv() {
         ;;
         *)
             PREF_GOROOT="/opt/golang/go1.15"
-            # XXX might not need mongodbtoolchain anymore
-            PREF_PATH="$PREF_GOROOT/bin:/opt/mongodbtoolchain/v3/bin/:$PATH"
+            PREF_PATH="$PREF_GOROOT/bin:$PATH"
         ;;
     esac
 
@@ -33,19 +32,11 @@ set_goenv() {
             ;;
     esac
 
-    # XXX Setting the compiler might not be necessary anymore now that we're
-    # using standard Go toolchain and if we don't put mongodbtoolchain into the
-    # path.  But if we need to keep mongodbtoolchain for other tools (eg. python),
-    # then this is probably still necessary to find the right gcc.
+    # On s390x, the Go toolchain relies on s390x-linux-gnu-gcc which isn't set up.
+    # Temporarily rely on the mongodbtoolchain for compilation on s390x.
     if [ -z "$CC" ]; then
         UNAME_M=$(PATH="/usr/bin:/bin" uname -m)
         case $UNAME_M in
-            aarch64)
-                export CC=/opt/mongodbtoolchain/v3/bin/aarch64-mongodb-linux-gcc
-            ;;
-            ppc64le)
-                export CC=/opt/mongodbtoolchain/v3/bin/ppc64le-mongodb-linux-gcc
-            ;;
             s390x)
                 export CC=/opt/mongodbtoolchain/v3/bin/s390x-mongodb-linux-gcc
             ;;
