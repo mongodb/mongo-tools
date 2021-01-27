@@ -288,6 +288,14 @@ var platforms = []Platform{
 		BuildTags: []string{"ssl", "failpoints"},
 	},
 	{
+		Name:      "amazon2",
+		Arch:      "arm64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
 		Name:      "rhel71",
 		Arch:      "ppc64le",
 		OS:        OSLinux,

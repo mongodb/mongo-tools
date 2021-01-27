@@ -1887,6 +1887,18 @@ buildvariants:
     USE_SSL: "true"
   tasks: *ubuntu2004_arm64_tasks
 
+- name: amazon2-arm64
+  display_name: Amazon Linux ARM v2
+  run_on:
+  - amazon2-arm64-small
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
+
 #######################################
 #        Power Buildvariants          #
 #######################################
