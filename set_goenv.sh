@@ -38,7 +38,7 @@ set_goenv() {
         UNAME_M=$(PATH="/usr/bin:/bin" uname -m)
         case $UNAME_M in
             s390x)
-                export CC=/opt/mongodbtoolchain/v3/bin/s390x-mongodb-linux-gcc
+                export CC=/usr/bin/gcc
             ;;
             *)
                 # Not needed for other architectures
