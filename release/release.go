@@ -391,9 +391,13 @@ func buildRPM() {
 
 	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + pf.Arch + ".rpm"
 	outputPath := filepath.Join(home, "rpmbuild", "RPMS", outputFile)
-	// create the .deb file.
+
+	// ensure that the _topdir macro used by rpmbuild references a writeable location
+	topdirDefine := "_topdir " + filepath.Join(home, "rpmbuild")
+
+	// create the .rpm file.
 	log.Printf("running: rpmbuild -bb %s\n", specFile)
-	out, err := run("rpmbuild", "-bb", specFile)
+	out, err := run("rpmbuild", "--define", topdirDefine, "-bb", specFile)
 	check(err, "rpmbuild\n"+out)
 	// Copy to top level directory so we can upload it.
 	check(copyFile(
