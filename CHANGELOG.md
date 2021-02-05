@@ -1,5 +1,75 @@
 # Database Tools Changelog
 
+## 100.3.0
+
+_Released 2021-02-04_
+
+We are pleased to announce version 100.3.0 of the MongoDB Database Tools.
+
+This release includes support for PKCS8-encrypted client private keys, support for providing secrets in a config file instead of on the command line, and a few small bug fixes.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+
+<h3>        Build Failure
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2795'>TOOLS-2795</a>] -         Tools failing to build on SUSE15-sp2
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2800'>TOOLS-2800</a>] -         RPM creation failing on amazon linux 1
+</li>
+</ul>
+                                                                        
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2790'>TOOLS-2790</a>] -         Release Database Tools 100.3.0
+</li>
+</ul>
+                                                            
+<h3>        Investigation
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2771'>TOOLS-2771</a>] -         SSL connection problems mongodump
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2751'>TOOLS-2751</a>] -         Deferred query EstimatedDocumentCount helper incorrect with filter
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2760'>TOOLS-2760</a>] -         rpm package should not obsolete itself
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2775'>TOOLS-2775</a>] -         --local does not work with multi-file get or get_regex
+</li>
+</ul>
+        
+<h3>        New Feature
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2779'>TOOLS-2779</a>] -         Add --config option for password values
+</li>
+</ul>
+        
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2013'>TOOLS-2013</a>] -         Support PKCS8 encrypted client private keys
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2707'>TOOLS-2707</a>] -         Build mongo-tools and mongo-tools-common with go 1.15
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2780'>TOOLS-2780</a>] -         Add warning when password value appears on command line
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2798'>TOOLS-2798</a>] -         Add Amazon Linux 2 Arm64 to Tools
+</li>
+</ul>
+                                                
+
 ## 100.2.1
 
 _Released 2020-11-13_
