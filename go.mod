@@ -3,6 +3,7 @@ module github.com/mongodb/mongo-tools
 go 1.14
 
 require (
+	github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43
 	github.com/aws/aws-sdk-go v1.34.28
 	github.com/craiggwilson/goke v0.0.0-20200309222237-69a77cdfe646
 	github.com/google/go-cmp v0.5.2
