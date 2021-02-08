@@ -815,6 +815,8 @@ functions:
           set -v
           set -e
           mkdir -p bin
+          ${_set_shell_env}
+          go mod vendor -v
 
   "fetch ftdc" :
   - command: shell.exec
