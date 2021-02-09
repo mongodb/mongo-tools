@@ -12,7 +12,7 @@ import (
 	"github.com/craiggwilson/goke/pkg/git"
 	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
-	"github.com/mongodb/mongo-tools-common/testtype"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/release/platform"
 )
 

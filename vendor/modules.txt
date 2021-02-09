@@ -95,29 +95,11 @@ github.com/mattn/go-runewidth
 # github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 ## explicit
 github.com/mgutz/ansi
-# github.com/mongodb/mongo-tools-common v4.0.18+incompatible
-## explicit
-github.com/mongodb/mongo-tools-common/archive
-github.com/mongodb/mongo-tools-common/auth
-github.com/mongodb/mongo-tools-common/bsonutil
-github.com/mongodb/mongo-tools-common/db
-github.com/mongodb/mongo-tools-common/failpoint
-github.com/mongodb/mongo-tools-common/intents
-github.com/mongodb/mongo-tools-common/json
-github.com/mongodb/mongo-tools-common/log
-github.com/mongodb/mongo-tools-common/options
-github.com/mongodb/mongo-tools-common/password
-github.com/mongodb/mongo-tools-common/progress
-github.com/mongodb/mongo-tools-common/signals
-github.com/mongodb/mongo-tools-common/testtype
-github.com/mongodb/mongo-tools-common/testutil
-github.com/mongodb/mongo-tools-common/text
-github.com/mongodb/mongo-tools-common/txn
-github.com/mongodb/mongo-tools-common/util
 # github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 ## explicit
 github.com/nsf/termbox-go
 # github.com/pkg/errors v0.9.1
+## explicit
 github.com/pkg/errors
 # github.com/smartystreets/assertions v0.0.0-20160205033931-287b4346dc4e
 ## explicit
@@ -173,6 +155,7 @@ go.mongodb.org/mongo-driver/x/mongo/driver/topology
 go.mongodb.org/mongo-driver/x/mongo/driver/uuid
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
 # golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
+## explicit
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ssh/terminal

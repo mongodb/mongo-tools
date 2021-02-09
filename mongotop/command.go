@@ -13,7 +13,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mongodb/mongo-tools-common/text"
+	"github.com/mongodb/mongo-tools/common/text"
 )
 
 // FormattableDiff represents a diff of two samples taken by mongotop,
