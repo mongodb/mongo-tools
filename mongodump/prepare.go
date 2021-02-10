@@ -335,16 +335,14 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			delete(intent.Options, "pipeline")
 		}
 		//Set the MetadataFile path.
-		if !intent.IsSystemIndexes() {
-			if dump.OutputOptions.Archive != "" {
-				intent.MetadataFile = &archive.MetadataFile{
-					Intent: intent,
-					Buffer: &bytes.Buffer{},
-				}
-			} else {
-				path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".metadata.json")
-				intent.MetadataFile = &realMetadataFile{path: path, intent: intent}
+		if dump.OutputOptions.Archive != "" {
+			intent.MetadataFile = &archive.MetadataFile{
+				Intent: intent,
+				Buffer: &bytes.Buffer{},
 			}
+		} else {
+			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".metadata.json")
+			intent.MetadataFile = &realMetadataFile{path: path, intent: intent}
 		}
 	}
 

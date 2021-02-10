@@ -334,11 +334,6 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 	}
 
-	err = dump.DumpSystemIndexes()
-	if err != nil {
-		return fmt.Errorf("error dumping system indexes: %v", err)
-	}
-
 	if !dump.SkipUsersAndRoles {
 		if dump.ToolOptions.DB == "admin" || dump.ToolOptions.DB == "" {
 			err = dump.DumpUsersAndRoles()
@@ -820,18 +815,6 @@ func (dump *MongoDump) DumpUsersAndRoles() error {
 		}
 	}
 
-	return nil
-}
-
-// DumpSystemIndexes dumps all of the system.indexes
-func (dump *MongoDump) DumpSystemIndexes() error {
-	buffer := dump.getResettableOutputBuffer()
-	for _, dbName := range dump.manager.SystemIndexDBs() {
-		err := dump.DumpIntent(dump.manager.SystemIndexes(dbName), buffer)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
