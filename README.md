@@ -15,29 +15,39 @@ Report any bugs, improvements, or new feature requests at https://jira.mongodb.o
 Building Tools
 ---------------
 
-We currently build the tools with Go version 1.15, other Go versions may work but they are untested. `go get` will not
-work; you need to clone the repository to build it. Be sure to clone the repository into your Go workspace inside your 
-$GOPATH.
+We currently build the tools with Go version 1.15. Other Go versions may work but they are untested.
 
-You can find additional information on GOPATHs here:
-https://github.com/golang/go/wiki/GOPATH
-https://github.com/golang/go/wiki/SettingGOPATH
+Using `go get` to directly build the tools will not work. To build them, it's recommended to first clone this repository:
 
 ```
-mkdir -p $GOPATH/src/github.com/mongodb
-cd $GOPATH/src/github.com/mongodb
 git clone https://github.com/mongodb/mongo-tools
 cd mongo-tools
 ```
 
-To use build/test scripts in the repo, you *MUST* set GOROOT to your Go root directory.
+Then run `./make build` to build all the tools, placing them in the `bin` directory inside the repository.
+
+You can also build a subset of the tools using the `-tools` option. For example, `./make build -tools=mongodump,mongorestore` builds only `mongodump` and `mongorestore`.
+
+To use the build/test scripts in this repository, you **_must_** set GOROOT to your Go root directory. This may depend on how you installed Go.
 
 ```
 export GOROOT=/usr/local/go
 ```
 
-Run `./make build` to build all the tools, placing them in the `bin`
-directory.
+Updating Dependencies
+---------------
+Starting with version 100.3.1, the tools use `go mod` to manage dependencies. All dependencies are listed in the `go.mod` file and are directly vendored in the `vendor` directory.
+
+In order to make changes to dependencies, you first need to change the `go.mod` file. You can manually edit that file to add/update/remove entries, or you can run the following in the repository directory:
+
+```
+go mod edit -require=<package>@<version>  # for adding or updating a dependency
+go mod edit -droprequire=<package>        # for removing a dependency
+```
+
+Then run `go mod vendor -v` to reconstruct the `vendor` directory to match the changed `go.mod` file.
+
+Optionally, run `go mod tidy -v` to ensure that the `go.mod` file matches the `mongo-tools` source code.
 
 Contributing
 ---------------

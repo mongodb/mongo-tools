@@ -23,6 +23,7 @@ vendor/pkg
 .gopath
 .godeps
 .idea
+.DS_store
 
 tags
 node_modules
