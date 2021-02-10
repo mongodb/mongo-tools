@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mongodb/mongo-tools-common/bsonutil"
-	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/progress"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/intents"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/progress"
+	"github.com/mongodb/mongo-tools/common/util"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

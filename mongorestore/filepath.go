@@ -16,10 +16,10 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/mongodb/mongo-tools-common/archive"
-	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/archive"
+	"github.com/mongodb/mongo-tools/common/intents"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // FileType describes the various types of restore documents.

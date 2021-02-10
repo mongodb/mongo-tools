@@ -281,12 +281,12 @@ mongo_tools_variables:
       mongod_args: ""
       mongod_port: 33333
     ssl: &mongod_ssl_startup_args
-      mongod_args: "--sslMode requireSSL --sslCAFile testdata/ca-ia.pem --sslPEMKeyFile testdata/test-server.pem"
-      replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"testdata/test-server.pem\\\", sslCAFile: \\\"testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
+      mongod_args: "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem"
+      replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\", sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
     tls: &mongod_tls_startup_args
-      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile testdata/ca-ia.pem --tlsCertificateKeyFile testdata/test-server.pem"
-      replsettest_tls_config: "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"testdata/test-server.pem\\\", tlsCAFile: \\\"testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
+      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem"
+      replsettest_tls_config: "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"common/db/testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
 
   mongo_arguments:
@@ -294,10 +294,10 @@ mongo_tools_variables:
       mongo_args: &mongo_default_startup_args_string "--port 33333"
       mongod_port: 33333
     ssl: &mongo_ssl_startup_args
-      mongo_args: "--port 33333 --ssl --sslCAFile testdata/ca-ia.pem --sslPEMKeyFile testdata/test-server.pem --sslAllowInvalidCertificates"
+      mongo_args: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslAllowInvalidCertificates"
       mongod_port: 33333
     tls: &mongo_tls_startup_args
-      mongo_args_tls: "--port 33333 --tls --tlsCAFile testdata/ca-ia.pem --tlsCertificateKeyFile testdata/test-server.pem --tlsAllowInvalidCertificates"
+      mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
 functions:

@@ -10,9 +10,9 @@ package main
 import (
 	"os"
 
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/signals"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/signals"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongoimport"
 )
 
