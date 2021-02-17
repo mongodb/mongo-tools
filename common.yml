@@ -1319,6 +1319,13 @@ tasks:
       vars:
         test_path: "test/legacy42"
 
+- name: mod-tidy
+  commands:
+    - func: "fetch source"
+    - func: "run make target"
+      vars:
+        target: sa:modtidy
+
 - name: format-go
   commands:
     - func: "fetch source"
@@ -1552,6 +1559,7 @@ buildvariants:
   - name: format-go
   - name: lint-go
   - name: lint-js
+  - name: mod-tidy
   - name: vet
 
 #######################################
