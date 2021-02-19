@@ -13,6 +13,7 @@ var testName = 'mongotop_sharded';
     jsTest.log('shell output: ' + shellOutput);
     shellOutput.split('\n').slice(1).forEach(function(line) {
       // check the displayed error message
+      jsTest.log('line: ' + line);
       assert.neq(line.match(expectedError), null, 'unexpected error message');
     });
   };
