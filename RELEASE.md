@@ -41,6 +41,10 @@ The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
 Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
 
+#### Update the release ticket
+Mark the release ticket as "Docs Changes Needed".
+In "Docs Changes Summary", indicate that the release notes will be found in CHANGELOG.md after the release ticket is closed.
+
 ### Releasing
 
 #### Major Release
@@ -70,11 +74,6 @@ Complete these tasks after the release builds have completed on evergreen.
 #### Verify Release Downloads
 Go to the [Download Center](https://www.mongodb.com/try/download/database-tools) and verify that the new release is available there.
 Download the package for your OS and confirm that `mongodump --version` prints the correct version.
-
-#### File CLOUDP Tickets
-File the following CLOUDP tickets for deploying the new release (you may need to ask the TOOLS project manager to do this):
-- "Release Database Tools X.Y.Z to CM/OM" with a component of "Cloud Manager Upgrade" and assigned team of "Automation"
-- "Release Database Tools X.Y.Z to Atlas" with a component of "Atlas Upgrade" and assigned team of "Atlas Triage"
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
@@ -122,12 +121,11 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too much unnecessary detail. 
 - Submit a PR with your changes under the release ticket number, and merge once approved.
 
-#### Update the changelog in the docs
-
-Once the PR has been approved and merged, open a DOCSP ticket and ask the docs team to update the changelog in the docs with the new entry in CHANGELOG.md.
-
 #### Close Release Ticket
 Move the JIRA ticket tracking this release to the "Closed" state.
+
+#### Ensure Downstream Tickets Created
+Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects and linked to the release ticket.
 
 #### Announce the release
 
