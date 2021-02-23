@@ -60,6 +60,19 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 	})
 }
 
+func TestURIParsing(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("Testing parsing from URI", t, func() {
+		args := []string{
+			"--uri", "mongodb://localhost:27017/test",
+		}
+		opts, err := ParseOptions(args, "", "")
+
+		So(err, ShouldBeNil)
+		So(opts.ToolOptions.DB, ShouldEqual, "test")
+	})
+}
+
 type PositionalArgumentTestCase struct {
 	InputArgs    []string
 	ExpectedOpts Options

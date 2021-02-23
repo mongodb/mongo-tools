@@ -265,7 +265,7 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
 	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 		for i, elem := range options {
-			if elem.Key == "autoIndexId" && elem.Value == false && restore.NSOptions.DB != "local" {
+			if elem.Key == "autoIndexId" && elem.Value == false && restore.ToolOptions.Namespace.DB != "local" {
 				options[i].Value = true
 				log.Logvf(log.Always, "{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.")
 			}
@@ -500,7 +500,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			// If we are using --restoreDbUsersAndRoles, we cannot guarantee an
 			// $admin.system.version collection from a 2.6 server,
 			// so we can assume up to version 3.
-			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.NSOptions.DB)
+			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.ToolOptions.Namespace.DB)
 			log.Logv(log.Always, "warning: assuming users and roles collections are of auth version 3")
 			log.Logv(log.Always, "if users are from an earlier version of MongoDB, they may not restore properly")
 			return 3, nil
@@ -606,8 +606,8 @@ func (restore *MongoRestore) ShouldRestoreUsersAndRoles() bool {
 	// is doing a full restore), then we check if users or roles BSON files
 	// actually exist in the dump dir. If they do, return true.
 	if restore.InputOptions.RestoreDBUsersAndRoles ||
-		restore.NSOptions.DB == "" ||
-		restore.NSOptions.DB == "admin" {
+		restore.ToolOptions.Namespace.DB == "" ||
+		restore.ToolOptions.Namespace.DB == "admin" {
 		if restore.manager.Users() != nil || restore.manager.Roles() != nil {
 			return true
 		}

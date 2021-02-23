@@ -146,7 +146,7 @@ func (*NSOptions) Name() string {
 // ParseOptions reads the command line arguments and converts them into options used to configure a MongoRestore instance
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	opts := options.New("mongorestore", versionStr, gitCommit, Usage, true,
-		options.EnabledOptions{Auth: true, Connection: true, URI: true})
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	nsOpts := &NSOptions{}
 	opts.AddOptions(nsOpts)
 
@@ -169,8 +169,10 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 
 	// Allow the db connector to fall back onto the current database when no
-	// auth database is given; the standard -d/-c options go into nsOpts now
-	opts.Namespace = &options.Namespace{DB: nsOpts.DB}
+	// auth database is given.
+	if opts.DB == "" {
+		opts.Namespace = &options.Namespace{DB: nsOpts.DB, Collection: nsOpts.Collection}
+	}
 
 	log.SetVerbosity(opts.Verbosity)
 

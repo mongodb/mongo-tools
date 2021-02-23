@@ -321,8 +321,8 @@ func TestHandlingBSON(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.NSOptions.DB, ShouldEqual, "db1")
-				So(mr.NSOptions.Collection, ShouldEqual, "c2")
+				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "db1")
+				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "c2")
 			})
 		})
 
@@ -331,27 +331,27 @@ func TestHandlingBSON(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.NSOptions.DB, ShouldEqual, "db1")
-				So(mr.NSOptions.Collection, ShouldEqual, longCollectionName)
+				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "db1")
+				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, longCollectionName)
 			})
 		})
 
 		Convey("but pre-existing settings should not be overwritten", func() {
-			mr.NSOptions.DB = "a"
+			mr.ToolOptions.Namespace.DB = "a"
 
 			Convey("either collection settings", func() {
-				mr.NSOptions.Collection = "b"
+				mr.ToolOptions.Namespace.Collection = "b"
 				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
 				So(err, ShouldBeNil)
-				So(mr.NSOptions.DB, ShouldEqual, "a")
-				So(mr.NSOptions.Collection, ShouldEqual, "b")
+				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "a")
+				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "b")
 			})
 
 			Convey("or db settings", func() {
 				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
 				So(err, ShouldBeNil)
-				So(mr.NSOptions.DB, ShouldEqual, "a")
-				So(mr.NSOptions.Collection, ShouldEqual, "c1")
+				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "a")
+				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "c1")
 			})
 		})
 	})
