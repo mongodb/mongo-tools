@@ -8,13 +8,8 @@ var testName = 'mongotop_sharded';
 
   var expectedError = 'cannot run mongotop against a mongos';
   var verifyOutput = function(getOutput) {
+    jsTest.log('shell output: ' + getOutput);
     assert.strContains.soon(expectedError, getOutput, 'error message must appear at least once');
-    var shellOutput = getOutput();
-    jsTest.log('shell output: ' + shellOutput);
-    shellOutput.split('\n').slice(1).forEach(function(line) {
-      // check the displayed error message
-      assert.neq(line.match(expectedError), null, 'unexpected error message');
-    });
   };
 
   var runTests = function(topology, passthrough) {
