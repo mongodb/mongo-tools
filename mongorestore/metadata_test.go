@@ -137,9 +137,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 				InputOptions: &InputOptions{
 					RestoreDBUsersAndRoles: true,
 				},
-				ToolOptions: &commonOpts.ToolOptions{},
-				NSOptions: &NSOptions{
-					DB: "TestDB",
+				ToolOptions: &commonOpts.ToolOptions{
+					Namespace: &commonOpts.Namespace{
+						DB: "TestDB",
+					},
 				},
 			}
 
