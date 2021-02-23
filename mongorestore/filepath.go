@@ -426,7 +426,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
 				// If these special files manage to be included in a dump directory during a full
 				// (multi-db) restore, we should ignore them.
-				if restore.ToolOptions.Namespace.DB == "" && strings.HasPrefix(collection, "$") {
+				if restore.ToolOptions.Namespace != nil && restore.ToolOptions.Namespace.DB == "" && strings.HasPrefix(collection, "$") {
 					log.Logvf(log.DebugLow, "not restoring special collection %v.%v", db, collection)
 					skip = true
 				}
