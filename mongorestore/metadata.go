@@ -40,6 +40,7 @@ type Metadata struct {
 	Indexes        []IndexDocument `bson:"indexes"`
 	UUID           string          `bson:"uuid"`
 	CollectionName string          `bson:"collectionName"`
+	DatabaseName   string          `bson:",omitempty"`
 }
 
 // IndexDocument holds information about a collection's index.
@@ -47,6 +48,11 @@ type IndexDocument struct {
 	Options                 bson.M `bson:",inline"`
 	Key                     bson.D `bson:"key"`
 	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
+}
+
+// Namespace returns the namespace of the metadata
+func (m *Metadata) Namespace() string {
+	return fmt.Sprintf("%s.%s", m.DatabaseName, m.CollectionName)
 }
 
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable

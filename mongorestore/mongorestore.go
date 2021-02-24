@@ -76,6 +76,8 @@ type MongoRestore struct {
 	// indexes belonging to dbs and collections
 	dbCollectionIndexes map[string]collectionIndexes
 
+	indexMetadata []*Metadata
+
 	archive *archive.Reader
 
 	// boolean set if termination signal received; false by default
@@ -542,6 +544,15 @@ func (restore *MongoRestore) Restore() Result {
 		}
 	}
 
+	restore.indexMetadata, err = restore.GetIndexMetadataForIntents()
+	if err != nil {
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
+	for _, meta := range restore.indexMetadata {
+		log.Logvf(log.Always, "metadata: %#v", *meta)
+	}
+
 	err = restore.LoadIndexesFromBSON()
 	if err != nil {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
@@ -562,6 +573,10 @@ func (restore *MongoRestore) Restore() Result {
 		return result
 	}
 
+	for _, meta := range restore.indexMetadata {
+		log.Logvf(log.Always, "metadata after restore: %#v", *meta)
+	}
+
 	// Restore users/roles
 	if restore.ShouldRestoreUsersAndRoles() {
 		err = restore.RestoreUsersOrRoles(restore.manager.Users(), restore.manager.Roles())
@@ -576,6 +591,11 @@ func (restore *MongoRestore) Restore() Result {
 		if err != nil {
 			return result.withErr(fmt.Errorf("restore error: %v", err))
 		}
+	}
+
+	err = restore.RestoreIndexesForIntents()
+	if err != nil {
+		return result.withErr(fmt.Errorf("restore error: %v", err))
 	}
 
 	if restore.InputOptions.Archive != "" {

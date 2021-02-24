@@ -390,6 +390,16 @@ func (mgr *Manager) Intents() []*Intent {
 	return allIntents
 }
 
+// Intents returns a slice containing all of the normal intents in the manager.
+// Intents is not thread safe
+func (mgr *Manager) NormalIntents() []*Intent {
+	allIntents := []*Intent{}
+	for _, intent := range mgr.intents {
+		allIntents = append(allIntents, intent)
+	}
+	return allIntents
+}
+
 func (mgr *Manager) IntentForNamespace(ns string) *Intent {
 	intent := mgr.intents[ns]
 	if intent != nil {

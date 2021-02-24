@@ -58,10 +58,14 @@ func main() {
 	log.Logvf(log.DebugLow, "running bsondump with --objcheck: %v", opts.ObjCheck)
 
 	var numFound int
-	if opts.Type == bsondump.DebugOutputType {
-		numFound, err = dumper.Debug()
-	} else {
-		numFound, err = dumper.JSON()
+	if opts.OutputType == "BSON" {
+		if opts.Type == bsondump.DebugOutputType {
+			numFound, err = dumper.Debug()
+		} else {
+			numFound, err = dumper.JSON()
+		}
+	} else if opts.OutputType == "JSON" {
+		numFound, err = dumper.BSON()
 	}
 
 	log.Logvf(log.Always, "%v objects found", numFound)

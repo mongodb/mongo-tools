@@ -69,6 +69,136 @@ func NewResultFromBulkResult(result *mongo.BulkWriteResult, err error) Result {
 	return Result{nSuccess, nFailure, err}
 }
 
+func (restore *MongoRestore) RestoreIndexesForIntents() error {
+	log.Logvf(log.Always, "RestoreIndexesForIntents")
+	indexMetadata := restore.indexMetadata
+	var err error
+
+	for _, metadata := range indexMetadata {
+		log.Logvf(log.Always, "metadata: %#v", *metadata)
+		err = restore.RestoreIndexesForNamespace(metadata)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (restore *MongoRestore) RestoreIndexesForNamespace(metadata *Metadata) error {
+	log.Logvf(log.Always, "RestoreIndexesForNamespace")
+	var indexes []IndexDocument
+	var hasNonSimpleCollation bool
+	var err error
+
+	indexes = metadata.Indexes
+	options := metadata.Options
+
+	collation, err := bsonutil.FindSubdocumentByKey("collation", &options)
+	if err == nil {
+		localeValue, err := bsonutil.FindValueByKey("locale", &collation)
+		if err == nil {
+			hasNonSimpleCollation = localeValue != "simple"
+		}
+	}
+
+	for _, index := range indexes {
+		log.Logvf(log.Always, "index before filter: %#v", index)
+	}
+
+	for i, index := range indexes {
+		// The index with the name "_id_" will always be the idIndex.
+		if index.Options["name"].(string) == "_id_" {
+			// The _id index was created when the collection was created,
+			// so we do not build the index here.
+			indexes = append(indexes[:i], indexes[i+1:]...)
+			break
+		}
+	}
+
+	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
+		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", metadata.Namespace())
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			indexes = restore.convertLegacyIndexes(indexes, metadata.Namespace())
+		}
+		if restore.OutputOptions.FixDottedHashedIndexes {
+			fixDottedHashedIndexes(indexes)
+		}
+		for _, index := range indexes {
+			log.Logvf(log.Always, "index: %#v", index)
+		}
+		err = restore.CreateIndexes(metadata.DatabaseName, metadata.CollectionName, indexes, hasNonSimpleCollation)
+		if err != nil {
+			return fmt.Errorf("error creating indexes for %v: %v", metadata.Namespace(), err)
+		}
+	} else {
+		log.Logvf(log.Always, "no indexes to restore for collection %v", metadata.Namespace())
+	}
+
+	return nil
+}
+
+func (restore *MongoRestore) GetIndexMetadataForIntents() ([]*Metadata, error) {
+	var NamespaceMetadata []*Metadata
+	intents := restore.manager.NormalIntents()
+
+	for _, intent := range intents {
+		var metadata *Metadata
+		// first create the collection with options from the metadata file
+		if intent.MetadataFile == nil {
+			if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
+				if indexes, ok := restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
+					log.Logvf(log.Always, "no metadata; falling back to system.indexes")
+					metadata = &Metadata{
+						Indexes:        indexes,
+						CollectionName: intent.C,
+						DatabaseName:   intent.DB,
+					}
+				}
+			}
+		} else {
+			err := intent.MetadataFile.Open()
+			if err != nil {
+				return nil, fmt.Errorf("could not open metadata file %v: %v", intent.MetadataLocation, err)
+			}
+			defer intent.MetadataFile.Close()
+
+			log.Logvf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
+			metadataJSON, err := ioutil.ReadAll(intent.MetadataFile)
+			log.Logvf(log.Always, "metadata value: %s", string(metadataJSON))
+			if err != nil {
+				return nil, fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
+			}
+			metadata, err = restore.MetadataFromJSON(metadataJSON)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
+			}
+			if metadata != nil {
+				metadata.DatabaseName = intent.DB
+				if metadata.CollectionName == "" {
+					metadata.CollectionName = intent.C
+				}
+			}
+		}
+		if metadata != nil {
+			NamespaceMetadata = append(NamespaceMetadata, metadata)
+		}
+
+	}
+	log.Logvf(log.Always, "NamespaceMetadata: %#v", NamespaceMetadata)
+	return NamespaceMetadata, nil
+}
+
+func (restore *MongoRestore) GetMetadataForNamespace(DB, C string) (*Metadata, error) {
+	for _, metadata := range restore.indexMetadata {
+		log.Logvf(log.Always, "metadata for: %s.%s", metadata.DatabaseName, metadata.CollectionName)
+		if metadata.DatabaseName == DB && metadata.CollectionName == C {
+			return metadata, nil
+		}
+	}
+	return nil, fmt.Errorf("could not find metadata for %s.%s", DB, C)
+}
+
 // RestoreIntents iterates through all of the intents stored in the IntentManager, and restores them.
 func (restore *MongoRestore) RestoreIntents() Result {
 	log.Logvf(log.DebugLow, "restoring up to %v collections in parallel", restore.OutputOptions.NumParallelCollections)
@@ -157,7 +287,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			if strings.HasPrefix(intent.C, "system.") {
 				log.Logvf(log.Always, "cannot drop system collection %v, skipping", intent.Namespace())
 			} else {
-				log.Logvf(log.Info, "dropping collection %v before restoring", intent.Namespace())
+				log.Logvf(log.Always, "dropping collection %v before restoring", intent.Namespace())
 				err = restore.DropCollection(intent)
 				if err != nil {
 					return Result{Err: err} // no context needed
@@ -165,7 +295,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 				collectionExists = false
 			}
 		} else {
-			log.Logvf(log.DebugLow, "collection %v doesn't exist, skipping drop command", intent.Namespace())
+			log.Logvf(log.Always, "collection %v doesn't exist, skipping drop command", intent.Namespace())
 		}
 	}
 
@@ -183,41 +313,18 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	logMessageSuffix := "with no metadata"
-	var hasNonSimpleCollation bool
-	// first create the collection with options from the metadata file
-	if intent.MetadataFile != nil {
-		logMessageSuffix = "using options from metadata"
-		err = intent.MetadataFile.Open()
-		if err != nil {
-			return Result{Err: err}
-		}
-		defer intent.MetadataFile.Close()
 
-		log.Logvf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
-		metadataJSON, err := ioutil.ReadAll(intent.MetadataFile)
-		if err != nil {
-			return Result{Err: fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)}
-		}
-		metadata, err := restore.MetadataFromJSON(metadataJSON)
-		if err != nil {
-			return Result{Err: fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)}
-		}
+	// first create the collection with options from the metadata file
+	metadata, err := restore.GetMetadataForNamespace(intent.DB, intent.C)
+	if err == nil {
 		if metadata != nil {
-			options = metadata.Options
-			indexes = metadata.Indexes
+			copy(options, metadata.Options)
+			copy(indexes, metadata.Indexes)
 			if restore.OutputOptions.PreserveUUID {
 				if metadata.UUID == "" {
 					log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
 				}
 				uuid = metadata.UUID
-			}
-
-			collation, err := bsonutil.FindSubdocumentByKey("collation", &options)
-			if err == nil {
-				localeValue, err := bsonutil.FindValueByKey("locale", &collation)
-				if err == nil {
-					hasNonSimpleCollation = localeValue != "simple"
-				}
 			}
 		}
 
@@ -253,6 +360,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			options = nil
 		}
 	}
+
 	if !collectionExists {
 		log.Logvf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
 		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
@@ -283,24 +391,6 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			result.Err = fmt.Errorf("error restoring from %v: %v", intent.Location, result.Err)
 			return result
 		}
-	}
-
-	// finally, add indexes
-	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
-		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
-		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = restore.convertLegacyIndexes(indexes, intent.Namespace())
-		}
-		if restore.OutputOptions.FixDottedHashedIndexes {
-			fixDottedHashedIndexes(indexes)
-		}
-		err = restore.CreateIndexes(intent.DB, intent.C, indexes, hasNonSimpleCollation)
-		if err != nil {
-			result.Err = fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
-			return result
-		}
-	} else {
-		log.Logv(log.Always, "no indexes to restore")
 	}
 
 	return result
