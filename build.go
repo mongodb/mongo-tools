@@ -18,10 +18,13 @@ func init() {
 	// Static Analysis
 	taskRegistry.Declare("sa:modtidy").Description("runs go mod tidy").Do(buildscript.SAModTidy)
 
-	// Testing
-	taskRegistry.Declare("test:unit").Description("runs unit tests").OptionalArgs("tools").Do(buildscript.TestUnit)
-	taskRegistry.Declare("test:integration").Description("runs integration tests").OptionalArgs("tools", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestIntegration)
-	taskRegistry.Declare("test:kerberos").Description("runs kerberos tests").Do(buildscript.TestKerberos)
+	// Tools Testing
+	taskRegistry.Declare("test:tools.unit").Description("runs tools unit tests").OptionalArgs("tools").Do(buildscript.TestToolsUnit)
+	taskRegistry.Declare("test:tools.integration").Description("runs tools integration tests").OptionalArgs("tools", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestToolsIntegration)
+	taskRegistry.Declare("test:tools.kerberos").Description("runs tools kerberos tests").Do(buildscript.TestToolsKerberos)
+
+	// Tools Common Testing
+	taskRegistry.Declare("test:common.unit").Description("runs common unit tests").OptionalArgs("tools").Do(buildscript.TestCommonUnit)
 }
 
 func main() {

@@ -36,10 +36,10 @@ func BuildTools(ctx *task.Context) error {
 	return nil
 }
 
-// TestUnit is an Executor that runs the tools unit tests.
-func TestUnit(ctx *task.Context) error {
+// TestToolsUnit is an Executor that runs the tools unit tests.
+func TestToolsUnit(ctx *task.Context) error {
 	for _, tool := range selectedTools(ctx) {
-		err := runToolTests(ctx, tool, testtype.UnitTestType)
+		err := runTests(ctx, tool, testtype.UnitTestType)
 		if err != nil {
 			return err
 		}
@@ -47,10 +47,10 @@ func TestUnit(ctx *task.Context) error {
 	return nil
 }
 
-// TestKerberos is an Executor that runs the tools kerberos tests.
-func TestKerberos(ctx *task.Context) error {
+// TestToolsKerberos is an Executor that runs the tools kerberos tests.
+func TestToolsKerberos(ctx *task.Context) error {
 	for _, tool := range selectedTools(ctx) {
-		err := runToolTests(ctx, tool, testtype.KerberosTestType)
+		err := runTests(ctx, tool, testtype.KerberosTestType)
 		if err != nil {
 			return err
 		}
@@ -58,14 +58,22 @@ func TestKerberos(ctx *task.Context) error {
 	return nil
 }
 
-// TestIntegration is an Executor that runs the tools integration
-// tests.
-func TestIntegration(ctx *task.Context) error {
+// TestToolsIntegration is an Executor that runs the tools integration tests.
+func TestToolsIntegration(ctx *task.Context) error {
 	for _, tool := range selectedTools(ctx) {
-		err := runToolTests(ctx, tool, testtype.IntegrationTestType)
+		err := runTests(ctx, tool, testtype.IntegrationTestType)
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// TestCommonUnit is an Executor that runs the common unit tests.
+func TestCommonUnit(ctx *task.Context) error {
+	err := runTests(ctx, "common", testtype.UnitTestType)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -109,10 +117,10 @@ func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
 	return nil
 }
 
-// runToolTests runs the tests of the provided testType for the tool
-// with the specified name.
-func runToolTests(ctx *task.Context, tool string, testType string) error {
-	outFile, err := sh.CreateFileR(ctx, fmt.Sprintf("testing_output/%s.suite", tool))
+// runTests runs the tests of the provided testType for either
+// the ./common directory, or for a specified tool.
+func runTests(ctx *task.Context, dir string, testType string) error {
+	outFile, err := sh.CreateFileR(ctx, fmt.Sprintf("testing_output/%s.suite", dir))
 	if err != nil {
 		return fmt.Errorf("failed to create testing output file: %w", err)
 	}
@@ -123,12 +131,20 @@ func runToolTests(ctx *task.Context, tool string, testType string) error {
 		return fmt.Errorf("failed to get build flags: %w", err)
 	}
 
-	args := []string{"test"}
+	// If we're running the ./common tests, use the recursive
+	// wildcard (...) to run the tests for all subpackages there.
+	// Otherwise, run the tests for the specified tool.
+	args := []string{"test", "./" + dir}
+	if dir == "common" {
+		args[1] = args[1] + "/..."
+	}
 	args = append(args, buildFlags...)
 	if ctx.Verbose {
 		args = append(args, "-v")
 	}
 
+	// Append any existing environment variables, along
+	// with the ones indicating which test types to run.
 	env := append([]string{}, os.Environ()...)
 	env = append(env, testType+"=true")
 	if ctx.Get("ssl") == "true" {
@@ -143,7 +159,6 @@ func runToolTests(ctx *task.Context, tool string, testType string) error {
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Stdout = out
 	cmd.Stderr = out
-	cmd.Dir = tool
 	cmd.Env = env
 
 	err = sh.RunCmd(ctx, cmd)

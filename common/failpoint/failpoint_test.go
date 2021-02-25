@@ -12,37 +12,37 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	c "github.com/smartystreets/goconvey/convey"
 )
 
 func TestFailpointParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With test args", t, func() {
+	c.Convey("With test args", t, func() {
 		args := "foo=bar,baz,biz=,=a"
 		ParseFailpoints(args)
 
-		So(Enabled("foo"), ShouldBeTrue)
-		So(Enabled("baz"), ShouldBeTrue)
-		So(Enabled("biz"), ShouldBeTrue)
-		So(Enabled(""), ShouldBeTrue)
-		So(Enabled("bar"), ShouldBeFalse)
+		c.So(Enabled("foo"), c.ShouldBeTrue)
+		c.So(Enabled("baz"), c.ShouldBeTrue)
+		c.So(Enabled("biz"), c.ShouldBeTrue)
+		c.So(Enabled(""), c.ShouldBeTrue)
+		c.So(Enabled("bar"), c.ShouldBeFalse)
 
 		var val string
 		var ok bool
 		val, ok = Get("foo")
-		So(val, ShouldEqual, "bar")
-		So(ok, ShouldBeTrue)
+		c.So(val, c.ShouldEqual, "bar")
+		c.So(ok, c.ShouldBeTrue)
 		val, ok = Get("baz")
-		So(val, ShouldEqual, "")
-		So(ok, ShouldBeTrue)
+		c.So(val, c.ShouldEqual, "")
+		c.So(ok, c.ShouldBeTrue)
 		val, ok = Get("biz")
-		So(val, ShouldEqual, "")
-		So(ok, ShouldBeTrue)
+		c.So(val, c.ShouldEqual, "")
+		c.So(ok, c.ShouldBeTrue)
 		val, ok = Get("")
-		So(val, ShouldEqual, "a")
-		So(ok, ShouldBeTrue)
+		c.So(val, c.ShouldEqual, "a")
+		c.So(ok, c.ShouldBeTrue)
 		val, ok = Get("bar")
-		So(ok, ShouldBeFalse)
+		c.So(ok, c.ShouldBeFalse)
 	})
 }

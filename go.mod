@@ -16,7 +16,7 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 	github.com/pkg/errors v0.9.1
-	github.com/smartystreets/assertions v0.0.0-20160205033931-287b4346dc4e // indirect
+	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
 	github.com/smartystreets/goconvey v1.6.1-0.20160205033552-bf58a9a12912
 	github.com/xdg/stringprep v1.0.1-0.20180714160509-73f8eece6fdc // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d

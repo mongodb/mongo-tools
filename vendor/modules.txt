@@ -101,9 +101,10 @@ github.com/nsf/termbox-go
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/smartystreets/assertions v0.0.0-20160205033931-287b4346dc4e
+# github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3
 ## explicit
 github.com/smartystreets/assertions
+github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch
 github.com/smartystreets/assertions/internal/go-render/render
 github.com/smartystreets/assertions/internal/oglematchers
 # github.com/smartystreets/goconvey v1.6.1-0.20160205033552-bf58a9a12912
