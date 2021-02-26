@@ -191,11 +191,12 @@ func (restore *MongoRestore) GetIndexMetadataForIntents() ([]*Metadata, error) {
 
 func (restore *MongoRestore) GetMetadataForNamespace(DB, C string) (*Metadata, error) {
 	for _, metadata := range restore.indexMetadata {
-		log.Logvf(log.Always, "metadata for: %s.%s", metadata.DatabaseName, metadata.CollectionName)
 		if metadata.DatabaseName == DB && metadata.CollectionName == C {
+			log.Logvf(log.Always, "found metadata for: %s.%s: %#v", metadata.DatabaseName, metadata.CollectionName, metadata)
 			return metadata, nil
 		}
 	}
+	log.Logvf(log.Always, "could not find metadata for: %s.%s", DB, C)
 	return nil, fmt.Errorf("could not find metadata for %s.%s", DB, C)
 }
 
@@ -312,13 +313,14 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 	}
 
+	// TODO: change this message
 	logMessageSuffix := "with no metadata"
 
 	// first create the collection with options from the metadata file
 	metadata, err := restore.GetMetadataForNamespace(intent.DB, intent.C)
 	if err == nil {
 		if metadata != nil {
-			copy(options, metadata.Options)
+			options = metadata.Options
 			copy(indexes, metadata.Indexes)
 			if restore.OutputOptions.PreserveUUID {
 				if metadata.UUID == "" {
@@ -362,8 +364,8 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	if !collectionExists {
-		log.Logvf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
-		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
+		log.Logvf(log.Always, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
+		log.Logvf(log.Always, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
 		if err != nil {
 			return Result{Err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)}
