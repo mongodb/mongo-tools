@@ -3,7 +3,6 @@ package assertions
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/smartystreets/assertions/internal/go-render/render"
 )
@@ -16,9 +15,6 @@ type Serializer interface {
 type failureSerializer struct{}
 
 func (self *failureSerializer) serializeDetailed(expected, actual interface{}, message string) string {
-	if index := strings.Index(message, " Diff:"); index > 0 {
-		message = message[:index]
-	}
 	view := FailureView{
 		Message:  message,
 		Expected: render.Render(expected),
@@ -29,9 +25,6 @@ func (self *failureSerializer) serializeDetailed(expected, actual interface{}, m
 }
 
 func (self *failureSerializer) serialize(expected, actual interface{}, message string) string {
-	if index := strings.Index(message, " Diff:"); index > 0 {
-		message = message[:index]
-	}
 	view := FailureView{
 		Message:  message,
 		Expected: fmt.Sprintf("%+v", expected),

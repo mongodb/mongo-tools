@@ -13,18 +13,15 @@ var taskRegistry = task.NewRegistry(task.WithAutoNamespaces(true))
 
 func init() {
 	// Build
-	taskRegistry.Declare("build").Description("build the tools").OptionalArgs("tools").Do(buildscript.BuildTools)
+	taskRegistry.Declare("build").Description("build the tools").OptionalArgs("pkgs").Do(buildscript.BuildTools)
 
 	// Static Analysis
 	taskRegistry.Declare("sa:modtidy").Description("runs go mod tidy").Do(buildscript.SAModTidy)
 
-	// Tools Testing
-	taskRegistry.Declare("test:tools.unit").Description("runs tools unit tests").OptionalArgs("tools").Do(buildscript.TestToolsUnit)
-	taskRegistry.Declare("test:tools.integration").Description("runs tools integration tests").OptionalArgs("tools", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestToolsIntegration)
-	taskRegistry.Declare("test:tools.kerberos").Description("runs tools kerberos tests").Do(buildscript.TestToolsKerberos)
-
-	// Tools Common Testing
-	taskRegistry.Declare("test:common.unit").Description("runs common unit tests").OptionalArgs("tools").Do(buildscript.TestCommonUnit)
+	// Testing
+	taskRegistry.Declare("test:unit").Description("runs all unit tests").OptionalArgs("pkgs").Do(buildscript.TestUnit)
+	taskRegistry.Declare("test:integration").Description("runs all integration tests").OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestIntegration)
+	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").Do(buildscript.TestKerberos)
 }
 
 func main() {

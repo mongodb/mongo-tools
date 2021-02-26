@@ -1057,7 +1057,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-3.4-mmapv1
   commands:
@@ -1075,7 +1075,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-3.6
   commands:
@@ -1091,7 +1091,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-3.6-mmapv1
   commands:
@@ -1109,7 +1109,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-4.0
   commands:
@@ -1125,7 +1125,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-4.0-auth
   commands:
@@ -1147,7 +1147,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true -auth=true
+        target: test:integration -ssl=true -auth=true
 
 - name: integration-4.0-cluster
   commands:
@@ -1164,7 +1164,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-4.0-mmapv1
   commands:
@@ -1182,7 +1182,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-4.2
   commands:
@@ -1198,7 +1198,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-4.2-auth
   commands:
@@ -1220,7 +1220,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true -auth=true
+        target: test:integration -ssl=true -auth=true
 
 - name: integration-4.4
   commands:
@@ -1240,7 +1240,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true
+        target: test:integration -ssl=true
 
 - name: integration-4.4-auth
   commands:
@@ -1268,7 +1268,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true -auth=true
+        target: test:integration -ssl=true -auth=true
 
 - name: integration-4.4-cluster
   commands:
@@ -1285,7 +1285,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.integration -ssl=true -topology=replSet
+        target: test:integration -ssl=true -topology=replSet
 
 - name: kerberos
   commands:
@@ -1302,7 +1302,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.kerberos
+        target: test:kerberos
 
 - name: legacy42
   commands:
@@ -1528,7 +1528,7 @@ tasks:
         target: build
     - func: "run make target"
       vars:
-        target: test:tools.unit test:common.unit
+        target: test:unit
 
 - name: vet
   commands:
