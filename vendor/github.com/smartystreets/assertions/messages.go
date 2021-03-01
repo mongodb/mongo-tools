@@ -6,8 +6,7 @@ const ( // equality
 	shouldHaveBeenEqualTypeMismatch = "Expected: '%v' (%T)\nActual:   '%v' (%T)\n(Should be equal, type mismatch)"
 	shouldHaveBeenAlmostEqual       = "Expected '%v' to almost equal '%v' (but it didn't)!"
 	shouldHaveNotBeenAlmostEqual    = "Expected '%v' to NOT almost equal '%v' (but it did)!"
-	shouldHaveResembled             = "Expected: '%#v'\nActual:   '%#v'\n(Should resemble)!"
-	shouldHaveResembledTypeMismatch = "Expected: '%#v' (%T)\nActual:   '%#v' (%T)\n(Should resemble, type mismatch)"
+	shouldHaveResembled             = "Expected: '%s'\nActual:   '%s'\n(Should resemble)!"
 	shouldNotHaveResembled          = "Expected        '%#v'\nto NOT resemble '%#v'\n(but it did)!"
 	shouldBePointers                = "Both arguments should be pointers "
 	shouldHaveBeenNonNilPointer     = shouldBePointers + "(the %s was %s)!"
@@ -18,6 +17,7 @@ const ( // equality
 	shouldHaveBeenTrue              = "Expected: true\nActual:   %v"
 	shouldHaveBeenFalse             = "Expected: false\nActual:   %v"
 	shouldHaveBeenZeroValue         = "'%+v' should have been the zero value" //"Expected: (zero value)\nActual:   %v"
+	shouldNotHaveBeenZeroValue      = "'%+v' should NOT have been the zero value"
 )
 
 const ( // quantity comparisons
@@ -45,7 +45,7 @@ const ( // collections
 	shouldNotHaveBeenEmpty         = "Expected %+v to NOT be empty (but it was)!"
 	shouldHaveBeenAValidInteger    = "You must provide a valid integer (was %v)!"
 	shouldHaveBeenAValidLength     = "You must provide a valid positive integer (was %v)!"
-	shouldHaveHadLength            = "Expected %+v (length: %v) to have length equal to '%v', but it wasn't!"
+	shouldHaveHadLength            = "Expected collection to have length equal to [%v], but it's length was [%v] instead! contents: %+v"
 )
 
 const ( // strings
@@ -78,6 +78,9 @@ const ( // type checking
 	shouldNotHaveImplemented          = "Expected         '%v'\nto NOT implement '%v'\n(but it did)!"
 	shouldCompareWithInterfacePointer = "The expected value must be a pointer to an interface type (eg. *fmt.Stringer)"
 	shouldNotBeNilActual              = "The actual value was 'nil' and should be a value or a pointer to a value!"
+
+	shouldBeError                       = "Expected an error value (but was '%v' instead)!"
+	shouldBeErrorInvalidComparisonValue = "The final argument to this assertion must be a string or an error value (you provided: '%v')."
 )
 
 const ( // time comparisons

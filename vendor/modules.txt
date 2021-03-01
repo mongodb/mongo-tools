@@ -75,7 +75,6 @@ github.com/jessevdk/go-flags
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
 # github.com/jtolds/gls v4.20.0+incompatible
-## explicit
 github.com/jtolds/gls
 # github.com/klauspost/compress v1.10.1
 ## explicit
@@ -101,12 +100,11 @@ github.com/nsf/termbox-go
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/smartystreets/assertions v0.0.0-20160205033931-287b4346dc4e
-## explicit
+# github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 github.com/smartystreets/assertions
 github.com/smartystreets/assertions/internal/go-render/render
 github.com/smartystreets/assertions/internal/oglematchers
-# github.com/smartystreets/goconvey v1.6.1-0.20160205033552-bf58a9a12912
+# github.com/smartystreets/goconvey v1.6.4
 ## explicit
 github.com/smartystreets/goconvey/convey
 github.com/smartystreets/goconvey/convey/gotest
