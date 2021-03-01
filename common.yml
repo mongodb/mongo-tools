@@ -939,6 +939,8 @@ pre:
           export TOOLS_TESTING_AUTH_USERNAME='${auth_username}'
           export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
+          export ATLAS_URI=${atlas_srv_uri}
+          export TOOLS_TESTING_PKCS8_PASSWORD=${pkcs8_password}
           set -o xtrace
           set -o verbose
           set -o errexit

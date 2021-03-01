@@ -51,18 +51,12 @@ func TestKerberos(ctx *task.Context) error {
 
 // TestIntegration is an Executor that runs all integration tests for the provided packages.
 func TestIntegration(ctx *task.Context) error {
-	// TODO: Replace func body with following line in TOOLS-2807.
-	// return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
-
-	// Don't run integration tests in /common yet.
-	pkgs := selectedPkgs(ctx)
-	for i := range pkgs {
-		if pkgs[i] == "common" {
-			pkgs = append(pkgs[:i], pkgs[i+1:]...)
-			break
-		}
+	err := runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
+	if err != nil {
+		return err
 	}
-	return runTests(ctx, pkgs, testtype.IntegrationTestType)
+
+	return runTests(ctx, []string{"common"}, testtype.SRVConnectionStringTestType)
 }
 
 // buildToolBinary builds the tool with the specified name, putting
