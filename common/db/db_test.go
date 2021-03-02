@@ -8,6 +8,7 @@ package db
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -407,18 +408,25 @@ func TestAuthConnection(t *testing.T) {
 	}
 	Convey("With an AWS or Keberos auth URI", t, func() {
 		enabled := options.EnabledOptions{URI: true}
+
 		var uri string
 		if testtype.HasTestType(testtype.AWSAuthTestType) {
-			uri = os.Getenv("MONGOD")
+			uriBytes, err := ioutil.ReadFile("../lib/MONGOD_URI")
+			if err != nil {
+				panic("Could not read MONGOD_URI file")
+			}
+			uri = string(uriBytes)
 		} else {
 			uri = "mongodb://" + kerberosUsername + "@" + kerberosConnection + "/kerberos?authSource=$external&authMechanism=GSSAPI"
 		}
+
 		fakeArgs := []string{"--uri=" + uri}
 		toolOptions := options.New("test", "", "", "", true, enabled)
 		_, err := toolOptions.ParseArgs(fakeArgs)
 		if err != nil {
-			panic("Could not parse MONGOD environment variable")
+			panic("Could not parse MONGODB_URI file contents")
 		}
+
 		Convey("a connection should succeed", func() {
 			_, err = NewSessionProvider(*toolOptions)
 			So(err, ShouldBeNil)

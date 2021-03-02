@@ -59,6 +59,11 @@ func TestSRV(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.SRVConnectionStringTestType)
 }
 
+// TestAWSAuth is an Executor that runs all AWS auth tests for the provided packages.
+func TestAWSAuth(ctx *task.Context) error {
+	return runTests(ctx, selectedPkgs(ctx), testtype.AWSAuthTestType)
+}
+
 // buildToolBinary builds the tool with the specified name, putting
 // the resulting binary into outDir.
 func buildToolBinary(ctx *task.Context, tool string, outDir string) error {

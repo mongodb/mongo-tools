@@ -92,6 +92,7 @@ mongo_tools_variables:
       - name: integration-4.4-auth
       - name: integration-4.4-cluster
       - name: kerberos
+      - name: aws-auth
       - name: qa-tests-3.2
       - name: qa-tests-3.4
       - name: qa-tests-3.6
@@ -141,6 +142,9 @@ mongo_tools_variables:
         distros:
         - windows-64-vs2017-test
       - name: kerberos
+        distros:
+        - windows-64-vs2017-test
+      - name: aws-auth
         distros:
         - windows-64-vs2017-test
       - name: qa-tests-3.2
@@ -433,6 +437,8 @@ functions:
         MONGOD_ARGS="${mongod_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
+        elif [ "${AWS_AUTH}" = "true" ]; then
+          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
         fi;
         echo "Starting mongod..."
         storage_args=''
@@ -470,6 +476,8 @@ functions:
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGO_ARGS="${mongo_args_tls}"
+        elif [ "${AWS_AUTH}" = "true" ]; then
+          MONGO_ARGS="--port 33333"
         fi;
         while true ; do
             set -o verbose
@@ -904,6 +912,91 @@ functions:
           fi;
           ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
+  "add-aws-auth-variables-to-file":
+    - command: shell.exec
+      type: test
+      params:
+        silent: true
+        working_dir: src/github.com/mongodb/mongo-tools/common/lib
+        script: |
+          set -x
+          set -v
+          set -e
+
+          cat <<EOF > $(pwd)/aws_e2e_setup.json
+          {
+            "iam_auth_assume_aws_account": "${iam_auth_assume_aws_account}",
+            "iam_auth_assume_aws_secret_access_key": "${iam_auth_assume_aws_secret_access_key}",
+            "iam_auth_assume_role_name": "${iam_auth_assume_role_name}"
+          }
+          EOF
+
+  "setup-aws-auth-test-with-assume-role-credentials":
+    - command: shell.exec
+      type: test
+      params:
+        silent: true
+        working_dir: src/github.com/mongodb/mongo-tools/common/lib
+        script: |
+          set -x
+          set -v
+          set -e
+
+          # The aws_e2e_assume_role script requires python3 with boto3.
+          # Set up or use an existing python virtualenv for boto3.
+          venv='venv'
+          venvNonWindows () { . "$venv"/bin/activate; python3 -m pip install boto3; }
+          venvWindows () { . "$venv"/Scripts/activate; pip install boto3; }
+          if [ -f "$venv"/bin/activate ]; then
+            echo 'activating existing virtualenv'
+            venvNonWindows
+          elif [ -f "$venv"/Scripts/activate ]; then
+            echo 'activating existing virtualenv'
+            venvWindows
+          elif virtualenv "$venv" || python -m virtualenv "$venv"; then
+            echo 'creating new virtualenv'
+            if [ -f "$venv"/bin/activate ]; then
+              echo 'activating new virtualenv'
+              venvNonWindows
+            elif [ -f "$venv"/Scripts/activate ]; then
+              echo 'activating new virtualenv'
+              venvWindows
+            fi
+          fi
+
+          pip list
+
+          ../../bin/mongo --nodb aws_e2e_assume_role.js
+
+    - command: shell.exec
+      type: test
+      params:
+        silent: true
+        working_dir: src/github.com/mongodb/mongo-tools/common/lib
+        script: |
+          set -x
+          set -v
+          set -e
+
+          jsonkey () { python -c "import sys, json; sys.stdout.write(json.load(sys.stdin)['$1'])" < creds.json; }
+          urlencode () { python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus('$1'))"; }
+
+          USER=$(jsonkey AccessKeyId)
+          USER=$(urlencode $USER)
+
+          PASS=$(jsonkey SecretAccessKey)
+          PASS=$(urlencode $PASS)
+
+          MONGOD_URI="mongodb://$USER:$PASS@localhost:33333/?authMechanism=MONGODB-AWS"
+
+          SESSION_TOKEN=$(jsonkey SessionToken)
+          SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
+          if [ -n $SESSION_TOKEN ]; then
+              MONGOD_URI="$MONGOD_URI&authMechanismProperties=AWS_SESSION_TOKEN:$SESSION_TOKEN"
+          fi
+
+          echo -n "$MONGOD_URI" > MONGOD_URI
+
 pre:
   - command: shell.exec
     params:
@@ -1288,6 +1381,25 @@ tasks:
     - func: "run make target"
       vars:
         target: test:integration test:srv -ssl=true -topology=replSet
+
+- name: aws-auth
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "run make target"
+      vars:
+        target: test:awsauth
 
 - name: kerberos
   commands:
