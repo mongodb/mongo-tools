@@ -51,11 +51,11 @@ func TestKerberos(ctx *task.Context) error {
 
 // TestIntegration is an Executor that runs all integration tests for the provided packages.
 func TestIntegration(ctx *task.Context) error {
-	err := runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
-	if err != nil {
-		return err
-	}
+	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
+}
 
+// TestSRV is an Executor that runs the SRV connection string test for package `common`.
+func TestSRV(ctx *task.Context) error {
 	return runTests(ctx, []string{"common"}, testtype.SRVConnectionStringTestType)
 }
 
