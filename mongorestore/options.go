@@ -128,8 +128,6 @@ const (
 
 // NSOptions defines the set of options for configuring involved namespaces
 type NSOptions struct {
-	DB                         string   `short:"d" long:"db" value-name:"<database-name>" description:"database to use when restoring from a BSON file"`
-	Collection                 string   `short:"c" long:"collection" value-name:"<collection-name>" description:"collection to use when restoring from a BSON file"`
 	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"DEPRECATED; collection to skip over during restore (may be specified multiple times to exclude additional collections)"`
 	ExcludedCollectionPrefixes []string `long:"excludeCollectionsWithPrefix" value-name:"<collection-prefix>" description:"DEPRECATED; collections to skip over during restore that have the given prefix (may be specified multiple times to exclude additional prefixes)"`
 	NSExclude                  []string `long:"nsExclude" value-name:"<namespace-pattern>" description:"exclude matching namespaces"`
@@ -166,12 +164,6 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 			"provide only one polling interval in seconds and only one MongoDB connection string. " +
 			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
 		)
-	}
-
-	// Allow the db connector to fall back onto the current database when no
-	// auth database is given.
-	if opts.DB == "" {
-		opts.Namespace = &options.Namespace{DB: nsOpts.DB, Collection: nsOpts.Collection}
 	}
 
 	log.SetVerbosity(opts.Verbosity)
