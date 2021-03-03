@@ -922,6 +922,7 @@ pre:
           . ./set_goenv.sh
           GOROOT=""; set_goenv || exit
           export EVG_IS_PATCH='${is_patch}'
+          export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
           export EVG_BUILD_ID='${build_id}'
           export EVG_VERSION='${version_id}'
           export EVG_VARIANT='${build_variant}'

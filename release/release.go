@@ -896,8 +896,8 @@ func uploadReleaseJSON(v version.Version) {
 		return
 	}
 
-	if !v.IsStable() {
-		log.Println("not uploading release JSON feed for a non-stable release")
+	if !canPerformStableRelease(v) {
+		log.Println("current build is not a stable release task; not uploading release JSON feed")
 		return
 	}
 
@@ -1081,14 +1081,14 @@ func uploadRelease(v version.Version) {
 
 			log.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
-			if v.IsStable() {
+			if canPerformStableRelease(v) {
 				copyFile(unstableFile, stableFile)
 				copyFile(unstableFile, latestStableFile)
 			}
 
 			log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
 			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
-			if v.IsStable() {
+			if canPerformStableRelease(v) {
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
@@ -1158,7 +1158,7 @@ func linuxRelease(v version.Version) {
 
 		editionsToRelease := pf.Repos
 		versionsToRelease := linuxRepoVersionsStable
-		if !v.IsStable() {
+		if !canPerformStableRelease(v) {
 			versionsToRelease = linuxRepoVersionsUnstable
 		}
 
@@ -1210,4 +1210,12 @@ func linuxRelease(v version.Version) {
 	}
 	log.Println("waiting for curator invocations to finish")
 	wg.Wait()
+}
+
+// canPerformStableRelease returns whether we can perform a stable
+// release for the provided version. It returns true if the provided
+// version is a stable version and the current evg task was triggered
+// by a git tag.
+func canPerformStableRelease(v *version.Version) bool {
+	return v.IsStable() && env.EvgIsTagTriggered()
 }

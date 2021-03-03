@@ -27,6 +27,13 @@ func EvgIsPatch() bool {
 	return get("EVG_IS_PATCH") != ""
 }
 
+// EvgIsTagTriggered returns whether the current evergreen task is
+// part of a tag-triggered version, based on the value of an env
+// variable set by the evg project file.
+func EvgIsTagTriggered() bool {
+	return get("EVG_TRIGGERED_BY_TAG") != ""
+}
+
 // EvgBuildID returns the build_id of the current evergreen task,
 // based on the value of an env variable set by the evg project file.
 func EvgBuildID() (string, error) {
