@@ -174,8 +174,8 @@ func TestMongorestore(t *testing.T) {
 			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
 			So(err, ShouldBeNil)
 
-			restore.NSOptions.Collection = "c1"
-			restore.NSOptions.DB = "db1"
+			restore.ToolOptions.Namespace.Collection = "c1"
+			restore.ToolOptions.Namespace.DB = "db1"
 			restore.InputReader = bsonFile
 			restore.TargetDirectory = "-"
 
@@ -395,8 +395,8 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			longBsonFile, err := os.Open("testdata/longcollectionname/db1/" + longBsonName)
 			So(err, ShouldBeNil)
 
-			restore.NSOptions.Collection = longCollectionName
-			restore.NSOptions.DB = "db1"
+			restore.ToolOptions.Namespace.Collection = longCollectionName
+			restore.ToolOptions.Namespace.DB = "db1"
 			restore.InputReader = longBsonFile
 			restore.TargetDirectory = "-"
 			result := restore.Restore()

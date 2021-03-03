@@ -128,8 +128,6 @@ const (
 
 // NSOptions defines the set of options for configuring involved namespaces
 type NSOptions struct {
-	DB                         string   `short:"d" long:"db" value-name:"<database-name>" description:"database to use when restoring from a BSON file"`
-	Collection                 string   `short:"c" long:"collection" value-name:"<collection-name>" description:"collection to use when restoring from a BSON file"`
 	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"DEPRECATED; collection to skip over during restore (may be specified multiple times to exclude additional collections)"`
 	ExcludedCollectionPrefixes []string `long:"excludeCollectionsWithPrefix" value-name:"<collection-prefix>" description:"DEPRECATED; collections to skip over during restore that have the given prefix (may be specified multiple times to exclude additional prefixes)"`
 	NSExclude                  []string `long:"nsExclude" value-name:"<namespace-pattern>" description:"exclude matching namespaces"`
@@ -146,7 +144,7 @@ func (*NSOptions) Name() string {
 // ParseOptions reads the command line arguments and converts them into options used to configure a MongoRestore instance
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	opts := options.New("mongorestore", versionStr, gitCommit, Usage, true,
-		options.EnabledOptions{Auth: true, Connection: true, URI: true})
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
 	nsOpts := &NSOptions{}
 	opts.AddOptions(nsOpts)
 
@@ -167,10 +165,6 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 			"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
 		)
 	}
-
-	// Allow the db connector to fall back onto the current database when no
-	// auth database is given; the standard -d/-c options go into nsOpts now
-	opts.Namespace = &options.Namespace{DB: nsOpts.DB}
 
 	log.SetVerbosity(opts.Verbosity)
 
