@@ -352,6 +352,14 @@ var platforms = []Platform{
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
+		Name:      "suse15",
+		Arch:      "s390x",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
 		Name:      "ubuntu1604",
 		Arch:      "s390x",
 		OS:        OSLinux,
