@@ -54,9 +54,9 @@ func TestIntegration(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
 }
 
-// TestSRV is an Executor that runs the SRV connection string test for package `common`.
+// TestSRV is an Executor that runs all SRV tests for the provided packages.
 func TestSRV(ctx *task.Context) error {
-	return runTests(ctx, []string{"common"}, testtype.SRVConnectionStringTestType)
+	return runTests(ctx, selectedPkgs(ctx), testtype.SRVConnectionStringTestType)
 }
 
 // buildToolBinary builds the tool with the specified name, putting

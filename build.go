@@ -22,7 +22,7 @@ func init() {
 	taskRegistry.Declare("test:unit").Description("runs all unit tests").OptionalArgs("pkgs").Do(buildscript.TestUnit)
 	taskRegistry.Declare("test:integration").Description("runs all integration tests").OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestIntegration)
 	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").Do(buildscript.TestKerberos)
-	taskRegistry.Declare("test:srv").Description("runs all kerberos tests").Do(buildscript.TestSRV)
+	taskRegistry.Declare("test:srv").Description("runs all srv tests").Do(buildscript.TestSRV)
 }
 
 func main() {
