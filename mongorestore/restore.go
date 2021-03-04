@@ -70,29 +70,64 @@ func NewResultFromBulkResult(result *mongo.BulkWriteResult, err error) Result {
 }
 
 func (restore *MongoRestore) RestoreIndexesForIntents() error {
-	log.Logvf(log.Always, "RestoreIndexesForIntents")
-	indexMetadata := restore.indexMetadata
-	var err error
+	log.Logvf(log.DebugLow, "building indexes up to %v collections in parallel", restore.OutputOptions.NumParallelCollections)
 
-	for _, metadata := range indexMetadata {
-		log.Logvf(log.Always, "metadata: %#v", *metadata)
-		err = restore.RestoreIndexesForNamespace(metadata)
+	if restore.OutputOptions.NumParallelCollections > 0 {
+		errChan := make(chan error)
+
+		// start a goroutine for each job thread
+		for i := 0; i < restore.OutputOptions.NumParallelCollections; i++ {
+			go func(id int) {
+				log.Logvf(log.DebugHigh, "starting index build routine with id=%v", id)
+				for {
+					intent := restore.manager.Pop()
+					if intent == nil {
+						log.Logvf(log.DebugHigh, "ending index build routine with id=%v, no more work to do", id)
+						errChan <- nil // done
+						return
+					}
+					err := restore.RestoreIndexesForIntent(intent)
+					if err != nil {
+						errChan <- err
+						return
+					}
+					restore.manager.Finish(intent)
+				}
+			}(i)
+		}
+
+		// wait until all goroutines are done or one of them errors out
+		for i := 0; i < restore.OutputOptions.NumParallelCollections; i++ {
+			err := <-errChan
+			if err != nil {
+				// Return first error we encounter
+				return err
+			}
+		}
+		return nil
+	}
+
+	// single-threaded
+	for {
+		intent := restore.manager.Pop()
+		if intent == nil {
+			break
+		}
+		err := restore.RestoreIndexesForIntent(intent)
 		if err != nil {
 			return err
 		}
+		restore.manager.Finish(intent)
 	}
-
 	return nil
 }
 
-func (restore *MongoRestore) RestoreIndexesForNamespace(metadata *Metadata) error {
-	log.Logvf(log.Always, "RestoreIndexesForNamespace")
-	var indexes []IndexDocument
+func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) error {
 	var hasNonSimpleCollation bool
 	var err error
 
-	indexes = metadata.Indexes
-	options := metadata.Options
+	indexes := intent.Indexes
+	options := bsonutil.MtoD(intent.Options)
 
 	collation, err := bsonutil.FindSubdocumentByKey("collation", &options)
 	if err == nil {
@@ -100,10 +135,6 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(metadata *Metadata) erro
 		if err == nil {
 			hasNonSimpleCollation = localeValue != "simple"
 		}
-	}
-
-	for _, index := range indexes {
-		log.Logvf(log.Always, "index before filter: %#v", index)
 	}
 
 	for i, index := range indexes {
@@ -117,9 +148,9 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(metadata *Metadata) erro
 	}
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
-		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", metadata.Namespace())
+		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = restore.convertLegacyIndexes(indexes, metadata.Namespace())
+			indexes = restore.convertLegacyIndexes(indexes, intent.Namespace())
 		}
 		if restore.OutputOptions.FixDottedHashedIndexes {
 			fixDottedHashedIndexes(indexes)
@@ -127,19 +158,18 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(metadata *Metadata) erro
 		for _, index := range indexes {
 			log.Logvf(log.Always, "index: %#v", index)
 		}
-		err = restore.CreateIndexes(metadata.DatabaseName, metadata.CollectionName, indexes, hasNonSimpleCollation)
+		err = restore.CreateIndexes(intent.DB, intent.C, indexes, hasNonSimpleCollation)
 		if err != nil {
-			return fmt.Errorf("error creating indexes for %v: %v", metadata.Namespace(), err)
+			return fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
 		}
 	} else {
-		log.Logvf(log.Always, "no indexes to restore for collection %v", metadata.Namespace())
+		log.Logvf(log.Always, "no indexes to restore for collection %v", intent.Namespace())
 	}
 
 	return nil
 }
 
-func (restore *MongoRestore) GetIndexMetadataForIntents() ([]*Metadata, error) {
-	var NamespaceMetadata []*Metadata
+func (restore *MongoRestore) PopulateMetadataForIntents() error {
 	intents := restore.manager.NormalIntents()
 
 	for _, intent := range intents {
@@ -149,17 +179,13 @@ func (restore *MongoRestore) GetIndexMetadataForIntents() ([]*Metadata, error) {
 			if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
 				if indexes, ok := restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
 					log.Logvf(log.Always, "no metadata; falling back to system.indexes")
-					metadata = &Metadata{
-						Indexes:        indexes,
-						CollectionName: intent.C,
-						DatabaseName:   intent.DB,
-					}
+					intent.Indexes = indexes
 				}
 			}
 		} else {
 			err := intent.MetadataFile.Open()
 			if err != nil {
-				return nil, fmt.Errorf("could not open metadata file %v: %v", intent.MetadataLocation, err)
+				return fmt.Errorf("could not open metadata file %v: %v", intent.MetadataLocation, err)
 			}
 			defer intent.MetadataFile.Close()
 
@@ -167,37 +193,28 @@ func (restore *MongoRestore) GetIndexMetadataForIntents() ([]*Metadata, error) {
 			metadataJSON, err := ioutil.ReadAll(intent.MetadataFile)
 			log.Logvf(log.Always, "metadata value: %s", string(metadataJSON))
 			if err != nil {
-				return nil, fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
+				return fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
 			}
 			metadata, err = restore.MetadataFromJSON(metadataJSON)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
+				return fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
 			}
 			if metadata != nil {
-				metadata.DatabaseName = intent.DB
-				if metadata.CollectionName == "" {
-					metadata.CollectionName = intent.C
+				intent.Indexes = metadata.Indexes
+
+				log.Logvf(log.Always, "PopulateMetadataForIntents: options D: %#v\n", metadata.Options)
+				intent.Options = metadata.Options.Map()
+				log.Logvf(log.Always, "PopulateMetadataForIntents: options M: %#v\n", intent.Options)
+				if restore.OutputOptions.PreserveUUID {
+					if metadata.UUID == "" {
+						log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
+					}
+					intent.UUID = metadata.UUID
 				}
 			}
 		}
-		if metadata != nil {
-			NamespaceMetadata = append(NamespaceMetadata, metadata)
-		}
-
 	}
-	log.Logvf(log.Always, "NamespaceMetadata: %#v", NamespaceMetadata)
-	return NamespaceMetadata, nil
-}
-
-func (restore *MongoRestore) GetMetadataForNamespace(DB, C string) (*Metadata, error) {
-	for _, metadata := range restore.indexMetadata {
-		if metadata.DatabaseName == DB && metadata.CollectionName == C {
-			log.Logvf(log.Always, "found metadata for: %s.%s: %#v", metadata.DatabaseName, metadata.CollectionName, metadata)
-			return metadata, nil
-		}
-	}
-	log.Logvf(log.Always, "could not find metadata for: %s.%s", DB, C)
-	return nil, fmt.Errorf("could not find metadata for %s.%s", DB, C)
+	return nil
 }
 
 // RestoreIntents iterates through all of the intents stored in the IntentManager, and restores them.
@@ -300,67 +317,45 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 	}
 
-	var options bson.D
-	var indexes []IndexDocument
-	var uuid string
-
-	// get indexes from system.indexes dump if we have it but don't have metadata files
-	if intent.MetadataFile == nil {
-		if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
-			if indexes, ok = restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
-				log.Logvf(log.Always, "no metadata; falling back to system.indexes")
-			}
-		}
-	}
-
 	// TODO: change this message
 	logMessageSuffix := "with no metadata"
 
 	// first create the collection with options from the metadata file
-	metadata, err := restore.GetMetadataForNamespace(intent.DB, intent.C)
-	if err == nil {
-		if metadata != nil {
-			options = metadata.Options
-			copy(indexes, metadata.Indexes)
-			if restore.OutputOptions.PreserveUUID {
-				if metadata.UUID == "" {
-					log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
-				}
-				uuid = metadata.UUID
+	uuid := intent.UUID
+	indexes := intent.Indexes
+	log.Logvf(log.Always, "options M: %#v\n", intent.Options)
+	options := bsonutil.MtoD(intent.Options)
+	log.Logvf(log.Always, "options D: %#v\n", options)
+
+	// The only way to specify options on the idIndex is at collection creation time.
+	// This loop pulls out the idIndex from `indexes` and sets it in `options`.
+	for _, index := range indexes {
+		// The index with the name "_id_" will always be the idIndex.
+		if index.Options["name"].(string) == "_id_" {
+			// Remove the index version (to use the default) unless otherwise specified.
+			// If preserving UUID, we have to create a collection via
+			// applyops, which requires the "v" key.
+			if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
+				delete(index.Options, "v")
 			}
-		}
+			index.Options["ns"] = intent.Namespace()
 
-		// The only way to specify options on the idIndex is at collection creation time.
-		// This loop pulls out the idIndex from `indexes` and sets it in `options`.
-		for i, index := range indexes {
-			// The index with the name "_id_" will always be the idIndex.
-			if index.Options["name"].(string) == "_id_" {
-				// Remove the index version (to use the default) unless otherwise specified.
-				// If preserving UUID, we have to create a collection via
-				// applyops, which requires the "v" key.
-				if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
-					delete(index.Options, "v")
+			// If the collection has an idIndex, then we are about to create it, so
+			// ignore the value of autoIndexId.
+			for j, opt := range options {
+				if opt.Key == "autoIndexId" {
+					options = append(options[:j], options[j+1:]...)
 				}
-				index.Options["ns"] = intent.Namespace()
-
-				// If the collection has an idIndex, then we are about to create it, so
-				// ignore the value of autoIndexId.
-				for j, opt := range options {
-					if opt.Key == "autoIndexId" {
-						options = append(options[:j], options[j+1:]...)
-					}
-				}
-				options = append(options, bson.E{"idIndex", index})
-				indexes = append(indexes[:i], indexes[i+1:]...)
-				break
 			}
+			options = append(options, bson.E{"idIndex", index})
+			break
 		}
+	}
 
-		if restore.OutputOptions.NoOptionsRestore {
-			log.Logv(log.Info, "not restoring collection options")
-			logMessageSuffix = "with no collection options"
-			options = nil
-		}
+	if restore.OutputOptions.NoOptionsRestore {
+		log.Logv(log.Info, "not restoring collection options")
+		logMessageSuffix = "with no collection options"
+		options = nil
 	}
 
 	if !collectionExists {
@@ -398,9 +393,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) []IndexDocument {
+func (restore *MongoRestore) convertLegacyIndexes(indexes []intents.IndexDocument, ns string) []intents.IndexDocument {
 	var indexKeys []bson.D
-	var indexesConverted []IndexDocument
+	var indexesConverted []intents.IndexDocument
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
 
@@ -430,7 +425,7 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns st
 	return indexesConverted
 }
 
-func fixDottedHashedIndexes(indexes []IndexDocument) {
+func fixDottedHashedIndexes(indexes []intents.IndexDocument) {
 	for _, index := range indexes {
 		fixDottedHashedIndex(index)
 	}
@@ -439,7 +434,7 @@ func fixDottedHashedIndexes(indexes []IndexDocument) {
 // fixDottedHashedIndex fixes the issue introduced by a server bug where hashed index constraints are not
 // correctly enforced under all circumstance by changing the hashed index on the dotted field to an
 // ascending single field index.
-func fixDottedHashedIndex(index IndexDocument) {
+func fixDottedHashedIndex(index intents.IndexDocument) {
 	indexFields := index.Key
 	for i, field := range indexFields {
 		fieldName := field.Key

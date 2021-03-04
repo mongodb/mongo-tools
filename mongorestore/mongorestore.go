@@ -76,8 +76,6 @@ type MongoRestore struct {
 	// indexes belonging to dbs and collections
 	dbCollectionIndexes map[string]collectionIndexes
 
-	indexMetadata []*Metadata
-
 	archive *archive.Reader
 
 	// boolean set if termination signal received; false by default
@@ -91,7 +89,7 @@ type MongoRestore struct {
 	serverVersion db.Version
 }
 
-type collectionIndexes map[string][]IndexDocument
+type collectionIndexes map[string][]intents.IndexDocument
 
 // New initializes an instance of MongoRestore according to the provided options.
 func New(opts Options) (*MongoRestore, error) {
@@ -545,25 +543,40 @@ func (restore *MongoRestore) Restore() Result {
 		}
 	}
 
-	restore.indexMetadata, err = restore.GetIndexMetadataForIntents()
-	if err != nil {
-		return Result{Err: fmt.Errorf("restore error: %v", err)}
-	}
-
-	for _, meta := range restore.indexMetadata {
-		log.Logvf(log.Always, "metadata: %#v", *meta)
-	}
-
 	err = restore.LoadIndexesFromBSON()
 	if err != nil {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
+	err = restore.PopulateMetadataForIntents()
+	if err != nil {
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
+	if !restore.OutputOptions.NoIndexRestore {
+		// 4.2+ index builds do not hold a database lock except for at the start and end of the index
+		// build, so we can build indexes for multiple collections within a database simultaneously.
+		if restore.serverVersion.GTE(db.Version{4, 2, 0}) {
+			restore.manager.SetIndexPrioritizer(intents.LongestTaskFirst)
+		} else {
+			restore.manager.SetIndexPrioritizer(intents.MultiDatabaseLTF)
+		}
 	}
 
 	// Restore the regular collections
 	if restore.InputOptions.Archive != "" {
 		restore.manager.UsePrioritizer(restore.archive.Demux.NewPrioritizer(restore.manager))
 	} else if restore.OutputOptions.NumParallelCollections > 1 {
-		restore.manager.Finalize(intents.MultiDatabaseLTF)
+		// 3.0+ has collection-level locking for writes, so it is most efficient to
+		// prioritize by collection size. Pre-3.0 we try to avoid inserting into collections
+		// in the same database simultaneously due to the database-level locking.
+		// Up to 4.2, foreground index builds take a database-level lock for the entire build,
+		// but this prioritizer is not used for index builds so we don't need to worry about that here.
+		if restore.serverVersion.GTE(db.Version{3, 0, 0}) {
+			restore.manager.Finalize(intents.LongestTaskFirst)
+		} else {
+			restore.manager.Finalize(intents.MultiDatabaseLTF)
+		}
 	} else {
 		// use legacy restoration order if we are single-threaded
 		restore.manager.Finalize(intents.Legacy)
@@ -572,10 +585,6 @@ func (restore *MongoRestore) Restore() Result {
 	result := restore.RestoreIntents()
 	if result.Err != nil {
 		return result
-	}
-
-	for _, meta := range restore.indexMetadata {
-		log.Logvf(log.Always, "metadata after restore: %#v", *meta)
 	}
 
 	// Restore users/roles
@@ -594,9 +603,12 @@ func (restore *MongoRestore) Restore() Result {
 		}
 	}
 
-	err = restore.RestoreIndexesForIntents()
-	if err != nil {
-		return result.withErr(fmt.Errorf("restore error: %v", err))
+	if !restore.OutputOptions.NoIndexRestore {
+		restore.manager.SwitchToIndexPrioritizer()
+		err = restore.RestoreIndexesForIntents()
+		if err != nil {
+			return result.withErr(fmt.Errorf("restore error: %v", err))
+		}
 	}
 
 	if restore.InputOptions.Archive != "" {

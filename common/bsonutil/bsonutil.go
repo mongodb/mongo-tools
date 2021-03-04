@@ -445,3 +445,11 @@ func Bson2Float64(data interface{}) (float64, bool) {
 	}
 	return 0, false
 }
+
+func MtoD(m bson.M) bson.D {
+	doc := make(bson.D, 0, len(m))
+	for key, value := range m {
+		doc = append(doc, bson.E{key, value})
+	}
+	return doc
+}

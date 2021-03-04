@@ -123,7 +123,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 
 func TestMongorestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -136,8 +136,6 @@ func TestMongorestore(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
-
-		session, _ := restore.SessionProvider.GetSession()
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
@@ -723,8 +721,6 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		session, _ = restore.SessionProvider.GetSession()
-
 		db := session.Database("indextest")
 
 		coll := db.Collection("test_collection")
@@ -954,8 +950,6 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		session, _ = restore.SessionProvider.GetSession()
-
 		db := session.Database("admin")
 
 		Convey("Restoring users and roles should drop tempusers and temproles", func() {
@@ -1033,7 +1027,6 @@ func TestFixHashedIndexes(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("testdata")
 
 		defer func() {
@@ -1074,7 +1067,6 @@ func TestFixHashedIndexes(t *testing.T) {
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
 
-		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("testdata")
 
 		defer func() {
