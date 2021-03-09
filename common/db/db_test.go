@@ -411,7 +411,7 @@ func TestAuthConnection(t *testing.T) {
 
 		var uri string
 		if testtype.HasTestType(testtype.AWSAuthTestType) {
-			uriBytes, err := ioutil.ReadFile("../lib/MONGOD_URI")
+			uriBytes, err := ioutil.ReadFile("../testdata/lib/MONGOD_URI")
 			if err != nil {
 				panic("Could not read MONGOD_URI file")
 			}

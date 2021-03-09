@@ -917,7 +917,7 @@ functions:
       type: test
       params:
         silent: true
-        working_dir: src/github.com/mongodb/mongo-tools/common/lib
+        working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
           set -x
           set -v
@@ -936,7 +936,7 @@ functions:
       type: test
       params:
         silent: true
-        working_dir: src/github.com/mongodb/mongo-tools/common/lib
+        working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
           set -x
           set -v
@@ -966,13 +966,13 @@ functions:
 
           pip list
 
-          ../../bin/mongo --nodb aws_e2e_assume_role.js
+          ../../../bin/mongo --nodb aws_e2e_assume_role.js
 
     - command: shell.exec
       type: test
       params:
         silent: true
-        working_dir: src/github.com/mongodb/mongo-tools/common/lib
+        working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
           set -x
           set -v
