@@ -870,6 +870,8 @@ func TestOptionsParsing(t *testing.T) {
 }
 
 func TestParsePositionalArgsAsURI(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	enabled := EnabledOptions{
 		Auth:       true,
 		Connection: true,

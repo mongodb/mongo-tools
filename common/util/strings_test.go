@@ -1,8 +1,14 @@
 package util
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/mongodb/mongo-tools/common/testtype"
+)
 
 func TestSanitizeURI(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	cases := [][]string{
 		{"mongodb://example.com/", "mongodb://example.com/"},
 		{"mongodb://example.com/?appName=foo:@bar", "mongodb://example.com/?appName=foo:@bar"},

@@ -9,10 +9,13 @@ package util
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestTimestampComparisons(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	t.Run("TestTimestampGreaterThan", func(t *testing.T) {
 		reference := primitive.Timestamp{T: 5, I: 5}
 

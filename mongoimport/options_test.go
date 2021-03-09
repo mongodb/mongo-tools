@@ -7,8 +7,9 @@
 package mongoimport
 
 import (
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
@@ -69,6 +70,8 @@ func TestWriteConcernWithURIParsing(t *testing.T) {
 
 // Test parsing for the --legacy flag
 func TestLegacyOptionParsing(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	testCases := []struct {
 		name           string
 		legacyOpt      string // If "", --legacy will not be included as an option

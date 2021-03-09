@@ -7,8 +7,9 @@
 package mongoexport
 
 import (
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -17,6 +18,8 @@ import (
 )
 
 func TestParseOptions(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	t.Run("TestReadPreferenceParsing", func(t *testing.T) {
 		// different sets of arguments to pass to ParseOptions
 		secondaryCmdLine := []string{"--readPreference", "secondary"}
