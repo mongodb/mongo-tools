@@ -23,6 +23,7 @@ func init() {
 	taskRegistry.Declare("test:integration").Description("runs all integration tests").OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestIntegration)
 	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").Do(buildscript.TestKerberos)
 	taskRegistry.Declare("test:srv").Description("runs all srv tests").Do(buildscript.TestSRV)
+	taskRegistry.Declare("test:awsauth").Description("runs all aws auth tests").Do(buildscript.TestAWSAuth)
 }
 
 func main() {

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
@@ -17,6 +18,8 @@ import (
 )
 
 func TestNewReadPreference(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	tagSet := map[string]string{
 		"foo": "bar",
 	}

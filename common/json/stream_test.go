@@ -135,6 +135,8 @@ func nlines(s string, n int) string {
 }
 
 func TestRawMessage(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	// TODO(rsc): Should not need the * in *RawMessage
 	var data struct {
 		X  float64
@@ -160,6 +162,8 @@ func TestRawMessage(t *testing.T) {
 }
 
 func TestNullRawMessage(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	// TODO(rsc): Should not need the * in *RawMessage
 	var data struct {
 		X  float64
@@ -190,6 +194,8 @@ var blockingTests = []string{
 }
 
 func TestBlocking(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	for _, enc := range blockingTests {
 		r, w := net.Pipe()
 		go w.Write([]byte(enc))

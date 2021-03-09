@@ -17,9 +17,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"testing"
+
+	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
-func ExampleMarshal() {
+func TestMarshal(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	type ColorGroup struct {
 		ID     int
 		Name   string
@@ -39,7 +44,9 @@ func ExampleMarshal() {
 	// {"ID":1,"Name":"Reds","Colors":["Crimson","Red","Ruby","Maroon"]}
 }
 
-func ExampleUnmarshal() {
+func TestUnmarshal(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	var jsonBlob = []byte(`[
 		{"Name": "Platypus", "Order": "Monotremata"},
 		{"Name": "Quoll",    "Order": "Dasyuromorphia"}
@@ -59,7 +66,9 @@ func ExampleUnmarshal() {
 }
 
 // This example uses a Decoder to decode a stream of distinct JSON values.
-func ExampleDecoder() {
+func TestDecoder(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	const jsonStream = `
 		{"Name": "Ed", "Text": "Knock knock."}
 		{"Name": "Sam", "Text": "Who's there?"}
@@ -89,7 +98,9 @@ func ExampleDecoder() {
 }
 
 // This example uses RawMessage to delay parsing part of a JSON message.
-func ExampleRawMessage() {
+func TestRawMessage(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	type Color struct {
 		Space string
 		Point json.RawMessage // delay parsing until we know the color space
@@ -134,7 +145,9 @@ func ExampleRawMessage() {
 	// RGB &{98 218 255}
 }
 
-func ExampleIndent() {
+func TestIndent(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	type Road struct {
 		Name   string
 		Number int
