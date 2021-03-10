@@ -39,8 +39,6 @@ type BSONDump struct {
 	OutputWriter io.WriteCloser
 
 	InputSource *db.BSONSource
-
-	JSONInput *json.Decoder
 }
 
 type ReadNopCloser struct {
@@ -71,9 +69,9 @@ func (oo *OutputOptions) GetWriter() (io.WriteCloser, error) {
 
 // GetBSONReader opens and returns an io.ReadCloser for the BSONFileName in OutputOptions
 // or nil if none is set. The caller is responsible for closing it.
-func (oo *OutputOptions) GetReader() (io.ReadCloser, error) {
-	if oo.InFileName != "" {
-		file, err := os.Open(util.ToUniversalPath(oo.InFileName))
+func (oo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
+	if oo.BSONFileName != "" {
+		file, err := os.Open(util.ToUniversalPath(oo.BSONFileName))
 		if err != nil {
 			return nil, fmt.Errorf("couldn't open BSON file: %v", err)
 		}
@@ -90,17 +88,11 @@ func New(opts Options) (*BSONDump, error) {
 		OutputOptions: opts.OutputOptions,
 	}
 
-	reader, err := opts.GetReader()
+	reader, err := opts.GetBSONReader()
 	if err != nil {
 		return nil, fmt.Errorf("getting BSON reader failed: %v", err)
 	}
-	if strings.HasSuffix(opts.InFileName, ".json") {
-		opts.OutputType = "JSON"
-		dumper.JSONInput = json.NewDecoder(reader)
-	} else if strings.HasSuffix(opts.InFileName, ".bson") {
-		opts.OutputType = "BSON"
-		dumper.InputSource = db.NewBSONSource(reader)
-	}
+	dumper.InputSource = db.NewBSONSource(reader)
 
 	writer, err := opts.GetWriter()
 	if err != nil {
@@ -115,9 +107,7 @@ func New(opts Options) (*BSONDump, error) {
 // Close cleans up the internal state of the given BSONDump instance. The instance should not be used again
 // after Close is called.
 func (bd *BSONDump) Close() error {
-	if bd.InputSource != nil {
-		_ = bd.InputSource.Close()
-	}
+	_ = bd.InputSource.Close()
 	return bd.OutputWriter.Close()
 }
 
@@ -135,32 +125,6 @@ func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
 		extendedJSON = jsonFormatted.Bytes()
 	}
 	return extendedJSON, nil
-}
-
-func (bd *BSONDump) BSON() (int, error) {
-	for {
-		jsonObj, err := bd.JSONInput.ScanObject()
-		if err != nil {
-			if err == io.EOF {
-				return 1, nil
-			}
-			return 0, fmt.Errorf("could not scan json obj: %v", err)
-		}
-		fmt.Printf("JSON read: %s\n", string(jsonObj))
-		var bsonObj interface{}
-		err = bson.UnmarshalExtJSON(jsonObj, false, &bsonObj)
-		if err != nil {
-			return 0, fmt.Errorf("could not UnmarshalExtJSON: %v", err)
-		}
-		bsonBytes, err := bson.Marshal(bsonObj)
-		if err != nil {
-			return 0, fmt.Errorf("could not Marshal bson: %v", err)
-		}
-		_, err = bd.OutputWriter.Write(bsonBytes)
-		if err != nil {
-			return 0, fmt.Errorf("could not write to output writer: %v", err)
-		}
-	}
 }
 
 // JSON iterates through the BSON file and for each document it finds,

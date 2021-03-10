@@ -42,13 +42,10 @@ type OutputOptions struct {
 	Pretty bool `long:"pretty" description:"output JSON formatted to be human-readable"`
 
 	// Path to input BSON file
-	InFileName string `long:"in" description:"path to BSON file to dump to JSON; default is stdin"`
-
-	// Path to input BSON file
-	OutputType string `long:"outType" description:"Type of the output"`
+	BSONFileName string `long:"bsonFile" description:"path to BSON file to dump to JSON; default is stdin"`
 
 	// Path to output file
-	OutFileName string `long:"out" description:"path to output file to dump BSON to; default is stdout"`
+	OutFileName string `long:"outFile" description:"path to output file to dump BSON to; default is stdout"`
 }
 
 func (*OutputOptions) Name() string {
@@ -74,11 +71,11 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 
 	// If the user specified a bson input file
 	if len(args) == 1 {
-		if outputOpts.InFileName != "" {
+		if outputOpts.BSONFileName != "" {
 			return Options{}, fmt.Errorf("cannot specify both a positional argument and --bsonFile")
 		}
 
-		outputOpts.InFileName = args[0]
+		outputOpts.BSONFileName = args[0]
 	}
 
 	switch outputOpts.Type {
