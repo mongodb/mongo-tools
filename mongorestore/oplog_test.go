@@ -172,6 +172,40 @@ func TestOplogRestore(t *testing.T) {
 	})
 }
 
+func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/duplicate_index_key_with_oplog",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		coll := session.Database("test").Collection("foo")
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		// Verify restoration
+		count, err := coll.CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1)
+		session.Disconnect(context.Background())
+	})
+}
+
 func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
