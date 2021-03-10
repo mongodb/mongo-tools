@@ -174,7 +174,6 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 
 	for _, intent := range intents {
 		var metadata *Metadata
-		// first create the collection with options from the metadata file
 		if intent.MetadataFile == nil {
 			if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
 				if indexes, ok := restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
@@ -191,7 +190,6 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 
 			log.Logvf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
 			metadataJSON, err := ioutil.ReadAll(intent.MetadataFile)
-			log.Logvf(log.Always, "metadata value: %s", string(metadataJSON))
 			if err != nil {
 				return fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
 			}
@@ -201,10 +199,8 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 			}
 			if metadata != nil {
 				intent.Indexes = metadata.Indexes
-
-				log.Logvf(log.Always, "PopulateMetadataForIntents: options D: %#v\n", metadata.Options)
 				intent.Options = metadata.Options.Map()
-				log.Logvf(log.Always, "PopulateMetadataForIntents: options M: %#v\n", intent.Options)
+
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
 						log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
@@ -313,18 +309,21 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 				collectionExists = false
 			}
 		} else {
-			log.Logvf(log.Always, "collection %v doesn't exist, skipping drop command", intent.Namespace())
+			log.Logvf(log.DebugLow, "collection %v doesn't exist, skipping drop command", intent.Namespace())
 		}
 	}
 
 	// TODO: change this message
-	logMessageSuffix := "with no metadata"
+	logMessageSuffix := "using options from metadata"
 
 	// first create the collection with options from the metadata file
 	uuid := intent.UUID
 	indexes := intent.Indexes
-	log.Logvf(log.Always, "options M: %#v\n", intent.Options)
 	options := bsonutil.MtoD(intent.Options)
+	if len(options) == 0 {
+		logMessageSuffix = "with no metadata"
+	}
+
 	log.Logvf(log.Always, "options D: %#v\n", options)
 
 	// The only way to specify options on the idIndex is at collection creation time.
@@ -359,8 +358,8 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	if !collectionExists {
-		log.Logvf(log.Always, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
-		log.Logvf(log.Always, "using collection options: %#v", options)
+		log.Logvf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
+		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
 		if err != nil {
 			return Result{Err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)}

@@ -402,8 +402,8 @@ func (mgr *Manager) Intents() []*Intent {
 	return allIntents
 }
 
-// Intents returns a slice containing all of the normal intents in the manager.
-// Intents is not thread safe
+// NormalIntents returns a slice containing all of the normal intents in the manager.
+// NormalIntents is not thread safe.
 func (mgr *Manager) NormalIntents() []*Intent {
 	allIntents := []*Intent{}
 	for _, intent := range mgr.intents {
@@ -506,6 +506,7 @@ func (mgr *Manager) SetIndexPrioritizer(pType PriorityType) {
 	}
 }
 
+// SwitchToIndexPrioritizer sets Manager.prioritzer to the indexPrioritizer.
 func (mgr *Manager) SwitchToIndexPrioritizer() {
 	mgr.prioritizer = mgr.indexPrioritizer
 }
