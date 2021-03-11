@@ -389,9 +389,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(indexes []intents.IndexDocument, ns string) []intents.IndexDocument {
+func (restore *MongoRestore) convertLegacyIndexes(indexes []db.IndexDocument, ns string) []db.IndexDocument {
 	var indexKeys []bson.D
-	var indexesConverted []intents.IndexDocument
+	var indexesConverted []db.IndexDocument
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
 
@@ -421,7 +421,7 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []intents.IndexDocumen
 	return indexesConverted
 }
 
-func fixDottedHashedIndexes(indexes []intents.IndexDocument) {
+func fixDottedHashedIndexes(indexes []db.IndexDocument) {
 	for _, index := range indexes {
 		fixDottedHashedIndex(index)
 	}
@@ -430,7 +430,7 @@ func fixDottedHashedIndexes(indexes []intents.IndexDocument) {
 // fixDottedHashedIndex fixes the issue introduced by a server bug where hashed index constraints are not
 // correctly enforced under all circumstance by changing the hashed index on the dotted field to an
 // ascending single field index.
-func fixDottedHashedIndex(index intents.IndexDocument) {
+func fixDottedHashedIndex(index db.IndexDocument) {
 	indexFields := index.Key
 	for i, field := range indexFields {
 		fieldName := field.Key

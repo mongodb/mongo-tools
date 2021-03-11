@@ -187,7 +187,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
 		}
 
-		indexes := []intents.IndexDocument{index}
+		indexes := []db.IndexDocument{index}
 		if restore.OutputOptions.ConvertLegacyIndexes {
 			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
 		}
@@ -372,7 +372,7 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
 // returns collection name and index specs
-func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []intents.IndexDocument) {
+func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []db.IndexDocument) {
 	collectionName := ""
 	for _, elem := range op.Object {
 		if elem.Key == "commitIndexBuild" {
@@ -383,7 +383,7 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []intents.I
 	for _, elem := range op.Object {
 		if elem.Key == "indexes" {
 			indexes := elem.Value.(bson.A)
-			indexDocuments := make([]intents.IndexDocument, len(indexes))
+			indexDocuments := make([]db.IndexDocument, len(indexes))
 			for i, index := range indexes {
 				indexDocuments[i].Options = bson.M{}
 				for _, elem := range index.(bson.D) {
@@ -405,9 +405,9 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []intents.I
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
 // returns collection name and index spec
-func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, intents.IndexDocument) {
+func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, db.IndexDocument) {
 	collectionName := ""
-	indexDocument := intents.IndexDocument{Options: bson.M{}}
+	indexDocument := db.IndexDocument{Options: bson.M{}}
 	for _, elem := range op.Object {
 		if elem.Key == "createIndexes" {
 			collectionName = elem.Value.(string)

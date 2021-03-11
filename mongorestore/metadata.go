@@ -36,10 +36,10 @@ type authVersionPair struct {
 
 // Metadata holds information about a collection's options and indexes.
 type Metadata struct {
-	Options        bson.D                  `bson:"options,omitempty"`
-	Indexes        []intents.IndexDocument `bson:"indexes"`
-	UUID           string                  `bson:"uuid"`
-	CollectionName string                  `bson:"collectionName"`
+	Options        bson.D             `bson:"options,omitempty"`
+	Indexes        []db.IndexDocument `bson:"indexes"`
+	UUID           string             `bson:"uuid"`
+	CollectionName string             `bson:"collectionName"`
 }
 
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable
@@ -79,7 +79,7 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 
 		// iterate over stored indexes, saving all that match the collection
 		for {
-			indexDocument := intents.IndexDocument{}
+			indexDocument := db.IndexDocument{}
 			if !bsonSource.Next(&indexDocument) {
 				break
 			}
@@ -150,7 +150,7 @@ func (restore *MongoRestore) addToKnownCollections(intent *intents.Intent) {
 // CreateIndexes takes in an intent and an array of index documents and
 // attempts to create them using the createIndexes command. If that command
 // fails, we fall back to individual index creation.
-func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []intents.IndexDocument, hasNonSimpleCollation bool) error {
+func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []db.IndexDocument, hasNonSimpleCollation bool) error {
 	// first, sanitize the indexes
 	var indexNames []string
 	for _, index := range indexes {
@@ -220,7 +220,7 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 
 // LegacyInsertIndex takes in an intent and an index document and attempts to
 // create the index on the "system.indexes" collection.
-func (restore *MongoRestore) LegacyInsertIndex(dbName string, index intents.IndexDocument) error {
+func (restore *MongoRestore) LegacyInsertIndex(dbName string, index db.IndexDocument) error {
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)

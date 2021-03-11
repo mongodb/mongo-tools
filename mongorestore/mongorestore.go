@@ -89,7 +89,7 @@ type MongoRestore struct {
 	serverVersion db.Version
 }
 
-type collectionIndexes map[string][]intents.IndexDocument
+type collectionIndexes map[string][]db.IndexDocument
 
 // New initializes an instance of MongoRestore according to the provided options.
 func New(opts Options) (*MongoRestore, error) {

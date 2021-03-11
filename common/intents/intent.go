@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,13 +42,6 @@ type FileNeedsIOBuffer interface {
 	ReleaseIOBuffer()
 }
 
-// IndexDocument holds information about a collection's index.
-type IndexDocument struct {
-	Options                 bson.M `bson:",inline"`
-	Key                     bson.D `bson:"key"`
-	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
-}
-
 // mongorestore first scans the directory to generate a list
 // of all files to restore and what they map to. TODO comments
 type Intent struct {
@@ -66,7 +60,7 @@ type Intent struct {
 
 	// Collection options
 	Options bson.M
-	Indexes []IndexDocument
+	Indexes []db.IndexDocument
 
 	// UUID (for MongoDB 3.6+) as a big-endian hex string
 	UUID string
