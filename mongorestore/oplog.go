@@ -250,8 +250,7 @@ Loop:
 // ApplyOps is a wrapper for the applyOps database command, we pass in
 // a session to avoid opening a new connection for a few inserts at a time.
 func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface{}) error {
-	log.Logvf(log.DebugHigh, "Applying entries: %+v\n", entries)
-	singleRes := session.Database("admin").RunCommand(nil, bson.D{{"applyOps", entries}, {"oplogApplicationMode", "InitialSync"}})
+	singleRes := session.Database("admin").RunCommand(nil, bson.D{{"applyOps", entries}})
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}

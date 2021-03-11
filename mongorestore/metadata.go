@@ -40,12 +40,6 @@ type Metadata struct {
 	Indexes        []intents.IndexDocument `bson:"indexes"`
 	UUID           string                  `bson:"uuid"`
 	CollectionName string                  `bson:"collectionName"`
-	DatabaseName   string                  `bson:",omitempty"`
-}
-
-// Namespace returns the namespace of the metadata
-func (m *Metadata) Namespace() string {
-	return fmt.Sprintf("%s.%s", m.DatabaseName, m.CollectionName)
 }
 
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable

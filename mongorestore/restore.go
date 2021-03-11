@@ -313,7 +313,6 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 	}
 
-	// TODO: change this message
 	logMessageSuffix := "using options from metadata"
 
 	// first create the collection with options from the metadata file
@@ -323,8 +322,6 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if len(options) == 0 {
 		logMessageSuffix = "with no metadata"
 	}
-
-	log.Logvf(log.Always, "options D: %#v\n", options)
 
 	// The only way to specify options on the idIndex is at collection creation time.
 	// This loop pulls out the idIndex from `indexes` and sets it in `options`.
