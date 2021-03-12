@@ -327,7 +327,6 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 
 // Restore runs the mongorestore program.
 func (restore *MongoRestore) Restore() Result {
-	defer restore.SessionProvider.Close()
 	var target archive.DirLike
 	err := restore.ParseAndValidateOptions()
 	if err != nil {

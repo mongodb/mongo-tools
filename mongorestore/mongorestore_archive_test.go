@@ -80,7 +80,6 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			} else {
 				So(result.Err, ShouldNotBeNil)
 			}
-			restore.Close()
 		}
 	})
 }
