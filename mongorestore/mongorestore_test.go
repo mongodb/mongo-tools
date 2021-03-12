@@ -746,7 +746,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			restore.TargetDirectory = "testdata/indextestdump"
 			result := restore.Restore()
 			So(result.Err, ShouldNotBeNil)
-			So(result.Err.Error(), ShouldStartWith, `restore error: error creating indexes for indextest.test_collection: createIndex error:`)
+			So(result.Err.Error(), ShouldStartWith, `indextest.test_collection: error creating indexes for indextest.test_collection: createIndex error:`)
 
 			So(result.Successes, ShouldEqual, 100)
 			So(result.Failures, ShouldEqual, 0)

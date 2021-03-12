@@ -606,7 +606,7 @@ func (restore *MongoRestore) Restore() Result {
 		restore.manager.SwitchToIndexPrioritizer()
 		err = restore.RestoreIndexesForIntents()
 		if err != nil {
-			return result.withErr(fmt.Errorf("restore error: %v", err))
+			return result.withErr(err)
 		}
 	}
 

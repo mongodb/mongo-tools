@@ -160,7 +160,7 @@ func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) err
 		}
 		err = restore.CreateIndexes(intent.DB, intent.C, indexes, hasNonSimpleCollation)
 		if err != nil {
-			return fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
+			return fmt.Errorf("%s: error creating indexes for %s: %v", intent.Namespace(), intent.Namespace(), err)
 		}
 	} else {
 		log.Logvf(log.Always, "no indexes to restore for collection %v", intent.Namespace())
