@@ -156,6 +156,7 @@ func TestOplogRestore(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 		c1 := session.Database("db1").Collection("c1")
 		c1.Drop(nil)
 
@@ -191,6 +192,7 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 		coll := session.Database("test").Collection("foo")
 
 		// Run mongorestore
@@ -246,6 +248,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Make sure to drop the 16 MiB collection before disconnecting.
 		defer session.Disconnect(context.Background())
@@ -323,6 +326,7 @@ func TestOplogRestoreTools2002(t *testing.T) {
 		}
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()

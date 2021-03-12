@@ -32,6 +32,7 @@ func TestCollectionExists(t *testing.T) {
 	Convey("With a test mongorestore", t, func() {
 		sessionProvider, _, err := testutil.GetBareSessionProvider()
 		So(err, ShouldBeNil)
+		defer sessionProvider.Close()
 
 		restore := &MongoRestore{
 			SessionProvider: sessionProvider,
@@ -213,6 +214,7 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 		}
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		result := restore.Restore()
 		So(result.Err, ShouldBeNil)
