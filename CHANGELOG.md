@@ -1,5 +1,65 @@
 # Database Tools Changelog
 
+## 100.3.1
+
+_Released 2021-03-17_
+
+We are pleased to announce version 100.3.1 of the MongoDB Database Tools.
+
+This release includes various bug fixes.
+Particularly notable is TOOLS-2783, where we reverted a change from 100.2.1 (TOOLS-1856: use a memory pool in mongorestore) after discovering that it was causing memory usage issues.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+<h3>        Build Failure
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2796'>TOOLS-2796</a>] -         mongotop_sharded.js failing on all versions of the qa-tests
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2815'>TOOLS-2815</a>] -         Development build artifacts accidentally uploaded for versioned release
+</li>
+</ul>
+                                                                        
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2791'>TOOLS-2791</a>] -         Release Database Tools 100.3.1
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2584'>TOOLS-2584</a>] -         Restoring single BSON file should use db set in URI
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2783'>TOOLS-2783</a>] -         Mongorestore uses huge amount of RAM
+</li>
+</ul>
+                
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-704'>TOOLS-704</a>] -         Remove system.indexes collection dumping from mongodump
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2801'>TOOLS-2801</a>] -         Migrate from dep to Go modules and update README
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2802'>TOOLS-2802</a>] -         Make mongo-tools-common a subpackage of mongo-tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2805'>TOOLS-2805</a>] -         Add mod tidy static analysis check for Go modules
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2806'>TOOLS-2806</a>] -         Migrate mongo-tools-common unit tests to mongo-tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2807'>TOOLS-2807</a>] -         Migrate mongo-tools-common integration tests to mongo-tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2808'>TOOLS-2808</a>] -         Migrate mongo-tools-common IAM auth tests to mongo-tools
+</li>
+</ul>
+                                                
+
 ## 100.3.0
 
 _Released 2021-02-04_

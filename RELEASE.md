@@ -31,14 +31,20 @@ Ensure that its fixVersion matches the version being released.
 
 #### Ensure Evergreen Passing
 Ensure that the build you are releasing is passing the tests on the evergreen waterfall.
-A completely green build is not mandatory, since we do have flaky tests; however, failing tasks should be manually investigated to ensure they are not actual test failures.
+A completely green build is not mandatory, since we do have flaky tests;
+however, failing tasks should be manually investigated to ensure they are not actual test failures.
 
 #### Complete the Release in JIRA
 Go to the [Tools releases page](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased), and ensure that all the tickets in the fixVersion to be released are closed.
-Ensure that all the tickets have the correct type. Take this opportunity to edit ticket titles if they can be made more descriptive. The ticket titles will be published in the changelog.
-If you are releasing a patch but a ticket needs a minor/major bump, move the ticket to the next major/minor release. Likewise, if you are releasing a minor version but a ticket needs a major bump, move it to the next major release.
+Ensure that all the tickets have the correct type. Take this opportunity to edit ticket titles if they can be made more descriptive.
+The ticket titles will be published in the changelog.
+
+If you are releasing a patch version but a ticket needs a minor bump, update the fixVersion to be a minor version bump.
+If you are releasing a patch or minor version but a ticket needs a major bump, stop the release process immediately.
+
 The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
+
 Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
 
 #### Update the release ticket
@@ -63,10 +69,12 @@ Create an annotated tag and push it:
 git tag -a -m vX.Y.Z X.Y.Z
 git push --tags
 ```
-This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools). If it doesn't, you may have to ask the project manager to give you the right permissions to do so.
+This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools).
+If it doesn't, you may have to ask the project manager to give you the right permissions to do so.
 
 ##### Set Evergreen Priorities
-Some evergreen variants (particularly zSeries and PowerPC variants) may have a long schedule queue. To speed up release tasks, you can set the task priority for any variant to 101 for release candidates and 200 for actual releases.
+Some evergreen variants (particularly zSeries and PowerPC variants) may have a long schedule queue.
+To speed up release tasks, you can set the task priority for any variant to 101 for release candidates and 200 for actual releases.
 
 ### Post-Release Tasks
 Complete these tasks after the release builds have completed on evergreen.
@@ -101,9 +109,15 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <INSERT-LIST-OF-TICKETS>
 ```
 
-- Update the release date to the date the release-json task finished on Evergreen in Eastern Time. You can set your timezone in "User Settings". 
-- Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385) on JIRA. Choose the version you are releasing and HTML as the style. This will show you the list of tickets tagged with the release version. (If the link doesn't work, you can access this through the release page for the version you are releasing.)
-- Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.). Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
+- Update the release date to the date the release-json task finished on Evergreen in Eastern Time.
+  You can set your timezone in "User Settings". 
+
+- Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385) on JIRA.
+  Choose the version you are releasing and HTML as the style.
+  This will show you the list of tickets tagged with the release version.
+  (If the link doesn't work, you can access this through the release page for the version you are releasing.)
+- Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.).
+  Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
 - Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of `<INSERT-LIST-OF-TICKETS>`.
 - Remove the top line of the list of tickets that says `Release Notes - MongoDB Database Tools - Version X.Y.Z`
 - Change the ticket type titles from `<h2>`s to `<h3>`s. For example,
@@ -118,7 +132,8 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
     ```
     ### Build Failure
     ```
-- Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too much unnecessary detail. 
+- Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`.
+  Don't go into too much unnecessary detail. 
 - Submit a PR with your changes under the release ticket number, and merge once approved.
 
 #### Close Release Ticket
@@ -128,5 +143,5 @@ Move the JIRA ticket tracking this release to the "Closed" state.
 Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects and linked to the release ticket.
 
 #### Announce the release
-
-Copy your entry from CHANGELOG.md and post it to the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools) in the "Developer Tools" section with the tag `database-tools`. Also post it in the #mongo-tools slack channel to announce it internally.
+Copy your entry from CHANGELOG.md and post it to the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools) in the "Developer Tools" section with the tag `database-tools`.
+Also post it in the #mongo-tools slack channel to announce it internally.
