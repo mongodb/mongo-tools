@@ -1216,6 +1216,6 @@ func linuxRelease(v version.Version) {
 // release for the provided version. It returns true if the provided
 // version is a stable version and the current evg task was triggered
 // by a git tag.
-func canPerformStableRelease(v *version.Version) bool {
+func canPerformStableRelease(v version.Version) bool {
 	return v.IsStable() && env.EvgIsTagTriggered()
 }
