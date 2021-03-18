@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -60,7 +59,7 @@ type Intent struct {
 
 	// Collection options
 	Options bson.M
-	Indexes []db.IndexDocument
+	Indexes []bson.D
 
 	// UUID (for MongoDB 3.6+) as a big-endian hex string
 	UUID string

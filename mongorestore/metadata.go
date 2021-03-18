@@ -36,10 +36,10 @@ type authVersionPair struct {
 
 // Metadata holds information about a collection's options and indexes.
 type Metadata struct {
-	Options        bson.D             `bson:"options,omitempty"`
-	Indexes        []db.IndexDocument `bson:"indexes"`
-	UUID           string             `bson:"uuid"`
-	CollectionName string             `bson:"collectionName"`
+	Options        bson.D   `bson:"options,omitempty"`
+	Indexes        []bson.D `bson:"indexes"`
+	UUID           string   `bson:"uuid"`
+	CollectionName string   `bson:"collectionName"`
 }
 
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable

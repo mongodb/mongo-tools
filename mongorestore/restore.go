@@ -201,6 +201,10 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 				intent.Indexes = metadata.Indexes
 				intent.Options = metadata.Options.Map()
 
+				for _, indexDefinition := range metadata.Indexes {
+					restore.indexCatalog.AddIndex(intent.DB, intent.C, indexDefinition)
+				}
+
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
 						log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
