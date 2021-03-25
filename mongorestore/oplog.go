@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/progress"
@@ -187,7 +188,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
 		}
 
-		indexes := []db.IndexDocument{index}
+		indexes := []*idx.IndexDocument{index}
 		if restore.OutputOptions.ConvertLegacyIndexes {
 			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
 		}
@@ -372,7 +373,7 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
 // returns collection name and index specs
-func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []db.IndexDocument) {
+func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.IndexDocument) {
 	collectionName := ""
 	for _, elem := range op.Object {
 		if elem.Key == "commitIndexBuild" {
@@ -383,7 +384,7 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []db.IndexD
 	for _, elem := range op.Object {
 		if elem.Key == "indexes" {
 			indexes := elem.Value.(bson.A)
-			indexDocuments := make([]db.IndexDocument, len(indexes))
+			indexDocuments := make([]*idx.IndexDocument, len(indexes))
 			for i, index := range indexes {
 				indexDocuments[i].Options = bson.M{}
 				for _, elem := range index.(bson.D) {
@@ -405,9 +406,9 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []db.IndexD
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
 // returns collection name and index spec
-func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, db.IndexDocument) {
+func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocument) {
 	collectionName := ""
-	indexDocument := db.IndexDocument{Options: bson.M{}}
+	indexDocument := &idx.IndexDocument{Options: bson.M{}}
 	for _, elem := range op.Object {
 		if elem.Key == "createIndexes" {
 			collectionName = elem.Value.(string)

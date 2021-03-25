@@ -14,6 +14,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/progress"
@@ -393,9 +394,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(indexes []db.IndexDocument, ns string) []db.IndexDocument {
+func (restore *MongoRestore) convertLegacyIndexes(indexes []*idx.IndexDocument, ns string) []*idx.IndexDocument {
 	var indexKeys []bson.D
-	var indexesConverted []db.IndexDocument
+	var indexesConverted []*idx.IndexDocument
 	for _, index := range indexes {
 		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
 
@@ -425,7 +426,7 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []db.IndexDocument, ns
 	return indexesConverted
 }
 
-func fixDottedHashedIndexes(indexes []db.IndexDocument) {
+func fixDottedHashedIndexes(indexes []*idx.IndexDocument) {
 	for _, index := range indexes {
 		fixDottedHashedIndex(index)
 	}
@@ -434,7 +435,7 @@ func fixDottedHashedIndexes(indexes []db.IndexDocument) {
 // fixDottedHashedIndex fixes the issue introduced by a server bug where hashed index constraints are not
 // correctly enforced under all circumstance by changing the hashed index on the dotted field to an
 // ascending single field index.
-func fixDottedHashedIndex(index db.IndexDocument) {
+func fixDottedHashedIndex(index *idx.IndexDocument) {
 	indexFields := index.Key
 	for i, field := range indexFields {
 		fieldName := field.Key

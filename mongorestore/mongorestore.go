@@ -20,14 +20,13 @@ import (
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/indexes"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -78,7 +77,7 @@ type MongoRestore struct {
 	// indexes belonging to dbs and collections
 	dbCollectionIndexes map[string]collectionIndexes
 
-	indexCatalog *indexes.IndexCatalog
+	indexCatalog *idx.IndexCatalog
 
 	archive *archive.Reader
 
@@ -93,7 +92,7 @@ type MongoRestore struct {
 	serverVersion db.Version
 }
 
-type collectionIndexes map[string][]bson.D
+type collectionIndexes map[string][]*idx.IndexDocument
 
 // New initializes an instance of MongoRestore according to the provided options.
 func New(opts Options) (*MongoRestore, error) {
@@ -121,7 +120,7 @@ func New(opts Options) (*MongoRestore, error) {
 		ProgressManager: progressManager,
 		serverVersion:   serverVersion,
 		terminate:       false,
-		indexCatalog:    indexes.NewIndexCatalog(),
+		indexCatalog:    idx.NewIndexCatalog(),
 	}
 	return restore, nil
 }
@@ -556,6 +555,8 @@ func (restore *MongoRestore) Restore() Result {
 	if err != nil {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
+
+	fmt.Printf("%s", restore.indexCatalog)
 
 	if !restore.OutputOptions.NoIndexRestore {
 		// 4.2+ index builds do not hold a database lock except for at the start and end of the index
