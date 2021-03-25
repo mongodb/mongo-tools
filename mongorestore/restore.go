@@ -320,24 +320,25 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 
 	// The only way to specify options on the idIndex is at collection creation time.
 	IDIndex := restore.indexCatalog.GetIndex(intent.DB, intent.C, "_id_")
-
-	// Remove the index version (to use the default) unless otherwise specified.
-	// If preserving UUID, we have to create a collection via
-	// applyops, which requires the "v" key.
-	if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
-		delete(IDIndex.Options, "v")
-	}
-	IDIndex.Options["ns"] = intent.Namespace()
-
-	// If the collection has an idIndex, then we are about to create it, so
-	// ignore the value of autoIndexId.
-	for j, opt := range options {
-		if opt.Key == "autoIndexId" {
-			options = append(options[:j], options[j+1:]...)
+	if IDIndex != nil {
+		// Remove the index version (to use the default) unless otherwise specified.
+		// If preserving UUID, we have to create a collection via
+		// applyops, which requires the "v" key.
+		if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
+			delete(IDIndex.Options, "v")
 		}
-	}
+		IDIndex.Options["ns"] = intent.Namespace()
 
-	options = append(options, bson.E{"idIndex", *IDIndex})
+		// If the collection has an idIndex, then we are about to create it, so
+		// ignore the value of autoIndexId.
+		for j, opt := range options {
+			if opt.Key == "autoIndexId" {
+				options = append(options[:j], options[j+1:]...)
+			}
+		}
+
+		options = append(options, bson.E{"idIndex", *IDIndex})
+	}
 
 	if restore.OutputOptions.NoOptionsRestore {
 		log.Logv(log.Info, "not restoring collection options")
