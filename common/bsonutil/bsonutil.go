@@ -8,6 +8,7 @@
 package bsonutil
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -22,6 +23,21 @@ import (
 )
 
 var ErrNoSuchField = errors.New("no such field")
+
+// IsEqual marshals two documents to raw BSON and compares them.
+func IsEqual(left, right bson.D) (bool, error) {
+	leftBytes, err := bson.Marshal(left)
+	if err != nil {
+		return false, err
+	}
+
+	rightBytes, err := bson.Marshal(left)
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Compare(leftBytes, rightBytes) == 0, nil
+}
 
 // ConvertLegacyExtJSONDocumentToBSON iterates through the document map and converts JSON
 // values to their corresponding BSON values. It also replaces any extended JSON

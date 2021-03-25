@@ -124,19 +124,9 @@ func (restore *MongoRestore) RestoreIndexesForIntents() error {
 }
 
 func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) error {
-	var hasNonSimpleCollation bool
 	var err error
 
-	indexes := intent.Indexes
-	options := bsonutil.MtoD(intent.Options)
-
-	collation, err := bsonutil.FindSubdocumentByKey("collation", &options)
-	if err == nil {
-		localeValue, err := bsonutil.FindValueByKey("locale", &collation)
-		if err == nil {
-			hasNonSimpleCollation = localeValue != "simple"
-		}
-	}
+	indexes := restore.indexCatalog.GetIndexes(intent.DB, intent.C, intent.HasSimpleCollation())
 
 	for i, index := range indexes {
 		// The index with the name "_id_" will always be the idIndex.
@@ -159,7 +149,7 @@ func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) err
 		for _, index := range indexes {
 			log.Logvf(log.Always, "index: %#v", index)
 		}
-		err = restore.CreateIndexes(intent.DB, intent.C, indexes, hasNonSimpleCollation)
+		err = restore.CreateIndexes(intent.DB, intent.C, indexes)
 		if err != nil {
 			return fmt.Errorf("%s: error creating indexes for %s: %v", intent.Namespace(), intent.Namespace(), err)
 		}
@@ -179,7 +169,9 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 			if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
 				if indexes, ok := restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
 					log.Logvf(log.Always, "no metadata; falling back to system.indexes")
-					intent.Indexes = indexes
+					for _, indexDefinition := range indexes {
+						restore.indexCatalog.AddIndex(intent.DB, intent.C, indexDefinition)
+					}
 				}
 			}
 		} else {
@@ -199,7 +191,6 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 				return fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
 			}
 			if metadata != nil {
-				intent.Indexes = metadata.Indexes
 				intent.Options = metadata.Options.Map()
 
 				for _, indexDefinition := range metadata.Indexes {
@@ -322,36 +313,31 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 
 	// first create the collection with options from the metadata file
 	uuid := intent.UUID
-	indexes := intent.Indexes
 	options := bsonutil.MtoD(intent.Options)
 	if len(options) == 0 {
 		logMessageSuffix = "with no metadata"
 	}
 
 	// The only way to specify options on the idIndex is at collection creation time.
-	// This loop pulls out the idIndex from `indexes` and sets it in `options`.
-	for _, index := range indexes {
-		// The index with the name "_id_" will always be the idIndex.
-		if index.Options["name"].(string) == "_id_" {
-			// Remove the index version (to use the default) unless otherwise specified.
-			// If preserving UUID, we have to create a collection via
-			// applyops, which requires the "v" key.
-			if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
-				delete(index.Options, "v")
-			}
-			index.Options["ns"] = intent.Namespace()
+	IDIndex := restore.indexCatalog.GetIndex(intent.DB, intent.C, "_id_")
 
-			// If the collection has an idIndex, then we are about to create it, so
-			// ignore the value of autoIndexId.
-			for j, opt := range options {
-				if opt.Key == "autoIndexId" {
-					options = append(options[:j], options[j+1:]...)
-				}
-			}
-			options = append(options, bson.E{"idIndex", index})
-			break
+	// Remove the index version (to use the default) unless otherwise specified.
+	// If preserving UUID, we have to create a collection via
+	// applyops, which requires the "v" key.
+	if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
+		delete(IDIndex.Options, "v")
+	}
+	IDIndex.Options["ns"] = intent.Namespace()
+
+	// If the collection has an idIndex, then we are about to create it, so
+	// ignore the value of autoIndexId.
+	for j, opt := range options {
+		if opt.Key == "autoIndexId" {
+			options = append(options[:j], options[j+1:]...)
 		}
 	}
+
+	options = append(options, bson.E{"idIndex", *IDIndex})
 
 	if restore.OutputOptions.NoOptionsRestore {
 		log.Logv(log.Info, "not restoring collection options")

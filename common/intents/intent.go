@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mongodb/mongo-tools/common/idx"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -60,7 +60,6 @@ type Intent struct {
 
 	// Collection options
 	Options bson.M
-	Indexes []*idx.IndexDocument
 
 	// UUID (for MongoDB 3.6+) as a big-endian hex string
 	UUID string
@@ -149,7 +148,18 @@ func (it *Intent) MergeIntent(newIt *Intent) {
 	if it.MetadataLocation == "" {
 		it.MetadataLocation = newIt.MetadataLocation
 	}
+}
 
+func (it *Intent) HasSimpleCollation() bool {
+	if it == nil || it.Options == nil {
+		return true
+	}
+	collation, ok := it.Options["collation"].(bson.D)
+	if !ok {
+		return true
+	}
+	localeValue, _ := bsonutil.FindValueByKey("locale", &collation)
+	return localeValue == "simple"
 }
 
 type Manager struct {
