@@ -841,10 +841,29 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 
 			So(len(indexKeys), ShouldEqual, 3)
 
-			fmt.Printf("map %#v\n", indexKeys)
+			var indexKey bson.D
+			// Check that only one of foo_, foo_1, or foo_1.0 was created
+			indexKeyFoo, ok := indexKeys["foo_"]
+			indexKeyFoo1, ok1 := indexKeys["foo_1"]
+			indexKeyFoo10, ok10 := indexKeys["foo_1.0"]
 
-			indexKey, ok := indexKeys["foo_"]
-			So(ok, ShouldBeTrue)
+			So(ok || ok1 || ok10, ShouldBeTrue)
+
+			if ok {
+				So(ok1 && ok10, ShouldBeFalse)
+				indexKey = indexKeyFoo
+			}
+
+			if ok1 {
+				So(ok && ok10, ShouldBeFalse)
+				indexKey = indexKeyFoo1
+			}
+
+			if ok10 {
+				So(ok && ok1, ShouldBeFalse)
+				indexKey = indexKeyFoo10
+			}
+
 			So(len(indexKey), ShouldEqual, 1)
 			So(indexKey[0].Key, ShouldEqual, "foo")
 			So(indexKey[0].Value, ShouldEqual, 1)
