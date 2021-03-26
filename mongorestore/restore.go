@@ -199,7 +199,6 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 				}
 
 				restore.indexCatalog.SetCollation(intent.DB, intent.C, intent.HasSimpleCollation())
-				restore.indexCatalog.SetSize(intent.DB, intent.C, intent.Size)
 
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
