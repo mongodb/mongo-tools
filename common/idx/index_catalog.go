@@ -34,7 +34,7 @@ func NewIndexCatalog() *IndexCatalog {
 // Namespaces returns all the namespaces in the IndexCatalog
 func (i *IndexCatalog) Namespaces() (namespaces []options.Namespace) {
 	for database, dbIndexMap := range i.indexes {
-		for collection, _ := range dbIndexMap {
+		for collection := range dbIndexMap {
 			namespaces = append(namespaces, options.Namespace{database, collection})
 		}
 	}
