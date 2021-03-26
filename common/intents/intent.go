@@ -150,6 +150,8 @@ func (it *Intent) MergeIntent(newIt *Intent) {
 	}
 }
 
+// HasSimpleCollation returns true if the collection does not have a collation
+// specified or if the collation locale is "simple"
 func (it *Intent) HasSimpleCollation() bool {
 	if it == nil || it.Options == nil {
 		return true

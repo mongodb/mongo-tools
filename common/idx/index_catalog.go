@@ -6,30 +6,17 @@ import (
 	"sync"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// RenameCollectionError is the error returned when we encounter a
-// renameCollection oplog entry during initial sync.
-type RenameCollectionError struct {
-	op *db.Oplog
-}
-
-func (r *RenameCollectionError) Error() string {
-	return fmt.Sprintf("renameCollection command encountered during initial sync at oplog entry: %v. "+
-		"Please restart mongomirror.", r.op)
-}
-
 // CollectionIndexCatalog stores the current view of all indexes of a single collection.
 type CollectionIndexCatalog struct {
 	// Maps index name to the raw index spec.
 	indexes         map[string]*IndexDocument
 	simpleCollation bool
-	size            int64
 }
 
 // IndexCatalog stores the current view of all indexes in all databases.
@@ -39,10 +26,12 @@ type IndexCatalog struct {
 	indexes map[string]map[string]*CollectionIndexCatalog
 }
 
+// NewIndexCatalog inits an IndexCatalog
 func NewIndexCatalog() *IndexCatalog {
 	return &IndexCatalog{indexes: make(map[string]map[string]*CollectionIndexCatalog)}
 }
 
+// Namespaces returns all the namespaces in the IndexCatalog
 func (i *IndexCatalog) Namespaces() (namespaces []options.Namespace) {
 	for database, dbIndexMap := range i.indexes {
 		for collection, _ := range dbIndexMap {
@@ -108,18 +97,12 @@ func (i *IndexCatalog) AddIndex(database, collection string, index *IndexDocumen
 	i.addIndex(database, collection, indexName, index)
 }
 
+// SetCollation sets if a collection has a simple collation
 func (i *IndexCatalog) SetCollation(database, collection string, simpleCollation bool) {
 	i.Lock()
 	defer i.Unlock()
 	collIndexCatalog := i.getCollectionIndexCatalog(database, collection)
 	collIndexCatalog.simpleCollation = simpleCollation
-}
-
-func (i *IndexCatalog) SetSize(database, collection string, size int64) {
-	i.Lock()
-	defer i.Unlock()
-	collIndexCatalog := i.getCollectionIndexCatalog(database, collection)
-	collIndexCatalog.size = size
 }
 
 // AddIndexes stores the given indexes into the index catalog.
@@ -129,6 +112,7 @@ func (i *IndexCatalog) AddIndexes(database, collection string, indexes []*IndexD
 	}
 }
 
+// GetIndex returns an IndexDocument for a given index name
 func (i *IndexCatalog) GetIndex(database, collection, indexName string) *IndexDocument {
 	dbIndexes, found := i.indexes[database]
 	if !found {
@@ -145,6 +129,7 @@ func (i *IndexCatalog) GetIndex(database, collection, indexName string) *IndexDo
 	return indexSpec
 }
 
+// String formats the IndexCatalog for debugging purposes
 func (i *IndexCatalog) String() string {
 	var b strings.Builder
 	b.WriteString("IndexCatalog:\n")
@@ -266,6 +251,8 @@ func updateHidden(index *IndexDocument, hidden bool) {
 	index.Options["hidden"] = hidden
 }
 
+// GetIndexByIndexMod returns an index that matches the name or key pattern specified in
+// a collMod command.
 func (i *IndexCatalog) GetIndexByIndexMod(database, collection string, indexMod bson.D) (*IndexDocument, error) {
 	// Look for "name" or "keyPattern".
 	name, nameErr := bsonutil.FindStringValueByKey("name", &indexMod)
@@ -344,7 +331,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue interf
 }
 
 // CollMod, updates the corresponding TTL index if the given collModCmd
-// updates the "expireAfterSeconds" field. For example,
+// updates the "expireAfterSeconds" or "hiddne" fields. For example,
 // {
 //  "collMod": "sessions",
 //  "index": {"keyPattern": {"lastAccess": 1}, "expireAfterSeconds": 3600}}
@@ -362,17 +349,20 @@ func (i *IndexCatalog) CollMod(database, collection string, indexModValue interf
 	return nil
 }
 
+// NamespaceQueue is a goroutine-safe queue of namespaces
 type NamespaceQueue struct {
 	m          sync.Mutex
 	namespaces []options.Namespace
 }
 
+// Queue returns a namespace queue of the current namespaces in the index catalog.
 func (i *IndexCatalog) Queue() *NamespaceQueue {
 	var namespaceQueue NamespaceQueue
 	namespaceQueue.namespaces = i.Namespaces()
 	return &namespaceQueue
 }
 
+// Pop removes the next element from the queue and returns it. It is goroutine-safe.
 func (q *NamespaceQueue) Pop() *options.Namespace {
 	q.m.Lock()
 	defer q.m.Unlock()

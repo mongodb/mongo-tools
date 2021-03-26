@@ -556,8 +556,6 @@ func (restore *MongoRestore) Restore() Result {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
 
-	fmt.Printf("%s", restore.indexCatalog)
-
 	// Restore the regular collections
 	if restore.InputOptions.Archive != "" {
 		restore.manager.UsePrioritizer(restore.archive.Demux.NewPrioritizer(restore.manager))
