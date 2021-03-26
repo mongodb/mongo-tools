@@ -178,10 +178,6 @@ type Manager struct {
 	// the IntentPrioritizer interface encapsulates this.
 	prioritizer IntentPrioritizer
 
-	// mongorestore usese a separate index prioritizer for prioritizing
-	// index builds.
-	indexPrioritizer IntentPrioritizer
-
 	// special cases that should be saved but not be part of the queue.
 	// used to deal with oplog and user/roles restoration, which are
 	// handled outside of the basic logic of the tool
@@ -485,34 +481,6 @@ func (mgr *Manager) Roles() *Intent {
 // AuthVersion returns the intent of the version collection to restore, a special case
 func (mgr *Manager) AuthVersion() *Intent {
 	return mgr.versionIntent
-}
-
-// SetIndexPrioritizer sets a separate prioritizer for use in mongorestore for building indexes.
-// Index builds and collection inserts can benefit from different priorities due to the dfferences of
-// locking in different server versions. This cannot be called after Finalize().
-func (mgr *Manager) SetIndexPrioritizer(pType PriorityType) {
-	if mgr.intentsByDiscoveryOrder == nil {
-		// Was Finalize() called before SetIndexPrioritizer()?
-		panic("attempted to create indexPrioritizer with nil intents")
-	}
-	switch pType {
-	case Legacy:
-		log.Logv(log.DebugHigh, "finalizing intent manager with legacy prioritizer")
-		mgr.indexPrioritizer = newLegacyPrioritizer(mgr.intentsByDiscoveryOrder)
-	case LongestTaskFirst:
-		log.Logv(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
-		mgr.indexPrioritizer = newLongestTaskFirstPrioritizer(mgr.intentsByDiscoveryOrder)
-	case MultiDatabaseLTF:
-		log.Logv(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
-		mgr.indexPrioritizer = newMultiDatabaseLTFPrioritizer(mgr.intentsByDiscoveryOrder)
-	default:
-		panic("cannot initialize IntentPrioritizer with unknown type")
-	}
-}
-
-// SwitchToIndexPrioritizer sets Manager.prioritzer to the indexPrioritizer.
-func (mgr *Manager) SwitchToIndexPrioritizer() {
-	mgr.prioritizer = mgr.indexPrioritizer
 }
 
 // Finalize processes the intents for prioritization. Currently only two

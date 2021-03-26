@@ -558,16 +558,6 @@ func (restore *MongoRestore) Restore() Result {
 
 	fmt.Printf("%s", restore.indexCatalog)
 
-	if !restore.OutputOptions.NoIndexRestore {
-		// 4.2+ index builds do not hold a database lock except for at the start and end of the index
-		// build, so we can build indexes for multiple collections within a database simultaneously.
-		if restore.serverVersion.GTE(db.Version{4, 2, 0}) {
-			restore.manager.SetIndexPrioritizer(intents.LongestTaskFirst)
-		} else {
-			restore.manager.SetIndexPrioritizer(intents.MultiDatabaseLTF)
-		}
-	}
-
 	// Restore the regular collections
 	if restore.InputOptions.Archive != "" {
 		restore.manager.UsePrioritizer(restore.archive.Demux.NewPrioritizer(restore.manager))
@@ -609,8 +599,7 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	if !restore.OutputOptions.NoIndexRestore {
-		restore.manager.SwitchToIndexPrioritizer()
-		err = restore.RestoreIndexesForIntents()
+		err = restore.RestoreIndexes()
 		if err != nil {
 			return result.withErr(err)
 		}

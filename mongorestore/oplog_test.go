@@ -468,7 +468,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			So(err, ShouldBeNil)
 			if indexDoc.Options["name"] == "f_1" {
 				So(indexDoc.Options["expireAfterSeconds"], ShouldEqual, 3600)
-				So(indexDoc.Options["hidden"], ShouldEqual, 3600)
+				So(indexDoc.Options["hidden"], ShouldEqual, true)
 			}
 		}
 

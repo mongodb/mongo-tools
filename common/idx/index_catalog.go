@@ -27,7 +27,9 @@ func (r *RenameCollectionError) Error() string {
 // CollectionIndexCatalog stores the current view of all indexes of a single collection.
 type CollectionIndexCatalog struct {
 	// Maps index name to the raw index spec.
-	indexes map[string]*IndexDocument
+	indexes         map[string]*IndexDocument
+	simpleCollation bool
+	size            int64
 }
 
 // IndexCatalog stores the current view of all indexes in all databases.
@@ -66,6 +68,22 @@ func (i *IndexCatalog) getCollectionIndexes(database, collection string) map[str
 	return collIndexCatalog.indexes
 }
 
+func (i *IndexCatalog) getCollectionIndexCatalog(database, collection string) *CollectionIndexCatalog {
+	dbIndexes, found := i.indexes[database]
+	if !found {
+		dbIndexes = make(map[string]*CollectionIndexCatalog)
+		i.indexes[database] = dbIndexes
+	}
+	collIndexCatalog, found := dbIndexes[collection]
+	if !found {
+		collIndexCatalog = &CollectionIndexCatalog{
+			indexes: make(map[string]*IndexDocument),
+		}
+		dbIndexes[collection] = collIndexCatalog
+	}
+	return collIndexCatalog
+}
+
 func (i *IndexCatalog) addIndex(database, collection, indexName string, index *IndexDocument) {
 	i.Lock()
 	collIndexes := i.getCollectionIndexes(database, collection)
@@ -88,6 +106,20 @@ func (i *IndexCatalog) AddIndex(database, collection string, index *IndexDocumen
 		return
 	}
 	i.addIndex(database, collection, indexName, index)
+}
+
+func (i *IndexCatalog) SetCollation(database, collection string, simpleCollation bool) {
+	i.Lock()
+	defer i.Unlock()
+	collIndexCatalog := i.getCollectionIndexCatalog(database, collection)
+	collIndexCatalog.simpleCollation = simpleCollation
+}
+
+func (i *IndexCatalog) SetSize(database, collection string, size int64) {
+	i.Lock()
+	defer i.Unlock()
+	collIndexCatalog := i.getCollectionIndexCatalog(database, collection)
+	collIndexCatalog.size = size
 }
 
 // AddIndexes stores the given indexes into the index catalog.
@@ -141,7 +173,7 @@ func hasCollationOnIndex(index *IndexDocument) bool {
 // will wrongfully inherit the collections's collation.
 // This is necessary because indexes with the simple collation do not have a
 // "collation" field in the getIndexes output.
-func (i *IndexCatalog) GetIndexes(database, collection string, collectionHasSimpleCollation bool) []*IndexDocument {
+func (i *IndexCatalog) GetIndexes(database, collection string) []*IndexDocument {
 	dbIndexes, found := i.indexes[database]
 	if !found {
 		return nil
@@ -152,7 +184,7 @@ func (i *IndexCatalog) GetIndexes(database, collection string, collectionHasSimp
 	}
 	var syncedIndexes []*IndexDocument
 	for _, index := range collIndexCatalog.indexes {
-		if !collectionHasSimpleCollation && !hasCollationOnIndex(index) {
+		if !collIndexCatalog.simpleCollation && !hasCollationOnIndex(index) {
 			index.Options["collation"] = bson.D{{"locale", "simple"}}
 		}
 		syncedIndexes = append(syncedIndexes, index)
@@ -328,4 +360,26 @@ func (i *IndexCatalog) CollMod(database, collection string, indexModValue interf
 		return fmt.Errorf("could not handle collMod on %s.%s: %v", database, collection, err)
 	}
 	return nil
+}
+
+type NamespaceQueue struct {
+	m          sync.Mutex
+	namespaces []options.Namespace
+}
+
+func (i *IndexCatalog) Queue() *NamespaceQueue {
+	var namespaceQueue NamespaceQueue
+	namespaceQueue.namespaces = i.Namespaces()
+	return &namespaceQueue
+}
+
+func (q *NamespaceQueue) Pop() *options.Namespace {
+	q.m.Lock()
+	defer q.m.Unlock()
+	if len(q.namespaces) == 0 {
+		return nil
+	}
+	namespace := q.namespaces[0]
+	q.namespaces = q.namespaces[1:]
+	return &namespace
 }

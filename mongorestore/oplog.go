@@ -319,6 +319,19 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			if len(op.Object) == 1 {
 				return nil
 			}
+		case "create":
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+			collation, err := bsonutil.FindSubdocumentByKey("collation", &op.Object)
+			if err != nil {
+				restore.indexCatalog.SetCollation(dbName, collName, true)
+			}
+			localeValue, _ := bsonutil.FindValueByKey("locale", &collation)
+			if localeValue == "simple" {
+				restore.indexCatalog.SetCollation(dbName, collName, true)
+			}
 		}
 	}
 
@@ -512,17 +525,20 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 			indexes := elem.Value.(bson.A)
 			indexDocuments := make([]*idx.IndexDocument, len(indexes))
 			for i, index := range indexes {
-				indexDocuments[i].Options = bson.M{}
+				var indexSpec idx.IndexDocument
+				indexSpec.Options = bson.M{}
 				for _, elem := range index.(bson.D) {
 					if elem.Key == "key" {
-						indexDocuments[i].Key = elem.Value.(bson.D)
+						indexSpec.Key = elem.Value.(bson.D)
 					} else if elem.Key == "partialFilterExpression" {
-						indexDocuments[i].PartialFilterExpression = elem.Value.(bson.D)
+						indexSpec.PartialFilterExpression = elem.Value.(bson.D)
 					} else {
-						indexDocuments[i].Options[elem.Key] = elem.Value
+						indexSpec.Options[elem.Key] = elem.Value
 					}
 				}
+				indexDocuments[i] = &indexSpec
 			}
+
 			return collectionName, indexDocuments
 		}
 	}

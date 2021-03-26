@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 
@@ -70,8 +71,10 @@ func NewResultFromBulkResult(result *mongo.BulkWriteResult, err error) Result {
 	return Result{nSuccess, nFailure, err}
 }
 
-func (restore *MongoRestore) RestoreIndexesForIntents() error {
+func (restore *MongoRestore) RestoreIndexes() error {
 	log.Logvf(log.DebugLow, "building indexes up to %v collections in parallel", restore.OutputOptions.NumParallelCollections)
+
+	namespaceQueue := restore.indexCatalog.Queue()
 
 	if restore.OutputOptions.NumParallelCollections > 0 {
 		errChan := make(chan error)
@@ -81,18 +84,17 @@ func (restore *MongoRestore) RestoreIndexesForIntents() error {
 			go func(id int) {
 				log.Logvf(log.DebugHigh, "starting index build routine with id=%v", id)
 				for {
-					intent := restore.manager.Pop()
-					if intent == nil {
+					namespace := namespaceQueue.Pop()
+					if namespace == nil {
 						log.Logvf(log.DebugHigh, "ending index build routine with id=%v, no more work to do", id)
 						errChan <- nil // done
 						return
 					}
-					err := restore.RestoreIndexesForIntent(intent)
+					err := restore.RestoreIndexesForNamespace(namespace)
 					if err != nil {
 						errChan <- err
 						return
 					}
-					restore.manager.Finish(intent)
 				}
 			}(i)
 		}
@@ -110,23 +112,22 @@ func (restore *MongoRestore) RestoreIndexesForIntents() error {
 
 	// single-threaded
 	for {
-		intent := restore.manager.Pop()
-		if intent == nil {
+		namespace := namespaceQueue.Pop()
+		if namespace == nil {
 			break
 		}
-		err := restore.RestoreIndexesForIntent(intent)
+		err := restore.RestoreIndexesForNamespace(namespace)
 		if err != nil {
 			return err
 		}
-		restore.manager.Finish(intent)
 	}
 	return nil
 }
 
-func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) error {
+func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Namespace) error {
 	var err error
-
-	indexes := restore.indexCatalog.GetIndexes(intent.DB, intent.C, intent.HasSimpleCollation())
+	namespaceString := fmt.Sprintf("%s.%s", namespace.DB, namespace.Collection)
+	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
 	for i, index := range indexes {
 		// The index with the name "_id_" will always be the idIndex.
@@ -139,9 +140,9 @@ func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) err
 	}
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
-		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
+		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
 		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = restore.convertLegacyIndexes(indexes, intent.Namespace())
+			indexes = restore.convertLegacyIndexes(indexes, namespaceString)
 		}
 		if restore.OutputOptions.FixDottedHashedIndexes {
 			fixDottedHashedIndexes(indexes)
@@ -149,12 +150,12 @@ func (restore *MongoRestore) RestoreIndexesForIntent(intent *intents.Intent) err
 		for _, index := range indexes {
 			log.Logvf(log.Always, "index: %#v", index)
 		}
-		err = restore.CreateIndexes(intent.DB, intent.C, indexes)
+		err = restore.CreateIndexes(namespace.DB, namespace.Collection, indexes)
 		if err != nil {
-			return fmt.Errorf("%s: error creating indexes for %s: %v", intent.Namespace(), intent.Namespace(), err)
+			return fmt.Errorf("%s: error creating indexes for %s: %v", namespaceString, namespaceString, err)
 		}
 	} else {
-		log.Logvf(log.Always, "no indexes to restore for collection %v", intent.Namespace())
+		log.Logvf(log.Always, "no indexes to restore for collection %v", namespaceString)
 	}
 
 	return nil
@@ -196,6 +197,9 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 				for _, indexDefinition := range metadata.Indexes {
 					restore.indexCatalog.AddIndex(intent.DB, intent.C, indexDefinition)
 				}
+
+				restore.indexCatalog.SetCollation(intent.DB, intent.C, intent.HasSimpleCollation())
+				restore.indexCatalog.SetSize(intent.DB, intent.C, intent.Size)
 
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
