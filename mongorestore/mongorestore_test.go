@@ -820,38 +820,38 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 				}
 			}()
 
-			indexes := testDB.Collection("duplicate_index_key").Indexes()
-			c, err := indexes.List(context.Background())
+			c, err := testDB.Collection("duplicate_index_key").Indexes().List(context.Background())
 			So(err, ShouldBeNil)
+
 			type indexRes struct {
-				Key bson.D
+				Name string
+				Key  bson.D
 			}
 
-			var res indexRes
+			indexKeys := make(map[string]bson.D)
 
 			// two Indexes should be created in addition to the _id, foo and foo_2
-			c.Next(context.Background())
-			err = c.Decode(&res)
-			So(err, ShouldBeNil)
-			So(len(res.Key), ShouldEqual, 1)
-			So(res.Key[0].Key, ShouldEqual, "_id")
-			So(res.Key[0].Value, ShouldEqual, 1)
+			for c.Next(context.Background()) {
+				var res indexRes
+				err = c.Decode(&res)
+				So(err, ShouldBeNil)
+				So(len(res.Key), ShouldEqual, 1)
+				indexKeys[res.Name] = res.Key
+			}
 
-			c.Next(context.Background())
-			err = c.Decode(&res)
-			So(err, ShouldBeNil)
-			So(len(res.Key), ShouldEqual, 1)
-			So(res.Key[0].Key, ShouldEqual, "foo")
-			So(res.Key[0].Value, ShouldEqual, 1)
+			So(len(indexKeys), ShouldEqual, 3)
 
-			c.Next(context.Background())
-			err = c.Decode(&res)
-			So(err, ShouldBeNil)
-			So(len(res.Key), ShouldEqual, 1)
-			So(res.Key[0].Key, ShouldEqual, "foo")
-			So(res.Key[0].Value, ShouldEqual, 2)
+			indexKey, ok := indexKeys["foo_"]
+			So(ok, ShouldBeTrue)
+			So(len(indexKey), ShouldEqual, 1)
+			So(indexKey[0].Key, ShouldEqual, "foo")
+			So(indexKey[0].Value, ShouldEqual, 1)
 
-			So(c.TryNext(context.Background()), ShouldBeFalse)
+			indexKey, ok = indexKeys["foo_2"]
+			So(ok, ShouldBeTrue)
+			So(len(indexKey), ShouldEqual, 1)
+			So(indexKey[0].Key, ShouldEqual, "foo")
+			So(indexKey[0].Value, ShouldEqual, 2)
 		})
 	})
 }
