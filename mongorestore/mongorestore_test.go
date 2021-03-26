@@ -841,6 +841,8 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 
 			So(len(indexKeys), ShouldEqual, 3)
 
+			fmt.Printf("map %#v\n", indexKeys)
+
 			indexKey, ok := indexKeys["foo_"]
 			So(ok, ShouldBeTrue)
 			So(len(indexKey), ShouldEqual, 1)
