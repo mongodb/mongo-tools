@@ -284,10 +284,11 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 					return fmt.Errorf("could not unmarshal applyOps command: %v: %v", rawOp, err)
 				}
 
-				restore.HandleOp(oplogCtx, nestedOp)
+				err = restore.HandleOp(oplogCtx, nestedOp)
 				if err != nil {
-					return err
+					return fmt.Errorf("error applying nested op from applyOps: %v", err)
 				}
+				return nil
 			}
 
 		case "deleteIndex", "deleteIndexes", "dropIndex", "dropIndexes":
