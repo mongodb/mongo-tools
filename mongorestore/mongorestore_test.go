@@ -850,17 +850,17 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 			So(ok || ok1 || ok10, ShouldBeTrue)
 
 			if ok {
-				So(ok1 && ok10, ShouldBeFalse)
+				So(ok1 || ok10, ShouldBeFalse)
 				indexKey = indexKeyFoo
 			}
 
 			if ok1 {
-				So(ok && ok10, ShouldBeFalse)
+				So(ok || ok10, ShouldBeFalse)
 				indexKey = indexKeyFoo1
 			}
 
 			if ok10 {
-				So(ok && ok1, ShouldBeFalse)
+				So(ok || ok1, ShouldBeFalse)
 				indexKey = indexKeyFoo10
 			}
 
