@@ -1688,13 +1688,6 @@ buildvariants:
   - amazon1-2018-test
   tasks:
   - name: release-json
-
-
-- name: full-json
-  display_name: 'Generate Full JSON'
-  run_on:
-  - amazon1-2018-large
-  tasks:
   - name: generate-full-json
 
 #######################################
