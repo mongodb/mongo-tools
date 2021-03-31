@@ -2167,6 +2167,34 @@ buildvariants:
   - name: push
     run_on: rhel70-small
 
+
+#######################################
+#       Container Buildvariants       #
+#######################################
+
+- name: ubuntu1804-container
+  display_name: Ubuntu 18.04 Container
+  run_on:
+  - ubuntu1804-container
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
+- name: ubi8-container
+  display_name: UBI 8
+  run_on:
+  - ubi8
+  tasks:
+  - name: dist
+  - name: sign
+    run_on: amazon1-2018-test
+  - name: push
+    run_on: rhel70-small
+
+
 #######################################
 #     Experimental Buildvariants      #
 #######################################
