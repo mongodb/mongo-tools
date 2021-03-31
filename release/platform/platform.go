@@ -367,4 +367,20 @@ var platforms = []Platform{
 		Repos:     []string{RepoOrg, RepoEnterprise},
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
+	{
+		Name:      "ubuntu1804-container",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
+		Name:      "ubi8-container",
+		Arch:      "x86_64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
 }
