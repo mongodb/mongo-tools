@@ -1456,8 +1456,8 @@ func TestCommitIndexBuild(t *testing.T) {
 				So(err, ShouldBeNil)
 				indexCnt++
 			}
-			// Should create 2 indexes: _id and a
-			So(indexCnt, ShouldEqual, 2)
+			// Should create 3 indexes: _id and two others
+			So(indexCnt, ShouldEqual, 3)
 		})
 	})
 }
@@ -1530,8 +1530,8 @@ func TestCreateIndexes(t *testing.T) {
 				So(err, ShouldBeNil)
 				indexCnt++
 			}
-			// Should create 2 indexes: _id and a
-			So(indexCnt, ShouldEqual, 2)
+			// Should create 3 indexes: _id and two others
+			So(indexCnt, ShouldEqual, 3)
 		})
 	})
 }
