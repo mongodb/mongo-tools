@@ -2175,7 +2175,7 @@ buildvariants:
 - name: ubuntu1804-container
   display_name: Ubuntu 18.04 Container
   run_on:
-  - ubuntu1804-container
+  - ubuntu1804-container-server
   tasks:
   - name: dist
   - name: sign
