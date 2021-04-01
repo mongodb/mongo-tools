@@ -288,8 +288,9 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 				if err != nil {
 					return fmt.Errorf("error applying nested op from applyOps: %v", err)
 				}
-				return nil
 			}
+
+			return nil
 
 		case "deleteIndex", "deleteIndexes", "dropIndex", "dropIndexes":
 			collName, ok := op.Object[0].Value.(string)
