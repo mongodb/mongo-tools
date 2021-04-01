@@ -94,7 +94,7 @@ func main() {
 	case "upload-json":
 		uploadReleaseJSON(v)
 	case "generate-full-json":
-		generateFullReleaseJSON()
+		generateFullReleaseJSON(v)
 	case "linux-release":
 		linuxRelease(v)
 	default:
@@ -880,7 +880,17 @@ func buildZip() {
 	}
 }
 
-func generateFullReleaseJSON() {
+func generateFullReleaseJSON(v version.Version) {
+	if env.EvgIsPatch() {
+		log.Println("current build is a patch; not generating and uploading full JSON feed")
+		return
+	}
+
+	if !canPerformStableRelease(v) {
+		log.Println("current build is not a stable release task; not generating and uploading full JSON feed")
+		return
+	}
+
 	awsClient, err := aws.GetClient()
 	check(err, "get aws client")
 
