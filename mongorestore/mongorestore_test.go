@@ -91,10 +91,11 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 			}
 
 			restore, err := getRestoreWithArgs(args...)
-
 			if err != nil {
 				t.Errorf("Cannot bootstrap test harness: %v", err.Error())
 			}
+			defer restore.Close()
+
 			err = restore.ParseAndValidateOptions()
 
 			So(err, ShouldBeNil)
@@ -109,10 +110,11 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 			}
 
 			restore, err := getRestoreWithArgs(args...)
-
 			if err != nil {
 				t.Errorf("Cannot bootstrap test harness: %v", err.Error())
 			}
+			defer restore.Close()
+
 			err = restore.ParseAndValidateOptions()
 
 			So(err, ShouldBeNil)
@@ -123,7 +125,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 
 func TestMongorestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -136,8 +138,7 @@ func TestMongorestore(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
-
-		session, _ := restore.SessionProvider.GetSession()
+		defer restore.Close()
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
@@ -267,6 +268,7 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		db := session.Database("db1")
 
@@ -369,6 +371,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
@@ -480,6 +483,7 @@ func TestMongorestoreCantPreserveUUID(t *testing.T) {
 		}
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		result := restore.Restore()
 		So(result.Err, ShouldNotBeNil)
@@ -513,6 +517,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			}
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
+			defer restore.Close()
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -533,6 +538,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			}
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
+			defer restore.Close()
 
 			result := restore.Restore()
 			So(result.Err, ShouldNotBeNil)
@@ -549,6 +555,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			}
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
+			defer restore.Close()
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -570,6 +577,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 			}
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
+			defer restore.Close()
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -652,6 +660,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 			DBOption, database.Name(),
 			DropOption)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeFalse)
 
 		result := restore.Restore()
@@ -671,6 +680,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 			DropOption,
 			MaintainInsertionOrderOption)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeTrue)
 		So(restore.OutputOptions.NumInsertionWorkers, ShouldEqual, 1)
 
@@ -692,6 +702,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 			StopOnErrorOption,
 			NumParallelCollectionsOption, "1")
 		So(err, ShouldBeNil)
+		defer restore.Close()
 		So(restore.OutputOptions.StopOnError, ShouldBeTrue)
 
 		result := restore.Restore()
@@ -722,8 +733,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
-
-		session, _ = restore.SessionProvider.GetSession()
+		defer restore.Close()
 
 		db := session.Database("indextest")
 
@@ -755,6 +765,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 
 		restore, err = getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		Convey("Creating index with invalid option and --convertLegacyIndexes should succeed", func() {
 			restore.TargetDirectory = "testdata/indextestdump"
@@ -791,6 +802,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		Convey("Index with duplicate key after convertLegacyIndexes should be skipped", func() {
 			restore.TargetDirectory = "testdata/duplicate_index_key"
@@ -808,38 +820,59 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 				}
 			}()
 
-			indexes := testDB.Collection("duplicate_index_key").Indexes()
-			c, err := indexes.List(context.Background())
+			c, err := testDB.Collection("duplicate_index_key").Indexes().List(context.Background())
 			So(err, ShouldBeNil)
+
 			type indexRes struct {
-				Key bson.D
+				Name string
+				Key  bson.D
 			}
 
-			var res indexRes
+			indexKeys := make(map[string]bson.D)
 
 			// two Indexes should be created in addition to the _id, foo and foo_2
-			c.Next(context.Background())
-			err = c.Decode(&res)
-			So(err, ShouldBeNil)
-			So(len(res.Key), ShouldEqual, 1)
-			So(res.Key[0].Key, ShouldEqual, "_id")
-			So(res.Key[0].Value, ShouldEqual, 1)
+			for c.Next(context.Background()) {
+				var res indexRes
+				err = c.Decode(&res)
+				So(err, ShouldBeNil)
+				So(len(res.Key), ShouldEqual, 1)
+				indexKeys[res.Name] = res.Key
+			}
 
-			c.Next(context.Background())
-			err = c.Decode(&res)
-			So(err, ShouldBeNil)
-			So(len(res.Key), ShouldEqual, 1)
-			So(res.Key[0].Key, ShouldEqual, "foo")
-			So(res.Key[0].Value, ShouldEqual, 1)
+			So(len(indexKeys), ShouldEqual, 3)
 
-			c.Next(context.Background())
-			err = c.Decode(&res)
-			So(err, ShouldBeNil)
-			So(len(res.Key), ShouldEqual, 1)
-			So(res.Key[0].Key, ShouldEqual, "foo")
-			So(res.Key[0].Value, ShouldEqual, 2)
+			var indexKey bson.D
+			// Check that only one of foo_, foo_1, or foo_1.0 was created
+			indexKeyFoo, ok := indexKeys["foo_"]
+			indexKeyFoo1, ok1 := indexKeys["foo_1"]
+			indexKeyFoo10, ok10 := indexKeys["foo_1.0"]
 
-			So(c.TryNext(context.Background()), ShouldBeFalse)
+			So(ok || ok1 || ok10, ShouldBeTrue)
+
+			if ok {
+				So(ok1 || ok10, ShouldBeFalse)
+				indexKey = indexKeyFoo
+			}
+
+			if ok1 {
+				So(ok || ok10, ShouldBeFalse)
+				indexKey = indexKeyFoo1
+			}
+
+			if ok10 {
+				So(ok || ok1, ShouldBeFalse)
+				indexKey = indexKeyFoo10
+			}
+
+			So(len(indexKey), ShouldEqual, 1)
+			So(indexKey[0].Key, ShouldEqual, "foo")
+			So(indexKey[0].Value, ShouldEqual, 1)
+
+			indexKey, ok = indexKeys["foo_2"]
+			So(ok, ShouldBeTrue)
+			So(len(indexKey), ShouldEqual, 1)
+			So(indexKey[0].Key, ShouldEqual, "foo")
+			So(indexKey[0].Value, ShouldEqual, 2)
 		})
 	})
 }
@@ -864,6 +897,7 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		session, _ = restore.SessionProvider.GetSession()
 
@@ -884,6 +918,7 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 
 		restore, err = getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		Convey("Creating index with --convertLegacyIndexes and 4.4 FCV should succeed", func() {
 			restore.TargetDirectory = "testdata/indexmetadata"
@@ -910,6 +945,7 @@ func TestLongIndexName(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		session, err := restore.SessionProvider.GetSession()
 		So(err, ShouldBeNil)
@@ -953,8 +989,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
-
-		session, _ = restore.SessionProvider.GetSession()
+		defer restore.Close()
 
 		db := session.Database("admin")
 
@@ -989,6 +1024,7 @@ func TestKnownCollections(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("test")
@@ -1032,8 +1068,8 @@ func TestFixHashedIndexes(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
-		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("testdata")
 
 		defer func() {
@@ -1073,8 +1109,8 @@ func TestFixHashedIndexes(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
-		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("testdata")
 
 		defer func() {
@@ -1179,6 +1215,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
+			defer restore.Close()
 
 			restore.TargetDirectory = "testdata/test_auto_idx.bson"
 			result := restore.Restore()
@@ -1220,6 +1257,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 			Convey("Set --preserveUUID if server version >= 4.0\n", func() {
@@ -1265,6 +1303,8 @@ func TestSkipSystemCollections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
+	defer sessionProvider.Close()
+
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		t.Fatalf("No client available")
@@ -1292,6 +1332,7 @@ func TestSkipSystemCollections(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
@@ -1331,6 +1372,8 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
+	defer sessionProvider.Close()
+
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		t.Fatalf("No client available")
@@ -1355,6 +1398,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
 			// Run mongorestore
@@ -1393,6 +1437,8 @@ func TestCommitIndexBuild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
+	defer sessionProvider.Close()
+
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		t.Fatalf("No client available")
@@ -1419,6 +1465,7 @@ func TestCommitIndexBuild(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
@@ -1472,6 +1519,8 @@ func TestCreateIndexes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
+	defer sessionProvider.Close()
+
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		t.Fatalf("No client available")
@@ -1493,6 +1542,7 @@ func TestCreateIndexes(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()

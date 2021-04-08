@@ -67,6 +67,8 @@ func TestMongorestoreShortArchive(t *testing.T) {
 
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
+			defer restore.Close()
+
 			restore.archive = &archive.Reader{
 				Prelude: &archive.Prelude{},
 				In:      ioutil.NopCloser(io.LimitReader(file, i)),
@@ -78,7 +80,6 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			} else {
 				So(result.Err, ShouldNotBeNil)
 			}
-			restore.Close()
 		}
 	})
 }
@@ -98,6 +99,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 		}
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		result := restore.Restore()
 		So(result.Err, ShouldBeNil)
@@ -120,6 +122,7 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 		}
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		result := restore.Restore()
 		Convey("A mongorestore on an archive with a bad format should error out instead of hang", func() {

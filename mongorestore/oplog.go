@@ -11,7 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/progress"
@@ -34,6 +36,28 @@ type oplogContext struct {
 	totalOps   int
 	txnBuffer  *txn.Buffer
 }
+
+var knownCommands = map[string]bool{
+	"renameCollection": true,
+	"dropDatabase":     true,
+	"applyOps":         true,
+	"dbCheck":          true,
+	"create":           true,
+	"convertToCapped":  true,
+	"emptycapped":      true,
+	"drop":             true,
+	"createIndexes":    true,
+	"deleteIndex":      true,
+	"deleteIndexes":    true,
+	"dropIndex":        true,
+	"dropIndexes":      true,
+	"collMod":          true,
+	"startIndexBuild":  true,
+	"abortIndexBuild":  true,
+	"commitIndexBuild": true,
+}
+
+var errorTimestampBeforeLimit = fmt.Errorf("timestamp before limit")
 
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
@@ -102,48 +126,12 @@ func (restore *MongoRestore) RestoreOplog() error {
 			return fmt.Errorf("error reading oplog: %v", err)
 		}
 
-		if shouldIgnoreNamespace(entryAsOplog.Namespace) {
-			continue
-		}
-
-		if entryAsOplog.Operation == "n" {
-			//skip no-ops
-			continue
-		}
-
-		if entryAsOplog.Operation == "c" && len(entryAsOplog.Object) > 0 {
-			entryName := entryAsOplog.Object[0].Key
-			if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
-				log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
-				continue
-			}
-		}
-
-		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
-			log.Logvf(
-				log.DebugLow,
-				"timestamp %v is not below limit of %v; ending oplog restoration",
-				entryAsOplog.Timestamp,
-				restore.oplogLimit,
-			)
+		err := restore.HandleOp(oplogCtx, entryAsOplog)
+		if err == errorTimestampBeforeLimit {
 			break
 		}
-
-		meta, err := txn.NewMeta(entryAsOplog)
 		if err != nil {
-			return fmt.Errorf("error getting op metadata: %v", err)
-		}
-
-		if meta.IsTxn() {
-			err := restore.HandleTxnOp(oplogCtx, meta, entryAsOplog)
-			if err != nil {
-				return fmt.Errorf("error handling transaction oplog entry: %v", err)
-			}
-		} else {
-			err := restore.HandleNonTxnOp(oplogCtx, entryAsOplog)
-			if err != nil {
-				return fmt.Errorf("error applying oplog: %v", err)
-			}
+			return err
 		}
 
 	}
@@ -159,6 +147,54 @@ func (restore *MongoRestore) RestoreOplog() error {
 
 }
 
+func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error {
+	if shouldIgnoreNamespace(op.Namespace) {
+		return nil
+	}
+
+	if op.Operation == "n" {
+		//skip no-ops
+		return nil
+	}
+
+	if op.Operation == "c" && len(op.Object) > 0 {
+		entryName := op.Object[0].Key
+		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+			log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+			return nil
+		}
+	}
+
+	if !restore.TimestampBeforeLimit(op.Timestamp) {
+		log.Logvf(
+			log.DebugLow,
+			"timestamp %v is not below limit of %v; ending oplog restoration",
+			op.Timestamp,
+			restore.oplogLimit,
+		)
+		return errorTimestampBeforeLimit
+	}
+
+	meta, err := txn.NewMeta(op)
+	if err != nil {
+		return fmt.Errorf("error getting op metadata: %v", err)
+	}
+
+	if meta.IsTxn() {
+		err := restore.HandleTxnOp(oplogCtx, meta, op)
+		if err != nil {
+			return fmt.Errorf("error handling transaction oplog entry: %v", err)
+		}
+	} else {
+		err := restore.HandleNonTxnOp(oplogCtx, op)
+		if err != nil {
+			return fmt.Errorf("error applying oplog: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog) error {
 	oplogCtx.totalOps++
 
@@ -167,32 +203,138 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
 	}
 
-	if op.Operation == "c" && op.Object[0].Key == "commitIndexBuild" {
-		// commitIndexBuild was introduced in 4.4, one "commitIndexBuild" command can contain several
-		// indexes, we need to convert the command to "createIndexes" command for each single index and apply
-		collectionName, indexes := extractIndexDocumentFromCommitIndexBuilds(op)
-		if indexes == nil {
-			return fmt.Errorf("failed to parse IndexDocument from commitIndexBuild in %s, %v", collectionName, op)
+	if op.Operation == "c" {
+		if len(op.Object) == 0 {
+			return fmt.Errorf("Empty object value for op: %v", op)
+		}
+		cmdName := op.Object[0].Key
+
+		if !knownCommands[cmdName] {
+			return fmt.Errorf("unknown oplog command name %v: %v", cmdName, op)
 		}
 
-		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
-		}
+		ns := strings.Split(op.Namespace, ".")
+		dbName := ns[0]
 
-		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
-	} else if op.Operation == "c" && op.Object[0].Key == "createIndexes" {
-		// server > 4.4 no longer supports applying createIndexes oplog, we need to convert the oplog to createIndexes command and execute it
-		collectionName, index := extractIndexDocumentFromCreateIndexes(op)
-		if index.Key == nil {
-			return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
-		}
+		switch cmdName {
+		case "commitIndexBuild":
+			// commitIndexBuild was introduced in 4.4, one "commitIndexBuild" command can contain several
+			// indexes, we need to convert the command to "createIndexes" command for each single index and apply
+			collectionName, indexes := extractIndexDocumentFromCommitIndexBuilds(op)
+			if indexes == nil {
+				return fmt.Errorf("failed to parse IndexDocument from commitIndexBuild in %s, %v", collectionName, op)
+			}
 
-		indexes := []IndexDocument{index}
-		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
-		}
+			if restore.OutputOptions.ConvertLegacyIndexes {
+				indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
+			}
 
-		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+
+			restore.indexCatalog.AddIndexes(dbName, collName, indexes)
+			return nil
+
+		case "createIndexes":
+			// server > 4.4 no longer supports applying createIndexes oplog, we need to convert the oplog to createIndexes command and execute it
+			collectionName, index := extractIndexDocumentFromCreateIndexes(op)
+			if index.Key == nil {
+				return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
+			}
+
+			indexes := []*idx.IndexDocument{index}
+			if restore.OutputOptions.ConvertLegacyIndexes {
+				indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
+			}
+
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+
+			restore.indexCatalog.AddIndexes(dbName, collName, indexes)
+			return nil
+
+		case "dropDatabase":
+			restore.indexCatalog.DropDatabase(dbName)
+
+		case "drop":
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+			restore.indexCatalog.DropCollection(dbName, collName)
+
+		case "applyOps":
+			rawOps, ok := op.Object[0].Value.(bson.A)
+			if !ok {
+				return fmt.Errorf("unknown format for applyOps: %#v", op.Object)
+			}
+
+			for _, rawOp := range rawOps {
+				bytesOp, err := bson.Marshal(rawOp)
+				if err != nil {
+					return fmt.Errorf("could not marshal applyOps operation: %v: %v", rawOp, err)
+				}
+				var nestedOp db.Oplog
+				err = bson.Unmarshal(bytesOp, &nestedOp)
+				if err != nil {
+					return fmt.Errorf("could not unmarshal applyOps command: %v: %v", rawOp, err)
+				}
+
+				err = restore.HandleOp(oplogCtx, nestedOp)
+				if err != nil {
+					return fmt.Errorf("error applying nested op from applyOps: %v", err)
+				}
+			}
+
+			return nil
+
+		case "deleteIndex", "deleteIndexes", "dropIndex", "dropIndexes":
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+			restore.indexCatalog.DeleteIndexes(dbName, collName, op.Object)
+			return nil
+		case "collMod":
+			if restore.serverVersion.GTE(db.Version{4, 1, 11}) {
+				_, _ = bsonutil.RemoveKey("noPadding", &op.Object)
+				_, _ = bsonutil.RemoveKey("usePowerOf2Sizes", &op.Object)
+			}
+
+			indexModValue, found := bsonutil.RemoveKey("index", &op.Object)
+			if !found {
+				break
+			}
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+			err := restore.indexCatalog.CollMod(dbName, collName, indexModValue)
+			if err != nil {
+				return err
+			}
+			// Don't apply the collMod if the only modification was for an index.
+			if len(op.Object) == 1 {
+				return nil
+			}
+		case "create":
+			collName, ok := op.Object[0].Value.(string)
+			if !ok {
+				return fmt.Errorf("could not parse collection name from op: %v", op)
+			}
+			collation, err := bsonutil.FindSubdocumentByKey("collation", &op.Object)
+			if err != nil {
+				restore.indexCatalog.SetCollation(dbName, collName, true)
+			}
+			localeValue, _ := bsonutil.FindValueByKey("locale", &collation)
+			if localeValue == "simple" {
+				restore.indexCatalog.SetCollation(dbName, collName, true)
+			}
+		}
 	}
 
 	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
@@ -372,7 +514,7 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
 // returns collection name and index specs
-func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []IndexDocument) {
+func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.IndexDocument) {
 	collectionName := ""
 	for _, elem := range op.Object {
 		if elem.Key == "commitIndexBuild" {
@@ -383,19 +525,22 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []IndexDocu
 	for _, elem := range op.Object {
 		if elem.Key == "indexes" {
 			indexes := elem.Value.(bson.A)
-			indexDocuments := make([]IndexDocument, len(indexes))
+			indexDocuments := make([]*idx.IndexDocument, len(indexes))
 			for i, index := range indexes {
-				indexDocuments[i].Options = bson.M{}
+				var indexSpec idx.IndexDocument
+				indexSpec.Options = bson.M{}
 				for _, elem := range index.(bson.D) {
 					if elem.Key == "key" {
-						indexDocuments[i].Key = elem.Value.(bson.D)
+						indexSpec.Key = elem.Value.(bson.D)
 					} else if elem.Key == "partialFilterExpression" {
-						indexDocuments[i].PartialFilterExpression = elem.Value.(bson.D)
+						indexSpec.PartialFilterExpression = elem.Value.(bson.D)
 					} else {
-						indexDocuments[i].Options[elem.Key] = elem.Value
+						indexSpec.Options[elem.Key] = elem.Value
 					}
 				}
+				indexDocuments[i] = &indexSpec
 			}
+
 			return collectionName, indexDocuments
 		}
 	}
@@ -405,9 +550,9 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []IndexDocu
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
 // returns collection name and index spec
-func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, IndexDocument) {
+func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocument) {
 	collectionName := ""
-	indexDocument := IndexDocument{Options: bson.M{}}
+	indexDocument := &idx.IndexDocument{Options: bson.M{}}
 	for _, elem := range op.Object {
 		if elem.Key == "createIndexes" {
 			collectionName = elem.Value.(string)

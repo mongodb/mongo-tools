@@ -71,8 +71,8 @@ func TestMongorestoreTxns(t *testing.T) {
 			dumpPath,
 		}
 		restore, err := getRestoreWithArgs(args...)
-
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		result := restore.Restore()
 		So(result.Err, ShouldBeNil)

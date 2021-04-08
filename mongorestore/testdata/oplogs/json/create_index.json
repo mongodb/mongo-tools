@@ -1,0 +1,1 @@
+{"op":"c","ns":"test.$cmd","ui":{"$binary":{"base64":"UG740CdIQ0yW3Szj7wyRPQ==","subType":"04"}},"o":{"createIndexes":"foo","v":2,"key":{"f":1.0},"name":"f_1"},"ts":{"$timestamp":{"t":1616670725,"i":2}},"t":505,"wall":{"$date":"2021-03-25T11:12:05.849Z"},"v":2}

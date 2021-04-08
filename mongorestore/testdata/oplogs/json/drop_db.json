@@ -1,0 +1,1 @@
+{"op":"c","ns":"test.$cmd","o":{"dropDatabase":1},"ts":{"$timestamp":{"t":1616671599,"i":3}},"t":505,"wall":{"$date":"2021-03-25T11:26:39.492Z"},"v":2}

@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -76,6 +77,8 @@ type MongoRestore struct {
 	// indexes belonging to dbs and collections
 	dbCollectionIndexes map[string]collectionIndexes
 
+	indexCatalog *idx.IndexCatalog
+
 	archive *archive.Reader
 
 	// boolean set if termination signal received; false by default
@@ -89,7 +92,7 @@ type MongoRestore struct {
 	serverVersion db.Version
 }
 
-type collectionIndexes map[string][]IndexDocument
+type collectionIndexes map[string][]*idx.IndexDocument
 
 // New initializes an instance of MongoRestore according to the provided options.
 func New(opts Options) (*MongoRestore, error) {
@@ -117,6 +120,7 @@ func New(opts Options) (*MongoRestore, error) {
 		ProgressManager: progressManager,
 		serverVersion:   serverVersion,
 		terminate:       false,
+		indexCatalog:    idx.NewIndexCatalog(),
 	}
 	return restore, nil
 }
@@ -547,11 +551,25 @@ func (restore *MongoRestore) Restore() Result {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
 
+	err = restore.PopulateMetadataForIntents()
+	if err != nil {
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
 	// Restore the regular collections
 	if restore.InputOptions.Archive != "" {
 		restore.manager.UsePrioritizer(restore.archive.Demux.NewPrioritizer(restore.manager))
 	} else if restore.OutputOptions.NumParallelCollections > 1 {
-		restore.manager.Finalize(intents.MultiDatabaseLTF)
+		// 3.0+ has collection-level locking for writes, so it is most efficient to
+		// prioritize by collection size. Pre-3.0 we try to avoid inserting into collections
+		// in the same database simultaneously due to the database-level locking.
+		// Up to 4.2, foreground index builds take a database-level lock for the entire build,
+		// but this prioritizer is not used for index builds so we don't need to worry about that here.
+		if restore.serverVersion.GTE(db.Version{3, 0, 0}) {
+			restore.manager.Finalize(intents.LongestTaskFirst)
+		} else {
+			restore.manager.Finalize(intents.MultiDatabaseLTF)
+		}
 	} else {
 		// use legacy restoration order if we are single-threaded
 		restore.manager.Finalize(intents.Legacy)
@@ -575,6 +593,13 @@ func (restore *MongoRestore) Restore() Result {
 		err = restore.RestoreOplog()
 		if err != nil {
 			return result.withErr(fmt.Errorf("restore error: %v", err))
+		}
+	}
+
+	if !restore.OutputOptions.NoIndexRestore {
+		err = restore.RestoreIndexes()
+		if err != nil {
+			return result.withErr(err)
 		}
 	}
 

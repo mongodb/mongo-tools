@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -147,7 +148,20 @@ func (it *Intent) MergeIntent(newIt *Intent) {
 	if it.MetadataLocation == "" {
 		it.MetadataLocation = newIt.MetadataLocation
 	}
+}
 
+// HasSimpleCollation returns true if the collection does not have a collation
+// specified or if the collation locale is "simple"
+func (it *Intent) HasSimpleCollation() bool {
+	if it == nil || it.Options == nil {
+		return true
+	}
+	collation, ok := it.Options["collation"].(bson.D)
+	if !ok {
+		return true
+	}
+	localeValue, _ := bsonutil.FindValueByKey("locale", &collation)
+	return localeValue == "simple"
 }
 
 type Manager struct {
@@ -386,6 +400,16 @@ func (mgr *Manager) Intents() []*Intent {
 	}
 	if mgr.versionIntent != nil {
 		allIntents = append(allIntents, mgr.versionIntent)
+	}
+	return allIntents
+}
+
+// NormalIntents returns a slice containing all of the normal intents in the manager.
+// NormalIntents is not thread safe.
+func (mgr *Manager) NormalIntents() []*Intent {
+	allIntents := []*Intent{}
+	for _, intent := range mgr.intents {
+		allIntents = append(allIntents, intent)
 	}
 	return allIntents
 }

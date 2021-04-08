@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
@@ -156,6 +157,7 @@ func TestOplogRestore(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 		c1 := session.Database("db1").Collection("c1")
 		c1.Drop(nil)
 
@@ -169,6 +171,307 @@ func TestOplogRestore(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10)
 		session.Disconnect(context.Background())
+	})
+}
+
+func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/duplicate_index_key_with_oplog",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+		coll := session.Database("test").Collection("foo")
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		// Verify restoration
+		count, err := coll.CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1)
+		session.Disconnect(context.Background())
+	})
+}
+
+func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+	defer session.Disconnect(context.Background())
+
+	Convey("Index drop in oplog should delete it from indexCatalog", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/coll_with_index",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+			OplogFileOption, "testdata/oplogs/bson/drop_index.bson",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		coll := session.Database("test").Collection("foo")
+
+		ctx := context.Background()
+		// Verify restoration
+		count, err := coll.CountDocuments(ctx, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1)
+
+		indexCursor, err := coll.Indexes().List(ctx)
+		So(err, ShouldBeNil)
+
+		defer indexCursor.Close(ctx)
+
+		indexCount := 0
+		for indexCursor.Next(ctx) {
+			indexCount++
+		}
+
+		So(indexCount, ShouldEqual, 1)
+	})
+
+	Convey("collection drop in oplog should delete indexes from indexCatalog", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/coll_with_index",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+			OplogFileOption, "testdata/oplogs/bson/drop_collection.bson",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		coll := session.Database("test").Collection("foo")
+
+		ctx := context.Background()
+		// Verify restoration
+		count, err := coll.CountDocuments(ctx, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 0)
+
+		indexCursor, err := coll.Indexes().List(ctx)
+		So(err, ShouldBeNil)
+
+		defer indexCursor.Close(ctx)
+
+		indexCount := 0
+		for indexCursor.Next(ctx) {
+			indexCount++
+		}
+
+		So(indexCount, ShouldEqual, 0)
+	})
+
+	Convey("db drop in oplog should delete indexes from indexCatalog", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/coll_with_index",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+			OplogFileOption, "testdata/oplogs/bson/drop_db.bson",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		coll := session.Database("test").Collection("foo")
+
+		ctx := context.Background()
+		// Verify restoration
+		count, err := coll.CountDocuments(ctx, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 0)
+
+		indexCursor, err := coll.Indexes().List(ctx)
+		So(err, ShouldBeNil)
+
+		defer indexCursor.Close(ctx)
+
+		indexCount := 0
+		for indexCursor.Next(ctx) {
+			indexCount++
+		}
+
+		So(indexCount, ShouldEqual, 0)
+
+	})
+
+	Convey("create indexes should update indexCatalog", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/coll_with_ttl_index",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+			OplogFileOption, "testdata/oplogs/bson/create_index.bson",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		coll := session.Database("test").Collection("foo")
+
+		ctx := context.Background()
+		// Verify restoration
+		count, err := coll.CountDocuments(ctx, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1)
+
+		indexCursor, err := coll.Indexes().List(ctx)
+		So(err, ShouldBeNil)
+
+		defer indexCursor.Close(ctx)
+
+		indexCount := 0
+		for indexCursor.Next(ctx) {
+			indexCount++
+		}
+
+		So(indexCount, ShouldEqual, 2)
+
+	})
+
+	Convey("collMod should edit index in indexCatalog", t, func() {
+		args := []string{
+			DirectoryOption, "testdata/coll_with_ttl_index",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+			OplogFileOption, "testdata/oplogs/bson/collMod.bson",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		coll := session.Database("test").Collection("foo")
+
+		ctx := context.Background()
+		// Verify restoration
+		count, err := coll.CountDocuments(ctx, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1)
+
+		indexCursor, err := coll.Indexes().List(ctx)
+		So(err, ShouldBeNil)
+
+		defer indexCursor.Close(ctx)
+
+		var indexDoc idx.IndexDocument
+
+		for indexCursor.Next(ctx) {
+			err = indexCursor.Decode(&indexDoc)
+			So(err, ShouldBeNil)
+			if indexDoc.Options["name"] == "f_1" {
+				So(indexDoc.Options["expireAfterSeconds"], ShouldEqual, 3600)
+			}
+		}
+
+	})
+
+	Convey("collMod should edit hidden field in index in indexCatalog", t, func() {
+		fcv := testutil.GetFCV(session)
+		if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
+			t.Skip("Requires server with FCV 4.4 or later")
+		}
+
+		args := []string{
+			DirectoryOption, "testdata/coll_with_ttl_index",
+			OplogReplayOption,
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			DropOption,
+			OplogFileOption, "testdata/oplogs/bson/collMod_with_hidden.bson",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Failures, ShouldEqual, 0)
+
+		coll := session.Database("test").Collection("foo")
+
+		ctx := context.Background()
+		// Verify restoration
+		count, err := coll.CountDocuments(ctx, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1)
+
+		indexCursor, err := coll.Indexes().List(ctx)
+		So(err, ShouldBeNil)
+
+		defer indexCursor.Close(ctx)
+
+		var indexDoc idx.IndexDocument
+
+		for indexCursor.Next(ctx) {
+			err = indexCursor.Decode(&indexDoc)
+			So(err, ShouldBeNil)
+			if indexDoc.Options["name"] == "f_1" {
+				So(indexDoc.Options["expireAfterSeconds"], ShouldEqual, 3600)
+				So(indexDoc.Options["hidden"], ShouldEqual, true)
+			}
+		}
+
 	})
 }
 
@@ -212,6 +515,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Make sure to drop the 16 MiB collection before disconnecting.
 		defer session.Disconnect(context.Background())
@@ -289,6 +593,7 @@ func TestOplogRestoreTools2002(t *testing.T) {
 		}
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
@@ -36,17 +37,10 @@ type authVersionPair struct {
 
 // Metadata holds information about a collection's options and indexes.
 type Metadata struct {
-	Options        bson.D          `bson:"options,omitempty"`
-	Indexes        []IndexDocument `bson:"indexes"`
-	UUID           string          `bson:"uuid"`
-	CollectionName string          `bson:"collectionName"`
-}
-
-// IndexDocument holds information about a collection's index.
-type IndexDocument struct {
-	Options                 bson.M `bson:",inline"`
-	Key                     bson.D `bson:"key"`
-	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
+	Options        bson.D               `bson:"options,omitempty"`
+	Indexes        []*idx.IndexDocument `bson:"indexes"`
+	UUID           string               `bson:"uuid"`
+	CollectionName string               `bson:"collectionName"`
 }
 
 // MetadataFromJSON takes a slice of JSON bytes and unmarshals them into usable
@@ -86,7 +80,7 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 
 		// iterate over stored indexes, saving all that match the collection
 		for {
-			indexDocument := IndexDocument{}
+			indexDocument := &idx.IndexDocument{}
 			if !bsonSource.Next(&indexDocument) {
 				break
 			}
@@ -157,7 +151,7 @@ func (restore *MongoRestore) addToKnownCollections(intent *intents.Intent) {
 // CreateIndexes takes in an intent and an array of index documents and
 // attempts to create them using the createIndexes command. If that command
 // fails, we fall back to individual index creation.
-func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []IndexDocument, hasNonSimpleCollation bool) error {
+func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []*idx.IndexDocument) error {
 	// first, sanitize the indexes
 	var indexNames []string
 	for _, index := range indexes {
@@ -179,12 +173,6 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 		// unless we specifically want to keep it
 		if !restore.OutputOptions.KeepIndexVersion {
 			delete(index.Options, "v")
-		}
-
-		// for non-simple default collation on the collection, indexes without
-		// a collation option need to add "collation:{locale:"simple"}}
-		if _, ok := index.Options["collation"]; hasNonSimpleCollation && !ok {
-			index.Options["collation"] = bson.D{{"locale", "simple"}}
 		}
 	}
 
@@ -227,7 +215,7 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 
 // LegacyInsertIndex takes in an intent and an index document and attempts to
 // create the index on the "system.indexes" collection.
-func (restore *MongoRestore) LegacyInsertIndex(dbName string, index IndexDocument) error {
+func (restore *MongoRestore) LegacyInsertIndex(dbName string, index *idx.IndexDocument) error {
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)

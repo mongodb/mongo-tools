@@ -1,0 +1,3 @@
+{"op":"c","ns":"test.$cmd","ui":{"$binary":{"base64":"eDZOnxEAQcqDUU94UF8IHQ==","subType":"04"}},"o":{"startIndexBuild":"foo","indexBuildUUID":{"$binary":{"base64":"4bxQ3jVUS+yW7PKdH21C6Q==","subType":"04"}},"indexes":[{"v":2,"key":{"a":1.0},"name":"a_1"}]},"ts":{"$timestamp":{"t":1616671666,"i":2}},"t":505,"wall":{"$date":"2021-03-25T11:27:46.97Z"},"v":2}
+{"op":"c","ns":"test.$cmd","ui":{"$binary":{"base64":"eDZOnxEAQcqDUU94UF8IHQ==","subType":"04"}},"o":{"commitIndexBuild":"foo","indexBuildUUID":{"$binary":{"base64":"4bxQ3jVUS+yW7PKdH21C6Q==","subType":"04"}},"indexes":[{"v":2,"key":{"a":1.0},"name":"a_1"}]},"ts":{"$timestamp":{"t":1616671667,"i":4}},"t":505,"wall":{"$date":"2021-03-25T11:27:47.114Z"},"v":2}
+    

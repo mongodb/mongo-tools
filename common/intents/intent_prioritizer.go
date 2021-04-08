@@ -198,8 +198,7 @@ func (mdb *multiDatabaseLTFPrioritizer) Get() *Intent {
 }
 
 // Finish decreases the number of active restore jobs for the given intent's
-// database, and reshuffles the heap accordingly. Finish is  not thread safe,
-// and depends on the implementation of the intent manager to lock around it.
+// database, and reshuffles the heap accordingly.
 func (mdb *multiDatabaseLTFPrioritizer) Finish(intent *Intent) {
 	mdb.Lock()
 	defer mdb.Unlock()
