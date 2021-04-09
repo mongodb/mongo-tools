@@ -57,7 +57,7 @@ func SAEvergreenValidate(ctx *task.Context) error {
 		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
 	}
 
-	// TODO: change this if-block in TOOLS-...
+	// TODO: change this if-block in TOOLS-2840.
 	// This check ignores any YAML warnings related to duplicate keys in YAML maps.
 	// See ticket for more details.
 	if strings.HasSuffix(output, "is valid with warnings") {
