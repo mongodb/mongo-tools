@@ -43,7 +43,7 @@
 // 		6. BSON embedded document unmarshals to the parent type (i.e. D for a D, M for an M).
 // 		7. BSON array unmarshals to a bson.A.
 // 		8. BSON ObjectId unmarshals to a primitive.ObjectID.
-// 		9. BSON datetime unmarshals to a primitive.Datetime.
+// 		9. BSON datetime unmarshals to a primitive.DateTime.
 // 		10. BSON binary unmarshals to a primitive.Binary.
 // 		11. BSON regular expression unmarshals to a primitive.Regex.
 // 		12. BSON JavaScript unmarshals to a primitive.JavaScript.
@@ -90,7 +90,15 @@
 //     unmarshalled into an interface{} field will be unmarshalled as a D.
 //
 // The encoding of each struct field can be customized by the "bson" struct tag.
-// The tag gives the name of the field, possibly followed by a comma-separated list of options.
+//
+// This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
+// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON tags
+// are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
+//
+// Example:
+//      structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
+//
+// The bson tag gives the name of the field, possibly followed by a comma-separated list of options.
 // The name may be empty in order to specify options without overriding the default field name. The following options can be used
 // to configure behavior:
 //

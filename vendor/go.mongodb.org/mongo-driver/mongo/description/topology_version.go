@@ -9,8 +9,8 @@ package description
 import (
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // TopologyVersion represents a software version.
@@ -20,7 +20,7 @@ type TopologyVersion struct {
 }
 
 // NewTopologyVersion creates a TopologyVersion based on doc
-func NewTopologyVersion(doc bsoncore.Document) (*TopologyVersion, error) {
+func NewTopologyVersion(doc bson.Raw) (*TopologyVersion, error) {
 	elements, err := doc.Elements()
 	if err != nil {
 		return nil, err
@@ -44,19 +44,22 @@ func NewTopologyVersion(doc bsoncore.Document) (*TopologyVersion, error) {
 	return &tv, nil
 }
 
-// CompareTopologyVersion returns -1 if currentTV<responseTV, 0 if currentTV==responseTV, 1 if currentTV>responseTV.
-// This comparsion is not commutative so the original TopologyVersion should be first.
-func CompareTopologyVersion(currentTV, responseTV *TopologyVersion) int {
-	if currentTV == nil || responseTV == nil {
+// CompareToIncoming compares the receiver, which represents the currently known TopologyVersion for a server, to an
+// incoming TopologyVersion extracted from a server command response.
+//
+// This returns -1 if the receiver version is less than the response, 0 if the versions are equal, and 1 if the
+// receiver version is greater than the response. This comparison is not commutative.
+func (tv *TopologyVersion) CompareToIncoming(responseTV *TopologyVersion) int {
+	if tv == nil || responseTV == nil {
 		return -1
 	}
-	if currentTV.ProcessID != responseTV.ProcessID {
+	if tv.ProcessID != responseTV.ProcessID {
 		return -1
 	}
-	if currentTV.Counter == responseTV.Counter {
+	if tv.Counter == responseTV.Counter {
 		return 0
 	}
-	if currentTV.Counter < responseTV.Counter {
+	if tv.Counter < responseTV.Counter {
 		return -1
 	}
 	return 1

@@ -15,10 +15,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -40,6 +40,7 @@ type Update struct {
 	retry                    *driver.RetryMode
 	result                   UpdateResult
 	crypt                    *driver.Crypt
+	serverAPI                *driver.ServerAPIOptions
 }
 
 // Upsert contains the information for an upsert in an Update operation.
@@ -161,6 +162,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		Selector:          u.selector,
 		WriteConcern:      u.writeConcern,
 		Crypt:             u.crypt,
+		ServerAPI:         u.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -350,5 +352,15 @@ func (u *Update) Crypt(crypt *driver.Crypt) *Update {
 	}
 
 	u.crypt = crypt
+	return u
+}
+
+// ServerAPI sets the server API version for this operation.
+func (u *Update) ServerAPI(serverAPI *driver.ServerAPIOptions) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.serverAPI = serverAPI
 	return u
 }

@@ -14,10 +14,10 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -37,6 +37,7 @@ type Delete struct {
 	retry        *driver.RetryMode
 	hint         *bool
 	result       DeleteResult
+	serverAPI    *driver.ServerAPIOptions
 }
 
 type DeleteResult struct {
@@ -104,6 +105,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		Deployment:        d.deployment,
 		Selector:          d.selector,
 		WriteConcern:      d.writeConcern,
+		ServerAPI:         d.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -257,5 +259,15 @@ func (d *Delete) Hint(hint bool) *Delete {
 	}
 
 	d.hint = &hint
+	return d
+}
+
+// ServerAPI sets the server API version for this operation.
+func (d *Delete) ServerAPI(serverAPI *driver.ServerAPIOptions) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.serverAPI = serverAPI
 	return d
 }

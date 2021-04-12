@@ -108,12 +108,14 @@ type ClientOptions struct {
 	MinPoolSize              *uint64
 	PoolMonitor              *event.PoolMonitor
 	Monitor                  *event.CommandMonitor
+	ServerMonitor            *event.ServerMonitor
 	ReadConcern              *readconcern.ReadConcern
 	ReadPreference           *readpref.ReadPref
 	Registry                 *bsoncodec.Registry
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
+	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SocketTimeout            *time.Duration
 	TLSConfig                *tls.Config
@@ -164,6 +166,11 @@ func (c *ClientOptions) validateAndSetError() {
 			c.err = errors.New("a direct connection cannot be made if an SRV URI is used")
 			return
 		}
+	}
+
+	// verify server API version if ServerAPIOptions are passed in.
+	if c.ServerAPIOptions != nil {
+		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
 	}
 }
 
@@ -525,6 +532,12 @@ func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
 	return c
 }
 
+// SetServerMonitor specifies an SDAM monitor used to monitor SDAM events.
+func (c *ClientOptions) SetServerMonitor(m *event.ServerMonitor) *ClientOptions {
+	c.ServerMonitor = m
+	return c
+}
+
 // SetReadConcern specifies the read concern to use for read operations. A read concern level can also be set through
 // the "readConcernLevel" URI option (e.g. "readConcernLevel=majority"). The default is nil, meaning the server will use
 // its configured default.
@@ -704,6 +717,14 @@ func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOp
 	return c
 }
 
+// SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
+// when running commands. See the options.ServerAPIOptions documentation for more information about the supported
+// options.
+func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptions {
+	c.ServerAPIOptions = opts
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
@@ -756,6 +777,12 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Monitor != nil {
 			c.Monitor = opt.Monitor
+		}
+		if opt.ServerAPIOptions != nil {
+			c.ServerAPIOptions = opt.ServerAPIOptions
+		}
+		if opt.ServerMonitor != nil {
+			c.ServerMonitor = opt.ServerMonitor
 		}
 		if opt.ReadConcern != nil {
 			c.ReadConcern = opt.ReadConcern

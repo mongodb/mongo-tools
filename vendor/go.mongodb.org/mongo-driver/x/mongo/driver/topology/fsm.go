@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 var supportedWireVersions = description.NewVersionRange(2, 9)
@@ -21,7 +21,6 @@ var minSupportedMongoDBVersion = "2.6"
 
 type fsm struct {
 	description.Topology
-	SetName          string
 	maxElectionID    primitive.ObjectID
 	maxSetVersion    uint32
 	compatible       atomic.Value
@@ -48,6 +47,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	f.Topology = description.Topology{
 		Kind:    f.Kind,
 		Servers: newServers,
+		SetName: f.SetName,
 	}
 
 	// For data bearing servers, set SessionTimeoutMinutes to the lowest among them
@@ -99,7 +99,8 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					supportedWireVersions.Min,
 					minSupportedMongoDBVersion,
 				)
-				return description.Topology{}, s, f.compatibilityErr
+				f.Topology.CompatibilityErr = f.compatibilityErr
+				return f.Topology, s, nil
 			}
 
 			if server.WireVersion.Min > supportedWireVersions.Max {
@@ -110,7 +111,8 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					server.WireVersion.Min,
 					supportedWireVersions.Max,
 				)
-				return description.Topology{}, s, f.compatibilityErr
+				f.Topology.CompatibilityErr = f.compatibilityErr
+				return f.Topology, s, nil
 			}
 		}
 	}

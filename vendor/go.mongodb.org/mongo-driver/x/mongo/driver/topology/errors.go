@@ -2,6 +2,8 @@ package topology
 
 import (
 	"fmt"
+
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 // ConnectionError represents a connection error.
@@ -17,10 +19,21 @@ type ConnectionError struct {
 
 // Error implements the error interface.
 func (e ConnectionError) Error() string {
-	if e.Wrapped != nil {
-		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, e.message, e.Wrapped.Error())
+	message := e.message
+	if e.init {
+		fullMsg := "error occured during connection handshake"
+		if message != "" {
+			fullMsg = fmt.Sprintf("%s: %s", fullMsg, message)
+		}
+		message = fullMsg
 	}
-	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.message)
+	if e.Wrapped != nil && message != "" {
+		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
+	}
+	if e.Wrapped != nil {
+		return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.Wrapped.Error())
+	}
+	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, message)
 }
 
 // Unwrap returns the underlying error.
@@ -28,21 +41,21 @@ func (e ConnectionError) Unwrap() error {
 	return e.Wrapped
 }
 
-// WaitQueueTimeoutError represents a timeout when requesting a connection from the pool
-type WaitQueueTimeoutError struct {
+// ServerSelectionError represents a Server Selection error.
+type ServerSelectionError struct {
+	Desc    description.Topology
 	Wrapped error
 }
 
 // Error implements the error interface.
-func (w WaitQueueTimeoutError) Error() string {
-	errorMsg := "timed out while checking out a connection from connection pool"
-	if w.Wrapped != nil {
-		return fmt.Sprintf("%s: %s", errorMsg, w.Wrapped.Error())
+func (e ServerSelectionError) Error() string {
+	if e.Wrapped != nil {
+		return fmt.Sprintf("server selection error: %s, current topology: { %s }", e.Wrapped.Error(), e.Desc.String())
 	}
-	return errorMsg
+	return fmt.Sprintf("server selection error: current topology: { %s }", e.Desc.String())
 }
 
 // Unwrap returns the underlying error.
-func (w WaitQueueTimeoutError) Unwrap() error {
-	return w.Wrapped
+func (e ServerSelectionError) Unwrap() error {
+	return e.Wrapped
 }

@@ -296,6 +296,11 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 
 	clientopt.Hosts = cs.Hosts
 
+	apiVersion := mopt.ServerAPI(mopt.ServerAPIVersion1)
+	apiVersion.SetStrict(false)
+	apiVersion.SetDeprecationErrors(false)
+	clientopt.SetServerAPIOptions(apiVersion)
+
 	if opts.RetryWrites != nil {
 		clientopt.SetRetryWrites(*opts.RetryWrites)
 	}

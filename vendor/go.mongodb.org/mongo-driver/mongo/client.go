@@ -10,12 +10,14 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -24,7 +26,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -62,6 +63,8 @@ type Client struct {
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
 	monitor         *event.CommandMonitor
+	serverAPI       *driver.ServerAPIOptions
+	serverMonitor   *event.ServerMonitor
 	sessionPool     *session.Pool
 
 	// client-side encryption fields
@@ -294,7 +297,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
-		Database("admin").Crypt(c.crypt)
+		Database("admin").Crypt(c.crypt).ServerAPI(c.serverAPI)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -324,6 +327,17 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	var topologyOpts []topology.Option
 
 	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
+
+	// ServerAPIOptions need to be handled early as other client and server options below reference
+	// c.serverAPI and serverOpts.serverAPI.
+	if opts.ServerAPIOptions != nil {
+		// convert passed in options to driver form for client.
+		c.serverAPI = convertToDriverAPIOptions(opts.ServerAPIOptions)
+
+		serverOpts = append(serverOpts, topology.WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
+			return c.serverAPI
+		}))
+	}
 
 	// ClusterClock
 	c.clock = new(session.ClusterClock)
@@ -372,7 +386,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock)
+		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock).
+			ServerAPI(c.serverAPI)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -404,6 +419,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			Authenticator: authenticator,
 			Compressors:   comps,
 			ClusterClock:  c.clock,
+			ServerAPI:     c.serverAPI,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
@@ -494,6 +510,19 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		connOpts = append(connOpts, topology.WithMonitor(
 			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
 		))
+	}
+	// ServerMonitor
+	if opts.ServerMonitor != nil {
+		c.serverMonitor = opts.ServerMonitor
+		serverOpts = append(
+			serverOpts,
+			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
+		)
+
+		topologyOpts = append(
+			topologyOpts,
+			topology.WithTopologyServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return opts.ServerMonitor }),
+		)
 	}
 	// ReadConcern
 	c.readConcern = readconcern.New()
@@ -640,6 +669,10 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 		}
 		cryptSchemaMap[k] = schema
 	}
+	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders)
+	if err != nil {
+		return fmt.Errorf("error creating KMS providers document: %v", err)
+	}
 
 	// configure options
 	var bypass bool
@@ -652,12 +685,11 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptd.markCommand,
-		KmsProviders:         opts.KmsProviders,
+		KmsProviders:         kmsProviders,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
 	}
 
-	var err error
 	c.crypt, err = driver.NewCrypt(cryptOpts)
 	return err
 }
@@ -668,6 +700,18 @@ func (c *Client) validSession(sess *session.Client) error {
 		return ErrWrongClient
 	}
 	return nil
+}
+
+// convertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
+func convertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
+	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
+	if s.Strict != nil {
+		driverOpts.SetStrict(*s.Strict)
+	}
+	if s.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
+	}
+	return driverOpts
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
@@ -719,7 +763,8 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt)
+		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt).
+		ServerAPI(c.serverAPI)
 
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)

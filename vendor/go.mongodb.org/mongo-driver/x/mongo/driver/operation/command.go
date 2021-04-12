@@ -7,11 +7,11 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -30,6 +30,7 @@ type Command struct {
 	srvr           driver.Server
 	desc           description.Server
 	crypt          *driver.Crypt
+	serverAPI      *driver.ServerAPIOptions
 }
 
 // NewCommand constructs and returns a new Command.
@@ -45,6 +46,7 @@ func (c *Command) ResultCursor(opts driver.CursorOptions) (*driver.BatchCursor, 
 		return nil, err
 	}
 
+	opts.ServerAPI = c.serverAPI
 	return driver.NewBatchCursor(cursorRes, c.session, c.clock, opts)
 }
 
@@ -72,6 +74,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		ReadPreference: c.readPreference,
 		Selector:       c.selector,
 		Crypt:          c.crypt,
+		ServerAPI:      c.serverAPI,
 	}.Execute(ctx, nil)
 }
 
@@ -172,5 +175,15 @@ func (c *Command) Crypt(crypt *driver.Crypt) *Command {
 	}
 
 	c.crypt = crypt
+	return c
+}
+
+// ServerAPI sets the server API version for this operation.
+func (c *Command) ServerAPI(serverAPI *driver.ServerAPIOptions) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.serverAPI = serverAPI
 	return c
 }

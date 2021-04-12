@@ -14,10 +14,10 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -35,6 +35,7 @@ type DropIndexes struct {
 	selector     description.ServerSelector
 	writeConcern *writeconcern.WriteConcern
 	result       DropIndexesResult
+	serverAPI    *driver.ServerAPIOptions
 }
 
 type DropIndexesResult struct {
@@ -94,6 +95,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		Deployment:        di.deployment,
 		Selector:          di.selector,
 		WriteConcern:      di.writeConcern,
+		ServerAPI:         di.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -217,5 +219,15 @@ func (di *DropIndexes) WriteConcern(writeConcern *writeconcern.WriteConcern) *Dr
 	}
 
 	di.writeConcern = writeConcern
+	return di
+}
+
+// ServerAPI sets the server API version for this operation.
+func (di *DropIndexes) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.serverAPI = serverAPI
 	return di
 }

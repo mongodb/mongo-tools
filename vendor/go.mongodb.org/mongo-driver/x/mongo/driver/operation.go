@@ -13,11 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -182,6 +182,9 @@ type Operation struct {
 
 	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
 	Crypt *Crypt
+
+	// ServerAPI specifies options used to configure the API version sent to the server.
+	ServerAPI *ServerAPIOptions
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -367,7 +370,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		res, err = roundTrip(ctx, conn, wm)
 		if ep, ok := srvr.(ErrorProcessor); ok {
-			ep.ProcessError(err, conn)
+			_ = ep.ProcessError(err, conn)
 		}
 
 		finishedInfo.response = res
@@ -556,7 +559,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
 			return true
 		}
-		if desc.SupportsRetryWrites() &&
+		if retryWritesSupported(desc) &&
 			desc.WireVersion != nil && desc.WireVersion.Max >= 6 &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
 			writeconcern.AckWrite(op.WriteConcern) {
@@ -764,6 +767,12 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
+	// Add server API information before calling addSession() because it will modify
+	// transaction state.
+	if op.Client == nil || !op.Client.TransactionInProgress() {
+		dst = op.addServerAPI(dst)
+	}
+
 	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
@@ -823,6 +832,12 @@ func (op Operation) createMsgWireMessage(ctx context.Context, dst []byte, desc d
 	dst, err = op.addWriteConcern(dst, desc)
 	if err != nil {
 		return dst, info, err
+	}
+
+	// Add server API information before calling addSession() because it will modify
+	// transaction state.
+	if op.Client == nil || !op.Client.TransactionInProgress() {
+		dst = op.addServerAPI(dst)
 	}
 
 	dst, err = op.addSession(dst, desc)
@@ -899,6 +914,23 @@ func (op Operation) addCommandFields(ctx context.Context, dst []byte, desc descr
 	return dst, nil
 }
 
+// addServerAPI adds the relevant fields for server API specification to the wire message in dst.
+func (op Operation) addServerAPI(dst []byte) []byte {
+	sa := op.ServerAPI
+	if sa == nil {
+		return dst
+	}
+
+	dst = bsoncore.AppendStringElement(dst, "apiVersion", sa.ServerAPIVersion)
+	if sa.Strict != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "apiStrict", *sa.Strict)
+	}
+	if sa.DeprecationErrors != nil {
+		dst = bsoncore.AppendBooleanElement(dst, "apiDeprecationErrors", *sa.DeprecationErrors)
+	}
+	return dst
+}
+
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumReadConcernWireVersion)) {
 		return dst, nil
@@ -924,7 +956,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, err
 	}
 
-	if description.SessionsSupported(desc.WireVersion) && client != nil && client.Consistent && client.OperationTime != nil {
+	if sessionsSupported(desc.WireVersion) && client != nil && client.Consistent && client.OperationTime != nil {
 		data = data[:len(data)-1] // remove the null byte
 		data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
 		data, _ = bsoncore.AppendDocumentEnd(data, 0)
@@ -958,7 +990,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
-	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
+	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
 		return dst, nil
 	}
 	if err := client.UpdateUseTime(); err != nil {
@@ -988,7 +1020,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
 	client, clock := op.Client, op.Clock
-	if (clock == nil && client == nil) || !description.SessionsSupported(desc.WireVersion) {
+	if (clock == nil && client == nil) || !sessionsSupported(desc.WireVersion) {
 		return dst
 	}
 	clusterTime := clock.GetClusterTime()
@@ -1403,4 +1435,14 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)
+}
+
+// sessionsSupported returns true of the given server version indicates that it supports sessions.
+func sessionsSupported(wireVersion *description.VersionRange) bool {
+	return wireVersion != nil && wireVersion.Max >= 6
+}
+
+// retryWritesSupported returns true if this description represents a server that supports retryable writes.
+func retryWritesSupported(s description.Server) bool {
+	return s.SessionTimeoutMinutes != 0 && s.Kind != description.Standalone
 }

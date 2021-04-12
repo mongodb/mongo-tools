@@ -11,54 +11,53 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 )
 
-// UnsetRTT is the unset value for a round trip time.
-const UnsetRTT = -1 * time.Millisecond
-
-// SelectedServer represents a selected server that is a member of a topology.
+// SelectedServer augments the Server type by also including the TopologyKind of the topology that includes the server.
+// This type should be used to track the state of a server that was selected to perform an operation.
 type SelectedServer struct {
 	Server
 	Kind TopologyKind
 }
 
-// Server represents a description of a server. This is created from an isMaster
-// command.
+// Server contains information about a node in a cluster. This is created from isMaster command responses.
 type Server struct {
 	Addr address.Address
 
-	AverageRTT              time.Duration
-	AverageRTTSet           bool
-	Compression             []string // compression methods returned by server
-	CanonicalAddr           address.Address
-	ElectionID              primitive.ObjectID
-	HeartbeatInterval       time.Duration
-	LastError               error
-	LastUpdateTime          time.Time
-	LastWriteTime           time.Time
-	MaxBatchCount           uint32
-	MaxDocumentSize         uint32
-	MaxMessageSize          uint32
-	Members                 []address.Address
-	ReadOnly                bool
-	SessionTimeoutMinutes   uint32
-	SetName                 string
-	SetVersion              uint32
-	SpeculativeAuthenticate bsoncore.Document
-	Tags                    tag.Set
-	TopologyVersion         *TopologyVersion
-	Kind                    ServerKind
-	WireVersion             *VersionRange
-
-	SaslSupportedMechs []string // user-specific from server handshake
+	Arbiters              []string
+	AverageRTT            time.Duration
+	AverageRTTSet         bool
+	Compression           []string // compression methods returned by server
+	CanonicalAddr         address.Address
+	ElectionID            primitive.ObjectID
+	HeartbeatInterval     time.Duration
+	Hosts                 []string
+	LastError             error
+	LastUpdateTime        time.Time
+	LastWriteTime         time.Time
+	MaxBatchCount         uint32
+	MaxDocumentSize       uint32
+	MaxMessageSize        uint32
+	Members               []address.Address
+	Passives              []string
+	Primary               address.Address
+	ReadOnly              bool
+	SessionTimeoutMinutes uint32
+	SetName               string
+	SetVersion            uint32
+	Tags                  tag.Set
+	TopologyVersion       *TopologyVersion
+	Kind                  ServerKind
+	WireVersion           *VersionRange
 }
 
-// NewServer creates a new server description from the given parameters.
-func NewServer(addr address.Address, response bsoncore.Document) Server {
+// NewServer creates a new server description from the given isMaster command response.
+func NewServer(addr address.Address, response bson.Raw) Server {
 	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
 	if err != nil {
@@ -69,12 +68,11 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 	var isReplicaSet, isMaster, hidden, secondary, arbiterOnly bool
 	var msg string
 	var version VersionRange
-	var hosts, passives, arbiters []string
 	for _, element := range elements {
 		switch element.Key() {
 		case "arbiters":
 			var err error
-			arbiters, err = decodeStringSlice(element, "arbiters")
+			desc.Arbiters, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -87,7 +85,7 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 			}
 		case "compression":
 			var err error
-			desc.Compression, err = decodeStringSlice(element, "compression")
+			desc.Compression, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -106,7 +104,7 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 			}
 		case "hosts":
 			var err error
-			hosts, err = decodeStringSlice(element, "hosts")
+			desc.Hosts, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -203,22 +201,22 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 			}
 		case "passives":
 			var err error
-			passives, err = decodeStringSlice(element, "passives")
+			desc.Passives, err = internal.StringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
 			}
+		case "primary":
+			primary, ok := element.Value().StringValueOK()
+			if !ok {
+				desc.LastError = fmt.Errorf("expected 'primary' to be a string but it's a BSON %s", element.Value().Type)
+				return desc
+			}
+			desc.Primary = address.Address(primary)
 		case "readOnly":
 			desc.ReadOnly, ok = element.Value().BooleanOK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'readOnly' to be a boolean but it's a BSON %s", element.Value().Type)
-				return desc
-			}
-		case "saslSupportedMechs":
-			var err error
-			desc.SaslSupportedMechs, err = decodeStringSlice(element, "saslSupportedMechs")
-			if err != nil {
-				desc.LastError = err
 				return desc
 			}
 		case "secondary":
@@ -240,13 +238,6 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 				return desc
 			}
 			desc.SetVersion = uint32(i64)
-		case "speculativeAuthenticate":
-			desc.SpeculativeAuthenticate, ok = element.Value().DocumentOK()
-			if !ok {
-				desc.LastError = fmt.Errorf("expected 'speculativeAuthenticate' to be a document but it's a BSON %s",
-					element.Value().Type)
-				return desc
-			}
 		case "tags":
 			m, err := decodeStringMap(element, "tags")
 			if err != nil {
@@ -269,15 +260,15 @@ func NewServer(addr address.Address, response bsoncore.Document) Server {
 		}
 	}
 
-	for _, host := range hosts {
+	for _, host := range desc.Hosts {
 		desc.Members = append(desc.Members, address.Address(host).Canonicalize())
 	}
 
-	for _, passive := range passives {
+	for _, passive := range desc.Passives {
 		desc.Members = append(desc.Members, address.Address(passive).Canonicalize())
 	}
 
-	for _, arbiter := range arbiters {
+	for _, arbiter := range desc.Arbiters {
 		desc.Members = append(desc.Members, address.Address(arbiter).Canonicalize())
 	}
 
@@ -324,12 +315,7 @@ func NewServerFromError(addr address.Address, err error, tv *TopologyVersion) Se
 // SetAverageRTT sets the average round trip time for this server description.
 func (s Server) SetAverageRTT(rtt time.Duration) Server {
 	s.AverageRTT = rtt
-	if rtt == UnsetRTT {
-		s.AverageRTTSet = false
-	} else {
-		s.AverageRTTSet = true
-	}
-
+	s.AverageRTTSet = true
 	return s
 }
 
@@ -341,37 +327,23 @@ func (s Server) DataBearing() bool {
 		s.Kind == Standalone
 }
 
-// SelectServer selects this server if it is in the list of given candidates.
-func (s Server) SelectServer(_ Topology, candidates []Server) ([]Server, error) {
-	for _, candidate := range candidates {
-		if candidate.Addr == s.Addr {
-			return []Server{candidate}, nil
-		}
+// String implements the Stringer interface
+func (s Server) String() string {
+	str := fmt.Sprintf("Addr: %s, Type: %s",
+		s.Addr, s.Kind)
+	if len(s.Tags) != 0 {
+		str += fmt.Sprintf(", Tag sets: %s", s.Tags)
 	}
-	return nil, nil
+
+	str += fmt.Sprintf(", Average RTT: %d", s.AverageRTT)
+
+	if s.LastError != nil {
+		str += fmt.Sprintf(", Last error: %s", s.LastError)
+	}
+	return str
 }
 
-func decodeStringSlice(element bsoncore.Element, name string) ([]string, error) {
-	arr, ok := element.Value().ArrayOK()
-	if !ok {
-		return nil, fmt.Errorf("expected '%s' to be an array but it's a BSON %s", name, element.Value().Type)
-	}
-	vals, err := arr.Values()
-	if err != nil {
-		return nil, err
-	}
-	var strs []string
-	for _, val := range vals {
-		str, ok := val.StringValueOK()
-		if !ok {
-			return nil, fmt.Errorf("expected '%s' to be an array of strings, but found a BSON %s", name, val.Type)
-		}
-		strs = append(strs, str)
-	}
-	return strs, nil
-}
-
-func decodeStringMap(element bsoncore.Element, name string) (map[string]string, error) {
+func decodeStringMap(element bson.RawElement, name string) (map[string]string, error) {
 	doc, ok := element.Value().DocumentOK()
 	if !ok {
 		return nil, fmt.Errorf("expected '%s' to be a document but it's a BSON %s", name, element.Value().Type)
@@ -392,7 +364,82 @@ func decodeStringMap(element bsoncore.Element, name string) (map[string]string, 
 	return m, nil
 }
 
-// SupportsRetryWrites returns true if this description represents a server that supports retryable writes.
-func (s Server) SupportsRetryWrites() bool {
-	return s.SessionTimeoutMinutes != 0 && s.Kind != Standalone
+// Equal compares two server descriptions and returns true if they are equal
+func (s Server) Equal(other Server) bool {
+	if s.CanonicalAddr.String() != other.CanonicalAddr.String() {
+		return false
+	}
+
+	if !sliceStringEqual(s.Arbiters, other.Arbiters) {
+		return false
+	}
+
+	if !sliceStringEqual(s.Hosts, other.Hosts) {
+		return false
+	}
+
+	if !sliceStringEqual(s.Passives, other.Passives) {
+		return false
+	}
+
+	if s.Primary != other.Primary {
+		return false
+	}
+
+	if s.SetName != other.SetName {
+		return false
+	}
+
+	if s.Kind != other.Kind {
+		return false
+	}
+
+	if s.LastError != nil || other.LastError != nil {
+		if s.LastError == nil || other.LastError == nil {
+			return false
+		}
+		if s.LastError.Error() != other.LastError.Error() {
+			return false
+		}
+	}
+
+	if !s.WireVersion.Equals(other.WireVersion) {
+		return false
+	}
+
+	if len(s.Tags) != len(other.Tags) || !s.Tags.ContainsAll(other.Tags) {
+		return false
+	}
+
+	if s.SetVersion != other.SetVersion {
+		return false
+	}
+
+	if s.ElectionID != other.ElectionID {
+		return false
+	}
+
+	if s.SessionTimeoutMinutes != other.SessionTimeoutMinutes {
+		return false
+	}
+
+	// If TopologyVersion is nil for both servers, CompareToIncoming will return -1 because it assumes that the
+	// incoming response is newer. We want the descriptions to be considered equal in this case, though, so an
+	// explicit check is required.
+	if s.TopologyVersion == nil && other.TopologyVersion == nil {
+		return true
+	}
+	return s.TopologyVersion.CompareToIncoming(other.TopologyVersion) == 0
+}
+
+func sliceStringEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
