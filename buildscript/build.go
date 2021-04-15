@@ -97,7 +97,7 @@ func TestFuzz(ctx *task.Context) error {
 
 	out := io.MultiWriter(ctx, outFile)
 	env := append([]string{}, os.Environ()...)
-	env := append(env, "PATH=./bin:$PATH")
+	env = append(env, "PATH=./bin:$PATH")
 
 	for _, fuzzFile := range fuzzFiles {
 		if fuzzFile.Name() == ".gitignore" {
