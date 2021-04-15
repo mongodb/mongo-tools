@@ -825,7 +825,7 @@ functions:
           mkdir -p bin
 
   "fetch jstestfuzz" :
-   - command: shell.exec
+    - command: shell.exec
       params:
         script: |
           set -x
