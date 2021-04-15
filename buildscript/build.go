@@ -96,6 +96,8 @@ func TestFuzz(ctx *task.Context) error {
 	}
 
 	out := io.MultiWriter(ctx, outFile)
+	env := append([]string{}, os.Environ()...)
+	env := append(env, "PATH=./bin:$PATH")
 
 	for _, fuzzFile := range fuzzFiles {
 		if fuzzFile.Name() == ".gitignore" {
@@ -104,6 +106,7 @@ func TestFuzz(ctx *task.Context) error {
 		cmd = exec.CommandContext(ctx, "mongo", "--port=33333", fmt.Sprintf("out/%s", fuzzFile.Name()))
 		cmd.Stdout = out
 		cmd.Stderr = out
+		cmd.Env = env
 
 		err = sh.RunCmd(ctx, cmd)
 		if err != nil {
