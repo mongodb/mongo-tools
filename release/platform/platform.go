@@ -98,6 +98,10 @@ func GetByVariant(variant string) (Platform, bool) {
 	if platformsByVariant == nil {
 		platformsByVariant = make(map[string]Platform)
 		for _, p := range platforms {
+			if p.Name == "amazon" {
+				// Could clean this up
+				platformsByVariant["fuzz-tests"] = p
+			}
 			platformsByVariant[p.Variant()] = p
 		}
 	}
