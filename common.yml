@@ -827,6 +827,7 @@ functions:
   "fetch jstestfuzz" :
     - command: shell.exec
       params:
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -x
           set -v
