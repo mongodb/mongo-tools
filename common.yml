@@ -1727,6 +1727,8 @@ buildvariants:
   display_name: 'Fuzz Tests'
   run_on:
   - amazon1-2018-test
+  expansions:
+    mongo_target: "amazon"
   tasks:
   - name: fuzz-tests
 
