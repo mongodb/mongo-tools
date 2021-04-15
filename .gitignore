@@ -27,3 +27,4 @@ vendor/pkg
 
 tags
 node_modules
+jstestfuzz

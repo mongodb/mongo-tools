@@ -24,6 +24,7 @@ func init() {
 	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").Do(buildscript.TestKerberos)
 	taskRegistry.Declare("test:srv").Description("runs all srv tests").Do(buildscript.TestSRV)
 	taskRegistry.Declare("test:awsauth").Description("runs all aws auth tests").Do(buildscript.TestAWSAuth)
+	taskRegistry.Declare("test:fuzz").Description("runs js fuzz tests").OptionalArgs("n").Do(buildscript.TestFuzz)
 }
 
 func main() {

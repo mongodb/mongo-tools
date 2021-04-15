@@ -8,6 +8,7 @@ package failpoint
 
 // Supported failpoint names
 const (
-	PauseBeforeDumping = "PauseBeforeDumping"
-	SlowBSONDump       = "SlowBSONDump"
+	PauseBeforeDumping        = "PauseBeforeDumping"
+	SlowBSONDump              = "SlowBSONDump"
+	WaitForSIGUSR1BeforeOplog = "WaitForSIGUSR1BeforeOplog"
 )
