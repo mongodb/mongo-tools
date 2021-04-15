@@ -835,7 +835,7 @@ functions:
           git clone git@github.com:tfogo/jstestfuzz.git
           cd jstestfuzz
           git checkout dumprestore
-          npm ci
+          npm i
 
   "fetch ftdc" :
   - command: shell.exec
