@@ -105,11 +105,21 @@ func TestFuzz(ctx *task.Context) error {
 	env = append(env, fmt.Sprintf("PATH=%s/bin:$PATH", dir))
 	fmt.Printf("ENV: %#v", env)
 
+	bins, err := ioutil.ReadDir(fmt.Sprintf("%s/bin", dir))
+	if err != nil {
+		return fmt.Errorf("Could not read bin directory: %v", err)
+	}
+
+	fmt.Printf("bins:\n")
+	for _, bin := range bins {
+		fmt.Printf("%s\n", bin.Name())
+	}
+
 	for _, fuzzFile := range fuzzFiles {
 		if fuzzFile.Name() == ".gitignore" {
 			continue
 		}
-		cmd = exec.CommandContext(ctx, "mongo", "--port=33333", fmt.Sprintf("out/%s", fuzzFile.Name()))
+		cmd = exec.CommandContext(ctx, "PATH=../bin:$PATH mongo", "--port=33333", fmt.Sprintf("out/%s", fuzzFile.Name()))
 		cmd.Stdout = out
 		cmd.Stderr = out
 		cmd.Env = env
