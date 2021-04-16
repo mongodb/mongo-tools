@@ -102,7 +102,9 @@ func TestFuzz(ctx *task.Context) error {
 
 	out := io.MultiWriter(ctx, outFile)
 	env := append([]string{}, os.Environ()...)
-	env = append(env, fmt.Sprintf("PATH=%s/bin:$PATH", dir))
+	pathEnv := os.Getenv("PATH")
+
+	env = append(env, fmt.Sprintf("%s:%s", dir, pathEnv))
 	fmt.Printf("ENV: %#v", env)
 
 	bins, err := ioutil.ReadDir(fmt.Sprintf("%s/bin", dir))
@@ -119,7 +121,7 @@ func TestFuzz(ctx *task.Context) error {
 		if fuzzFile.Name() == ".gitignore" {
 			continue
 		}
-		cmd = exec.CommandContext(ctx, "PATH=../bin:$PATH mongo", "--port=33333", fmt.Sprintf("out/%s", fuzzFile.Name()))
+		cmd = exec.CommandContext(ctx, "mongo", "--port=33333", fmt.Sprintf("out/%s", fuzzFile.Name()))
 		cmd.Stdout = out
 		cmd.Stderr = out
 		cmd.Env = env
