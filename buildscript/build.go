@@ -66,7 +66,12 @@ func TestAWSAuth(ctx *task.Context) error {
 }
 
 func TestFuzz(ctx *task.Context) error {
-	_, err := os.Stat("jstestfuzz")
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat("jstestfuzz")
 	if err == os.ErrNotExist {
 		return fmt.Errorf("Could not find jstestfuzz, please clone jstestfuzz into the root of this repo")
 	} else if err != nil {
@@ -97,7 +102,8 @@ func TestFuzz(ctx *task.Context) error {
 
 	out := io.MultiWriter(ctx, outFile)
 	env := append([]string{}, os.Environ()...)
-	env = append(env, "PATH=../bin:$PATH")
+	env = append(env, fmt.Sprintf("PATH=%s/bin:$PATH", dir))
+	fmt.Printf("ENV: %#v", env)
 
 	for _, fuzzFile := range fuzzFiles {
 		if fuzzFile.Name() == ".gitignore" {
