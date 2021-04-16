@@ -1730,6 +1730,8 @@ buildvariants:
   run_on:
   - amazon1-2018-test
   expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
     mongo_os: "amazon"
     mongo_edition: "targeted"
   tasks:
