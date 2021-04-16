@@ -104,7 +104,7 @@ func TestFuzz(ctx *task.Context) error {
 	env := append([]string{}, os.Environ()...)
 	pathEnv := os.Getenv("PATH")
 
-	env = append(env, fmt.Sprintf("%s/bin:%s", dir, pathEnv))
+	env = append(env, fmt.Sprintf("PATH=%s/bin:%s", dir, pathEnv))
 	fmt.Printf("ENV: %#v", env)
 
 	for _, fuzzFile := range fuzzFiles {
