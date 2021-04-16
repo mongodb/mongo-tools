@@ -101,8 +101,12 @@ func TestFuzz(ctx *task.Context) error {
 	}
 
 	out := io.MultiWriter(ctx, outFile)
-	env := append([]string{}, os.Environ()...)
 	pathEnv := os.Getenv("PATH")
+	err = os.Setenv("PATH", fmt.Sprintf("PATH=%s/bin:%s", dir, pathEnv))
+	if err != nil {
+		return fmt.Errorf("setenv: %v", err)
+	}
+	env := append([]string{}, os.Environ()...)
 
 	env = append(env, fmt.Sprintf("PATH=%s/bin:%s", dir, pathEnv))
 	fmt.Printf("ENV: %#v", env)
