@@ -1726,10 +1726,10 @@ buildvariants:
 - name: fuzz-tests
   display_name: 'Fuzz Tests'
   run_on:
-  - ubuntu1804-test
+  - amazon1-2018-test
   expansions:
-    mongo_os: "ubuntu1804"
-    mongo_edition: "enterprise"
+    mongo_os: "amazon"
+    mongo_edition: "targeted"
   tasks:
   - name: fuzz-tests
 
