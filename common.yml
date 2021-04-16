@@ -1161,6 +1161,8 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
     - func: "run make target"
       vars:
         target: build

@@ -108,9 +108,6 @@ func TestFuzz(ctx *task.Context) error {
 	}
 	env := append([]string{}, os.Environ()...)
 
-	//env = append(env, fmt.Sprintf("PATH=%s/bin:%s", dir, pathEnv))
-	fmt.Printf("ENV: %#v", env)
-
 	for _, fuzzFile := range fuzzFiles {
 		if fuzzFile.Name() == ".gitignore" {
 			continue
