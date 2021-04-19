@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
@@ -44,6 +45,29 @@ func SAModTidy(ctx *task.Context) error {
 		_ = ioutil.WriteFile("go.mod", origGoMod, 0600)
 		_ = ioutil.WriteFile("go.sum", origGoSum, 0600)
 		return errors.New("go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes")
+	}
+
+	return nil
+}
+
+// SAEvergreenValidate runs `evergreen validate` on common.yml and ensures the file is valid.
+func SAEvergreenValidate(ctx *task.Context) error {
+	output, err := sh.RunOutput(ctx, "evergreen", "validate", "--file", "common.yml")
+	if err != nil {
+		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
+	}
+
+	// TODO: change this if-block in TOOLS-2840.
+	// This check ignores any YAML warnings related to duplicate keys in YAML maps.
+	// See ticket for more details.
+	if strings.HasSuffix(output, "is valid with warnings") {
+		for _, line := range strings.Split(output, "\n") {
+			if !(strings.HasSuffix(line, "unmarshal errors:") ||
+				strings.HasSuffix(line, "already set in map") ||
+				strings.HasSuffix(line, "is valid with warnings")) {
+				return fmt.Errorf("error from `evergreen validate`: %s", output)
+			}
+		}
 	}
 
 	return nil

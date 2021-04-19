@@ -7,9 +7,9 @@ command_type: system
 # run the same task in the previous revision if the current task fails
 stepback: true
 
-mongo_tools_variables:
+variables:
 
-## List of tests to run on each buildvariant
+  # List of tests to run on each buildvariant
   mongo_tools_task_lists:
     mac_task_list: &macos_tasks
       - name: dist
@@ -279,7 +279,7 @@ mongo_tools_variables:
       - name: native-cert-ssl-current
 
 
-## Common mongodb arguments
+  # Common mongodb arguments
   mongod_arguments:
     default: &mongod_default_startup_args
       mongod_args: ""
@@ -343,6 +343,7 @@ functions:
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
         ${_set_shell_env}
+        PATH=$PATH:$HOME
         go run build.go -v ${target}
 
   "download mongod":
@@ -1441,6 +1442,13 @@ tasks:
       vars:
         target: sa:modtidy
 
+- name: evergreen-validate
+  commands:
+    - func: "fetch source"
+    - func: "run make target"
+      vars:
+        target: sa:evgvalidate
+
 - name: format-go
   commands:
     - func: "fetch source"
@@ -1675,6 +1683,7 @@ buildvariants:
   - name: lint-go
   - name: lint-js
   - name: mod-tidy
+  - name: evergreen-validate
   - name: vet
 
 #######################################
