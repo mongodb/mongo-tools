@@ -1950,7 +1950,7 @@ buildvariants:
 - name: ubuntu1604-arm64
   display_name: ZAP ARM64 Ubuntu 16.04
   run_on:
-  - ubuntu1604-arm64-small
+  - ubuntu1604-arm64
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -1972,7 +1972,7 @@ buildvariants:
 - name: ubuntu1804-arm64
   display_name: ZAP ARM64 Ubuntu 18.04
   run_on:
-  - ubuntu1804-arm64-test
+  - ubuntu1804-arm64
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -1994,7 +1994,7 @@ buildvariants:
 - name: ubuntu2004-arm64
   display_name: ZAP ARM64 Ubuntu 20.04
   run_on:
-    - ubuntu2004-arm64-small
+    - ubuntu2004-arm64
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2031,7 +2031,7 @@ buildvariants:
 - name: rhel71-ppc64le
   display_name: ZAP PPC64LE RHEL 7.1
   run_on:
-  - rhel71-power8-test
+  - rhel71-power8
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2050,7 +2050,7 @@ buildvariants:
 - name: rhel81-ppc64le
   display_name: ZAP PPC64LE RHEL 8.1
   run_on:
-  - rhel81-power8-small
+  - rhel81-power8
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2070,7 +2070,7 @@ buildvariants:
 - name: ubuntu1604-ppc64le
   display_name: ZAP PPC64LE Ubuntu 16.04
   run_on:
-  - ubuntu1604-power8-test
+  - ubuntu1604-power8
   stepback: false
   batchtime: 10080 # weekly
   tasks:
@@ -2084,7 +2084,7 @@ buildvariants:
 - name: ubuntu1804-ppc64le
   display_name: ZAP PPC64LE Ubuntu 18.04
   run_on:
-  - ubuntu1804-power8-test
+  - ubuntu1804-power8
   stepback: false
   batchtime: 10080 # weekly
   tasks:
@@ -2101,7 +2101,7 @@ buildvariants:
 - name: rhel67-s390x
   display_name: ZAP s390x RHEL 6.7
   run_on:
-  - rhel67-zseries-test
+  - rhel67-zseries
   stepback: false
   batchtime: 10080 # weekly
   expansions:
@@ -2120,7 +2120,7 @@ buildvariants:
 - name: rhel72-s390x
   display_name: ZAP s390x RHEL 7.2
   run_on:
-  - rhel72-zseries-test
+  - rhel72-zseries
   stepback: false
   batchtime: 10080 # weekly
   tasks:
@@ -2133,7 +2133,7 @@ buildvariants:
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
   run_on:
-    - suse12-zseries-test
+    - suse12-zseries
   stepback: false
   batchtime: 10080 # weekly
   tasks:
@@ -2146,7 +2146,7 @@ buildvariants:
 - name: ubuntu1604-s390x
   display_name: ZAP s390x Ubuntu 16.04
   run_on:
-  - ubuntu1604-zseries-small
+  - ubuntu1604-zseries
   stepback: false
   batchtime: 10080 # weekly
   tasks:
@@ -2159,7 +2159,7 @@ buildvariants:
 - name: ubuntu1804-s390x
   display_name: ZAP s390x Ubuntu 18.04
   run_on:
-  - ubuntu1804-zseries-test
+  - ubuntu1804-zseries
   stepback: false
   batchtime: 10080 # weekly
   tasks:
