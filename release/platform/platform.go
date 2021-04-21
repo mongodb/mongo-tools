@@ -367,4 +367,12 @@ var platforms = []Platform{
 		Repos:     []string{RepoOrg, RepoEnterprise},
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
+	{
+		Name:      "rhel-82",
+		Arch:      "arm64",
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
 }
