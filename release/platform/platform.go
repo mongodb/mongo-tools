@@ -19,10 +19,10 @@ const (
 	RepoOrg        = "org"
 	RepoEnterprise = "enterprise"
 
-	ArchArm64 = "arm64"
-	ArchS390x = "s390x"
+	ArchArm64   = "arm64"
+	ArchS390x   = "s390x"
 	ArchPpc64le = "ppc64le"
-	ArchX86_64 = "x86_64"
+	ArchX86_64  = "x86_64"
 )
 
 // Platform represents a platform (a combination of OS, distro,
@@ -128,7 +128,6 @@ func (p Platform) DebianArch() string {
 		return p.Arch
 	}
 }
-
 
 func (p Platform) RPMArch() string {
 	if p.Pkg != PkgRPM {
