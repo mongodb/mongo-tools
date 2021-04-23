@@ -18,6 +18,11 @@ const (
 
 	RepoOrg        = "org"
 	RepoEnterprise = "enterprise"
+
+	ArchArm64 = "arm64"
+	ArchS390x = "s390x"
+	ArchPpc64le = "ppc64le"
+	ArchX86_64 = "x86_64"
 )
 
 // Platform represents a platform (a combination of OS, distro,
@@ -35,7 +40,7 @@ type Platform struct {
 }
 
 func (p Platform) Variant() string {
-	if p.Arch == "x86_64" {
+	if p.Arch == ArchX86_64 {
 		return p.Name
 	}
 	return fmt.Sprintf("%s-%s", p.Name, p.Arch)
@@ -114,11 +119,25 @@ func (p Platform) DebianArch() string {
 		panic("called DebianArch on non-debian platform")
 	}
 	switch p.Arch {
-	case "x86_64":
+	case ArchX86_64:
 		return "amd64"
-	case "ppc64le":
+	case ArchPpc64le:
 		return "ppc64el"
 	// other archs are the same name on Debian.
+	default:
+		return p.Arch
+	}
+}
+
+
+func (p Platform) RPMArch() string {
+	if p.Pkg != PkgRPM {
+		panic("called RPMArch on non-rpm platform")
+	}
+	switch p.Arch {
+	case ArchArm64:
+		return "aarch64"
+	// other archs are the same name on RPM.
 	default:
 		return p.Arch
 	}
@@ -140,7 +159,7 @@ var platformsByVariant map[string]Platform
 var platforms = []Platform{
 	{
 		Name:      "amazon",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -148,7 +167,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "amazon2",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -156,7 +175,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "debian81",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -164,7 +183,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "debian92",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -172,7 +191,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "debian10",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -180,13 +199,13 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "macos",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSMac,
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
 		Name:      "rhel62",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -194,7 +213,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel70",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -202,7 +221,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel80",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -210,7 +229,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "suse12",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -218,7 +237,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "suse15",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -226,7 +245,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1404",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -234,7 +253,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1604",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -242,7 +261,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1804",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -250,7 +269,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu2004",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -258,14 +277,14 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "windows",
-		Arch:      "x86_64",
+		Arch:      ArchX86_64,
 		OS:        OSWindows,
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 		BinaryExt: ".exe",
 	},
 	{
 		Name:      "ubuntu1604",
-		Arch:      "arm64",
+		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -273,7 +292,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1804",
-		Arch:      "arm64",
+		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -281,7 +300,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu2004",
-		Arch:      "arm64",
+		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -289,7 +308,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "amazon2",
-		Arch:      "arm64",
+		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -297,7 +316,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel71",
-		Arch:      "ppc64le",
+		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
@@ -305,7 +324,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel81",
-		Arch:      "ppc64le",
+		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
@@ -313,7 +332,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1604",
-		Arch:      "ppc64le",
+		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -321,7 +340,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1804",
-		Arch:      "ppc64le",
+		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -329,7 +348,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel67",
-		Arch:      "s390x",
+		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -337,7 +356,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel72",
-		Arch:      "s390x",
+		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -345,7 +364,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "suse12",
-		Arch:      "s390x",
+		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -353,7 +372,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1604",
-		Arch:      "s390x",
+		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -361,7 +380,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1804",
-		Arch:      "s390x",
+		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
@@ -369,7 +388,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel-82",
-		Arch:      "arm64",
+		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},

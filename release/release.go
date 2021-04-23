@@ -214,7 +214,7 @@ func getRPMFileName() string {
 
 	return fmt.Sprintf(
 		"mongodb-database-tools-%s.%s.rpm",
-		vStr, p.Arch,
+		vStr, p.RPMArch(),
 	)
 }
 
