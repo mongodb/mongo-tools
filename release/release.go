@@ -383,7 +383,7 @@ func buildRPM() {
 		check(err, "reading spec file content")
 		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
 		content = strings.Replace(content, "@TOOLS_RELEASE@", rpmRelease, -1)
-		content = strings.Replace(content, "@ARCHITECTURE@", pf.Arch, -1)
+		content = strings.Replace(content, "@ARCHITECTURE@", pf.RPMArch(), -1)
 		_, err = f.WriteString(content)
 		check(err, "write content to spec file")
 	}
