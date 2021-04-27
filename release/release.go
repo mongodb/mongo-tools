@@ -389,7 +389,7 @@ func buildRPM() {
 	}
 	createSpecFile()
 
-	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + pf.Arch + ".rpm"
+	outputFile := mdt + "-" + rpmVersion + "-" + rpmRelease + "." + pf.RPMArch() + ".rpm"
 	outputPath := filepath.Join(home, "rpmbuild", "RPMS", outputFile)
 
 	// ensure that the _topdir macro used by rpmbuild references a writeable location
