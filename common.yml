@@ -111,28 +111,28 @@ mongo_tools_variables:
       - name: integration-auth
       - name: legacy30
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-tests
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-tests-3.2
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-tests-3.4
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-dump-restore-archiving
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-dump-restore-archiving-3.2
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-dump-restore-gzip
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-dump-restore-gzip-3.2
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: unit
     windows_64_ssl_task_list: &windows_64_ssl_tasks
       - name: dist
@@ -150,10 +150,10 @@ mongo_tools_variables:
       - name: kerberos
       - name: legacy30
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: qa-tests
         distros:
-        - windows-64-vs2013-test
+        - windows-64-vs2019-small
       - name: unit
       - name: native-cert-ssl
     rhel71_enterprise_task_list: &rhel71_enterprise_tasks
@@ -1816,7 +1816,7 @@ buildvariants:
 - name: windows-64
   display_name: Windows 64-bit
   run_on:
-  - windows-64-vs2013-test
+  - windows-64-vs2019-small
   expansions:
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
@@ -1833,7 +1833,7 @@ buildvariants:
 - name: windows-64-ssl
   display_name: Windows 64-bit SSL
   run_on:
-  - windows-64-vs2013-compile
+  - windows-64-vs2019-small
   expansions:
     <<: *mongod_ssl_startup_args_windows
     <<: *mongo_ssl_startup_args
@@ -1855,7 +1855,7 @@ buildvariants:
 - name: windows-64-enterprise
   display_name: Windows 64-bit Enterprise
   run_on:
-  - windows-64-vs2013-compile
+  - windows-64-vs2019-small
   expansions:
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
