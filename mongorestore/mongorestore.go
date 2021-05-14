@@ -575,6 +575,11 @@ func (restore *MongoRestore) Restore() Result {
 		restore.manager.Finalize(intents.Legacy)
 	}
 
+	err = restore.preFlightChecks()
+	if err != nil {
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
 	result := restore.RestoreIntents()
 	if result.Err != nil {
 		return result
@@ -609,6 +614,10 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	return result
+}
+
+func (restore *MongoRestore) preFlightChecks() error {
+	return nil
 }
 
 func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {

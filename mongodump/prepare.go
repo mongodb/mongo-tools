@@ -299,6 +299,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		DB:      dbName,
 		C:       ci.Name,
 		Options: ci.Options,
+		Type:    ci.Type,
 	}
 
 	// Populate the intent with the collection UUID or the empty string
@@ -318,16 +319,18 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			} else {
 				intent.Location = fmt.Sprintf("archive '%v'", dump.OutputOptions.Archive)
 			}
-		} else if dump.OutputOptions.ViewsAsCollections || !ci.IsView() {
+			// Dump:
+			// ViewsAsCollections = true && isView
+		} else if ci.IsTimeseries() {
+			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a timeseries collection", dbName, ci.Name)
+		} else if ci.IsView() && !dump.OutputOptions.ViewsAsCollections {
+			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
+		} else {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 			intent.Location = path
-		} else {
-			// otherwise, it's a view and the options specify not dumping a view
-			// so don't dump it.
-			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && ci.IsView() {
@@ -350,7 +353,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	// skips this if it is a view, as it may be incredibly slow if the
 	// view is based on a slow query.
 
-	if ci.IsView() {
+	if ci.IsView() || ci.IsTimeseries() {
 		return intent, nil
 	}
 
@@ -372,6 +375,8 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	// we must ensure folders for empty databases are still created, for legacy purposes
 
+	collections := make(map[string]*db.CollectionInfo)
+
 	session, err := dump.SessionProvider.GetSession()
 	if err != nil {
 		return err
@@ -389,26 +394,51 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		if err != nil {
 			return fmt.Errorf("error decoding collection info: %v", err)
 		}
-		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
-			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
+		collections[collInfo.Name] = collInfo
+	}
+	if colsIter.Err() != nil {
+		return colsIter.Err()
+	}
+
+	for collectionName, collInfo := range collections {
+
+		if shouldSkipSystemNamespace(dbName, collectionName) {
+			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collectionName)
 			continue
 		}
-		if dump.shouldSkipCollection(collInfo.Name) {
-			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)
+
+		if dump.shouldSkipCollection(collectionName) {
+			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collectionName)
 			continue
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && !collInfo.IsView() {
-			log.Logvf(log.DebugLow, "skipping dump of %v.%v because it is not a view", dbName, collInfo.Name)
+			log.Logvf(log.DebugLow, "skipping dump of %v.%v because it is not a view", dbName, collectionName)
 			continue
 		}
+
+		if collInfo.IsTimeseries() {
+			bucketName := "system.buckets." + collectionName
+			bucketCollInfo, ok := collections[bucketName]
+			if !ok {
+				return fmt.Errorf("could not create intent for %s. Could not find corresponding system collection: %s", collectionName, bucketName)
+			}
+			intent, err := dump.NewIntentFromOptions(dbName, bucketCollInfo)
+			if err != nil {
+				return err
+			}
+			dump.manager.Put(intent)
+		}
+
 		intent, err := dump.NewIntentFromOptions(dbName, collInfo)
 		if err != nil {
 			return err
 		}
+
 		dump.manager.Put(intent)
 	}
-	return colsIter.Err()
+
+	return nil
 }
 
 // CreateAllIntents iterates through all dbs and collections and builds

@@ -446,11 +446,16 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					skip = true
 				}
 
-				if !restore.includer.Has(sourceNS) {
+				checkSourceNS := sourceNS
+				if strings.HasPrefix(collection, "system.buckets.") {
+					checkSourceNS = db + "." + strings.TrimPrefix(collection, "system.buckets.")
+				}
+
+				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)
 					skip = true
 				}
-				if restore.excluder.Has(sourceNS) {
+				if restore.excluder.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is excluded", db, collection)
 					skip = true
 				}
@@ -498,11 +503,17 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					log.Logvf(log.DebugLow, "skipping restore of system.profile metadata")
 					continue
 				}
-				if !restore.includer.Has(sourceNS) {
+
+				checkSourceNS := sourceNS
+				if strings.HasPrefix(collection, "system.buckets.") {
+					checkSourceNS = db + "." + strings.TrimPrefix(collection, "system.buckets.")
+				}
+
+				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is not included", db, collection)
 					continue
 				}
-				if restore.excluder.Has(sourceNS) {
+				if restore.excluder.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is excluded", db, collection)
 					continue
 				}

@@ -23,6 +23,7 @@ type Metadata struct {
 	Indexes        []bson.D `bson:"indexes"`
 	UUID           string   `bson:"uuid,omitempty"`
 	CollectionName string   `bson:"collectionName"`
+	Type           string   `bson:"type,omitempty"`
 }
 
 // IndexDocumentFromDB is used internally to preserve key ordering.
@@ -53,6 +54,10 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	// bson or metadata file name, in which case the collection name can be found here.
 	meta.CollectionName = intent.C
 
+	if intent.Type != "" {
+		meta.Type = intent.Type
+	}
+
 	// Second, we read the collection's index information by either calling
 	// listIndexes (pre-2.7 systems) or querying system.indexes.
 	// We keep a running list of all the indexes
@@ -67,6 +72,8 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 
 	if dump.OutputOptions.ViewsAsCollections || intent.IsView() {
 		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a view", intent.Namespace())
+	} else if intent.IsTimeseries() {
+		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a timeseries collection", intent.Namespace())
 	} else {
 		// get the indexes
 		indexesIter, err := db.GetIndexes(session.Database(intent.DB).Collection(intent.C))
