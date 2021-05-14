@@ -67,10 +67,18 @@ type Intent struct {
 	// File/collection size, for some prioritizer implementations.
 	// Units don't matter as long as they are consistent for a given use case.
 	Size int64
+
+	Type string
+
+	Child bool
 }
 
 func (it *Intent) Namespace() string {
 	return it.DB + "." + it.C
+}
+
+func (it *Intent) IsTimeseries() bool {
+	return it.Type == "timeseries"
 }
 
 func (it *Intent) IsOplog() bool {
@@ -124,11 +132,7 @@ func (it *Intent) IsSpecialCollection() bool {
 }
 
 func (it *Intent) IsView() bool {
-	if it.Options == nil {
-		return false
-	}
-	_, isView := it.Options["viewOn"]
-	return isView
+	return it.Type == "view"
 }
 
 func (it *Intent) MergeIntent(newIt *Intent) {

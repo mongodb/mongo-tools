@@ -297,7 +297,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 
 	if restore.OutputOptions.Drop {
 		if collectionExists {
-			if strings.HasPrefix(intent.C, "system.") {
+			if strings.HasPrefix(intent.C, "system.") && !strings.HasPrefix(intent.C, "system.buckets.") {
 				log.Logvf(log.Always, "cannot drop system collection %v, skipping", intent.Namespace())
 			} else {
 				log.Logvf(log.Always, "dropping collection %v before restoring", intent.Namespace())
@@ -310,6 +310,11 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		} else {
 			log.Logvf(log.DebugLow, "collection %v doesn't exist, skipping drop command", intent.Namespace())
 		}
+	}
+
+	if strings.HasPrefix(intent.C, "system.buckets.") && !intent.Child {
+		log.Logvf(log.Always, "skipping %s for now since it's not a child...", intent.Namespace())
+		return Result{}
 	}
 
 	logMessageSuffix := "using options from metadata"
@@ -349,7 +354,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		options = nil
 	}
 
-	if !collectionExists {
+	if !collectionExists && !strings.HasPrefix(intent.C, "system.buckets.") {
 		log.Logvf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
 		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
@@ -359,6 +364,17 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		restore.addToKnownCollections(intent)
 	} else {
 		log.Logvf(log.Info, "collection %v already exists - skipping collection create", intent.Namespace())
+	}
+
+	if intent.IsTimeseries() {
+		log.Logvf(log.Info, "collection %v is timeseries, finding system.buckets...", intent.Namespace())
+		bucketIntent := restore.manager.IntentForNamespace(intent.DB + ".system.buckets." + intent.C)
+		if bucketIntent == nil {
+			log.Logvf(log.Info, "could not find system.buckets for %v...", intent.Namespace())
+		}
+		bucketIntent.Child = true
+		res := restore.RestoreIntent(bucketIntent)
+		return res
 	}
 
 	var result Result

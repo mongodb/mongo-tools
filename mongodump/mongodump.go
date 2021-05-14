@@ -524,14 +524,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	intendedDB := session.Database(intent.DB)
 	coll := intendedDB.Collection(intent.C)
 	// it is safer to assume that a collection is a view, if we cannot determine that it is not.
-	isView := true
+	isViewOrTimeseries := true
 	// failure to get CollectionInfo should not cause the function to exit. We only use this to
 	// determine if a collection is a view.
 	collInfo, err := db.GetCollectionInfo(coll)
 	if err != nil {
 		return err
 	} else if collInfo != nil {
-		isView = collInfo.IsView()
+		isViewOrTimeseries = collInfo.IsView() || collInfo.IsTimeseries()
 	}
 	// The storage engine cannot change from namespace to namespace,
 	// so we set it the first time we reach here, using a namespace we
@@ -540,7 +540,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// scan for correctness.
 	// We cannot determine the storage engine, if this collection is a view,
 	// so we skip attempting to deduce the storage engine.
-	if dump.storageEngine == storageEngineUnknown && !isView {
+	if dump.storageEngine == storageEngineUnknown && !isViewOrTimeseries {
 		if err != nil {
 			return err
 		}
@@ -564,7 +564,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// we only want to hint _id when the storage engine is MMAPV1 and this isn't a view, a
 	// special collection, the oplog, and the user is not asking to force table scans.
 	case dump.storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
-		!isView && !intent.IsSpecialCollection() && !intent.IsOplog():
+		!isViewOrTimeseries && !intent.IsSpecialCollection() && !intent.IsOplog():
 		autoIndexId, found := intent.Options["autoIndexId"]
 		if !found || autoIndexId == true {
 			findQuery.Hint = bson.D{{"_id", 1}}
@@ -643,6 +643,10 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 	}()
 	// don't dump any data for views being dumped as views
 	if intent.IsView() && !dump.OutputOptions.ViewsAsCollections {
+		return 0, nil
+	}
+
+	if intent.IsTimeseries() {
 		return 0, nil
 	}
 
