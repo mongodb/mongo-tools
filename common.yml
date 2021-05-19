@@ -207,33 +207,6 @@ variables:
         run_on: amazon1-2018-test
       - name: push
         run_on: rhel70-small
-    rhel67_s390x_task_list: &rhel67_s390x_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-3.6
-      - name: integration-3.6-mmapv1
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      # Disabled due to TOOLS-2119
-      # - name: kerberos
-      - name: qa-dump-restore-with-archiving-current
-      - name: qa-dump-restore-with-gzip-current
-      - name: qa-tests-3.4
-      - name: qa-tests-3.6
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: native-cert-ssl-current
     ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
       - name: dist
       - name: sign
@@ -2109,68 +2082,10 @@ buildvariants:
 #     Z (s390x) Buildvariants         #
 #######################################
 
-- name: rhel67-s390x
-  display_name: ZAP s390x RHEL 6.7
-  run_on:
-  - rhel67-zseries
-  stepback: false
-  batchtime: 10080 # weekly
-  expansions:
-    <<: *mongod_default_startup_args
-    <<: *mongo_default_startup_args
-    mongo_os: "rhel67"
-    mongo_edition: "enterprise"
-    mongo_arch: "s390x"
-    resmoke_use_ssl: _ssl
-    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    resmoke_args: -j 2
-    edition: enterprise
-    run_kinit: true
-  tasks: *rhel67_s390x_tasks
-
 - name: rhel72-s390x
   display_name: ZAP s390x RHEL 7.2
   run_on:
   - rhel72-zseries
-  stepback: false
-  batchtime: 10080 # weekly
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
-
-- name: suse12-s390x
-  display_name: ZAP s390x SUSE 12
-  run_on:
-    - suse12-zseries
-  stepback: false
-  batchtime: 10080 # weekly
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
-
-- name: ubuntu1604-s390x
-  display_name: ZAP s390x Ubuntu 16.04
-  run_on:
-  - ubuntu1604-zseries
-  stepback: false
-  batchtime: 10080 # weekly
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
-
-- name: ubuntu1804-s390x
-  display_name: ZAP s390x Ubuntu 18.04
-  run_on:
-  - ubuntu1804-zseries
   stepback: false
   batchtime: 10080 # weekly
   tasks:
