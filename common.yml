@@ -1061,7 +1061,7 @@ timeout:
 
 tasks:
 - name: dist
-  tags: ["git_tag"]
+  tags: ["git_tag", "dist_sign_push"]
   depends_on:
   commands:
     - func: "fetch source"
@@ -1076,7 +1076,7 @@ tasks:
 # amazon1-2018-test for this purpose. The notary client is not
 # available on all distros, which is why sign must be a separate task.
 - name: sign
-  tags: ["git_tag"]
+  tags: ["git_tag", "dist_sign_push"]
   depends_on:
     - name: dist
   commands:
@@ -1088,7 +1088,7 @@ tasks:
     - func: "upload signed release artifacts"
 
 - name: push
-  tags: ["git_tag"]
+  tags: ["git_tag", "dist_sign_push"]
   depends_on:
     - name: sign
   commands:
@@ -1114,6 +1114,7 @@ tasks:
     - func: "generate full JSON feed"
 
 - name: integration-3.4
+  tags: ["3.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1130,6 +1131,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-3.4-mmapv1
+  tags: ["3.4", "mmap"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1148,6 +1150,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-3.6
+  tags: ["3.6"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1164,6 +1167,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-3.6-mmapv1
+  tags: ["3.6", "mmap"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1182,6 +1186,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.0
+  tags: ["4.0"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1198,6 +1203,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.0-auth
+  tags: ["4.0", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1220,6 +1226,7 @@ tasks:
         target: test:integration test:srv -ssl=true -auth=true
 
 - name: integration-4.0-cluster
+  tags: ["4.0", "cluster"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1237,6 +1244,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.0-mmapv1
+  tags: ["4.0", "mmap"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1255,6 +1263,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.2
+  tags: ["4.2"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1271,6 +1280,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.2-auth
+  tags: ["4.2", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1293,6 +1303,7 @@ tasks:
         target: test:integration test:srv -ssl=true -auth=true
 
 - name: integration-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1313,6 +1324,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.4-auth
+  tags: ["4.4", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1341,6 +1353,7 @@ tasks:
         target: test:integration test:srv -ssl=true -auth=true
 
 - name: integration-4.4-cluster
+  tags: ["4.4", "cluster"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1358,6 +1371,7 @@ tasks:
         target: test:integration test:srv -ssl=true -topology=replSet
 
 - name: aws-auth
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1394,6 +1408,7 @@ tasks:
         target: test:kerberos
 
 - name: legacy42
+  tags: ["4.2"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1464,6 +1479,7 @@ tasks:
 
 
 - name: qa-tests-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1480,6 +1496,7 @@ tasks:
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
+  tags: ["4.2"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1528,6 +1545,7 @@ tasks:
         excludes: "requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.4
+  tags: ["3.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1544,6 +1562,7 @@ tasks:
         excludes: "requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.2
+  tags: ["3.2"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1560,6 +1579,7 @@ tasks:
         excludes: "requires_min_mongo_34,requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: native-cert-ssl-current
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1584,6 +1604,7 @@ tasks:
           python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
 - name: qa-dump-restore-with-archiving-current
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1600,6 +1621,7 @@ tasks:
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-dump-restore-with-gzip-current
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1681,10 +1703,8 @@ buildvariants:
   run_on:
   - amazon1-2018-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
+  - name: ".3.6 .4.0 .4.2 .4.4"
+  - name: ".dist_sign_push"
     run_on: rhel70-small
 
 - name: amazon2
@@ -1692,10 +1712,8 @@ buildvariants:
   run_on:
   - amazon2-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
+  - name: ".3.4 .3.6 .4.0 .4.2"
+  - name: ".dist_sign_push"
     run_on: rhel70-small
 
 #######################################
@@ -1707,10 +1725,8 @@ buildvariants:
   run_on:
   - debian81-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
+  - name: ".3.4 .3.6"
+  - name: ".dist_sign_push"
     run_on: rhel70-small
 
 - name: debian92
@@ -1718,10 +1734,8 @@ buildvariants:
   run_on:
   - debian92-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
+  - name: ".3.6 .4.0 .4.2 .4.4"
+  - name: ".dist_sign_push"
     run_on: rhel70-small
 
 - name: debian10
@@ -1729,17 +1743,15 @@ buildvariants:
   run_on:
     - debian10-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
+  - name: ".4.2 .4.4"
+  - name: ".dist_sign_push"
     run_on: rhel70-small
 
 #######################################
 #           macOS Buildvariant        #
 #######################################
 
-- name: macos
+- name: macos-1014
   display_name: MacOS 10.14
   run_on:
   - macos-1014
@@ -1756,7 +1768,28 @@ buildvariants:
     smoke_use_tls: --use-tls
     resmoke_use_tls: _tls
     USE_SSL: "true"
-  tasks: *macos_tasks
+  tasks: 
+  - name: ".4.0 .4.2 .4.4"
+
+- name: macos-1012
+  display_name: MacOS 10.12
+  run_on:
+  - macos-1012
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "osx"
+    mongo_target: "osx-ssl"
+    excludes: requires_many_files
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    USE_SSL: "true"
+  tasks: 
+  - name: ".3.4 .3.6 .4.0 .4.2"
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -1780,29 +1813,22 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-  tasks: *rhel_x86_64_tasks
+  tasks: 
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: rhel70
   display_name: RHEL 7.0
   run_on:
   - rhel70-small
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: rhel80
   display_name: RHEL 8.0
   run_on:
   - rhel80-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".3.6 .4.0 .4.2 .4.4"
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1813,22 +1839,14 @@ buildvariants:
   run_on:
   - suse12-sp5-small
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: suse15
   display_name: SUSE 15
   run_on:
     - suse15sp2-small
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".4.2 .4.4"
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1839,11 +1857,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".3.4 .3.6"
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1863,29 +1877,22 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-  tasks: *ubuntu_x86_64_tasks
+  tasks:
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: ubuntu1804
   display_name: Ubuntu 18.04
   run_on:
   - ubuntu1804-test
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".3.6 .4.0 .4.2 .4.4"
 
 - name: ubuntu2004
   display_name: Ubuntu 20.04
   run_on:
   - ubuntu2004-small
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".4.4"
 
 #######################################
 #        Windows Buildvariants        #
@@ -1913,13 +1920,13 @@ buildvariants:
     extension: .exe
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     USE_SSL: "true"
-  tasks: *windows_64_tasks
+  tasks:
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 #######################################
 #        ARM Buildvariants            #
 #######################################
 
-# MongoDB 3.4 - 4.0
 - name: ubuntu1604-arm64
   display_name: ZAP ARM64 Ubuntu 16.04
   run_on:
@@ -1939,9 +1946,9 @@ buildvariants:
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
-  tasks: *ubuntu1604_arm64_tasks
+  tasks:
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
-# MongoDB 4.2+
 - name: ubuntu1804-arm64
   display_name: ZAP ARM64 Ubuntu 18.04
   run_on:
@@ -1961,7 +1968,8 @@ buildvariants:
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
-  tasks: *ubuntu1804_arm64_tasks
+  tasks: 
+  - name: ".4.2 .4.4"
 
 # MongoDB 4.4+
 - name: ubuntu2004-arm64
@@ -1983,29 +1991,22 @@ buildvariants:
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
-  tasks: *ubuntu2004_arm64_tasks
+  tasks: 
+  - name: ".4.4"
 
 - name: amazon2-arm64
   display_name: Amazon Linux ARM v2
   run_on:
   - amazon2-arm64-small
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".4.2 .4.4"
 
 - name: rhel82-arm64
   display_name: RHEL 8.2 ARM
   run_on:
     - rhel82-arm64
   tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-    - name: push
-      run_on: rhel70-small
+  - name: ".4.4"
 
 
 #######################################
@@ -2029,7 +2030,8 @@ buildvariants:
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     edition: enterprise
     run_kinit: true
-  tasks: *rhel71_ppc64le_tasks
+  tasks: 
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: rhel81-ppc64le
   display_name: ZAP PPC64LE RHEL 8.1
@@ -2048,21 +2050,8 @@ buildvariants:
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     edition: enterprise
     run_kinit: true
-  tasks: *rhel81_ppc64le_tasks
-
-# MongoDB 3.4 - 4.0
-- name: ubuntu1604-ppc64le
-  display_name: ZAP PPC64LE Ubuntu 16.04
-  run_on:
-  - ubuntu1604-power8
-  stepback: false
-  batchtime: 10080 # weekly
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  tasks: 
+  - name: ".4.2 .4.4"
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le
@@ -2072,17 +2061,38 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: ".4.2 .4.4"
 
 #######################################
 #     Z (s390x) Buildvariants         #
 #######################################
 
-# Create variant for RHEL 8 when supported by Evergreen.
+- name: rhel72-s390x
+  display_name: ZAP s390x RHEL 7.2
+  run_on:
+  - rhel72-zseries
+  stepback: false
+  batchtime: 10080 # weekly
+  tasks:
+  - name: ".4.4"
+
+- name: suse12-s390x
+  display_name: ZAP s390x SUSE 12
+  run_on:
+    - suse12-zseries
+  stepback: false
+  batchtime: 10080 # weekly
+  tasks:
+  - name: ".4.4"
+
+- name: ubuntu1804-s390x
+  display_name: ZAP s390x Ubuntu 18.04
+  run_on:
+  - ubuntu1804-zseries
+  stepback: false
+  batchtime: 10080 # weekly
+  tasks:
+  - name: ".4.4"
 
 #######################################
 #     Experimental Buildvariants      #
