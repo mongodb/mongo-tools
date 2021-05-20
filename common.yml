@@ -1114,7 +1114,7 @@ tasks:
     - func: "generate full JSON feed"
 
 - name: integration-3.4
-  tags: ["34"]
+  tags: ["3.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1714,7 +1714,7 @@ buildvariants:
   run_on:
   - amazon2-test
   tasks:
-  - name: ".34 .3.6 .4.0 .4.2"
+  - name: ".3.4 .3.6 .4.0 .4.2"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1727,7 +1727,7 @@ buildvariants:
   run_on:
   - debian81-test
   tasks:
-  - name: ".34 .3.6"
+  - name: ".3.4 .3.6"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1791,7 +1791,7 @@ buildvariants:
     resmoke_use_tls: _tls
     USE_SSL: "true"
   tasks: 
-  - name: ".34 .3.6 .4.0 .4.2"
+  - name: ".3.4 .3.6 .4.0 .4.2"
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -1816,14 +1816,14 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks: 
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: rhel70
   display_name: RHEL 7.0
   run_on:
   - rhel70-small
   tasks:
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: rhel80
   display_name: RHEL 8.0
@@ -1841,7 +1841,7 @@ buildvariants:
   run_on:
   - suse12-sp5-small
   tasks:
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: suse15
   display_name: SUSE 15
@@ -1859,7 +1859,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   tasks:
-  - name: ".34 .3.6"
+  - name: ".3.4 .3.6"
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1880,7 +1880,7 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: ubuntu1804
   display_name: Ubuntu 18.04
@@ -1923,7 +1923,7 @@ buildvariants:
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     USE_SSL: "true"
   tasks:
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 #######################################
 #        ARM Buildvariants            #
@@ -1949,7 +1949,7 @@ buildvariants:
     edition: ssl
     USE_SSL: "true"
   tasks:
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: ubuntu1804-arm64
   display_name: ZAP ARM64 Ubuntu 18.04
@@ -2033,7 +2033,7 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks: 
-  - name: ".34 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
 
 - name: rhel81-ppc64le
   display_name: ZAP PPC64LE RHEL 8.1
