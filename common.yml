@@ -1704,25 +1704,59 @@ buildvariants:
   display_name: Amazon Linux 64
   run_on:
   - amazon1-2018-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "amazon"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
-  - name: ".dist_sign_push"
-    run_on: rhel70-small
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: amazon2
   display_name: Amazon Linux 64 v2
   run_on:
   - amazon2-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "amazon2"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.4"
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
-  - name: ".dist_sign_push"
-    run_on: rhel70-small
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1732,33 +1766,84 @@ buildvariants:
   display_name: Debian 8.1
   run_on:
   - debian81-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "debian81"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.4"
   - name: ".3.6"
-  - name: ".dist_sign_push"
-    run_on: rhel70-small
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: debian92
   display_name: Debian 9.2
   run_on:
   - debian92-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "debian92"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
-  - name: ".dist_sign_push"
-    run_on: rhel70-small
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: debian10
   display_name: Debian 10
   run_on:
     - debian10-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "debian10"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".4.2"
   - name: ".4.4"
-  - name: ".dist_sign_push"
-    run_on: rhel70-small
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #           macOS Buildvariant        #
@@ -1785,6 +1870,11 @@ buildvariants:
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: macos-1014-codesign
+  - name: "push"
+    run_on: rhel70-small
 
 - name: macos-1012
   display_name: MacOS 10.12
@@ -1808,6 +1898,11 @@ buildvariants:
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
+  - name: "dist"
+  - name: "sign"
+    run_on: macos-1014-codesign
+  - name: "push"
+    run_on: rhel70-small
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -1837,27 +1932,70 @@ buildvariants:
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel70
   display_name: RHEL 7.0
   run_on:
   - rhel70-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "rhel70"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.4"
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel80
   display_name: RHEL 8.0
   run_on:
   - rhel80-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "rhel80"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1867,20 +2005,58 @@ buildvariants:
   display_name: SUSE 12
   run_on:
   - suse12-sp5-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "suse12"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.4"
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: suse15
   display_name: SUSE 15
   run_on:
     - suse15sp2-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "suse15"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1890,9 +2066,28 @@ buildvariants:
   display_name: Ubuntu 14.04
   run_on:
   - ubuntu1404-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu1404"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.4"
   - name: ".3.6"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1918,23 +2113,66 @@ buildvariants:
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu1804
   display_name: Ubuntu 18.04
   run_on:
   - ubuntu1804-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu1804"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu2004
   display_name: Ubuntu 20.04
   run_on:
   - ubuntu2004-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu2004"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #        Windows Buildvariants        #
@@ -1968,6 +2206,11 @@ buildvariants:
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #        ARM Buildvariants            #
@@ -1998,6 +2241,11 @@ buildvariants:
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu1804-arm64
   display_name: ZAP ARM64 Ubuntu 18.04
@@ -2021,6 +2269,11 @@ buildvariants:
   tasks: 
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 # MongoDB 4.4+
 - name: ubuntu2004-arm64
@@ -2044,21 +2297,66 @@ buildvariants:
     USE_SSL: "true"
   tasks: 
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: amazon2-arm64
   display_name: Amazon Linux ARM v2
   run_on:
   - amazon2-arm64-small
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "amazon2"
+    mongo_edition: "targeted"
+    mongo_arch: "aarch64"
+    resmoke_use_tls: _tls
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: ssl
+    USE_SSL: "true"
   tasks:
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel82-arm64
   display_name: RHEL 8.2 ARM
   run_on:
     - rhel82-arm64
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "rhel82"
+    mongo_edition: "targeted"
+    mongo_arch: "aarch64"
+    resmoke_use_tls: _tls
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: ssl
+    USE_SSL: "true"
   tasks:
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 
 #######################################
@@ -2088,6 +2386,11 @@ buildvariants:
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel81-ppc64le
   display_name: ZAP PPC64LE RHEL 8.1
@@ -2109,6 +2412,11 @@ buildvariants:
   tasks: 
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le
@@ -2117,9 +2425,25 @@ buildvariants:
   - ubuntu1804-power8
   stepback: false
   batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "ubuntu1804"
+    mongo_edition: "enterprise"
+    mongo_arch: "ppc64le"
+    resmoke_use_ssl: _ssl
+    resmoke_args: -j 4
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    edition: enterprise
+    run_kinit: true
   tasks:
   - name: ".4.2"
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     Z (s390x) Buildvariants         #
@@ -2131,8 +2455,24 @@ buildvariants:
   - rhel72-zseries
   stepback: false
   batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "rhel72"
+    mongo_edition: "enterprise"
+    mongo_arch: "s390x"
+    resmoke_use_ssl: _ssl
+    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: enterprise
+    run_kinit: true
   tasks:
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: suse12-s390x
   display_name: ZAP s390x SUSE 12
@@ -2140,8 +2480,24 @@ buildvariants:
     - suse12-zseries
   stepback: false
   batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "suse12"
+    mongo_edition: "enterprise"
+    mongo_arch: "s390x"
+    resmoke_use_ssl: _ssl
+    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: enterprise
+    run_kinit: true
   tasks:
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu1804-s390x
   display_name: ZAP s390x Ubuntu 18.04
@@ -2149,8 +2505,24 @@ buildvariants:
   - ubuntu1804-zseries
   stepback: false
   batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "ubuntu1804"
+    mongo_edition: "enterprise"
+    mongo_arch: "s390x"
+    resmoke_use_ssl: _ssl
+    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: enterprise
+    run_kinit: true
   tasks:
   - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     Experimental Buildvariants      #
