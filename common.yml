@@ -1513,6 +1513,7 @@ tasks:
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.0
+  tags: ["4.0"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1529,6 +1530,7 @@ tasks:
         excludes: "requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.6
+  tags: ["3.6"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
