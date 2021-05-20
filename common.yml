@@ -1114,7 +1114,7 @@ tasks:
     - func: "generate full JSON feed"
 
 - name: integration-3.4
-  tags: ["3.4"]
+  tags: ['3.4']
   commands:
     - func: "fetch source"
     - command: expansions.update
