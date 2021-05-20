@@ -1705,7 +1705,10 @@ buildvariants:
   run_on:
   - amazon1-2018-test
   tasks:
-  - name: ".3.6 .4.0 .4.2 .4.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1714,7 +1717,10 @@ buildvariants:
   run_on:
   - amazon2-test
   tasks:
-  - name: ".3.4 .3.6 .4.0 .4.2"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1727,7 +1733,8 @@ buildvariants:
   run_on:
   - debian81-test
   tasks:
-  - name: ".3.4 .3.6"
+  - name: ".3.4"
+  - name: ".3.6"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1736,7 +1743,10 @@ buildvariants:
   run_on:
   - debian92-test
   tasks:
-  - name: ".3.6 .4.0 .4.2 .4.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1745,7 +1755,8 @@ buildvariants:
   run_on:
     - debian10-test
   tasks:
-  - name: ".4.2 .4.4"
+  - name: ".4.2"
+  - name: ".4.4"
   - name: ".dist_sign_push"
     run_on: rhel70-small
 
@@ -1771,7 +1782,9 @@ buildvariants:
     resmoke_use_tls: _tls
     USE_SSL: "true"
   tasks: 
-  - name: ".4.0 .4.2 .4.4"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: macos-1012
   display_name: MacOS 10.12
@@ -1791,7 +1804,10 @@ buildvariants:
     resmoke_use_tls: _tls
     USE_SSL: "true"
   tasks: 
-  - name: ".3.4 .3.6 .4.0 .4.2"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -1816,21 +1832,32 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks: 
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: rhel70
   display_name: RHEL 7.0
   run_on:
   - rhel70-small
   tasks:
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: rhel80
   display_name: RHEL 8.0
   run_on:
   - rhel80-test
   tasks:
-  - name: ".3.6 .4.0 .4.2 .4.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1841,14 +1868,19 @@ buildvariants:
   run_on:
   - suse12-sp5-small
   tasks:
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: suse15
   display_name: SUSE 15
   run_on:
     - suse15sp2-small
   tasks:
-  - name: ".4.2 .4.4"
+  - name: ".4.2"
+  - name: ".4.4"
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1859,7 +1891,8 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   tasks:
-  - name: ".3.4 .3.6"
+  - name: ".3.4"
+  - name: ".3.6"
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1880,14 +1913,21 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: ubuntu1804
   display_name: Ubuntu 18.04
   run_on:
   - ubuntu1804-test
   tasks:
-  - name: ".3.6 .4.0 .4.2 .4.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: ubuntu2004
   display_name: Ubuntu 20.04
@@ -1923,7 +1963,11 @@ buildvariants:
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     USE_SSL: "true"
   tasks:
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 #######################################
 #        ARM Buildvariants            #
@@ -1949,7 +1993,11 @@ buildvariants:
     edition: ssl
     USE_SSL: "true"
   tasks:
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: ubuntu1804-arm64
   display_name: ZAP ARM64 Ubuntu 18.04
@@ -1971,7 +2019,8 @@ buildvariants:
     edition: ssl
     USE_SSL: "true"
   tasks: 
-  - name: ".4.2 .4.4"
+  - name: ".4.2"
+  - name: ".4.4"
 
 # MongoDB 4.4+
 - name: ubuntu2004-arm64
@@ -2001,7 +2050,8 @@ buildvariants:
   run_on:
   - amazon2-arm64-small
   tasks:
-  - name: ".4.2 .4.4"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: rhel82-arm64
   display_name: RHEL 8.2 ARM
@@ -2033,7 +2083,11 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks: 
-  - name: ".3.4 .3.6 .4.0 .4.2 .4.4"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
 
 - name: rhel81-ppc64le
   display_name: ZAP PPC64LE RHEL 8.1
@@ -2053,7 +2107,8 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks: 
-  - name: ".4.2 .4.4"
+  - name: ".4.2"
+  - name: ".4.4"
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le
@@ -2063,7 +2118,8 @@ buildvariants:
   stepback: false
   batchtime: 10080 # weekly
   tasks:
-  - name: ".4.2 .4.4"
+  - name: ".4.2"
+  - name: ".4.4"
 
 #######################################
 #     Z (s390x) Buildvariants         #
