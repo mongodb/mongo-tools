@@ -2082,18 +2082,7 @@ buildvariants:
 #     Z (s390x) Buildvariants         #
 #######################################
 
-- name: rhel72-s390x
-  display_name: ZAP s390x RHEL 7.2
-  run_on:
-  - rhel72-zseries
-  stepback: false
-  batchtime: 10080 # weekly
-  tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+# Create variant for RHEL 8 when supported by Evergreen.
 
 #######################################
 #     Experimental Buildvariants      #
