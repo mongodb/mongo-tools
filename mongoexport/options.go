@@ -69,6 +69,7 @@ type InputOptions struct {
 	Limit          int64  `long:"limit" value-name:"<count>" description:"limit the number of documents to export"`
 	Sort           string `long:"sort" value-name:"<json>" description:"sort order, as a JSON string, e.g. '{x:1}'"`
 	AssertExists   bool   `long:"assertExists" description:"if specified, export fails if the collection does not exist"`
+	AllowDiskUse   bool   `long:"allowDiskUse" description:"if specified, the server can write temporary data to disk while executing the find operation"`
 }
 
 // Name returns a human-readable group name for input options.

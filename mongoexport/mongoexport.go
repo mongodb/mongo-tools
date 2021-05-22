@@ -308,6 +308,10 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		findOpts.SetSort(sortD)
 	}
 
+	if exp.InputOpts != nil && exp.InputOpts.AllowDiskUse {
+		findOpts.SetAllowDiskUse(true)
+	}
+
 	query := bson.D{}
 	if exp.InputOpts != nil && exp.InputOpts.HasQuery() {
 		var err error
