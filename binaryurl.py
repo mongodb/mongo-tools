@@ -55,7 +55,6 @@ def isCorrectVersion(version):
   desired = opts.version.split(".")
   for i in range(len(desired)):
     if desired[i] and not actual[i] == desired[i]:
-      print "No version match found"
       return False
   return True
 
@@ -73,8 +72,6 @@ def locateUrl(specs, override):
       if override:
         return urls[0].replace(item["version"], override)
       return urls[0]
-    else:
-      print "No urls found"
 
 override = "latest" if opts.version == "latest" else None
 
