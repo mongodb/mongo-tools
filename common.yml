@@ -1627,7 +1627,7 @@ buildvariants:
 #           macOS Buildvariant        #
 #######################################
 
-- name: macos-1014
+- name: macos
   display_name: MacOS 10.14
   run_on:
   - macos-1014
