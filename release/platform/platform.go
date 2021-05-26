@@ -197,7 +197,13 @@ var platforms = []Platform{
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:      "macos",
+		Name:      "macos-1012",
+		Arch:      ArchX86_64,
+		OS:        OSMac,
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
+		Name:      "macos-1014",
 		Arch:      ArchX86_64,
 		OS:        OSMac,
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
