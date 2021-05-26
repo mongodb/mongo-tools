@@ -1849,7 +1849,7 @@ buildvariants:
 #           macOS Buildvariant        #
 #######################################
 
-- name: macos-1014
+- name: macos
   display_name: MacOS 10.14
   run_on:
   - macos-1014
@@ -1866,38 +1866,12 @@ buildvariants:
     smoke_use_tls: --use-tls
     resmoke_use_tls: _tls
     USE_SSL: "true"
-  tasks: 
+  tasks:
+  - name: ".3.4"
+  - name: ".3.6" 
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4"
-  - name: "dist"
-  - name: "sign"
-    run_on: macos-1014-codesign
-  - name: "push"
-    run_on: rhel70-small
-
-- name: macos-1012
-  display_name: MacOS 10.12
-  run_on:
-  - macos-1012
-  expansions:
-    <<: *mongod_ssl_startup_args
-    <<: *mongo_ssl_startup_args
-    <<: *mongod_tls_startup_args
-    <<: *mongo_tls_startup_args
-    mongo_os: "osx"
-    mongo_target: "osx-ssl"
-    excludes: requires_many_files
-    smoke_use_ssl: --use-ssl
-    resmoke_use_ssl: _ssl
-    smoke_use_tls: --use-tls
-    resmoke_use_tls: _tls
-    USE_SSL: "true"
-  tasks: 
-  - name: ".3.4"
-  - name: ".3.6"
-  - name: ".4.0"
-  - name: ".4.2"
   - name: "dist"
   - name: "sign"
     run_on: macos-1014-codesign
