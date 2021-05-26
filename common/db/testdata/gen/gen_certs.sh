@@ -50,7 +50,7 @@ openssl x509 -sha256 -req -days 3650 -in ../mongodb-test-client.csr \
 cat ../mongodb-test-client.crt ../mongodb-test-client.key > ../test-client.pem
 
 # PKCS8
-openssl pkcs8 -v2 des3 -topk8 -passout pass:TOOLS_TESTING_PKCS8_PASSWORD -inform PEM -outform PEM -in ../test-client.pem -out ../test-client-pkcs8-encrypted.key
+openssl pkcs8 -v2 des3 -topk8 -passout pass:passwordIsTacoCat -inform PEM -outform PEM -in ../test-client.pem -out ../test-client-pkcs8-encrypted.key
 cat ../mongodb-test-client.crt ../test-client-pkcs8-encrypted.key > ../test-client-pkcs8-encrypted.pem
 
 openssl pkcs8 -topk8 -nocrypt -inform PEM -outform PEM -in ../test-client.pem -out ../test-client-pkcs8-unencrypted.key
