@@ -1719,6 +1719,7 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
+  - name: ".3.4"
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
@@ -1748,7 +1749,6 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: ".3.4"
   - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
