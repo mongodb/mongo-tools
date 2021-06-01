@@ -2569,4 +2569,11 @@ buildvariants:
     resmoke_use_tls: _tls
     resmoke_use_ssl: _ssl
     USE_SSL: "true"
-  tasks: *ubuntu_x86_64_race_tasks
+  tasks: 
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
