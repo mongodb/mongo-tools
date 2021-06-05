@@ -322,7 +322,9 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			// Dump:
 			// ViewsAsCollections = true && isView
 		} else if ci.IsTimeseries() {
-			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a timeseries collection", dbName, ci.Name)
+			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, "system.buckets."+ci.Name)+".bson")
+			intent.BSONFile = &realBSONFile{path: path, intent: intent}
+			intent.Location = path
 		} else if ci.IsView() && !dump.OutputOptions.ViewsAsCollections {
 			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
 		} else {
@@ -417,18 +419,18 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 			continue
 		}
 
-		if collInfo.IsTimeseries() {
-			bucketName := "system.buckets." + collectionName
-			bucketCollInfo, ok := collections[bucketName]
-			if !ok {
-				return fmt.Errorf("could not create intent for %s. Could not find corresponding system collection: %s", collectionName, bucketName)
-			}
-			intent, err := dump.NewIntentFromOptions(dbName, bucketCollInfo)
-			if err != nil {
-				return err
-			}
-			dump.manager.Put(intent)
-		}
+		// if collInfo.IsTimeseries() {
+		// 	bucketName := "system.buckets." + collectionName
+		// 	bucketCollInfo, ok := collections[bucketName]
+		// 	if !ok {
+		// 		return fmt.Errorf("could not create intent for %s. Could not find corresponding system collection: %s", collectionName, bucketName)
+		// 	}
+		// 	intent, err := dump.NewIntentFromOptions(dbName, bucketCollInfo)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	dump.manager.Put(intent)
+		// }
 
 		intent, err := dump.NewIntentFromOptions(dbName, collInfo)
 		if err != nil {

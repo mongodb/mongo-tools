@@ -522,7 +522,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		return err
 	}
 	intendedDB := session.Database(intent.DB)
-	coll := intendedDB.Collection(intent.C)
+	var coll *mongo.Collection
+	if intent.IsTimeseries() {
+		fmt.Printf("IsTimeseries\n")
+		coll = intendedDB.Collection("system.buckets." + intent.C)
+	} else {
+		coll = intendedDB.Collection(intent.C)
+	}
+
 	// it is safer to assume that a collection is a view, if we cannot determine that it is not.
 	isViewOrTimeseries := true
 	// failure to get CollectionInfo should not cause the function to exit. We only use this to
@@ -646,9 +653,9 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 		return 0, nil
 	}
 
-	if intent.IsTimeseries() {
-		return 0, nil
-	}
+	// if intent.IsTimeseries() {
+	// 	return 0, nil
+	// }
 
 	total, err := dump.getCount(query, intent)
 	if err != nil {
