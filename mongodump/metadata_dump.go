@@ -72,8 +72,6 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 
 	if dump.OutputOptions.ViewsAsCollections || intent.IsView() {
 		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a view", intent.Namespace())
-	} else if intent.IsTimeseries() {
-		log.Logvf(log.DebugLow, "not dumping indexes metadata for '%v' because it is a timeseries collection", intent.Namespace())
 	} else {
 		// get the indexes
 		indexesIter, err := db.GetIndexes(session.Database(intent.DB).Collection(intent.C))

@@ -461,6 +461,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				}
 				destNS := restore.renamer.Get(sourceNS)
 				destDB, destC := util.SplitNamespace(destNS)
+				destC = strings.TrimPrefix(destC, "system.buckets.")
 				intent := &intents.Intent{
 					DB:   destDB,
 					C:    destC,
@@ -497,7 +498,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					intent.BSONFile = &realBSONFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
 				log.Logvf(log.Info, "found collection %v bson to restore to %v", sourceNS, destNS)
-				restore.manager.PutWithNamespace(sourceNS, intent)
+				restore.manager.PutWithNamespace(checkSourceNS, intent)
 			case MetadataFileType:
 				if collection == "system.profile" {
 					log.Logvf(log.DebugLow, "skipping restore of system.profile metadata")
