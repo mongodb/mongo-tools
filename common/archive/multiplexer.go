@@ -91,7 +91,7 @@ func (mux *Multiplexer) Run() {
 				mux.Completed <- fmt.Errorf("non MuxIn received on Control chan") // one for the MuxIn.Open
 				return
 			}
-			log.Logvf(log.DebugLow, "Mux open namespace %v", muxIn.Intent.Namespace())
+			log.Logvf(log.DebugLow, "Mux open namespace %v", muxIn.Intent.DataNamespace())
 			mux.selectCases = append(mux.selectCases, reflect.SelectCase{
 				Dir:  reflect.SelectRecv,
 				Chan: reflect.ValueOf(muxIn.writeChan),
@@ -114,7 +114,7 @@ func (mux *Multiplexer) Run() {
 					mux.Out = &nopCloseNopWriter{}
 					completionErr = err
 				}
-				log.Logvf(log.DebugLow, "Mux close namespace %v", mux.ins[index].Intent.Namespace())
+				log.Logvf(log.DebugLow, "Mux close namespace %v", mux.ins[index].Intent.DataNamespace())
 				mux.currentNamespace = ""
 				mux.selectCases = append(mux.selectCases[:index], mux.selectCases[index+1:]...)
 				mux.ins = append(mux.ins[:index], mux.ins[index+1:]...)
@@ -148,7 +148,7 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 	defer func() {
 		in.writeLenChan <- length
 	}()
-	if in.Intent.Namespace() != mux.currentNamespace {
+	if in.Intent.DataNamespace() != mux.currentNamespace {
 		// Handle the change of which DB/Collection we're writing docs for
 		// If mux.currentNamespace then we need to terminate the current block
 		if mux.currentNamespace != "" {
@@ -162,7 +162,7 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 		}
 		header, err := bson.Marshal(NamespaceHeader{
 			Database:   in.Intent.DB,
-			Collection: in.Intent.C,
+			Collection: in.Intent.DataCollection(),
 		})
 		if err != nil {
 			return err
@@ -175,7 +175,7 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 			return io.ErrShortWrite
 		}
 	}
-	mux.currentNamespace = in.Intent.Namespace()
+	mux.currentNamespace = in.Intent.DataNamespace()
 	length, err = mux.Out.Write(bsonBytes)
 	if err != nil {
 		return err
@@ -197,7 +197,7 @@ func (mux *Multiplexer) formatEOF(index int, in *MuxIn) error {
 	}
 	eofHeader, err := bson.Marshal(NamespaceHeader{
 		Database:   in.Intent.DB,
-		Collection: in.Intent.C,
+		Collection: in.Intent.DataCollection(),
 		EOF:        true,
 		CRC:        int64(in.hash.Sum64()),
 	})
@@ -249,7 +249,7 @@ func (muxIn *MuxIn) Pos() int64 {
 // formatEOF to occur.
 func (muxIn *MuxIn) Close() error {
 	// the mux side of this gets closed in the mux when it gets an eof on the read
-	log.Logvf(log.DebugHigh, "MuxIn close %v", muxIn.Intent.Namespace())
+	log.Logvf(log.DebugHigh, "MuxIn close %v", muxIn.Intent.DataNamespace())
 	if bufferWrites {
 		muxIn.writeChan <- muxIn.buf
 		length := <-muxIn.writeLenChan
@@ -270,7 +270,7 @@ func (muxIn *MuxIn) Close() error {
 // Open is implemented in Mux.open, but in short, it creates chans and a select case
 // and adds the SelectCase and the MuxIn in to the Multiplexer.
 func (muxIn *MuxIn) Open() error {
-	log.Logvf(log.DebugHigh, "MuxIn open %v", muxIn.Intent.Namespace())
+	log.Logvf(log.DebugHigh, "MuxIn open %v", muxIn.Intent.DataNamespace())
 	muxIn.writeChan = make(chan []byte)
 	muxIn.writeLenChan = make(chan int)
 	muxIn.writeCloseFinishedChan = make(chan struct{})

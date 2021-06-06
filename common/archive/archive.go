@@ -25,6 +25,7 @@ type CollectionMetadata struct {
 	Collection string `bson:"collection"`
 	Metadata   string `bson:"metadata"`
 	Size       int    `bson:"size"`
+	Type       string `bson:"type"`
 }
 
 // Header is a data structure that, as BSON, is found immediately after the magic

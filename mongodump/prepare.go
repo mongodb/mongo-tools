@@ -268,7 +268,8 @@ func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 }
 
 // CreateCollectionIntent builds an intent for a given collection and
-// puts it into the intent manager.
+// puts it into the intent manager. It should only be called when a specific
+// collection is specified by --db and --collection.
 func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if dump.shouldSkipCollection(colName) {
 		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, colName)
