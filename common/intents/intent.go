@@ -73,6 +73,17 @@ type Intent struct {
 	Child bool
 }
 
+func (it *Intent) DataNamespace() string {
+	return it.DB + "." + it.DataCollection()
+}
+
+func (it *Intent) DataCollection() string {
+	if it.IsTimeseries() {
+		return "system.buckets." + it.C
+	}
+	return it.C
+}
+
 func (it *Intent) Namespace() string {
 	return it.DB + "." + it.C
 }

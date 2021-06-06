@@ -9,6 +9,7 @@ package mongodump
 
 import (
 	"context"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
@@ -109,6 +110,9 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.Collection != "":
 		return fmt.Errorf("cannot specify a collection when running with dumpDbUsersAndRoles")
+	case strings.HasPrefix(dump.ToolOptions.Namespace.Collection, "system.buckets."):
+		return fmt.Errorf("cannot specify a system.buckets collection in --collection. " +
+			"Specifying the timeseries collection will dump the system.buckets collection")
 	case dump.OutputOptions.Oplog && dump.ToolOptions.Namespace.DB != "":
 		return fmt.Errorf("--oplog mode only supported on full dumps")
 	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.Collection != "":
