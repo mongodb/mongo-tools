@@ -68,9 +68,8 @@ type Intent struct {
 	// Units don't matter as long as they are consistent for a given use case.
 	Size int64
 
+	// Either view or timeseries. Empty string "" is a regular collection.
 	Type string
-
-	Child bool
 }
 
 func (it *Intent) DataNamespace() string {

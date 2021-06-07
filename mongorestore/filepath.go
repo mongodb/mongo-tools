@@ -446,10 +446,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					skip = true
 				}
 
-				checkSourceNS := sourceNS
-				if strings.HasPrefix(collection, "system.buckets.") {
-					checkSourceNS = db + "." + strings.TrimPrefix(collection, "system.buckets.")
-				}
+				checkSourceNS := db + "." + strings.TrimPrefix(collection, "system.buckets.")
 
 				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)
@@ -498,7 +495,6 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					intent.BSONFile = &realBSONFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
 				log.Logvf(log.Info, "found collection %v bson to restore to %v", sourceNS, destNS)
-				log.Logvf(log.DebugLow, "adding intent for %v", checkSourceNS)
 				restore.manager.PutWithNamespace(checkSourceNS, intent)
 			case MetadataFileType:
 				if collection == "system.profile" {
