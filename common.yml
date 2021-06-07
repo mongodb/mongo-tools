@@ -1250,6 +1250,21 @@ tasks:
           /opt/node/bin/npm install eslint@3.2
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
+- name: qa-tests-5.0
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.0"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_tls}"
+        excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.4
   tags: ["4.4"]
