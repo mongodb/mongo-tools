@@ -1257,7 +1257,7 @@ tasks:
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "5.0"
+        mongo_version: "latest"
     - func: "run make target"
       vars:
         target: build
