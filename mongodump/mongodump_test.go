@@ -1494,9 +1494,18 @@ func TestCount(t *testing.T) {
 func TestTimeseriesCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Errorf("could not get session: %v", err)
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
 	colName := "timeseriesColl"
 	dbName := "timeseries_test_DB"
-	err := setUpTimeseries(dbName, colName)
+	err = setUpTimeseries(dbName, colName)
 	if err != nil {
 		t.Errorf("could not setup timeseries collection: %v", err)
 	}
