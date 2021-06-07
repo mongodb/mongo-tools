@@ -12,6 +12,7 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 
@@ -60,9 +61,10 @@ func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader) *Demult
 		In:              in,
 	}
 	for _, cm := range namespaceMetadatas {
-		ns := cm.Database + "." + cm.Collection
-		demux.NamespaceStatus[ns] = NamespaceUnopened
-
+		if cm.Type != "timeseries" {
+			ns := cm.Database + "." + cm.Collection
+			demux.NamespaceStatus[ns] = NamespaceUnopened
+		}
 	}
 	return demux
 }
@@ -191,6 +193,7 @@ func (demux *Demultiplexer) End() error {
 		err = newError(fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss))
 	} else {
 		for ns, status := range demux.NamespaceStatus {
+			fmt.Printf("ns: %s, status: %d\n", ns, status)
 			if status != NamespaceClosed {
 				err = newError(fmt.Sprintf("archive finished before all collections were seen (%v)", ns))
 			}
@@ -215,6 +218,8 @@ func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 
 	out, ok := demux.outs[demux.currentNamespace]
 	if !ok {
+		debug.PrintStack()
+
 		return newError("no demux consumer currently consuming namespace " + demux.currentNamespace)
 	}
 	_, err := out.Write(buf)
@@ -227,7 +232,7 @@ func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 	// or while the demutiplexer is inside of the NamespaceChan NamespaceErrorChan conversation
 	// I think that we don't need to lock outs, but I suspect that if the implementation changes
 	// we may need to lock when outs is accessed
-	log.Logvf(log.DebugHigh, "demux Open")
+	log.Logvf(log.DebugHigh, "demux Open for %s", ns)
 	if demux.outs == nil {
 		demux.outs = make(map[string]DemuxOut)
 		demux.lengths = make(map[string]int64)
