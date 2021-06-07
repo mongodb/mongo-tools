@@ -528,21 +528,20 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	intendedDB := session.Database(intent.DB)
 	var coll *mongo.Collection
 	if intent.IsTimeseries() {
-		fmt.Printf("IsTimeseries\n")
 		coll = intendedDB.Collection("system.buckets." + intent.C)
 	} else {
 		coll = intendedDB.Collection(intent.C)
 	}
 
 	// it is safer to assume that a collection is a view, if we cannot determine that it is not.
-	isViewOrTimeseries := true
+	isView := true
 	// failure to get CollectionInfo should not cause the function to exit. We only use this to
 	// determine if a collection is a view.
 	collInfo, err := db.GetCollectionInfo(coll)
 	if err != nil {
 		return err
 	} else if collInfo != nil {
-		isViewOrTimeseries = collInfo.IsView() || collInfo.IsTimeseries()
+		isView = collInfo.IsView()
 	}
 	// The storage engine cannot change from namespace to namespace,
 	// so we set it the first time we reach here, using a namespace we
@@ -551,7 +550,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// scan for correctness.
 	// We cannot determine the storage engine, if this collection is a view,
 	// so we skip attempting to deduce the storage engine.
-	if dump.storageEngine == storageEngineUnknown && !isViewOrTimeseries {
+	if dump.storageEngine == storageEngineUnknown && !isView {
 		if err != nil {
 			return err
 		}
@@ -575,7 +574,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// we only want to hint _id when the storage engine is MMAPV1 and this isn't a view, a
 	// special collection, the oplog, and the user is not asking to force table scans.
 	case dump.storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
-		!isViewOrTimeseries && !intent.IsSpecialCollection() && !intent.IsOplog():
+		!isView && !intent.IsSpecialCollection() && !intent.IsOplog():
 		autoIndexId, found := intent.Options["autoIndexId"]
 		if !found || autoIndexId == true {
 			findQuery.Hint = bson.D{{"_id", 1}}
@@ -585,7 +584,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	var dumpCount int64
 
 	if dump.OutputOptions.Out == "-" {
-		log.Logvf(log.Always, "writing %v to stdout", intent.Namespace())
+		log.Logvf(log.Always, "writing %v to stdout", intent.DataNamespace())
 		dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer)
 		if err == nil {
 			// on success, print the document count
@@ -594,12 +593,12 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		return err
 	}
 
-	log.Logvf(log.Always, "writing %v to %v", intent.Namespace(), intent.Location)
+	log.Logvf(log.Always, "writing %v to %v", intent.DataNamespace(), intent.Location)
 	if dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer); err != nil {
 		return err
 	}
 
-	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))
+	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.DataNamespace(), dumpCount, docPlural(dumpCount))
 	return nil
 }
 
@@ -656,10 +655,6 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 	if intent.IsView() && !dump.OutputOptions.ViewsAsCollections {
 		return 0, nil
 	}
-
-	// if intent.IsTimeseries() {
-	// 	return 0, nil
-	// }
 
 	total, err := dump.getCount(query, intent)
 	if err != nil {

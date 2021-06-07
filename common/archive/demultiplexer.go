@@ -12,7 +12,6 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 
@@ -193,7 +192,6 @@ func (demux *Demultiplexer) End() error {
 		err = newError(fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss))
 	} else {
 		for ns, status := range demux.NamespaceStatus {
-			fmt.Printf("ns: %s, status: %d\n", ns, status)
 			if status != NamespaceClosed {
 				err = newError(fmt.Sprintf("archive finished before all collections were seen (%v)", ns))
 			}
@@ -218,8 +216,6 @@ func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 
 	out, ok := demux.outs[demux.currentNamespace]
 	if !ok {
-		debug.PrintStack()
-
 		return newError("no demux consumer currently consuming namespace " + demux.currentNamespace)
 	}
 	_, err := out.Write(buf)

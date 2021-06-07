@@ -301,7 +301,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 
 	if restore.OutputOptions.Drop {
 		if collectionExists {
-			if strings.HasPrefix(intent.C, "system.") && !strings.HasPrefix(intent.C, "system.buckets.") {
+			if strings.HasPrefix(intent.C, "system.") {
 				log.Logvf(log.Always, "cannot drop system collection %v, skipping", intent.Namespace())
 			} else {
 				log.Logvf(log.Always, "dropping collection %v before restoring", intent.Namespace())
@@ -315,11 +315,6 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			log.Logvf(log.DebugLow, "collection %v doesn't exist, skipping drop command", intent.Namespace())
 		}
 	}
-
-	// if strings.HasPrefix(intent.C, "system.buckets.") && !intent.Child {
-	// 	log.Logvf(log.Always, "skipping %s for now since it's not a child...", intent.Namespace())
-	// 	return Result{}
-	// }
 
 	logMessageSuffix := "using options from metadata"
 
@@ -358,7 +353,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		options = nil
 	}
 
-	if !collectionExists && !strings.HasPrefix(intent.C, "system.buckets.") {
+	if !collectionExists {
 		log.Logvf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
 		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
@@ -370,23 +365,6 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		log.Logvf(log.Info, "collection %v already exists - skipping collection create", intent.Namespace())
 	}
 
-	// if intent.IsTimeseries() {
-	// 	log.Logvf(log.Info, "collection %v is timeseries, finding system.buckets...", intent.Namespace())
-	// 	bucketIntent := restore.manager.IntentForNamespace(intent.DB + ".system.buckets." + intent.C)
-	// 	if bucketIntent == nil {
-	// 		log.Logvf(log.Info, "could not find system.buckets for %v...", intent.Namespace())
-	// 	}
-	// 	bucketIntent.Child = true
-	// 	res := restore.RestoreIntent(bucketIntent)
-	// 	return res
-	// }
-
-	collName := intent.C
-	if intent.IsTimeseries() {
-		fmt.Printf("IsTimeseries\n")
-		collName = "system.buckets." + collName
-	}
-
 	var result Result
 	if intent.BSONFile != nil {
 		err = intent.BSONFile.Open()
@@ -395,12 +373,12 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 		defer intent.BSONFile.Close()
 
-		log.Logvf(log.Always, "restoring %v from %v", intent.DB+"."+collName, intent.Location)
+		log.Logvf(log.Always, "restoring %v from %v", intent.DataNamespace(), intent.Location)
 
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
 		defer bsonSource.Close()
 
-		result = restore.RestoreCollectionToDB(intent.DB, collName, bsonSource, intent.BSONFile, intent.Size)
+		result = restore.RestoreCollectionToDB(intent.DB, intent.DataCollection(), bsonSource, intent.BSONFile, intent.Size)
 		if result.Err != nil {
 			result.Err = fmt.Errorf("error restoring from %v: %v", intent.Location, result.Err)
 			return result
