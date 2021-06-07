@@ -1355,7 +1355,7 @@ tasks:
           /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
 - name: qa-tests-5.0
-tags: ["5.0"]
+  tags: ["5.0"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
