@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -504,12 +503,9 @@ func (restore *MongoRestore) Restore() Result {
 			ns, ok := <-namespaceChan
 			// the archive can have only special collections. In that case we keep reading until
 			// the namespaces are exhausted, indicated by the namespaceChan being closed.
-			log.Logvf(log.DebugLow, "received %v from namespaceChan", ns)
 			if !ok {
 				break
 			}
-			dbName, collName := util.SplitNamespace(ns)
-			ns = dbName + "." + strings.TrimPrefix(collName, "system.buckets.")
 			intent := restore.manager.IntentForNamespace(ns)
 			if intent == nil {
 				return Result{Err: fmt.Errorf("no intent for collection in archive: %v", ns)}
@@ -579,11 +575,6 @@ func (restore *MongoRestore) Restore() Result {
 		restore.manager.Finalize(intents.Legacy)
 	}
 
-	err = restore.preFlightChecks()
-	if err != nil {
-		return Result{Err: fmt.Errorf("restore error: %v", err)}
-	}
-
 	result := restore.RestoreIntents()
 	if result.Err != nil {
 		return result
@@ -618,10 +609,6 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	return result
-}
-
-func (restore *MongoRestore) preFlightChecks() error {
-	return nil
 }
 
 func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
