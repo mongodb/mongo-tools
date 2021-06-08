@@ -446,16 +446,19 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					skip = true
 				}
 
-				if !restore.includer.Has(sourceNS) {
+				checkSourceNS := db + "." + strings.TrimPrefix(collection, "system.buckets.")
+
+				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)
 					skip = true
 				}
-				if restore.excluder.Has(sourceNS) {
+				if restore.excluder.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is excluded", db, collection)
 					skip = true
 				}
 				destNS := restore.renamer.Get(sourceNS)
 				destDB, destC := util.SplitNamespace(destNS)
+				destC = strings.TrimPrefix(destC, "system.buckets.")
 				intent := &intents.Intent{
 					DB:   destDB,
 					C:    destC,
@@ -492,17 +495,23 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					intent.BSONFile = &realBSONFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
 				log.Logvf(log.Info, "found collection %v bson to restore to %v", sourceNS, destNS)
-				restore.manager.PutWithNamespace(sourceNS, intent)
+				restore.manager.PutWithNamespace(checkSourceNS, intent)
 			case MetadataFileType:
 				if collection == "system.profile" {
 					log.Logvf(log.DebugLow, "skipping restore of system.profile metadata")
 					continue
 				}
-				if !restore.includer.Has(sourceNS) {
+
+				checkSourceNS := sourceNS
+				if strings.HasPrefix(collection, "system.buckets.") {
+					checkSourceNS = db + "." + strings.TrimPrefix(collection, "system.buckets.")
+				}
+
+				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is not included", db, collection)
 					continue
 				}
-				if restore.excluder.Has(sourceNS) {
+				if restore.excluder.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is excluded", db, collection)
 					continue
 				}
@@ -527,6 +536,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					intent.MetadataFile = &realMetadataFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
 				log.Logvf(log.Info, "found collection metadata from %v to restore to %v", sourceNS, destNS)
+				log.Logvf(log.DebugLow, "adding intent for %v", sourceNS)
 				restore.manager.PutWithNamespace(sourceNS, intent)
 			default:
 				log.Logvf(log.Always, `don't know what to do with file "%v", skipping...`,
