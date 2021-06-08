@@ -1594,7 +1594,7 @@ func TestTimeseriesCollections(t *testing.T) {
 			Convey("to a directory", func() {
 
 				Convey("when dumping the whole database", func() {
-					// This is the default test of "to an archive".
+					// This is the default test of "to a directory".
 					// It's meant to be a noop, do not delete.
 				})
 
