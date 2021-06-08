@@ -125,11 +125,13 @@ func TestBySizeAndView(t *testing.T) {
 			{C: "non-view2", Size: 32},
 			{C: "view", Size: 0,
 				Options: bson.M{"viewOn": true},
+				Type:    "view",
 			},
 			{C: "non-view1", Size: 1024},
 			{C: "non-view3", Size: 2},
 			{C: "view", Size: 0,
 				Options: bson.M{"viewOn": true},
+				Type:    "view",
 			},
 		}
 		prioritizer = newLongestTaskFirstPrioritizer(intents)
