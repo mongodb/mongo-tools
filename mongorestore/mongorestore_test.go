@@ -1585,3 +1585,114 @@ func TestCreateIndexes(t *testing.T) {
 		})
 	})
 }
+
+func TestRestoreTimeseriesCollections(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+	dbName := "timeseries_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(dbName)
+
+		// Drop the collection to clean up resources
+		defer testdb.Drop(ctx)
+
+		args := []string{}
+
+		// Convey("restoring a directory should succeed", func() {
+		// 	args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump")
+
+		// })
+
+		Convey("restoring an archive should succeed", func() {
+			args = append(args, ArchiveOption+"=testdata/timeseries_tests/dump.archive")
+		})
+
+		// Convey("restoring an archive from stdin should succeed", func() {
+
+		// })
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Successes, ShouldEqual, 10)
+		So(result.Failures, ShouldEqual, 0)
+
+		count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1000)
+
+		count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 10)
+	})
+
+	Convey("With a test MongoRestore instance", t, func() {
+		Convey("restoring a single system.buckets BSON file (with no metadata) should fail", func() {
+
+		})
+
+		Convey("restoring a timeseries collection that already exists on the destination should fail", func() {
+
+		})
+
+		Convey("restoring a timeseries collection when the system.buckets collection already exists on the destination should fail", func() {
+
+		})
+
+		Convey("restoring a timeseries collection that already exists on the destination with --drop should succeed", func() {
+
+		})
+
+		Convey("restoring a timeseries collection with --noOptionsRestore should fail", func() {
+
+		})
+
+		Convey("restoring a timeseries collection with --bypassDocumentValidation should still do validation on system.buckets", func() {
+
+		})
+
+		Convey("system.buckets should be restored if the timeseries collection is included in --collection", func() {
+
+		})
+
+		Convey("system.buckets should be restored if the timeseries collection is included in --nsInclude", func() {
+
+		})
+
+		Convey("system.buckets should not be restored if the timeseries collection is not included in --nsInclude", func() {
+
+		})
+
+		Convey("system.buckets should not be restored if the timeseries collection is not included in --collection", func() {
+
+		})
+
+		Convey("system.buckets should not be restored if the timeseries collection is excluded by --nsExclude", func() {
+
+		})
+	})
+}
