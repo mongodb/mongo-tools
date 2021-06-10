@@ -8,250 +8,6 @@ command_type: system
 stepback: true
 
 variables:
-
-  # List of tests to run on each buildvariant
-  mongo_tools_task_lists:
-    mac_task_list: &macos_tasks
-      - name: dist
-      - name: sign
-        run_on: macos-1014-codesign
-      - name: push
-        run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
-      - name: integration-3.6
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      - name: qa-tests-3.2
-      - name: qa-tests-3.4
-      - name: qa-tests-3.6
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: qa-dump-restore-with-gzip-current
-      - name: qa-dump-restore-with-archiving-current
-      - name: native-cert-ssl-current
-      - name: unit
-    rhel_x86_64_task_list: &rhel_x86_64_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
-      - name: integration-3.6
-      - name: integration-3.6-mmapv1
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      # Disabled due to TOOLS-2119
-      # - name: kerberos
-      - name: legacy42
-      - name: qa-tests-3.2
-      - name: qa-tests-3.4
-      - name: qa-tests-3.6
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: qa-dump-restore-with-gzip-current
-        run_on: rhel62-large
-      - name: qa-dump-restore-with-archiving-current
-      - name: native-cert-ssl-current
-      - name: unit
-    ubuntu_x86_64_task_list: &ubuntu_x86_64_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
-      - name: integration-3.6
-      - name: integration-3.6-mmapv1
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      - name: kerberos
-      - name: aws-auth
-      - name: qa-tests-3.2
-      - name: qa-tests-3.4
-      - name: qa-tests-3.6
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: qa-dump-restore-with-gzip-current
-        run_on: ubuntu1604-build
-      - name: qa-dump-restore-with-archiving-current
-      - name: native-cert-ssl-current
-      - name: unit
-    ubuntu_x86_64_race_task_list: &ubuntu_x86_64_race_tasks
-      - name: dist
-      - name: integration-3.6
-      - name: integration-3.6-mmapv1
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: unit
-    windows_64_task_list: &windows_64_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      # Disabled: see TOOLS-2662
-      # - name: integration-3.6
-      # - name: integration-3.6-mmapv1
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-        distros:
-        - windows-64-vs2017-test
-      - name: kerberos
-        distros:
-        - windows-64-vs2017-test
-      - name: aws-auth
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-3.2
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-3.4
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-3.6
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-4.0
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-4.2
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-tests-4.4
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-dump-restore-with-archiving-current
-        distros:
-        - windows-64-vs2017-test
-      - name: qa-dump-restore-with-gzip-current
-        distros:
-        - windows-64-vs2017-test
-      - name: unit
-      - name: native-cert-ssl-current
-    rhel71_ppc64le_task_list: &rhel71_ppc64le_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.4-mmapv1
-      - name: integration-3.6
-      - name: integration-3.6-mmapv1
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: integration-4.0-mmapv1
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      #- name: kerberos
-      - name: qa-dump-restore-with-archiving-current
-      - name: qa-dump-restore-with-gzip-current
-      - name: qa-tests-3.4
-      - name: qa-tests-3.6
-      - name: qa-tests-4.0
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: native-cert-ssl-current
-    rhel81_ppc64le_task_list: &rhel81_ppc64le_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-    ubuntu1604_arm64_task_list: &ubuntu1604_arm64_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-3.4
-      - name: integration-3.6
-      - name: integration-4.0
-      - name: integration-4.0-auth
-      - name: integration-4.0-cluster
-      - name: qa-tests-3.4
-      - name: qa-tests-3.6
-      - name: qa-tests-4.0
-    ubuntu1804_arm64_task_list: &ubuntu1804_arm64_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-4.2
-      - name: integration-4.2-auth
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      - name: qa-dump-restore-with-archiving-current
-      - name: qa-dump-restore-with-gzip-current
-      - name: qa-tests-4.2
-      - name: qa-tests-4.4
-      - name: native-cert-ssl-current
-    ubuntu2004_arm64_task_list: &ubuntu2004_arm64_tasks
-      - name: dist
-      - name: sign
-        run_on: amazon1-2018-test
-      - name: push
-        run_on: rhel70-small
-      - name: integration-4.4
-      - name: integration-4.4-auth
-      - name: integration-4.4-cluster
-      - name: qa-dump-restore-with-archiving-current
-      - name: qa-dump-restore-with-gzip-current
-      - name: qa-tests-4.4
-      - name: native-cert-ssl-current
-
-
   # Common mongodb arguments
   mongod_arguments:
     default: &mongod_default_startup_args
@@ -412,7 +168,7 @@ functions:
         if [ "${USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
         elif [ "${AWS_AUTH}" = "true" ]; then
-          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
+          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=SCRAM-SHA-256"
         fi;
         echo "Starting mongod..."
         storage_args=''
@@ -1114,6 +870,7 @@ tasks:
     - func: "generate full JSON feed"
 
 - name: integration-3.4
+  tags: ["3.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1130,6 +887,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-3.4-mmapv1
+  tags: ["3.4", "mmap"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1148,6 +906,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-3.6
+  tags: ["3.6"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1164,6 +923,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-3.6-mmapv1
+  tags: ["3.6", "mmap"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1182,6 +942,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.0
+  tags: ["4.0"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1198,6 +959,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.0-auth
+  tags: ["4.0", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1220,6 +982,7 @@ tasks:
         target: test:integration test:srv -ssl=true -auth=true
 
 - name: integration-4.0-cluster
+  tags: ["4.0", "cluster"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1237,6 +1000,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.0-mmapv1
+  tags: ["4.0", "mmap"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1255,6 +1019,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.2
+  tags: ["4.2"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1271,6 +1036,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.2-auth
+  tags: ["4.2", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1293,6 +1059,7 @@ tasks:
         target: test:integration test:srv -ssl=true -auth=true
 
 - name: integration-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1313,6 +1080,7 @@ tasks:
         target: test:integration test:srv -ssl=true
 
 - name: integration-4.4-auth
+  tags: ["4.4", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1341,6 +1109,7 @@ tasks:
         target: test:integration test:srv -ssl=true -auth=true
 
 - name: integration-4.4-cluster
+  tags: ["4.4", "cluster"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1357,7 +1126,8 @@ tasks:
       vars:
         target: test:integration test:srv -ssl=true -topology=replSet
 
-- name: aws-auth
+- name: aws-auth-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - command: expansions.update
@@ -1377,6 +1147,7 @@ tasks:
         target: test:awsauth
 
 - name: kerberos
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     # Explicitly run ONLY Kerberos tests
@@ -1393,7 +1164,8 @@ tasks:
       vars:
         target: test:kerberos
 
-- name: legacy42
+- name: legacy-jstests-4.2 # The server jstests from the tools removal from server in 4.2
+  tags: ["4.2"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1401,6 +1173,22 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "4.2"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy42"
+
+- name: legacy-jstests-4.4 # The server jstests from the tools removal from server in 4.2
+  tags: ["4.4"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
     - func: "run make target"
       vars:
         target: build
@@ -1464,6 +1252,7 @@ tasks:
 
 
 - name: qa-tests-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1480,6 +1269,7 @@ tasks:
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.2
+  tags: ["4.2"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1496,6 +1286,7 @@ tasks:
         excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.0
+  tags: ["4.0"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1512,6 +1303,7 @@ tasks:
         excludes: "requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.6
+  tags: ["3.6"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1528,6 +1320,7 @@ tasks:
         excludes: "requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.4
+  tags: ["3.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1544,6 +1337,7 @@ tasks:
         excludes: "requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
 - name: qa-tests-3.2
+  tags: ["3.2"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1559,7 +1353,8 @@ tasks:
         resmoke_suite: "core${resmoke_use_ssl}"
         excludes: "requires_min_mongo_34,requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
-- name: native-cert-ssl-current
+- name: native-cert-ssl-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1583,7 +1378,8 @@ tasks:
           chmod 400 jstests/libs/key*
           python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
 
-- name: qa-dump-restore-with-archiving-current
+- name: qa-dump-restore-with-archiving-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1599,7 +1395,8 @@ tasks:
         resmoke_suite: "restore_archive"
         excludes: "requires_unstable,${excludes}"
 
-- name: qa-dump-restore-with-gzip-current
+- name: qa-dump-restore-with-gzip-4.4
+  tags: ["4.4"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
@@ -1680,23 +1477,61 @@ buildvariants:
   display_name: Amazon Linux 64
   run_on:
   - amazon1-2018-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "amazon"
+    mongo_edition: "targeted"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: targeted
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: amazon2
   display_name: Amazon Linux 64 v2
   run_on:
   - amazon2-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "amazon2"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     Debian x86_64 Buildvariants     #
@@ -1706,34 +1541,87 @@ buildvariants:
   display_name: Debian 8.1
   run_on:
   - debian81-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "debian81"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: debian92
   display_name: Debian 9.2
   run_on:
   - debian92-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "debian92"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: debian10
   display_name: Debian 10
   run_on:
     - debian10-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "debian10"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #           macOS Buildvariant        #
@@ -1756,7 +1644,18 @@ buildvariants:
     smoke_use_tls: --use-tls
     resmoke_use_tls: _tls
     USE_SSL: "true"
-  tasks: *macos_tasks
+  tasks:
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6" 
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: macos-1014-codesign
+  - name: "push"
+    run_on: rhel70-small
 
 #######################################
 #     RHEL x86_64 Buildvariants       #
@@ -1780,29 +1679,79 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-  tasks: *rhel_x86_64_tasks
+  tasks:
+  - name: "unit" 
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel70
   display_name: RHEL 7.0
   run_on:
   - rhel70-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "rhel70"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel80
   display_name: RHEL 8.0
   run_on:
   - rhel80-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "rhel80"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     SUSE x86_64 Buildvariants       #
@@ -1812,23 +1761,60 @@ buildvariants:
   display_name: SUSE 12
   run_on:
   - suse12-sp5-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "suse12"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: suse15
   display_name: SUSE 15
   run_on:
     - suse15sp2-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "suse15"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #    Ubuntu x86_64 Buildvariants      #
@@ -1838,12 +1824,29 @@ buildvariants:
   display_name: Ubuntu 14.04
   run_on:
   - ubuntu1404-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu1404"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu1604
   display_name: Ubuntu 16.04
@@ -1863,29 +1866,75 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
-  tasks: *ubuntu_x86_64_tasks
+  tasks:
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu1804
   display_name: Ubuntu 18.04
   run_on:
   - ubuntu1804-test
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu1804"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: ubuntu2004
   display_name: Ubuntu 20.04
   run_on:
   - ubuntu2004-small
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "ubuntu2004"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs $(grep -c ^processor /proc/cpuinfo)
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #        Windows Buildvariants        #
@@ -1913,13 +1962,24 @@ buildvariants:
     extension: .exe
     preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
     USE_SSL: "true"
-  tasks: *windows_64_tasks
+  tasks:
+  - name: "unit"
+  - name: ".3.4"
+  # Disabled, see TOOLS-2662
+  # - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #        ARM Buildvariants            #
 #######################################
 
-# MongoDB 3.4 - 4.0
 - name: ubuntu1604-arm64
   display_name: ZAP ARM64 Ubuntu 16.04
   run_on:
@@ -1939,9 +1999,19 @@ buildvariants:
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
-  tasks: *ubuntu1604_arm64_tasks
+  tasks:
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
-# MongoDB 4.2+
 - name: ubuntu1804-arm64
   display_name: ZAP ARM64 Ubuntu 18.04
   run_on:
@@ -1961,7 +2031,15 @@ buildvariants:
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
-  tasks: *ubuntu1804_arm64_tasks
+  tasks:
+  - name: "unit" 
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 # MongoDB 4.4+
 - name: ubuntu2004-arm64
@@ -1983,29 +2061,71 @@ buildvariants:
     resmoke_args: -j 2
     edition: ssl
     USE_SSL: "true"
-  tasks: *ubuntu2004_arm64_tasks
+  tasks:
+  - name: "unit" 
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: amazon2-arm64
   display_name: Amazon Linux ARM v2
   run_on:
   - amazon2-arm64-small
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "amazon2"
+    mongo_edition: "targeted"
+    mongo_arch: "aarch64"
+    resmoke_use_tls: _tls
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: ssl
+    USE_SSL: "true"
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel82-arm64
   display_name: RHEL 8.2 ARM
   run_on:
     - rhel82-arm64
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_ssl_startup_args
+    <<: *mongo_ssl_startup_args
+    <<: *mongod_tls_startup_args
+    <<: *mongo_tls_startup_args
+    mongo_os: "rhel82"
+    mongo_edition: "targeted"
+    mongo_arch: "aarch64"
+    resmoke_use_tls: _tls
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: ssl
+    USE_SSL: "true"
   tasks:
-    - name: dist
-    - name: sign
-      run_on: amazon1-2018-test
-    - name: push
-      run_on: rhel70-small
+  - name: "unit"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 
 #######################################
@@ -2029,7 +2149,18 @@ buildvariants:
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     edition: enterprise
     run_kinit: true
-  tasks: *rhel71_ppc64le_tasks
+  tasks:
+  - name: "unit" 
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 - name: rhel81-ppc64le
   display_name: ZAP PPC64LE RHEL 8.1
@@ -2048,21 +2179,15 @@ buildvariants:
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     edition: enterprise
     run_kinit: true
-  tasks: *rhel81_ppc64le_tasks
-
-# MongoDB 3.4 - 4.0
-- name: ubuntu1604-ppc64le
-  display_name: ZAP PPC64LE Ubuntu 16.04
-  run_on:
-  - ubuntu1604-power8
-  stepback: false
-  batchtime: 10080 # weekly
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit" 
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 # MongoDB 4.2+
 - name: ubuntu1804-ppc64le
@@ -2071,18 +2196,56 @@ buildvariants:
   - ubuntu1804-power8
   stepback: false
   batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "ubuntu1804"
+    mongo_edition: "enterprise"
+    mongo_arch: "ppc64le"
+    resmoke_use_ssl: _ssl
+    resmoke_args: -j 4
+    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    edition: enterprise
+    run_kinit: true
   tasks:
-  - name: dist
-  - name: sign
-    run_on: amazon1-2018-test
-  - name: push
-    run_on: rhel70-small
+  - name: "unit"
+  - name: ".4.2"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     Z (s390x) Buildvariants         #
 #######################################
 
-# Create variant for RHEL 8 when supported by Evergreen.
+- name: rhel80-s390x
+  display_name: ZAP s390x RHEL 7.2
+  run_on:
+  - rhel80-zseries
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "rhel80"
+    mongo_edition: "enterprise"
+    mongo_arch: "s390x"
+    resmoke_use_ssl: _ssl
+    excludes: requires_mmap_available,requires_mongo_24,requires_mongo_26,requires_mongo_30
+    resmoke_args: -j 2
+    edition: enterprise
+    run_kinit: true
+  tasks:
+  - name: "unit"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
 
 #######################################
 #     Experimental Buildvariants      #
@@ -2107,4 +2270,10 @@ buildvariants:
     resmoke_use_tls: _tls
     resmoke_use_ssl: _ssl
     USE_SSL: "true"
-  tasks: *ubuntu_x86_64_race_tasks
+  tasks: 
+  - name: "unit"
+  - name: ".3.4"
+  - name: ".3.6"
+  - name: ".4.0"
+  - name: ".4.2"
+  - name: ".4.4"
