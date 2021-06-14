@@ -609,7 +609,7 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	entries, err := bsonFile.Parent().ReadDir()
 	if err != nil {
 		if isTimeseries {
-			return fmt.Errorf("1could not find metadata file for %s", db+"."+collection)
+			return fmt.Errorf("could not find the timeseries collection metadata file for %s", db+"."+collection)
 		}
 		log.Logvf(log.Info, "error attempting to locate metadata for file: %v", err)
 		log.Logv(log.Info, "restoring collection without metadata")
@@ -642,7 +642,7 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 
 	if intent.MetadataFile == nil {
 		if isTimeseries {
-			return fmt.Errorf("2could not find metadata file for %s", db+"."+collection)
+			return fmt.Errorf("could not find the timeseries collection metadata file for %s", db+"."+collection)
 		}
 		log.Logv(log.Info, "restoring collection without metadata")
 	}
