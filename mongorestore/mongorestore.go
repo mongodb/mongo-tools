@@ -560,6 +560,11 @@ func (restore *MongoRestore) Restore() Result {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
 
+	err = restore.preFlightChecks()
+	if err != nil {
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
 	// Restore the regular collections
 	if restore.InputOptions.Archive != "" {
 		restore.manager.UsePrioritizer(restore.archive.Demux.NewPrioritizer(restore.manager))
@@ -577,11 +582,6 @@ func (restore *MongoRestore) Restore() Result {
 	} else {
 		// use legacy restoration order if we are single-threaded
 		restore.manager.Finalize(intents.Legacy)
-	}
-
-	err = restore.preFlightChecks()
-	if err != nil {
-		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
 
 	result := restore.RestoreIntents()
@@ -621,6 +621,38 @@ func (restore *MongoRestore) Restore() Result {
 }
 
 func (restore *MongoRestore) preFlightChecks() error {
+
+	for _, intent := range restore.manager.Intents() {
+		if intent.Type == "timeseries" {
+
+			if !restore.OutputOptions.Drop {
+				timeseriesExists, err := restore.CollectionExists(intent.DB, intent.C)
+				if err != nil {
+					return err
+				}
+
+				if timeseriesExists {
+					return fmt.Errorf("timeseries collection `%s` already exists on the destination. "+
+						"You must remove this collection from the destination or use --drop", intent.Namespace())
+				}
+
+				bucketExists, err := restore.CollectionExists(intent.DB, intent.DataCollection())
+				if err != nil {
+					return err
+				}
+
+				if bucketExists {
+					return fmt.Errorf("system.buckets collection `%v` already exists on the destination. "+
+						"You must remove this collection from the destination in order to restore %s", intent.DataNamespace(), intent.Namespace())
+				}
+			}
+
+			if restore.OutputOptions.NoOptionsRestore {
+				return fmt.Errorf("cannot specify --noOptionsRestore when restoring timeseries collections")
+			}
+		}
+	}
+
 	return nil
 }
 

@@ -587,6 +587,11 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 		return fmt.Errorf("file %v does not have .bson or .bson.gz extension", bsonFile.Path())
 	}
 
+	var isTimeseries bool
+	if strings.HasPrefix(bsonFile.Name(), "system.buckets.") {
+		isTimeseries = true
+
+	}
 	// Create the intent using the bson file.
 	intent := &intents.Intent{
 		DB:       db,
@@ -594,13 +599,18 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 		Size:     bsonFile.Size(),
 		Location: bsonFile.Path(),
 	}
+	if isTimeseries {
+		intent.Type = "timeseries"
+	}
 	intent.BSONFile = &realBSONFile{path: bsonFile.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
-
 	// Check if the bson file has a corresponding .metadata.json file in its folder. If there's a
 	// directory error, log a note but attempt to restore without the metadata file anyway.
 	log.Logvf(log.DebugLow, "scanning directory %v for metadata", bsonFile.Parent())
 	entries, err := bsonFile.Parent().ReadDir()
 	if err != nil {
+		if isTimeseries {
+			return fmt.Errorf("1could not find metadata file for %s", db+"."+collection)
+		}
 		log.Logvf(log.Info, "error attempting to locate metadata for file: %v", err)
 		log.Logv(log.Info, "restoring collection without metadata")
 		restore.manager.Put(intent)
@@ -615,6 +625,10 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 		metadataName = strings.TrimSuffix(bsonFile.Name(), ".bson") + ".metadata.json"
 	}
 
+	if isTimeseries {
+		metadataName = strings.TrimPrefix(metadataName, "system.buckets.")
+	}
+
 	// If the metadata file is found, add it to the intent.
 	for _, entry := range entries {
 		if entry.Name() == metadataName {
@@ -627,6 +641,9 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	}
 
 	if intent.MetadataFile == nil {
+		if isTimeseries {
+			return fmt.Errorf("2could not find metadata file for %s", db+"."+collection)
+		}
 		log.Logv(log.Info, "restoring collection without metadata")
 	}
 
