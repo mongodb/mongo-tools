@@ -62,7 +62,7 @@ eof-header = document ;
     - `collection` - collection name.
     - `metadata` - the collection metadata (including options, index definitions, and collection type) encoded in canonical [Extended JSON v2](https://docs.mongodb.com/manual/reference/mongodb-extended-json/). This is the same data written to `metadata.json` files.
     - `size` - the total uncompressed size of the collection in bytes.
-    - `type` - set to `"timeseries"` for timeseries collections, `""` otherwise. 
+    - `type` - set to `"timeseries"` for timeseries collections, `"view"` for views, and `""` otherwise. 
 - `namespace-data`: One or more BSON documents from the collection. The collection's documents can be split across multiple segments.
 - `namespace-header`:
     ```

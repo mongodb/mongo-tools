@@ -60,10 +60,13 @@ func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader) *Demult
 		In:              in,
 	}
 	for _, cm := range namespaceMetadatas {
-		if cm.Type != "timeseries" {
-			ns := cm.Database + "." + cm.Collection
-			demux.NamespaceStatus[ns] = NamespaceUnopened
+		var ns string
+		if cm.Type == "timeseries" {
+			ns = cm.Database + ".system.buckets." + cm.Collection
+		} else {
+			ns = cm.Database + "." + cm.Collection
 		}
+		demux.NamespaceStatus[ns] = NamespaceUnopened
 	}
 	return demux
 }

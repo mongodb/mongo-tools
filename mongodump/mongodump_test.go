@@ -289,27 +289,27 @@ func setUpTimeseries(dbName string, colName string) error {
 
 	coll := sessionProvider.DB(dbName).Collection(colName)
 
+	idx := mongo.IndexModel{
+		Keys: bson.M{"meta.device": 1},
+	}
+	_, err = coll.Indexes().CreateOne(context.Background(), idx)
+	if err != nil {
+		return err
+	}
+
+	idx = mongo.IndexModel{
+		Keys: bson.M{"ts": 1, "meta.device": 1},
+	}
+	_, err = coll.Indexes().CreateOne(context.Background(), idx)
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < 1000; i++ {
 		metadata := bson.M{
 			"device": i % 10,
 		}
 		_, err = coll.InsertOne(nil, bson.M{"ts": primitive.NewDateTimeFromTime(time.Now()), "meta": metadata, "measurement": i})
-		if err != nil {
-			return err
-		}
-
-		idx := mongo.IndexModel{
-			Keys: bson.M{"meta.device": 1},
-		}
-		_, err = coll.Indexes().CreateOne(context.Background(), idx)
-		if err != nil {
-			return err
-		}
-
-		idx = mongo.IndexModel{
-			Keys: bson.M{"ts": 1, "meta.device": 1},
-		}
-		_, err = coll.Indexes().CreateOne(context.Background(), idx)
 		if err != nil {
 			return err
 		}
