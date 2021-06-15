@@ -1,6 +1,6 @@
 module github.com/mongodb/mongo-tools
 
-go 1.15
+go 1.16
 
 require (
 	github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43
