@@ -9,6 +9,7 @@ package mongodump
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -125,14 +126,33 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 
 func oplogDocumentValidator(in []byte) error {
 	raw := bson.Raw(in)
-	if nsVal, err := raw.LookupErr("ns"); err == nil {
-		if nsStr, ok := nsVal.StringValueOK(); ok && nsStr == "admin.system.version" {
-			return fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
-		}
+
+	var nsStr string
+	var ok bool
+
+	nsVal, err := raw.LookupErr("ns")
+
+	if err == nil {
+		nsStr, ok = nsVal.StringValueOK()
+	}
+
+	if ok && nsStr == "admin.system.version" {
+		return fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
 	}
 
 	if _, err := raw.LookupErr("o", "renameCollection"); err == nil {
 		return fmt.Errorf("cannot dump with oplog while renames occur")
+	}
+
+	dbName := strings.SplitN(nsStr, ".", 2)[0]
+
+	if dbName == "config" {
+		if collNameRaw, err := raw.LookupErr("o", "create"); err == nil {
+			collName, ok := collNameRaw.StringValueOK()
+			if ok && isReshardingCollection(collName) {
+				return fmt.Errorf("cannot dump with oplog while resharding")
+			}
+		}
 	}
 
 	return nil
