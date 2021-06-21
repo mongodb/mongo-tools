@@ -62,7 +62,7 @@ func (*OutputFormatOptions) Name() string {
 type InputOptions struct {
 	Query          string `long:"query" value-name:"<json>" short:"q" description:"query filter, as a JSON string, e.g., '{x:{$gt:1}}'"`
 	QueryFile      string `long:"queryFile" value-name:"<filename>" description:"path to a file containing a query filter (JSON)"`
-	SlaveOk        bool   `long:"slaveOk" short:"k" description:"allow secondary reads if available" default-mask:"-"`
+	SlaveOk        bool   `long:"slaveOk" short:"k" hidden:"true" description:"allow secondary reads if available" default-mask:"-"`
 	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference mode (e.g. 'nearest') or a preference json object (e.g. '{mode: \"nearest\", tagSets: [{a: \"b\"}], maxStalenessSeconds: 123}')"`
 	ForceTableScan bool   `long:"forceTableScan" description:"force a table scan (do not use $snapshot or hint _id). Deprecated since this is default behavior on WiredTiger"`
 	Skip           int64  `long:"skip" value-name:"<count>" description:"number of documents to skip"`
