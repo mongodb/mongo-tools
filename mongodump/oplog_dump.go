@@ -144,13 +144,15 @@ func oplogDocumentValidator(in []byte) error {
 		return fmt.Errorf("cannot dump with oplog while renames occur")
 	}
 
-	dbName := strings.SplitN(nsStr, ".", 2)[0]
+	if ok {
+		dbName := strings.SplitN(nsStr, ".", 2)[0]
 
-	if dbName == "config" {
-		if collNameRaw, err := raw.LookupErr("o", "create"); err == nil {
-			collName, ok := collNameRaw.StringValueOK()
-			if ok && isReshardingCollection(collName) {
-				return fmt.Errorf("cannot dump with oplog while resharding")
+		if dbName == "config" {
+			if collNameRaw, err := raw.LookupErr("o", "create"); err == nil {
+				collName, ok := collNameRaw.StringValueOK()
+				if ok && isReshardingCollection(collName) {
+					return fmt.Errorf("cannot dump with oplog while resharding")
+				}
 			}
 		}
 	}
