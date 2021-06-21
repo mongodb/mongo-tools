@@ -590,7 +590,6 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	var isTimeseries bool
 	if strings.HasPrefix(bsonFile.Name(), "system.buckets.") {
 		isTimeseries = true
-
 	}
 	// Create the intent using the bson file.
 	intent := &intents.Intent{

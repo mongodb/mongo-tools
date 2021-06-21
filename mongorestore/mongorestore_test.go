@@ -1918,6 +1918,23 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			}
 
 			So(numIndexes, ShouldEqual, 0)
+
+			cur, err := testdb.ListCollections(ctx, bson.M{"name": "system.buckets.foo_ts"})
+			So(err, ShouldBeNil)
+
+			for cur.Next(ctx) {
+				optVal, err := cur.Current.LookupErr("options")
+				So(err, ShouldBeNil)
+
+				optRaw, ok := optVal.DocumentOK()
+				So(ok, ShouldBeTrue)
+
+				clusteredIdxVal, err := optRaw.LookupErr("clusteredIndex")
+				So(err, ShouldBeNil)
+
+				clusteredIdx := clusteredIdxVal.Boolean()
+				So(clusteredIdx, ShouldBeTrue)
+			}
 		})
 	})
 }
