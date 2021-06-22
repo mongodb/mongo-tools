@@ -268,7 +268,8 @@ func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 }
 
 // CreateCollectionIntent builds an intent for a given collection and
-// puts it into the intent manager.
+// puts it into the intent manager. It should only be called when a specific
+// collection is specified by --db and --collection.
 func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if dump.shouldSkipCollection(colName) {
 		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, colName)
@@ -299,6 +300,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		DB:      dbName,
 		C:       ci.Name,
 		Options: ci.Options,
+		Type:    ci.Type,
 	}
 
 	// Populate the intent with the collection UUID or the empty string
@@ -318,16 +320,18 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 			} else {
 				intent.Location = fmt.Sprintf("archive '%v'", dump.OutputOptions.Archive)
 			}
-		} else if dump.OutputOptions.ViewsAsCollections || !ci.IsView() {
+		} else if ci.IsTimeseries() {
+			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, "system.buckets."+ci.Name)+".bson")
+			intent.BSONFile = &realBSONFile{path: path, intent: intent}
+			intent.Location = path
+		} else if ci.IsView() && !dump.OutputOptions.ViewsAsCollections {
+			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
+		} else {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 			intent.Location = path
-		} else {
-			// otherwise, it's a view and the options specify not dumping a view
-			// so don't dump it.
-			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && ci.IsView() {
@@ -350,7 +354,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	// skips this if it is a view, as it may be incredibly slow if the
 	// view is based on a slow query.
 
-	if ci.IsView() {
+	if ci.IsView() || ci.IsTimeseries() {
 		return intent, nil
 	}
 

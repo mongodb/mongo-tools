@@ -29,6 +29,10 @@ func (ci *CollectionInfo) IsView() bool {
 	return ci.Type == "view"
 }
 
+func (ci *CollectionInfo) IsTimeseries() bool {
+	return ci.Type == "timeseries"
+}
+
 func (ci *CollectionInfo) IsSystemCollection() bool {
 	return strings.HasPrefix(ci.Name, "system.")
 }

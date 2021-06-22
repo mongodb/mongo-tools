@@ -9,6 +9,7 @@ package mongodump
 
 import (
 	"context"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
@@ -109,6 +110,9 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.Collection != "":
 		return fmt.Errorf("cannot specify a collection when running with dumpDbUsersAndRoles")
+	case strings.HasPrefix(dump.ToolOptions.Namespace.Collection, "system.buckets."):
+		return fmt.Errorf("cannot specify a system.buckets collection in --collection. " +
+			"Specifying the timeseries collection will dump the system.buckets collection")
 	case dump.OutputOptions.Oplog && dump.ToolOptions.Namespace.DB != "":
 		return fmt.Errorf("--oplog mode only supported on full dumps")
 	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.Collection != "":
@@ -522,7 +526,13 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		return err
 	}
 	intendedDB := session.Database(intent.DB)
-	coll := intendedDB.Collection(intent.C)
+	var coll *mongo.Collection
+	if intent.IsTimeseries() {
+		coll = intendedDB.Collection("system.buckets." + intent.C)
+	} else {
+		coll = intendedDB.Collection(intent.C)
+	}
+
 	// it is safer to assume that a collection is a view, if we cannot determine that it is not.
 	isView := true
 	// failure to get CollectionInfo should not cause the function to exit. We only use this to
@@ -574,7 +584,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	var dumpCount int64
 
 	if dump.OutputOptions.Out == "-" {
-		log.Logvf(log.Always, "writing %v to stdout", intent.Namespace())
+		log.Logvf(log.Always, "writing %v to stdout", intent.DataNamespace())
 		dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer)
 		if err == nil {
 			// on success, print the document count
@@ -583,12 +593,12 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		return err
 	}
 
-	log.Logvf(log.Always, "writing %v to %v", intent.Namespace(), intent.Location)
+	log.Logvf(log.Always, "writing %v to %v", intent.DataNamespace(), intent.Location)
 	if dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer); err != nil {
 		return err
 	}
 
-	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.Namespace(), dumpCount, docPlural(dumpCount))
+	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.DataNamespace(), dumpCount, docPlural(dumpCount))
 	return nil
 }
 

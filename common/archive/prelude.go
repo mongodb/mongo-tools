@@ -113,11 +113,13 @@ func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, to
 				Database:   intent.DB,
 				Collection: intent.C,
 				Metadata:   archiveMetadata.Buffer.String(),
+				Type:       intent.Type,
 			})
 		} else {
 			prelude.AddMetadata(&CollectionMetadata{
 				Database:   intent.DB,
 				Collection: intent.C,
+				Type:       intent.Type,
 			})
 		}
 	}
@@ -316,10 +318,14 @@ func (pe *PreludeExplorer) ReadDir() ([]DirLike, error) {
 			return nil, fmt.Errorf("no such directory") //TODO: replace with real ERRNOs?
 		}
 		for _, namespaceMetadata := range namespaceMetadatas {
+			dataCollection := namespaceMetadata.Collection
+			if namespaceMetadata.Type == "timeseries" {
+				dataCollection = "system.buckets." + namespaceMetadata.Collection
+			}
 			pes = append(pes, &PreludeExplorer{
 				prelude:    pe.prelude,
 				database:   pe.database,
-				collection: namespaceMetadata.Collection,
+				collection: dataCollection,
 			})
 			if namespaceMetadata.Metadata != "" {
 				pes = append(pes, &PreludeExplorer{

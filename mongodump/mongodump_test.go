@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
@@ -32,6 +33,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -265,6 +267,66 @@ func setUpMongoDumpTestData() error {
 	return nil
 }
 
+func setUpTimeseries(dbName string, colName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	timeseriesOptions := bson.M{
+		"timeField": "ts",
+		"metaField": "meta",
+	}
+	createCmd := bson.D{
+		{"create", colName},
+		{"timeseries", timeseriesOptions},
+	}
+	var r2 bson.D
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	if err != nil {
+		return err
+	}
+
+	coll := sessionProvider.DB(dbName).Collection(colName)
+
+	idx := mongo.IndexModel{
+		Keys: bson.M{"meta.device": 1},
+	}
+	_, err = coll.Indexes().CreateOne(context.Background(), idx)
+	if err != nil {
+		return err
+	}
+
+	idx = mongo.IndexModel{
+		Keys: bson.M{"ts": 1, "meta.device": 1},
+	}
+	_, err = coll.Indexes().CreateOne(context.Background(), idx)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 1000; i++ {
+		metadata := bson.M{
+			"device": i % 10,
+		}
+		_, err = coll.InsertOne(nil, bson.M{"ts": primitive.NewDateTimeFromTime(time.Now()), "meta": metadata, "measurement": i})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getStringFromFile(path string) (string, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 func setUpDBView(dbName string, colName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -373,6 +435,19 @@ func tearDownMongoDumpTestData() error {
 	}
 
 	err = session.Database(testDB).Drop(nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func dropDB(dbName string) error {
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		return err
+	}
+
+	err = session.Database(dbName).Drop(nil)
 	if err != nil {
 		return err
 	}
@@ -1414,4 +1489,250 @@ func TestCount(t *testing.T) {
 			So(cnt, ShouldEqual, 1)
 		})
 	})
+}
+
+func TestTimeseriesCollections(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Errorf("could not get session: %v", err)
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
+	colName := "timeseriesColl"
+	dbName := "timeseries_test_DB"
+	err = setUpTimeseries(dbName, colName)
+	if err != nil {
+		t.Errorf("could not setup timeseries collection: %v", err)
+	}
+
+	Convey("With a MongoDump instance", t, func() {
+
+		md := simpleMongoDumpInstance()
+		md.ToolOptions.Namespace.DB = dbName
+		md.OutputOptions.Out = "dump"
+
+		Convey("a timeseries collection should produce a well-formatted dump", func() {
+			Convey("to an archive", func() {
+
+				md.OutputOptions.Out = ""
+				md.OutputOptions.Archive = "dump.archive"
+
+				Convey("when dumping the whole database", func() {
+					// This is the default test of "to an archive".
+					// It's meant to be a noop, do not delete.
+				})
+
+				Convey("when the collection is specified in --collection", func() {
+					md.ToolOptions.DB = dbName
+					md.ToolOptions.Collection = colName
+				})
+
+				Convey("even when the system.buckets collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+					})
+
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+					})
+				})
+
+				err = md.Init()
+				So(err, ShouldBeNil)
+
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+
+				archiveFile, err := os.Open(archiveFilePath)
+				So(err, ShouldBeNil)
+				archiveReader := &archive.Reader{
+					In:      archiveFile,
+					Prelude: &archive.Prelude{},
+				}
+
+				err = archiveReader.Prelude.Read(archiveReader.In)
+				So(err, ShouldBeNil)
+
+				collectionMetadatas, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+				So(ok, ShouldBeTrue)
+
+				So(len(collectionMetadatas), ShouldEqual, 1)
+				So(collectionMetadatas[0].Collection, ShouldEqual, colName)
+
+				pe, err := archiveReader.Prelude.NewPreludeExplorer()
+				So(err, ShouldBeNil)
+
+				archiveContents, err := pe.ReadDir()
+				So(err, ShouldBeNil)
+
+				for _, dirlike := range archiveContents {
+					if dirlike.IsDir() && dirlike.Name() == dbName {
+						dbContents, err := dirlike.ReadDir()
+						So(err, ShouldBeNil)
+
+						So(len(dbContents), ShouldEqual, 2)
+
+						for _, file := range dbContents {
+							So(file.Name(), ShouldBeIn, []string{colName + ".metadata.json", "system.buckets." + colName + ".bson"})
+						}
+					}
+				}
+
+				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
+			})
+
+			Convey("to a directory", func() {
+
+				Convey("when dumping the whole database", func() {
+					// This is the default test of "to a directory".
+					// It's meant to be a noop, do not delete.
+				})
+
+				Convey("when the collection is specified in --collection", func() {
+					md.ToolOptions.DB = dbName
+					md.ToolOptions.Collection = colName
+				})
+
+				Convey("even when the system.buckets collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+					})
+
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+					})
+				})
+
+				err = md.Init()
+				So(err, ShouldBeNil)
+
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
+				metadataFile := util.ToUniversalPath(filepath.Join(dumpDBDir, colName+".metadata.json"))
+				bsonFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"))
+				So(fileDirExists(dumpDir), ShouldBeTrue)
+				So(fileDirExists(dumpDBDir), ShouldBeTrue)
+				So(fileDirExists(metadataFile), ShouldBeTrue)
+				So(fileDirExists(bsonFile), ShouldBeTrue)
+
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				So(err, ShouldBeNil)
+				So(len(allFiles), ShouldEqual, 2)
+
+				info, err := os.Stat(bsonFile)
+				So(err, ShouldBeNil)
+				So(info.Size(), ShouldBeGreaterThan, 0)
+
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+
+			})
+
+		})
+
+		Convey("a timeseries collection should not be dumped", func() {
+			Convey("to an archive", func() {
+
+				md.OutputOptions.Out = ""
+				md.OutputOptions.Archive = "dump.archive"
+
+				Convey("when the collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollections = []string{colName}
+					})
+
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
+					})
+				})
+
+				err = md.Init()
+				So(err, ShouldBeNil)
+
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+
+				archiveFile, err := os.Open(archiveFilePath)
+				So(err, ShouldBeNil)
+				archiveReader := &archive.Reader{
+					In:      archiveFile,
+					Prelude: &archive.Prelude{},
+				}
+
+				err = archiveReader.Prelude.Read(archiveReader.In)
+				So(err, ShouldBeNil)
+
+				_, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+				So(ok, ShouldBeFalse)
+
+				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
+			})
+
+			Convey("to a directory", func() {
+				Convey("when the collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollections = []string{colName}
+					})
+
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
+					})
+				})
+
+				err = md.Init()
+				So(err, ShouldBeNil)
+
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				So(fileDirExists(dumpDir), ShouldBeFalse)
+
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			})
+		})
+
+		Convey("specifying the buckets collection in --collection should fail", func() {
+			md.ToolOptions.DB = dbName
+			md.ToolOptions.Collection = "system.buckets." + colName
+
+			err = md.Init()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEndWith, "cannot specify a system.buckets collection in --collection. "+
+				"Specifying the timeseries collection will dump the system.buckets collection")
+		})
+
+	})
+
+	err = dropDB(dbName)
+	if err != nil {
+		t.Errorf("could not setup timeseries collection: %v", err)
+	}
 }

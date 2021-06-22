@@ -23,6 +23,7 @@ type Metadata struct {
 	Indexes        []bson.D `bson:"indexes"`
 	UUID           string   `bson:"uuid,omitempty"`
 	CollectionName string   `bson:"collectionName"`
+	Type           string   `bson:"type,omitempty"`
 }
 
 // IndexDocumentFromDB is used internally to preserve key ordering.
@@ -52,6 +53,10 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	// Adding the collection name is useful if a long collection name results in a truncated
 	// bson or metadata file name, in which case the collection name can be found here.
 	meta.CollectionName = intent.C
+
+	if intent.Type != "" {
+		meta.Type = intent.Type
+	}
 
 	// Second, we read the collection's index information by either calling
 	// listIndexes (pre-2.7 systems) or querying system.indexes.

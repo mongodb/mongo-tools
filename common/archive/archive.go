@@ -20,11 +20,15 @@ type NamespaceHeader struct {
 
 // CollectionMetadata is a data structure that, as BSON, is found in the prelude of the archive.
 // There is one CollectionMetadata per collection that will be in the archive.
+// For a CollectionMetadata for collection X with Type == "timeseries",
+// there will be no data for collection X. Instead there will be data for collection system.buckets.X.
+// Mongorestore will restore both the timeseries view and the underlying system.buckets collection.
 type CollectionMetadata struct {
 	Database   string `bson:"db"`
 	Collection string `bson:"collection"`
 	Metadata   string `bson:"metadata"`
 	Size       int    `bson:"size"`
+	Type       string `bson:"type"`
 }
 
 // Header is a data structure that, as BSON, is found immediately after the magic

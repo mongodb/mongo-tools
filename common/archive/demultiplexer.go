@@ -60,9 +60,13 @@ func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader) *Demult
 		In:              in,
 	}
 	for _, cm := range namespaceMetadatas {
-		ns := cm.Database + "." + cm.Collection
+		var ns string
+		if cm.Type == "timeseries" {
+			ns = cm.Database + ".system.buckets." + cm.Collection
+		} else {
+			ns = cm.Database + "." + cm.Collection
+		}
 		demux.NamespaceStatus[ns] = NamespaceUnopened
-
 	}
 	return demux
 }
@@ -227,7 +231,7 @@ func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 	// or while the demutiplexer is inside of the NamespaceChan NamespaceErrorChan conversation
 	// I think that we don't need to lock outs, but I suspect that if the implementation changes
 	// we may need to lock when outs is accessed
-	log.Logvf(log.DebugHigh, "demux Open")
+	log.Logvf(log.DebugHigh, "demux Open for %s", ns)
 	if demux.outs == nil {
 		demux.outs = make(map[string]DemuxOut)
 		demux.lengths = make(map[string]int64)

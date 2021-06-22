@@ -11,6 +11,10 @@ package failpoint
 func ParseFailpoints(_ string) {
 }
 
+func Reset() {
+	return
+}
+
 func Get(fp string) (string, bool) {
 	return "", false
 }
