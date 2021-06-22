@@ -196,10 +196,16 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
 		return ErrServerConnected
 	}
-	s.desc.Store(description.NewDefaultServer(s.address))
+
+	desc := description.NewDefaultServer(s.address)
+	if s.cfg.loadBalanced {
+		// LBs automatically start off with kind LoadBalancer because there is no monitoring routine for state changes.
+		desc.Kind = description.LoadBalancer
+	}
+	s.desc.Store(desc)
 	s.updateTopologyCallback.Store(updateCallback)
 
-	if !s.cfg.monitoringDisabled {
+	if !s.cfg.monitoringDisabled && !s.cfg.loadBalanced {
 		s.rttMonitor.connect()
 		s.closewg.Add(1)
 		go s.update()
@@ -267,9 +273,15 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64) {
-	// ignore nil or stale error
-	if err == nil || startingGenerationNumber < atomic.LoadUint64(&s.pool.generation) {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
+	// Ignore the error if the server is behind a load balancer but the service ID is unknown. This indicates that the
+	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the service ID to
+	// use for clearing the pool.
+	if err == nil || s.cfg.loadBalanced && serviceID == nil {
+		return
+	}
+	// Ignore the error if the connection is stale.
+	if startingGenerationNumber < s.pool.generation.getGeneration(serviceID) {
 		return
 	}
 
@@ -282,7 +294,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
-	s.pool.clear()
+	s.pool.clear(serviceID)
 	s.cancelCheck()
 }
 
@@ -386,7 +398,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if cerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear()
+			s.pool.clear(desc.ServiceID)
 		}
 		return res
 	}
@@ -404,7 +416,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
 		if wcerr.NodeIsShuttingDown() || desc.WireVersion == nil || desc.WireVersion.Max < 8 {
 			res = driver.ConnectionPoolCleared
-			s.pool.clear()
+			s.pool.clear(desc.ServiceID)
 		}
 		return res
 	}
@@ -426,7 +438,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// monitoring check. The check is cancelled last to avoid a post-cancellation reconnect racing with
 	// updateDescription.
 	s.updateDescription(description.NewServerFromError(s.address, err, nil))
-	s.pool.clear()
+	s.pool.clear(desc.ServiceID)
 	s.cancelCheck()
 	return driver.ConnectionPoolCleared
 }
@@ -516,8 +528,10 @@ func (s *Server) update() {
 
 		s.updateDescription(desc)
 		if desc.LastError != nil {
-			// Clear the pool once the description has been updated to Unknown.
-			s.pool.clear()
+			// Clear the pool once the description has been updated to Unknown. Pass in a nil service ID to clear
+			// because the monitoring routine only runs for non-load balanced deployments in which servers don't return
+			// IDs.
+			s.pool.clear(nil)
 		}
 
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
@@ -543,6 +557,12 @@ func (s *Server) update() {
 // parameter is used to determine if this is the first description from the
 // server.
 func (s *Server) updateDescription(desc description.Server) {
+	if s.cfg.loadBalanced {
+		// In load balanced mode, there are no updates from the monitoring routine. For errors encountered in pooled
+		// connections, the server should not be marked Unknown to ensure that the LB remains selectable.
+		return
+	}
+
 	defer func() {
 		//  ¯\_(ツ)_/¯
 		_ = recover()
@@ -597,6 +617,10 @@ func (s *Server) setupHeartbeatConnection() error {
 
 	// Take the lock when assigning the context and connection because they're accessed by cancelCheck.
 	s.heartbeatLock.Lock()
+	if s.heartbeatCtxCancel != nil {
+		// Ensure the previous context is cancelled to avoid a leak.
+		s.heartbeatCtxCancel()
+	}
 	s.heartbeatCtx, s.heartbeatCtxCancel = context.WithCancel(s.globalCtx)
 	s.conn = conn
 	s.heartbeatLock.Unlock()

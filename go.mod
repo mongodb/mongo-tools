@@ -18,8 +18,8 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/xdg/stringprep v1.0.1-0.20180714160509-73f8eece6fdc // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
-	go.mongodb.org/mongo-driver v1.4.0-beta2.0.20210122183452-751a919b969c
-	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
+	go.mongodb.org/mongo-driver v1.4.0-beta2.0.20210622181706-75c61d69c420
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
 	gopkg.in/yaml.v2 v2.4.0

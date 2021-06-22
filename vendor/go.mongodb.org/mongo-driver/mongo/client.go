@@ -68,10 +68,12 @@ type Client struct {
 	sessionPool     *session.Pool
 
 	// client-side encryption fields
-	keyVaultClient *Client
-	keyVaultColl   *Collection
-	mongocryptd    *mcryptClient
-	crypt          *driver.Crypt
+	keyVaultClientFLE *Client
+	keyVaultCollFLE   *Collection
+	mongocryptdFLE    *mcryptClient
+	cryptFLE          *driver.Crypt
+	metadataClientFLE *Client
+	internalClientFLE *Client
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
@@ -157,13 +159,26 @@ func (c *Client) Connect(ctx context.Context) error {
 		}
 	}
 
-	if c.mongocryptd != nil {
-		if err := c.mongocryptd.connect(ctx); err != nil {
+	if c.mongocryptdFLE != nil {
+		if err := c.mongocryptdFLE.connect(ctx); err != nil {
 			return err
 		}
 	}
-	if c.keyVaultClient != nil {
-		if err := c.keyVaultClient.Connect(ctx); err != nil {
+
+	if c.internalClientFLE != nil {
+		if err := c.internalClientFLE.Connect(ctx); err != nil {
+			return err
+		}
+	}
+
+	if c.keyVaultClientFLE != nil && c.keyVaultClientFLE != c.internalClientFLE && c.keyVaultClientFLE != c {
+		if err := c.keyVaultClientFLE.Connect(ctx); err != nil {
+			return err
+		}
+	}
+
+	if c.metadataClientFLE != nil && c.metadataClientFLE != c.internalClientFLE && c.metadataClientFLE != c {
+		if err := c.metadataClientFLE.Connect(ctx); err != nil {
 			return err
 		}
 	}
@@ -194,18 +209,30 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	c.endSessions(ctx)
-	if c.mongocryptd != nil {
-		if err := c.mongocryptd.disconnect(ctx); err != nil {
+	if c.mongocryptdFLE != nil {
+		if err := c.mongocryptdFLE.disconnect(ctx); err != nil {
 			return err
 		}
 	}
-	if c.keyVaultClient != nil {
-		if err := c.keyVaultClient.Disconnect(ctx); err != nil {
+
+	if c.internalClientFLE != nil {
+		if err := c.internalClientFLE.Disconnect(ctx); err != nil {
 			return err
 		}
 	}
-	if c.crypt != nil {
-		c.crypt.Close()
+
+	if c.keyVaultClientFLE != nil && c.keyVaultClientFLE != c.internalClientFLE && c.keyVaultClientFLE != c {
+		if err := c.keyVaultClientFLE.Disconnect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.metadataClientFLE != nil && c.metadataClientFLE != c.internalClientFLE && c.metadataClientFLE != c {
+		if err := c.metadataClientFLE.Disconnect(ctx); err != nil {
+			return err
+		}
+	}
+	if c.cryptFLE != nil {
+		c.cryptFLE.Close()
 	}
 
 	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
@@ -216,7 +243,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 
 // Ping sends a ping command to verify that the client can connect to the deployment.
 //
-// The rp paramter is used to determine which server is selected for the operation.
+// The rp parameter is used to determine which server is selected for the operation.
 // If it is nil, the client's read preference is used.
 //
 // If the server is down, Ping will try to select a server until the client's server selection timeout expires.
@@ -297,7 +324,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
 		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
-		Database("admin").Crypt(c.crypt).ServerAPI(c.serverAPI)
+		Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -384,10 +411,16 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			func(opts ...string) []string { return append(opts, comps...) },
 		))
 	}
+
+	var loadBalanced bool
+	if opts.LoadBalanced != nil {
+		loadBalanced = *opts.LoadBalanced
+	}
+
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
 		return operation.NewIsMaster().AppName(appName).Compressors(comps).ClusterClock(c.clock).
-			ServerAPI(c.serverAPI)
+			ServerAPI(c.serverAPI).LoadBalanced(loadBalanced)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -420,6 +453,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			Compressors:   comps,
 			ClusterClock:  c.clock,
 			ServerAPI:     c.serverAPI,
+			LoadBalanced:  loadBalanced,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
@@ -582,7 +616,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// AutoEncryptionOptions
 	if opts.AutoEncryptionOptions != nil {
-		if err := c.configureAutoEncryption(opts.AutoEncryptionOptions); err != nil {
+		if err := c.configureAutoEncryption(opts); err != nil {
 			return err
 		}
 	}
@@ -599,6 +633,22 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		connOpts = append(
 			connOpts,
 			topology.WithDisableOCSPEndpointCheck(func(bool) bool { return *opts.DisableOCSPEndpointCheck }),
+		)
+	}
+
+	// LoadBalanced
+	if opts.LoadBalanced != nil {
+		topologyOpts = append(
+			topologyOpts,
+			topology.WithLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
+		)
+		serverOpts = append(
+			serverOpts,
+			topology.WithServerLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
+		)
+		connOpts = append(
+			connOpts,
+			topology.WithConnectionLoadBalanced(func(bool) bool { return *opts.LoadBalanced }),
 		)
 	}
 
@@ -624,52 +674,88 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	return nil
 }
 
-func (c *Client) configureAutoEncryption(opts *options.AutoEncryptionOptions) error {
-	if err := c.configureKeyVault(opts); err != nil {
+func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) error {
+	if err := c.configureKeyVaultClientFLE(clientOpts); err != nil {
 		return err
 	}
-	if err := c.configureMongocryptd(opts); err != nil {
+	if err := c.configureMetadataClientFLE(clientOpts); err != nil {
 		return err
 	}
-	return c.configureCrypt(opts)
+	if err := c.configureMongocryptdClientFLE(clientOpts.AutoEncryptionOptions); err != nil {
+		return err
+	}
+	return c.configureCryptFLE(clientOpts.AutoEncryptionOptions)
 }
 
-func (c *Client) configureKeyVault(opts *options.AutoEncryptionOptions) error {
-	// parse key vault options and create new client if necessary
-	if opts.KeyVaultClientOptions != nil {
-		var err error
-		c.keyVaultClient, err = NewClient(opts.KeyVaultClientOptions)
-		if err != nil {
-			return err
-		}
+func (c *Client) getOrCreateInternalClient(clientOpts *options.ClientOptions) (*Client, error) {
+	if c.internalClientFLE != nil {
+		return c.internalClientFLE, nil
 	}
 
-	dbName, collName := splitNamespace(opts.KeyVaultNamespace)
-	client := c.keyVaultClient
-	if client == nil {
-		client = c
+	internalClientOpts := options.MergeClientOptions(clientOpts)
+	internalClientOpts.AutoEncryptionOptions = nil
+	internalClientOpts.SetMinPoolSize(0)
+	var err error
+	c.internalClientFLE, err = NewClient(internalClientOpts)
+	return c.internalClientFLE, err
+}
+
+func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) error {
+	// parse key vault options and create new key vault client
+	var err error
+	aeOpts := clientOpts.AutoEncryptionOptions
+	switch {
+	case aeOpts.KeyVaultClientOptions != nil:
+		c.keyVaultClientFLE, err = NewClient(aeOpts.KeyVaultClientOptions)
+	case clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0:
+		c.keyVaultClientFLE = c
+	default:
+		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientOpts)
 	}
-	c.keyVaultColl = client.Database(dbName).Collection(collName, keyVaultCollOpts)
+
+	if err != nil {
+		return err
+	}
+
+	dbName, collName := splitNamespace(aeOpts.KeyVaultNamespace)
+	c.keyVaultCollFLE = c.keyVaultClientFLE.Database(dbName).Collection(collName, keyVaultCollOpts)
 	return nil
 }
 
-func (c *Client) configureMongocryptd(opts *options.AutoEncryptionOptions) error {
+func (c *Client) configureMetadataClientFLE(clientOpts *options.ClientOptions) error {
+	// parse key vault options and create new key vault client
+	aeOpts := clientOpts.AutoEncryptionOptions
+	if aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption {
+		// no need for a metadata client.
+		return nil
+	}
+	if clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0 {
+		c.metadataClientFLE = c
+		return nil
+	}
+
 	var err error
-	c.mongocryptd, err = newMcryptClient(opts)
+	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientOpts)
 	return err
 }
 
-func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
+func (c *Client) configureMongocryptdClientFLE(opts *options.AutoEncryptionOptions) error {
+	var err error
+	c.mongocryptdFLE, err = newMcryptClient(opts)
+	return err
+}
+
+func (c *Client) configureCryptFLE(opts *options.AutoEncryptionOptions) error {
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
 	for k, v := range opts.SchemaMap {
-		schema, err := transformBsoncoreDocument(c.registry, v)
+		schema, err := transformBsoncoreDocument(c.registry, v, true, "schemaMap")
 		if err != nil {
 			return err
 		}
 		cryptSchemaMap[k] = schema
 	}
-	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders)
+	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders, true, "kmsProviders")
 	if err != nil {
 		return fmt.Errorf("error creating KMS providers document: %v", err)
 	}
@@ -679,18 +765,24 @@ func (c *Client) configureCrypt(opts *options.AutoEncryptionOptions) error {
 	if opts.BypassAutoEncryption != nil {
 		bypass = *opts.BypassAutoEncryption
 	}
-	kr := keyRetriever{coll: c.keyVaultColl}
-	cir := collInfoRetriever{client: c}
+	kr := keyRetriever{coll: c.keyVaultCollFLE}
+	var cir collInfoRetriever
+	// If bypass is true, c.metadataClientFLE is nil and the collInfoRetriever
+	// will not be used. If bypass is false, to the parent client or the
+	// internal client.
+	if !bypass {
+		cir = collInfoRetriever{client: c.metadataClientFLE}
+	}
 	cryptOpts := &driver.CryptOptions{
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
-		MarkFn:               c.mongocryptd.markCommand,
+		MarkFn:               c.mongocryptdFLE.markCommand,
 		KmsProviders:         kmsProviders,
 		BypassAutoEncryption: bypass,
 		SchemaMap:            cryptSchemaMap,
 	}
 
-	c.crypt, err = driver.NewCrypt(cryptOpts)
+	c.cryptFLE, err = driver.NewCrypt(cryptOpts)
 	return err
 }
 
@@ -749,7 +841,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	filterDoc, err := transformBsoncoreDocument(c.registry, filter)
+	filterDoc, err := transformBsoncoreDocument(c.registry, filter, true, "filter")
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
@@ -763,7 +855,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.crypt).
+		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
 		ServerAPI(c.serverAPI)
 
 	if ldo.NameOnly != nil {
@@ -873,7 +965,7 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 		client:         c,
 		registry:       c.registry,
 		streamType:     ClientStream,
-		crypt:          c.crypt,
+		crypt:          c.cryptFLE,
 	}
 
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
@@ -883,4 +975,12 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 // closed (i.e. EndSession has not been called).
 func (c *Client) NumberSessionsInProgress() int {
 	return c.sessionPool.CheckedOut()
+}
+
+func (c *Client) createBaseCursorOptions() driver.CursorOptions {
+	return driver.CursorOptions{
+		CommandMonitor: c.monitor,
+		Crypt:          c.cryptFLE,
+		ServerAPI:      c.serverAPI,
+	}
 }

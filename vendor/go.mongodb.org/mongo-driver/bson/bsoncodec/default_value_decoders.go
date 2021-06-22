@@ -55,7 +55,7 @@ type DefaultValueDecoders struct{}
 //
 // There is no support for decoding map[string]interface{} becuase there is no decoder for
 // interface{}, so users must either register this decoder themselves or use the
-// EmptyInterfaceDecoder avaialble in the bson package.
+// EmptyInterfaceDecoder available in the bson package.
 func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 	if rb == nil {
 		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
@@ -80,6 +80,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeDecoder(tByteSlice, defaultByteSliceCodec).
 		RegisterTypeDecoder(tTime, defaultTimeCodec).
 		RegisterTypeDecoder(tEmpty, defaultEmptyInterfaceCodec).
+		RegisterTypeDecoder(tCoreArray, defaultArrayCodec).
 		RegisterTypeDecoder(tOID, decodeAdapter{dvd.ObjectIDDecodeValue, dvd.objectIDDecodeType}).
 		RegisterTypeDecoder(tDecimal, decodeAdapter{dvd.Decimal128DecodeValue, dvd.decimal128DecodeType}).
 		RegisterTypeDecoder(tJSONNumber, decodeAdapter{dvd.JSONNumberDecodeValue, dvd.jsonNumberDecodeType}).
@@ -717,6 +718,7 @@ func (dvd DefaultValueDecoders) UndefinedDecodeValue(dc DecodeContext, vr bsonrw
 	return nil
 }
 
+// Accept both 12-byte string and pretty-printed 24-byte hex string formats.
 func (dvd DefaultValueDecoders) objectIDDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tOID {
 		return emptyValue, ValueDecoderError{
@@ -738,6 +740,9 @@ func (dvd DefaultValueDecoders) objectIDDecodeType(dc DecodeContext, vr bsonrw.V
 		str, err := vr.ReadString()
 		if err != nil {
 			return emptyValue, err
+		}
+		if oid, err = primitive.ObjectIDFromHex(str); err == nil {
+			break
 		}
 		if len(str) != 12 {
 			return emptyValue, fmt.Errorf("an ObjectID string must be exactly 12 bytes long (got %v)", len(str))

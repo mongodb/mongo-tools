@@ -8,8 +8,10 @@ package mongo
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,6 +34,16 @@ var ErrNilValue = errors.New("value is nil")
 
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
+
+// ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
+type ErrMapForOrderedArgument struct {
+	ParamName string
+}
+
+// Error implements the error interface.
+func (e ErrMapForOrderedArgument) Error() string {
+	return fmt.Sprintf("multi-key map passed in for ordered parameter %v", e.ParamName)
+}
 
 func replaceErrors(err error) error {
 	if err == topology.ErrTopologyClosed {
@@ -69,6 +81,65 @@ func replaceErrors(err error) error {
 	}
 
 	return err
+}
+
+// IsDuplicateKeyError returns true if err is a duplicate key error
+func IsDuplicateKeyError(err error) bool {
+	// handles SERVER-7164 and SERVER-11493
+	for ; err != nil; err = unwrap(err) {
+		if e, ok := err.(ServerError); ok {
+			return e.HasErrorCode(11000) || e.HasErrorCode(11001) || e.HasErrorCode(12582) ||
+				e.HasErrorCodeWithMessage(16460, " E11000 ")
+		}
+	}
+	return false
+}
+
+// IsTimeout returns true if err is from a timeout
+func IsTimeout(err error) bool {
+	for ; err != nil; err = unwrap(err) {
+		// check unwrappable errors together
+		if err == context.DeadlineExceeded {
+			return true
+		}
+		if ne, ok := err.(net.Error); ok {
+			return ne.Timeout()
+		}
+		//timeout error labels
+		if le, ok := err.(labeledError); ok {
+			if le.HasErrorLabel("NetworkTimeoutError") || le.HasErrorLabel("ExceededTimeLimitError") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// unwrap returns the inner error if err implements Unwrap(), otherwise it returns nil.
+func unwrap(err error) error {
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		return nil
+	}
+	return u.Unwrap()
+}
+
+// errorHasLabel returns true if err contains the specified label
+func errorHasLabel(err error, label string) bool {
+	for ; err != nil; err = unwrap(err) {
+		if le, ok := err.(labeledError); ok && le.HasErrorLabel(label) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsNetworkError returns true if err is a network error
+func IsNetworkError(err error) bool {
+	return errorHasLabel(err, "NetworkError")
 }
 
 // MongocryptError represents an libmongocrypt error during client-side encryption.
@@ -111,6 +182,12 @@ func (e MongocryptdError) Error() string {
 // Unwrap returns the underlying error.
 func (e MongocryptdError) Unwrap() error {
 	return e.Wrapped
+}
+
+type labeledError interface {
+	error
+	// HasErrorLabel returns true if the error contains the specified label.
+	HasErrorLabel(string) bool
 }
 
 // ServerError is the interface implemented by errors returned from the server. Custom implementations of this

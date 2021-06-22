@@ -7,11 +7,13 @@
 package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -79,6 +81,26 @@ func (s TransactionState) String() string {
 	}
 }
 
+// LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
+// to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
+// and exists to be able to pin transactions to a connection without causing an import cycle.
+type LoadBalancedTransactionConnection interface {
+	// Functions copied over from driver.Connection.
+	WriteWireMessage(context.Context, []byte) error
+	ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error)
+	Description() description.Server
+	Close() error
+	ID() string
+	Address() address.Address
+	Stale() bool
+
+	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
+	PinToCursor() error
+	PinToTransaction() error
+	UnpinFromCursor() error
+	UnpinFromTransaction() error
+}
+
 // Client is a session for clients to run commands.
 type Client struct {
 	*Server
@@ -111,6 +133,7 @@ type Client struct {
 	TransactionState TransactionState
 	PinnedServer     *description.Server
 	RecoveryToken    bson.Raw
+	PinnedConnection LoadBalancedTransactionConnection
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -239,11 +262,39 @@ func (c *Client) UpdateRecoveryToken(response bson.Raw) {
 	c.RecoveryToken = token.Document()
 }
 
-// ClearPinnedServer sets the PinnedServer to nil.
-func (c *Client) ClearPinnedServer() {
-	if c != nil {
-		c.PinnedServer = nil
+// ClearPinnedResources clears the pinned server and/or connection associated with the session.
+func (c *Client) ClearPinnedResources() error {
+	if c == nil {
+		return nil
 	}
+
+	c.PinnedServer = nil
+	if c.PinnedConnection != nil {
+		if err := c.PinnedConnection.UnpinFromTransaction(); err != nil {
+			return err
+		}
+		if err := c.PinnedConnection.Close(); err != nil {
+			return err
+		}
+	}
+	c.PinnedConnection = nil
+	return nil
+}
+
+// UnpinConnection gracefully unpins the connection associated with the session if there is one. This is done via
+// the pinned connection's UnpinFromTransaction function.
+func (c *Client) UnpinConnection() error {
+	if c == nil || c.PinnedConnection == nil {
+		return nil
+	}
+
+	err := c.PinnedConnection.UnpinFromTransaction()
+	closeErr := c.PinnedConnection.Close()
+	if err == nil && closeErr != nil {
+		err = closeErr
+	}
+	c.PinnedConnection = nil
+	return err
 }
 
 // EndSession ends the session.
@@ -323,13 +374,12 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 	}
 
 	if !writeconcern.AckWrite(c.CurrentWc) {
-		c.clearTransactionOpts()
+		_ = c.clearTransactionOpts()
 		return ErrUnackWCUnsupported
 	}
 
 	c.TransactionState = Starting
-	c.PinnedServer = nil
-	return nil
+	return c.ClearPinnedResources()
 }
 
 // CheckCommitTransaction checks to see if allowed to commit transaction and returns
@@ -387,15 +437,30 @@ func (c *Client) AbortTransaction() error {
 		return err
 	}
 	c.TransactionState = Aborted
-	c.clearTransactionOpts()
+	return c.clearTransactionOpts()
+}
+
+// StartCommand updates the session's internal state at the beginning of an operation. This must be called before
+// server selection is done for the operation as the session's state can impact the result of that process.
+func (c *Client) StartCommand() error {
+	if c == nil {
+		return nil
+	}
+
+	// If we're executing the first operation using this session after a transaction, we must ensure that the session
+	// is not pinned to any resources.
+	if !c.TransactionRunning() && !c.Committing && !c.Aborting {
+		return c.ClearPinnedResources()
+	}
 	return nil
 }
 
-// ApplyCommand advances the state machine upon command execution.
-func (c *Client) ApplyCommand(desc description.Server) {
+// ApplyCommand advances the state machine upon command execution. This must be called after server selection is
+// complete.
+func (c *Client) ApplyCommand(desc description.Server) error {
 	if c.Committing {
 		// Do not change state if committing after already committed
-		return
+		return nil
 	}
 	if c.TransactionState == Starting {
 		c.TransactionState = InProgress
@@ -404,18 +469,21 @@ func (c *Client) ApplyCommand(desc description.Server) {
 			c.PinnedServer = &desc
 		}
 	} else if c.TransactionState == Committed || c.TransactionState == Aborted {
-		c.clearTransactionOpts()
 		c.TransactionState = None
+		return c.clearTransactionOpts()
 	}
+
+	return nil
 }
 
-func (c *Client) clearTransactionOpts() {
+func (c *Client) clearTransactionOpts() error {
 	c.RetryingCommit = false
 	c.Aborting = false
 	c.Committing = false
 	c.CurrentWc = nil
 	c.CurrentRp = nil
 	c.CurrentRc = nil
-	c.PinnedServer = nil
 	c.RecoveryToken = nil
+
+	return c.ClearPinnedResources()
 }

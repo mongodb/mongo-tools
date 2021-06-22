@@ -28,6 +28,7 @@ type IsMaster struct {
 	topologyVersion    *description.TopologyVersion
 	maxAwaitTimeMS     *int64
 	serverAPI          *driver.ServerAPIOptions
+	loadBalanced       bool
 
 	res bsoncore.Document
 }
@@ -93,6 +94,12 @@ func (im *IsMaster) MaxAwaitTimeMS(awaitTime int64) *IsMaster {
 // ServerAPI sets the server API version for this operation.
 func (im *IsMaster) ServerAPI(serverAPI *driver.ServerAPIOptions) *IsMaster {
 	im.serverAPI = serverAPI
+	return im
+}
+
+// LoadBalanced specifies whether or not this operation is being sent over a connection to a load balanced cluster.
+func (im *IsMaster) LoadBalanced(lb bool) *IsMaster {
+	im.loadBalanced = lb
 	return im
 }
 
@@ -188,7 +195,11 @@ func (im *IsMaster) handshakeCommand(dst []byte, desc description.SelectedServer
 
 // command appends all necessary command fields.
 func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-	dst = bsoncore.AppendInt32Element(dst, "isMaster", 1)
+	if im.serverAPI != nil {
+		dst = bsoncore.AppendInt32Element(dst, "hello", 1)
+	} else {
+		dst = bsoncore.AppendInt32Element(dst, "isMaster", 1)
+	}
 
 	if tv := im.topologyVersion; tv != nil {
 		var tvIdx int32
@@ -200,6 +211,11 @@ func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, e
 	}
 	if im.maxAwaitTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxAwaitTimeMS", *im.maxAwaitTimeMS)
+	}
+	if im.loadBalanced {
+		// The loadBalanced parameter should only be added if it's true. We should never explicitly send
+		// loadBalanced=false per the load balancing spec.
+		dst = bsoncore.AppendBooleanElement(dst, "loadBalanced", true)
 	}
 
 	return dst, nil
@@ -225,8 +241,8 @@ func (im *IsMaster) createOperation() driver.Operation {
 		CommandFn:  im.command,
 		Database:   "admin",
 		Deployment: im.d,
-		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server, _ int) error {
-			im.res = response
+		ProcessResponseFn: func(info driver.ResponseInfo) error {
+			im.res = info.ServerResponse
 			return nil
 		},
 		ServerAPI: im.serverAPI,
@@ -241,8 +257,8 @@ func (im *IsMaster) GetHandshakeInformation(ctx context.Context, _ address.Addre
 		CommandFn:  im.handshakeCommand,
 		Deployment: driver.SingleConnectionDeployment{c},
 		Database:   "admin",
-		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server, _ int) error {
-			im.res = response
+		ProcessResponseFn: func(info driver.ResponseInfo) error {
+			im.res = info.ServerResponse
 			return nil
 		},
 		ServerAPI: im.serverAPI,
