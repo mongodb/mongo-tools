@@ -2346,7 +2346,7 @@ buildvariants:
 #######################################
 
 - name: rhel80-s390x
-  display_name: ZAP s390x RHEL 7.2
+  display_name: ZAP s390x RHEL 8.0
   run_on:
   - rhel80-zseries
   stepback: false
