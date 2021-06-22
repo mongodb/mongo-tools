@@ -198,6 +198,10 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 					restore.indexCatalog.AddIndex(intent.DB, intent.C, indexDefinition)
 				}
 
+				if _, ok := intent.Options["timeseries"]; ok {
+					intent.Type = "timeseries"
+				}
+
 				restore.indexCatalog.SetCollation(intent.DB, intent.C, intent.HasSimpleCollation())
 
 				if restore.OutputOptions.PreserveUUID {
@@ -286,7 +290,7 @@ func (restore *MongoRestore) RestoreIntents() Result {
 
 // RestoreIntent attempts to restore a given intent into MongoDB.
 func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
-	collectionExists, err := restore.CollectionExists(intent)
+	collectionExists, err := restore.CollectionExists(intent.DB, intent.C)
 	if err != nil {
 		return Result{Err: fmt.Errorf("error reading database: %v", err)}
 	}
@@ -369,12 +373,12 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 		defer intent.BSONFile.Close()
 
-		log.Logvf(log.Always, "restoring %v from %v", intent.Namespace(), intent.Location)
+		log.Logvf(log.Always, "restoring %v from %v", intent.DataNamespace(), intent.Location)
 
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
 		defer bsonSource.Close()
 
-		result = restore.RestoreCollectionToDB(intent.DB, intent.C, bsonSource, intent.BSONFile, intent.Size)
+		result = restore.RestoreCollectionToDB(intent.DB, intent.DataCollection(), bsonSource, intent.BSONFile, intent.Size, intent.Type)
 		if result.Err != nil {
 			result.Err = fmt.Errorf("error restoring from %v: %v", intent.Location, result.Err)
 			return result
@@ -439,7 +443,7 @@ func fixDottedHashedIndex(index *idx.IndexDocument) {
 // RestoreCollectionToDB pipes the given BSON data into the database.
 // Returns the number of documents restored and any errors that occurred.
 func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
-	bsonSource *db.DecodedBSONSource, file PosReader, fileSize int64) Result {
+	bsonSource *db.DecodedBSONSource, file PosReader, fileSize int64, collectionType string) Result {
 
 	var termErr error
 	session, err := restore.SessionProvider.GetSession()
@@ -493,7 +497,9 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 			bulk := db.NewUnorderedBufferedBulkInserter(collection, restore.OutputOptions.BulkBufferSize).
 				SetOrdered(restore.OutputOptions.MaintainInsertionOrder)
-			bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
+			if collectionType != "timeseries" {
+				bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
+			}
 			for rawDoc := range docChan {
 				if restore.objCheck {
 					result.Err = bson.Unmarshal(rawDoc, &bson.D{})

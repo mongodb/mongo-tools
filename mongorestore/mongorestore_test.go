@@ -23,6 +23,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -1582,6 +1583,358 @@ func TestCreateIndexes(t *testing.T) {
 			}
 			// Should create 3 indexes: _id and two others
 			So(indexCnt, ShouldEqual, 3)
+		})
+	})
+}
+
+func createTimeseries(dbName, coll string, client *mongo.Client) {
+	timeseriesOptions := bson.M{
+		"timeField": "ts",
+		"metaField": "meta",
+	}
+	createCmd := bson.D{
+		{"create", coll},
+		{"timeseries", timeseriesOptions},
+	}
+	client.Database(dbName).RunCommand(context.Background(), createCmd)
+}
+
+func TestRestoreTimeseriesCollections(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+	dbName := "timeseries_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
+	sessionProvider.GetNodeType()
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(dbName)
+
+		// Drop the collection to clean up resources
+		defer testdb.Drop(ctx)
+
+		args := []string{}
+		var restore *MongoRestore
+
+		Convey("restoring a directory should succeed", func() {
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err = getRestoreWithArgs(args...)
+
+			So(err, ShouldBeNil)
+
+		})
+
+		Convey("restoring an archive should succeed", func() {
+			args = append(args, ArchiveOption+"=testdata/timeseries_tests/dump.archive")
+			restore, err = getRestoreWithArgs(args...)
+
+			So(err, ShouldBeNil)
+		})
+
+		Convey("restoring an archive from stdin should succeed", func() {
+			args = append(args, ArchiveOption+"=-")
+			restore, err = getRestoreWithArgs(args...)
+
+			archiveFile, err := os.Open("testdata/timeseries_tests/dump.archive")
+			So(err, ShouldBeNil)
+			restore.InputReader = archiveFile
+		})
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldBeNil)
+		So(result.Successes, ShouldEqual, 10)
+		So(result.Failures, ShouldEqual, 0)
+
+		count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 1000)
+
+		count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+		So(err, ShouldBeNil)
+		So(count, ShouldEqual, 10)
+	})
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(dbName)
+
+		// Drop the collection to clean up resources
+		defer testdb.Drop(ctx)
+
+		args := []string{}
+
+		Convey("restoring a timeseries collection that already exists on the destination should fail", func() {
+			createTimeseries(dbName, "foo_ts", session)
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldNotBeNil)
+		})
+
+		Convey("restoring a timeseries collection when the system.buckets collection already exists on the destination should fail", func() {
+			testdb.RunCommand(context.Background(), bson.M{"create": "system.buckets.foo_ts"})
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldNotBeNil)
+		})
+
+		Convey("restoring a timeseries collection with --oplogReplay should apply changes to the system.buckets collection correctly", func() {
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump_with_oplog", OplogReplayOption)
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 2164)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("restoring a timeseries collection that already exists on the destination with --drop should succeed", func() {
+			createTimeseries(dbName, "foo_ts", session)
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump", DropOption)
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("restoring a timeseries collection with --noOptionsRestore should fail", func() {
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump", NoOptionsRestoreOption)
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldNotBeNil)
+		})
+
+		Convey("restoring a timeseries collection with invalid system.buckets should fail validation", func() {
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump_invalid_buckets")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 5)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("restoring a timeseries collection with invalid system.buckets should fail validation even with --bypassDocumentValidation", func() {
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump_invalid_buckets", BypassDocumentValidationOption)
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 5)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("timeseries collection should be restored if the system.buckets BSON file is used and the metadata exists", func() {
+			args = append(args, DBOption, dbName, CollectionOption, "foo_ts", "testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("timeseries collection should be restored if the system.buckets BSON file is used and the metadata exists and it should be renamed to --collection", func() {
+			args = append(args, DBOption, dbName, CollectionOption, "bar_ts", "testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("bar_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.bar_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("restoring a single system.buckets BSON file (with no metadata) should fail", func() {
+			args = append(args, DBOption, dbName, CollectionOption, "system.buckets.foo_ts", "testdata/timeseries_tests/ts_single_buckets_file/system.buckets.foo_ts.bson")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldNotBeNil)
+		})
+
+		Convey("system.buckets should be restored if the timeseries collection is included in --nsInclude", func() {
+			args = append(args, NSIncludeOption, dbName+".foo_ts", DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("system.buckets should not be restored if the timeseries collection is not included in --nsInclude", func() {
+			args = append(args, NSIncludeOption, dbName+".system.buckets.foo_ts", DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("system.buckets should not be restored if the timeseries collection is excluded by --nsExclude", func() {
+			args = append(args, NSExcludeOption, dbName+".foo_ts", DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 0)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
+
+		Convey("--noIndexRestore should stop secondary indexes from being built but should have no impact on the clustered index of system.buckets", func() {
+			args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump", NoIndexRestoreOption)
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+
+			indexes, err := testdb.Collection("foo_ts").Indexes().List(ctx)
+			defer indexes.Close(ctx)
+			So(err, ShouldBeNil)
+
+			numIndexes := 0
+			for indexes.Next(ctx) {
+				numIndexes++
+			}
+
+			So(numIndexes, ShouldEqual, 0)
+
+			cur, err := testdb.ListCollections(ctx, bson.M{"name": "system.buckets.foo_ts"})
+			So(err, ShouldBeNil)
+
+			for cur.Next(ctx) {
+				optVal, err := cur.Current.LookupErr("options")
+				So(err, ShouldBeNil)
+
+				optRaw, ok := optVal.DocumentOK()
+				So(ok, ShouldBeTrue)
+
+				clusteredIdxVal, err := optRaw.LookupErr("clusteredIndex")
+				So(err, ShouldBeNil)
+
+				clusteredIdx := clusteredIdxVal.Boolean()
+				So(clusteredIdx, ShouldBeTrue)
+			}
 		})
 	})
 }

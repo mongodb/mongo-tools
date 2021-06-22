@@ -49,18 +49,18 @@ func TestCollectionExists(t *testing.T) {
 			So(insertErr, ShouldBeNil)
 
 			Convey("collections that exist should return true", func() {
-				exists, err := restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "one"})
+				exists, err := restore.CollectionExists(ExistsDB, "one")
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
-				exists, err = restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "two"})
+				exists, err = restore.CollectionExists(ExistsDB, "two")
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
-				exists, err = restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "three"})
+				exists, err = restore.CollectionExists(ExistsDB, "three")
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
 
 				Convey("and those that do not exist should return false", func() {
-					exists, err = restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "four"})
+					exists, err = restore.CollectionExists(ExistsDB, "four")
 					So(err, ShouldBeNil)
 					So(exists, ShouldBeFalse)
 				})
@@ -75,10 +75,10 @@ func TestCollectionExists(t *testing.T) {
 			restore.knownCollections = map[string][]string{
 				ExistsDB: {"cats", "dogs", "snakes"},
 			}
-			exists, err := restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "dogs"})
+			exists, err := restore.CollectionExists(ExistsDB, "dogs")
 			So(err, ShouldBeNil)
 			So(exists, ShouldBeTrue)
-			exists, err = restore.CollectionExists(&intents.Intent{DB: ExistsDB, C: "two"})
+			exists, err = restore.CollectionExists(ExistsDB, "two")
 			So(err, ShouldBeNil)
 			So(exists, ShouldBeFalse)
 		})

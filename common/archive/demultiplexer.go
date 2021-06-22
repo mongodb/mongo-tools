@@ -12,12 +12,14 @@ import (
 	"hash"
 	"hash/crc64"
 	"io"
+	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -499,6 +501,8 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 	if !ok {
 		return nil
 	}
+	destDB, destC := util.SplitNamespace(namespace)
+	namespace = destDB + "." + strings.TrimPrefix(destC, "system.buckets.")
 	intent := prioritizer.mgr.IntentForNamespace(namespace)
 	if intent == nil {
 		prioritizer.NamespaceErrorChan <- fmt.Errorf("no intent for namespace %v", namespace)

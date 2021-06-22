@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -503,9 +504,12 @@ func (restore *MongoRestore) Restore() Result {
 			ns, ok := <-namespaceChan
 			// the archive can have only special collections. In that case we keep reading until
 			// the namespaces are exhausted, indicated by the namespaceChan being closed.
+			log.Logvf(log.DebugLow, "received %v from namespaceChan", ns)
 			if !ok {
 				break
 			}
+			dbName, collName := util.SplitNamespace(ns)
+			ns = dbName + "." + strings.TrimPrefix(collName, "system.buckets.")
 			intent := restore.manager.IntentForNamespace(ns)
 			if intent == nil {
 				return Result{Err: fmt.Errorf("no intent for collection in archive: %v", ns)}
@@ -552,6 +556,11 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	err = restore.PopulateMetadataForIntents()
+	if err != nil {
+		return Result{Err: fmt.Errorf("restore error: %v", err)}
+	}
+
+	err = restore.preFlightChecks()
 	if err != nil {
 		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
@@ -609,6 +618,42 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	return result
+}
+
+func (restore *MongoRestore) preFlightChecks() error {
+
+	for _, intent := range restore.manager.Intents() {
+		if intent.Type == "timeseries" {
+
+			if !restore.OutputOptions.Drop {
+				timeseriesExists, err := restore.CollectionExists(intent.DB, intent.C)
+				if err != nil {
+					return err
+				}
+
+				if timeseriesExists {
+					return fmt.Errorf("timeseries collection `%s` already exists on the destination. "+
+						"You must remove this collection from the destination or use --drop", intent.Namespace())
+				}
+
+				bucketExists, err := restore.CollectionExists(intent.DB, intent.DataCollection())
+				if err != nil {
+					return err
+				}
+
+				if bucketExists {
+					return fmt.Errorf("system.buckets collection `%v` already exists on the destination. "+
+						"You must remove this collection from the destination in order to restore %s", intent.DataNamespace(), intent.Namespace())
+				}
+			}
+
+			if restore.OutputOptions.NoOptionsRestore {
+				return fmt.Errorf("cannot specify --noOptionsRestore when restoring timeseries collections")
+			}
+		}
+	}
+
+	return nil
 }
 
 func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {

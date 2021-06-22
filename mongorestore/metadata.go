@@ -102,7 +102,7 @@ func stripDBFromNS(ns string) string {
 }
 
 // CollectionExists returns true if the given intent's collection exists.
-func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, error) {
+func (restore *MongoRestore) CollectionExists(dbName, coll string) (bool, error) {
 	restore.knownCollectionsMutex.Lock()
 	defer restore.knownCollectionsMutex.Unlock()
 
@@ -112,14 +112,14 @@ func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, err
 	}
 
 	// first check if we haven't done listCollections for this database already
-	if restore.knownCollections[intent.DB] == nil {
+	if restore.knownCollections[dbName] == nil {
 		// if the database name isn't in the cache, grab collection
 		// names from the server
 		session, err := restore.SessionProvider.GetSession()
 		if err != nil {
 			return false, fmt.Errorf("error establishing connection: %v", err)
 		}
-		collections, err := session.Database(intent.DB).ListCollections(nil, bson.M{})
+		collections, err := session.Database(dbName).ListCollections(nil, bson.M{})
 		if err != nil {
 			return false, err
 		}
@@ -130,12 +130,12 @@ func (restore *MongoRestore) CollectionExists(intent *intents.Intent) (bool, err
 			if !ok {
 				return false, fmt.Errorf("invalid collection name: %v", colNameRaw)
 			}
-			restore.knownCollections[intent.DB] = append(restore.knownCollections[intent.DB], colName)
+			restore.knownCollections[dbName] = append(restore.knownCollections[dbName], colName)
 		}
 	}
 
 	// now check the cache for the given collection name
-	exists := util.StringSliceContains(restore.knownCollections[intent.DB], intent.C)
+	exists := util.StringSliceContains(restore.knownCollections[dbName], coll)
 	return exists, nil
 }
 
@@ -397,7 +397,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(arg.intent.BSONFile))
 		defer bsonSource.Close()
 
-		tempCollectionNameExists, err := restore.CollectionExists(&intents.Intent{DB: "admin", C: arg.tempCollectionName})
+		tempCollectionNameExists, err := restore.CollectionExists("admin", arg.tempCollectionName)
 		if err != nil {
 			return err
 		}
@@ -410,7 +410,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		}
 
 		log.Logvf(log.DebugLow, "restoring %v to temporary collection", arg.intentType)
-		result := restore.RestoreCollectionToDB("admin", arg.tempCollectionName, bsonSource, arg.intent.BSONFile, 0)
+		result := restore.RestoreCollectionToDB("admin", arg.tempCollectionName, bsonSource, arg.intent.BSONFile, 0, "")
 		if result.Err != nil {
 			return fmt.Errorf("error restoring %v: %v", arg.intentType, result.Err)
 		}
