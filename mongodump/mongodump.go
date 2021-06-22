@@ -9,6 +9,8 @@ package mongodump
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
@@ -391,6 +393,15 @@ func (dump *MongoDump) Dump() (err error) {
 
 	// TODO, either remove this debug or improve the language
 	log.Logvf(log.DebugLow, "dump phase III: the oplog")
+
+	if failpoint.Enabled(failpoint.WaitForSIGUSR1BeforeOplog) {
+		sigs := make(chan os.Signal)
+		signal.Notify(sigs, syscall.SIGUSR1)
+		log.Logvf(log.Always, "failpoint.WaitForSIGUSR1BeforeOplog: waiting for SIGUSR1...")
+		<-sigs
+		signal.Stop(sigs)
+		log.Logvf(log.Always, "failpoint.WaitForSIGUSR1BeforeOplog: received SIGUSR1, continuing...")
+	}
 
 	// If we are capturing the oplog, we dump all oplog entries that occurred
 	// while dumping the database. Before and after dumping the oplog,

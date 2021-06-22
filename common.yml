@@ -554,6 +554,20 @@ functions:
           set -e
           mkdir -p bin
 
+  "fetch jstestfuzz" :
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          pwd
+          git clone git@github.com:tfogo/jstestfuzz.git
+          cd jstestfuzz
+          git checkout dumprestore
+          npm i
+
   "fetch ftdc" :
   - command: shell.exec
     type: test
@@ -868,6 +882,23 @@ tasks:
     - func: "fetch source"
     - command: expansions.update
     - func: "generate full JSON feed"
+
+- name: fuzz-tests
+  commands:
+    - func: "fetch source"
+    - func: "fetch jstestfuzz"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "4.4"
+    - func: "start mongod"
+    - func: "wait for mongod to be ready"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:fuzz -n=1
 
 - name: integration-3.4
   tags: ["3.4"]
@@ -1468,6 +1499,22 @@ buildvariants:
   tasks:
   - name: release-json
   - name: generate-full-json
+
+#######################################
+#        Fuzz Test Buildvariant       #
+#######################################
+
+- name: fuzz-tests
+  display_name: 'Fuzz Tests'
+  run_on:
+  - amazon1-2018-test
+  expansions:
+    <<: *mongod_default_startup_args
+    <<: *mongo_default_startup_args
+    mongo_os: "amazon"
+    mongo_edition: "targeted"
+  tasks:
+  - name: fuzz-tests
 
 #######################################
 #     Amazon x86_64 Buildvariants     #

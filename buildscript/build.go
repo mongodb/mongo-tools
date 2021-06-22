@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,6 +63,68 @@ func TestSRV(ctx *task.Context) error {
 // TestAWSAuth is an Executor that runs all AWS auth tests for the provided packages.
 func TestAWSAuth(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.AWSAuthTestType)
+}
+
+func TestFuzz(ctx *task.Context) error {
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat("jstestfuzz")
+	if err == os.ErrNotExist {
+		return fmt.Errorf("Could not find jstestfuzz, please clone jstestfuzz into the root of this repo")
+	} else if err != nil {
+		return fmt.Errorf("Could not find jstestfuzz directory: %v", err)
+	}
+
+	outFile, err := sh.CreateFileR(ctx, "testing_output/jstestfuzz.out")
+	if err != nil {
+		return fmt.Errorf("failed to create testing output file: %w", err)
+	}
+	defer outFile.Close()
+
+	err = os.Chdir("jstestfuzz")
+	if err != nil {
+		return fmt.Errorf("Could not change working directory to jstestfuzz: %v", err)
+	}
+
+	cmd := exec.CommandContext(ctx, "npm", "run", "initsync-fuzzer", "--", "--mongorestore", "-n", ctx.Get("n"))
+	err = sh.RunCmd(ctx, cmd)
+	if err != nil {
+		return err
+	}
+
+	fuzzFiles, err := ioutil.ReadDir("out")
+	if err != nil {
+		return fmt.Errorf("Could not read out directory: %v", err)
+	}
+
+	out := io.MultiWriter(ctx, outFile)
+	pathEnv := os.Getenv("PATH")
+	err = os.Setenv("PATH", fmt.Sprintf("%s/bin:%s", dir, pathEnv))
+	if err != nil {
+		return fmt.Errorf("setenv: %v", err)
+	}
+	env := append([]string{}, os.Environ()...)
+
+	for _, fuzzFile := range fuzzFiles {
+		if fuzzFile.Name() == ".gitignore" {
+			continue
+		}
+		cmd = exec.CommandContext(ctx, "mongo", "--port=33333", fmt.Sprintf("out/%s", fuzzFile.Name()))
+		cmd.Stdout = out
+		cmd.Stderr = out
+		cmd.Env = env
+
+		err = sh.RunCmd(ctx, cmd)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 // buildToolBinary builds the tool with the specified name, putting
