@@ -1736,3 +1736,129 @@ func TestTimeseriesCollections(t *testing.T) {
 		t.Errorf("could not setup timeseries collection: %v", err)
 	}
 }
+
+func TestFailDuringResharding(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Errorf("could not get session: %v", err)
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "4.9"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 4.9 or later")
+	}
+
+	ctx := context.Background()
+
+	Convey("With a MongoDump instance", t, func() {
+		err := setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		md := simpleMongoDumpInstance()
+		md.OutputOptions.Oplog = true
+		md.ToolOptions.Namespace = &options.Namespace{}
+		err = md.Init()
+		So(err, ShouldBeNil)
+
+		DefaultErrorMsg := "detected resharding in progress. Cannot dump with --oplog while resharding"
+		OplogErrorMsg := "cannot dump with oplog while resharding"
+
+		Convey("dump should fail if config.reshardingOperations exists on source", func() {
+			session.Database("config").CreateCollection(ctx, "reshardingOperations")
+			defer session.Database("config").Collection("reshardingOperations").Drop(ctx)
+
+			err = md.Dump()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
+		})
+
+		Convey("dump should fail if config.localReshardingOperations.donor exists on source", func() {
+			session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
+			defer session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
+
+			err = md.Dump()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
+		})
+
+		Convey("dump should fail if config.localReshardingOperations.recipient exists on source", func() {
+			session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
+			defer session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
+
+			err = md.Dump()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
+		})
+
+		Convey("dump should fail if config.reshardingOperations created in oplog", func() {
+			failpoint.ParseFailpoints("PauseBeforeDumping")
+			defer failpoint.Reset()
+
+			done := make(chan struct{})
+			go func() {
+				select {
+				case <-done:
+					return
+				default:
+					time.Sleep(2 * time.Second)
+					session.Database("config").CreateCollection(ctx, "reshardingOperations")
+					session.Database("config").Collection("reshardingOperations").Drop(ctx)
+				}
+			}()
+
+			err = md.Dump()
+			close(done)
+
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
+		})
+
+		Convey("dump should fail if config.localReshardingOperations.donor created in oplog", func() {
+			failpoint.ParseFailpoints("PauseBeforeDumping")
+			defer failpoint.Reset()
+
+			done := make(chan struct{})
+			go func() {
+				select {
+				case <-done:
+					return
+				default:
+					time.Sleep(2 * time.Second)
+					session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
+					session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
+				}
+			}()
+
+			err = md.Dump()
+			close(done)
+
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
+		})
+
+		Convey("dump should fail if config.localReshardingOperations.recipient created in oplog", func() {
+			failpoint.ParseFailpoints("PauseBeforeDumping")
+			defer failpoint.Reset()
+
+			done := make(chan struct{})
+			go func() {
+				select {
+				case <-done:
+					return
+				default:
+					time.Sleep(2 * time.Second)
+					session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
+					session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
+				}
+			}()
+
+			err = md.Dump()
+			close(done)
+
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
+		})
+
+	})
+}

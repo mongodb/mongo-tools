@@ -171,6 +171,15 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 	return false
 }
 
+func isReshardingCollection(collName string) bool {
+	switch collName {
+	case "reshardingOperations", "localReshardingOperations.donor", "localReshardingOperations.recipient":
+		return true
+	default:
+		return false
+	}
+}
+
 // shouldSkipCollection returns true when a collection name is excluded
 // by the mongodump options.
 func (dump *MongoDump) shouldSkipCollection(colName string) bool {
@@ -396,6 +405,9 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
 			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
 			continue
+		}
+		if dbName == "config" && dump.OutputOptions.Oplog && isReshardingCollection(collInfo.Name) {
+			return fmt.Errorf("detected resharding in progress. Cannot dump with --oplog while resharding")
 		}
 		if dump.shouldSkipCollection(collInfo.Name) {
 			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)
