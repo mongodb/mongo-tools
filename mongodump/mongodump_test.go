@@ -1801,9 +1801,10 @@ func TestFailDuringResharding(t *testing.T) {
 				case <-done:
 					return
 				default:
-					time.Sleep(2 * time.Second)
 					session.Database("config").CreateCollection(ctx, "reshardingOperations")
+					time.Sleep(1 * time.Second)
 					session.Database("config").Collection("reshardingOperations").Drop(ctx)
+					time.Sleep(1 * time.Second)
 				}
 			}()
 
@@ -1824,9 +1825,10 @@ func TestFailDuringResharding(t *testing.T) {
 				case <-done:
 					return
 				default:
-					time.Sleep(2 * time.Second)
 					session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
+					time.Sleep(1 * time.Second)
 					session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
+					time.Sleep(1 * time.Second)
 				}
 			}()
 
@@ -1847,9 +1849,10 @@ func TestFailDuringResharding(t *testing.T) {
 				case <-done:
 					return
 				default:
-					time.Sleep(2 * time.Second)
 					session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
+					time.Sleep(1 * time.Second)
 					session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
+					time.Sleep(1 * time.Second)
 				}
 			}()
 
