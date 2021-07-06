@@ -1687,6 +1687,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldNotBeNil)
 		})
 
@@ -1697,6 +1698,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldNotBeNil)
 		})
 
@@ -1706,6 +1708,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
@@ -1726,6 +1729,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
@@ -1745,6 +1749,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldNotBeNil)
 		})
 
@@ -1754,6 +1759,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 5)
@@ -1773,6 +1779,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 5)
@@ -1792,6 +1799,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
@@ -1811,6 +1819,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
@@ -1830,6 +1839,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldNotBeNil)
 		})
 
@@ -1839,6 +1849,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
@@ -1858,6 +1869,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
@@ -1877,6 +1889,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
@@ -1896,6 +1909,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			result := restore.Restore()
+			defer restore.Close()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
@@ -1935,6 +1949,62 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 				clusteredIdx := clusteredIdxVal.Boolean()
 				So(clusteredIdx, ShouldBeTrue)
 			}
+		})
+
+		Convey("system.buckets should be renamed if the timeseries collection is renamed", func() {
+			args = append(args, NSFromOption, dbName+".foo_ts", NSToOption, dbName+".foo_rename_ts", DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			defer restore.Close()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("foo_rename_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.foo_rename_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+		})
+
+		Convey("system.buckets should not be renamed if the timeseries collection is not renamed", func() {
+			args = append(args, NSFromOption, dbName+".system.buckets.foo_ts", NSToOption, dbName+".system.buckets.foo_rename_ts", DirectoryOption, "testdata/timeseries_tests/ts_dump")
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+
+			result := restore.Restore()
+			defer restore.Close()
+			So(result.Err, ShouldBeNil)
+			So(result.Successes, ShouldEqual, 10)
+			So(result.Failures, ShouldEqual, 0)
+
+			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1000)
+
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 10)
+
+			count, err = testdb.Collection("foo_rename_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = testdb.Collection("system.buckets.foo_rename_ts").CountDocuments(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
 		})
 	})
 }
