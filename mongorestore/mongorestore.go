@@ -653,6 +653,22 @@ func (restore *MongoRestore) preFlightChecks() error {
 		}
 	}
 
+	if restore.serverVersion.GTE(db.Version{4, 9, 0}) && !restore.OutputOptions.NoIndexRestore {
+		namespaces := restore.indexCatalog.Namespaces()
+		for _, ns := range namespaces {
+			indexes := restore.indexCatalog.GetIndexes(ns.DB, ns.Collection)
+			for _, index := range indexes {
+				for _, keyElement := range index.Key {
+					if keyElement.Value == "geoHaystack" {
+						return fmt.Errorf("found a geoHaystack index: %v on %s. "+
+							"geoHaystack indexes are not supported by the destination cluster. "+
+							"Remove the index from the source or use --noIndexRestore to skip all indexes.", index.Key, ns.String())
+					}
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
