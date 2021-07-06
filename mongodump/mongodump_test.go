@@ -1740,16 +1740,26 @@ func TestTimeseriesCollections(t *testing.T) {
 func TestFailDuringResharding(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Errorf("could not get session provider: %v", err)
+	}
+
+	session, err := sessionProvider.GetSession()
 	if err != nil {
 		t.Errorf("could not get session: %v", err)
 	}
+
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.9"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 4.9 or later")
 	}
 
 	ctx := context.Background()
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.SkipNow()
+	}
 
 	Convey("With a MongoDump instance", t, func() {
 		err := setUpMongoDumpTestData()
