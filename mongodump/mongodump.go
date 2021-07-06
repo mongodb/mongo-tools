@@ -570,6 +570,25 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	findQuery := &db.DeferredQuery{Coll: coll}
 	switch {
 	case len(dump.query) > 0:
+		if intent.IsTimeseries() {
+			metaKey, ok := intent.Options["timeseries"].(bson.M)["metaField"].(string)
+			if !ok {
+				return fmt.Errorf("could not determine the metaField for %s", intent.Namespace())
+			}
+			for i, predicate := range dump.query {
+				splitPredicateKey := strings.SplitN(predicate.Key, ".", 2)
+				if splitPredicateKey[0] != metaKey {
+					return fmt.Errorf("cannot process query %v for timeseries collection %s. "+
+						"mongodump only processes queries on metadata fields for timeseries collections.", dump.query, intent.Namespace())
+				}
+				if len(splitPredicateKey) > 1 {
+					dump.query[i].Key = "meta." + splitPredicateKey[1]
+				} else {
+					dump.query[i].Key = "meta"
+				}
+
+			}
+		}
 		findQuery.Filter = dump.query
 	// we only want to hint _id when the storage engine is MMAPV1 and this isn't a view, a
 	// special collection, the oplog, and the user is not asking to force table scans.
