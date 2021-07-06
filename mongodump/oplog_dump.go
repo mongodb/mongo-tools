@@ -144,6 +144,10 @@ func oplogDocumentValidator(in []byte) error {
 		return fmt.Errorf("cannot dump with oplog while renames occur")
 	}
 
+	if _, err := raw.LookupErr("o", "importCollection"); err == nil {
+		return fmt.Errorf("cannot dump with oplog while importCollection occurs")
+	}
+
 	if ok {
 		dbName := strings.SplitN(nsStr, ".", 2)[0]
 
