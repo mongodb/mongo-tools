@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
@@ -1515,218 +1516,218 @@ func TestTimeseriesCollections(t *testing.T) {
 		md.ToolOptions.Namespace.DB = dbName
 		md.OutputOptions.Out = "dump"
 
-		// Convey("a timeseries collection should produce a well-formatted dump", func() {
-		// 	Convey("to an archive", func() {
+		Convey("a timeseries collection should produce a well-formatted dump", func() {
+			Convey("to an archive", func() {
 
-		// 		md.OutputOptions.Out = ""
-		// 		md.OutputOptions.Archive = "dump.archive"
+				md.OutputOptions.Out = ""
+				md.OutputOptions.Archive = "dump.archive"
 
-		// 		Convey("when dumping the whole database", func() {
-		// 			// This is the default test of "to an archive".
-		// 			// It's meant to be a noop, do not delete.
-		// 		})
+				Convey("when dumping the whole database", func() {
+					// This is the default test of "to an archive".
+					// It's meant to be a noop, do not delete.
+				})
 
-		// 		Convey("when the collection is specified in --collection", func() {
-		// 			md.ToolOptions.DB = dbName
-		// 			md.ToolOptions.Collection = colName
-		// 		})
+				Convey("when the collection is specified in --collection", func() {
+					md.ToolOptions.DB = dbName
+					md.ToolOptions.Collection = colName
+				})
 
-		// 		Convey("even when the system.buckets collection is excluded", func() {
-		// 			Convey("by --excludeCollections", func() {
-		// 				md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
-		// 			})
+				Convey("even when the system.buckets collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+					})
 
-		// 			Convey("by --excludeCollectionsWithPrefix", func() {
-		// 				md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
-		// 			})
-		// 		})
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+					})
+				})
 
-		// 		err = md.Init()
-		// 		So(err, ShouldBeNil)
+				err = md.Init()
+				So(err, ShouldBeNil)
 
-		// 		err = md.Dump()
-		// 		So(err, ShouldBeNil)
+				err = md.Dump()
+				So(err, ShouldBeNil)
 
-		// 		path, err := os.Getwd()
-		// 		So(err, ShouldBeNil)
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
 
-		// 		archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+				archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
 
-		// 		archiveFile, err := os.Open(archiveFilePath)
-		// 		So(err, ShouldBeNil)
-		// 		archiveReader := &archive.Reader{
-		// 			In:      archiveFile,
-		// 			Prelude: &archive.Prelude{},
-		// 		}
+				archiveFile, err := os.Open(archiveFilePath)
+				So(err, ShouldBeNil)
+				archiveReader := &archive.Reader{
+					In:      archiveFile,
+					Prelude: &archive.Prelude{},
+				}
 
-		// 		err = archiveReader.Prelude.Read(archiveReader.In)
-		// 		So(err, ShouldBeNil)
+				err = archiveReader.Prelude.Read(archiveReader.In)
+				So(err, ShouldBeNil)
 
-		// 		collectionMetadatas, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
-		// 		So(ok, ShouldBeTrue)
+				collectionMetadatas, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+				So(ok, ShouldBeTrue)
 
-		// 		So(len(collectionMetadatas), ShouldEqual, 1)
-		// 		So(collectionMetadatas[0].Collection, ShouldEqual, colName)
+				So(len(collectionMetadatas), ShouldEqual, 1)
+				So(collectionMetadatas[0].Collection, ShouldEqual, colName)
 
-		// 		pe, err := archiveReader.Prelude.NewPreludeExplorer()
-		// 		So(err, ShouldBeNil)
+				pe, err := archiveReader.Prelude.NewPreludeExplorer()
+				So(err, ShouldBeNil)
 
-		// 		archiveContents, err := pe.ReadDir()
-		// 		So(err, ShouldBeNil)
+				archiveContents, err := pe.ReadDir()
+				So(err, ShouldBeNil)
 
-		// 		for _, dirlike := range archiveContents {
-		// 			if dirlike.IsDir() && dirlike.Name() == dbName {
-		// 				dbContents, err := dirlike.ReadDir()
-		// 				So(err, ShouldBeNil)
+				for _, dirlike := range archiveContents {
+					if dirlike.IsDir() && dirlike.Name() == dbName {
+						dbContents, err := dirlike.ReadDir()
+						So(err, ShouldBeNil)
 
-		// 				So(len(dbContents), ShouldEqual, 2)
+						So(len(dbContents), ShouldEqual, 2)
 
-		// 				for _, file := range dbContents {
-		// 					So(file.Name(), ShouldBeIn, []string{colName + ".metadata.json", "system.buckets." + colName + ".bson"})
-		// 				}
-		// 			}
-		// 		}
+						for _, file := range dbContents {
+							So(file.Name(), ShouldBeIn, []string{colName + ".metadata.json", "system.buckets." + colName + ".bson"})
+						}
+					}
+				}
 
-		// 		So(os.RemoveAll(archiveFilePath), ShouldBeNil)
-		// 	})
+				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
+			})
 
-		// 	Convey("to a directory", func() {
+			Convey("to a directory", func() {
 
-		// 		Convey("when dumping the whole database", func() {
-		// 			// This is the default test of "to a directory".
-		// 			// It's meant to be a noop, do not delete.
-		// 		})
+				Convey("when dumping the whole database", func() {
+					// This is the default test of "to a directory".
+					// It's meant to be a noop, do not delete.
+				})
 
-		// 		Convey("when the collection is specified in --collection", func() {
-		// 			md.ToolOptions.DB = dbName
-		// 			md.ToolOptions.Collection = colName
-		// 		})
+				Convey("when the collection is specified in --collection", func() {
+					md.ToolOptions.DB = dbName
+					md.ToolOptions.Collection = colName
+				})
 
-		// 		Convey("even when the system.buckets collection is excluded", func() {
-		// 			Convey("by --excludeCollections", func() {
-		// 				md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
-		// 			})
+				Convey("even when the system.buckets collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+					})
 
-		// 			Convey("by --excludeCollectionsWithPrefix", func() {
-		// 				md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
-		// 			})
-		// 		})
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+					})
+				})
 
-		// 		err = md.Init()
-		// 		So(err, ShouldBeNil)
+				err = md.Init()
+				So(err, ShouldBeNil)
 
-		// 		err = md.Dump()
-		// 		So(err, ShouldBeNil)
+				err = md.Dump()
+				So(err, ShouldBeNil)
 
-		// 		path, err := os.Getwd()
-		// 		So(err, ShouldBeNil)
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
 
-		// 		dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-		// 		dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-		// 		metadataFile := util.ToUniversalPath(filepath.Join(dumpDBDir, colName+".metadata.json"))
-		// 		bsonFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"))
-		// 		So(fileDirExists(dumpDir), ShouldBeTrue)
-		// 		So(fileDirExists(dumpDBDir), ShouldBeTrue)
-		// 		So(fileDirExists(metadataFile), ShouldBeTrue)
-		// 		So(fileDirExists(bsonFile), ShouldBeTrue)
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
+				metadataFile := util.ToUniversalPath(filepath.Join(dumpDBDir, colName+".metadata.json"))
+				bsonFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"))
+				So(fileDirExists(dumpDir), ShouldBeTrue)
+				So(fileDirExists(dumpDBDir), ShouldBeTrue)
+				So(fileDirExists(metadataFile), ShouldBeTrue)
+				So(fileDirExists(bsonFile), ShouldBeTrue)
 
-		// 		allFiles, err := getMatchingFiles(dumpDBDir, ".*")
-		// 		So(err, ShouldBeNil)
-		// 		So(len(allFiles), ShouldEqual, 2)
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				So(err, ShouldBeNil)
+				So(len(allFiles), ShouldEqual, 2)
 
-		// 		info, err := os.Stat(bsonFile)
-		// 		So(err, ShouldBeNil)
-		// 		So(info.Size(), ShouldBeGreaterThan, 0)
+				info, err := os.Stat(bsonFile)
+				So(err, ShouldBeNil)
+				So(info.Size(), ShouldBeGreaterThan, 0)
 
-		// 		So(os.RemoveAll(dumpDir), ShouldBeNil)
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
-		// 	})
+			})
 
-		// })
+		})
 
-		// Convey("a timeseries collection should not be dumped", func() {
-		// 	Convey("to an archive", func() {
+		Convey("a timeseries collection should not be dumped", func() {
+			Convey("to an archive", func() {
 
-		// 		md.OutputOptions.Out = ""
-		// 		md.OutputOptions.Archive = "dump.archive"
+				md.OutputOptions.Out = ""
+				md.OutputOptions.Archive = "dump.archive"
 
-		// 		Convey("when the collection is excluded", func() {
-		// 			Convey("by --excludeCollections", func() {
-		// 				md.ToolOptions.DB = dbName
-		// 				md.OutputOptions.ExcludedCollections = []string{colName}
-		// 			})
+				Convey("when the collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollections = []string{colName}
+					})
 
-		// 			Convey("by --excludeCollectionsWithPrefix", func() {
-		// 				md.ToolOptions.DB = dbName
-		// 				md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
-		// 			})
-		// 		})
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
+					})
+				})
 
-		// 		err = md.Init()
-		// 		So(err, ShouldBeNil)
+				err = md.Init()
+				So(err, ShouldBeNil)
 
-		// 		err = md.Dump()
-		// 		So(err, ShouldBeNil)
+				err = md.Dump()
+				So(err, ShouldBeNil)
 
-		// 		path, err := os.Getwd()
-		// 		So(err, ShouldBeNil)
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
 
-		// 		archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+				archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
 
-		// 		archiveFile, err := os.Open(archiveFilePath)
-		// 		So(err, ShouldBeNil)
-		// 		archiveReader := &archive.Reader{
-		// 			In:      archiveFile,
-		// 			Prelude: &archive.Prelude{},
-		// 		}
+				archiveFile, err := os.Open(archiveFilePath)
+				So(err, ShouldBeNil)
+				archiveReader := &archive.Reader{
+					In:      archiveFile,
+					Prelude: &archive.Prelude{},
+				}
 
-		// 		err = archiveReader.Prelude.Read(archiveReader.In)
-		// 		So(err, ShouldBeNil)
+				err = archiveReader.Prelude.Read(archiveReader.In)
+				So(err, ShouldBeNil)
 
-		// 		_, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
-		// 		So(ok, ShouldBeFalse)
+				_, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+				So(ok, ShouldBeFalse)
 
-		// 		So(os.RemoveAll(archiveFilePath), ShouldBeNil)
-		// 	})
+				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
+			})
 
-		// 	Convey("to a directory", func() {
-		// 		Convey("when the collection is excluded", func() {
-		// 			Convey("by --excludeCollections", func() {
-		// 				md.ToolOptions.DB = dbName
-		// 				md.OutputOptions.ExcludedCollections = []string{colName}
-		// 			})
+			Convey("to a directory", func() {
+				Convey("when the collection is excluded", func() {
+					Convey("by --excludeCollections", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollections = []string{colName}
+					})
 
-		// 			Convey("by --excludeCollectionsWithPrefix", func() {
-		// 				md.ToolOptions.DB = dbName
-		// 				md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
-		// 			})
-		// 		})
+					Convey("by --excludeCollectionsWithPrefix", func() {
+						md.ToolOptions.DB = dbName
+						md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
+					})
+				})
 
-		// 		err = md.Init()
-		// 		So(err, ShouldBeNil)
+				err = md.Init()
+				So(err, ShouldBeNil)
 
-		// 		err = md.Dump()
-		// 		So(err, ShouldBeNil)
+				err = md.Dump()
+				So(err, ShouldBeNil)
 
-		// 		path, err := os.Getwd()
-		// 		So(err, ShouldBeNil)
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
 
-		// 		dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-		// 		So(fileDirExists(dumpDir), ShouldBeFalse)
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				So(fileDirExists(dumpDir), ShouldBeFalse)
 
-		// 		So(os.RemoveAll(dumpDir), ShouldBeNil)
-		// 	})
-		// })
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			})
+		})
 
-		// Convey("specifying the buckets collection in --collection should fail", func() {
-		// 	md.ToolOptions.DB = dbName
-		// 	md.ToolOptions.Collection = "system.buckets." + colName
+		Convey("specifying the buckets collection in --collection should fail", func() {
+			md.ToolOptions.DB = dbName
+			md.ToolOptions.Collection = "system.buckets." + colName
 
-		// 	err = md.Init()
-		// 	So(err, ShouldNotBeNil)
-		// 	So(err.Error(), ShouldEndWith, "cannot specify a system.buckets collection in --collection. "+
-		// 		"Specifying the timeseries collection will dump the system.buckets collection")
-		// })
+			err = md.Init()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldEndWith, "cannot specify a system.buckets collection in --collection. "+
+				"Specifying the timeseries collection will dump the system.buckets collection")
+		})
 
 		Convey("querying the timeseries collection", func() {
 
