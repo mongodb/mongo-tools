@@ -275,7 +275,7 @@ func setUpTimeseries(dbName string, colName string) error {
 
 	timeseriesOptions := bson.M{
 		"timeField": "ts",
-		"metaField": "meta",
+		"metaField": "my_meta",
 	}
 	createCmd := bson.D{
 		{"create", colName},
@@ -290,7 +290,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	coll := sessionProvider.DB(dbName).Collection(colName)
 
 	idx := mongo.IndexModel{
-		Keys: bson.M{"meta.device": 1},
+		Keys: bson.M{"my_meta.device": 1},
 	}
 	_, err = coll.Indexes().CreateOne(context.Background(), idx)
 	if err != nil {
@@ -298,7 +298,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	}
 
 	idx = mongo.IndexModel{
-		Keys: bson.M{"ts": 1, "meta.device": 1},
+		Keys: bson.M{"ts": 1, "my_meta.device": 1},
 	}
 	_, err = coll.Indexes().CreateOne(context.Background(), idx)
 	if err != nil {
@@ -309,7 +309,7 @@ func setUpTimeseries(dbName string, colName string) error {
 		metadata := bson.M{
 			"device": i % 10,
 		}
-		_, err = coll.InsertOne(nil, bson.M{"ts": primitive.NewDateTimeFromTime(time.Now()), "meta": metadata, "measurement": i})
+		_, err = coll.InsertOne(nil, bson.M{"ts": primitive.NewDateTimeFromTime(time.Now()), "my_meta": metadata, "measurement": i})
 		if err != nil {
 			return err
 		}
@@ -1727,6 +1727,99 @@ func TestTimeseriesCollections(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldEndWith, "cannot specify a system.buckets collection in --collection. "+
 				"Specifying the timeseries collection will dump the system.buckets collection")
+		})
+
+		Convey("querying the timeseries collection", func() {
+
+			Convey("by a metadata field", func() {
+
+				Convey("with the --query option", func() {
+					md.ToolOptions.DB = dbName
+					md.ToolOptions.Collection = colName
+					md.InputOptions.Query = "{\"my_meta.device\": 1}"
+				})
+
+				Convey("with the --queryFile option", func() {
+					ioutil.WriteFile("ts_query.json", []byte("{\"my_meta.device\": 1}"), 0777)
+					md.ToolOptions.DB = dbName
+					md.ToolOptions.Collection = colName
+					md.InputOptions.QueryFile = "ts_query.json"
+				})
+
+				err = md.Init()
+				So(err, ShouldBeNil)
+
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
+				metadataFile := util.ToUniversalPath(filepath.Join(dumpDBDir, colName+".metadata.json"))
+				bsonFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"))
+				So(fileDirExists(dumpDir), ShouldBeTrue)
+				So(fileDirExists(dumpDBDir), ShouldBeTrue)
+				So(fileDirExists(metadataFile), ShouldBeTrue)
+				So(fileDirExists(bsonFile), ShouldBeTrue)
+
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				So(err, ShouldBeNil)
+				So(len(allFiles), ShouldEqual, 2)
+
+				info, err := os.Stat(bsonFile)
+				So(err, ShouldBeNil)
+				So(info.Size(), ShouldBeGreaterThan, 0)
+
+				fd, err := os.Open(bsonFile)
+				defer fd.Close()
+				So(err, ShouldBeNil)
+
+				bsonSource := db.NewBSONSource(fd)
+
+				matchedDoc := bson.Raw(bsonSource.LoadNext())
+				rawVal, err := matchedDoc.LookupErr("meta", "device")
+				So(err, ShouldBeNil)
+
+				val, ok := rawVal.Int32OK()
+				So(ok, ShouldBeTrue)
+				So(val, ShouldEqual, 1)
+
+				// only one bucket document should be matched
+				So(bsonSource.LoadNext(), ShouldBeNil)
+
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+				os.Remove("ts_query.json")
+
+			})
+
+		})
+
+		Convey("by a non-metadata field", func() {
+
+			Convey("with the --query option", func() {
+				md.ToolOptions.DB = dbName
+				md.ToolOptions.Collection = colName
+				md.InputOptions.Query = "{\"wrong.device\": 1}"
+			})
+
+			Convey("with the --queryFile option", func() {
+				ioutil.WriteFile("ts_query.json", []byte("{\"wrong.device\": 1}"), 0777)
+				md.ToolOptions.DB = dbName
+				md.ToolOptions.Collection = colName
+				md.InputOptions.QueryFile = "ts_query.json"
+			})
+
+			err = md.Init()
+			So(err, ShouldBeNil)
+
+			err = md.Dump()
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, "mongodump only processes queries on metadata fields for timeseries collections")
+
+			os.Remove("ts_query.json")
+
 		})
 
 	})
