@@ -1587,6 +1587,51 @@ func TestCreateIndexes(t *testing.T) {
 	})
 }
 
+func TestGeoHaystackIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+	dbName := "geohaystack_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
+	Convey("With a test MongoRestore instance", t, func() {
+		testdb := session.Database(dbName)
+
+		// Drop the collection to clean up resources
+		defer testdb.Collection("foo").Drop(ctx)
+
+		args := []string{
+			DirectoryOption, "testdata/coll_with_geohaystack_index",
+			DropOption,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		So(result.Err, ShouldNotBeNil)
+
+		So(result.Err.Error(), ShouldContainSubstring, "found a geoHaystack index")
+	})
+}
+
 func createTimeseries(dbName, coll string, client *mongo.Client) {
 	timeseriesOptions := bson.M{
 		"timeField": "ts",
@@ -1620,8 +1665,6 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 5.0 or later")
 	}
-
-	sessionProvider.GetNodeType()
 
 	Convey("With a test MongoRestore instance", t, func() {
 		testdb := session.Database(dbName)
