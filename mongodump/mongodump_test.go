@@ -1740,16 +1740,26 @@ func TestTimeseriesCollections(t *testing.T) {
 func TestFailDuringResharding(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Errorf("could not get session provider: %v", err)
+	}
+
+	session, err := sessionProvider.GetSession()
 	if err != nil {
 		t.Errorf("could not get session: %v", err)
 	}
+
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.9"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 4.9 or later")
 	}
 
 	ctx := context.Background()
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.SkipNow()
+	}
 
 	Convey("With a MongoDump instance", t, func() {
 		err := setUpMongoDumpTestData()
@@ -1801,9 +1811,10 @@ func TestFailDuringResharding(t *testing.T) {
 				case <-done:
 					return
 				default:
-					time.Sleep(2 * time.Second)
 					session.Database("config").CreateCollection(ctx, "reshardingOperations")
+					time.Sleep(1 * time.Second)
 					session.Database("config").Collection("reshardingOperations").Drop(ctx)
+					time.Sleep(1 * time.Second)
 				}
 			}()
 
@@ -1824,9 +1835,10 @@ func TestFailDuringResharding(t *testing.T) {
 				case <-done:
 					return
 				default:
-					time.Sleep(2 * time.Second)
 					session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
+					time.Sleep(1 * time.Second)
 					session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
+					time.Sleep(1 * time.Second)
 				}
 			}()
 
@@ -1847,9 +1859,10 @@ func TestFailDuringResharding(t *testing.T) {
 				case <-done:
 					return
 				default:
-					time.Sleep(2 * time.Second)
 					session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
+					time.Sleep(1 * time.Second)
 					session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
+					time.Sleep(1 * time.Second)
 				}
 			}()
 
