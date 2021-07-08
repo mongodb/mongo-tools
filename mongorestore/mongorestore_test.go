@@ -1979,7 +1979,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(count, ShouldEqual, 10)
 		})
 
-		Convey("system.buckets should not be renamed if the timeseries collection is not renamed", func() {
+		Convey("system.buckets collection should not be renamed if the timeseries collection is not renamed, even if the user tries to rename the system.buckets collection", func() {
 			args = append(args, NSFromOption, dbName+".system.buckets.foo_ts", NSToOption, dbName+".system.buckets.foo_rename_ts", DirectoryOption, "testdata/timeseries_tests/ts_dump")
 			restore, err := getRestoreWithArgs(args...)
 			So(err, ShouldBeNil)
