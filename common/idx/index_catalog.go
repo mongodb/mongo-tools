@@ -239,7 +239,7 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 	}
 }
 
-func updateExpireAfterSeconds(index *IndexDocument, expire int64) error {
+func updateExpireAfterSeconds(index *IndexDocument, expire int32) error {
 	if _, ok := index.Options["expireAfterSeconds"]; !ok {
 		return errors.Errorf("missing \"expireAfterSeconds\" in matching index: %v", index)
 	}
@@ -302,7 +302,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue interf
 
 	expireValue, expireKeyError := bsonutil.FindValueByKey("expireAfterSeconds", &indexMod)
 	if expireKeyError == nil {
-		newExpire, ok := expireValue.(int64)
+		newExpire, ok := expireValue.(int32)
 		if !ok {
 			return errors.Errorf("expireAfterSeconds must be a number (found %v of type %T): %v", expireValue, expireValue, indexMod)
 		}
