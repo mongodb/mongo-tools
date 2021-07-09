@@ -2120,7 +2120,7 @@ buildvariants:
     <<: *mongod_tls_startup_args
     <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
-    mongo_edition: "targeted"
+    mongo_edition: "enterprise"
     mongo_arch: "arm64"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
@@ -2129,9 +2129,9 @@ buildvariants:
     USE_SSL: "true"
   tasks:
   - name: "unit"
-  - name: ".3.4"
-  - name: ".3.6"
-  - name: ".4.0"
+  - name: ".3.4 !.mmap"
+  - name: ".3.6 !.mmap"
+  - name: ".4.0 !.mmap"
   - name: ".4.2"
   - name: ".4.4"
   - name: "dist"
