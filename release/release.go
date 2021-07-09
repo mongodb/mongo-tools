@@ -1113,6 +1113,8 @@ var linuxRepoVersionsStable = map[string]string{
 	"testing":     "4.0.0-rc0",          // any rc version will send the package to the "testing" repo
 	"4.3":         "4.3.0",              // any 4.3 stable release version will send the package to the "4.3" repo
 	"4.4":         "4.4.0",              // any 4.4 stable release version will send the package to the "4.4" repo
+	"4.9":         "4.9.0",              // any 4.9 stable release version will send the package to the "4.9" repo
+	"5.0":         "5.0.0",              // any 5.0 stable release version will send the package to the "5.0" repo
 }
 
 var linuxRepoVersionsUnstable = map[string]string{
