@@ -168,7 +168,7 @@ functions:
         if [ "${USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
         elif [ "${AWS_AUTH}" = "true" ]; then
-          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=SCRAM-SHA-256"
+          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
         fi;
         echo "Starting mongod..."
         storage_args=''
