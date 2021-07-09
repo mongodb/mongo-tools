@@ -71,7 +71,7 @@ def locateUrl(specs, override):
   for item in versions:
     downloads = filter(isCorrectDownload, item["downloads"])
     urls = map(lambda download : download["archive"]["url"], downloads)
-    if len(urls) > 0:
+    if len(list(urls)) > 0:
       if override:
         return urls[0].replace(item["version"], override)
       return urls[0]
