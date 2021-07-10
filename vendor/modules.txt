@@ -76,6 +76,8 @@ github.com/jessevdk/go-flags
 github.com/jmespath/go-jmespath
 # github.com/jtolds/gls v4.20.0+incompatible
 github.com/jtolds/gls
+# github.com/kisielk/errcheck v1.2.0
+## explicit
 # github.com/klauspost/compress v1.10.1
 ## explicit
 github.com/klauspost/compress/fse
@@ -109,15 +111,20 @@ github.com/smartystreets/assertions/internal/oglematchers
 github.com/smartystreets/goconvey/convey
 github.com/smartystreets/goconvey/convey/gotest
 github.com/smartystreets/goconvey/convey/reporting
+# github.com/xdg-go/pbkdf2 v1.0.0
+github.com/xdg-go/pbkdf2
+# github.com/xdg-go/scram v1.0.2
+github.com/xdg-go/scram
+# github.com/xdg-go/stringprep v1.0.2
+github.com/xdg-go/stringprep
 # github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
-github.com/xdg/scram
+## explicit
 # github.com/xdg/stringprep v1.0.1-0.20180714160509-73f8eece6fdc
 ## explicit
-github.com/xdg/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.4.6
+# go.mongodb.org/mongo-driver v1.4.0-beta2.0.20210708163339-c3b779ca84ff
 ## explicit
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -128,6 +135,8 @@ go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/event
 go.mongodb.org/mongo-driver/internal
 go.mongodb.org/mongo-driver/mongo
+go.mongodb.org/mongo-driver/mongo/address
+go.mongodb.org/mongo-driver/mongo/description
 go.mongodb.org/mongo-driver/mongo/gridfs
 go.mongodb.org/mongo-driver/mongo/options
 go.mongodb.org/mongo-driver/mongo/readconcern
@@ -138,11 +147,10 @@ go.mongodb.org/mongo-driver/version
 go.mongodb.org/mongo-driver/x/bsonx
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 go.mongodb.org/mongo-driver/x/mongo/driver
-go.mongodb.org/mongo-driver/x/mongo/driver/address
 go.mongodb.org/mongo-driver/x/mongo/driver/auth
+go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/awsv4
 go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi
 go.mongodb.org/mongo-driver/x/mongo/driver/connstring
-go.mongodb.org/mongo-driver/x/mongo/driver/description
 go.mongodb.org/mongo-driver/x/mongo/driver/dns
 go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt
 go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options
@@ -152,7 +160,7 @@ go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
 go.mongodb.org/mongo-driver/x/mongo/driver/uuid
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
-# golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
+# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 ## explicit
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
@@ -164,7 +172,7 @@ golang.org/x/sync/semaphore
 ## explicit
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.3
+# golang.org/x/text v0.3.5
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
 # gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
