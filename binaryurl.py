@@ -8,10 +8,7 @@ satisfying given version, edition, and operating system requirements.
 import argparse
 import json
 import sys
-try:
-    import urllib.request as urllib2
-except ImportError:
-    import urllib2
+import urllib.request as urllib2
 
 url_current = "http://downloads.mongodb.org/current.json"
 url_full = "http://downloads.mongodb.org/full.json"
