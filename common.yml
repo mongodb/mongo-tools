@@ -85,7 +85,12 @@ functions:
         set -e
         mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
         mongoversion=$(if [ "${mongo_version_always_use_latest}" ]; then echo "latest"; else echo "${mongo_version}"; fi)
-        dlurl=$(python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion --arch=${mongo_arch|x86_64})
+        PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
+        python="python3"
+        if [ "Windows_NT" = "$OS" ]; then
+          python="py.exe -3"
+        fi
+        dlurl=$($python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion --arch=${mongo_arch|x86_64})
         filename=$(echo $dlurl | sed -e "s_.*/__")
         mkdir -p bin
         curl -s $dlurl --output $filename
@@ -168,7 +173,7 @@ functions:
         if [ "${USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
         elif [ "${AWS_AUTH}" = "true" ]; then
-          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=SCRAM-SHA-256"
+          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
         fi;
         echo "Starting mongod..."
         storage_args=''
@@ -218,8 +223,8 @@ functions:
                 exit 0
             else
                 SECS=`expr $SECS + 1`
-                if [ $SECS -gt 20 ]; then
-                    echo "mongod not ready after 20 seconds"
+                if [ $SECS -gt 100 ]; then
+                    echo "mongod not ready after 100 seconds"
                     exit 1
                 fi
                 echo "waiting for mongod $MONGO_ARGS to be ready..."  ;
@@ -677,6 +682,10 @@ functions:
           venv='venv'
           venvNonWindows () { . "$venv"/bin/activate; python3 -m pip install boto3; }
           venvWindows () { . "$venv"/Scripts/activate; pip install boto3; }
+
+          # default to python3 inside mongodbtoolchain
+          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
+
           if [ -f "$venv"/bin/activate ]; then
             echo 'activating existing virtualenv'
             venvNonWindows
@@ -2116,7 +2125,7 @@ buildvariants:
     <<: *mongod_tls_startup_args
     <<: *mongo_tls_startup_args
     mongo_os: "ubuntu1604"
-    mongo_edition: "targeted"
+    mongo_edition: "enterprise"
     mongo_arch: "arm64"
     resmoke_use_ssl: _ssl
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
@@ -2125,9 +2134,9 @@ buildvariants:
     USE_SSL: "true"
   tasks:
   - name: "unit"
-  - name: ".3.4"
-  - name: ".3.6"
-  - name: ".4.0"
+  - name: ".3.4 !.mmap"
+  - name: ".3.6 !.mmap"
+  - name: ".4.0 !.mmap"
   - name: ".4.2"
   - name: ".4.4"
   - name: "dist"
