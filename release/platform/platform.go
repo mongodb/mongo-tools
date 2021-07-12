@@ -362,7 +362,7 @@ var platforms = []Platform{
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
-		Name:      "rhel80",
+		Name:      "rhel72",
 		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
