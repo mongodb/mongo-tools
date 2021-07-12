@@ -273,9 +273,9 @@ func setUpTimeseries(dbName string, colName string) error {
 		return err
 	}
 
-	timeseriesOptions := bson.M{
-		"timeField": "ts",
-		"metaField": "my_meta",
+	timeseriesOptions := bson.D{
+		{"timeField", "ts"},
+		{"metaField", "my_meta"},
 	}
 	createCmd := bson.D{
 		{"create", colName},
@@ -290,7 +290,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	coll := sessionProvider.DB(dbName).Collection(colName)
 
 	idx := mongo.IndexModel{
-		Keys: bson.M{"my_meta.device": 1},
+		Keys: bson.D{{"my_meta.device", 1}},
 	}
 	_, err = coll.Indexes().CreateOne(context.Background(), idx)
 	if err != nil {
@@ -298,7 +298,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	}
 
 	idx = mongo.IndexModel{
-		Keys: bson.M{"ts": 1, "my_meta.device": 1},
+		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
 	}
 	_, err = coll.Indexes().CreateOne(context.Background(), idx)
 	if err != nil {
