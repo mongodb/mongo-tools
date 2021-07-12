@@ -2354,16 +2354,16 @@ buildvariants:
 #     Z (s390x) Buildvariants         #
 #######################################
 
-- name: rhel80-s390x
-  display_name: ZAP s390x RHEL 8.0
+- name: rhel72-s390x
+  display_name: ZAP s390x RHEL 7.2
   run_on:
-  - rhel80-zseries
+  - rhel72-zseries
   stepback: false
   batchtime: 10080 # weekly
   expansions:
     <<: *mongod_default_startup_args
     <<: *mongo_default_startup_args
-    mongo_os: "rhel80"
+    mongo_os: "rhel72"
     mongo_edition: "enterprise"
     mongo_arch: "s390x"
     resmoke_use_ssl: _ssl
@@ -2376,9 +2376,9 @@ buildvariants:
   - name: ".4.4"
   - name: "dist"
   - name: "sign"
-    run_on: rhel80-small
+    run_on: rhel72-small
   - name: "push"
-    run_on: rhel80-small
+    run_on: rhel72-small
 
 #######################################
 #     Experimental Buildvariants      #
