@@ -15,18 +15,19 @@ type DeferredQuery struct {
 }
 
 // Count issues a EstimatedDocumentCount command when there is no Filter in the query and a CountDocuments command otherwise.
-func (q *DeferredQuery) Count() (int, error) {
+func (q *DeferredQuery) Count(isView bool) (int, error) {
 	emptyFilter := false
 
 	if q.Filter == nil {
 		emptyFilter = true
+		q.Filter = bson.D{{}}
 	} else if val, ok := q.Filter.(bson.D); ok && (val == nil || len(val.Map()) == 0) {
 		emptyFilter = true
 	} else if val, ok := q.Filter.(bson.M); ok && (val == nil || len(val) == 0) {
 		emptyFilter = true
 	}
 
-	if emptyFilter {
+	if emptyFilter && !isView {
 		opt := mopt.EstimatedDocumentCount()
 		c, err := q.Coll.EstimatedDocumentCount(nil, opt)
 		return int(c), err

@@ -273,9 +273,9 @@ func setUpTimeseries(dbName string, colName string) error {
 		return err
 	}
 
-	timeseriesOptions := bson.M{
-		"timeField": "ts",
-		"metaField": "my_meta",
+	timeseriesOptions := bson.D{
+		{"timeField", "ts"},
+		{"metaField", "my_meta"},
 	}
 	createCmd := bson.D{
 		{"create", colName},
@@ -290,7 +290,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	coll := sessionProvider.DB(dbName).Collection(colName)
 
 	idx := mongo.IndexModel{
-		Keys: bson.M{"my_meta.device": 1},
+		Keys: bson.D{{"my_meta.device", 1}},
 	}
 	_, err = coll.Indexes().CreateOne(context.Background(), idx)
 	if err != nil {
@@ -298,7 +298,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	}
 
 	idx = mongo.IndexModel{
-		Keys: bson.M{"ts": 1, "my_meta.device": 1},
+		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
 	}
 	_, err = coll.Indexes().CreateOne(context.Background(), idx)
 	if err != nil {
@@ -1460,31 +1460,31 @@ func TestCount(t *testing.T) {
 
 		Convey("count collection without filter", func() {
 			findQuery := &db.DeferredQuery{Coll: collection}
-			cnt, err := findQuery.Count()
+			cnt, err := findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 10)
 
 			findQuery = &db.DeferredQuery{Coll: collection, Filter: bson.M{}}
-			cnt, err = findQuery.Count()
+			cnt, err = findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 10)
 
 			findQuery = &db.DeferredQuery{Coll: collection, Filter: bson.D{}}
-			cnt, err = findQuery.Count()
+			cnt, err = findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 10)
 		})
 
 		Convey("count collection with filter in BSON.M", func() {
 			findQuery := &db.DeferredQuery{Coll: collection, Filter: bson.M{"age": 1}}
-			cnt, err := findQuery.Count()
+			cnt, err := findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 1)
 		})
 
 		Convey("count collection with filter in BSON.D", func() {
 			findQuery := &db.DeferredQuery{Coll: collection, Filter: bson.D{{"age", 1}}}
-			cnt, err := findQuery.Count()
+			cnt, err := findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 1)
 		})

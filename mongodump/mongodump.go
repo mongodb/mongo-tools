@@ -642,7 +642,10 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 	}
 
 	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", query.Coll.Database().Name(), query.Coll.Name())
-	total, err := query.Count()
+	// We call getCount() when we are dumping a collection. If we are dumping views as collections, we need to run a
+	// count instead of an estimatedDocumentCount which uses collStats. We don't do this if the intent is timeseries because
+	// we would be dumping system.buckets.X which can use collStats.
+	total, err := query.Count(intent.IsView())
 	if err != nil {
 		return 0, fmt.Errorf("error getting count from db: %v", err)
 	}
