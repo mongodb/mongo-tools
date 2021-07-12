@@ -1460,31 +1460,31 @@ func TestCount(t *testing.T) {
 
 		Convey("count collection without filter", func() {
 			findQuery := &db.DeferredQuery{Coll: collection}
-			cnt, err := findQuery.Count()
+			cnt, err := findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 10)
 
 			findQuery = &db.DeferredQuery{Coll: collection, Filter: bson.M{}}
-			cnt, err = findQuery.Count()
+			cnt, err = findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 10)
 
 			findQuery = &db.DeferredQuery{Coll: collection, Filter: bson.D{}}
-			cnt, err = findQuery.Count()
+			cnt, err = findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 10)
 		})
 
 		Convey("count collection with filter in BSON.M", func() {
 			findQuery := &db.DeferredQuery{Coll: collection, Filter: bson.M{"age": 1}}
-			cnt, err := findQuery.Count()
+			cnt, err := findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 1)
 		})
 
 		Convey("count collection with filter in BSON.D", func() {
 			findQuery := &db.DeferredQuery{Coll: collection, Filter: bson.D{{"age", 1}}}
-			cnt, err := findQuery.Count()
+			cnt, err := findQuery.Count(false)
 			So(err, ShouldBeNil)
 			So(cnt, ShouldEqual, 1)
 		})
