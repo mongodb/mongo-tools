@@ -2376,9 +2376,9 @@ buildvariants:
   - name: ".4.4"
   - name: "dist"
   - name: "sign"
-    run_on: rhel72-small
+    run_on: rhel80-small
   - name: "push"
-    run_on: rhel72-small
+    run_on: rhel80-small
 
 #######################################
 #     Experimental Buildvariants      #
