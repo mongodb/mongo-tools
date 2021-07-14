@@ -146,8 +146,13 @@ func streamOutput(prefix string, reader io.Reader) {
 	}
 }
 
-func runAndStreamStderr(logPrefix string, name string, args ...string) error {
+func runAndStreamStderr(logPrefix string, name string, envOverrides map[string]string, args ...string) error {
 	cmd := exec.Command(name, args...)
+
+	cmd.Env = os.Environ()
+	for k, v := range envOverrides {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
@@ -1108,17 +1113,42 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-var linuxRepoVersionsStable = map[string]string{
-	"development": "4.0.0-15-gabcde123", // any non-rc pre-release version will send the package to the "development" repo
-	"testing":     "4.0.0-rc0",          // any rc version will send the package to the "testing" repo
-	"4.3":         "4.3.0",              // any 4.3 stable release version will send the package to the "4.3" repo
-	"4.4":         "4.4.0",              // any 4.4 stable release version will send the package to the "4.4" repo
-	"4.9":         "4.9.0",              // any 4.9 stable release version will send the package to the "4.9" repo
-	"5.0":         "5.0.0",              // any 5.0 stable release version will send the package to the "5.0" repo
+type VersionWithSigningInfo struct {
+	mongoVersionNumber string
+	notaryKeyName string
+	notaryToken string
 }
 
-var linuxRepoVersionsUnstable = map[string]string{
-	"development": "4.0.0-15-gabcde123", // any non-rc pre-release version will send the package to the "development" repo
+var linuxRepoVersionsStable = map[string]VersionWithSigningInfo{
+	"development": {"4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
+	"testing":     {"4.0.0-rc0", "", ""},          // any rc version will send the package to the "testing" repo
+	"4.3":         {"4.3.0", "server-4.4", os.Getenv("SIGNING_AUTH_TOKEN_SERVER_4_4")},              // any 4.3 stable release version will send the package to the "4.3" repo
+	"4.4":         {"4.4.0", "server-4.4", os.Getenv("SIGNING_AUTH_TOKEN_SERVER_4_4")},              // any 4.4 stable release version will send the package to the "4.4" repo
+	"4.9":         {"4.9.0", "server-5.0", os.Getenv("SIGNING_AUTH_TOKEN_SERVER_5_0")},              // any 4.9 stable release version will send the package to the "4.9" repo
+	"5.0":         {"5.0.0", "server-5.0", os.Getenv("SIGNING_AUTH_TOKEN_SERVER_5_0")},              // any 5.0 stable release version will send the package to the "5.0" repo
+}
+
+var linuxRepoVersionsUnstable = map[string]VersionWithSigningInfo{
+	"development": {"4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
+}
+
+// findArgIndex is the helper function to locate index of provided arg value from an array of arg list
+// The arg list array is assumed to be in such format: ["arg1_name", "arg1_value", "arg2_name", "arg2_value"...]
+// It returns the index of the arg value from the list. If not found or index output bound, it returns -1
+func findArgIndex(args []string, name string) int {
+	for i, v := range args {
+		if i %2 == 1 {
+			continue
+		}
+		if v == name{
+			idx := i + 1
+			if idx > len(args) - 1 {
+				return -1
+			}
+			return idx
+		}
+	}
+	return -1
 }
 
 func linuxRelease(v version.Version) {
@@ -1174,10 +1204,10 @@ func linuxRelease(v version.Version) {
 			versionsToRelease = linuxRepoVersionsUnstable
 		}
 
-		for mongoVersionName, mongoVersionNumber := range versionsToRelease {
+		for mongoVersionName, versionWithSigningInfo := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
 				wg.Add(1)
-				go func(mongoEdition string, mongoVersionName string, mongoVersionNumber string) {
+				go func(mongoEdition string, mongoVersionName string, versionWithSigningInfo VersionWithSigningInfo) {
 					var err error
 					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, mongoVersionName)
 					// retry twice on failure.
@@ -1191,19 +1221,38 @@ func linuxRelease(v version.Version) {
 							"--distro", pf.Name,
 							"--arch", pf.Arch,
 							"--edition", mongoEdition,
-							"--version", mongoVersionNumber,
+							"--version", versionWithSigningInfo.mongoVersionNumber,
 							"--packages", packagesURL,
 							"--username", os.Getenv("BARQUE_USERNAME"),
 							"--api_key", os.Getenv("BARQUE_API_KEY"),
 						}
-						log.Printf("curatorArgs %v\n", curatorArgs)
 
 						if retries == maxRetries {
 							log.Printf("starting curator for %s\n", prefix)
 						} else {
 							log.Printf("restarting curator for %s after failure\n", prefix)
 						}
-						err = runAndStreamStderr(prefix, "./curator", curatorArgs...)
+
+						envOverrides := make(map[string]string)
+						envOverrides["NOTARY_KEY_NAME"] = versionWithSigningInfo.notaryKeyName
+						envOverrides["NOTARY_TOKEN"] = versionWithSigningInfo.notaryToken
+
+						// Remove sensitive information from curator input and log
+						curatorArgsLog := append([]string{}, curatorArgs...)
+						envOverridesLog := make(map[string]string)
+						for k, v := range envOverrides {
+							envOverridesLog[k] = v
+						}
+						apiKeyIdex := findArgIndex(curatorArgsLog, "--api_key")
+						if apiKeyIdex >= 0 {
+							curatorArgsLog[apiKeyIdex] = "[REDACTED]"
+						}
+						envOverridesLog["NOTARY_TOKEN"] = "[REDACTED]"
+						log.Printf("curatorArgs: %v, envOverrides: %v\n", curatorArgsLog, envOverridesLog)
+
+						err = runAndStreamStderr(prefix, "./curator", envOverrides, curatorArgs...)
+
+
 						if err == nil {
 							log.Printf("finished curator for %s\n", prefix)
 							wg.Done()
@@ -1211,7 +1260,7 @@ func linuxRelease(v version.Version) {
 						}
 					}
 					check(err, "run curator for %s", prefix)
-				}(mongoEdition, mongoVersionName, mongoVersionNumber)
+				}(mongoEdition, mongoVersionName, versionWithSigningInfo)
 
 				// We need to sleep briefly between curator
 				// invocations because of an auth race condition in
