@@ -1248,7 +1248,7 @@ func linuxRelease(v version.Version) {
 							curatorArgsLog[apiKeyIdex] = "[REDACTED]"
 						}
 						envOverridesLog["NOTARY_TOKEN"] = "[REDACTED]"
-						log.Printf("curatorArgs: %v, envOverrides: %v\n", curatorArgsLog, envOverridesLog)
+						log.Printf("[%s] curatorArgs: %v, envOverrides: %v\n", prefix, curatorArgsLog, envOverridesLog)
 
 						err = runAndStreamStderr(prefix, "./curator", envOverrides, curatorArgs...)
 
