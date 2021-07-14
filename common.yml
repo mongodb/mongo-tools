@@ -765,8 +765,6 @@ pre:
           export EVG_KEY='${evg_key}'
           export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
           export AWS_SECRET_ACCESS_KEY='${release_aws_secret}'
-          export NOTARY_KEY_NAME='server-4.4'
-          export NOTARY_TOKEN='${signing_auth_token_server_4_4}'
           export NOTARY_TOKEN_4_4='${signing_auth_token_server_4_4}'
           export NOTARY_TOKEN_5_0='${signing_auth_token_server_5_0}'
           export BARQUE_USERNAME='${evg_user}'
