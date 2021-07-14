@@ -1120,17 +1120,17 @@ type LinuxRepo struct {
 	notaryToken string
 }
 
-var linuxRepoVersionsStable = map[string]VersionWithSigningInfo{
-	"development": {"4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
-	"testing":     {"4.0.0-rc0", "", ""},          // any rc version will send the package to the "testing" repo
-	"4.3":         {"4.3.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.3 stable release version will send the package to the "4.3" repo
-	"4.4":         {"4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.4 stable release version will send the package to the "4.4" repo
-	"4.9":         {"4.9.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 4.9 stable release version will send the package to the "4.9" repo
-	"5.0":         {"5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 5.0 stable release version will send the package to the "5.0" repo
+var linuxRepoVersionsStable = []LinuxRepo{
+	{"development", "4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
+	{"testing", "4.0.0-rc0", "", ""},          // any rc version will send the package to the "testing" repo
+	{"4.3", "4.3.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.3 stable release version will send the package to the "4.3" repo
+	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.4 stable release version will send the package to the "4.4" repo
+	{"4.9", "4.9.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 4.9 stable release version will send the package to the "4.9" repo
+	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 5.0 stable release version will send the package to the "5.0" repo
 }
 
-var linuxRepoVersionsUnstable = map[string]VersionWithSigningInfo{
-	"development": {"4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
+var linuxRepoVersionsUnstable = []LinuxRepo{
+	{"development", "4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
 }
 
 // findArgIndex is the helper function to locate index of provided arg value from an array of arg list
@@ -1205,12 +1205,12 @@ func linuxRelease(v version.Version) {
 			versionsToRelease = linuxRepoVersionsUnstable
 		}
 
-		for mongoVersionName, versionWithSigningInfo := range versionsToRelease {
+		for _, linuxRepo := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
 				wg.Add(1)
-				go func(mongoEdition string, mongoVersionName string, versionWithSigningInfo VersionWithSigningInfo) {
+				go func(mongoEdition string, linuxRepo LinuxRepo) {
 					var err error
-					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, mongoVersionName)
+					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, linuxRepo.name)
 					// retry twice on failure.
 					maxRetries := 2
 					for retries := maxRetries; retries >= 0; retries-- {
@@ -1222,7 +1222,7 @@ func linuxRelease(v version.Version) {
 							"--distro", pf.Name,
 							"--arch", pf.Arch,
 							"--edition", mongoEdition,
-							"--version", versionWithSigningInfo.mongoVersionNumber,
+							"--version", linuxRepo.mongoVersionNumber,
 							"--packages", packagesURL,
 							"--username", os.Getenv("BARQUE_USERNAME"),
 							"--api_key", os.Getenv("BARQUE_API_KEY"),
@@ -1235,8 +1235,8 @@ func linuxRelease(v version.Version) {
 						}
 
 						envOverrides := make(map[string]string)
-						envOverrides["NOTARY_KEY_NAME"] = versionWithSigningInfo.notaryKeyName
-						envOverrides["NOTARY_TOKEN"] = versionWithSigningInfo.notaryToken
+						envOverrides["NOTARY_KEY_NAME"] = linuxRepo.notaryKeyName
+						envOverrides["NOTARY_TOKEN"] = linuxRepo.notaryToken
 
 						// Remove sensitive information from curator input and log
 						curatorArgsLog := append([]string{}, curatorArgs...)
@@ -1247,7 +1247,10 @@ func linuxRelease(v version.Version) {
 						apiKeyIdex := findArgIndex(curatorArgsLog, "--api_key")
 						if apiKeyIdex >= 0 {
 							curatorArgsLog[apiKeyIdex] = "[REDACTED]"
+						} else {
+							panic("Could not find --api_key inside curatorArgs")
 						}
+
 						envOverridesLog["NOTARY_TOKEN"] = "[REDACTED]"
 						log.Printf("[%s] curatorArgs: %v, envOverrides: %v\n", prefix, curatorArgsLog, envOverridesLog)
 
@@ -1261,7 +1264,7 @@ func linuxRelease(v version.Version) {
 						}
 					}
 					check(err, "run curator for %s", prefix)
-				}(mongoEdition, mongoVersionName, versionWithSigningInfo)
+				}(mongoEdition, linuxRepo)
 
 				// We need to sleep briefly between curator
 				// invocations because of an auth race condition in
