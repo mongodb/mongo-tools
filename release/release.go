@@ -1177,7 +1177,7 @@ func linuxRelease(v version.Version) {
 		for mongoVersionName, mongoVersionNumber := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
 				wg.Add(1)
-				go func() {
+				go func(mongoEdition string, mongoVersionName string, mongoVersionNumber string) {
 					var err error
 					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, mongoVersionName)
 					// retry twice on failure.
@@ -1196,6 +1196,7 @@ func linuxRelease(v version.Version) {
 							"--username", os.Getenv("BARQUE_USERNAME"),
 							"--api_key", os.Getenv("BARQUE_API_KEY"),
 						}
+						log.Printf("curatorArgs %v\n", curatorArgs)
 
 						if retries == maxRetries {
 							log.Printf("starting curator for %s\n", prefix)
@@ -1210,7 +1211,7 @@ func linuxRelease(v version.Version) {
 						}
 					}
 					check(err, "run curator for %s", prefix)
-				}()
+				}(mongoEdition, mongoVersionName, mongoVersionNumber)
 
 				// We need to sleep briefly between curator
 				// invocations because of an auth race condition in
