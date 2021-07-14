@@ -1113,7 +1113,8 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-type VersionWithSigningInfo struct {
+type LinuxRepo struct {
+    name string
 	mongoVersionNumber string
 	notaryKeyName string
 	notaryToken string
