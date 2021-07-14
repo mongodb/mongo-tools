@@ -1121,9 +1121,8 @@ type LinuxRepo struct {
 }
 
 var linuxRepoVersionsStable = []LinuxRepo{
-	{"development", "4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
-	{"testing", "4.0.0-rc0", "", ""},          // any rc version will send the package to the "testing" repo
-	{"4.3", "4.3.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.3 stable release version will send the package to the "4.3" repo
+	{"development", "4.0.0-15-gabcde123", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")}, // any non-rc pre-release version will send the package to the "development" repo
+	{"testing", "4.0.0-rc0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},          // any rc version will send the package to the "testing" repo
 	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.4 stable release version will send the package to the "4.4" repo
 	{"4.9", "4.9.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 4.9 stable release version will send the package to the "4.9" repo
 	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 5.0 stable release version will send the package to the "5.0" repo
