@@ -1114,17 +1114,17 @@ func uploadRelease(v version.Version) {
 }
 
 type LinuxRepo struct {
-    name string
+	name               string
 	mongoVersionNumber string
-	notaryKeyName string
-	notaryToken string
+	notaryKeyName      string
+	notaryToken        string
 }
 
 var linuxRepoVersionsStable = []LinuxRepo{
 	{"development", "4.0.0-15-gabcde123", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")}, // any non-rc pre-release version will send the package to the "development" repo
-	{"testing", "4.0.0-rc0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},          // any rc version will send the package to the "testing" repo
-	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any 4.4 stable release version will send the package to the "4.4" repo
-	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},              // any 5.0 stable release version will send the package to the "5.0" repo
+	{"testing", "4.0.0-rc0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},              // any rc version will send the package to the "testing" repo
+	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")},                      // any 4.4 stable release version will send the package to the "4.4" repo
+	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")},                      // any 5.0 stable release version will send the package to the "5.0" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
@@ -1136,12 +1136,12 @@ var linuxRepoVersionsUnstable = []LinuxRepo{
 // It returns the index of the arg value from the list. If not found or index output bound, it returns -1
 func findArgIndex(args []string, name string) int {
 	for i, v := range args {
-		if i %2 == 1 {
+		if i%2 == 1 {
 			continue
 		}
-		if v == name{
+		if v == name {
 			idx := i + 1
-			if idx > len(args) - 1 {
+			if idx > len(args)-1 {
 				return -1
 			}
 			return idx
@@ -1253,7 +1253,6 @@ func linuxRelease(v version.Version) {
 						log.Printf("[%s] curatorArgs: %v, envOverrides: %v\n", prefix, curatorArgsLog, envOverridesLog)
 
 						err = runAndStreamStderr(prefix, "./curator", envOverrides, curatorArgs...)
-
 
 						if err == nil {
 							log.Printf("finished curator for %s\n", prefix)
