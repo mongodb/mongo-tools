@@ -35,7 +35,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2041'>TOOLS-2041</a>] -         Mongorestore should handle duplicate key errors during oplog replay
 </li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2833'>TOOLS-2833</a>] -         creating and index with partialFilterExpression during oplogReplay fails
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2833'>TOOLS-2833</a>] -         Creating an index with partialFilterExpression during oplogReplay fails
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2925'>TOOLS-2925</a>] -         RPM packages are only signed with the 4.4 auth token
 </li>
