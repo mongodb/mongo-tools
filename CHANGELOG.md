@@ -1,5 +1,90 @@
 # Database Tools Changelog
 
+## 100.4.0
+
+_Released 2021-07-19_
+
+We are pleased to announce version 100.4.0 of the MongoDB Database Tools.
+
+This release includes server 5.0 support, including dump/restoring timeseries collections.  
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+<h3>        Build Failure
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2892'>TOOLS-2892</a>] -         aws-auth tests failing on all variants
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2893'>TOOLS-2893</a>] -         legacy-js-tests 4.4 and 5.0 failing on all variants
+</li>
+</ul>
+                                                                        
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2845'>TOOLS-2845</a>] -         Release Database Tools 100.4.0
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2041'>TOOLS-2041</a>] -         Mongorestore should handle duplicate key errors during oplog replay
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2833'>TOOLS-2833</a>] -         creating and index with partialFilterExpression during oplogReplay fails
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2925'>TOOLS-2925</a>] -         RPM packages are only signed with the 4.4 auth token
+</li>
+</ul>
+        
+<h3>        New Feature
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2857'>TOOLS-2857</a>] -         Dump timeseries collections
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2858'>TOOLS-2858</a>] -         Mongodump can query timeseries collections by metadata
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2859'>TOOLS-2859</a>] -         Restore timeseries collections
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2860'>TOOLS-2860</a>] -         Include/Exclude/Rename timeseries collections in mongorestore
+</li>
+</ul>
+        
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2719'>TOOLS-2719</a>] -         Add Enterprise RHEL 8 zSeries to Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2721'>TOOLS-2721</a>] -         Add RHEL8 ARM to Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2777'>TOOLS-2777</a>] -         Generate Full JSON variant should not be running on every commit
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2823'>TOOLS-2823</a>] -         Build with go 1.16
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2824'>TOOLS-2824</a>] -         Add static analysis task that runs &quot;evergreen validate&quot;
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2849'>TOOLS-2849</a>] -         Mongodump should fail during resharding
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2850'>TOOLS-2850</a>] -         Mongorestore should fail when restoring geoHaystack indexes to 4.9.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2851'>TOOLS-2851</a>] -         importCollection command should cause mongodump to fail
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2853'>TOOLS-2853</a>] -         Hide deprecated --slaveOk option
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2866'>TOOLS-2866</a>] -         Drop support for zSeries platforms
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2873'>TOOLS-2873</a>] -         Run full test suite on all supported distros in evergreen
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2881'>TOOLS-2881</a>] -         Push tools releases to 4.9+ linux repos
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2921'>TOOLS-2921</a>] -         Upgrade to Go Driver 1.6
+</li>
+</ul>
+                                                
 ## 100.3.1
 
 _Released 2021-03-17_
