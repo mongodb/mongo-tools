@@ -8,6 +8,7 @@ package status
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"time"
@@ -63,6 +64,12 @@ func numberToInt64(num interface{}) (int64, bool) {
 		return int64(n), true
 	case int:
 		return int64(n), true
+	case float32:
+		return int64(n), true
+	case float64:
+		if math.MinInt64 <= n && n <= math.MaxInt64 {
+			return int64(n), true
+		}
 	}
 	return 0, false
 }
