@@ -18,9 +18,10 @@ type DeferredQuery struct {
 func (q *DeferredQuery) Count(isView bool) (int, error) {
 	emptyFilter := false
 
+	filter := q.Filter
 	if q.Filter == nil {
 		emptyFilter = true
-		q.Filter = bson.D{{}}
+		filter = bson.D{}
 	} else if val, ok := q.Filter.(bson.D); ok && (val == nil || len(val.Map()) == 0) {
 		emptyFilter = true
 	} else if val, ok := q.Filter.(bson.M); ok && (val == nil || len(val) == 0) {
@@ -34,7 +35,7 @@ func (q *DeferredQuery) Count(isView bool) (int, error) {
 	}
 
 	opt := mopt.Count()
-	c, err := q.Coll.CountDocuments(nil, q.Filter, opt)
+	c, err := q.Coll.CountDocuments(nil, filter, opt)
 	return int(c), err
 }
 
