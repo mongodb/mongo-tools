@@ -282,14 +282,6 @@ var platforms = []Platform{
 		BinaryExt: ".exe",
 	},
 	{
-		Name:      "ubuntu1604",
-		Arch:      ArchArm64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "failpoints"},
-	},
-	{
 		Name:      "ubuntu1804",
 		Arch:      ArchArm64,
 		OS:        OSLinux,
@@ -335,14 +327,6 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
-	},
-	{
-		Name:      "ubuntu1604",
-		Arch:      ArchPpc64le,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
