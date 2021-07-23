@@ -343,11 +343,11 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1604",
-		Arch:      ArchS390x,
+		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: []string{"ssl", "failpoints"},
 	},
 	{
 		Name:      "rhel72",
