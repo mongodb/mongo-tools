@@ -249,7 +249,7 @@ func setUpMongoDumpTestData() error {
 		coll := session.Database(testDB).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
-			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j, "coords": bson.D{{"x", i}, {"y", j}}})
+			_, err = coll.InsertOne(nil, bson.M{"collectionName": collectionName, "age": j, "": "foo", "coords": bson.D{{"x", i}, {"y", j}}})
 			if err != nil {
 				return err
 			}
