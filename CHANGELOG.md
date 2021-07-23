@@ -1,5 +1,43 @@
 # Database Tools Changelog
 
+## 100.4.1
+
+_Released 2021-07-23_
+
+We are pleased to announce version 100.4.1 of the MongoDB Database Tools.
+
+This patch fixes a bug ([TOOLS-2931](https://jira.mongodb.org/browse/TOOLS-2931)) that was introduced in version 100.4.0 which causes mongodump to skip any document that contains an empty field name (e.g. `{ "": "foo" }`). Documents with empty field names were not skipped by default if the `--query` or `--queryFile` options were specified. No tools other than mongodump were affected. It is highly recommended to upgrade to 100.4.1 if it is possible that your database contains documents with empty field names.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Build Failure
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2927'>TOOLS-2927</a>] -         Clean up the platforms list inside platform.go
+</li>
+</ul>
+                                                                        
+### Release
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2929'>TOOLS-2929</a>] -         Release Database Tools 100.4.1
+</li>
+</ul>
+                                                      
+### Bug
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2931'>TOOLS-2931</a>] -         mongodump skips documents with empty field names
+</li>
+</ul>
+                
+### Task
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2926'>TOOLS-2926</a>] -         Run release on &#39;test&#39; and &#39;development&#39; linux repo separately. 
+</li>
+</ul>
+                      
 ## 100.4.0
 
 _Released 2021-07-19_
