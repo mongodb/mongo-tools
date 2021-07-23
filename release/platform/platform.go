@@ -57,6 +57,10 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, err
 	}
 
+	if variant == "ubuntu-race" {
+		variant = "ubuntu1804"
+	}
+
 	pf, ok := GetByVariant(variant)
 	if !ok {
 		return Platform{}, fmt.Errorf("unknown evg variant %q", variant)
