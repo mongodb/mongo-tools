@@ -57,6 +57,10 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, err
 	}
 
+	if variant == "ubuntu-race" {
+		variant = "ubuntu1804"
+	}
+
 	pf, ok := GetByVariant(variant)
 	if !ok {
 		return Platform{}, fmt.Errorf("unknown evg variant %q", variant)
@@ -282,14 +286,6 @@ var platforms = []Platform{
 		BinaryExt: ".exe",
 	},
 	{
-		Name:      "ubuntu1604",
-		Arch:      ArchArm64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "failpoints"},
-	},
-	{
 		Name:      "ubuntu1804",
 		Arch:      ArchArm64,
 		OS:        OSLinux,
@@ -335,14 +331,6 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
-	},
-	{
-		Name:      "ubuntu1604",
-		Arch:      ArchPpc64le,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
