@@ -990,6 +990,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			}
 		}
 		if opts.Kerberos.Service != "" && !cs.AuthMechanismPropertiesSet {
+			if cs.AuthMechanismProperties == nil {
+				cs.AuthMechanismProperties = make(map[string]string)
+			}
 			cs.AuthMechanismProperties["SERVICE_NAME"] = opts.Kerberos.Service
 			cs.AuthMechanismPropertiesSet = true
 		}
