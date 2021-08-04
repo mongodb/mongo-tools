@@ -2344,7 +2344,7 @@ buildvariants:
     run_kinit: true
   tasks:
   - name: "unit"
-  - name: ".4.0"
+  - name: ".4.0 !.mmap"
   - name: "dist"
   - name: "sign"
     run_on: rhel80-small
