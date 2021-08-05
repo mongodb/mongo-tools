@@ -305,7 +305,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if opts.Connection.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second)
 	}
-	clientopt.SetReplicaSet(opts.ReplicaSetName)
+	if opts.ReplicaSetName != "" {
+		clientopt.SetReplicaSet(opts.ReplicaSetName)
+	}
 
 	clientopt.SetAppName(opts.AppName)
 	if opts.Direct && len(clientopt.Hosts) == 1 {
