@@ -355,6 +355,10 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetMinPoolSize(cs.MinPoolSize)
 	}
 
+	if cs.LoadBalancedSet {
+		clientopt.SetLoadBalanced(cs.LoadBalanced)
+	}
+
 	if cs.ReadConcernLevel != "" {
 		rc := readconcern.New(readconcern.Level(cs.ReadConcernLevel))
 		clientopt.SetReadConcern(rc)
