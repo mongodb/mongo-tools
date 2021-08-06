@@ -76,8 +76,6 @@ github.com/jessevdk/go-flags
 github.com/jmespath/go-jmespath
 # github.com/jtolds/gls v4.20.0+incompatible
 github.com/jtolds/gls
-# github.com/kisielk/errcheck v1.2.0
-## explicit
 # github.com/klauspost/compress v1.10.1
 ## explicit
 github.com/klauspost/compress/fse
@@ -117,14 +115,10 @@ github.com/xdg-go/pbkdf2
 github.com/xdg-go/scram
 # github.com/xdg-go/stringprep v1.0.2
 github.com/xdg-go/stringprep
-# github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
-## explicit
-# github.com/xdg/stringprep v1.0.1-0.20180714160509-73f8eece6fdc
-## explicit
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.6.0
+# go.mongodb.org/mongo-driver v1.7.1
 ## explicit
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
