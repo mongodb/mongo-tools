@@ -889,8 +889,9 @@ func TestOptionsParsing(t *testing.T) {
 			{"--gssapiServiceName foo", "mongodb://user:pass@foo/?authMechanism=GSSAPI", ShouldSucceed},
 
 			// Loadbalanced
-			{"", "mongodb://foo?loadbalanced=true&replicaSet=foo", ShouldFail},
-			{"", "mongodb://foo?loadbalanced=true&direct=true", ShouldFail},
+			{"", "mongodb://foo,bar/?loadbalanced=true", ShouldFail},
+			{"", "mongodb://foo/?loadbalanced=true&replicaSet=foo", ShouldFail},
+			{"", "mongodb://foo/?loadbalanced=true&connect=direct", ShouldFail},
 		}
 
 		// Each entry is expanded into 4 test cases with createTestCases()

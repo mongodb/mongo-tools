@@ -755,6 +755,10 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			opts.Host = opts.Host[:len(opts.Host)-1]
 		}
 
+		if len(cs.Hosts) > 1 && cs.LoadBalanced {
+			return fmt.Errorf("loadBalanced cannot be set to true if multiple hosts are specified")
+		}
+
 		if opts.Connection.ServerSelectionTimeout != 0 && cs.ServerSelectionTimeoutSet {
 			if (time.Duration(opts.Connection.ServerSelectionTimeout) * time.Millisecond) != cs.ServerSelectionTimeout {
 				return ConflictingArgsErrorFormat("serverSelectionTimeout", strconv.Itoa(int(cs.ServerSelectionTimeout/time.Millisecond)), strconv.Itoa(opts.Connection.ServerSelectionTimeout), "--serverSelectionTimeout")
