@@ -516,6 +516,28 @@ func TestParseAndSetOptions(t *testing.T) {
 				ShouldError: false,
 			},
 			{
+				Name: "Direct is false when loadbalanced == true",
+				CS: connstring.ConnString{
+					LoadBalanced:    true,
+					LoadBalancedSet: true,
+				},
+				OptsIn: New("", "", "", "", true, enabledURIOnly),
+				OptsExpected: &ToolOptions{
+					General:        &General{},
+					Verbosity:      &Verbosity{},
+					Connection:     &Connection{},
+					URI:            &URI{},
+					SSL:            &SSL{},
+					Auth:           &Auth{},
+					Namespace:      &Namespace{},
+					Kerberos:       &Kerberos{},
+					enabledOptions: EnabledOptions{URI: true},
+					ReplicaSetName: "",
+					Direct:         false,
+				},
+				ShouldError: false,
+			},
+			{
 				Name: "Don't fail when uri and options set",
 				CS: connstring.ConnString{
 					Hosts: []string{"host"},
@@ -865,6 +887,11 @@ func TestOptionsParsing(t *testing.T) {
 			{"", "mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:foo", ShouldSucceed},
 			{"--gssapiServiceName foo", "mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:bar", ShouldFail},
 			{"--gssapiServiceName foo", "mongodb://user:pass@foo/?authMechanism=GSSAPI", ShouldSucceed},
+
+			// Loadbalanced
+			{"", "mongodb://foo,bar/?loadbalanced=true", ShouldFail},
+			{"", "mongodb://foo/?loadbalanced=true&replicaSet=foo", ShouldFail},
+			{"", "mongodb://foo/?loadbalanced=true&connect=direct", ShouldFail},
 		}
 
 		// Each entry is expanded into 4 test cases with createTestCases()

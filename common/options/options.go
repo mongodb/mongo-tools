@@ -640,7 +640,10 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 
 	// Connect directly to a host if there's no replica set specified, or
 	// if the connection string already specified a direct connection.
-	opts.Direct = (opts.ReplicaSetName == "") || opts.Direct
+	// Do not connect directly if loadbalanced.
+	if !opts.ConnString.LoadBalanced {
+		opts.Direct = (opts.ReplicaSetName == "") || opts.Direct
+	}
 
 	return nil
 }
@@ -750,6 +753,10 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			}
 			// remove trailing comma
 			opts.Host = opts.Host[:len(opts.Host)-1]
+		}
+
+		if len(cs.Hosts) > 1 && cs.LoadBalanced {
+			return fmt.Errorf("loadBalanced cannot be set to true if multiple hosts are specified")
 		}
 
 		if opts.Connection.ServerSelectionTimeout != 0 && cs.ServerSelectionTimeoutSet {
@@ -874,7 +881,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		if opts.ReplicaSetName != cs.ReplicaSet {
 			return ConflictingArgsErrorFormat("replica set name", cs.ReplicaSet, opts.Host, "--host")
 		}
-
+		if opts.ConnString.LoadBalanced {
+			return fmt.Errorf("loadBalanced cannot be set to true if the replica set name is specified")
+		}
 	}
 	if opts.ReplicaSetName != "" && cs.ReplicaSet == "" {
 		cs.ReplicaSet = opts.ReplicaSetName
@@ -885,6 +894,9 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 	// Connect directly to a host if indicated by the connection string.
 	opts.Direct = cs.DirectConnection || (cs.Connect == connstring.SingleConnect)
+	if opts.Direct && opts.ConnString.LoadBalanced {
+		return fmt.Errorf("loadBalanced cannot be set to true if the direct connection option is specified")
+	}
 
 	if (cs.SSL || opts.UseSSL) && !BuiltWithSSL {
 		if strings.HasPrefix(cs.Original, "mongodb+srv") {
