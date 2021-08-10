@@ -266,6 +266,17 @@ repos:
     repos:
       - apt/ubuntu/dists/focal/mongodb-org
 
+  - name: ubi8
+    type: deb
+    code_name: "bionic"
+    edition: org
+    bucket: repo.mongodb.org
+    component: multiverse
+    architectures:
+      - amd64
+    repos:
+      - apt/ubuntu/dists/bionic/mongodb-org
+
 ####################
 #
 # Enterprise Repos:
@@ -491,3 +502,15 @@ repos:
       - i386
     repos:
       - apt/ubuntu/dists/focal/mongodb-enterprise
+
+  - name: ubi8
+    type: deb
+    code_name: "bionic"
+    edition: enterprise
+    bucket: repo.mongodb.com
+    component: multiverse
+    architectures:
+      - amd64
+    repos:
+      - apt/ubuntu/dists/bionic/mongodb-enterprise
+

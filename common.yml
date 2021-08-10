@@ -2410,6 +2410,21 @@ buildvariants:
     run_on: rhel80-small
 
 #######################################
+#       Container Buildvariants       #
+#######################################
+- name: ubi8-container
+  display_name: UBI 8
+  run_on:
+    - ubi8
+  tasks:
+    - name: "dist"
+    - name: "sign"
+      run_on: rhel80-small
+    - name: "push"
+      run_on: rhel80-small
+
+
+  #######################################
 #     Experimental Buildvariants      #
 #######################################
 
