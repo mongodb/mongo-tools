@@ -1,5 +1,49 @@
 # Database Tools Changelog
 
+## 100.5.0
+
+_Released 2021-08-10_
+
+We are pleased to announce version 100.5.0 of the MongoDB Database Tools.
+
+This release includes support for the loadbalanced URI option, which provides compatibility with [MongoDB Atlas Serverless](https://www.mongodb.com/developer/how-to/atlas-serverless-quick-start/). 
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Build Failure
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2938'>TOOLS-2938</a>] -         Re-add Ubuntu 16.04 PowerPC platform
+</li>
+</ul>
+                                                                        
+### Release
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2880'>TOOLS-2880</a>] -         Release Database Tools 100.5.0
+</li>
+</ul>
+
+### Bug
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2863'>TOOLS-2863</a>] -         cs.AuthMechanismProperties is not initialized when mechanism set by --authenticationMechanism
+</li>
+</ul>
+        
+### New Feature
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2937'>TOOLS-2937</a>] -         Set loadbalanced option in db.configureClient()
+</li>
+</ul>
+        
+### Task
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2932'>TOOLS-2932</a>] -         Upgrade to Go Driver 1.7.1
+</li>
+</ul>
+
 ## 100.4.1
 
 _Released 2021-07-23_
