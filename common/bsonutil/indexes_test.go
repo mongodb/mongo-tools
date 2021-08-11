@@ -85,7 +85,7 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 func TestConvertLegacyIndexOptionsFromOp(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	convertedIndex := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
-			{"name", "a_1"}, {"unique", true}}
+		{"name", "a_1"}, {"unique", true}}
 
 	Convey("Converting legacy index options", t, func() {
 		indexoptionsNoInvalidOption := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
