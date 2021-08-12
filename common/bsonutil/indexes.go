@@ -159,17 +159,20 @@ func ConvertLegacyIndexOptions(indexOptions bson.M) {
 // This function processes the index options inside createIndexes command.
 func ConvertLegacyIndexOptionsFromOp(indexOptions *bson.D) {
 	var converted bool
-	doc := *indexOptions
 	originalJSONString := CreateExtJSONString(indexOptions)
+	var newIndexOptions bson.D
+
 	for i, elem := range *indexOptions {
 		if _, ok := validIndexOptions[elem.Key]; !ok && elem.Key != "createIndexes" {
 			// Remove this key.
-			*indexOptions = append(doc[:i], doc[i+1:]...)
 			converted = true
+		} else {
+			newIndexOptions = append(newIndexOptions, (*indexOptions)[i])
 		}
 	}
 	if converted {
-		newJSONString := CreateExtJSONString(indexOptions)
+		*indexOptions = newIndexOptions
+		newJSONString := CreateExtJSONString(newIndexOptions)
 		log.Logvf(log.Always, "ConvertLegacyIndexOptionsFromOp: converted index options '%s' to '%s'",
 			originalJSONString, newJSONString)
 	}

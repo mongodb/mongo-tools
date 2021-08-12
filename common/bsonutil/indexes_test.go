@@ -80,3 +80,26 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 		So(index4Key, ShouldResemble, bson.D{{"key1", int32(1)}, {"key2", int32(1)}})
 	})
 }
+
+func TestConvertLegacyIndexOptionsFromOp(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	convertedIndex := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
+		{"name", "a_1"}, {"unique", true}}
+
+	Convey("Converting legacy index options", t, func() {
+		indexoptionsNoInvalidOption := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
+			{"name", "a_1"}, {"unique", true}}
+		ConvertLegacyIndexOptionsFromOp(&indexoptionsNoInvalidOption)
+		So(indexoptionsNoInvalidOption, ShouldResemble, convertedIndex)
+
+		indexoptionsSingleInvalidOption := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
+			{"name", "a_1"}, {"unique", true}, {"invalid_option", int32(1)}}
+		ConvertLegacyIndexOptionsFromOp(&indexoptionsSingleInvalidOption)
+		So(indexoptionsSingleInvalidOption, ShouldResemble, convertedIndex)
+
+		indexoptionsMultipleInvalidOptions := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
+			{"name", "a_1"}, {"unique", true}, {"invalid_option_1", true}, {"invalid_option_2", int32(1)}}
+		ConvertLegacyIndexOptionsFromOp(&indexoptionsMultipleInvalidOptions)
+		So(indexoptionsMultipleInvalidOptions, ShouldResemble, convertedIndex)
+	})
+}
