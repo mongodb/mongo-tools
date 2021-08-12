@@ -7,7 +7,6 @@
 package bsonutil
 
 import (
-	"fmt"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
@@ -89,7 +88,7 @@ func TestConvertLegacyIndexOptionsFromOp(t *testing.T) {
 
 	Convey("Converting legacy index options", t, func() {
 		indexoptionsNoInvalidOption := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
-			{"name", "a_1"}, {"unique", true}, {"invalid_option", int32(1)}}
+			{"name", "a_1"}, {"unique", true}}
 		ConvertLegacyIndexOptionsFromOp(&indexoptionsNoInvalidOption)
 		So(indexoptionsNoInvalidOption, ShouldResemble, convertedIndex)
 
@@ -102,6 +101,5 @@ func TestConvertLegacyIndexOptionsFromOp(t *testing.T) {
 			{"name", "a_1"}, {"unique", true}, {"invalid_option_1", true}, {"invalid_option_2", int32(1)}}
 		ConvertLegacyIndexOptionsFromOp(&indexoptionsMultipleInvalidOptions)
 		So(indexoptionsMultipleInvalidOptions, ShouldResemble, convertedIndex)
-		fmt.Println(indexoptionsMultipleInvalidOptions)
 	})
 }
