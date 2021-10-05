@@ -627,6 +627,22 @@ func TestShouldIgnoreNamespacee(t *testing.T) {
 			output: true,
 		},
 		{
+			ns:     "config.transactions",
+			output: true,
+		},
+		{
+			ns:     "config.transaction_coordinators",
+			output: true,
+		},
+		{
+			ns:     "config.image_collection",
+			output: true,
+		},
+		{
+			ns:     "config.mongos",
+			output: true,
+		},
+		{
 			ns:     "test.system.js",
 			output: false,
 		},

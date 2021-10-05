@@ -61,7 +61,13 @@ var errorTimestampBeforeLimit = fmt.Errorf("timestamp before limit")
 
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
-	if strings.HasPrefix(ns, "config.cache.") || ns == "config.system.sessions" || ns == "config.system.indexBuilds" {
+	if strings.HasPrefix(ns, "config.cache.") ||
+		ns == "config.transactions" ||
+		ns == "config.transaction_coordinators" ||
+		ns == "config.image_collection" ||
+		ns == "config.mongos" ||
+		ns == "config.system.sessions" ||
+		ns == "config.system.indexBuilds" {
 		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
 		return true
 	}

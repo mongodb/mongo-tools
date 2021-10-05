@@ -151,7 +151,13 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 			return true
 		}
 	case "config":
-		if collName == "transactions" || collName == "system.sessions" || collName == "transaction_coordinators" || collName == "system.indexBuilds" {
+		if collName == "transactions" ||
+			collName == "system.sessions" ||
+			collName == "transaction_coordinators" ||
+			collName == "system.indexBuilds" ||
+			collName == "image_collection" ||
+			collName == "mongos" ||
+			strings.HasPrefix(collName, "cache.") {
 			return true
 		}
 	default:
