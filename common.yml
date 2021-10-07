@@ -2417,12 +2417,8 @@ buildvariants:
   run_on:
     - ubi8
   tasks:
-    - name: "dist"
-    - name: "sign"
-      run_on: rhel80-small
-    - name: "push"
-      run_on: rhel80-small
-
+    - name: "unit"
+    - name: ".4.4"
 
   #######################################
 #     Experimental Buildvariants      #
