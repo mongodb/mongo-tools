@@ -91,6 +91,46 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 			coll:   "test",
 			output: false,
 		},
+		{
+			db:     "config",
+			coll:   "transactions",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "system.sessions",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "transaction_coordinators",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "system.indexBuilds",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "image_collection",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "mongos",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "cache.foo",
+			output: true,
+		},
+		{
+			db:     "config",
+			coll:   "foo",
+			output: false,
+		},
 	}
 
 	for _, testVals := range tests {
