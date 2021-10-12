@@ -2421,7 +2421,7 @@ buildvariants:
     <<: *mongo_ssl_startup_args
     <<: *mongod_tls_startup_args
     <<: *mongo_tls_startup_args
-    mongo_os: "rhel81"
+    mongo_os: "rhel80"
     mongo_edition: "enterprise"
     smoke_use_ssl: --use-ssl
     resmoke_use_ssl: _ssl
