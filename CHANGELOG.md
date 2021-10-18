@@ -6,7 +6,7 @@ _Released 2021-10-12_
 
 We are pleased to announce version 100.5.1 of the MongoDB Database Tools.
 
-This release fixes an issue where certain config collections which should generally be ignored were included by mongodump/mongorestore. This release also ensures that any operations on theses collections will not be applied during the oplog replay phase of mongorestore. 
+This release fixes an issue where certain config collections which should generally be ignored were included by mongodump/mongorestore. This release also ensures that any operations on these collections will not be applied during the oplog replay phase of mongorestore. 
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
