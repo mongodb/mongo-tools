@@ -811,7 +811,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 		if opts.Username != "" && cs.Username != "" {
 			if opts.Username != cs.Username {
-				return ConflictingArgsErrorFormat("username", opts.Username, cs.Username, "--username")
+				return ConflictingArgsErrorFormat("username", cs.Username, opts.Username, "--username")
 			}
 		}
 		if opts.Username != "" && cs.Username == "" {
@@ -836,7 +836,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 		if opts.Source != "" && cs.AuthSourceSet {
 			if opts.Source != cs.AuthSource {
-				return ConflictingArgsErrorFormat("authSource", opts.Source, cs.AuthSource, "--authenticationDatabase")
+				return ConflictingArgsErrorFormat("authSource", cs.AuthSource, opts.Source, "--authenticationDatabase")
 			}
 		}
 		if opts.Source != "" && !cs.AuthSourceSet {
@@ -849,7 +849,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 
 		if opts.Mechanism != "" && cs.AuthMechanism != "" {
 			if opts.Mechanism != cs.AuthMechanism {
-				return ConflictingArgsErrorFormat("authMechanism", opts.Mechanism, cs.AuthMechanism, "--authenticationMechanism")
+				return ConflictingArgsErrorFormat("authMechanism", cs.AuthMechanism, opts.Mechanism, "--authenticationMechanism")
 			}
 		}
 		if opts.Mechanism != "" && cs.AuthMechanism == "" {
