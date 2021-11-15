@@ -446,7 +446,7 @@ func (opts *ToolOptions) AddToExtraOptionsRegistry(extraOpts ExtraOptions) {
 	opts.URI.extraOptionsRegistry = append(opts.URI.extraOptionsRegistry, extraOpts)
 }
 
-func (opts *ToolOptions) CallParser(args []string) ([]string, error) {
+func (opts *ToolOptions) CallArgParser(args []string) ([]string, error) {
 	args, err := opts.parser.ParseArgs(args)
 	if err != nil {
 		return []string{}, err
@@ -470,7 +470,7 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 		return []string{}, err
 	}
 
-	args, err := opts.CallParser(args)
+	args, err := opts.CallArgParser(args)
 	if err != nil {
 		return []string{}, err
 	}
@@ -516,7 +516,7 @@ func LogSensitiveOptionWarnings(args []string) {
 
 	// Create temporary options for parsing command line args.
 	tempOpts := New("", "", "", "", true, EnabledOptions{Auth: true, Connection: true, URI: true})
-	extraArgs, err := tempOpts.CallParser(args)
+	extraArgs, err := tempOpts.CallArgParser(args)
 	if err != nil {
 		return
 	}
@@ -553,7 +553,7 @@ func LogSensitiveOptionWarnings(args []string) {
 // This also applies to --destinationPassword for mongomirror only.
 func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	// Get config file path from the arguments, if specified.
-	_, err := opts.CallParser(args)
+	_, err := opts.CallArgParser(args)
 	if err != nil {
 		return err
 	}

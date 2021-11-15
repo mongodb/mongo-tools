@@ -78,69 +78,69 @@ func TestVerbosityFlag(t *testing.T) {
 		So(optPtr.parser, ShouldNotBeNil)
 
 		Convey("no verbosity flags, Level should be 0", func() {
-			_, err := optPtr.CallParser([]string{})
+			_, err := optPtr.CallArgParser([]string{})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 0)
 		})
 
 		Convey("one short verbosity flag, Level should be 1", func() {
-			_, err := optPtr.CallParser([]string{"-v"})
+			_, err := optPtr.CallArgParser([]string{"-v"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 1)
 		})
 
 		Convey("three short verbosity flags (consecutive), Level should be 3", func() {
-			_, err := optPtr.CallParser([]string{"-vvv"})
+			_, err := optPtr.CallArgParser([]string{"-vvv"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 3)
 		})
 
 		Convey("three short verbosity flags (dispersed), Level should be 3", func() {
-			_, err := optPtr.CallParser([]string{"-v", "-v", "-v"})
+			_, err := optPtr.CallArgParser([]string{"-v", "-v", "-v"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 3)
 		})
 
 		Convey("short verbosity flag assigned to 3, Level should be 3", func() {
-			_, err := optPtr.CallParser([]string{"-v=3"})
+			_, err := optPtr.CallArgParser([]string{"-v=3"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 3)
 		})
 
 		Convey("consecutive short flags with assignment, only assignment holds", func() {
-			_, err := optPtr.CallParser([]string{"-vv=3"})
+			_, err := optPtr.CallArgParser([]string{"-vv=3"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 3)
 		})
 
 		Convey("one long verbose flag, Level should be 1", func() {
-			_, err := optPtr.CallParser([]string{"--verbose"})
+			_, err := optPtr.CallArgParser([]string{"--verbose"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 1)
 		})
 
 		Convey("three long verbosity flags, Level should be 3", func() {
-			_, err := optPtr.CallParser([]string{"--verbose", "--verbose", "--verbose"})
+			_, err := optPtr.CallArgParser([]string{"--verbose", "--verbose", "--verbose"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 3)
 		})
 
 		Convey("long verbosity flag assigned to 3, Level should be 3", func() {
-			_, err := optPtr.CallParser([]string{"--verbose=3"})
+			_, err := optPtr.CallArgParser([]string{"--verbose=3"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 3)
 		})
 
 		Convey("mixed assignment and bare flag, total is sum", func() {
-			_, err := optPtr.CallParser([]string{"--verbose", "--verbose=3"})
+			_, err := optPtr.CallArgParser([]string{"--verbose", "--verbose=3"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 4)
 		})
 
-		Convey("run CallParser multiple times, level should be correct", func() {
-			_, err := optPtr.CallParser([]string{"--verbose", "--verbose=3"})
+		Convey("run CallArgParser multiple times, level should be correct", func() {
+			_, err := optPtr.CallArgParser([]string{"--verbose", "--verbose=3"})
 			So(err, ShouldBeNil)
-			_, err = optPtr.CallParser([]string{"--verbose", "--verbose=3"})
+			_, err = optPtr.CallArgParser([]string{"--verbose", "--verbose=3"})
 			So(err, ShouldBeNil)
 			So(optPtr.Level(), ShouldEqual, 4)
 		})
@@ -1007,7 +1007,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 	Convey("With a ToolOptions parsed", t, func() {
 		enabled := EnabledOptions{Connection: true}
 		opts := New("", "", "", "", true, enabled)
-		_, err := opts.CallParser([]string{})
+		_, err := opts.CallArgParser([]string{})
 		So(err, ShouldBeNil)
 		Convey("hidden options should have expected values", func() {
 			So(opts.MaxProcs, ShouldEqual, runtime.NumCPU())
