@@ -453,7 +453,7 @@ func (opts *ToolOptions) CallArgParser(args []string) ([]string, error) {
 	}
 
 	// Set VerbosityParsed flag to make sure we reset verbosity level when we call ParseArgs again
-	if opts.Verbosity.VLevel != 0 && !opts.VerbosityParsed {
+	if opts.VLevel != 0 && !opts.VerbosityParsed {
 		opts.VerbosityParsed = true
 	}
 
