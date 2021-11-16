@@ -457,7 +457,7 @@ func (opts *ToolOptions) CallArgParser(args []string) ([]string, error) {
 		opts.VerbosityParsed = true
 	}
 
-	return args, err
+	return args, nil
 }
 
 // ParseArgs parses a potential config file followed by the command line args, overriding
