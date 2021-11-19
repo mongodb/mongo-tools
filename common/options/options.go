@@ -121,9 +121,10 @@ type General struct {
 
 // Struct holding verbosity-related options
 type Verbosity struct {
-	SetVerbosity func(string) `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
-	Quiet        bool         `long:"quiet" description:"hide all log output"`
-	VLevel       int          `no-flag:"true"`
+	SetVerbosity    func(string) `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
+	Quiet           bool         `long:"quiet" description:"hide all log output"`
+	VLevel          int          `no-flag:"true"`
+	VerbosityParsed bool         `no-flag:"true"`
 }
 
 func (v Verbosity) Level() int {
@@ -235,6 +236,12 @@ func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsU
 
 	// Called when -v or --verbose is parsed
 	opts.SetVerbosity = func(val string) {
+		// Reset verbosity level when we call ParseArgs again and see the verbosity flag
+		if opts.VLevel != 0 && opts.VerbosityParsed {
+			opts.VerbosityParsed = false
+			opts.VLevel = 0
+		}
+
 		if i, err := strconv.Atoi(val); err == nil {
 			opts.VLevel = opts.VLevel + i // -v=N or --verbose=N
 		} else if matched, _ := regexp.MatchString(`^v+$`, val); matched {
@@ -439,6 +446,20 @@ func (opts *ToolOptions) AddToExtraOptionsRegistry(extraOpts ExtraOptions) {
 	opts.URI.extraOptionsRegistry = append(opts.URI.extraOptionsRegistry, extraOpts)
 }
 
+func (opts *ToolOptions) CallArgParser(args []string) ([]string, error) {
+	args, err := opts.parser.ParseArgs(args)
+	if err != nil {
+		return []string{}, err
+	}
+
+	// Set VerbosityParsed flag to make sure we reset verbosity level when we call ParseArgs again
+	if opts.VLevel != 0 && !opts.VerbosityParsed {
+		opts.VerbosityParsed = true
+	}
+
+	return args, nil
+}
+
 // ParseArgs parses a potential config file followed by the command line args, overriding
 // any values in the config file. Returns any extra args not accounted for by parsing,
 // as well as an error if the parsing returns an error.
@@ -449,7 +470,7 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 		return []string{}, err
 	}
 
-	args, err := opts.parser.ParseArgs(args)
+	args, err := opts.CallArgParser(args)
 	if err != nil {
 		return []string{}, err
 	}
@@ -495,7 +516,7 @@ func LogSensitiveOptionWarnings(args []string) {
 
 	// Create temporary options for parsing command line args.
 	tempOpts := New("", "", "", "", true, EnabledOptions{Auth: true, Connection: true, URI: true})
-	extraArgs, err := tempOpts.parser.ParseArgs(args)
+	extraArgs, err := tempOpts.CallArgParser(args)
 	if err != nil {
 		return
 	}
@@ -532,7 +553,7 @@ func LogSensitiveOptionWarnings(args []string) {
 // This also applies to --destinationPassword for mongomirror only.
 func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	// Get config file path from the arguments, if specified.
-	_, err := opts.parser.ParseArgs(args)
+	_, err := opts.CallArgParser(args)
 	if err != nil {
 		return err
 	}
