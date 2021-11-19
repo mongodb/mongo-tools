@@ -132,7 +132,7 @@ LOOP:
 		case t := <-state.ingestChan:
 			if t.meta.IsData() {
 				// process it
-				innerOps, err := extractInnerOps(t.op.Object)
+				innerOps, err := extractInnerOps(&t.op)
 				if err != nil {
 					state.ingestErr = err
 					break LOOP
@@ -300,7 +300,8 @@ func sendErrAndClose(o chan db.Oplog, e chan error, err error) (chan db.Oplog, c
 
 const extractErrorFmt = "error extracting transaction ops: %s: %v"
 
-func extractInnerOps(doc bson.D) ([]db.Oplog, error) {
+func extractInnerOps(tranOp *db.Oplog) ([]db.Oplog, error) {
+	doc := tranOp.Object
 	rawAO, err := bsonutil.FindValueByKey("applyOps", &doc)
 	if err != nil {
 		return nil, fmt.Errorf(extractErrorFmt, "applyOps field", err)
@@ -321,6 +322,13 @@ func extractInnerOps(doc bson.D) ([]db.Oplog, error) {
 		if err != nil {
 			return nil, fmt.Errorf(extractErrorFmt, "applyOps op", err)
 		}
+
+		// The inner ops doesn't have these fields and they are required by lastAppliedTime.Latest in Mongomirror,
+		// so we are assigning them from the parent transaction op
+		op.Timestamp = tranOp.Timestamp
+		op.Term = tranOp.Term
+		op.Hash = tranOp.Hash
+
 		ops[i] = *op
 	}
 
