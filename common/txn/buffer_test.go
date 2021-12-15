@@ -6,6 +6,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -182,4 +183,42 @@ func TestOldestTimestamp(t *testing.T) {
 	if oldest.Timestamp != expect {
 		t.Fatalf("expected timestamp %v, but got %v", expect, oldest)
 	}
+}
+
+func TestExtractInnerOps(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	// Constructing manually requires pointers to int64, so they can't be constants.
+	txnN := []int64{0}
+	term := []int64{1}
+	hash := []int64{2}
+
+	timestamp := primitive.Timestamp{T: 1234, I: 1}
+
+	Convey("extracted oplogs from transaction oplog should have the same timestamp, term and hash", t, func() {
+		op := db.Oplog{
+			Timestamp: primitive.Timestamp{T: 1234, I: 1},
+			Term:      &term[0],
+			Hash:      &hash[0],
+			LSID:      bson.Raw{0, 0, 0, 0, 1},
+			TxnNumber: &txnN[0],
+			Operation: "c",
+			Namespace: "admin.$cmd",
+			Object: bson.D{
+				{"applyOps", bson.A{bson.D{{"op", "n"}}}},
+				{"partialTxn", true},
+			},
+		}
+
+		innerOps, err := extractInnerOps(&op)
+		if err != nil {
+			t.Fatalf("PurgeTxn (abort) failed: %v", err)
+		}
+
+		for _, innerOp := range innerOps {
+			So(innerOp.Timestamp, ShouldEqual, timestamp)
+			So(*innerOp.Term, ShouldEqual, term[0])
+			So(*innerOp.Hash, ShouldEqual, hash[0])
+		}
+	})
 }
