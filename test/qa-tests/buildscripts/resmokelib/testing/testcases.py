@@ -2,7 +2,7 @@
 Subclasses of unittest.TestCase.
 """
 
-from __future__ import absolute_import
+
 
 import os
 import os.path
@@ -40,10 +40,10 @@ class TestCase(unittest.TestCase):
         if not isinstance(logger, logging.Logger):
             raise TypeError("logger must be a Logger instance")
 
-        if not isinstance(test_kind, basestring):
+        if not isinstance(test_kind, str):
             raise TypeError("test_kind must be a string")
 
-        if not isinstance(test_name, basestring):
+        if not isinstance(test_name, str):
             raise TypeError("test_name must be a string")
 
         self.logger = logger

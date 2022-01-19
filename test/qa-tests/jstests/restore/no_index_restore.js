@@ -35,8 +35,8 @@
   });
 
   // create some indexes for the second collection
-  testDB.coll2.ensureIndex({num: 1});
-  testDB.coll2.ensureIndex({num: 1, s: -1});
+  testDB.coll2.createIndex({num: 1});
+  testDB.coll2.createIndex({num: 1, s: -1});
   // sanity check the indexes were created
   assert.eq(3, testDB.coll2.getIndexes().length);
 

@@ -2,7 +2,7 @@
 Driver of the test execution framework.
 """
 
-from __future__ import absolute_import
+
 
 import threading
 
@@ -57,7 +57,7 @@ class TestGroupExecutor(object):
             self._build_config = logging.buildlogger.get_config()
 
         # Must be done after getting buildlogger configuration.
-        self._jobs = [self._make_job(job_num) for job_num in xrange(_config.JOBS)]
+        self._jobs = [self._make_job(job_num) for job_num in range(_config.JOBS)]
 
     def run(self):
         """
@@ -301,7 +301,7 @@ class TestGroupExecutor(object):
             queue.put(test_case)
 
         # Add sentinel value for each job to indicate when there are no more items to process.
-        for _ in xrange(_config.JOBS):
+        for _ in range(_config.JOBS):
             queue.put(None)
 
         return queue

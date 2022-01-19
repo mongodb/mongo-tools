@@ -23,7 +23,7 @@ db.dropDatabase();   // make sure it's empty
 db2.dropDatabase();  // make sure everybody's empty
 
 assert.eq(0, c.getIndexes().length, "setup1");
-c.ensureIndex({x: 1});
+c.createIndex({x: 1});
 assert.eq(2, c.getIndexes().length, "setup2");  // _id and x_1
 
 assert.eq(0, t.runTool("dump", "-d", dbname, "--out", t.ext), "dump");

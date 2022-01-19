@@ -23,7 +23,6 @@ executor:
         global_vars:
           TestData:
             useTLS: true
-        readMode: commands
         tls: ''
         tlsAllowInvalidCertificates: ''
         tlsCAFile: jstests/libs/ca.pem

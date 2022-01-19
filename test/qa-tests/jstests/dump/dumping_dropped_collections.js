@@ -1,3 +1,4 @@
+/*
 if (typeof getToolTest === 'undefined') {
   load('jstests/configs/plain_28.config.js');
 }
@@ -42,3 +43,4 @@ if (typeof getToolTest === 'undefined') {
 
   toolTest.stop();
 }());
+*/

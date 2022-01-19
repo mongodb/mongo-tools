@@ -1588,6 +1588,7 @@ func TestTimeseriesCollections(t *testing.T) {
 					}
 				}
 
+				So(archiveFile.Close(), ShouldBeNil)
 				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
 			})
 
@@ -1687,6 +1688,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				_, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
 				So(ok, ShouldBeFalse)
 
+				So(archiveFile.Close(), ShouldBeNil)
 				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
 			})
 
@@ -1773,7 +1775,6 @@ func TestTimeseriesCollections(t *testing.T) {
 				So(info.Size(), ShouldBeGreaterThan, 0)
 
 				fd, err := os.Open(bsonFile)
-				defer fd.Close()
 				So(err, ShouldBeNil)
 
 				bsonSource := db.NewBSONSource(fd)
@@ -1789,6 +1790,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				// only one bucket document should be matched
 				So(bsonSource.LoadNext(), ShouldBeNil)
 
+				So(fd.Close(), ShouldBeNil)
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 				os.Remove("ts_query.json")
 

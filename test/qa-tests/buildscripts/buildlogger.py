@@ -45,8 +45,8 @@ import subprocess
 import sys
 import time
 import traceback
-import urllib2
-import utils
+import urllib.request, urllib.error, urllib.parse
+from . import utils
 
 # suppress deprecation warnings that happen when
 # we import the 'buildbot.tac' file below
@@ -82,7 +82,7 @@ for path in possible_paths:
     if os.path.isfile(credentials_path):
         credentials = {}
         try:
-            execfile(credentials_path, credentials, credentials)
+            exec(compile(open(credentials_path, "rb").read(), credentials_path, 'exec'), credentials, credentials)
             username = credentials.get('slavename', credentials.get('username'))
             password = credentials.get('passwd', credentials.get('password'))
             break
@@ -94,7 +94,7 @@ URL_ROOT = os.environ.get('BUILDLOGGER_URL', 'http://buildlogs.mongodb.org/')
 TIMEOUT_SECONDS = 10
 socket.setdefaulttimeout(TIMEOUT_SECONDS)
 
-digest_handler = urllib2.HTTPDigestAuthHandler()
+digest_handler = urllib.request.HTTPDigestAuthHandler()
 digest_handler.add_password(
     realm='buildlogs',
     uri=URL_ROOT,
@@ -117,7 +117,7 @@ class HTTPErrorProcessor(urllib2.HTTPErrorProcessor):
 
         return response
 
-url_opener = urllib2.build_opener(digest_handler, HTTPErrorProcessor())
+url_opener = urllib.request.build_opener(digest_handler, HTTPErrorProcessor())
 
 def url(endpoint):
     if not endpoint.endswith('/'):
@@ -131,10 +131,10 @@ def post(endpoint, data, headers=None):
     headers = headers or {}
     headers.update({'Content-Type': 'application/json; charset=utf-8'})
 
-    req = urllib2.Request(url=url(endpoint), data=data, headers=headers)
+    req = urllib.request.Request(url=url(endpoint), data=data, headers=headers)
     try:
         response = url_opener.open(req)
-    except urllib2.URLError:
+    except urllib.error.URLError:
         import traceback
         traceback.print_exc(file=sys.stderr)
         sys.stderr.flush()
@@ -161,10 +161,10 @@ def traceback_to_stderr(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except urllib2.HTTPError, err:
+        except urllib.error.HTTPError as err:
             sys.stderr.write('error: HTTP code %d\n----\n' % err.code)
             if hasattr(err, 'hdrs'):
-                for k, v in err.hdrs.items():
+                for k, v in list(err.hdrs.items()):
                     sys.stderr.write("%s: %s\n" % (k, v))
                 sys.stderr.write('\n')
             sys.stderr.write(err.read())
@@ -321,7 +321,7 @@ def wrap_test(command):
     phase = os.environ.get('MONGO_PHASE', 'unknown')
     test_filename = os.environ.get('MONGO_TEST_FILENAME', 'unknown')
 
-    build_info = dict((k, v) for k, v in os.environ.items() if k.startswith('MONGO_'))
+    build_info = dict((k, v) for k, v in list(os.environ.items()) if k.startswith('MONGO_'))
     build_info.pop('MONGO_BUILDER_NAME', None)
     build_info.pop('MONGO_BUILD_NUMBER', None)
     build_info.pop('MONGO_PHASE', None)
@@ -386,7 +386,7 @@ def wrap_global(command):
         sys.stderr.flush()
         return run_and_echo(command)
 
-    build_info = dict((k, v) for k, v in os.environ.items() if k.startswith('MONGO_'))
+    build_info = dict((k, v) for k, v in list(os.environ.items()) if k.startswith('MONGO_'))
     build_info.pop('MONGO_BUILDER_NAME', None)
     build_info.pop('MONGO_BUILD_NUMBER', None)
 

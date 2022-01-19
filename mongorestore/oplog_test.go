@@ -299,43 +299,45 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	})
 
 	Convey("db drop in oplog should delete indexes from indexCatalog", t, func() {
-		args := []string{
-			DirectoryOption, "testdata/coll_with_index",
-			OplogReplayOption,
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			DropOption,
-			OplogFileOption, "testdata/oplogs/bson/drop_db.bson",
-		}
+		// TODO: do not skip once SERVER-62759 is done
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+		// args := []string{
+		// 	DirectoryOption, "testdata/coll_with_index",
+		// 	OplogReplayOption,
+		// 	NumParallelCollectionsOption, "1",
+		// 	NumInsertionWorkersOption, "1",
+		// 	DropOption,
+		// 	OplogFileOption, "testdata/oplogs/bson/drop_db.bson",
+		// }
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		// restore, err := getRestoreWithArgs(args...)
+		// So(err, ShouldBeNil)
+		// defer restore.Close()
 
-		coll := session.Database("test").Collection("foo")
+		// // Run mongorestore
+		// result := restore.Restore()
+		// So(result.Err, ShouldBeNil)
+		// So(result.Failures, ShouldEqual, 0)
 
-		ctx := context.Background()
-		// Verify restoration
-		count, err := coll.CountDocuments(ctx, bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 0)
+		// coll := session.Database("test").Collection("foo")
 
-		indexCursor, err := coll.Indexes().List(ctx)
-		So(err, ShouldBeNil)
+		// ctx := context.Background()
+		// // Verify restoration
+		// count, err := coll.CountDocuments(ctx, bson.M{})
+		// So(err, ShouldBeNil)
+		// So(count, ShouldEqual, 0)
 
-		defer indexCursor.Close(ctx)
+		// indexCursor, err := coll.Indexes().List(ctx)
+		// So(err, ShouldBeNil)
 
-		indexCount := 0
-		for indexCursor.Next(ctx) {
-			indexCount++
-		}
+		// defer indexCursor.Close(ctx)
 
-		So(indexCount, ShouldEqual, 0)
+		// indexCount := 0
+		// for indexCursor.Next(ctx) {
+		// 	indexCount++
+		// }
+
+		// So(indexCount, ShouldEqual, 0)
 
 	})
 

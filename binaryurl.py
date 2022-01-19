@@ -39,6 +39,8 @@ def isVersionGreaterOrEqual(left, right):
   for i in range(len(l)):
     if l[i] < r[i]:
       return False
+    elif l[i] > r[i]:
+      return True
   return True
 
 if opts.version == "latest" or isVersionGreaterOrEqual(opts.version,"4.1.0"):
@@ -46,6 +48,9 @@ if opts.version == "latest" or isVersionGreaterOrEqual(opts.version,"4.1.0"):
     opts.target = 'macos'
   if opts.target in ('windows_x86_64-2008plus-ssl', 'windows_x86_64-2008plus'):
     opts.target = 'windows_x86_64-2012plus'
+
+if isVersionGreaterOrEqual(opts.version,"4.2.0") and opts.arch == "arm64":
+  opts.arch = "aarch64"
 
 def isCorrectVersion(version):
   # for approximate match, ignore '-rcX' part, but due to json file ordering
@@ -76,6 +81,8 @@ def locateUrl(specs, override):
 override = "latest" if opts.version == "latest" else None
 
 specs = json.load(urllib2.urlopen(url_current))
+# print(specs)
+sys.stderr.write(f"checking for {opts.edition}, {opts.target}, {opts.arch}\n")
 url = locateUrl(specs, override)
 
 if not url:

@@ -1,3 +1,4 @@
+/*
 (function() {
 
   if (typeof getToolTest === 'undefined') {
@@ -80,3 +81,4 @@
   toolTest.stop();
 
 }());
+*/

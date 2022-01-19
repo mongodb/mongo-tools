@@ -7,7 +7,7 @@ log messages to buildlogger, while avoiding errors related to "can't start
 new thread" that would otherwise occur on Windows.
 """
 
-from __future__ import absolute_import
+
 
 import threading
 

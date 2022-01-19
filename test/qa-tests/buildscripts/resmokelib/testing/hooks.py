@@ -3,7 +3,7 @@ Customize the behavior of a fixture by allowing special code to be
 executed before or after each test, and before or after each suite.
 """
 
-from __future__ import absolute_import
+
 
 import os
 import sys

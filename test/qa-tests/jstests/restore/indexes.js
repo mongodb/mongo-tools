@@ -21,13 +21,13 @@
   var testColl = testDB.coll;
 
   // create a bunch of indexes of different types
-  testColl.ensureIndex({a: 1});
-  testColl.ensureIndex({b: 1}, {sparse: true, unique: true});
-  testColl.ensureIndex({a: 1, b: -1});
-  testColl.ensureIndex({b: NumberLong("1"), a: NumberLong("1")});
-  testColl.ensureIndex({listField: 1});
-  testColl.ensureIndex({textField: 'text'}, {language: 'spanish'});
-  testColl.ensureIndex({geoField: '2dsphere'});
+  testColl.createIndex({a: 1});
+  testColl.createIndex({b: 1}, {sparse: true, unique: true});
+  testColl.createIndex({a: 1, b: -1});
+  testColl.createIndex({b: NumberLong("1"), a: NumberLong("1")});
+  testColl.createIndex({listField: 1});
+  testColl.createIndex({textField: 'text'}, {language: 'spanish'});
+  testColl.createIndex({geoField: '2dsphere'});
 
   // store the getIndexes() output, to compare with the output
   // after dumping and restoring

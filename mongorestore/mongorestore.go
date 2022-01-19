@@ -355,6 +355,7 @@ func (restore *MongoRestore) Restore() Result {
 				In:      archiveReader,
 				Prelude: &archive.Prelude{},
 			}
+			defer restore.archive.In.Close()
 		}
 		err = restore.archive.Prelude.Read(restore.archive.In)
 		if err != nil {

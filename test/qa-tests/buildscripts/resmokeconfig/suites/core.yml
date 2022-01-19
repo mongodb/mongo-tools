@@ -17,7 +17,6 @@ executor:
     config:
       shell_options:
         eval_prepend: "load('jstests/libs/servers.js'); load('jstests/libs/servers_misc.js');"
-        readMode: commands
     hooks:
     - class: CleanEveryN
       n: 20

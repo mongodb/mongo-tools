@@ -12,7 +12,6 @@ executor:
           TestData:
             useTLS: true
         eval: "load('jstests/configs/archive_targets.js');"
-        readMode: commands
         tls: ''
         tlsAllowInvalidCertificates: ''
         tlsCAFile: jstests/libs/ca.pem

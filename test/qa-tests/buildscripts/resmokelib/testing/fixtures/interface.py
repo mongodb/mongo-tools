@@ -2,7 +2,7 @@
 Interface of the different fixtures for executing JSTests against.
 """
 
-from __future__ import absolute_import
+
 
 import time
 

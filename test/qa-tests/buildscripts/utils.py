@@ -93,8 +93,8 @@ def getprocesslist():
     raw = ""
     try:
         raw = execsys( "/bin/ps axww" )[0]
-    except Exception,e:
-        print( "can't get processlist: " + str( e ) )
+    except Exception as e:
+        print(( "can't get processlist: " + str( e ) ))
 
     r = re.compile( "[\r\n]+" )
     return r.split( raw )
@@ -116,12 +116,12 @@ def choosePathExist( choices , default=None):
     return default
 
 def filterExists(paths):
-    return filter(os.path.exists, paths)
+    return list(filter(os.path.exists, paths))
 
 def ensureDir( name ):
     d = os.path.dirname( name )
     if not os.path.exists( d ):
-        print( "Creating dir: " + name );
+        print(( "Creating dir: " + name ));
         os.makedirs( d )
         if not os.path.exists( d ):
             raise "Failed to create dir: " + name
@@ -147,7 +147,7 @@ def didMongodStart( port=27017 , timeout=20 ):
         try:
             checkMongoPort( port )
             return True
-        except Exception,e:
+        except Exception as e:
             print( e )
             timeout = timeout - 1
     return False
@@ -222,7 +222,7 @@ def run_smoke_command(*args):
 # at the position they occurred
 def replace_with_repr(unicode_error):
     offender = unicode_error.object[unicode_error.start:unicode_error.end]
-    return (unicode(repr(offender).strip("'").strip('"')), unicode_error.end)
+    return (str(repr(offender).strip("'").strip('"')), unicode_error.end)
 
 codecs.register_error('repr', replace_with_repr)
 

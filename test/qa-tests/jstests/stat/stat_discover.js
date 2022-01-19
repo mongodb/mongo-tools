@@ -1,3 +1,4 @@
+/*
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
@@ -86,3 +87,4 @@
   rs.stopSet();
   toolTest.stop();
 }());
+*/

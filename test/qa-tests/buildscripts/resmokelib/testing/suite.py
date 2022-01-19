@@ -2,7 +2,7 @@
 Holder for a set of TestGroup instances.
 """
 
-from __future__ import absolute_import
+
 
 import time
 

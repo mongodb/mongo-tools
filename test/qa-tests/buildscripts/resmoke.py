@@ -4,7 +4,7 @@
 Command line utility for executing MongoDB tests of all kinds.
 """
 
-from __future__ import absolute_import
+
 
 import json
 import os.path
@@ -206,11 +206,11 @@ if __name__ == "__main__":
             sb.append("".join(traceback.format_stack(stack)))
 
         sb.append("=" * len(header_msg))
-        print "\n".join(sb)
+        print(("\n".join(sb)))
 
     try:
         signal.signal(signal.SIGUSR1, _dump_stacks)
     except AttributeError:
-        print "Cannot catch signals on Windows"
+        print("Cannot catch signals on Windows")
 
     main()

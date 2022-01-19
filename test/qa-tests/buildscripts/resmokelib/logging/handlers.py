@@ -3,12 +3,12 @@ Additional handlers that are used as the base classes of the buildlogger
 handler.
 """
 
-from __future__ import absolute_import
+
 
 import json
 import logging
 import threading
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from .. import utils
 from ..utils import timer
@@ -136,7 +136,7 @@ class HTTPHandler(object):
         credentials.
         """
 
-        digest_handler = urllib2.HTTPDigestAuthHandler()
+        digest_handler = urllib.request.HTTPDigestAuthHandler()
         digest_handler.add_password(
             realm=realm,
             uri=url_root,
@@ -144,7 +144,7 @@ class HTTPHandler(object):
             passwd=password)
 
         self.url_root = url_root
-        self.url_opener = urllib2.build_opener(digest_handler, urllib2.HTTPErrorProcessor())
+        self.url_opener = urllib.request.build_opener(digest_handler, urllib2.HTTPErrorProcessor())
 
     def _make_url(self, endpoint):
         return "%s/%s/" % (self.url_root.rstrip("/"), endpoint.strip("/"))
@@ -165,7 +165,7 @@ class HTTPHandler(object):
         headers["Content-Type"] = "application/json; charset=utf-8"
 
         url = self._make_url(endpoint)
-        request = urllib2.Request(url=url, data=data, headers=headers)
+        request = urllib.request.Request(url=url, data=data, headers=headers)
 
         response = self.url_opener.open(request, timeout=timeout_secs)
         headers = response.info()

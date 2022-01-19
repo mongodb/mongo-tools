@@ -2,10 +2,10 @@
 Defines handlers for communicating with a buildlogger server.
 """
 
-from __future__ import absolute_import
+
 
 import functools
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from . import handlers
 from . import loggers
@@ -37,7 +37,7 @@ def _log_on_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except urllib2.HTTPError as err:
+        except urllib.error.HTTPError as err:
             sb = []  # String builder.
             sb.append("HTTP Error %s: %s" % (err.code, err.msg))
             sb.append("POST %s" % (err.filename))
@@ -66,7 +66,7 @@ def get_config():
 
     tmp_globals = {}  # Avoid conflicts with variables defined in 'config_file'.
     config = {}
-    execfile(_BUILDLOGGER_CONFIG, tmp_globals, config)
+    exec(compile(open(_BUILDLOGGER_CONFIG, "rb").read(), _BUILDLOGGER_CONFIG, 'exec'), tmp_globals, config)
 
     # Rename "slavename" to "username" if present.
     if "slavename" in config and "username" not in config:

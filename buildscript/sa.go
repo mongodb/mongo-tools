@@ -52,7 +52,7 @@ func SAModTidy(ctx *task.Context) error {
 
 // SAEvergreenValidate runs `evergreen validate` on common.yml and ensures the file is valid.
 func SAEvergreenValidate(ctx *task.Context) error {
-	output, err := sh.RunOutput(ctx, "evergreen", "validate", "--file", "common.yml")
+	output, err := sh.RunOutput(ctx, "evergreen", "validate", "--file", "common.yml", "-p", "mongo-tools")
 	if err != nil {
 		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
 	}

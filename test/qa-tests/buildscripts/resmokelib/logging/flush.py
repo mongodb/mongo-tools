@@ -8,7 +8,7 @@ buildlogger.BuildloggerTestHandler, but only dismiss()ed when the Python
 process is about to exit.
 """
 
-from __future__ import absolute_import
+
 
 import threading
 

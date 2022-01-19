@@ -45,8 +45,8 @@
   }));
 
   // create an additional index to verify non _id indexes work
-  assert.commandWorked(testDB.coll1.ensureIndex({a: 1}, {v: 1}));
-  assert.commandWorked(testDB.coll2.ensureIndex({a: 1}, {v: 2}));
+  assert.commandWorked(testDB.coll1.createIndex({a: 1}, {v: 1}));
+  assert.commandWorked(testDB.coll2.createIndex({a: 1}, {v: 2}));
 
   // insert arbitrary data so the collections aren't empty
   testDB.coll1.insert({a: 123});
