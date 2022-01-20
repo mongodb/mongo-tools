@@ -81,7 +81,6 @@ def locateUrl(specs, override):
 override = "latest" if opts.version == "latest" else None
 
 specs = json.load(urllib2.urlopen(url_current))
-# print(specs)
 sys.stderr.write(f"checking for {opts.edition}, {opts.target}, {opts.arch}\n")
 url = locateUrl(specs, override)
 

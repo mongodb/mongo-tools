@@ -2136,6 +2136,8 @@ buildvariants:
 #     SUSE x86_64 Buildvariants       #
 #######################################
 
+# Skipping kerberos tests on SUSE, see TOOLS-3014
+
 - name: suse12
   display_name: SUSE 12
   run_on:
@@ -2581,7 +2583,8 @@ buildvariants:
   tasks:
   - name: "unit" 
   - name: ".4.2"
-  - name: ".4.4 !.aws-auth"
+  # Skipping aws-auth, see TOOLS-3015
+  - name: ".4.4 !.aws-auth" 
   - name: ".5.0 !.aws-auth"
   - name: ".5.1 !.aws-auth"
   - name: ".5.2 !.aws-auth"

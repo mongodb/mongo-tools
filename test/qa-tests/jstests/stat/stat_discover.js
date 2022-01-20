@@ -1,4 +1,4 @@
-/*
+/* TODO: fix and re-enable test, see TOOLS-3018
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

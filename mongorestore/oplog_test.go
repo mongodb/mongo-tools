@@ -299,7 +299,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	})
 
 	Convey("db drop in oplog should delete indexes from indexCatalog", t, func() {
-		// TODO: do not skip once SERVER-62759 is done
+		// TODO: TOOLS-3016: do not skip once SERVER-62759 is done
 
 		// args := []string{
 		// 	DirectoryOption, "testdata/coll_with_index",
