@@ -906,6 +906,10 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 		return fmt.Errorf("cannot use ssl: tool not built with SSL support")
 	}
 
+	if cs.RetryWritesSet {
+		opts.RetryWrites = &cs.RetryWrites
+	}
+
 	if cs.SSLSet {
 		if opts.UseSSL && !cs.SSL {
 			return ConflictingArgsErrorFormat("ssl", strconv.FormatBool(cs.SSL), strconv.FormatBool(opts.UseSSL), "--ssl")
