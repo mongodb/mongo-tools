@@ -134,6 +134,22 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			})
 		})
 
+		Convey("using a test collection and a byte limit of 1", func() {
+			testCol := session.Database("tools-test").Collection("bulk4")
+			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1000)
+			So(bufBulk, ShouldNotBeNil)
+			bufBulk.byteLimit = 1
+
+			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
+				for i := 0; i < 10; i++ {
+					result, err := bufBulk.Insert(bson.D{{"foo", "bar"}})
+					So(err, ShouldBeNil)
+					So(result, ShouldNotBeNil)
+					So(result.InsertedCount, ShouldEqual, 1)
+				}
+			})
+		})
+
 		Reset(func() {
 			provider.DropDatabase("tools-test")
 			provider.Close()
