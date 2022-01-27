@@ -161,6 +161,8 @@ type uriTester struct {
 func TestParseAndSetOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
+	FalseValue := false
+
 	Convey("With a matrix of URIs and expected results", t, func() {
 		enabledURIOnly := EnabledOptions{false, false, false, true}
 		testCases := []uriTester{
@@ -524,6 +526,27 @@ func TestParseAndSetOptions(t *testing.T) {
 				ShouldError: false,
 			},
 			{
+				Name: "RetryWrites is set when CS contains it",
+				CS: connstring.ConnString{
+					RetryWritesSet: true,
+					RetryWrites:    false,
+				},
+				OptsIn: New("", "", "", "", true, enabledURIOnly),
+				OptsExpected: &ToolOptions{
+					General:        &General{},
+					Verbosity:      &Verbosity{},
+					Connection:     &Connection{},
+					URI:            &URI{},
+					SSL:            &SSL{},
+					Auth:           &Auth{},
+					Namespace:      &Namespace{},
+					Kerberos:       &Kerberos{},
+					enabledOptions: EnabledOptions{URI: true},
+					RetryWrites:    &FalseValue,
+				},
+				ShouldError: false,
+			},
+			{
 				Name: "Direct is false when loadbalanced == true",
 				CS: connstring.ConnString{
 					LoadBalanced:    true,
@@ -616,6 +639,7 @@ func TestParseAndSetOptions(t *testing.T) {
 				So(testCase.OptsIn.SSL.UseSSL, ShouldResemble, testCase.OptsExpected.SSL.UseSSL)
 				So(testCase.OptsIn.Kerberos.Service, ShouldResemble, testCase.OptsExpected.Kerberos.Service)
 				So(testCase.OptsIn.Kerberos.ServiceHost, ShouldResemble, testCase.OptsExpected.Kerberos.ServiceHost)
+				So(testCase.OptsIn.RetryWrites, ShouldResemble, testCase.OptsExpected.RetryWrites)
 				So(testCase.OptsIn.Auth.ShouldAskForPassword(), ShouldEqual, testCase.OptsIn.ShouldAskForPassword())
 			}
 		})
