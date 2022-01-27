@@ -1,3 +1,4 @@
+/* TODO: fix and re-enable test, see TOOLS-3017
 (function() {
 
   if (typeof getToolTest === 'undefined') {
@@ -78,3 +79,4 @@
   toolTest.stop();
 
 }());
+*/

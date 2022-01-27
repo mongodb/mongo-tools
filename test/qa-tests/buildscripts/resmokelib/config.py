@@ -2,7 +2,7 @@
 Configuration options for resmoke.py.
 """
 
-from __future__ import absolute_import
+
 
 import os
 import os.path
@@ -52,7 +52,7 @@ DEFAULTS = {
     "nojournal": False,
     "repeat": 1,
     "reportFile": None,
-    "seed": long(time.time() * 256),  # Taken from random.py code in Python 2.7.
+    "seed": int(time.time() * 256),  # Taken from random.py code in Python 2.7.
     "shellReadMode": None,
     "shellWriteMode": None,
     "shuffle": False,

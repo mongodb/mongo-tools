@@ -3,7 +3,7 @@
 import re
 import sys
 import os, os.path
-import utils
+from . import utils
 import time
 from optparse import OptionParser
 
@@ -39,13 +39,13 @@ def killprocs( signal="", root=None ):
         return killed
 
     l = utils.getprocesslist()
-    print( "num procs:" + str( len( l ) ) )
+    print(( "num procs:" + str( len( l ) ) ))
     if len(l) == 0:
         print( "no procs" )
         try:
-            print( execsys( "/sbin/ifconfig -a" ) )
-        except Exception,e:
-            print( "can't get interfaces" + str( e ) )
+            print(( execsys( "/sbin/ifconfig -a" ) ))
+        except Exception as e:
+            print(( "can't get interfaces" + str( e ) ))
 
     for x in l:
         x = x.lstrip()
@@ -53,7 +53,7 @@ def killprocs( signal="", root=None ):
             continue
 
         pid = x.split( " " )[0]
-        print( "killing: " + x )
+        print(( "killing: " + x ))
         utils.execsys( "/bin/kill " + signal + " " +  pid )
         killed = killed + 1
 
@@ -65,11 +65,11 @@ def tryToRemove(path):
         try:
             os.remove(path)
             return True
-        except OSError, e:
+        except OSError as e:
             errno = getattr(e, 'winerror', None)
             # check for the access denied and file in use WindowsErrors
             if errno in (5, 32):
-                print("os.remove(%s) failed, retrying in one second." % path)
+                print(("os.remove(%s) failed, retrying in one second." % path))
                 time.sleep(1)
             else:
                 raise e
@@ -78,7 +78,7 @@ def tryToRemove(path):
 
 def cleanup( root , nokill ):
     if nokill:
-        print "nokill requested, not killing anybody"
+        print("nokill requested, not killing anybody")
     else:
         if killprocs( root=root ) > 0:
             time.sleep(3)

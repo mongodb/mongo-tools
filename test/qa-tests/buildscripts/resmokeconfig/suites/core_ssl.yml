@@ -20,7 +20,6 @@ executor:
           TestData:
             useSSL: true
         eval_prepend: "load('jstests/libs/servers.js'); load('jstests/libs/servers_misc.js');"
-        readMode: commands
         ssl: ''
         sslAllowInvalidCertificates: ''
         sslCAFile: jstests/libs/ca.pem

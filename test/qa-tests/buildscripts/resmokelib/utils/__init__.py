@@ -2,7 +2,7 @@
 Helper functions.
 """
 
-from __future__ import absolute_import
+
 
 import os.path
 
@@ -18,14 +18,14 @@ def is_string_list(lst):
     """
     Returns true if 'lst' is a list of strings, and false otherwise.
     """
-    return isinstance(lst, list) and all(isinstance(x, basestring) for x in lst)
+    return isinstance(lst, list) and all(isinstance(x, str) for x in lst)
 
 
 def is_string_set(value):
     """
     Returns true if 'value' is a set of strings, and false otherwise.
     """
-    return isinstance(value, set) and all(isinstance(x, basestring) for x in value)
+    return isinstance(value, set) and all(isinstance(x, str) for x in value)
 
 
 def is_js_file(filename):

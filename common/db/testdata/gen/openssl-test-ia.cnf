@@ -47,7 +47,7 @@ organizationalUnitName_default = TestCertificateOrgUnitName
 organizationalUnitName_max = 64
 
 commonName = Common Name (eg, YOUR name)
-commonName_default = CA
+commonName_default = IA
 commonName_max = 64
 
 [ v3_ca ]

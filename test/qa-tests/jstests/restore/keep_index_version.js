@@ -33,7 +33,7 @@
   }
 
   // create a version 0 index on the collection
-  testColl.ensureIndex({num: 1}, {v: 0});
+  testColl.createIndex({num: 1}, {v: 0});
 
   // insert some data
   var data = [];

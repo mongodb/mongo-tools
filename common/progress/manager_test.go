@@ -130,14 +130,14 @@ func TestManagerStartAndStop(t *testing.T) {
 		So(manager.waitTime, ShouldEqual, time.Millisecond*10)
 		So(len(manager.bars), ShouldEqual, 1)
 
-		Convey("running the manager for 45 ms and stopping", func() {
+		Convey("running the manager for 100 ms and stopping", func() {
 			manager.Start()
-			time.Sleep(time.Millisecond * 45) // enough time for the manager to write 4 times
+			time.Sleep(time.Millisecond * 100) // enough time for the manager to write at least 4 times
 			manager.Stop()
 
 			Convey("should generate 4 writes of the bar", func() {
 				output := writeBuffer.String()
-				So(strings.Count(output, "TEST"), ShouldEqual, 4)
+				So(strings.Count(output, "TEST"), ShouldBeGreaterThanOrEqualTo, 4)
 			})
 
 			Convey("starting and stopping the manager again should not panic", func() {

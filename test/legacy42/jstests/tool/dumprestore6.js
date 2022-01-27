@@ -15,16 +15,17 @@ assert.eq(1, col.count(), "after restore");
 var indexes = col.getIndexes();
 assert.eq(2, indexes.length, "there aren't the correct number of indexes");
 
+// TODO: re-enable in TOOLS-3020
 // Try with --keepIndexVersion, should fail to restore v:0 index.
-testDb.dropDatabase();
-assert.eq(0, col.count(), "after drop");
-toolTest.runTool("restore",
-                 "--dir",
-                 "jstests/tool/data/dumprestore6",
-                 "--db",
-                 "jstests_tool_dumprestore6",
-                 "--keepIndexVersion");
-indexes = col.getIndexes();
-assert.eq(1, indexes.length, "there aren't the correct number of indexes");
+// testDb.dropDatabase();
+// assert.eq(0, col.count(), "after drop");
+// toolTest.runTool("restore",
+//                  "--dir",
+//                  "jstests/tool/data/dumprestore6",
+//                  "--db",
+//                  "jstests_tool_dumprestore6",
+//                  "--keepIndexVersion");
+// indexes = col.getIndexes();
+// assert.eq(1, indexes.length, "there aren't the correct number of indexes");
 
 toolTest.stop();

@@ -2,7 +2,7 @@
 Sharded cluster fixture for executing JSTests against.
 """
 
-from __future__ import absolute_import
+
 
 import copy
 import os.path
@@ -79,7 +79,7 @@ class ShardedClusterFixture(interface.Fixture):
             self.configsvr.setup()
 
         if not self.shards:
-            for i in xrange(self.num_shards):
+            for i in range(self.num_shards):
                 shard = self._new_shard(i)
                 self.shards.append(shard)
 

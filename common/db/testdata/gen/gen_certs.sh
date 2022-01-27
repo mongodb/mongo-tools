@@ -7,7 +7,7 @@ openssl req -batch -new -x509 -days 3650 -key ../mongodb-test-ca.key -out ../mon
 
 # IA
 openssl genrsa -out ../mongodb-test-ia.key 4096
-openssl req -batch -new -key ../mongodb-test-ia.key -out ../mongodb-test-ia.csr -config openssl-test-ca.cnf
+openssl req -batch -new -key ../mongodb-test-ia.key -out ../mongodb-test-ia.csr -config openssl-test-ia.cnf
 
 openssl x509 -sha256 -req -days 3650 -in ../mongodb-test-ia.csr \
     -CA ../mongodb-test-ca.crt \

@@ -4,7 +4,7 @@ import re
 import sys
 import os
 import tempfile
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import subprocess
 import tarfile
 import zipfile
@@ -62,19 +62,19 @@ class MultiVersionDownloaderBase :
         # only download if we don't already have the directory
         already_downloaded = os.path.isdir(os.path.join( self.install_dir, extract_dir))
         if already_downloaded:
-            print "Skipping download for version %s (%s) since the dest already exists '%s'" \
-                % (version, full_version, extract_dir)
+            print(("Skipping download for version %s (%s) since the dest already exists '%s'" \
+                % (version, full_version, extract_dir)))
         else:
             temp_dir = tempfile.mkdtemp()
             temp_file = tempfile.mktemp(suffix=".tgz")
 
-            print "Downloading data for version %s (%s) from %s..." % (version, full_version, url)
+            print(("Downloading data for version %s (%s) from %s..." % (version, full_version, url)))
 
-            data = urllib2.urlopen(url)
+            data = urllib.request.urlopen(url)
 
             with open(temp_file, 'wb') as f:
                 f.write(data.read())
-                print "Uncompressing data for version %s (%s)..." % (version, full_version)
+                print(("Uncompressing data for version %s (%s)..." % (version, full_version)))
 
             try:
                 tf = tarfile.open(temp_file, 'r:gz')
@@ -88,7 +88,7 @@ class MultiVersionDownloaderBase :
                         os.makedirs(temp_dir)
                     for name in zfile.namelist():
                         _, filename = os.path.split(name)
-                        print "Decompressing " + filename + " on " + temp_dir
+                        print(("Decompressing " + filename + " on " + temp_dir))
                         zfile.extract(name, temp_dir)
                 except:
                     zfile.close()
@@ -106,7 +106,7 @@ class MultiVersionDownloaderBase :
             try:
                 os.remove(temp_file)
             except Exception as e:
-                print e
+                print(e)
                 pass
         self.symlink_version(version, os.path.abspath(os.path.join(self.install_dir, extract_dir)))
 
@@ -157,7 +157,7 @@ class MultiVersionDownloader(MultiVersionDownloaderBase) :
 
     def gen_url(self, version):
         urls = []
-        for link_version, link_url in self.links.iteritems():
+        for link_version, link_url in list(self.links.items()):
             if link_version.startswith(version):
                 # If we have a "-" in our version, exact match only
                 if version.find("-") >= 0:
@@ -180,7 +180,7 @@ class MultiVersionDownloader(MultiVersionDownloaderBase) :
         href = "http://dl.mongodb.org/dl/%s/%s" \
                % (self.platform, self.arch)
 
-        html = urllib2.urlopen(href).read()
+        html = urllib.request.urlopen(href).read()
         links = {}
         for line in html.split():
             match = None
@@ -252,7 +252,7 @@ def parse_cl_args(args):
     parser = argparse.ArgumentParser(description=CL_HELP_MESSAGE)
 
     def raise_exception(msg):
-        print CL_HELP_MESSAGE
+        print(CL_HELP_MESSAGE)
         raise Exception(msg)
 
     parser.add_argument('install_dir', action="store" )

@@ -11,4 +11,3 @@ executor:
         nodb: ''
         ssl: ''
         sslAllowInvalidCertificates: ''
-        readMode: commands

@@ -2,7 +2,7 @@
 Parser for command line arguments.
 """
 
-from __future__ import absolute_import
+
 
 import os
 import os.path
@@ -246,7 +246,7 @@ def update_config_vars(values):
     _config.WT_INDEX_CONFIG = config.pop("wiredTigerIndexConfigString")
 
     if config:
-        raise optparse.OptionValueError("Unknown option(s): %s" % (config.keys()))
+        raise optparse.OptionValueError("Unknown option(s): %s" % (list(config.keys())))
 
 
 def get_suites(values, args):

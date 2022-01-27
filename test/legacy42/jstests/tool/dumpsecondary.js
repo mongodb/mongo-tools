@@ -20,9 +20,9 @@ replTest.awaitSecondaryNodes();
 
 assert.eq(1, db.foo.count(), "setup");
 
-var slaves = replTest._slaves;
-assert(slaves.length == 1, "Expected 1 slave but length was " + slaves.length);
-slave = slaves[0];
+var secondaries = (replTest._slaves !== undefined) ? replTest._slaves : replTest._secondaries;
+assert(secondaries.length == 1, "Expected 1 secondary but length was " + secondaries.length);
+slave = secondaries[0];
 
 var commonOptions = {};
 if (jsTest.options().keyFile) {

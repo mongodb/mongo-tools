@@ -16,8 +16,8 @@ db.dropDatabase();
 
 assert.eq(0, db.foo.count(), "setup1");
 db.foo.save({a: 1, b: 1});
-db.foo.ensureIndex({a: 1});
-db.foo.ensureIndex({b: 1, _id: -1});
+db.foo.createIndex({a: 1});
+db.foo.createIndex({b: 1, _id: -1});
 assert.eq(1, db.foo.count(), "setup2");
 
 assert.eq(0, db.bar.count(), "setup3");
@@ -26,7 +26,7 @@ db.createCollection("bar", {capped: true, size: 1000, max: 10});
 for (var i = 0; i < 1000; i++) {
     db.bar.save({x: i});
 }
-db.bar.ensureIndex({x: 1});
+db.bar.createIndex({x: 1});
 
 barDocCount = db.bar.count();
 assert.gt(barDocCount, 0, "No documents inserted");
