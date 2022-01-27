@@ -16,6 +16,7 @@ import (
 )
 
 // The default value of maxMessageSizeBytes
+// See: https://docs.mongodb.com/manual/reference/command/hello/#mongodb-data-hello.maxMessageSizeBytes
 const MAX_MESSAGE_SIZE_BYTES = 48000000
 
 // BufferedBulkInserter implements a bufio.Writer-like design for queuing up
