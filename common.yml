@@ -2364,7 +2364,6 @@ buildvariants:
   run_on:
   - ubuntu1604-arm64
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "ubuntu1604"
@@ -2397,7 +2396,6 @@ buildvariants:
   run_on:
   - ubuntu1804-arm64
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "ubuntu1804"
@@ -2431,7 +2429,6 @@ buildvariants:
   run_on:
     - ubuntu2004-arm64
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "ubuntu2004"
@@ -2463,7 +2460,6 @@ buildvariants:
   run_on:
   - amazon2-arm64-small
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "amazon2"
@@ -2496,7 +2492,6 @@ buildvariants:
   run_on:
     - rhel82-arm64
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "rhel82"
@@ -2533,7 +2528,6 @@ buildvariants:
   run_on:
   - rhel71-power8
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "rhel71"
@@ -2566,7 +2560,6 @@ buildvariants:
   run_on:
   - rhel81-power8
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "rhel81"
@@ -2601,7 +2594,6 @@ buildvariants:
   run_on:
   - ubuntu1604-power8
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "ubuntu1604"
@@ -2630,7 +2622,6 @@ buildvariants:
   run_on:
   - ubuntu1804-power8
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "ubuntu1804"
@@ -2664,7 +2655,6 @@ buildvariants:
   run_on:
   - rhel72-zseries
   stepback: false
-  batchtime: 10080 # weekly
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "rhel72"
@@ -2697,7 +2687,6 @@ buildvariants:
 
 - name: ubuntu-race
   stepback: false
-  batchtime: 1440 # daily
   display_name: ~ Race Detector Ubuntu 18.04
   run_on:
   - ubuntu1804-small
