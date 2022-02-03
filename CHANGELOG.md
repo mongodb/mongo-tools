@@ -1,5 +1,33 @@
 # Database Tools Changelog
 
+## 100.5.2
+
+_Released 2022-02-01_
+
+We are pleased to announce version 100.5.2 of the MongoDB Database Tools.
+
+This release fixes an issue where inserting large documents with mongorestore or mongoimport could cause extremely high memory usage (<a href='https://jira.mongodb.org/browse/TOOLS-2875'>TOOLS-2875</a>). It also fixes a few minor bugs.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2745'>TOOLS-2745</a>] -         Tools don't support setting retryWrites=false in URI parameter
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2983'>TOOLS-2983</a>] -         Some error messages for conflicting URI/CLI arguments are misleading
+</li>
+</ul>
+
+### Task
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2875'>TOOLS-2875</a>] -         Limit the BufferedBulkInserter's batch size by bytes
+</li>
+</ul>
+
 ## 100.5.1
 
 _Released 2021-10-12_
