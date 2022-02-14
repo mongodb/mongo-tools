@@ -1417,14 +1417,14 @@ tasks:
       vars:
         target: test:awsauth
 
-- name: integration-5.3
-  tags: ["5.3"]
+- name: integration-latest
+  tags: ["latest"]
   commands:
     - func: "fetch source"
     - command: expansions.update
     - func: "download mongod"
       vars:
-        mongo_version: "5.3"
+        mongo_version: "latest"
     - func: "start mongod"
       vars:
         USE_TLS: "true"
@@ -1438,8 +1438,8 @@ tasks:
       vars:
         target: test:integration test:srv -ssl=true
 
-- name: integration-5.3-auth
-  tags: ["5.3", "auth"]
+- name: integration-latest-auth
+  tags: ["latest", "auth"]
   commands:
     - func: "fetch source"
     # Concat auth args
@@ -1450,7 +1450,7 @@ tasks:
             concat: " --auth"
     - func: "download mongod"
       vars:
-        mongo_version: "5.3"
+        mongo_version: "latest"
     - func: "start mongod"
       vars:
         USE_TLS: "true"
@@ -1467,14 +1467,14 @@ tasks:
       vars:
         target: test:integration test:srv -ssl=true -auth=true
 
-- name: integration-5.3-cluster
-  tags: ["5.3", "cluster"]
+- name: integration-latest-cluster
+  tags: ["latest", "cluster"]
   commands:
     - func: "fetch source"
     - command: expansions.update
     - func: "download mongod"
       vars:
-        mongo_version: "5.3"
+        mongo_version: "latest"
     - func: "create repl_set"
       vars:
         USE_TLS: "true"
@@ -1485,14 +1485,14 @@ tasks:
       vars:
         target: test:integration test:srv -ssl=true -topology=replSet
 
-- name: aws-auth-5.3
-  tags: ["5.3", "aws-auth"]
+- name: aws-auth-latest
+  tags: ["latest", "aws-auth"]
   commands:
     - func: "fetch source"
     - command: expansions.update
     - func: "download mongod"
       vars:
-        mongo_version: "5.3"
+        mongo_version: "latest"
     - func: "start mongod"
       vars:
         AWS_AUTH: "true"
@@ -1623,15 +1623,15 @@ tasks:
       vars:
         test_path: "test/legacy42"
 
-- name: legacy-jstests-5.3 # The server jstests from the tools removal from server in 4.2
-  tags: ["5.3"]
+- name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
+  tags: ["latest"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "5.3"
+        mongo_version: "latest"
     - func: "run make target"
       vars:
         target: build
@@ -1744,15 +1744,15 @@ tasks:
         resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
-- name: qa-tests-5.3
-  tags: ["5.3"]
+- name: qa-tests-latest
+  tags: ["latest"]
   commands:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
     - func: "download mongod"
       vars:
-        mongo_version: "5.3"
+        mongo_version: "latest"
     - func: "run make target"
       vars:
         target: build
@@ -2026,7 +2026,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2087,7 +2087,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2117,7 +2117,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2153,7 +2153,7 @@ buildvariants:
   - name: ".5.0 !.aws-auth"
   - name: ".5.1 !.aws-auth"
   - name: ".5.2 !.aws-auth"
-  - name: ".5.3 !.aws-auth"
+  - name: ".latest !.aws-auth"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2219,7 +2219,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2251,7 +2251,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2290,7 +2290,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: "dist"
   - name: "sign"
     run_on: rhel80-small
@@ -2319,7 +2319,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: "dist"
   - name: "sign"
     run_on: rhel80-small
@@ -2408,7 +2408,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2437,7 +2437,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2479,7 +2479,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2548,7 +2548,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2581,7 +2581,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2614,7 +2614,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2646,7 +2646,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2717,7 +2717,7 @@ buildvariants:
   - name: ".5.0 !.aws-auth"
   - name: ".5.1 !.aws-auth"
   - name: ".5.2 !.aws-auth"
-  - name: ".5.3 !.aws-auth"
+  - name: ".latest !.aws-auth"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2811,7 +2811,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
