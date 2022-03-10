@@ -62,6 +62,7 @@ func (*OutputFormatOptions) Name() string {
 type InputOptions struct {
 	Query          string `long:"query" value-name:"<json>" short:"q" description:"query filter, as a JSON string, e.g., '{x:{$gt:1}}'"`
 	QueryFile      string `long:"queryFile" value-name:"<filename>" description:"path to a file containing a query filter (JSON)"`
+	Pipeline       string `long:"pipeline" value-name:"<json>" short:"p" description:"aggregation pipeline, as a JSON array, e.g., '[$match: {x:{$gt:1}}]'"`
 	SlaveOk        bool   `long:"slaveOk" short:"k" hidden:"true" description:"allow secondary reads if available" default-mask:"-"`
 	ReadPreference string `long:"readPreference" value-name:"<string>|<json>" description:"specify either a preference mode (e.g. 'nearest') or a preference json object (e.g. '{mode: \"nearest\", tagSets: [{a: \"b\"}], maxStalenessSeconds: 123}')"`
 	ForceTableScan bool   `long:"forceTableScan" description:"force a table scan (do not use $snapshot or hint _id). Deprecated since this is default behavior on WiredTiger"`
@@ -69,6 +70,7 @@ type InputOptions struct {
 	Limit          int64  `long:"limit" value-name:"<count>" description:"limit the number of documents to export"`
 	Sort           string `long:"sort" value-name:"<json>" description:"sort order, as a JSON string, e.g. '{x:1}'"`
 	AssertExists   bool   `long:"assertExists" description:"if specified, export fails if the collection does not exist"`
+	AllowDiskUse   bool   `long:"allowDiskUse" description:"if specified, allows server to use temporary files on disk to store data exceeding the 100MB system memory limit"`
 }
 
 // Name returns a human-readable group name for input options.
@@ -77,7 +79,7 @@ func (*InputOptions) Name() string {
 }
 
 func (inputOptions *InputOptions) HasQuery() bool {
-	return inputOptions.Query != "" || inputOptions.QueryFile != ""
+	return inputOptions.Query != "" || inputOptions.QueryFile != "" || inputOptions.Pipeline != ""
 }
 
 func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
@@ -89,8 +91,10 @@ func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
 			err = fmt.Errorf("error reading queryFile: %s", err)
 		}
 		return content, err
+	} else if inputOptions.Pipeline != "" {
+		return []byte(inputOptions.Pipeline), nil
 	}
-	panic("GetQuery can return valid values only for query or queryFile input")
+	panic("GetQuery can return valid values only for query, queryFile, or pipeline input")
 }
 
 // Options represents all possible options that can be used to configure mongoexport.
