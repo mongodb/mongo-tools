@@ -872,7 +872,7 @@ func buildZip() {
 	for _, name := range staticFiles {
 		log.Printf("adding %s to zip\n", name)
 		src := name
-		dst := filepath.Join(releaseName, name)
+		dst := strings.Join([]string{releaseName, name}, "/")
 		addToZip(zw, dst, src)
 	}
 
@@ -880,7 +880,7 @@ func buildZip() {
 		binName = binName + ".exe"
 		log.Printf("adding %s binary to zip\n", binName)
 		src := filepath.Join(".", "bin", binName)
-		dst := filepath.Join(releaseName, "bin", binName)
+		dst := strings.Join([]string{releaseName, "bin", binName}, "/")
 		addToZip(zw, dst, src)
 	}
 }
