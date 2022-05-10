@@ -2125,6 +2125,34 @@ buildvariants:
   - name: "push"
     run_on: rhel80-small
 
+- name: debian11
+  display_name: Debian 11
+  run_on:
+    - debian11-test
+  expansions:
+    <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
+    mongo_os: "debian11"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: true
+    resmoke_args: --jobs 4
+  tasks:
+  - name: "unit"
+  - name: ".5.0"
+  - name: ".5.1"
+  - name: ".5.2"
+  - name: ".latest"
+  - name: ".kerberos"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  - name: "push"
+    run_on: rhel80-small
+
 #######################################
 #           macOS Buildvariant        #
 #######################################
