@@ -2128,7 +2128,7 @@ buildvariants:
 - name: debian11
   display_name: Debian 11
   run_on:
-    - debian11-test
+    - debian11
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "debian11"
