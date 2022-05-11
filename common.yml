@@ -2143,8 +2143,6 @@ buildvariants:
   tasks:
   - name: "unit"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
