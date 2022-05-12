@@ -22,6 +22,9 @@ type CommandStartedEvent struct {
 	CommandName  string
 	RequestID    int64
 	ConnectionID string
+	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
+	// this value (e.g. on MDB < 4.2), it is unset.
+	ServerConnectionID *int32
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -33,6 +36,9 @@ type CommandFinishedEvent struct {
 	CommandName   string
 	RequestID     int64
 	ConnectionID  string
+	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
+	// this value (e.g. on MDB < 4.2), it is unset.
+	ServerConnectionID *int32
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -64,19 +70,22 @@ const (
 	ReasonStale             = "stale"
 	ReasonConnectionErrored = "connectionError"
 	ReasonTimedOut          = "timeout"
+	ReasonError             = "error"
 )
 
 // strings for pool command monitoring types
 const (
-	ConnectionClosed   = "ConnectionClosed"
 	PoolCreated        = "ConnectionPoolCreated"
+	PoolReady          = "ConnectionPoolReady"
+	PoolCleared        = "ConnectionPoolCleared"
+	PoolClosedEvent    = "ConnectionPoolClosed"
 	ConnectionCreated  = "ConnectionCreated"
 	ConnectionReady    = "ConnectionReady"
+	ConnectionClosed   = "ConnectionClosed"
+	GetStarted         = "ConnectionCheckOutStarted"
 	GetFailed          = "ConnectionCheckOutFailed"
 	GetSucceeded       = "ConnectionCheckedOut"
 	ConnectionReturned = "ConnectionCheckedIn"
-	PoolCleared        = "ConnectionPoolCleared"
-	PoolClosedEvent    = "ConnectionPoolClosed"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events

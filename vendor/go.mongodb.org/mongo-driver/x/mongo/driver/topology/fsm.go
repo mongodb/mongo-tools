@@ -18,7 +18,7 @@ import (
 
 var (
 	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = description.NewVersionRange(2, 13)
+	SupportedWireVersions = description.NewVersionRange(2, 15)
 )
 
 const (
@@ -46,7 +46,7 @@ func newFSM() *fsm {
 //
 // apply should operation on immutable descriptions so we don't have to lock for the entire time we're applying the
 // server description.
-func (f *fsm) apply(s description.Server) (description.Topology, description.Server, error) {
+func (f *fsm) apply(s description.Server) (description.Topology, description.Server) {
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
@@ -77,7 +77,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
-		return f.Topology, s, nil
+		return f.Topology, s
 	}
 
 	updatedDesc := s
@@ -107,7 +107,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					MinSupportedMongoDBVersion,
 				)
 				f.Topology.CompatibilityErr = f.compatibilityErr
-				return f.Topology, s, nil
+				return f.Topology, s
 			}
 
 			if server.WireVersion.Min > SupportedWireVersions.Max {
@@ -119,14 +119,14 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 					SupportedWireVersions.Max,
 				)
 				f.Topology.CompatibilityErr = f.compatibilityErr
-				return f.Topology, s, nil
+				return f.Topology, s
 			}
 		}
 	}
 
 	f.compatible.Store(true)
 	f.compatibilityErr = nil
-	return f.Topology, updatedDesc, nil
+	return f.Topology, updatedDesc
 }
 
 func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) description.Server {
@@ -185,7 +185,7 @@ func (f *fsm) applyToSingle(s description.Server) description.Server {
 		f.replaceServer(s)
 	case description.RSPrimary, description.RSSecondary, description.RSArbiter, description.RSMember, description.RSGhost:
 		// A replica set name can be provided when creating a direct connection. In this case, if the set name returned
-		// by the isMaster response doesn't match up with the one provided during configuration, the server description
+		// by the hello response doesn't match up with the one provided during configuration, the server description
 		// is replaced with a default Unknown description.
 		//
 		// We create a new server description rather than doing s.Kind = description.Unknown because the other fields,
@@ -239,7 +239,7 @@ func (f *fsm) updateRSFromPrimary(s description.Server) {
 		return
 	}
 
-	if s.SetVersion != 0 && !bytes.Equal(s.ElectionID[:], primitive.NilObjectID[:]) {
+	if s.SetVersion != 0 && !s.ElectionID.IsZero() {
 		if f.maxSetVersion > s.SetVersion || bytes.Compare(f.maxElectionID[:], s.ElectionID[:]) == 1 {
 			f.replaceServer(description.Server{
 				Addr:      s.Addr,
@@ -376,12 +376,10 @@ func (f *fsm) removeServerByAddr(addr address.Address) {
 	}
 }
 
-func (f *fsm) replaceServer(s description.Server) bool {
+func (f *fsm) replaceServer(s description.Server) {
 	if i, ok := f.findServer(s.Addr); ok {
 		f.setServer(i, s)
-		return true
 	}
-	return false
 }
 
 func (f *fsm) setServer(i int, s description.Server) {
