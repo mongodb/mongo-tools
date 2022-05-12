@@ -201,6 +201,14 @@ var platforms = []Platform{
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
+		Name:      "debian11",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
 		Name:      "macos",
 		Arch:      ArchX86_64,
 		OS:        OSMac,
