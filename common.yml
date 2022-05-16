@@ -2332,7 +2332,6 @@ buildvariants:
   - name: ".5.1"
   - name: ".5.2"
   - name: ".5.3"
-  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2388,10 +2387,10 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs 4
+  # We do not support 5.1-5.3 on Debian 11
   tasks:
   - name: "unit"
   - name: ".5.0"
-  - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
@@ -3082,10 +3081,10 @@ buildvariants:
   - name: "unit"
   - name: ".4.4"
   - name: ".5.0"
+  # We did not do a release of 5.3 for RHEL 7.2 on s390x. There should be a
+  # 6.x release in the future, but there is no 6.0.
   - name: ".5.1"
   - name: ".5.2"
-  - name: ".5.3"
-  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
