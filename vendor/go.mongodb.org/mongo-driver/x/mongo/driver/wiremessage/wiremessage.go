@@ -78,7 +78,7 @@ type QueryFlag int32
 const (
 	_ QueryFlag = 1 << iota
 	TailableCursor
-	SlaveOK
+	SecondaryOK
 	OplogReplay
 	NoCursorTimeout
 	AwaitData
@@ -92,8 +92,8 @@ func (qf QueryFlag) String() string {
 	if qf&TailableCursor == TailableCursor {
 		strs = append(strs, "TailableCursor")
 	}
-	if qf&SlaveOK == SlaveOK {
-		strs = append(strs, "SlaveOK")
+	if qf&SecondaryOK == SecondaryOK {
+		strs = append(strs, "SecondaryOK")
 	}
 	if qf&OplogReplay == OplogReplay {
 		strs = append(strs, "OplogReplay")
@@ -391,7 +391,7 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 		return "", nil, rem, false
 	}
 
-	// After these assignments, rem will be the data containing the identifer string + the document sequence bytes and
+	// After these assignments, rem will be the data containing the identifier string + the document sequence bytes and
 	// rest will be the rest of the wire message after this document sequence.
 	rem, rest := rem[:length-4], rem[length-4:]
 

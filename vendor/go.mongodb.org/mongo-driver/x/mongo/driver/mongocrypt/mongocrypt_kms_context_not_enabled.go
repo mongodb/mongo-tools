@@ -4,6 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build !cse
 // +build !cse
 
 package mongocrypt
@@ -21,6 +22,11 @@ func (kc *KmsContext) Message() ([]byte, error) {
 	panic(cseNotSupportedMsg)
 }
 
+// KMSProvider gets the KMS provider of the KMS context.
+func (kc *KmsContext) KMSProvider() string {
+	panic(cseNotSupportedMsg)
+}
+
 // BytesNeeded returns the number of bytes that should be received from the KMS.
 // After sending the message to the KMS, this message should be called in a loop until the number returned is 0.
 func (kc *KmsContext) BytesNeeded() int32 {
@@ -29,10 +35,5 @@ func (kc *KmsContext) BytesNeeded() int32 {
 
 // FeedResponse feeds the bytes received from the KMS to mongocrypt.
 func (kc *KmsContext) FeedResponse(response []byte) error {
-	panic(cseNotSupportedMsg)
-}
-
-// createErrorFromStatus creates a new Error from the status of the KmsContext instance.
-func (kc *KmsContext) createErrorFromStatus() error {
 	panic(cseNotSupportedMsg)
 }
