@@ -19,6 +19,7 @@ def main():
   parser.add_argument("--edition", help="edition of MongoDB to use (e.g. 'targeted', 'enterprise'); defaults to 'base'")
   parser.add_argument("--target", help="system in use (e.g. 'ubuntu1204', 'windows_x86_64-2008plus-ssl', 'rhel71')")
   parser.add_argument("--version", help="version branch (e.g. '2.6', '3.2.8-rc1', 'latest')")
+  parser.add_argument("--shell", default=False, action="store_true", help="find the shell binary instead of the server")
   opts = parser.parse_args()
 
   if not opts.edition:
@@ -83,16 +84,27 @@ def isCorrectVersion(opts, version):
 def isCorrectDownload(opts, download):
   return download["edition"] == opts.edition and download["target"] == opts.target and download["arch"] == opts.arch
 
+def downloadUrl(opts, download):
+  dl_key = "shell" if opts.shell else "archive"
+  entry = download.get(dl_key)
+  if entry is None:
+    return None
+  return entry["url"]
+
 def locateUrl(opts, specs, override):
-  versions = specs["versions"]
-  if not override:
-    versions = filter(lambda version: isCorrectVersion(opts, version), versions)
-  for item in versions:
-    downloads = filter(lambda download: isCorrectDownload(opts, download), item["downloads"])
-    urls = list(map(lambda download : download["archive"]["url"], downloads))
-    if len(urls) > 0:
-      if override:
-        return urls[0].replace(item["version"], override)
-      return urls[0]
+  urls = []
+  for version in specs["versions"]:
+    if not isCorrectVersion(opts, version):
+      continue
+    for download in version["downloads"]:
+      if isCorrectDownload(opts, download):
+        url = downloadUrl(opts, download)
+        if url is not None:
+          urls.append(url)
+
+  if len(urls) > 0:
+    if override:
+      return urls[0].replace(item["version"], override)
+    return urls[0]
 
 main()
