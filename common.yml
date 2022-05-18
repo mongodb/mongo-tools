@@ -1417,6 +1417,182 @@ tasks:
       vars:
         target: test:awsauth
 
+- name: integration-5.3
+  tags: ["5.3"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.3"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true
+
+- name: integration-5.3-auth
+  tags: ["5.3", "auth"]
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args_tls"
+            concat: " --auth"
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.3"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "create mongod users"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -auth=true
+
+- name: integration-5.3-cluster
+  tags: ["5.3", "cluster"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.3"
+    - func: "create repl_set"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -topology=replSet
+
+- name: aws-auth-5.3
+  tags: ["5.3", "aws-auth"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.3"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "run make target"
+      vars:
+        target: test:awsauth
+
+- name: integration-6.0
+  tags: ["6.0"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "6.0"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true
+
+- name: integration-6.0-auth
+  tags: ["6.0", "auth"]
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args_tls"
+            concat: " --auth"
+    - func: "download mongod"
+      vars:
+        mongo_version: "6.0"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "create mongod users"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -auth=true
+
+- name: integration-6.0-cluster
+  tags: ["6.0", "cluster"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "6.0"
+    - func: "create repl_set"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -topology=replSet
+
+- name: aws-auth-6.0
+  tags: ["6.0", "aws-auth"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod"
+      vars:
+        mongo_version: "6.0"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "run make target"
+      vars:
+        target: test:awsauth
+
 - name: integration-latest
   tags: ["latest"]
   commands:
@@ -1623,6 +1799,38 @@ tasks:
       vars:
         test_path: "test/legacy42"
 
+- name: legacy-jstests-5.3 # The server jstests from the tools removal from server in 4.2
+  tags: ["5.3"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.3"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy42"
+
+- name: legacy-jstests-6.0 # The server jstests from the tools removal from server in 4.2
+  tags: ["6.0"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "6.0"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy42"
+
 - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
   tags: ["latest"]
   commands:
@@ -1736,6 +1944,40 @@ tasks:
     - func: "download mongod"
       vars:
         mongo_version: "5.2"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_tls}"
+        excludes: "requires_unstable,${excludes}"
+
+- name: qa-tests-5.3
+  tags: ["5.3"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "5.3"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_tls}"
+        excludes: "requires_unstable,${excludes}"
+
+- name: qa-tests-6.0
+  tags: ["6.0"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod"
+      vars:
+        mongo_version: "6.0"
     - func: "run make target"
       vars:
         target: build
@@ -2026,6 +2268,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2087,6 +2331,7 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2117,6 +2362,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2140,9 +2387,11 @@ buildvariants:
     edition: enterprise
     run_kinit: true
     resmoke_args: --jobs 4
+  # We do not support 5.1-5.3 on Debian 11
   tasks:
   - name: "unit"
   - name: ".5.0"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2179,6 +2428,8 @@ buildvariants:
   - name: ".5.0 !.aws-auth"
   - name: ".5.1 !.aws-auth"
   - name: ".5.2 !.aws-auth"
+  - name: ".5.3 !.aws-auth"
+  - name: ".6.0 !.aws-auth"
   - name: ".latest !.aws-auth"
   - name: ".kerberos"
   - name: "dist"
@@ -2245,6 +2496,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2277,6 +2530,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2316,6 +2571,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: "dist"
   - name: "sign"
@@ -2345,6 +2602,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: "dist"
   - name: "sign"
@@ -2409,6 +2668,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2438,6 +2699,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2480,6 +2743,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2549,6 +2814,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2582,6 +2849,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2615,6 +2884,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2647,6 +2918,8 @@ buildvariants:
   - name: ".5.0"
   - name: ".5.1"
   - name: ".5.2"
+  - name: ".5.3"
+  - name: ".6.0"
   - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
@@ -2718,6 +2991,8 @@ buildvariants:
   - name: ".5.0 !.aws-auth"
   - name: ".5.1 !.aws-auth"
   - name: ".5.2 !.aws-auth"
+  - name: ".5.3 !.aws-auth"
+  - name: ".6.0 !.aws-auth"
   - name: ".latest !.aws-auth"
   - name: ".kerberos"
   - name: "dist"
@@ -2810,6 +3085,8 @@ buildvariants:
   - name: "unit"
   - name: ".4.4"
   - name: ".5.0"
+  # We did not do a release of 5.3 for RHEL 7.2 on s390x. There should be a
+  # 6.x release in the future, but there is no 6.0.
   - name: ".5.1"
   - name: ".5.2"
   - name: ".latest"
