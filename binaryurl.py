@@ -10,28 +10,54 @@ import json
 import sys
 import urllib.request as urllib2
 
-url_current = "http://downloads.mongodb.org/current.json"
-url_full = "http://downloads.mongodb.org/full.json"
+def main():
+  url_current = "http://downloads.mongodb.org/current.json"
+  url_full = "http://downloads.mongodb.org/full.json"
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--arch", help="processor architecture (e.g. 'x86_64', 'arm64')")
-parser.add_argument("--edition", help="edition of MongoDB to use (e.g. 'targeted', 'enterprise'); defaults to 'base'")
-parser.add_argument("--target", help="system in use (e.g. 'ubuntu1204', 'windows_x86_64-2008plus-ssl', 'rhel71')")
-parser.add_argument("--version", help="version branch (e.g. '2.6', '3.2.8-rc1', 'latest')")
-opts = parser.parse_args()
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--arch", help="processor architecture (e.g. 'x86_64', 'arm64')")
+  parser.add_argument("--edition", help="edition of MongoDB to use (e.g. 'targeted', 'enterprise'); defaults to 'base'")
+  parser.add_argument("--target", help="system in use (e.g. 'ubuntu1204', 'windows_x86_64-2008plus-ssl', 'rhel71')")
+  parser.add_argument("--version", help="version branch (e.g. '2.6', '3.2.8-rc1', 'latest')")
+  opts = parser.parse_args()
 
-if not opts.edition:
-  opts.edition = "base"
-if not opts.arch:
-  sys.exit("must specify arch")
-if not opts.target:
-  sys.exit("must specify target")
-if not opts.version:
-  sys.exit("must specify version")
+  if not opts.edition:
+    opts.edition = "base"
+  if not opts.arch:
+    sys.exit("must specify arch")
+  if not opts.target:
+    sys.exit("must specify target")
+  if not opts.version:
+    sys.exit("must specify version")
 
-# prior to the 2.6 branch, the enterprise edition was called 'subscription'
-if opts.version == "2.4" and opts.edition == "enterprise":
-  opts.edition = "subscription"
+  # prior to the 2.6 branch, the enterprise edition was called 'subscription'
+  if opts.version == "2.4" and opts.edition == "enterprise":
+    opts.edition = "subscription"
+
+  if opts.version == "latest" or isVersionGreaterOrEqual(opts.version,"4.1.0"):
+    if opts.target in ('osx-ssl', 'osx'):
+      opts.target = 'macos'
+    if opts.target in ('windows_x86_64-2008plus-ssl', 'windows_x86_64-2008plus'):
+      opts.target = 'windows_x86_64-2012plus'
+
+  if isVersionGreaterOrEqual(opts.version,"4.2.0") and opts.arch == "arm64":
+    opts.arch = "aarch64"
+
+  override = "latest" if opts.version == "latest" else None
+
+  specs = json.load(urllib2.urlopen(url_current))
+  sys.stderr.write(f"checking for {opts.edition}, {opts.target}, {opts.arch}\n")
+
+  url = locateUrl(opts, specs, override)
+
+  if not url:
+    specs = json.load(urllib2.urlopen(url_full))
+    url = locateUrl(opts, specs, override)
+
+  if not url:
+    sys.exit("No info for version "+opts.version+" found")
+
+  sys.stdout.write(url)
 
 def isVersionGreaterOrEqual(left, right):
   l = left.split(".")
@@ -43,16 +69,7 @@ def isVersionGreaterOrEqual(left, right):
       return True
   return True
 
-if opts.version == "latest" or isVersionGreaterOrEqual(opts.version,"4.1.0"):
-  if opts.target in ('osx-ssl', 'osx'):
-    opts.target = 'macos'
-  if opts.target in ('windows_x86_64-2008plus-ssl', 'windows_x86_64-2008plus'):
-    opts.target = 'windows_x86_64-2012plus'
-
-if isVersionGreaterOrEqual(opts.version,"4.2.0") and opts.arch == "arm64":
-  opts.arch = "aarch64"
-
-def isCorrectVersion(version):
+def isCorrectVersion(opts, version):
   # for approximate match, ignore '-rcX' part, but due to json file ordering
   # x.y.z will always be before x.y.z-rcX, which is what we want
   parts = version["version"].split("-")
@@ -63,32 +80,19 @@ def isCorrectVersion(version):
       return False
   return True
 
-def isCorrectDownload(download):
+def isCorrectDownload(opts, download):
   return download["edition"] == opts.edition and download["target"] == opts.target and download["arch"] == opts.arch
 
-def locateUrl(specs, override):
+def locateUrl(opts, specs, override):
   versions = specs["versions"]
   if not override:
-    versions = filter(isCorrectVersion, versions)
+    versions = filter(lambda version: isCorrectVersion(opts, version), versions)
   for item in versions:
-    downloads = filter(isCorrectDownload, item["downloads"])
+    downloads = filter(lambda download: isCorrectDownload(opts, download), item["downloads"])
     urls = list(map(lambda download : download["archive"]["url"], downloads))
     if len(urls) > 0:
       if override:
         return urls[0].replace(item["version"], override)
       return urls[0]
 
-override = "latest" if opts.version == "latest" else None
-
-specs = json.load(urllib2.urlopen(url_current))
-sys.stderr.write(f"checking for {opts.edition}, {opts.target}, {opts.arch}\n")
-url = locateUrl(specs, override)
-
-if not url:
-  specs = json.load(urllib2.urlopen(url_full))
-  url = locateUrl(specs, override)
-
-if not url:
-  sys.exit("No info for version "+opts.version+" found")
-
-sys.stdout.write(url)
+main()
