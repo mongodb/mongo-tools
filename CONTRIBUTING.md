@@ -42,6 +42,8 @@ _We use a modified version of [golint](https://github.com/golang/lint)_
 Testing
 -------
 
+You will need a MongoDB server listening on `localhost:33333` to run the integration tests locally.
+
 To run unit and integration tests:
 
 ```
