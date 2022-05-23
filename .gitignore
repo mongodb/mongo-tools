@@ -13,6 +13,8 @@
 *.temp
 *.zip
 
+!**/testdata/**
+
 /temp*
 
 bin/
