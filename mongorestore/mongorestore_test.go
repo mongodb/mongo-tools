@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -975,6 +976,25 @@ func TestLongIndexName(t *testing.T) {
 				restore.TargetDirectory = "testdata/longindextestdump"
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
+
+				indexes := session.Database("longindextest").Collection("test_collection").Indexes()
+				c, err := indexes.List(context.Background())
+				So(err, ShouldBeNil)
+
+				type indexRes struct {
+					Name string
+				}
+				var names []string
+				for c.Next(context.Background()) {
+					var r indexRes
+					err := c.Decode(&r)
+					So(err, ShouldBeNil)
+					names = append(names, r.Name)
+				}
+				So(len(names), ShouldEqual, 2)
+				sort.Strings(names)
+				So(names[0], ShouldEqual, "_id_")
+				So(names[1], ShouldEqual, "a_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 			})
 		}
 
