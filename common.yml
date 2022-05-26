@@ -521,7 +521,7 @@ functions:
         content_type: application/json
         bucket: mciuploads
         permissions: public-read
-  
+
   "generate full JSON feed":
     - command: shell.exec
       params:
@@ -610,7 +610,7 @@ functions:
           set -e
           echo "starting sharded cluster"
           mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}' 
+          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}'
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -2266,8 +2266,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2329,8 +2327,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".latest"
   - name: ".kerberos"
@@ -2360,8 +2356,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2421,13 +2415,11 @@ buildvariants:
   tasks:
   - name: "unit"
   - name: ".3.4"
-  - name: ".3.6" 
+  - name: ".3.6"
   - name: ".4.0"
   - name: ".4.2"
   - name: ".4.4 !.aws-auth"
   - name: ".5.0 !.aws-auth"
-  - name: ".5.1 !.aws-auth"
-  - name: ".5.2 !.aws-auth"
   - name: ".5.3 !.aws-auth"
   - name: ".6.0 !.aws-auth"
   - name: ".latest !.aws-auth"
@@ -2458,7 +2450,7 @@ buildvariants:
     run_kinit: true
     resmoke_args: --jobs 4
   tasks:
-  - name: "unit" 
+  - name: "unit"
   - name: ".3.4"
   - name: ".3.6"
   - name: ".4.0"
@@ -2494,8 +2486,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2528,8 +2518,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2569,8 +2557,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2600,8 +2586,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2666,8 +2650,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2697,8 +2679,6 @@ buildvariants:
   - name: "unit"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2741,8 +2721,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2808,12 +2786,10 @@ buildvariants:
     edition: "enterprise"
     USE_SSL: "true"
   tasks:
-  - name: "unit" 
+  - name: "unit"
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2844,11 +2820,9 @@ buildvariants:
     edition: "enterprise"
     USE_SSL: "true"
   tasks:
-  - name: "unit" 
+  - name: "unit"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2882,8 +2856,6 @@ buildvariants:
   - name: ".4.2"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2916,8 +2888,6 @@ buildvariants:
   - name: "unit"
   - name: ".4.4"
   - name: ".5.0"
-  - name: ".5.1"
-  - name: ".5.2"
   - name: ".5.3"
   - name: ".6.0"
   - name: ".latest"
@@ -2952,7 +2922,7 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks:
-  - name: "unit" 
+  - name: "unit"
   - name: ".3.4 !.mmap"
   - name: ".3.6 !.mmap"
   - name: ".4.0 !.mmap"
@@ -2984,13 +2954,11 @@ buildvariants:
     edition: enterprise
     run_kinit: true
   tasks:
-  - name: "unit" 
+  - name: "unit"
   - name: ".4.2"
   # Skipping aws-auth, see TOOLS-3015
-  - name: ".4.4 !.aws-auth" 
+  - name: ".4.4 !.aws-auth"
   - name: ".5.0 !.aws-auth"
-  - name: ".5.1 !.aws-auth"
-  - name: ".5.2 !.aws-auth"
   - name: ".5.3 !.aws-auth"
   - name: ".6.0 !.aws-auth"
   - name: ".latest !.aws-auth"
@@ -3115,7 +3083,7 @@ buildvariants:
     resmoke_use_tls: _tls
     resmoke_use_ssl: _ssl
     USE_SSL: "true"
-  tasks: 
+  tasks:
   - name: "unit"
   - name: ".3.6"
   - name: ".4.0"
