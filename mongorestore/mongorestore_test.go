@@ -2078,6 +2078,12 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	})
 }
 
+// ----------------------------------------------------------------------
+// All tests from this point onwards use testify, not convey. See the
+// CONTRIBUING.md file in the top level of the repo for details on how to
+// write tests using testify.
+// ----------------------------------------------------------------------
+
 type indexInfo struct {
 	name string
 	keys []string
