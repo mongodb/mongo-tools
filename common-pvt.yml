@@ -395,6 +395,16 @@ buildvariants:
     build_tags: "sasl gssapi ssl"
   tasks: *atlas_live_tasks
 
+- name: rhel83-s390x-enterprise
+  display_name: ZAP s390x RHEL 7.2 Enterprise
+  run_on:
+  - rhel83-zseries-test
+  stepback: false
+  batchtime: 10080 # weekly
+  expansions:
+    build_tags: "sasl gssapi ssl"
+  tasks: *atlas_live_tasks
+
 - name: ubuntu1604-s390x-enterprise
   display_name: ZAP s390x Ubuntu 16.04 Enterprise
   run_on:
