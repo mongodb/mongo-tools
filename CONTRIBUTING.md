@@ -42,7 +42,11 @@ _We use a modified version of [golint](https://github.com/golang/lint)_
 Testing
 -------
 
-You will need a MongoDB server listening on `localhost:33333` to run the integration tests locally.
+You will need a MongoDB server listening on `localhost:33333` to run the integration tests locally. You can use the [`mlaunch` tool](http://blog.rueckstiess.com/mtools/mlaunch.html) to make this simple:
+
+```
+$> mlaunch init --replicaset --port 33333
+```
 
 To run unit and integration tests:
 
