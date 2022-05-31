@@ -217,6 +217,7 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 			return nil
 		}
 	case bson.D:
+		var toDelete []string
 		// Drop an index by key pattern.
 		for key, value := range collIndexes {
 			isEq, err := bsonutil.IsEqual(indexToDrop, value.Key)
@@ -227,9 +228,19 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 			}
 
 			if isEq {
-				delete(collIndexes, key)
+				toDelete = append(toDelete, key)
 			}
 		}
+		if len(toDelete) > 1 {
+			return fmt.Errorf("could not drop index on %s.%s: "+
+				"the key %v somehow matched more than one index in the collection", database, collection, dropCmd[0].Key)
+		}
+		// Could we have 0 items in toDelete? I'm not sure, so it's best to
+		// avoid accessing toDelete[0].
+		for _, td := range toDelete {
+			delete(collIndexes, td)
+		}
+
 		log.Logvf(log.DebugHigh, "Must drop index on %s.%s by key pattern: %v", database, collection, indexToDrop)
 		return nil
 	default:
