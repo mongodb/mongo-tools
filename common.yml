@@ -77,6 +77,7 @@ functions:
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
         ${_set_shell_env}
+        ${_maybe_enable_devtoolset_7}
         PATH=$PATH:$HOME
         go run build.go -v ${target}
 
@@ -785,6 +786,10 @@ pre:
           set -o xtrace
           set -o verbose
           set -o errexit
+        _maybe_enable_devtoolset_7: |
+          if [ '${mongo_os}' == 'rhel62' ]; then
+            source /opt/rh/devtoolset-7/enable
+          fi
         EOT
   - command: expansions.update
     params:
@@ -2176,6 +2181,7 @@ tasks:
           set -v
           set -e
           go tool vet bsondump mongo*
+
 
 buildvariants:
 
