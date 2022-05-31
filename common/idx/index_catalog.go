@@ -204,11 +204,25 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 	switch indexToDrop := indexValue.(type) {
 	case string:
 		if indexToDrop == "*" {
+			catalog := i.getCollectionIndexCatalog(database, collection)
+
+			var idIndexName string
+			var idIndex *IndexDocument
+			for name, doc := range catalog.indexes {
+				keyMap := doc.Key.Map()
+				if len(keyMap) == 1 {
+					if _, isId := keyMap["_id"]; isId {
+						idIndexName = name
+						idIndex = doc
+						break
+					}
+				}
+			}
+
 			// Drop all non-id indexes for the collection.
-			idIndex, found := collIndexes["_id_"]
 			i.DropCollection(database, collection)
-			if found {
-				i.addIndex(database, collection, "_id_", idIndex)
+			if idIndex != nil {
+				i.addIndex(database, collection, idIndexName, idIndex)
 			}
 			return nil
 		} else {
