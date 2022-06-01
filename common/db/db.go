@@ -176,9 +176,11 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		}
 
 		if currentBlock.Type == "CERTIFICATE" {
-			certBlock = data[start : len(data)-len(remaining)]
-			certDecodedBlock = currentBlock.Bytes
-			start += len(certBlock)
+			certBlock = append(certBlock, data[start:len(data)-len(remaining)]...)
+			if len(certDecodedBlock) == 0 {
+				certDecodedBlock = currentBlock.Bytes
+			}
+			start = len(data) - len(remaining)
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
 			isEncrypted := x509.IsEncryptedPEMBlock(currentBlock) || strings.Contains(currentBlock.Type, "ENCRYPTED PRIVATE KEY")
 			if isEncrypted {
