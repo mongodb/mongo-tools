@@ -2348,7 +2348,6 @@ func runMongodump(t *testing.T, dir, db, collection string, args ...string) stri
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
-	fmt.Println(cmdStr)
 	require.NoError(err, "can execute command %s with output: %s", cmdStr, out)
 	require.NotContains(
 		string(out),
