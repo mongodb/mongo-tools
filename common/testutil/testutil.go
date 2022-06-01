@@ -9,13 +9,16 @@ package testutil
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -170,4 +173,20 @@ func MergeOplogStreams(input [][]db.Oplog) []db.Oplog {
 	}
 
 	return ops
+}
+
+func MakeTempDir(t *testing.T) (string, func()) {
+	require := require.New(t)
+
+	dir, err := ioutil.TempDir("", "mongo-tools-test")
+	require.NoError(err, "can create temp directory")
+	cleanup := func() {
+		if os.Getenv("TOOLS_TESTING_NO_CLEANUP") == "" {
+			err = os.RemoveAll(dir)
+			if err != nil {
+				t.Fatalf("Failed to delete temp directory: %v", err)
+			}
+		}
+	}
+	return dir, cleanup
 }

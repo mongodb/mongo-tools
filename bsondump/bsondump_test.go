@@ -10,170 +10,202 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
-	"runtime"
+	"path/filepath"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBsondump(t *testing.T) {
-	executable := "../bin/bsondump"
-	if runtime.GOOS == "windows" {
-		executable = "../bin/bsondump.exe"
-	}
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("Test bsondump reading from stdin and writing to stdout", t, func() {
-		cmd := exec.Command(executable)
 
-		// Attach a file to stdin of the command.
-		inFile, err := os.Open("testdata/sample.bson")
-		So(err, ShouldBeNil)
-		cmd.Stdin = inFile
+	t.Run("bsondump reading from stdin and writing to stdout", testFromStdinToStdout)
+	t.Run("bsondump reading from stdin and writing to a file", testFromStdinToFile)
+	t.Run(
+		"bsondump reading from a file with --bsonFile and writing to stdout",
+		testFromFileWithNamedArgumentToStdout,
+	)
+	t.Run(
+		"bsondump reading from a file with a positional arg and writing to stdout",
+		testFromFileWithPositionalArgumentToStdout,
+	)
+	t.Run(
+		"bsondump reading from a file with --bsonFile and writing to a file",
+		testFromFileWithNamedArgumentToFile,
+	)
+	t.Run(
+		"bsondump reading from a file with a positional arg and writing to a file",
+		testFromFileWithPositionalArgumentToFile,
+	)
+}
 
-		// Attach a buffer to stdout of the command.
-		cmdOutput := &bytes.Buffer{}
-		cmd.Stdout = cmdOutput
+func testFromStdinToStdout(t *testing.T) {
+	require := require.New(t)
+	cmd := bsondumpCommand()
 
-		err = cmd.Run()
-		So(err, ShouldBeNil)
+	// Attach a file to stdin of the command.
+	inFile, err := os.Open("testdata/sample.bson")
+	require.NoError(err)
+	cmd.Stdin = inFile
 
-		// Get the correct bsondump result from a file to use as a reference.
-		outReference, err := os.Open("testdata/sample.json")
-		So(err, ShouldBeNil)
-		bufRef := new(bytes.Buffer)
-		bufRef.ReadFrom(outReference)
-		bufRefStr := bufRef.String()
+	// Attach a buffer to stdout of the command.
+	cmdOutput := &bytes.Buffer{}
+	cmd.Stdout = cmdOutput
 
-		bufDumpStr := cmdOutput.String()
-		So(bufDumpStr, ShouldEqual, bufRefStr)
-	})
+	err = cmd.Run()
+	require.NoError(err)
 
-	Convey("Test bsondump reading from stdin and writing to a file", t, func() {
-		cmd := exec.Command(executable, "--outFile", "out.json")
+	// Get the correct bsondump result from a file to use as a reference.
+	outReference, err := os.Open("testdata/sample.json")
+	require.NoError(err)
+	bufRef := new(bytes.Buffer)
+	bufRef.ReadFrom(outReference)
+	bufRefStr := bufRef.String()
 
-		// Attach a file to stdin of the command.
-		inFile, err := os.Open("testdata/sample.bson")
-		So(err, ShouldBeNil)
-		cmd.Stdin = inFile
+	bufDumpStr := cmdOutput.String()
+	require.Equal(bufRefStr, bufDumpStr)
+}
 
-		err = cmd.Run()
-		So(err, ShouldBeNil)
+func testFromStdinToFile(t *testing.T) {
+	require := require.New(t)
 
-		// Get the correct bsondump result from a file to use as a reference.
-		outReference, err := os.Open("testdata/sample.json")
-		So(err, ShouldBeNil)
-		bufRef := new(bytes.Buffer)
-		bufRef.ReadFrom(outReference)
-		bufRefStr := bufRef.String()
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	outFile := filepath.Join(dir, "out.json")
 
-		// Get the output from a file.
-		outDump, err := os.Open("out.json")
-		So(err, ShouldBeNil)
-		bufDump := new(bytes.Buffer)
-		bufDump.ReadFrom(outDump)
-		bufDumpStr := bufDump.String()
+	cmd := bsondumpCommand("--outFile", outFile)
 
-		So(bufDumpStr, ShouldEqual, bufRefStr)
+	// Attach a file to stdin of the command.
+	inFile, err := os.Open("testdata/sample.bson")
+	require.NoError(err)
+	cmd.Stdin = inFile
 
-		Reset(func() {
-			os.Remove("out.json")
-		})
-	})
+	err = cmd.Run()
+	require.NoError(err)
 
-	Convey("Test bsondump reading from a file with --bsonFile and writing to stdout", t, func() {
-		cmd := exec.Command(executable, "--bsonFile", "testdata/sample.bson")
+	// Get the correct bsondump result from a file to use as a reference.
+	outReference, err := os.Open("testdata/sample.json")
+	require.NoError(err)
+	bufRef := new(bytes.Buffer)
+	bufRef.ReadFrom(outReference)
+	bufRefStr := bufRef.String()
 
-		// Attach a buffer to stdout of the command.
-		cmdOutput := &bytes.Buffer{}
-		cmd.Stdout = cmdOutput
+	// Get the output from a file.
+	outDump, err := os.Open(outFile)
+	require.NoError(err)
+	bufDump := new(bytes.Buffer)
+	bufDump.ReadFrom(outDump)
+	bufDumpStr := bufDump.String()
 
-		err := cmd.Run()
-		So(err, ShouldBeNil)
+	require.Equal(bufRefStr, bufDumpStr)
+}
 
-		// Get the correct bsondump result from a file to use as a reference.
-		outReference, err := os.Open("testdata/sample.json")
-		So(err, ShouldBeNil)
-		bufRef := new(bytes.Buffer)
-		bufRef.ReadFrom(outReference)
-		bufRefStr := bufRef.String()
+func testFromFileWithNamedArgumentToStdout(t *testing.T) {
+	require := require.New(t)
+	cmd := bsondumpCommand("--bsonFile", "testdata/sample.bson")
 
-		bufDumpStr := cmdOutput.String()
-		So(bufDumpStr, ShouldEqual, bufRefStr)
-	})
+	// Attach a buffer to stdout of the command.
+	cmdOutput := &bytes.Buffer{}
+	cmd.Stdout = cmdOutput
 
-	Convey("Test bsondump reading from a file with a positional arg and writing to stdout", t, func() {
-		cmd := exec.Command(executable, "testdata/sample.bson")
+	err := cmd.Run()
+	require.NoError(err)
 
-		// Attach a buffer to stdout of command.
-		cmdOutput := &bytes.Buffer{}
-		cmd.Stdout = cmdOutput
+	// Get the correct bsondump result from a file to use as a reference.
+	outReference, err := os.Open("testdata/sample.json")
+	require.NoError(err)
+	bufRef := new(bytes.Buffer)
+	bufRef.ReadFrom(outReference)
+	bufRefStr := bufRef.String()
 
-		err := cmd.Run()
-		So(err, ShouldBeNil)
+	bufDumpStr := cmdOutput.String()
+	require.Equal(bufRefStr, bufDumpStr)
+}
 
-		// Get the correct bsondump result from a file to use as a reference.
-		outReference, err := os.Open("testdata/sample.json")
-		So(err, ShouldBeNil)
-		bufRef := new(bytes.Buffer)
-		bufRef.ReadFrom(outReference)
-		bufRefStr := bufRef.String()
+func testFromFileWithPositionalArgumentToStdout(t *testing.T) {
+	require := require.New(t)
+	cmd := bsondumpCommand("testdata/sample.bson")
 
-		bufDumpStr := cmdOutput.String()
-		So(bufDumpStr, ShouldEqual, bufRefStr)
-	})
+	// Attach a buffer to stdout of command.
+	cmdOutput := &bytes.Buffer{}
+	cmd.Stdout = cmdOutput
 
-	Convey("Test bsondump reading from a file with --bsonFile and writing to a file", t, func() {
-		cmd := exec.Command(executable, "--outFile", "out.json", "--bsonFile", "testdata/sample.bson")
+	err := cmd.Run()
+	require.NoError(err)
 
-		err := cmd.Run()
-		So(err, ShouldBeNil)
+	// Get the correct bsondump result from a file to use as a reference.
+	outReference, err := os.Open("testdata/sample.json")
+	require.NoError(err)
+	bufRef := new(bytes.Buffer)
+	bufRef.ReadFrom(outReference)
+	bufRefStr := bufRef.String()
 
-		// Get the correct bsondump result from a file to use as a reference.
-		outReference, err := os.Open("testdata/sample.json")
-		So(err, ShouldBeNil)
-		bufRef := new(bytes.Buffer)
-		bufRef.ReadFrom(outReference)
-		bufRefStr := bufRef.String()
+	bufDumpStr := cmdOutput.String()
+	require.Equal(bufRefStr, bufDumpStr)
+}
 
-		// Get the output from a file.
-		outDump, err := os.Open("out.json")
-		So(err, ShouldBeNil)
-		bufDump := new(bytes.Buffer)
-		bufDump.ReadFrom(outDump)
-		bufDumpStr := bufDump.String()
+func testFromFileWithNamedArgumentToFile(t *testing.T) {
+	require := require.New(t)
 
-		So(bufDumpStr, ShouldEqual, bufRefStr)
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	outFile := filepath.Join(dir, "out.json")
 
-		Reset(func() {
-			os.Remove("out.json")
-		})
-	})
+	cmd := bsondumpCommand("--outFile", outFile, "--bsonFile", "testdata/sample.bson")
 
-	Convey("Test bsondump reading from a file with a positional arg and writing to a file", t, func() {
-		cmd := exec.Command(executable, "--outFile", "out.json", "testdata/sample.bson")
+	err := cmd.Run()
+	require.NoError(err)
 
-		err := cmd.Run()
-		So(err, ShouldBeNil)
+	// Get the correct bsondump result from a file to use as a reference.
+	outReference, err := os.Open("testdata/sample.json")
+	require.NoError(err)
+	bufRef := new(bytes.Buffer)
+	bufRef.ReadFrom(outReference)
+	bufRefStr := bufRef.String()
 
-		// Get the correct bsondump result from a file to use as a reference.
-		outReference, err := os.Open("testdata/sample.json")
-		So(err, ShouldBeNil)
-		bufRef := new(bytes.Buffer)
-		bufRef.ReadFrom(outReference)
-		bufRefStr := bufRef.String()
+	// Get the output from a file.
+	outDump, err := os.Open(outFile)
+	require.NoError(err)
+	bufDump := new(bytes.Buffer)
+	bufDump.ReadFrom(outDump)
+	bufDumpStr := bufDump.String()
 
-		// Get the output from a file.
-		outDump, err := os.Open("out.json")
-		So(err, ShouldBeNil)
-		bufDump := new(bytes.Buffer)
-		bufDump.ReadFrom(outDump)
-		bufDumpStr := bufDump.String()
+	require.Equal(bufRefStr, bufDumpStr)
+}
 
-		So(bufDumpStr, ShouldEqual, bufRefStr)
+func testFromFileWithPositionalArgumentToFile(t *testing.T) {
+	require := require.New(t)
 
-		Reset(func() {
-			os.Remove("out.json")
-		})
-	})
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	outFile := filepath.Join(dir, "out.json")
+
+	cmd := bsondumpCommand("--outFile", outFile, "testdata/sample.bson")
+
+	err := cmd.Run()
+	require.NoError(err)
+
+	// Get the correct bsondump result from a file to use as a reference.
+	outReference, err := os.Open("testdata/sample.json")
+	require.NoError(err)
+	bufRef := new(bytes.Buffer)
+	bufRef.ReadFrom(outReference)
+	bufRefStr := bufRef.String()
+
+	// Get the output from a file.
+	outDump, err := os.Open(outFile)
+	require.NoError(err)
+	bufDump := new(bytes.Buffer)
+	bufDump.ReadFrom(outDump)
+	bufDumpStr := bufDump.String()
+
+	require.Equal(bufRefStr, bufDumpStr)
+}
+
+func bsondumpCommand(args ...string) *exec.Cmd {
+	cmd := []string{"go", "run", filepath.Join("..", "bsondump", "main")}
+	cmd = append(cmd, args...)
+	return exec.Command(cmd[0], cmd[1:]...)
 }
