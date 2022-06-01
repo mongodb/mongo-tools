@@ -130,8 +130,11 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
 	for i, index := range indexes {
-		// The index with the name "_id_" will always be the idIndex.
-		if index.Options["name"].(string) == "_id_" {
+		var key []string
+		for k := range index.Key.Map() {
+			key = append(key, k)
+		}
+		if len(key) == 1 && key[0] == "_id" {
 			// The _id index was created when the collection was created,
 			// so we do not build the index here.
 			indexes = append(indexes[:i], indexes[i+1:]...)
@@ -325,26 +328,34 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		logMessageSuffix = "with no metadata"
 	}
 
-	// The only way to specify options on the idIndex is at collection creation time.
-	IDIndex := restore.indexCatalog.GetIndex(intent.DB, intent.C, "_id_")
-	if IDIndex != nil {
-		// Remove the index version (to use the default) unless otherwise specified.
-		// If preserving UUID, we have to create a collection via
-		// applyops, which requires the "v" key.
-		if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
-			delete(IDIndex.Options, "v")
-		}
-		IDIndex.Options["ns"] = intent.Namespace()
+	var isClustered bool
+	if v := intent.Options["clusteredIndex"]; v != nil {
+		isClustered = true
+	}
 
-		// If the collection has an idIndex, then we are about to create it, so
-		// ignore the value of autoIndexId.
-		for j, opt := range options {
-			if opt.Key == "autoIndexId" {
-				options = append(options[:j], options[j+1:]...)
+	// Clustered collections already have their _id index.
+	if !isClustered {
+		// The only way to specify options on the idIndex is at collection creation time.
+		IDIndex := restore.indexCatalog.GetIndex(intent.DB, intent.C, "_id_")
+		if IDIndex != nil {
+			// Remove the index version (to use the default) unless otherwise specified.
+			// If preserving UUID, we have to create a collection via
+			// applyops, which requires the "v" key.
+			if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
+				delete(IDIndex.Options, "v")
 			}
-		}
+			IDIndex.Options["ns"] = intent.Namespace()
 
-		options = append(options, bson.E{"idIndex", *IDIndex})
+			// If the collection has an idIndex, then we are about to create it, so
+			// ignore the value of autoIndexId.
+			for j, opt := range options {
+				if opt.Key == "autoIndexId" {
+					options = append(options[:j], options[j+1:]...)
+				}
+			}
+
+			options = append(options, bson.E{"idIndex", *IDIndex})
+		}
 	}
 
 	if restore.OutputOptions.NoOptionsRestore {

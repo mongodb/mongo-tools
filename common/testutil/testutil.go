@@ -8,6 +8,7 @@
 package testutil
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -44,7 +45,7 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
 		_, err := toolOptions.ParseArgs(fakeArgs)
 		if err != nil {
-			panic("Could not parse TOOLS_TESTING_MONGOD environment variable")
+			panic(fmt.Sprintf("Could not parse TOOLS_TESTING_MONGOD environment variable: %v", err))
 		}
 	} else {
 		ssl := GetSSLOptions()
