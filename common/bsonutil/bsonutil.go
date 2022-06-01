@@ -31,7 +31,7 @@ func IsEqual(left, right bson.D) (bool, error) {
 		return false, err
 	}
 
-	rightBytes, err := bson.Marshal(left)
+	rightBytes, err := bson.Marshal(right)
 	if err != nil {
 		return false, err
 	}
