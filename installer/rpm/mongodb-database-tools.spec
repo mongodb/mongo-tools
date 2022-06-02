@@ -48,17 +48,17 @@ rm -Rf mongodb-database-tools
 rm -rf %{buildroot}
 
 %files
-%attr(0755,mongod,mongod) /usr/bin/bsondump
-%attr(0755,mongod,mongod) /usr/bin/mongodump
-%attr(0755,mongod,mongod) /usr/bin/mongoexport
-%attr(0755,mongod,mongod) /usr/bin/mongofiles
-%attr(0755,mongod,mongod) /usr/bin/mongoimport
-%attr(0755,mongod,mongod) /usr/bin/mongorestore
-%attr(0755,mongod,mongod) /usr/bin/mongostat
-%attr(0755,mongod,mongod) /usr/bin/mongotop
-%attr(0644,mongod,mongod) /usr/share/doc/mongodb-database-tools/LICENSE.md
-%attr(0644,mongod,mongod) /usr/share/doc/mongodb-database-tools/README.md
-%attr(0644,mongod,mongod) /usr/share/doc/mongodb-database-tools/THIRD-PARTY-NOTICES
+%attr(0755,root,root) /usr/bin/bsondump
+%attr(0755,root,root) /usr/bin/mongodump
+%attr(0755,root,root) /usr/bin/mongoexport
+%attr(0755,root,root) /usr/bin/mongofiles
+%attr(0755,root,root) /usr/bin/mongoimport
+%attr(0755,root,root) /usr/bin/mongorestore
+%attr(0755,root,root) /usr/bin/mongostat
+%attr(0755,root,root) /usr/bin/mongotop
+%attr(0644,root,root) /usr/share/doc/mongodb-database-tools/LICENSE.md
+%attr(0644,root,root) /usr/share/doc/mongodb-database-tools/README.md
+%attr(0644,root,root) /usr/share/doc/mongodb-database-tools/THIRD-PARTY-NOTICES
 
 %pre
 # On install
