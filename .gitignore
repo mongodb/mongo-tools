@@ -29,3 +29,5 @@ vendor/pkg
 
 tags
 node_modules
+
+.ignore

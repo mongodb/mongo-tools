@@ -2706,7 +2706,7 @@ buildvariants:
 - name: windows
   display_name: Windows 64-bit
   run_on:
-  - windows-64-vs2017-compile
+  - windows-vsCurrent-large
   expansions:
     <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
     mongo_os: "windows-64"
