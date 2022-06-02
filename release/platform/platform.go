@@ -159,6 +159,7 @@ func (p Platform) ArtifactExtensions() []string {
 }
 
 var platformsByVariant map[string]Platform
+var defaultBuildTags = []string{"ssl", "sasl", "gssapi", "failpoints"}
 var platforms = []Platform{
 	{
 		Name:      "amazon",
@@ -166,7 +167,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "amazon2",
@@ -174,7 +175,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "debian81",
@@ -182,7 +183,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "debian92",
@@ -190,7 +191,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "debian10",
@@ -198,7 +199,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "debian11",
@@ -206,13 +207,13 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "macos",
 		Arch:      ArchX86_64,
 		OS:        OSMac,
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel62",
@@ -220,7 +221,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel70",
@@ -228,7 +229,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel80",
@@ -236,7 +237,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "suse12",
@@ -244,7 +245,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "suse15",
@@ -252,7 +253,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu1404",
@@ -260,7 +261,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu1604",
@@ -268,7 +269,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu1804",
@@ -276,7 +277,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu2004",
@@ -284,13 +285,13 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "windows",
 		Arch:      ArchX86_64,
 		OS:        OSWindows,
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 		BinaryExt: ".exe",
 	},
 	{
@@ -315,7 +316,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel82",
@@ -323,7 +324,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel71",
@@ -331,7 +332,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel81",
@@ -339,7 +340,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu1604",
@@ -347,7 +348,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu1804",
@@ -355,7 +356,7 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "ubuntu1604",
@@ -371,6 +372,6 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+		BuildTags: defaultBuildTags,
 	},
 }
