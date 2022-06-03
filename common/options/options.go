@@ -21,6 +21,7 @@ import (
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/password"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -654,6 +655,16 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 	if err != nil {
 		return err
 	}
+
+	// finalize auth options, filling in missing passwords
+	if opts.Auth.ShouldAskForPassword() {
+		pass, err := password.Prompt()
+		if err != nil {
+			return fmt.Errorf("error reading password: %v", err)
+		}
+		opts.Auth.Password = pass
+	}
+
 	err = opts.ConnString.Validate()
 	if err != nil {
 		return err
