@@ -30,16 +30,23 @@ const (
 // There should be at least one evergreen buildvariant per platform,
 // and there may be multiple.
 type Platform struct {
-	Name      string
-	Arch      string
-	OS        string
-	Pkg       string
-	Repos     []string
-	BuildTags []string
-	BinaryExt string
+	Name string
+	// This is used to override the variant name. It should only be used for
+	// special builds. In general, we want to use the OS name + arch for the
+	// variant name.
+	VariantName string
+	Arch        string
+	OS          string
+	Pkg         string
+	Repos       []string
+	BuildTags   []string
+	BinaryExt   string
 }
 
 func (p Platform) Variant() string {
+	if p.VariantName != "" {
+		return p.VariantName
+	}
 	if p.Arch == ArchX86_64 {
 		return p.Name
 	}
@@ -230,6 +237,18 @@ var platforms = []Platform{
 		Pkg:       PkgRPM,
 		Repos:     []string{RepoOrg, RepoEnterprise},
 		BuildTags: defaultBuildTags,
+	},
+	// This is a special build that we upload to S3 but not to the release
+	// repos.
+	{
+		Name: "rhel62",
+		// This needs to match the name of the buildvariant in the Evergreen
+		// config.
+		VariantName: "rhel62-no-sasl-or-kerberos",
+		Arch:        ArchX86_64,
+		OS:          OSLinux,
+		Pkg:         PkgRPM,
+		BuildTags:   []string{"ssl", "failpoints"},
 	},
 	{
 		Name:      "rhel70",
