@@ -215,36 +215,20 @@ func bsondumpCommand(args ...string) *exec.Cmd {
 	return exec.Command(cmd[0], cmd[1:]...)
 }
 
+const sixteenKB = 16 * 1024
+
 func TestBsondumpMaxBSONSize(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	// 16mb
-	size := int(16*math.Pow(1024, 2)) -
-		// subtract 5 for the 4 bytes for the int32 at the head of the document that
-		// specifies its size and 1 for its trailing NULL.
-		5 -
-		// subtract 1 byte for each byte that specifes the type of our two
-		// fields
-		2 -
-		// subtract 1 byte for the binary field subtype specifier
-		1 -
-		// subtract the length of each key name
-		len("name") -
-		len("content") -
-		// subtract 1 byte for the trailing NULL in each of our two keys
-		2 -
-		// subtract another 4 bytes for the int32 specifying the length of the
-		// each of each of our two fields
-		8 -
-		// subtract 1 for the string's trailing NULL
-		1
+	// 16mb + 16kb
+	maxSize := int(16*math.Pow(1024, 2)) + sixteenKB
 
 	t.Run("bsondump with file at exactly max size of 16mb + 16kb", func(t *testing.T) {
-		_, err := runBsondumpWithLargeFile(t, size, true)
+		_, err := runBsondumpWithLargeFile(t, maxSize, true)
 		require.NoError(t, err, "no error executing bsondump with large file")
 	})
 	t.Run("bsondump with file at max size + 1", func(t *testing.T) {
-		out, err := runBsondumpWithLargeFile(t, size+1, false)
+		out, err := runBsondumpWithLargeFile(t, maxSize+1, false)
 		require.Error(t, err, "got error executing bsondump with large file")
 		require.Regexp(t, "is larger than maximum of 16793600 bytes", out, "bsondump prints error about file size")
 	})
@@ -253,7 +237,33 @@ func TestBsondumpMaxBSONSize(t *testing.T) {
 func runBsondumpWithLargeFile(t *testing.T, size int, expectPass bool) (string, error) {
 	require := require.New(t)
 
-	buf := make([]byte, size)
+	// We need to take the max size and subtract a bunch of things to figure
+	// out the size of the binary data to generate.
+	//
+	// Subtract 16kb for the string field's data.
+	//
+	// Subtract 4 bytes for the int32 at the head of the document that
+	// specifies its size.
+	//
+	// Subtract 1 byte for the document's trailing NULL.
+	//
+	// Subtract 2 bytes, one for for each byte that specifies the type of our
+	// two fields.
+	//
+	// Subtract 1 byte for the binary field subtype specifier.
+	//
+	// Subtract the length of each key in the document.
+	//
+	// Subtract 2 bytes, one for each byte used as the trailing NULL in each
+	// of our two keys.
+	//
+	// Subtract 8 bytes, 4 bytes for each of the int32 values specifying the
+	// length of our two fields.
+	//
+	// Subtract 1 byte for the string field value's trailing NULL.
+	binarySize := size - (sixteenKB + 4 + 1 + 2 + 1 + len("name") + len("content") + 2 + 8 + 1)
+
+	buf := make([]byte, binarySize)
 	_, err := rand.Read(buf)
 	require.NoError(err, "no error creating c. 16mb of random byte data")
 
