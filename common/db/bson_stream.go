@@ -114,10 +114,16 @@ func (bs *BSONSource) LoadNext() []byte {
 	// actually fit into the buffer that was provided. If not, either the BSON is
 	// invalid, or the buffer passed in is too small.
 	// Verify that we do not have an invalid BSON document with size < 5.
-	if bsonSize > bs.MaxBSONSize || bsonSize < 5 {
-		bs.err = fmt.Errorf("invalid BSONSize: %v bytes", bsonSize)
+	if bsonSize < 5 {
+		bs.err = fmt.Errorf("invalid BSONSize: %v bytes is less than 5 bytes", bsonSize)
 		return nil
 	}
+
+	if bsonSize > bs.MaxBSONSize {
+		bs.err = fmt.Errorf("invalid BSONSize: %v bytes is larger than maximum of %d bytes", bsonSize, bs.MaxBSONSize)
+		return nil
+	}
+
 	if int(bsonSize) > cap(into) {
 		bigInto := make([]byte, bsonSize)
 		copy(bigInto, into)

@@ -155,6 +155,10 @@ func testVariationWithDb1(t *testing.T, db *mongo.Database) {
 
 ```
 
+#### Temp Directories
+
+Many tests need to write data to disk. Whenever possible, use a temp directory for this. You can use the `testutil.MakeTempDir` function to make a temp directory. If the `TOOLS_TESTING_NO_CLEANUP` env var is set to a non-empty value then the cleanup func returned by `testutil.MakeTempDir` won't delete the directory, which is useful when investigating test failures.
+
 #### Example
 
 For an example of all of this, see the `TestRestoreClusteredIndex` func in `mongorestore/mongorestore_test.go`.

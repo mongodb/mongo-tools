@@ -12,7 +12,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -2285,7 +2284,7 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 }
 
 func withMongodump(t *testing.T, db string, collection string, testCase func(string)) {
-	dir, cleanup := makeTempDir(t)
+	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
 	runMongodump(t, dir, db, collection)
 	testCase(dir)
@@ -2294,7 +2293,7 @@ func withMongodump(t *testing.T, db string, collection string, testCase func(str
 func withOplogMongoDump(t *testing.T, db string, collection string, testCase func(string)) {
 	require := require.New(t)
 
-	dir, cleanup := makeTempDir(t)
+	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
 
 	// This queries the local.oplog.rs collection for commands or CRUD
@@ -2335,20 +2334,6 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	testCase(dir)
 }
 
-func makeTempDir(t *testing.T) (string, func()) {
-	require := require.New(t)
-
-	dir, err := ioutil.TempDir("", "mongorestore_test")
-	require.NoError(err, "can create temp directory")
-	cleanup := func() {
-		err = os.RemoveAll(dir)
-		if err != nil {
-			t.Fatalf("Failed to delete temp directory: %v", err)
-		}
-	}
-	return dir, cleanup
-}
-
 func runMongodump(t *testing.T, dir, db, collection string, args ...string) string {
 	require := require.New(t)
 
@@ -2363,7 +2348,6 @@ func runMongodump(t *testing.T, dir, db, collection string, args ...string) stri
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
-	fmt.Println(cmdStr)
 	require.NoError(err, "can execute command %s with output: %s", cmdStr, out)
 	require.NotContains(
 		string(out),
