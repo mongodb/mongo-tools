@@ -372,6 +372,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSWindows,
 		BuildTags: defaultBuildTags,
+		BinaryExt: ".exe",
 	},
 }
 
