@@ -19,7 +19,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
 	gopkg.in/yaml.v2 v2.4.0
 )
