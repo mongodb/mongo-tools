@@ -52,6 +52,8 @@ func testFromStdinToStdout(t *testing.T) {
 
 	// Attach a file to stdin of the command.
 	inFile, err := os.Open("testdata/sample.bson")
+	defer inFile.Close()
+
 	require.NoError(err)
 	cmd.Stdin = inFile
 
@@ -64,6 +66,8 @@ func testFromStdinToStdout(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
+	defer outReference.Close()
+
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
 	bufRef.ReadFrom(outReference)
@@ -84,6 +88,8 @@ func testFromStdinToFile(t *testing.T) {
 
 	// Attach a file to stdin of the command.
 	inFile, err := os.Open("testdata/sample.bson")
+	defer inFile.Close()
+
 	require.NoError(err)
 	cmd.Stdin = inFile
 
@@ -92,6 +98,8 @@ func testFromStdinToFile(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
+	defer outReference.Close()
+
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
 	bufRef.ReadFrom(outReference)
@@ -99,6 +107,8 @@ func testFromStdinToFile(t *testing.T) {
 
 	// Get the output from a file.
 	outDump, err := os.Open(outFile)
+	defer outDump.Close()
+
 	require.NoError(err)
 	bufDump := new(bytes.Buffer)
 	bufDump.ReadFrom(outDump)
@@ -120,6 +130,8 @@ func testFromFileWithNamedArgumentToStdout(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
+	defer outReference.Close()
+
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
 	bufRef.ReadFrom(outReference)
@@ -142,6 +154,8 @@ func testFromFileWithPositionalArgumentToStdout(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
+	defer outReference.Close()
+
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
 	bufRef.ReadFrom(outReference)
@@ -165,6 +179,8 @@ func testFromFileWithNamedArgumentToFile(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
+	defer outReference.Close()
+
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
 	bufRef.ReadFrom(outReference)
@@ -172,6 +188,8 @@ func testFromFileWithNamedArgumentToFile(t *testing.T) {
 
 	// Get the output from a file.
 	outDump, err := os.Open(outFile)
+	defer outDump.Close()
+
 	require.NoError(err)
 	bufDump := new(bytes.Buffer)
 	bufDump.ReadFrom(outDump)
@@ -194,6 +212,8 @@ func testFromFileWithPositionalArgumentToFile(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
+	defer outReference.Close()
+
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
 	bufRef.ReadFrom(outReference)
@@ -201,6 +221,8 @@ func testFromFileWithPositionalArgumentToFile(t *testing.T) {
 
 	// Get the output from a file.
 	outDump, err := os.Open(outFile)
+	defer outDump.Close()
+
 	require.NoError(err)
 	bufDump := new(bytes.Buffer)
 	bufDump.ReadFrom(outDump)
