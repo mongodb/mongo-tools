@@ -1,35 +1,22 @@
 #!/bin/bash
 
-set -x
-set -v
-set -e
+# This is a small wrapper around the python script to translate env vars into CLI args for the
+# python script.
 
-mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
-mongoversion=$(if [ "${mongo_version_always_use_latest}" ]; then echo "latest"; else echo "${mongo_version}"; fi)
-PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
-
-python="python3"
-if [ "Windows_NT" = "$OS" ]; then
-  python="py.exe -3"
-fi
-
-dlurl=$($python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion --arch=${mongo_arch|x86_64})
-filename=$(echo $dlurl | sed -e "s_.*/__")
-mkdir -p bin
-curl -s $dlurl --output $filename
-${decompress} $filename
-rm $filename
-
-if [ "${only_shell}" ]; then
-  mv -f ./mongodb-*/bin/mongo${extension} ./bin/
+if [ -n "$mongo_target" ]; then
+    target="$mongo_target"
 else
-  mv -f ./mongodb-*/bin/mongo${extension} ./bin/
-  mv -f ./mongodb-*/bin/mongos${extension} ./bin/
-  mv -f ./mongodb-*/bin/mongod${extension} ./bin/
-fi
-if [ "Windows_NT" = "$OS" ]; then
-  mv -f ./mongodb-*/bin/netsnmp.dll ./bin/
+    target="$mongo_os"
 fi
 
-chmod +x ./bin/*
-rm -rf ./mongodb-*
+if [ -n "$mongo_arch" ]; then
+    arch="$mongo_arch"
+else
+    arch="x86_64"
+fi
+
+./scripts/download_mongod_and_shell.py \
+    --arch "$arch" \
+    --edition "$mongo_edition" \
+    --target "$target" \
+    --version "$mongo_version"
