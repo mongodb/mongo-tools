@@ -6,7 +6,7 @@ _Released 2022-06-XX_
 
 We are pleased to announce version 100.5.3 of the MongoDB Database Tools.
 
-This release contains a number of bug fixes and changes. Highlights include support for clustered collections in mongorestore, updating our Go version to address CVEs, and suported platform updates.
+This release contains a number of bug fixes and changes. Highlights include support for clustered collections in mongorestore, updating our Go version from 1.16.7 to 1.17.8 to address CVEs, and supported platform updates.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
