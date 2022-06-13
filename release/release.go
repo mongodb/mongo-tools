@@ -1208,6 +1208,10 @@ func linuxRelease(v version.Version) {
 				go func(mongoEdition string, linuxRepo LinuxRepo) {
 					var err error
 					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, linuxRepo.name)
+					arch := pf.Arch
+					if pf.Pkg == platform.PkgRPM {
+						arch = pf.RPMArch()
+					}
 					// retry twice on failure.
 					maxRetries := 2
 					for retries := maxRetries; retries >= 0; retries-- {
@@ -1217,7 +1221,7 @@ func linuxRelease(v version.Version) {
 							"--service", "https://barque.corp.mongodb.com",
 							"--config", "etc/repo-config.yml",
 							"--distro", pf.Name,
-							"--arch", pf.Arch,
+							"--arch", arch,
 							"--edition", mongoEdition,
 							"--version", linuxRepo.mongoVersionNumber,
 							"--packages", packagesURL,
