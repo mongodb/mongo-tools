@@ -296,14 +296,6 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "ubuntu1404",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
 		Name:      "ubuntu1604",
 		Arch:      ArchArm64,
 		OS:        OSLinux,
