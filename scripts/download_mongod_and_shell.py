@@ -14,15 +14,11 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import tarfile
 import tempfile
 import zipfile
-
-if sys.version_info[0] >= 3:
-    import urllib.request as urllib2
-else:
-    import urllib2
 
 
 def main():
@@ -58,7 +54,7 @@ class Main:
 
         self.dir = tempfile.mkdtemp()
 
-        finder = UrlFinder(self.wanted, False)
+        finder = UrlFinder(self.wanted, False, self.dir)
         url = finder.url_for_wanted()
         if not url:
             raise Exception("Could not find a url to download the server")
@@ -78,16 +74,8 @@ class Main:
             raise Exception("Could not find a 5.x release to download the shell from")
 
     def download_url_and_extract(self, url, shell_only):
-        resp = urllib2.urlopen(url)
-        if resp.getcode() != 200:
-            raise Exception(
-                "Got error response from {0}: {1}".format(url, resp.getcode())
-            )
-
         local = os.path.join(self.dir, os.path.basename(url))
-        with open(local, "wb") as file:
-            file.write(resp.read())
-            file.close()
+        download_url_with_curl(url, local)
 
         if local.endswith(".zip"):
             log("Extracting downloaded zip file at {0}".format(local))
@@ -160,9 +148,10 @@ class UrlFinder:
     CURRENT_VERSIONS_JSON_URL = "http://downloads.mongodb.org/current.json"
     FULL_VERSIONS_JSON_URL = "http://downloads.mongodb.org/full.json"
 
-    def __init__(self, wanted, shell):
+    def __init__(self, wanted, shell, dir):
         self.wanted = wanted
         self.shell = shell
+        self.dir = dir
         self.downloaded = {"current": None, "full": None}
 
     def url_for_wanted(self):
@@ -187,7 +176,10 @@ class UrlFinder:
 
     def download_spec(self, url):
         log("Downloading spec at {0}".format(url))
-        contents = json.load(urllib2.urlopen(url))
+        local = os.path.join(self.dir, "spec.json")
+        download_url_with_curl(url, local)
+        file = open(local, "r")
+        contents = json.load(file)
         return contents
 
     def find_url_in_spec(self, spec):
@@ -244,6 +236,15 @@ def version_is_greater_or_equal(left, right):
         elif l[i] > r[i]:
             return True
     return True
+
+
+# We use curl instead of urllib or urllib2 because the Python 2.6 on our RHEL 6.2 machines does
+# not support modern SSL protocols. When we try to use it to download the release tarballs it
+# errors out like this:
+#
+# urllib2.URLError: <urlopen error [Errno 1] _ssl.c:492: error:140770FC:SSL routines:SSL23_GET_SERVER_HELLO:unknown protocol>
+def download_url_with_curl(url, local):
+    subprocess.check_call(["curl", "--silent", "--output", local, url])
 
 
 def log(msg):
