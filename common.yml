@@ -2489,6 +2489,8 @@ buildvariants:
     run_kinit: false
     resmoke_args: --jobs 4
   tasks:
+  - name: "unit"
+  - name: ".4.4"
   - name: "dist"
   - name: "sign"
     run_on: rhel80-small
