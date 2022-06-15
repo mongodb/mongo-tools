@@ -17,9 +17,13 @@ type EvergreenConfig struct {
 }
 
 type Variant struct {
-	Name        string   `yaml:"name"`
-	DisplayName string   `yaml:"display_name"`
-	RunOn       []string `yaml:"run_on"`
+	Name        string `yaml:"name"`
+	DisplayName string `yaml:"display_name"`
+	Tasks       []Task `yaml:"tasks"`
+}
+
+type Task struct {
+	Name string `yaml:"name"`
 }
 
 func TestPlatformsMatchCI(t *testing.T) {
@@ -35,13 +39,21 @@ func TestPlatformsMatchCI(t *testing.T) {
 	var config EvergreenConfig
 	yaml.Unmarshal(common, &config)
 
-	knownPlatforms := make(map[string]bool)
+	releasePlatforms := make(map[string]bool)
+	s3OnlyPlatforms := make(map[string]bool)
 	for _, p := range platforms {
-		name := p.Name
-		if p.Arch != ArchX86_64 {
-			name += "-" + p.Arch
+		name := p.VariantName
+		if name == "" {
+			name = p.Name
+			if p.Arch != ArchX86_64 {
+				name += "-" + p.Arch
+			}
 		}
-		knownPlatforms[name] = false
+		if p.UploadToS3Only {
+			s3OnlyPlatforms[name] = false
+		} else {
+			releasePlatforms[name] = false
+		}
 	}
 
 	for _, v := range config.Variants {
@@ -49,8 +61,12 @@ func TestPlatformsMatchCI(t *testing.T) {
 			continue
 		}
 
-		if _, ok := knownPlatforms[v.Name]; ok {
-			knownPlatforms[v.Name] = true
+		if _, ok := releasePlatforms[v.Name]; ok {
+			releasePlatforms[v.Name] = true
+		} else if _, ok := s3OnlyPlatforms[v.Name]; ok {
+			for _, t := range v.Tasks {
+				assert.NotEqual(t.Name, "push", "s3-only buildvariants should not include the push task")
+			}
 		} else {
 			assert.Fail(
 				"missing platform",
@@ -61,7 +77,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 		}
 	}
 
-	for name, seen := range knownPlatforms {
+	for name, seen := range releasePlatforms {
 		assert.True(seen, "%s from the list of known platforms is in the evergreen config", name)
 	}
 }
