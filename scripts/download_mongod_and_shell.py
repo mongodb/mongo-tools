@@ -19,7 +19,7 @@ import tarfile
 import tempfile
 import zipfile
 
-if sys.version_info.major == 3:
+if sys.version_info[0] >= 3:
     import urllib.request as urllib2
 else:
     import urllib2
