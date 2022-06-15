@@ -927,7 +927,7 @@ func uploadReleaseJSON(v version.Version) {
 			continue
 		}
 
-		if _, ok := platform.GetByVariant(task.Variant); !ok {
+		if p, ok := platform.GetByVariant(task.Variant); p.SkipForJSONFeed || !ok {
 			continue
 		}
 

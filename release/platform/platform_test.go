@@ -49,7 +49,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 				name += "-" + p.Arch
 			}
 		}
-		if p.UploadToS3Only {
+		if p.SkipForJSONFeed {
 			s3OnlyPlatforms[name] = false
 		} else {
 			releasePlatforms[name] = false

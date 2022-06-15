@@ -34,14 +34,14 @@ type Platform struct {
 	// This is used to override the variant name. It should only be used for
 	// special builds. In general, we want to use the OS name + arch for the
 	// variant name.
-	VariantName    string
-	Arch           string
-	OS             string
-	Pkg            string
-	Repos          []string
-	BuildTags      []string
-	BinaryExt      string
-	UploadToS3Only bool
+	VariantName     string
+	Arch            string
+	OS              string
+	Pkg             string
+	Repos           []string
+	BuildTags       []string
+	BinaryExt       string
+	SkipForJSONFeed bool
 }
 
 func (p Platform) Variant() string {
@@ -248,12 +248,12 @@ var platforms = []Platform{
 		Name: "rhel62",
 		// This needs to match the name of the buildvariant in the Evergreen
 		// config.
-		VariantName:    "rhel62-no-sasl-or-kerberos",
-		Arch:           ArchX86_64,
-		OS:             OSLinux,
-		Pkg:            PkgRPM,
-		BuildTags:      []string{"ssl", "failpoints"},
-		UploadToS3Only: true,
+		VariantName:     "rhel62-no-sasl-or-kerberos",
+		Arch:            ArchX86_64,
+		OS:              OSLinux,
+		Pkg:             PkgRPM,
+		BuildTags:       []string{"ssl", "failpoints"},
+		SkipForJSONFeed: true,
 	},
 	{
 		Name:      "rhel70",
