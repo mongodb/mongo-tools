@@ -62,7 +62,7 @@ class Main:
         url = finder.url_for_wanted()
         if not url:
             raise Exception("Could not find a url to download the server")
-        log("Downloading server from {}".format(url))
+        log("Downloading server from {0}".format(url))
         self.download_url_and_extract(url, False)
 
         if self.wanted.is_latest() or version_is_greater_or_equal(
@@ -72,7 +72,7 @@ class Main:
                 finder.wanted.version = version
                 url = finder.url_for_wanted()
                 if url:
-                    log("Downloading shell from {}".format(url))
+                    log("Downloading shell from {0}".format(url))
                     self.download_url_and_extract(url, True)
                     return
             raise Exception("Could not find a 5.x release to download the shell from")
@@ -81,7 +81,7 @@ class Main:
         resp = urllib2.urlopen(url)
         if resp.getcode() != 200:
             raise Exception(
-                "Got error response from {}: {}".format(url, resp.getcode())
+                "Got error response from {0}: {1}".format(url, resp.getcode())
             )
 
         local = os.path.join(self.dir, os.path.basename(url))
@@ -90,12 +90,12 @@ class Main:
             file.close()
 
         if local.endswith(".zip"):
-            log("Extracting downloaded zip file at {}".format(local))
+            log("Extracting downloaded zip file at {0}".format(local))
             zip = zipfile.ZipFile(local, "r")
             zip.extractall(self.dir)
             zip.close()
         else:
-            log("Extracting downloaded tarball at {}".format(local))
+            log("Extracting downloaded tarball at {0}".format(local))
             tar = tarfile.open(local, "r:gz")
             tar.extractall(self.dir)
             tar.close()
@@ -103,7 +103,7 @@ class Main:
         extracted = glob.glob(os.path.join(self.dir, "mongodb-*", "bin"))
         if len(extracted) != 1:
             raise Exception(
-                "Could not find the extracted tarball/zip in the temp dir: {}".format(
+                "Could not find the extracted tarball/zip in the temp dir: {0}".format(
                     extracted
                 )
             )
@@ -186,7 +186,7 @@ class UrlFinder:
         return self.downloaded["full"]
 
     def download_spec(self, url):
-        log("Downloading spec at {}".format(url))
+        log("Downloading spec at {0}".format(url))
         contents = json.load(urllib2.urlopen(url))
         return contents
 
