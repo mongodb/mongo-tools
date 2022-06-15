@@ -366,6 +366,14 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 		BinaryExt: ".exe",
 	},
+	{
+		Name:      "rhel83",
+		Arch:      ArchS390x,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
 }
 
 func Platforms() []Platform {
