@@ -934,7 +934,7 @@ func uploadReleaseJSON(v version.Version) {
 		signTasks = append(signTasks, task)
 	}
 
-	pfCount := platform.Count()
+	pfCount := platform.CountForReleaseJSON()
 	if len(signTasks) != pfCount {
 		log.Fatalf("found %d sign tasks, but expected %d", len(signTasks), pfCount)
 	}

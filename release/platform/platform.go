@@ -122,8 +122,17 @@ func GetByVariant(variant string) (Platform, bool) {
 	return p, ok
 }
 
-func Count() int {
-	return len(platforms)
+// CountForReleaseJSON returns the number of platforms that we expect to put into the release
+// JSON. This is all platforms _except_ those where the `SkipForJSONFeed` field is true.
+func CountForReleaseJSON() int {
+	count := 0
+	for _, p := range platforms {
+		if p.SkipForJSONFeed {
+			continue
+		}
+		count++
+	}
+	return count
 }
 
 func (p Platform) DebianArch() string {
