@@ -167,6 +167,9 @@ func (p Platform) ArtifactExtensions() []string {
 
 var platformsByVariant map[string]Platform
 var defaultBuildTags = []string{"ssl", "sasl", "gssapi", "failpoints"}
+
+// Please keep this list sorted by Name and then Arch. This makes it easier to determine
+// whether a given platform exists in the list.
 var platforms = []Platform{
 	{
 		Name:      "amazon",
@@ -299,6 +302,14 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
+		Name:      "rhel83",
+		Arch:      ArchS390x,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoEnterprise},
+		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
 		Name:      "suse12",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
@@ -384,14 +395,6 @@ var platforms = []Platform{
 		OS:        OSWindows,
 		BuildTags: defaultBuildTags,
 		BinaryExt: ".exe",
-	},
-	{
-		Name:      "rhel83",
-		Arch:      ArchS390x,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []string{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 }
 
