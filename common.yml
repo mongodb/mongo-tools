@@ -2716,9 +2716,6 @@ buildvariants:
     resmoke_args: --jobs 4
   tasks:
   - name: "unit"
-  - name: ".4.4"
-  - name: ".5.0"
-  - name: ".5.3"
 #  - name: ".6.0"
 #  - name: ".latest"
   - name: ".kerberos"
@@ -2892,9 +2889,6 @@ buildvariants:
     USE_SSL: "true"
   tasks:
   - name: "unit"
-  - name: ".4.4"
-  - name: ".5.0"
-  - name: ".5.3"
 #  - name: ".6.0"
 #  - name: ".latest"
   - name: ".kerberos"
