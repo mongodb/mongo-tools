@@ -294,6 +294,7 @@ repos:
     architectures:
       - amd64
       - i386
+      - arm64
     repos:
       - apt/ubuntu/dists/jammy/mongodb-org
 
@@ -543,5 +544,6 @@ repos:
     architectures:
       - amd64
       - i386
+      - arm64
     repos:
       - apt/ubuntu/dists/jammy/mongodb-enterprise
