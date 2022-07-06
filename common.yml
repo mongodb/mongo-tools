@@ -2303,12 +2303,6 @@ buildvariants:
     resmoke_args: --jobs 4
   tasks:
   - name: "unit"
-  - name: ".3.6"
-  - name: ".4.0"
-  - name: ".4.2"
-  - name: ".4.4"
-  - name: ".5.0"
-  - name: ".5.3"
 #  - name: ".6.0"
 #  - name: ".latest"
   - name: ".kerberos"
