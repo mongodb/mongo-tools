@@ -1,0 +1,9 @@
+networkx
+flask
+flask_socketio
+flask_cors
+flask_session
+lxml
+eventlet
+gevent
+progressbar2
