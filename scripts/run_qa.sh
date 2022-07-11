@@ -16,4 +16,4 @@ if [ "Windows_NT" = "$OS" ]; then
 fi
 $python -m venv venv
 pip3 install --requirement ./pip/evgtest-requirements.txt
-$python buildscripts/resmoke.py run --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+$python buildscripts/resmoke.py run --suites=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
