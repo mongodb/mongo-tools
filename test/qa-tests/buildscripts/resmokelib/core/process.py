@@ -1,42 +1,27 @@
-"""
-A more reliable way to create and destroy processes.
+"""A more reliable way to create and destroy processes.
 
 Uses job objects when running on Windows to ensure that all created
 processes are terminated.
 """
 
-
-
 import atexit
 import logging
 import os
 import os.path
+import signal
+import subprocess
 import sys
 import threading
+import time
+from datetime import datetime
+from shlex import quote
 
-# The subprocess32 module resolves the thread-safety issues of the subprocess module in Python 2.x
-# when the _posixsubprocess C extension module is also available. Additionally, the _posixsubprocess
-# C extension module avoids triggering invalid free() calls on Python's internal data structure for
-# thread-local storage by skipping the PyOS_AfterFork() call when the 'preexec_fn' parameter isn't
-# specified to subprocess.Popen(). See SERVER-22219 for more details.
-#
-# The subprocess32 module is untested on Windows and thus isn't recommended for use, even when it's
-# installed. See https://github.com/google/python-subprocess32/blob/3.2.7/README.md#usage.
-if os.name == "posix" and sys.version_info[0] == 2:
-    try:
-        import subprocess32 as subprocess
-    except ImportError:
-        import warnings
-        warnings.warn(("Falling back to using the subprocess module because subprocess32 isn't"
-                       " available. When using the subprocess module, a child process may trigger"
-                       " an invalid free(). See SERVER-22219 for more details."),
-                      RuntimeWarning)
-        import subprocess
-else:
-    import subprocess
-
-from . import pipe
-from .. import utils
+import psutil
+from buildscripts.resmokelib import config as _config
+from buildscripts.resmokelib import errors
+from buildscripts.resmokelib import utils
+from buildscripts.resmokelib.core import pipe
+from buildscripts.resmokelib.testing.fixtures import interface as fixture_interface
 
 # Attempt to avoid race conditions (e.g. hangs caused by a file descriptor being left open) when
 # starting subprocesses concurrently from multiple threads by guarding calls to subprocess.Popen()
@@ -56,6 +41,7 @@ _POPEN_LOCK = threading.Lock()
 if sys.platform == "win32":
     import win32api
     import win32con
+    import win32event
     import win32job
     import win32process
     import winerror
@@ -73,8 +59,7 @@ if sys.platform == "win32":
                 win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 
         # Update the limits of the job object.
-        win32job.SetInformationJobObject(job_object,
-                                         win32job.JobObjectExtendedLimitInformation,
+        win32job.SetInformationJobObject(job_object, win32job.JobObjectExtendedLimitInformation,
                                          job_info)
 
         return job_object
@@ -88,18 +73,18 @@ if sys.platform == "win32":
 
 
 class Process(object):
-    """
-    Wrapper around subprocess.Popen class.
-    """
+    """Wrapper around subprocess.Popen class."""
 
-    def __init__(self, logger, args, env=None, env_vars=None):
-        """
-        Initializes the process with the specified logger, arguments,
-        and environment.
-        """
+    # pylint: disable=protected-access
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-instance-attributes
 
-        # Ensure that executable files on Windows have a ".exe" extension.
-        if sys.platform == "win32" and os.path.splitext(args[0])[1] != ".exe":
+    def __init__(self, logger, args, env=None, env_vars=None, cwd=None):
+        """Initialize the process with the specified logger, arguments, and environment."""
+
+        # Ensure that executable files that don't already have an
+        # extension on Windows have a ".exe" extension.
+        if sys.platform == "win32" and not os.path.splitext(args[0])[1]:
             args[0] += ".exe"
 
         self.logger = logger
@@ -111,22 +96,21 @@ class Process(object):
         self.pid = None
 
         self._process = None
+        self._recorder = None
         self._stdout_pipe = None
         self._stderr_pipe = None
+        self._cwd = cwd
 
     def start(self):
-        """
-        Starts the process and the logger pipes for its stdout and
-        stderr.
-        """
+        """Start the process and the logger pipes for its stdout and stderr."""
 
         creation_flags = 0
         if sys.platform == "win32" and _JOB_OBJECT is not None:
             creation_flags |= win32process.CREATE_BREAKAWAY_FROM_JOB
 
-        # Use unbuffered I/O pipes to avoid adding delay between when the subprocess writes output
-        # and when the LoggerPipe thread reads it.
-        buffer_size = 0
+        # Tests fail if a process takes too long to startup and listen to a socket. Use buffered
+        # I/O pipes to give the process some leeway.
+        buffer_size = 1024 * 1024
 
         # Close file descriptors in the child process before executing the program. This prevents
         # file descriptors that were inherited due to multiple calls to fork() -- either within one
@@ -136,14 +120,36 @@ class Process(object):
         close_fds = (sys.platform != "win32")
 
         with _POPEN_LOCK:
-            self._process = subprocess.Popen(self.args,
-                                             bufsize=buffer_size,
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE,
-                                             close_fds=close_fds,
-                                             env=self.env,
-                                             creationflags=creation_flags)
+
+            # Record unittests directly since resmoke doesn't not interact with them and they can finish
+            # too quickly for the recorder to have a chance at attaching.
+            recorder_args = []
+            if _config.UNDO_RECORDER_PATH is not None and self.args[0].endswith("_test"):
+                now_str = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+                # Only use the process name since we have to be able to correlate the recording name
+                # with the binary name easily.
+                recorder_output_file = "{process}-{t}.undo".format(
+                    process=os.path.basename(self.args[0]), t=now_str)
+                recorder_args = [_config.UNDO_RECORDER_PATH, "-o", recorder_output_file]
+
+            self._process = subprocess.Popen(recorder_args + self.args, bufsize=buffer_size,
+                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                             close_fds=close_fds, env=self.env,
+                                             creationflags=creation_flags, cwd=self._cwd)
             self.pid = self._process.pid
+
+            if _config.UNDO_RECORDER_PATH is not None and (not self.args[0].endswith("_test")) and (
+                    "mongod" in self.args[0] or "mongos" in self.args[0]):
+                now_str = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+                recorder_output_file = "{logger}-{process}-{pid}-{t}.undo".format(
+                    logger=self.logger.name.replace('/', '-'),
+                    process=os.path.basename(self.args[0]), pid=self.pid, t=now_str)
+                recorder_args = [
+                    _config.UNDO_RECORDER_PATH, "-p",
+                    str(self.pid), "-o", recorder_output_file
+                ]
+                self._recorder = subprocess.Popen(recorder_args, bufsize=buffer_size, env=self.env,
+                                                  creationflags=creation_flags)
 
         self._stdout_pipe = pipe.LoggerPipe(self.logger, logging.INFO, self._process.stdout)
         self._stderr_pipe = pipe.LoggerPipe(self.logger, logging.ERROR, self._process.stderr)
@@ -162,12 +168,44 @@ class Process(object):
                 if return_code == win32con.STILL_ACTIVE:
                     raise
 
-    def stop(self):
-        """
-        Terminates the process.
-        """
+    def stop(self, mode=None):  # pylint: disable=too-many-branches
+        """Terminate the process."""
+        if mode is None:
+            mode = fixture_interface.TeardownMode.TERMINATE
 
         if sys.platform == "win32":
+
+            # Attempt to cleanly shutdown mongod.
+            if mode != fixture_interface.TeardownMode.KILL and self.args and self.args[0].find(
+                    "mongod") != -1:
+                mongo_signal_handle = None
+                try:
+                    mongo_signal_handle = win32event.OpenEvent(
+                        win32event.EVENT_MODIFY_STATE, False,
+                        "Global\\Mongo_" + str(self._process.pid))
+
+                    if not mongo_signal_handle:
+                        # The process has already died.
+                        return
+                    win32event.SetEvent(mongo_signal_handle)
+                    # Wait 60 seconds for the program to exit.
+                    status = win32event.WaitForSingleObject(self._process._handle, 60 * 1000)
+                    if status == win32event.WAIT_OBJECT_0:
+                        return
+                except win32process.error as err:
+                    # ERROR_FILE_NOT_FOUND (winerror=2)
+                    # ERROR_ACCESS_DENIED (winerror=5)
+                    # ERROR_INVALID_HANDLE (winerror=6)
+                    # One of the above errors is received if the process has
+                    # already died.
+                    if err.winerror not in (2, 5, 6):
+                        raise
+                finally:
+                    win32api.CloseHandle(mongo_signal_handle)
+
+                print("Failed to cleanly exit the program, calling TerminateProcess() on PID: " +\
+                    str(self._process.pid))
+
             # Adapted from implementation of Popen.terminate() in subprocess.py of Python 2.7
             # because earlier versions do not catch exceptions.
             try:
@@ -184,22 +222,37 @@ class Process(object):
                     raise
         else:
             try:
-                self._process.terminate()
+                if mode == fixture_interface.TeardownMode.KILL:
+                    self._process.kill()
+                elif mode == fixture_interface.TeardownMode.TERMINATE:
+                    self._process.terminate()
+                elif mode == fixture_interface.TeardownMode.ABORT:
+                    self._process.send_signal(mode.value)
+                else:
+                    raise errors.ProcessError("Process wrapper given unrecognized teardown mode: " +
+                                              mode.value)
+
             except OSError as err:
                 # ESRCH (errno=3) is received when the process has already died.
                 if err.errno != 3:
                     raise
 
     def poll(self):
+        """Poll."""
         return self._process.poll()
 
-    def wait(self):
-        """
-        Waits until the process has terminated and all output has been
-        consumed by the logger pipes.
-        """
+    def wait(self, timeout=None):
+        """Wait until process has terminated and all output has been consumed by the logger pipes."""
 
-        return_code = self._process.wait()
+        return_code = self._process.wait(timeout)
+
+        if self._recorder is not None:
+            self.logger.info('Saving the UndoDB recording; it may take a few minutes...')
+            recorder_return = self._recorder.wait(timeout)
+            if recorder_return != 0:
+                raise errors.ServerFailure(
+                    "UndoDB live-record did not terminate correctly. This is likely a bug with UndoDB. "
+                    "Please record the logs and notify the #server-testing Slack channel")
 
         if self._stdout_pipe:
             self._stdout_pipe.wait_until_finished()
@@ -209,9 +262,7 @@ class Process(object):
         return return_code
 
     def as_command(self):
-        """
-        Returns an equivalent command line invocation of the process.
-        """
+        """Return an equivalent command line invocation of the process."""
 
         default_env = os.environ
         env_diff = self.env.copy()
@@ -223,10 +274,25 @@ class Process(object):
 
         sb = []  # String builder.
         for env_var in env_diff:
-            sb.append("%s=%s" % (env_var, env_diff[env_var]))
-        sb.extend(self.args)
+            sb.append(quote("%s=%s" % (env_var, env_diff[env_var])))
+        sb.extend(map(quote, self.args))
 
         return " ".join(sb)
+
+    def pause(self):
+        """Send the SIGSTOP signal to the process and wait for it to be stopped."""
+        while True:
+            self._process.send_signal(signal.SIGSTOP)
+            mongod_process = psutil.Process(self.pid)
+            process_status = mongod_process.status()
+            if process_status == psutil.STATUS_STOPPED:
+                break
+            self.logger.info("Process status: {}".format(process_status))
+            time.sleep(1)
+
+    def resume(self):
+        """Send the SIGCONT signal to the process."""
+        self._process.send_signal(signal.SIGCONT)
 
     def __str__(self):
         if self.pid is None:

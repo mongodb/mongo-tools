@@ -1,0 +1,15 @@
+# Feature flags here are turned off even on the "all feature flags" build variants.
+#
+# These flags can be enabled on a per-task or per-build-variant basis
+# by modifying their respective definitions in evergreen.yml.
+
+- featureFlagFryer
+- featureFlagCommonQueryFramework
+# Disable featureFlagRequireTenantID until all paths pass tenant id to TenantNamespace
+# and TenantDatabase constructors.
+- featureFlagRequireTenantID
+- featureFlagSbePlanCache
+# This flag exists to help users in managed environments that upgraded to 6.0 before 6.0.0-rc8 was
+# released create the transactions collection index and is only meant to be enabled adhoc, so only
+# its targeted tests should enable it.
+- featureFlagAlwaysCreateConfigTransactionsPartialIndexOnStepUp

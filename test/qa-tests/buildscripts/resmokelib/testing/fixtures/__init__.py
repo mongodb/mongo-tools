@@ -1,32 +1,13 @@
-"""
-Fixtures for executing JSTests against.
-"""
+"""Fixture for executing JSTests against."""
 
+from buildscripts.resmokelib.testing.fixtures.external import ExternalFixture as _ExternalFixture
+from buildscripts.resmokelib.testing.fixtures.interface import NoOpFixture as _NoOpFixture
+from buildscripts.resmokelib.testing.fixtures._builder import make_fixture
+from buildscripts.resmokelib.utils import autoloader as _autoloader
 
+EXTERNAL_FIXTURE_CLASS = _ExternalFixture.REGISTERED_NAME
+NOOP_FIXTURE_CLASS = _NoOpFixture.REGISTERED_NAME
 
-from .interface import Fixture, ReplFixture
-from .standalone import MongoDFixture
-from .replicaset import ReplicaSetFixture
-from .masterslave import MasterSlaveFixture
-from .shardedcluster import ShardedClusterFixture
-
-
-NOOP_FIXTURE_CLASS = "Fixture"
-
-_FIXTURES = {
-    "Fixture": Fixture,
-    "MongoDFixture": MongoDFixture,
-    "ReplicaSetFixture": ReplicaSetFixture,
-    "MasterSlaveFixture": MasterSlaveFixture,
-    "ShardedClusterFixture": ShardedClusterFixture,
-}
-
-
-def make_fixture(class_name, *args, **kwargs):
-    """
-    Factory function for creating Fixture instances.
-    """
-
-    if class_name not in _FIXTURES:
-        raise ValueError("Unknown fixture class '%s'" % (class_name))
-    return _FIXTURES[class_name](*args, **kwargs)
+# We dynamically load all modules in the fixtures/ package so that any Fixture classes declared
+# within them are automatically registered.
+_autoloader.load_all_modules(name=__name__, path=__path__)  # type: ignore

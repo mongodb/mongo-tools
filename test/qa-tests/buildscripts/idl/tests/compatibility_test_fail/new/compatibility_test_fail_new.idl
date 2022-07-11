@@ -1,0 +1,2918 @@
+# Copyright (C) 2021-present MongoDB, Inc.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the Server Side Public License, version 1,
+# as published by MongoDB, Inc.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# Server Side Public License for more details.
+#
+# You should have received a copy of the Server Side Public License
+# along with this program. If not, see
+# <http://www.mongodb.com/licensing/server-side-public-license>.
+#
+# As a special exception, the copyright holders give permission to link the
+# code of portions of this program with the OpenSSL library under certain
+# conditions as described in each individual source file and distribute
+# linked combinations including the program with the OpenSSL library. You
+# must comply with the Server Side Public License in all respects for
+# all of the code used other than as permitted herein. If you modify file(s)
+# with this exception, you may extend this exception to your version of the
+# file(s), but you are not obligated to do so. If you do not wish to do so,
+# delete this exception statement from your version. If you delete this
+# exception statement from all source files in the program, then also delete
+# it in the license file.
+#
+
+global:
+    cpp_namespace: "mongo"
+
+imports:
+    - "mongo/idl/basic_types.idl"
+    - "../buildscripts/idl/tests/compatibility_test_fail/new/imports.idl"
+
+types:
+    intToIntString:
+        bson_serialization_type:
+                                - int
+                                - string
+        description: "The bson_serialization_type changes from int in the old command's reply
+                      field type to [int, string] in the new command's reply field type"
+        cpp_type: "std::int32_t"
+
+    intStringToIntStringBool:
+        bson_serialization_type:
+                                - int
+                                - string
+                                - bool
+        description: "The bson_serialization_type changes from [int, string] in the old command's
+                      reply field type to [int, string, bool] in the new command's reply field
+                      type"
+        cpp_type: "std::int32_t"
+
+    oldBsonSerializationTypeAny:
+        bson_serialization_type:
+                                - int
+        description: "The old bson_serialization_type contains 'any'"
+        cpp_type: "std::int32_t"
+
+    newBsonSerializationTypeAny:
+        bson_serialization_type:
+                                - int
+                                - any
+        description: "The new bson_serialization_type contains 'any'"
+        cpp_type: "std::int32_t"
+
+    bsonSerializationTypeAny:
+        bson_serialization_type:
+                                - int
+                                - any
+        description: "The old and new bson_serialization_type contains 'any'"
+        cpp_type: "std::int32_t"
+
+    bsonSerializationTypeAnyCppTypeNotEqual:
+        bson_serialization_type:
+                                - int
+                                - any
+        description: "The old and new bson_serialization_type contains 'any'"
+        cpp_type: "std::int32_t"
+
+    bsonSerializationTypeAnySerializerNotEqual:
+        bson_serialization_type:
+                                - int
+                                - any
+        description: "The old and new bson_serialization_type contains 'any'. The 'serializer'
+                      field value here is different from the one defined in old."
+        cpp_type: "std::int64_t"
+        serializer: ::mongo::newSerializer
+
+    bsonSerializationTypeAnyDeserializerNotEqual:
+        bson_serialization_type:
+                                - int
+                                - any
+        description: "The old and new bson_serialization_type contains 'any' The 'deserializer'
+                      field value here is different from the one defined in old."
+        cpp_type: "std::int64_t"
+        deserializer: ::mongo::newDeserializer
+
+    intStringBoolToIntString:
+        bson_serialization_type:
+                                - int
+                                - string
+        description: "The bson_serialization_type changes from [int, string, bool] in the old
+                      command's reply field type to [int, string] in the new command's reply
+                      field type"
+        cpp_type: "std::int32_t"
+
+    intStringToInt:
+        bson_serialization_type:
+                                - int
+        description: "The bson_serialization_type changes from [int, string] in the old command
+                      parameter's type to [int] in the new command parameter's type"
+        cpp_type: "std::int32_t"
+
+enums:
+    NewReplyFieldEnumNotSubset:
+        description: "The new reply type is an enum that is not a subset of the old reply type's
+                      enum values"
+        type: string
+        values:
+            valueOne: "one"
+            valueTwo: "two"
+            valueThree: "three"
+
+    EnumNotSuperset:
+        description: "The new enum is not a superset of the old enum values"
+        type: string
+        values:
+            valueOne: "one"
+            valueTwo: "two"
+
+structs:
+    StructCommandParameterType:
+        description: "This is a struct command parameter type"
+
+    UnstableNewFieldReply:
+        description: "This reply contains a field that is stable in the old command but is
+                      unstable in the new command."
+        fields:
+            unstableNewField:
+                type: string
+                unstable: true
+
+    OptionalNewFieldReply:
+        description: "This reply contains a field that is required in the old command but is
+                      optional in the new command."
+        fields:
+            optionalNewField:
+                type: string
+                optional: true
+                unstable: false
+
+    MissingNewFieldReply:
+        description: "This reply contains a field that exists in the old command but is
+                      missing in the new command."
+
+    RequiredNewField:
+        description: "This struct contains a field that is optional in the old command but is
+                      required in the new command."
+        fields:
+            requiredNewField:
+                type: string
+                unstable: false
+
+    EnumNotSubsetReply:
+        description: "This reply contains an enum field where the new enum values is not a subset
+                      of the old reply type's enum values"
+        fields:
+            enumNotSubsetReplyField:
+                type: NewReplyFieldEnumNotSubset
+                unstable: false
+
+    NotEnumFieldReply:
+        description: "This reply contains a field that is an enum type in the old command but
+                      is not an enum type in the new command"
+        fields:
+            notEnumReplyField:
+                type: string
+                unstable: false
+
+    NotStructFieldReply:
+        description: "This reply contains a field that is a struct type in the old command but
+                      is not a struct type in the new command"
+        fields:
+            notStructReplyField:
+                type: string
+                unstable: false
+
+    EnumOrStructFieldReply:
+        description: "This reply contains a field that is a non-enum or struct type in the old
+                      command but is an enum or struct in the new command"
+        fields:
+            EnumOrStructReplyField:
+                type: NewReplyFieldEnumNotSubset
+                unstable: false
+
+    BsonNotSubsetReply:
+        description: "This reply contains a field type where the new bson_serialization_type
+                      is not a subset of the old bson_serialization_type"
+        fields:
+            bsonNotSubsetReplyField:
+                type: intToIntString
+                unstable: false
+
+    BsonNotSubsetReplyTwo:
+        description: "This reply contains a field type where the new bson_serialization_type
+                      is not a subset of the old bson_serialization_type"
+        fields:
+            bsonNotSubsetReplyFieldTwo:
+                type: intStringToIntStringBool
+                unstable: false
+
+    OldBsonSerializationTypeAnyReply:
+        description: "This reply contains a field whose old type has a bson_serialization_type
+                      that contains 'any'"
+        fields:
+            oldBsonSerializationTypeAnyReplyField:
+                type: oldBsonSerializationTypeAny
+                unstable: false
+
+    NewBsonSerializationTypeAnyReply:
+        description: "This reply contains a field whose new type has a bson_serialization_type
+                      that contains 'any'"
+        fields:
+            newBsonSerializationTypeAnyReplyField:
+                type: newBsonSerializationTypeAny
+                unstable: false
+
+    BsonSerializationTypeAnyReply:
+        description: "This reply contains a field whose old and new type have a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed."
+        fields:
+            bsonSerializationTypeAnyReplyField:
+                type: bsonSerializationTypeAny
+                unstable: false
+
+    BsonSerializationTypeWithVariantAnyStruct:
+        description: "This struct contains a field whose old and new variant types have a bson_serialization_type
+                        that contains 'any' that is not compatible"
+        fields:
+            bsonSerializationTypeAnyStructField:
+                unstable: false
+                type:
+                    variant: [oldBsonSerializationTypeAny, newBsonSerializationTypeAny]
+
+    BsonSerializationTypeWithVariantAnyStructWithArray:
+        description: "This struct contains a field whose old and new variant types have a array of
+                      bson_serialization_type that contains 'any' that is not compatible"
+        fields:
+            bsonSerializationTypeAnyStructField:
+                unstable: false
+                type:
+                    variant: [array<oldBsonSerializationTypeAny>, array<newBsonSerializationTypeAny>]
+
+    CppTypeNotEqualReply:
+        description: "This reply contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the cpp_types are not equal"
+        fields:
+            cppTypeNotEqualReplyField:
+                type: bsonSerializationTypeAnyCppTypeNotEqual
+                unstable: false
+
+    SerializerNotEqualReply:
+        description: "This reply contains a field whose old and new type
+                        have a bson_serialization_type that contains 'any'
+                        and the serializers are not equal"
+        fields:
+            serializerNotEqualReplyField:
+                type: bsonSerializationTypeAnySerializerNotEqual
+                unstable: false
+
+    DeserializerNotEqualReply:
+        description: "This reply contains a field whose old and new type have
+                        a bson_serialization_type that contains 'any' and the
+                        deserializers are not equal"
+        fields:
+            deserializerNotEqualReplyField:
+                type: bsonSerializationTypeAnyDeserializerNotEqual
+                unstable: false
+
+    NewlyAddedBsonSerializationTypeAnyReply:
+        description: "This reply contains a newly added field whose type has a bson_serialization_type
+                        that contains 'any' that is not explicitly allowed"
+        fields:
+            newlyAddedBsonSerializationTypeAnyReplyField:
+                unstable: false
+                type:
+                    variant: [string, bsonSerializationTypeAny]
+
+    OldBsonSerializationTypeAnyUnstableReply:
+        description: "This reply contains a field that is unstable in the old version
+                      and whose old type has a bson_serialization_type
+                      that contains 'any'"
+        fields:
+            oldBsonSerializationTypeAnyUnstableReplyField:
+                type: oldBsonSerializationTypeAny
+                unstable: false
+
+    NewBsonSerializationTypeAnyUnstableReply:
+        description: "This reply contains a field that is unstable in the old version
+                      and whose new type has a bson_serialization_type
+                      that contains 'any'"
+        fields:
+            newBsonSerializationTypeAnyUnstableReplyField:
+                type: newBsonSerializationTypeAny
+                unstable: false
+
+    BsonSerializationTypeAnyUnstableReply:
+        description: "This reply contains a field that is unstable in the old version
+                      and whose old and new type have a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed."
+        fields:
+            bsonSerializationTypeAnyUnstableReplyField:
+                type: bsonSerializationTypeAny
+                unstable: false
+
+    BsonSerializationTypeWithVariantAnyUnstableReply:
+        description: "This reply contains a field whose old and new variant types have a bson_serialization_type
+                        that contains 'any' that is not compatible and where the old field is unstable"
+        fields:
+            bsonSerializationTypeWithVariantAnyUnstableReplyField:
+                type:
+                    variant: [oldBsonSerializationTypeAny, newBsonSerializationTypeAny]
+                unstable: false
+
+    CppTypeNotEqualUnstableReply:
+        description: "This reply contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the cpp_types are
+                        not equal and where the old field is unstable"
+        fields:
+            cppTypeNotEqualReplyUnstableField:
+                type: bsonSerializationTypeAnyCppTypeNotEqual
+                unstable: false
+
+    SerializerNotEqualUnstableReply:
+        description: "This reply contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the serializers are
+                        not equal and where the old field is unstable"
+        fields:
+            serializerNotEqualReplyUnstableField:
+                type: bsonSerializationTypeAnySerializerNotEqual
+                unstable: false
+
+    DeserializerNotEqualUnstableReply:
+        description: "This reply contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the deserializers are
+                        not equal and where the old field is unstable"
+        fields:
+            deserializerNotEqualReplyUnstableField:
+                type: bsonSerializationTypeAnyDeserializerNotEqual
+                unstable: false
+
+    NewlyAddedBsonSerializationTypeAnyStruct:
+        description: "This struct contains a newly added field whose type has a bson_serialization_type
+                        that contains 'any' that is not explicitly allowed"
+        fields:
+            newlyAddedBsonSerializationTypeAnyStructField:
+                optional: true
+                unstable: false
+                type:
+                    variant: [string, bsonSerializationTypeAny]
+
+    OldBsonSerializationTypeAnyUnstableStruct:
+        description: "This struct contains a field that is unstable in the old version
+                      and whose old type has a bson_serialization_type
+                      that contains 'any'"
+        fields:
+            oldBsonSerializationTypeAnyUnstableStructField:
+                optional: true
+                type: oldBsonSerializationTypeAny
+                unstable: false
+
+    NewBsonSerializationTypeAnyUnstableStruct:
+        description: "This struct contains a field that is unstable in the old version
+                      and whose new type has a bson_serialization_type
+                      that contains 'any'"
+        fields:
+            newBsonSerializationTypeAnyUnstableStructField:
+                optional: true
+                type: newBsonSerializationTypeAny
+                unstable: false
+
+    BsonSerializationTypeAnyUnstableStruct:
+        description: "This struct contains a field that is unstable in the old version
+                      and whose old and new type have a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed."
+        fields:
+            bsonSerializationTypeAnyUnstableStructField:
+                optional: true
+                type: bsonSerializationTypeAny
+                unstable: false
+
+    BsonSerializationTypeWithVariantAnyUnstableStruct:
+        description: "This struct contains a field whose old and new variant types have a bson_serialization_type
+                        that contains 'any' that is not compatible and where the old field is unstable"
+        fields:
+            bsonSerializationTypeWithVariantAnyUnstableStructField:
+                optional: true
+                unstable: false
+                type:
+                    variant: [oldBsonSerializationTypeAny, newBsonSerializationTypeAny]
+
+    CppTypeNotEqualUnstableStruct:
+        description: "This struct contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the cpp_types are
+                        not equal and where the old field is unstable"
+        fields:
+            cppTypeNotEqualStructUnstableField:
+                optional: true
+                unstable: false
+                type: bsonSerializationTypeAnyCppTypeNotEqual
+
+    SerializerNotEqualUnstableStruct:
+        description: "This struct contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the serializers are
+                        not equal and where the old field is unstable"
+        fields:
+            serializerNotEqualStructUnstableField:
+                optional: true
+                type: bsonSerializationTypeAnySerializerNotEqual
+                unstable: false
+
+    DeserializerNotEqualUnstableStruct:
+        description: "This struct contains a field whose old and new type have a
+                        bson_serialization_type that contains 'any' and the deserializers are
+                        not equal and where the old field is unstable"
+        fields:
+            deserializerNotEqualStructUnstableField:
+                optional: true
+                type: bsonSerializationTypeAnyDeserializerNotEqual
+                unstable: false
+
+    StructFieldTypeRecursiveReplyOne:
+        description: "This reply contains a field whose new type is a struct that is not
+                      compatible with the old field type"
+        fields:
+            structReplyField:
+                type: UnstableNewFieldReply
+                unstable: false
+
+    StructFieldTypeRecursiveReplyTwo:
+        description: "This reply contains a field whose new type is a struct that is not
+                      compatible with the old field type"
+        fields:
+            structReplyField:
+                type: StructType
+                unstable: false
+
+    StructType:
+        description: "This struct contains a field whose new type is incompatible with the
+                      old field type"
+        fields:
+            fieldOne:
+                type: BsonNotSubsetReply
+                unstable: false
+
+    NewVariantTypeReply:
+        description: "This reply contains a new field that has a variant type while the old field
+                      is not a variant type"
+        fields:
+            newVariantTypeReplyField:
+                unstable: false
+                type:
+                    variant: [int, string]
+
+    NewVariantNotSubsetReply:
+        description: "This reply contains a field whose new variant types are not a subset
+                      of the old variant types"
+        fields:
+            variantNotSubsetReplyField:
+                unstable: false
+                type:
+                    variant: [int, bool, string]
+
+    NewVariantNotSubsetReplyWithArray:
+        description: "This reply contains a field whose new variant types are not a subset
+                      of the old variant types"
+        fields:
+            variantNotSubsetReplyField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<bool>, array<string>]
+
+    NewVariantNotSubsetReplyTwo:
+        description: "This reply contains a field whose new variant types are not a subset
+                      of the old variant types"
+        fields:
+            variantNotSubsetReplyFieldTwo:
+                unstable: false
+                type:
+                    variant: [int, bool, string, double]
+
+    NewVariantNotSubsetReplyTwoWithArray:
+        description: "This reply contains a field whose new variant types are not a subset
+                      of the old variant types"
+        fields:
+            variantNotSubsetReplyFieldTwo:
+                unstable: false
+                type:
+                    variant: [array<int>, array<bool>, array<string>, array<double>]
+
+    VariantRecursiveReply:
+        description: "This reply contains a field that has a new variant type that is not
+                      compatible with the old variant type"
+        fields:
+            variantRecursiveReplyField:
+                unstable: false
+                type:
+                    variant: [int, intStringToIntStringBool]
+
+    VariantRecursiveReplyWithArray:
+        description: "This reply contains a field that has a new variant type that is not
+                      compatible with the old variant type"
+        fields:
+            variantRecursiveReplyField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<intStringToIntStringBool>]
+
+    NewVariantStructNotSubsetReply:
+        description: "This reply contains a field whose new variant types are not a subset
+                      of the old variant types"
+        fields:
+            variantStructNotSubsetReplyField:
+                unstable: false
+                type:
+                    variant: [int, string, StructType]
+
+    NewVariantStructNotSubsetReplyWithArray:
+        description: "This reply contains a field whose new variant types are not a subset
+                      of the old variant types"
+        fields:
+            variantStructNotSubsetReplyField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<string>, array<StructType>]
+
+    VariantStructRecursiveReply:
+        description: "This reply contains a field that has a new variant struct type that is not
+                      compatible with the old variant struct type"
+        fields:
+            variantStructRecursiveReplyField:
+                unstable: false
+                type:
+                    variant: [int, StructFieldTypeRecursiveReplyTwo]
+
+    VariantStructRecursiveReplyWithArray:
+        description: "This reply contains a field that has a new variant struct type that is not
+                      compatible with the old variant struct type"
+        fields:
+            variantStructRecursiveReplyField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<StructFieldTypeRecursiveReplyTwo>]
+
+    CommandParamStructRecursiveOne:
+        description: "This command parameter struct type contains an unstable field while the
+                      old struct field is stable"
+        fields:
+            stableToUnstableField:
+                type: string
+                unstable: true
+
+    CommandParamStructRecursiveTwo:
+        description: "This command parameter struct type contains a field that
+                      is not a superset of the old struct field"
+        fields:
+            notSupersetField:
+                type: intStringToInt
+                unstable: false
+
+    NewValidatorStruct:
+        description: "This struct contains a field where the new version contains a validator while
+                      the old version does not"
+        fields:
+            newValidatorField:
+                type: int
+                unstable: false
+                validator:
+                    lt: 0
+
+    ValidatorsNotEqualStruct:
+        description: "This struct contains a field where the new and old validators are not exactly equal"
+        fields:
+            validatorsNotEqualField:
+                type: double
+                unstable: false
+                validator:
+                    lt: 0.0
+                    gt: -1.1
+                    lte: 2.0
+                    gte: -2.98
+                    callback: "callback"
+
+    AddedRequiredTypeFieldStruct:
+        description: "This struct contains a field that is added and required in the new version."
+        fields:
+            addedRequiredTypeField:
+                type: string
+                unstable: false
+
+    StableRequiredNoDefaultTypeFieldStruct:
+        description: "This struct contains a field that is stable and required with no default value
+                      in the new version that was unstable in the old version"
+        fields:
+            stableRequiredNoDefaultTypeField:
+                type: string
+                unstable: false
+
+    ArrayTypeStruct:
+        description: "Struct with ArrayType field."
+        fields:
+            ArrayCommandParameter:
+                type: array<string>
+                unstable: false
+
+    StructCommandParameterTypeRecursive:
+        description: "This param struct type contains a field that is not compatible between the
+                      old and new versions"
+        fields:
+            structCommandParameterTypeRecursiveField:
+                type: intStringToInt
+                unstable: false
+
+    VariantNotSupersetStruct:
+        description: "This struct contains a field where the new variant types are not a superset
+                      of the old variant types"
+        fields:
+            variantNotSupersetField:
+                unstable: false
+                type:
+                    variant: [int, bool]
+
+    VariantNotSupersetStructWithArray:
+        description: "This struct contains a field where the new variant types are not a superset
+                      of the old variant types"
+        fields:
+            variantNotSupersetField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<bool>]
+
+    VariantNotSupersetStructTwo:
+        description: "This struct contains a field where the new variant types are not a superset
+                      of the old variant types"
+        fields:
+            variantNotSupersetFieldTwo:
+                unstable: false
+                type:
+                    variant: [int, bool]
+
+    VariantNotSupersetStructTwoWithArray:
+        description: "This struct contains a field where the new variant types are not a superset
+                      of the old variant types"
+        fields:
+            variantNotSupersetFieldTwo:
+                unstable: false
+                type:
+                    variant: [array<int>, array<bool>]
+
+    NewTypeNotVariantStruct:
+        description: "This struct contains a field where the new type is not variant while the
+                      old one is"
+        fields:
+            variantField:
+                type: int
+                unstable: false
+
+    VariantRecursiveStruct:
+        description: "This struct contains a field where the new variant types are not
+                      compatible with the old variant types"
+        fields:
+            variantRecursiveField:
+                unstable: false
+                type:
+                    variant: [int, intStringBoolToIntString]
+
+    VariantRecursiveStructWithArray:
+        description: "This struct contains a field where the new variant types are not
+                      compatible with the old variant types"
+        fields:
+            variantRecursiveField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<intStringBoolToIntString>]
+
+    VariantStructNotSupersetStruct:
+        description: "This struct contains a field where the old variant types contains a struct
+                      while the new one does not"
+        fields:
+            variantStructNotSupersetField:
+                unstable: false
+                type:
+                    variant: [int, string]
+
+    VariantStructNotSupersetStructWithArray:
+        description: "This struct contains a field where the old variant types contains a struct
+                      while the new one does not"
+        fields:
+            variantStructNotSupersetField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<string>]
+
+    VariantStructRecursiveStruct:
+        description: "This struct contains a field where the old variant struct and the new
+                      variant struct are not compatible"
+        fields:
+            variantStructRecursiveField:
+                unstable: false
+                type:
+                    variant: [int, string, StructCommandParameterTypeRecursive]
+
+    VariantStructRecursiveStructWithArray:
+        description: "This struct contains a field where the old variant struct and the new
+                      variant struct are not compatible"
+        fields:
+            variantStructRecursiveField:
+                unstable: false
+                type:
+                    variant: [array<int>, array<string>, array<StructCommandParameterTypeRecursive>]
+
+    MissingUnstableFieldNewFieldStruct:
+        description: "This struct contains a field that missing the 'unstable' field in the new
+                      command."
+        fields:
+            missingUnstableFieldNewField:
+                type: string
+
+    MissingUnstableFieldAddedNewFieldStruct:
+        description: "This struct contains an added field in the new command that is missing the
+                      'unstable' field."
+        fields:
+            missingUnstableFieldAddedNewField:
+                type: string
+                optional: true
+
+    IncompatibleChainedStructReply:
+        description: "This reply contains an incompatible chained struct"
+        chained_structs:
+            NewVariantNotSubsetReply: NewVariantNotSubsetReply
+
+    IncompatibleChainedStructType:
+        description: "This struct type contains an incompatible chained struct"
+        chained_structs:
+            NewBsonSerializationTypeAnyUnstableStruct: NewBsonSerializationTypeAnyUnstableStruct
+
+    NewAddedChainedTypeReply:
+        description: "This reply contains an added chained type in the new version"
+        chained_types:
+            intToIntString: intToIntString
+
+    NewRemovedChainedTypeStruct:
+        description: "This reply contains an added chained type in the new version"
+
+    OptionalBoolToBoolStruct:
+        description: "optionalBool field replaced by bool"
+        fields:
+            ok:
+                type: bool
+                unstable: false
+
+    BoolToOptionalBoolStruct:
+        description: "bool field replaced by optionalBool"
+        fields:
+            ok:
+                type: optionalBool
+                unstable: false
+
+commands:
+    invalidAPIVersionNew:
+        description: "new command fails because of invalid API version"
+        command_name: invalidAPIVersionNew
+        namespace: ignored
+        cpp_name: invalidAPIVersionNew
+        strict: true
+        api_version: "whatever"
+        reply_type: OkReply
+
+    duplicateCommandNew:
+        description: "duplicate command in new commands fails because a command with the same name
+                      is in duplicate_command_fail_new.idl"
+        command_name: duplicateCommandNew
+        namespace: ignored
+        cpp_name: duplicateCommandNew
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    invalidAPIVersionOld:
+        description: "old version of this command in compatibility_test_fail_old.idl fails because
+                      of invalid API version"
+        command_name: invalidAPIVersionOld
+        namespace: ignored
+        cpp_name: invalidAPIVersionOld
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    duplicateCommandOld:
+        description: "old version of this command in compatibility_test_fail_old.idl fails because
+                      a command with the same name is in duplicate_command_fail_old.idl"
+        command_name: duplicateCommandOld
+        namespace: ignored
+        cpp_name: duplicateCommandOld
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    strictFalseToTrueCommand:
+        description: "command fails because it changes from strict: false to strict: true"
+        command_name: strictFalseToTrueCommand
+        namespace: ignored
+        cpp_name: strictFalseToTrueCommand
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    removedCommandParameter:
+        description: "parameter will be removed from command in compatibility_test_fail/new
+                      which results in an error"
+        command_name: removedCommandParameter
+        namespace: ignored
+        cpp_name: removedCommandParameter
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    addedNewCommandParameterRequired:
+        description: "new command parameter fails because it is required when
+                      it should be optional"
+        command_name: addedNewCommandParameterRequired
+        namespace: ignored
+        cpp_name: addedNewCommandParameterRequired
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newRequiredParam:
+                type: string
+                unstable: false
+
+    commandParameterUnstable:
+        description: "new unstable command parameter fails because it is stable
+                      in the corresponding old command"
+        command_name: commandParameterUnstable
+        namespace: ignored
+        cpp_name: commandParameterUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newUnstableParameter:
+                type: string
+                unstable: true
+
+    commandParameterStableRequiredNoDefault:
+        description: "new required stable command parameter with no default value fails
+                      because it is unstable in the corresponding old command"
+        command_name: commandParameterStableRequiredNoDefault
+        namespace: ignored
+        cpp_name: commandParameterStableRequiredNoDefault
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newRequiredStableParam:
+                type: string
+                unstable: false
+
+    commandParameterRequired:
+        description: "new required command parameter fails because it is optional
+                      in the corresponding old command"
+        command_name: commandParameterRequired
+        namespace: ignored
+        cpp_name: commandParameterRequired
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newRequiredParam:
+                type: string
+                optional: false
+                unstable: false
+
+    oldCommandParameterTypeBsonSerializationAny:
+        description: "old command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any'"
+        command_name: oldCommandParameterTypeBsonSerializationAny
+        namespace: ignored
+        cpp_name: oldCommandParameterTypeBsonSerializationAny
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyParam:
+                type: oldBsonSerializationTypeAny
+                unstable: false
+
+    newCommandParameterTypeBsonSerializationAny:
+        description: "new command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any'"
+        command_name: newCommandParameterTypeBsonSerializationAny
+        namespace: ignored
+        cpp_name: newCommandParameterTypeBsonSerializationAny
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyParam:
+                type: newBsonSerializationTypeAny
+                unstable: false
+
+    oldParamTypeBsonAnyAllowList:
+        description: "old command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' even when it is
+                      on the allow list"
+        command_name: oldParamTypeBsonAnyAllowList
+        namespace: ignored
+        cpp_name: oldParamTypeBsonAnyAllowList
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyParam:
+                type: oldBsonSerializationTypeAny
+                unstable: false
+
+    newParamTypeBsonAnyAllowList:
+        description: "new command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' even when it is
+                      on the allow list"
+        command_name: newParamTypeBsonAnyAllowList
+        namespace: ignored
+        cpp_name: newParamTypeBsonAnyAllowList
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyParam:
+                type: newBsonSerializationTypeAny
+                unstable: false
+
+    commandParameterTypeBsonSerializationAnyNotAllowed:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' that is not
+                      explicitly allowed"
+        command_name: commandParameterTypeBsonSerializationAnyNotAllowed
+        namespace: ignored
+        cpp_name: commandParameterTypeBsonSerializationAnyNotAllowed
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyParam:
+                type: bsonSerializationTypeAny
+                unstable: false
+
+    commandParameterCppTypeNotEqual:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and where the cpp_types
+                      are not equal"
+        command_name: commandParameterCppTypeNotEqual
+        namespace: ignored
+        cpp_name: commandParameterCppTypeNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            cppTypeNotEqualParam:
+                type: bsonSerializationTypeAnyCppTypeNotEqual
+                unstable: false
+
+    commandParameterSerializerNotEqual:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and where the serializers
+                      are not equal"
+        command_name: commandParameterSerializerNotEqual
+        namespace: ignored
+        cpp_name: commandParameterSerializerNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            serializerNotEqualParam:
+                type: bsonSerializationTypeAnySerializerNotEqual
+                unstable: false
+
+    commandParameterDeserializerNotEqual:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and where the deserializers
+                      are not equal"
+        command_name: commandParameterDeserializerNotEqual
+        namespace: ignored
+        cpp_name: commandParameterDeserializerNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            deserializerNotEqualParam:
+                type: bsonSerializationTypeAnyDeserializerNotEqual
+                unstable: false
+
+    oldCommandParamTypeBsonAnyUnstable:
+        description: "old command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and the old param is unstable"
+        command_name: oldCommandParamTypeBsonAnyUnstable
+        namespace: ignored
+        cpp_name: oldCommandParamTypeBsonAnyUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyUnstableParam:
+                type: oldBsonSerializationTypeAny
+                optional: true
+                unstable: false
+
+    newCommandParamTypeBsonAnyUnstable:
+        description: "new command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and the old param is unstable"
+        command_name: newCommandParamTypeBsonAnyUnstable
+        namespace: ignored
+        cpp_name: newCommandParamTypeBsonAnyUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyUnstableParam:
+                type: newBsonSerializationTypeAny
+                optional: true
+                unstable: false
+
+    commandParamTypeBsonAnyNotAllowedUnstable:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' that is not
+                      explicitly allowed"
+        command_name: commandParamTypeBsonAnyNotAllowedUnstable
+        namespace: ignored
+        cpp_name: commandParamTypeBsonAnyNotAllowedUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            bsonTypeAnyUnstableParam:
+                type: bsonSerializationTypeAny
+                optional: true
+                unstable: false
+
+    commandParameterCppTypeNotEqualUnstable:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and where the cpp_types
+                      are not equal"
+        command_name: commandParameterCppTypeNotEqualUnstable
+        namespace: ignored
+        cpp_name: commandParameterCppTypeNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            cppTypeNotEqualParam:
+                type: bsonSerializationTypeAnyCppTypeNotEqual
+                optional: true
+                unstable: false
+
+    commandParameterSerializerNotEqualUnstable:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and where the serializers
+                      are not equal"
+        command_name: commandParameterSerializerNotEqualUnstable
+        namespace: ignored
+        cpp_name: commandParameterSerializerNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            serializerNotEqualParam:
+                type: bsonSerializationTypeAnySerializerNotEqual
+                optional: true
+                unstable: false
+
+    commandParameterDeserializerNotEqualUnstable:
+        description: "command fails because it has a parameter type that has a
+                      bson_serialization_type that contains 'any' and where the deserializers
+                      are not equal"
+        command_name: commandParameterDeserializerNotEqualUnstable
+        namespace: ignored
+        cpp_name: commandParameterDeserializerNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            deserializerNotEqualParam:
+                type: bsonSerializationTypeAnyDeserializerNotEqual
+                optional: true
+                unstable: false
+
+    parameterFieldTypeBsonAnyWithVariantUnstable:
+        description: "command fails when its paramter field variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: parameterFieldTypeBsonAnyWithVariantUnstable
+        namespace: ignored
+        cpp_name: parameterFieldTypeBsonAnyWithVariantUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantAnyUnstableField:
+                type: BsonSerializationTypeWithVariantAnyStruct
+                optional: true
+                unstable: false
+
+    newlyAddedParamBsonAnyNotAllowed:
+        description: "command fails when its parameter is newly added and has bson type 'any'
+                      that is not explicitly allowed"
+        command_name: newlyAddedParamBsonAnyNotAllowed
+        namespace: ignored
+        cpp_name: newlyAddedParamBsonAnyNotAllowed
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newlyAddedBsonAnyNotAllowedParam:
+                type: bsonSerializationTypeAny
+                optional: true
+                unstable: false
+
+    newCommandParameterTypeEnumNotSuperset:
+        description: "new command fails because its parameter type is an enum that is not
+                      a superset of the corresponding old parameter type's enum values"
+        command_name: newCommandParameterTypeEnumNotSuperset
+        namespace: ignored
+        cpp_name: newCommandParameterTypeEnumNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            enumNotSupersetParam:
+                type: EnumNotSuperset
+                unstable: false
+
+    newCommandParameterTypeNotEnum:
+        description: "new command fails because its parameter type is not an enum when the
+                      old command parameter type is an enum"
+        command_name: newCommandParameterTypeNotEnum
+        namespace: ignored
+        cpp_name: newCommandParameterTypeNotEnum
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParamNotEnum:
+                type: string
+                unstable: false
+
+    newCommandParameterTypeNotStruct:
+        description: "new command fails because its parameter type is not a struct when the
+                      old command parameter type is a struct"
+        command_name: newCommandParameterTypeNotStruct
+        namespace: ignored
+        cpp_name: newCommandParameterTypeNotStruct
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParamNotStruct:
+                type: string
+                unstable: false
+
+    newCommandParameterTypeEnumOrStructOne:
+        description: "new command fails because its parameter type is an enum while the
+                      parameter type in the old command is an non-enum or non-struct"
+        command_name: newCommandParameterTypeEnumOrStructOne
+        namespace: ignored
+        cpp_name: newCommandParameterTypeEnumOrStructOne
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParamEnum:
+                type: EnumNotSuperset
+                unstable: false
+
+    newCommandParameterTypeEnumOrStructTwo:
+        description: "new command fails because its parameter type is a struct while the
+                      parameter type in the old command is an non-enum or non-struct"
+        command_name: newCommandParameterTypeEnumOrStructTwo
+        namespace: ignored
+        cpp_name: newCommandParameterTypeEnumOrStructTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParamStruct:
+                type: StructCommandParameterType
+                unstable: false
+
+    newCommandParameterTypeBsonNotSuperset:
+        description: "new command fails because its parameter type has a bson_serialization_type
+                      that is not a superset of the corresponding old command parameter type's
+                      bson_serialization_type"
+        command_name: newCommandParameterTypeBsonNotSuperset
+        namespace: ignored
+        cpp_name: newCommandParameterTypeBsonNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParamBsonNotSuperset:
+                type: intStringToInt
+                unstable: false
+
+    newCommandParameterTypeStructRecursiveOne:
+        description: "new command fails because its parameter type is a struct that is
+                      not compatible with the old command parameter type struct"
+        command_name: newCommandParameterTypeStructRecursiveOne
+        namespace: ignored
+        cpp_name: newCommandParameterTypeStructRecursiveOne
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            stableToUnstableStructParameter:
+                type: CommandParamStructRecursiveOne
+                unstable: false
+
+    newCommandParameterTypeStructRecursiveTwo:
+        description: "new command fails because its parameter type is a struct that is
+                      not compatible with the old command parameter type struct"
+        command_name: newCommandParameterTypeStructRecursiveTwo
+        namespace: ignored
+        cpp_name: newCommandParameterTypeStructRecursiveTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            notSupersetStructParameter:
+                type: CommandParamStructRecursiveTwo
+                unstable: false
+
+    newCommandParameterValidator:
+        description: "new command fails because it contains a parameter that contains a validator
+                      that is not present in the old parameter"
+        command_name: newCommandParameterValidator
+        namespace: ignored
+        cpp_name: newCommandParameterValidator
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParam:
+                type: int
+                unstable: false
+                validator:
+                    lt: 0
+
+    commandParameterValidatorsNotEqual:
+        description: "new command fails because it contains a parameter that contains a validator
+                      that is not exactly equal to the old parameter validator"
+        command_name: commandParameterValidatorsNotEqual
+        namespace: ignored
+        cpp_name: commandParameterValidatorsNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            newParam:
+                type: double
+                unstable: false
+                validator:
+                    lt: 0.0
+                    gt: -1.1
+                    lte: 2.0
+                    gte: -2.98
+                    callback: "callback"
+
+    newCommandTypeValidator:
+        description: "new command fails because it contains a type that contains a validator
+                      that is not present in the old type"
+        command_name: newCommandTypeValidator
+        namespace: type
+        type: NewValidatorStruct
+        cpp_name: newCommandTypeValidator
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandTypeValidatorsNotEqual:
+        description: "new command fails because it contains a type that contains a validator
+                      that is not exactly equal to the old type validator"
+        command_name: commandTypeValidatorsNotEqual
+        namespace: type
+        type: ValidatorsNotEqualStruct
+        cpp_name: commandTypeValidatorsNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newReplyFieldUnstable:
+        description: "new command fails because it contains an unstable reply field that is stable
+                      in the corresponding old command"
+        command_name: newReplyFieldUnstable
+        namespace: ignored
+        cpp_name: newReplyFieldUnstable
+        strict: true
+        api_version: "1"
+        reply_type: UnstableNewFieldReply
+
+    newReplyFieldOptional:
+        description: "new command fails because it contains an optional reply field that is
+                      required in the corresponding old command"
+        command_name: newReplyFieldOptional
+        namespace: ignored
+        cpp_name: newReplyFieldOptional
+        strict: true
+        api_version: "1"
+        reply_type: OptionalNewFieldReply
+
+    newReplyFieldMissing:
+        description: "new command fails because it is missing a reply field that exists in
+                      the corresponding old command"
+        command_name: newReplyFieldMissing
+        namespace: ignored
+        cpp_name: newReplyFieldMissing
+        strict: true
+        api_version: "1"
+        reply_type: MissingNewFieldReply
+
+    importedReplyCommand:
+        description: "reply is imported and should fail"
+        command_name: importedReplyCommand
+        namespace: ignored
+        cpp_name: importedReplyCommand
+        strict: true
+        api_version: "1"
+        reply_type: ImportedUnstableNewFieldReply
+
+    newReplyFieldTypeEnumNotSubset:
+        description: "new command fails because its reply field type is an enum that is not
+                      a subset of the corresponding old reply field type's enum values"
+        command_name: newReplyFieldTypeEnumNotSubset
+        namespace: ignored
+        cpp_name: newReplyFieldTypeEnumNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: EnumNotSubsetReply
+
+    newReplyFieldTypeNotEnum:
+        description: "new command fails because its reply field type is not an enum when the
+                      old reply field type is an enum"
+        command_name: newReplyFieldTypeNotEnum
+        namespace: ignored
+        cpp_name: newReplyFieldTypeNotEnum
+        strict: true
+        api_version: "1"
+        reply_type: NotEnumFieldReply
+
+    newReplyFieldTypeNotStruct:
+        description: "new command fails because its reply field type is not a struct when the
+                      old reply field type is a struct"
+        command_name: newReplyFieldTypeNotStruct
+        namespace: ignored
+        cpp_name: newReplyFieldTypeNotStruct
+        strict: true
+        api_version: "1"
+        reply_type: NotStructFieldReply
+
+    newReplyFieldTypeEnumOrStruct:
+        description: "new command fails because it contains a field that is a non-enum or struct
+                      type in the old command, and an enum or struct in the new command"
+        command_name: newReplyFieldTypeEnumOrStruct
+        namespace: ignored
+        cpp_name: newReplyFieldTypeEnumOrStruct
+        strict: true
+        api_version: "1"
+        reply_type: EnumOrStructFieldReply
+
+    newReplyFieldTypeBsonNotSubset:
+        description: "new command fails because its reply field type has a bson_serialization_type
+                      that is not a subset of the corresponding old reply field type's
+                      bson_serialization_type"
+        command_name: newReplyFieldTypeBsonNotSubset
+        namespace: ignored
+        cpp_name: newReplyFieldTypeBsonNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: BsonNotSubsetReply
+
+    newReplyFieldTypeBsonNotSubsetTwo:
+        description: "new command fails because its reply field type has a bson_serialization_type
+                      that is not a subset of the corresponding old reply field type's
+                      bson_serialization_type"
+        command_name: newReplyFieldTypeBsonNotSubsetTwo
+        namespace: ignored
+        cpp_name: newReplyFieldTypeBsonNotSubsetTwo
+        strict: true
+        api_version: "1"
+        reply_type: BsonNotSubsetReplyTwo
+
+    oldReplyFieldTypeBsonAny:
+        description: "old command fails because its reply field type has a bson_serialization_type
+                      that contains 'any'"
+        command_name: oldReplyFieldTypeBsonAny
+        namespace: ignored
+        cpp_name: oldReplyFieldTypeBsonAny
+        strict: true
+        api_version: "1"
+        reply_type: OldBsonSerializationTypeAnyReply
+
+    newReplyFieldTypeBsonAny:
+        description: "new command fails because its reply field type has a bson_serialization_type
+                      that contains 'any'"
+        command_name: newReplyFieldTypeBsonAny
+        namespace: ignored
+        cpp_name: newReplyFieldTypeBsonAny
+        strict: true
+        api_version: "1"
+        reply_type: NewBsonSerializationTypeAnyReply
+
+    oldReplyFieldTypeBsonAnyAllowList:
+        description: "old command fails when its reply field type has a bson_serialization_type
+                      that contains 'any' even when on the allow list"
+        command_name: oldReplyFieldTypeBsonAnyAllowList
+        namespace: ignored
+        cpp_name: oldReplyFieldTypeBsonAnyAllowList
+        strict: true
+        api_version: "1"
+        reply_type: OldBsonSerializationTypeAnyReply
+
+    newReplyFieldTypeBsonAnyAllowList:
+        description: "new command fails when its reply field type has a bson_serialization_type
+                      that contains 'any' even when on the allow list"
+        command_name: newReplyFieldTypeBsonAnyAllowList
+        namespace: ignored
+        cpp_name: newReplyFieldTypeBsonAnyAllowList
+        strict: true
+        api_version: "1"
+        reply_type: NewBsonSerializationTypeAnyReply
+
+    replyFieldTypeBsonAnyNotAllowed:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed"
+        command_name: replyFieldTypeBsonAnyNotAllowed
+        namespace: ignored
+        cpp_name: replyFieldTypeBsonAnyNotAllowed
+        strict: true
+        api_version: "1"
+        reply_type: BsonSerializationTypeAnyReply
+
+    replyFieldTypeBsonAnyWithVariant:
+        description: "command fails when its reply field variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: replyFieldTypeBsonAnyWithVariant
+        namespace: ignored
+        cpp_name: replyFieldTypeBsonAnyWithVariant
+        strict: true
+        api_version: "1"
+        reply_type: BsonSerializationTypeWithVariantAnyStruct
+
+    replyFieldTypeBsonAnyWithVariantWithArray:
+        description: "command fails when its reply field variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: replyFieldTypeBsonAnyWithVariantWithArray
+        namespace: ignored
+        cpp_name: replyFieldTypeBsonAnyWithVariantWithArray
+        strict: true
+        api_version: "1"
+        reply_type: BsonSerializationTypeWithVariantAnyStructWithArray
+
+    parameterFieldTypeBsonAnyWithVariant:
+        description: "command fails when its paramter field variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: parameterFieldTypeBsonAnyWithVariant
+        namespace: ignored
+        cpp_name: parameterFieldTypeBsonAnyWithVariant
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantAnyField:
+                type: BsonSerializationTypeWithVariantAnyStruct
+                unstable: false
+
+    parameterFieldTypeBsonAnyWithVariantWithArray:
+        description: "command fails when its parameter field variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: parameterFieldTypeBsonAnyWithVariantWithArray
+        namespace: ignored
+        cpp_name: parameterFieldTypeBsonAnyWithVariantWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantAnyField:
+                type: BsonSerializationTypeWithVariantAnyStructWithArray
+                unstable: false
+
+    commandTypeBsonAnyWithVariant:
+        description: "command fails when its variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: commandTypeBsonAnyWithVariant
+        namespace: type
+        type: BsonSerializationTypeWithVariantAnyStruct
+        cpp_name: commandTypeBsonAnyWithVariant
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandTypeBsonAnyWithVariantWithArray:
+        description: "command fails when its type variant types have bson_serialization_type
+                      'any' that is not compatible with each other"
+        command_name: commandTypeBsonAnyWithVariantWithArray
+        namespace: type
+        type: BsonSerializationTypeWithVariantAnyStructWithArray
+        cpp_name: commandTypeBsonAnyWithVariantWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    replyFieldCppTypeNotEqual:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any', and the cpp_types are not equal"
+        command_name: replyFieldCppTypeNotEqual
+        namespace: ignored
+        cpp_name: replyFieldCppTypeNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: CppTypeNotEqualReply
+
+    replyFieldSerializerNotEqual:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any', and the serializers are not equal"
+        command_name: replyFieldSerializerNotEqual
+        namespace: ignored
+        cpp_name: replyFieldSerializerNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: SerializerNotEqualReply
+
+    replyFieldDeserializerNotEqual:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any', and the deserializers are not equal"
+        command_name: replyFieldDeserializerNotEqual
+        namespace: ignored
+        cpp_name: replyFieldDeserializerNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: DeserializerNotEqualReply
+
+    newReplyFieldTypeStructRecursiveOne:
+        description: "new command fails because its reply field type is a struct that is
+                      incompatible with the old reply field type struct"
+        command_name: newReplyFieldTypeStructRecursiveOne
+        namespace: ignored
+        cpp_name: newReplyFieldTypeStructRecursiveOne
+        strict: true
+        api_version: "1"
+        reply_type: StructFieldTypeRecursiveReplyOne
+
+    newReplyFieldTypeStructRecursiveTwo:
+        description: "new command fails because its reply field type is a struct that is
+                      incompatible with the old reply field type struct"
+        command_name: newReplyFieldTypeStructRecursiveTwo
+        namespace: ignored
+        cpp_name: newReplyFieldTypeStructRecursiveTwo
+        strict: true
+        api_version: "1"
+        reply_type: StructFieldTypeRecursiveReplyTwo
+
+    newNamespaceNotIgnored:
+        description: "new command fails because its namespace is not ignored"
+        command_name: newNamespaceNotIgnored
+        namespace: concatenate_with_db_or_uuid
+        cpp_name: newNamespaceNotIgnored
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newNamespaceNotConcatenateWithDbOrUuid:
+        description: "new command fails because its namespace is not concatenate_with_db_or_uuid
+                      or ignored"
+        command_name: newNamespaceNotConcatenateWithDbOrUuid
+        namespace: concatenate_with_db
+        cpp_name: newNamespaceNotConcatenateWithDbOrUuid
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newNamespaceNotConcatenateWithDb:
+        description: "new command fails because its namespace changes to type"
+        command_name: newNamespaceNotConcatenateWithDb
+        namespace: type
+        type: string
+        cpp_name: newNamespaceNotConcatenateWithDb
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newNamespaceNotType:
+        description: "new command fails because its namespace changes from type in
+                      an incompatible way"
+        command_name: newNamespaceNotType
+        namespace: concatenate_with_db
+        cpp_name: newNamespaceNotType
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    oldTypeBsonAny:
+        description: "old command fails because its type has a bson_serialization_type
+                      that contains 'any'"
+        command_name: oldTypeBsonAny
+        namespace: type
+        type: oldBsonSerializationTypeAny
+        cpp_name: oldTypeBsonAny
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeBsonAny:
+        description: "new command fails because its type has a bson_serialization_type
+                      that contains 'any'"
+        command_name: newTypeBsonAny
+        namespace: type
+        type: newBsonSerializationTypeAny
+        cpp_name: newTypeBsonAny
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    oldTypeBsonAnyAllowList:
+        description: "old command fails because its type has a bson_serialization_type
+                      that contains 'any' even when on the allow list"
+        command_name: oldTypeBsonAnyAllowList
+        namespace: type
+        type: oldBsonSerializationTypeAny
+        cpp_name: oldTypeBsonAnyAllowList
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeBsonAnyAllowList:
+        description: "new command fails because its type has a bson_serialization_type
+                      that contains 'any' even when on the allow list"
+        command_name: newTypeBsonAnyAllowList
+        namespace: type
+        type: newBsonSerializationTypeAny
+        cpp_name: newTypeBsonAnyAllowList
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    typeBsonAnyNotAllowed:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed"
+        command_name: typeBsonAnyNotAllowed
+        namespace: type
+        type: bsonSerializationTypeAny
+        cpp_name: typeBsonAnyNotAllowed
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandCppTypeNotEqual:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' and the cpp_types are not equal"
+        command_name: commandCppTypeNotEqual
+        namespace: type
+        type: bsonSerializationTypeAnyCppTypeNotEqual
+        cpp_name: commandCppTypeNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandSerializerNotEqual:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' and the serializers are not equal"
+        command_name: commandSerializerNotEqual
+        namespace: type
+        type: bsonSerializationTypeAnySerializerNotEqual
+        cpp_name: commandSerializerNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandDeserializerNotEqual:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' and the deserializers are not equal"
+        command_name: commandDeserializerNotEqual
+        namespace: type
+        type: bsonSerializationTypeAnyDeserializerNotEqual
+        cpp_name: commandDeserializerNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    oldTypeBsonAnyUnstable:
+        description: "old command fails because its type has a bson_serialization_type
+                      that contains 'any' and the old type field is unstable"
+        command_name: oldTypeBsonAnyUnstable
+        namespace: type
+        type: OldBsonSerializationTypeAnyUnstableStruct
+        cpp_name: oldTypeBsonAnyUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeBsonAnyUnstable:
+        description: "new command fails because its type has a bson_serialization_type
+                      that contains 'any' and the old type field is unstable"
+        command_name: newTypeBsonAnyUnstable
+        namespace: type
+        type: NewBsonSerializationTypeAnyUnstableStruct
+        cpp_name: newTypeBsonAnyUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    typeBsonAnyNotAllowedUnstable:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed and the old type field is unstable"
+        command_name: typeBsonAnyNotAllowedUnstable
+        namespace: type
+        type: BsonSerializationTypeAnyUnstableStruct
+        cpp_name: typeBsonAnyNotAllowedUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandCppTypeNotEqualUnstable:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' and the cpp_types are not equal and the
+                      old type field is unstable"
+        command_name: commandCppTypeNotEqualUnstable
+        namespace: type
+        type: CppTypeNotEqualUnstableStruct
+        cpp_name: commandCppTypeNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandSerializerNotEqualUnstable:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' and the serializers are not equal and the
+                      old type field is unstable"
+        command_name: commandSerializerNotEqualUnstable
+        namespace: type
+        type: SerializerNotEqualUnstableStruct
+        cpp_name: commandSerializerNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandDeserializerNotEqualUnstable:
+        description: "command fails because its type has a bson_serialization_type
+                      that contains 'any' and the deserializers are not equal and the
+                      old type field is unstable"
+        command_name: commandDeserializerNotEqualUnstable
+        namespace: type
+        type: DeserializerNotEqualUnstableStruct
+        cpp_name: commandDeserializerNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    commandTypeBsonAnyWithVariantUnstable:
+        description: "command fails when its variant types have bson_serialization_type
+                      'any' that is not compatible with each other and the old type field is unstable"
+        command_name: commandTypeBsonAnyWithVariantUnstable
+        namespace: type
+        type: BsonSerializationTypeWithVariantAnyUnstableStruct
+        cpp_name: commandTypeBsonAnyWithVariantUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newlyAddedTypeFieldBsonAnyNotAllowed:
+        description: "command fails because it has a newly added type field has a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed"
+        command_name: newlyAddedTypeFieldBsonAnyNotAllowed
+        namespace: type
+        type: NewlyAddedBsonSerializationTypeAnyStruct
+        cpp_name: newlyAddedTypeFieldBsonAnyNotAllowed
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeNotSuperset:
+        description: "new command fails because its type is not a superset
+                      of the old type"
+        command_name: newTypeNotSuperset
+        namespace: type
+        type: intStringBoolToIntString
+        cpp_name: newTypeNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeEnumNotSuperset:
+        description: "new command fails because its type is an enum that is not
+                      a superset of the corresponding old type's enum values"
+        command_name: newTypeEnumNotSuperset
+        namespace: type
+        type: EnumNotSuperset
+        cpp_name: newTypeEnumNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeNotEnum:
+        description: "new command fails because its type is not an enum when the
+                      old type is an enum"
+        command_name: newTypeNotEnum
+        namespace: type
+        type: StructType
+        cpp_name: newTypeNotEnum
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeNotStruct:
+        description: "new command fails because its type is not a struct when the
+                      old type is a struct"
+        command_name: newTypeNotStruct
+        namespace: type
+        type: EnumNotSuperset
+        cpp_name: newTypeNotStruct
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeEnumOrStruct:
+        description: "new command fails because the type is a non-enum or struct
+                      type in the old command, and an enum or struct in the new command"
+        command_name: newTypeEnumOrStruct
+        namespace: type
+        type: StructType
+        cpp_name: newTypeEnumOrStruct
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeStructRecursive:
+        description: "new command fails because its type is a struct that is
+                      incompatible with the old type struct"
+        command_name: newTypeStructRecursive
+        namespace: type
+        type: StructFieldTypeRecursiveReplyOne
+        cpp_name: newTypeStructRecursive
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeFieldUnstable:
+        description: "new command fails because it contains an unstable type field that is stable
+                      in the corresponding old command"
+        command_name: newTypeFieldUnstable
+        namespace: type
+        type: UnstableNewFieldReply
+        cpp_name: newTypeFieldUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeFieldRequired:
+        description: "new command fails because it contains a required reply field that is
+                      optional in the corresponding old command"
+        command_name: newTypeFieldRequired
+        namespace: type
+        type: RequiredNewField
+        cpp_name: newTypeFieldRequired
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeFieldMissing:
+        description: "new command fails because it is missing a type field that exists in
+                      the corresponding old command"
+        command_name: newTypeFieldMissing
+        namespace: type
+        type: MissingNewFieldReply
+        cpp_name: newTypeFieldMissing
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeFieldAddedRequired:
+        description: "new command fails because it has an added type field that is required
+                      when it should be optional"
+        command_name: newTypeFieldAddedRequired
+        namespace: type
+        type: AddedRequiredTypeFieldStruct
+        cpp_name: newTypeFieldAddedRequired
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newTypeFieldStableRequiredNoDefault:
+        description: "new required stable type field with no default value fails because it is unstable
+                      in the corresponding old command"
+        command_name: newTypeFieldStableRequiredNoDefault
+        namespace: type
+        type: StableRequiredNoDefaultTypeFieldStruct
+        cpp_name: newTypeFieldStableRequiredNoDefault
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newReplyFieldVariantType:
+        description: "new command fails because its reply field type is a variant type while
+                      the old reply field is not a variant type"
+        command_name: newReplyFieldVariantType
+        namespace: ignored
+        cpp_name: newReplyFieldVariantType
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantTypeReply
+
+    newReplyFieldVariantNotSubset:
+        description: "new command fails because its reply field type is a variant type that is not
+                      a subset of the old reply field variant types"
+        command_name: newReplyFieldVariantNotSubset
+        namespace: ignored
+        cpp_name: newReplyFieldVariantNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantNotSubsetReply
+
+    newReplyFieldVariantNotSubsetWithArray:
+        description: "new command fails because its reply field type is a variant type that is not
+                      a subset of the old reply field variant types"
+        command_name: newReplyFieldVariantNotSubsetWithArray
+        namespace: ignored
+        cpp_name: newReplyFieldVariantNotSubsetWithArray
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantNotSubsetReplyWithArray
+
+    newReplyFieldVariantNotSubsetTwo:
+        description: "new command fails because its reply field type is a variant type that is not
+                      a subset of the old reply field variant types"
+        command_name: newReplyFieldVariantNotSubsetTwo
+        namespace: ignored
+        cpp_name: newReplyFieldVariantNotSubsetTwo
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantNotSubsetReplyTwo
+
+    newReplyFieldVariantNotSubsetTwoWithArray:
+        description: "new command fails because its reply field type is a variant type that is not
+                      a subset of the old reply field variant types"
+        command_name: newReplyFieldVariantNotSubsetTwoWithArray
+        namespace: ignored
+        cpp_name: newReplyFieldVariantNotSubsetTwoWithArray
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantNotSubsetReplyTwoWithArray
+
+    replyFieldVariantRecursive:
+        description: "new command fails because its reply field type is a variant type that is not
+                      compatible with the old reply field variant type"
+        command_name: replyFieldVariantRecursive
+        namespace: ignored
+        cpp_name: replyFieldVariantRecursive
+        strict: true
+        api_version: "1"
+        reply_type: VariantRecursiveReply
+
+    replyFieldVariantRecursiveWithArray:
+        description: "new command fails because its reply field type is a variant type that is not
+                      compatible with the old reply field variant type"
+        command_name: replyFieldVariantRecursiveWithArray
+        namespace: ignored
+        cpp_name: replyFieldVariantRecursiveWithArray
+        strict: true
+        api_version: "1"
+        reply_type: VariantRecursiveReplyWithArray
+
+    newReplyFieldVariantStructNotSubset:
+        description: "new command fails because its reply field type is a variant type that is not
+                      a subset of the old reply field variant types"
+        command_name: newReplyFieldVariantStructNotSubset
+        namespace: ignored
+        cpp_name: newReplyFieldVariantStructNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantStructNotSubsetReply
+
+    newReplyFieldVariantStructNotSubsetWithArray:
+        description: "new command fails because its reply field type is a variant type that is not
+                      a subset of the old reply field variant types"
+        command_name: newReplyFieldVariantStructNotSubsetWithArray
+        namespace: ignored
+        cpp_name: newReplyFieldVariantStructNotSubsetWithArray
+        strict: true
+        api_version: "1"
+        reply_type: NewVariantStructNotSubsetReplyWithArray
+
+    replyFieldVariantStructRecursive:
+        description: "new command fails because its reply field type has a variant
+                      struct type that is not compatible with the old reply field variant
+                      struct type"
+        command_name: replyFieldVariantStructRecursive
+        namespace: ignored
+        cpp_name: replyFieldVariantStructRecursive
+        strict: true
+        api_version: "1"
+        reply_type: VariantStructRecursiveReply
+
+    replyFieldVariantStructRecursiveWithArray:
+        description: "new command fails because its reply field type has a variant
+                      struct type that is not compatible with the old reply field variant
+                      struct type"
+        command_name: replyFieldVariantStructRecursiveWithArray
+        namespace: ignored
+        cpp_name: replyFieldVariantStructRecursiveWithArray
+        strict: true
+        api_version: "1"
+        reply_type: VariantStructRecursiveReplyWithArray
+
+    newParamVariantNotSuperset:
+        description: "new command fails because its parameter type is a variant type that is not
+                      a superset of the old parameter variant types"
+        command_name: newParamVariantNotSuperset
+        namespace: ignored
+        cpp_name: newParamVariantNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantNotSupersetParam:
+                unstable: false
+                type:
+                    variant: [int, bool]
+
+    newParamVariantNotSupersetWithArray:
+        description: "new command fails because its parameter type is a variant type that is not
+                      a superset of the old parameter variant types"
+        command_name: newParamVariantNotSupersetWithArray
+        namespace: ignored
+        cpp_name: newParamVariantNotSupersetWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantNotSupersetParam:
+                unstable: false
+                type:
+                    variant: [array<int>, array<bool>]
+
+    newParamVariantNotSupersetTwo:
+        description: "new command fails because its parameter type is a variant type that is not
+                      a superset of the old parameter variant types"
+        command_name: newParamVariantNotSupersetTwo
+        namespace: ignored
+        cpp_name: newParamVariantNotSupersetTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantNotSupersetParamTwo:
+                unstable: false
+                type:
+                    variant: [int, string]
+
+    newParamVariantNotSupersetTwoWithArray:
+        description: "new command fails because its parameter type is a variant type that is not
+                      a superset of the old parameter variant types"
+        command_name: newParamVariantNotSupersetTwoWithArray
+        namespace: ignored
+        cpp_name: newParamVariantNotSupersetTwoWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantNotSupersetParamTwo:
+                unstable: false
+                type:
+                    variant: [array<int>, array<string>]
+
+    newParamTypeNotVariant:
+        description: "new command fails because its parameter type is not variant while the old
+                      param type is"
+        command_name: newParamTypeNotVariant
+        namespace: ignored
+        cpp_name: newParamTypeNotVariant
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantParam:
+                type: int
+                unstable: false
+
+    newParamVariantRecursive:
+        description: "new command fails because its param type is a variant type that is not
+                      compatible with the old param variant type"
+        command_name: newParamVariantRecursive
+        namespace: ignored
+        cpp_name: newParamVariantRecursive
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantRecursiveParam:
+                unstable: false
+                type:
+                    variant: [int, intStringBoolToIntString]
+
+    newParamVariantRecursiveWithArray:
+        description: "new command fails because its param type is a variant type that is not
+                      compatible with the old param variant type"
+        command_name: newParamVariantRecursiveWithArray
+        namespace: ignored
+        cpp_name: newParamVariantRecursiveWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantRecursiveParam:
+                unstable: false
+                type:
+                    variant: [array<int>, array<intStringBoolToIntString>]
+
+    newParamVariantStructNotSuperset:
+        description: "new command fails because its parameter type is a variant type that is not
+                      a subset of the old parameter variant types"
+        command_name: newParamVariantStructNotSuperset
+        namespace: ignored
+        cpp_name: newParamVariantStructNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantStructNotSupersetParam:
+                unstable: false
+                type:
+                    variant: [int, string]
+
+    newParamVariantStructNotSupersetWithArray:
+        description: "new command fails because its parameter type is a variant type that is not
+                      a subset of the old parameter variant types"
+        command_name: newParamVariantStructNotSupersetWithArray
+        namespace: ignored
+        cpp_name: newParamVariantStructNotSupersetWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantStructNotSupersetParam:
+                unstable: false
+                type:
+                    variant: [array<int>, array<string>]
+
+    newParamVariantStructRecursive:
+        description: "new command fails because its parameter type has a variant
+                      struct type that is not compatible with the old parameter variant
+                      struct type"
+        command_name: newParamVariantStructRecursive
+        namespace: ignored
+        cpp_name: newParamVariantStructRecursive
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantStructRecursiveParam:
+                unstable: false
+                type:
+                    variant: [int, string, StructCommandParameterTypeRecursive]
+
+    newParamVariantStructRecursiveWithArray:
+        description: "new command fails because its parameter type has a variant
+                      struct type that is not compatible with the old parameter variant
+                      struct type"
+        command_name: newParamVariantStructRecursiveWithArray
+        namespace: ignored
+        cpp_name: newParamVariantStructRecursiveWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            variantStructRecursiveParam:
+                unstable: false
+                type:
+                    variant: [array<int>, array<string>, array<StructCommandParameterTypeRecursive>]
+
+    newCommandTypeVariantNotSuperset:
+        description: "new command fails because its type is a variant type that is not
+                      a superset of the old type variant types"
+        command_name: newCommandTypeVariantNotSuperset
+        namespace: type
+        type: VariantNotSupersetStruct
+        cpp_name: newCommandTypeVariantNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantNotSupersetWithArray:
+        description: "new command fails because its type is a variant type that is not
+                      a superset of the old type variant types"
+        command_name: newCommandTypeVariantNotSupersetWithArray
+        namespace: type
+        type: VariantNotSupersetStructWithArray
+        cpp_name: newCommandTypeVariantNotSupersetWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantNotSupersetTwo:
+        description: "new command fails because its type is a variant type that is not
+                      a superset of the old command type variant types"
+        command_name: newCommandTypeVariantNotSupersetTwo
+        namespace: type
+        type: VariantNotSupersetStructTwo
+        cpp_name: newCommandTypeVariantNotSupersetTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantNotSupersetTwoWithArray:
+        description: "new command fails because its type is a variant type that is not
+                      a superset of the old command type variant types"
+        command_name: newCommandTypeVariantNotSupersetTwoWithArray
+        namespace: type
+        type: VariantNotSupersetStructTwoWithArray
+        cpp_name: newCommandTypeVariantNotSupersetTwoWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeNotVariant:
+        description: "new command fails because its type is not variant while the old
+                      type is"
+        command_name: newCommandTypeNotVariant
+        namespace: type
+        type: NewTypeNotVariantStruct
+        cpp_name: newCommandTypeNotVariant
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantRecursive:
+        description: "new command fails because its type is a variant type that is not
+                      compatible with the old command type variant type"
+        command_name: newCommandTypeVariantRecursive
+        namespace: type
+        type: VariantRecursiveStruct
+        cpp_name: newCommandTypeVariantRecursive
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantRecursiveWithArray:
+        description: "new command fails because its type is a variant type that is not
+                      compatible with the old command type variant type"
+        command_name: newCommandTypeVariantRecursiveWithArray
+        namespace: type
+        type: VariantRecursiveStructWithArray
+        cpp_name: newCommandTypeVariantRecursiveWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantStructNotSuperset:
+        description: "new command fails because its type is a variant type that is not
+                      a superset of the old command type variant types"
+        command_name: newCommandTypeVariantStructNotSuperset
+        namespace: type
+        type: VariantStructNotSupersetStruct
+        cpp_name: newCommandTypeVariantStructNotSuperset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantStructNotSupersetWithArray:
+        description: "new command fails because its type is a variant type that is not
+                      a superset of the old command type variant types"
+        command_name: newCommandTypeVariantStructNotSupersetWithArray
+        namespace: type
+        type: VariantStructNotSupersetStructWithArray
+        cpp_name: newCommandTypeVariantStructNotSupersetWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantStructRecursive:
+        description: "new command fails because its type has a variant
+                      struct type that is not compatible with the old command type variant
+                      struct type"
+        command_name: newCommandTypeVariantStructRecursive
+        namespace: type
+        type: VariantStructRecursiveStruct
+        cpp_name: newCommandTypeVariantStructRecursive
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newCommandTypeVariantStructRecursiveWithArray:
+        description: "new command fails because its type has a variant
+                      struct type that is not compatible with the old command type variant
+                      struct type"
+        command_name: newCommandTypeVariantStructRecursiveWithArray
+        namespace: type
+        type: VariantStructRecursiveStructWithArray
+        cpp_name: newCommandTypeVariantStructRecursiveWithArray
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    newReplyFieldValidator:
+        description: "new command fails because it contains a reply field that contains a validator
+                      that is not present in the old reply field"
+        command_name: newReplyFieldValidator
+        namespace: ignored
+        cpp_name: newReplyFieldValidator
+        strict: true
+        api_version: "1"
+        reply_type: NewValidatorStruct
+
+    replyFieldValidatorsNotEqual:
+        description: "new command fails because it contains a reply field that contains a validator
+                      that is not exactly equal to the old reply field validator"
+        command_name: replyFieldValidatorsNotEqual
+        namespace: ignored
+        cpp_name: replyFieldValidatorsNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: ValidatorsNotEqualStruct
+
+    simpleCheckNotEqual:
+        description: "new command fails because its simple check is not equal to
+                      the old check"
+        command_name: simpleCheckNotEqual
+        namespace: ignored
+        cpp_name: simpleCheckNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            simple:
+                check: new
+
+    simpleCheckNotEqualTwo:
+        description: "new command fails because it has a privilege while the old command
+                      has a check"
+        command_name: simpleCheckNotEqualTwo
+        namespace: ignored
+        cpp_name: simpleCheckNotEqualTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            simple:
+                privilege:
+                    resource_pattern: resourcePattern
+                    action_type: actionType
+
+    simpleCheckNotEqualThree:
+        description: "new command fails because its simple check is not equal to
+                      the old check"
+        command_name: simpleCheckNotEqualThree
+        namespace: ignored
+        cpp_name: simpleCheckNotEqualThree
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            simple:
+                check: None
+
+    simpleResourcePatternNotEqual:
+        description: "new command fails because its simple privilege resource_pattern is not
+                      equal to the old resource_pattern"
+        command_name: simpleResourcePatternNotEqual
+        namespace: ignored
+        cpp_name: simpleResourcePatternNotEqual
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            simple:
+                privilege:
+                    resource_pattern: new
+                    action_type: actionType
+
+    newSimpleActionTypesNotSubset:
+        description: "new command fails because its simple privilege resource_pattern is not
+                      equal to the old resource_pattern"
+        command_name: newSimpleActionTypesNotSubset
+        namespace: ignored
+        cpp_name: newSimpleActionTypesNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            simple:
+                privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionType, actionTypeThree]
+
+    ArrayCommandTypeError:
+        description: "new command will fail because the command type is an ArrayType of a type that
+                      that isn't compatible with the old command."
+        command_name: arrayCommandTypeError
+        namespace: type
+        type: array<string>
+        cpp_name: arrayCommandTypeError
+        strict: true
+        api_version: "1"
+        fields:
+            parameterStruct:
+                type: array<ArrayTypeStruct>
+                unstable: false
+        reply_type: ArrayTypeStruct
+
+    ArrayCommandParameterTypeError:
+        description: "new command will fail because the command paramter type are of ArrayType of a
+                      type that is incompatible with the old command paramter type."
+        command_name: arrayCommandParameterTypeError
+        namespace: type
+        type: array<ArrayTypeStruct>
+        cpp_name: arrayCommandParameterTypeError
+        strict: true
+        api_version: "1"
+        fields:
+            parameterStruct:
+                type: array<StructType>
+                unstable: false
+        reply_type: ArrayTypeStruct
+
+    accessCheckTypeChange:
+        description: "new command fails because the access check type has changed"
+        command_name: accessCheckTypeChange
+        namespace: ignored
+        cpp_name: accessCheckTypeChange
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeOne, actionTypeTwo]
+                - check: checkThree
+                - check: checkOne
+
+    accessCheckTypeChangeTwo:
+        description: "new command fails because the access check type has changed"
+        command_name: accessCheckTypeChangeTwo
+        namespace: ignored
+        cpp_name: accessCheckTypeChangeTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            none: true
+
+    complexChecksNotSubset:
+        description: "new command fails because the complex checks are not a subset of the
+                      old complex checks"
+        command_name: complexChecksNotSubset
+        namespace: ignored
+        cpp_name: complexChecksNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - check: checkThree
+                - check: checkOne
+
+    complexChecksNotSubsetTwo:
+        description: "new command fails because the complex checks are not a subset of the
+                      old complex checks"
+        command_name: complexChecksNotSubsetTwo
+        namespace: ignored
+        cpp_name: complexChecksNotSubsetTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeOne, actionTypeTwo]
+                - check: checkThree
+                - check: checkOne
+                - check: checkTwo
+
+    complexResourcePatternChange:
+        description: "new command fails because there is a change in the complex resource patterns"
+        command_name: complexResourcePatternChange
+        namespace: ignored
+        cpp_name: complexResourcePatternChange
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeOne, actionTypeTwo]
+                - privilege:
+                    resource_pattern: resourcePatternTwo
+                    action_type: actionTypeOne
+
+    complexActionTypesNotSubset:
+        description: "new command fails because there is a change in the complex action types"
+        command_name: complexActionTypesNotSubset
+        namespace: ignored
+        cpp_name: complexActionTypesNotSubset
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeOne, actionTypeTwo]
+                - check: checkOne
+                - privilege:
+                    resource_pattern: resourcePatternTwo
+                    action_type: [actionTypeOne, actionTypeTwo, actionTypeThree]
+
+    complexActionTypesNotSubsetTwo:
+        description: "new command fails because there is a change in the complex action types"
+        command_name: complexActionTypesNotSubsetTwo
+        namespace: ignored
+        cpp_name: complexActionTypesNotSubsetTwo
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePatternTwo
+                    action_type: [actionTypeFour]
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeThree, actionTypeOne, actionTypeTwo]
+                - privilege:
+                    resource_pattern: resourcePatternThree
+                    action_type: [actionTypeOne, actionTypeFour]
+
+    additionalComplexAccessCheck:
+        description: "new command fails because there is an additional complex access check"
+        command_name: additionalComplexAccessCheck
+        namespace: ignored
+        cpp_name: additionalComplexAccessCheck
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeOne, actionTypeTwo]
+                - check: checkOne
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: actionTypeOne
+                - privilege:
+                    resource_pattern: resourcePatternTwo
+                    action_type: actionTypeOne
+
+    additionalComplexAccessCheckAggStage:
+        description: "new command fails because there is an additional complex access check on an agg stage"
+        command_name: additionalComplexAccessCheckAggStage
+        namespace: ignored
+        cpp_name: additionalComplexAccessCheckAggStage
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            complex:
+                - privilege:
+                    resource_pattern: resourcePattern
+                    action_type: [actionTypeOne, actionTypeTwo]
+                - check: checkOne
+                - privilege:
+                    agg_stage: aggStage
+                    resource_pattern: resourcePattern
+                    action_type: actionTypeOne
+                - privilege:
+                    agg_stage: aggStage
+                    resource_pattern: resourcePatternTwo
+                    action_type: actionTypeOne
+
+    removedAccessCheckField:
+        description: "new command fails because it removes the access_check field"
+        command_name: removedAccessCheckField
+        namespace: ignored
+        cpp_name: removedAccessCheckField
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    addedAccessCheckField:
+        description: "new command fails because it adds the access_check field when the api_version is '1'"
+        command_name: addedAccessCheckField
+        namespace: ignored
+        cpp_name: addedAccessCheckField
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        access_check:
+            none: true
+
+    oldReplyFieldTypeBsonAnyUnstable:
+        description: "old command fails when its reply field type has a bson_serialization_type
+                      that contains 'any' and the old reply field is unstable"
+        command_name: oldReplyFieldTypeBsonAnyUnstable
+        namespace: ignored
+        cpp_name: oldReplyFieldTypeBsonAnyUnstable
+        strict: true
+        api_version: "1"
+        reply_type: OldBsonSerializationTypeAnyUnstableReply
+
+    newReplyFieldTypeBsonAnyUnstable:
+        description: "new command fails when its reply field type has a bson_serialization_type
+                      that contains 'any' and the old reply field is unstable"
+        command_name: newReplyFieldTypeBsonAnyUnstable
+        namespace: ignored
+        cpp_name: newReplyFieldTypeBsonAnyUnstable
+        strict: true
+        api_version: "1"
+        reply_type: NewBsonSerializationTypeAnyUnstableReply
+
+    replyFieldTypeBsonAnyNotAllowedUnstable:
+        description: "command fails when its reply field type has a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed and the old reply field is unstable"
+        command_name: replyFieldTypeBsonAnyNotAllowedUnstable
+        namespace: ignored
+        cpp_name: replyFieldTypeBsonAnyNotAllowedUnstable
+        strict: true
+        api_version: "1"
+        reply_type: BsonSerializationTypeAnyUnstableReply
+
+    replyFieldTypeBsonAnyWithVariantUnstable:
+        description: "command fails when its reply field variant types have bson_serialization_type
+                      'any' that is not compatible with each other and the old reply field is unstable"
+        command_name: replyFieldTypeBsonAnyWithVariantUnstable
+        namespace: ignored
+        cpp_name: replyFieldTypeBsonAnyWithVariantUnstable
+        strict: true
+        api_version: "1"
+        reply_type: BsonSerializationTypeWithVariantAnyUnstableReply
+
+    replyFieldCppTypeNotEqualUnstable:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any', and the cpp_types are not equal and
+                      the old reply field is unstable"
+        command_name: replyFieldCppTypeNotEqualUnstable
+        namespace: ignored
+        cpp_name: replyFieldCppTypeNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: CppTypeNotEqualUnstableReply
+
+    replyFieldSerializerNotEqualUnstable:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any', and the serializers are not equal and
+                      the old reply field is unstable"
+        command_name: replyFieldSerializerNotEqualUnstable
+        namespace: ignored
+        cpp_name: replyFieldSerializerNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: SerializerNotEqualUnstableReply
+
+    replyFieldDeserializerNotEqualUnstable:
+        description: "command fails because its reply field type has a bson_serialization_type
+                      that contains 'any', and the deserializers are not equal and
+                      the old reply field is unstable"
+        command_name: replyFieldDeserializerNotEqualUnstable
+        namespace: ignored
+        cpp_name: replyFieldDeserializerNotEqualUnstable
+        strict: true
+        api_version: "1"
+        reply_type: DeserializerNotEqualUnstableReply
+
+    newlyAddedReplyFieldTypeBsonAnyNotAllowed:
+        description: "command fails because it has a newly added reply field type has a bson_serialization_type
+                      that contains 'any' that is not explicitly allowed"
+        command_name: newlyAddedReplyFieldTypeBsonAnyNotAllowed
+        namespace: ignored
+        cpp_name: newlyAddedReplyFieldTypeBsonAnyNotAllowed
+        strict: true
+        api_version: "1"
+        reply_type: NewlyAddedBsonSerializationTypeAnyReply
+
+    ArrayCommandTypeErrorNoArrayOld:
+        description: "command will fail because the old command type is not of ArrayType while
+                      the new is of ArrayType."
+        command_name: arrayCommandTypeErrorNoArrayOld
+        namespace: type
+        type: array<ArrayTypeStruct>
+        cpp_name: arrayCommandTypeErrorNoArrayOld
+        strict: true
+        api_version: "1"
+        fields:
+            parameterStruct:
+                type: array<ArrayTypeStruct>
+                unstable: false
+        reply_type: ArrayTypeStruct
+
+    ArrayCommandTypeErrorNoArrayNew:
+        description: "command will fail because the new command type is not of ArrayType while
+                      the old is of ArrayType."
+        command_name: arrayCommandTypeErrorNoArrayNew
+        namespace: type
+        type: ArrayTypeStruct
+        cpp_name: arrayCommandTypeErrorNoArrayNew
+        strict: true
+        api_version: "1"
+        fields:
+            parameterStruct:
+                type: array<ArrayTypeStruct>
+                unstable: false
+        reply_type: ArrayTypeStruct
+
+    ArrayCommandParameterNoArrayOld:
+        description: "command will fail because the old command field type is not of ArrayType while
+                      the new is of ArrayType."
+        command_name: arrayCommandParameterNoArrayOld
+        namespace: type
+        type: array<ArrayTypeStruct>
+        cpp_name: arrayCommandParameterNoArrayOld
+        strict: true
+        api_version: "1"
+        fields:
+            parameterStruct:
+                type: array<ArrayTypeStruct>
+                unstable: false
+        reply_type: ArrayTypeStruct
+
+    ArrayCommandParameterNoArrayNew:
+        description: "command will fail because the new command field type is not of ArrayType while
+                      the old is of ArrayType."
+        command_name: arrayCommandParameterNoArrayNew
+        namespace: type
+        type: array<ArrayTypeStruct>
+        cpp_name: arrayCommandParameterNoArrayNew
+        strict: true
+        api_version: "1"
+        fields:
+            parameterStruct:
+                type: ArrayTypeStruct
+                unstable: false
+        reply_type: ArrayTypeStruct
+
+    newReplyFieldMissingUnstableField:
+        description: "new command fails because it contains a reply field that is missing the
+                      'unstable' field"
+        command_name: newReplyFieldMissingUnstableField
+        namespace: ignored
+        cpp_name: newReplyFieldMissingUnstableField
+        strict: true
+        api_version: "1"
+        reply_type: MissingUnstableFieldNewFieldStruct
+
+    newCommandTypeFieldMissingUnstableField:
+        description: "new command fails because it contains a command type field that is missing the
+                      'unstable' field"
+        command_name: newCommandTypeFieldMissingUnstableField
+        namespace: type
+        cpp_name: newCommandTypeFieldMissingUnstableField
+        strict: true
+        api_version: "1"
+        type: MissingUnstableFieldNewFieldStruct
+        reply_type: OkReply
+
+    newParameterMissingUnstableField:
+        description: "new command fails because it contains a parameter that is missing the
+                      'unstable' field"
+        command_name: newParameterMissingUnstableField
+        namespace: ignored
+        cpp_name: newParameterMissingUnstableField
+        strict: true
+        api_version: "1"
+        fields:
+            missingUnstableFieldNewParameter:
+                type: int
+        reply_type: OkReply
+
+    addedNewParameterMissingUnstableField:
+        description: "new command fails because it contains a new parameter that is missing the
+                      'unstable' field"
+        command_name: addedNewParameterMissingUnstableField
+        namespace: ignored
+        cpp_name: addedNewParameterMissingUnstableField
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            missingUnstableFieldAddedNewParameter:
+                type: int
+                optional: true
+
+    addedNewReplyFieldMissingUnstableField:
+        description: "new command fails because it contains a new reply field that is missing the
+                      'unstable' field"
+        command_name: addedNewReplyFieldMissingUnstableField
+        namespace: ignored
+        cpp_name: addedNewReplyFieldMissingUnstableField
+        strict: true
+        api_version: "1"
+        reply_type: MissingUnstableFieldAddedNewFieldStruct
+
+    addedNewCommandTypeFieldMissingUnstableField:
+        description: "new command fails because it contains a new command type field that is missing
+                      the 'unstable' field"
+        command_name: addedNewCommandTypeFieldMissingUnstableField
+        namespace: type
+        type: MissingUnstableFieldAddedNewFieldStruct
+        cpp_name: addedNewCommandTypeFieldMissingUnstableField
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    chainedStructIncompatible:
+        description: "new command fails because it contains a chained struct that has incompatible
+                      fields"
+        command_name: chainedStructIncompatible
+        namespace: ignored
+        cpp_name: chainedStructIncompatible
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        chained_structs:
+            VariantStructRecursiveStructWithArray: VariantStructRecursiveStructWithArray
+
+    replyWithIncompatibleChainedStruct:
+        description: "new command fails because its reply contains a chained struct that has
+                      incompatible fields"
+        command_name: replyWithIncompatibleChainedStruct
+        namespace: ignored
+        cpp_name: replyWithIncompatibleChainedStruct
+        strict: true
+        api_version: "1"
+        reply_type: IncompatibleChainedStructReply
+
+    typeWithIncompatibleChainedStruct:
+        description: "new command fails because its type contains a chained struct that has
+                      incompatible fields"
+        command_name: typeWithIncompatibleChainedStruct
+        namespace: type
+        type: IncompatibleChainedStructType
+        cpp_name: typeWithIncompatibleChainedStruct
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    incompatibleChainedType:
+        description: "new command fails because its chained types are incompatible"
+        command_name: incompatibleChainedType
+        namespace: ignored
+        cpp_name: incompatibleChainedType
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        chained_types:
+            intStringToInt: intStringToInt
+
+    newParameterRemovedChainedType:
+        description: "new command fails because its parameter has removed a chained type"
+        command_name: newParameterRemovedChainedType
+        namespace: ignored
+        cpp_name: newParameterRemovedChainedType
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+        fields:
+            NewRemovedChainedTypeParameter:
+                unstable: false
+                type: NewRemovedChainedTypeStruct
+
+    newReplyAddedChainedType:
+        description: "new command fails because its reply has added a chained type"
+        command_name: newReplyAddedChainedType
+        namespace: ignored
+        cpp_name: newReplyAddedChainedType
+        strict: true
+        api_version: "1"
+        reply_type: NewAddedChainedTypeReply
+
+    optionalBoolToBoolParameter:
+        description: "new command gets bool parameter instead of optionalBool"
+        command_name: optionalBoolToBoolParameter
+        namespace: ignored
+        cpp_name: optionalBoolToBoolParameter
+        strict: true
+        api_version: "1"
+        fields:
+            flag1:
+                unstable: false
+                type: bool
+        reply_type: OkReply
+
+    optionalBoolToBoolCommandType:
+        description: "new command gets bool command type instead of optionalBool"
+        command_name: optionalBoolToBoolCommandType
+        namespace: type
+        type: OptionalBoolToBoolStruct
+        cpp_name: optionalBoolToBoolCommandType
+        strict: true
+        api_version: "1"
+        reply_type: OkReply
+
+    boolToOptionalBoolReply:
+        description: "new command gets optionalBool reply instead of bool"
+        command_name: boolToOptionalBoolReply
+        namespace: ignored
+        cpp_name: boolToOptionalBoolReply
+        strict: true
+        api_version: "1"
+        reply_type: BoolToOptionalBoolStruct

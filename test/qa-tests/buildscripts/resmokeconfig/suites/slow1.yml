@@ -1,0 +1,22 @@
+test_kind: js_test
+
+selector:
+  roots:
+  - jstests/slow1/*.js
+
+executor:
+  archive:
+    tests:
+      - jstests/slow1/terminate_during_shutdown_checkpoint.js
+    hooks:
+      - ValidateCollections
+  config: {}
+  hooks:
+  - class: ValidateCollections
+  - class: CleanEveryN
+    n: 20
+  fixture:
+    class: MongoDFixture
+    mongod_options:
+      set_parameters:
+        enableTestCommands: 1

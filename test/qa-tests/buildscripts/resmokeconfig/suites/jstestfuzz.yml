@@ -1,0 +1,29 @@
+test_kind: js_test
+
+selector:
+  roots:
+  - jstestfuzz/out/*.js
+
+executor:
+  archive:
+    hooks:
+      - ValidateCollections
+  config:
+    shell_options:
+      crashOnInvalidBSONError: ""
+      objcheck: ""
+  hooks:
+  - class: FuzzerRestoreSettings
+  - class: ValidateCollections
+    shell_options:
+      global_vars:
+        TestData:
+          skipValidationOnInvalidViewDefinitions: true
+          skipValidationOnNamespaceNotFound: false
+  fixture:
+    class: MongoDFixture
+    mongod_options:
+      set_parameters:
+        disableLogicalSessionCacheRefresh: false
+        enableTestCommands: 1
+      verbose: ''

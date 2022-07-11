@@ -1,0 +1,22 @@
+test_kind: js_test
+
+selector:
+  roots:
+  - jstests/ssl_x509/*.js
+
+# ssl tests start their own mongod's.
+executor:
+  config:
+    shell_options:
+      nodb: ''
+      ssl: ''
+      sslAllowInvalidCertificates: ''
+      sslCAFile: jstests/libs/ca.pem
+      # We use server.pem so that shell can auth as __system.
+      sslPEMKeyFile: jstests/libs/server.pem
+      global_vars:
+        TestData:
+          setParameters:
+            logComponentVerbosity: "{network:2}"
+          setParametersMongos:
+            logComponentVerbosity: "{network:2}"

@@ -1,32 +1,41 @@
-"""
-Additional handlers that are used as the base classes of the buildlogger
-handler.
-"""
-
-
+"""Additional handlers that are used as the base classes of the buildlogger handler."""
 
 import json
 import logging
 import threading
-import urllib.request, urllib.error, urllib.parse
+import warnings
 
-from .. import utils
-from ..utils import timer
+import requests
+import requests.adapters
+import requests.auth
 
-_TIMEOUT_SECS = 10
+try:
+    import requests.packages.urllib3.exceptions as urllib3_exceptions
+except ImportError:
+    # Versions of the requests package prior to 1.2.0 did not vendor the urllib3 package.
+    urllib3_exceptions = None
+
+import urllib3.util.retry as urllib3_retry
+
+from buildscripts.resmokelib.logging import flush
+from buildscripts.resmokelib import utils
+
+_TIMEOUT_SECS = 55
+
 
 class BufferedHandler(logging.Handler):
-    """
-    A handler class that buffers logging records in memory. Whenever
-    each record is added to the buffer, a check is made to see if the
-    buffer should be flushed. If it should, then flush() is expected to
-    do what's needed.
+    """A handler class that buffers logging records in memory.
+
+    Whenever each record is added to the buffer, a check is made to see if the buffer
+    should be flushed. If it should, then flush() is expected to do what's needed.
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, capacity, interval_secs):
-        """
-        Initializes the handler with the buffer size and timeout after
-        which the buffer is flushed regardless.
+        """Initialize the handler with the buffer size and timeout.
+
+        These values determine when the buffer is flushed regardless.
         """
 
         logging.Handler.__init__(self)
@@ -43,23 +52,34 @@ class BufferedHandler(logging.Handler):
 
         self.capacity = capacity
         self.interval_secs = interval_secs
-        self.buffer = []
 
-        self._lock = threading.Lock()
-        self._timer = None  # Defer creation until actually begin to log messages.
+        # self.__emit_lock prohibits concurrent access to 'self.__emit_buffer',
+        # 'self.__flush_event', and self.__flush_scheduled_by_emit.
+        self.__emit_lock = threading.Lock()
+        self.__emit_buffer = []
+        self.__flush_event = None  # A handle to the event that calls self.flush().
+        self.__flush_scheduled_by_emit = False
+        self.__close_called = False
 
-    def _new_timer(self):
-        """
-        Returns a new timer.AlarmClock instance that will call the
-        flush() method after 'interval_secs' seconds.
-        """
+        self.__flush_lock = threading.Lock()  # Serializes callers of self.flush().
 
-        return timer.AlarmClock(self.interval_secs, self.flush, args=[self])
+    # We override createLock(), acquire(), and release() to be no-ops since emit(), flush(), and
+    # close() serialize accesses to 'self.__emit_buffer' in a more granular way via
+    # 'self.__emit_lock'.
+    def createLock(self):
+        """Create lock."""
+        pass
 
-    def process_record(self, record):
-        """
-        Applies a transformation to the record before it gets added to
-        the buffer.
+    def acquire(self):
+        """Acquire."""
+        pass
+
+    def release(self):
+        """Release."""
+        pass
+
+    def process_record(self, record):  # pylint: disable=no-self-use
+        """Apply a transformation to the record before it gets added to the buffer.
 
         The default implementation returns 'record' unmodified.
         """
@@ -67,112 +87,150 @@ class BufferedHandler(logging.Handler):
         return record
 
     def emit(self, record):
-        """
-        Emits a record.
+        """Emit a record.
 
         Append the record to the buffer after it has been transformed by
         process_record(). If the length of the buffer is greater than or
-        equal to its capacity, then flush() is called to process the
-        buffer.
-
-        After flushing the buffer, the timer is restarted so that it
-        will expire after another 'interval_secs' seconds.
+        equal to its capacity, then the flush() event is rescheduled to
+        immediately process the buffer.
         """
 
-        with self._lock:
-            self.buffer.append(self.process_record(record))
-            if len(self.buffer) >= self.capacity:
-                if self._timer is not None:
-                    self._timer.snooze()
-                self.flush_with_lock(False)
-                if self._timer is not None:
-                    self._timer.reset()
+        processed_record = self.process_record(record)
 
-        if self._timer is None:
-            self._timer = self._new_timer()
-            self._timer.start()
+        with self.__emit_lock:
+            self.__emit_buffer.append(processed_record)
 
-    def flush(self, close_called=False):
-        """
-        Ensures all logging output has been flushed.
-        """
+            if self.__flush_event is None:
+                # Now that we've added our first record to the buffer, we schedule a call to flush()
+                # to occur 'self.interval_secs' seconds from now. 'self.__flush_event' should never
+                # be None after this point.
+                self.__flush_event = flush.flush_after(self, delay=self.interval_secs)
 
-        with self._lock:
-            if self.buffer:
-                self.flush_with_lock(close_called)
+            if not self.__flush_scheduled_by_emit and len(self.__emit_buffer) >= self.capacity:
+                # Attempt to flush the buffer early if we haven't already done so. We don't bother
+                # calling flush.cancel() and flush.flush_after() when 'self.__flush_event' is
+                # already scheduled to happen as soon as possible to avoid introducing unnecessary
+                # delays in emit().
+                if flush.cancel(self.__flush_event):
+                    self.__flush_event = flush.flush_after(self, delay=0.0)
+                    self.__flush_scheduled_by_emit = True
 
-    def flush_with_lock(self, close_called):
-        """
-        Ensures all logging output has been flushed.
+    def flush(self):
+        """Ensure all logging output has been flushed."""
 
-        This version resets the buffers back to an empty list and is
-        intended to be overridden by subclasses.
-        """
+        self.__flush(close_called=False)
 
-        self.buffer = []
+        with self.__emit_lock:
+            if self.__flush_event is not None and not self.__close_called:
+                # We cancel 'self.__flush_event' in case flush() was called by someone other than
+                # the flush thread to avoid having multiple flush() events scheduled.
+                flush.cancel(self.__flush_event)
+                self.__flush_event = flush.flush_after(self, delay=self.interval_secs)
+                self.__flush_scheduled_by_emit = False
+
+    def __flush(self, close_called):
+        """Ensure all logging output has been flushed."""
+
+        with self.__emit_lock:
+            buf = self.__emit_buffer
+            self.__emit_buffer = []
+
+        # The buffer 'buf' is flushed without holding 'self.__emit_lock' to avoid causing callers of
+        # self.emit() to block behind the completion of a potentially long-running flush operation.
+        if buf:
+            with self.__flush_lock:
+                self._flush_buffer_with_lock(buf, close_called)
+
+    def _flush_buffer_with_lock(self, buf, close_called):
+        """Ensure all logging output has been flushed."""
+
+        raise NotImplementedError("_flush_buffer_with_lock must be implemented by BufferedHandler"
+                                  " subclasses")
 
     def close(self):
-        """
-        Tidies up any resources used by the handler.
+        """Flush the buffer and tidies up any resources used by this handler."""
 
-        Stops the timer and flushes the buffer.
-        """
+        with self.__emit_lock:
+            self.__close_called = True
 
-        if self._timer is not None:
-            self._timer.dismiss()
-        self.flush(close_called=True)
+            if self.__flush_event is not None:
+                flush.cancel(self.__flush_event)
+
+        self.__flush(close_called=True)
 
         logging.Handler.close(self)
 
 
 class HTTPHandler(object):
-    """
-    A class which sends data to a web server using POST requests.
-    """
+    """A class which sends data to a web server using POST requests."""
 
-    def __init__(self, realm, url_root, username, password):
-        """
-        Initializes the handler with the necessary authenticaton
-        credentials.
-        """
+    def __init__(self, url_root, username, password, should_retry=False):
+        """Initialize the handler with the necessary authentication credentials."""
 
-        digest_handler = urllib.request.HTTPDigestAuthHandler()
-        digest_handler.add_password(
-            realm=realm,
-            uri=url_root,
-            user=username,
-            passwd=password)
+        self.auth_handler = requests.auth.HTTPBasicAuth(username, password)
+
+        self.session = requests.Session()
+
+        if should_retry:
+            retry_status = [500, 502, 503, 504]  # Retry for these statuses.
+            retry = urllib3_retry.Retry(
+                backoff_factor=0.1,  # Enable backoff starting at 0.1s.
+                allowed_methods=False,  # Support all HTTP verbs.
+                status_forcelist=retry_status)
+
+            adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+            self.session.mount('http://', adapter)
+            self.session.mount('https://', adapter)
 
         self.url_root = url_root
-        self.url_opener = urllib.request.build_opener(digest_handler, urllib2.HTTPErrorProcessor())
 
     def _make_url(self, endpoint):
         return "%s/%s/" % (self.url_root.rstrip("/"), endpoint.strip("/"))
 
     def post(self, endpoint, data=None, headers=None, timeout_secs=_TIMEOUT_SECS):
-        """
-        Sends a POST request to the specified endpoint with the supplied
-        data.
+        """Send a POST request to the specified endpoint with the supplied data.
 
-        Returns the response, either as a string or a JSON object based
+        Return the response, either as a string or a JSON object based
         on the content type.
         """
 
         data = utils.default_if_none(data, [])
-        data = json.dumps(data, encoding="utf-8")
+        data = json.dumps(data)
 
         headers = utils.default_if_none(headers, {})
         headers["Content-Type"] = "application/json; charset=utf-8"
 
         url = self._make_url(endpoint)
-        request = urllib.request.Request(url=url, data=data, headers=headers)
 
-        response = self.url_opener.open(request, timeout=timeout_secs)
-        headers = response.info()
+        with warnings.catch_warnings():
+            if urllib3_exceptions is not None:
+                try:
+                    warnings.simplefilter("ignore", urllib3_exceptions.InsecurePlatformWarning)
+                except AttributeError:
+                    # Versions of urllib3 prior to 1.10.3 didn't define InsecurePlatformWarning.
+                    # Versions of requests prior to 2.6.0 didn't have a vendored copy of urllib3
+                    # that defined InsecurePlatformWarning.
+                    pass
 
-        content_type = headers.gettype()
-        if content_type == "application/json":
-            encoding = headers.getparam("charset") or "utf-8"
-            return json.load(response, encoding=encoding)
+                try:
+                    warnings.simplefilter("ignore", urllib3_exceptions.InsecureRequestWarning)
+                except AttributeError:
+                    # Versions of urllib3 prior to 1.9 didn't define InsecureRequestWarning.
+                    # Versions of requests prior to 2.4.0 didn't have a vendored copy of urllib3
+                    # that defined InsecureRequestWarning.
+                    pass
 
-        return response.read()
+            response = self.session.post(url, data=data, headers=headers, timeout=timeout_secs,
+                                         auth=self.auth_handler, verify=True)
+
+        response.raise_for_status()
+
+        if not response.encoding:
+            response.encoding = "utf-8"
+
+        headers = response.headers
+
+        if headers["Content-Type"].startswith("application/json"):
+            return response.json()
+
+        return response.text

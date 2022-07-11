@@ -1,19 +1,15 @@
 """
-Helper class to read output of a subprocess. Used to avoid deadlocks
-from the pipe buffer filling up and blocking the subprocess while it's
+Helper class to read output of a subprocess.
+
+Used to avoid deadlocks from the pipe buffer filling up and blocking the subprocess while it's
 being waited on.
 """
-
-
 
 import threading
 
 
-class LoggerPipe(threading.Thread):
-    """
-    Asynchronously reads the output of a subprocess and sends it to a
-    logger.
-    """
+class LoggerPipe(threading.Thread):  # pylint: disable=too-many-instance-attributes
+    """Asynchronously reads the output of a subprocess and sends it to a logger."""
 
     # The start() and join() methods are not intended to be called directly on the LoggerPipe
     # instance. Since we override them for that effect, the super's version are preserved here.
@@ -21,10 +17,7 @@ class LoggerPipe(threading.Thread):
     __join = threading.Thread.join
 
     def __init__(self, logger, level, pipe_out):
-        """
-        Initializes the LoggerPipe with the specified logger, logging
-        level to use, and pipe to read from.
-        """
+        """Initialize the LoggerPipe with the specified arguments."""
 
         threading.Thread.__init__(self)
         # Main thread should not call join() when exiting
@@ -43,12 +36,11 @@ class LoggerPipe(threading.Thread):
         LoggerPipe.__start(self)
 
     def start(self):
+        """Start not implemented."""
         raise NotImplementedError("start should not be called directly")
 
     def run(self):
-        """
-        Reads the output from 'pipe_out' and logs each line to 'logger'.
-        """
+        """Read the output from 'pipe_out' and logs each line to 'logger'."""
 
         with self.__lock:
             self.__started = True
@@ -58,6 +50,11 @@ class LoggerPipe(threading.Thread):
         with self.__pipe_out:
             # Avoid buffering the output from the pipe.
             for line in iter(self.__pipe_out.readline, b""):
+                # Replace null bytes in the output of the subprocess with a literal backslash ('\')
+                # followed by a literal zero ('0') so tools like grep don't treat resmoke.py's
+                # output as binary data.
+                line = line.replace(b"\0", b"\\0")
+
                 # Convert the output of the process from a bytestring to a UTF-8 string, and replace
                 # any characters that cannot be decoded with the official Unicode replacement
                 # character, U+FFFD. The log messages of MongoDB processes are not always valid
@@ -70,14 +67,17 @@ class LoggerPipe(threading.Thread):
             self.__condition.notify_all()
 
     def join(self, timeout=None):
+        """Join not implemented."""
         raise NotImplementedError("join should not be called directly")
 
     def wait_until_started(self):
+        """Wait until started."""
         with self.__lock:
             while not self.__started:
                 self.__condition.wait()
 
     def wait_until_finished(self):
+        """Wait until finished."""
         with self.__lock:
             while not self.__finished:
                 self.__condition.wait()

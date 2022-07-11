@@ -1,0 +1,10 @@
+test_kind: cpp_libfuzzer_test
+
+selector:
+  root: build/libfuzzer_tests.txt
+
+executor:
+  config:
+    corpus_directory_stem: corpora
+  hooks:
+  - class: LibfuzzerHook

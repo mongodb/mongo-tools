@@ -1,0 +1,12 @@
+test_kind: js_test
+
+selector:
+  roots: []
+
+executor:
+  config: {}
+  fixture:
+    class: MongoDFixture
+    mongod_options:
+      set_parameters:
+        enableTestCommands: 1
