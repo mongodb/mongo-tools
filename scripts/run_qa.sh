@@ -15,8 +15,5 @@ if [ "Windows_NT" = "$OS" ]; then
     python="py.exe -3"
 fi
 $python -m venv venv
-pip3 install pymongo==3.12.1 pyyaml
-if [ "Windows_NT" = "$OS" ]; then
-    pip3 install pywin32
-fi
-$python buildscripts/resmoke.py --suite=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
+pip3 install --requirement ./pip/evgtest-requirements.txt
+$python buildscripts/resmoke.py run --suites=${resmoke_suite} --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
