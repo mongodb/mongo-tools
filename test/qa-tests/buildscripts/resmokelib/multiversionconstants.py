@@ -61,8 +61,9 @@ def in_git_root_dir():
     curr_dir = os.getcwd().replace("\\", "/")
     return git_root_dir == curr_dir
 
-
-if in_git_root_dir():
+# XXX - this is needed in the tools repo because we run the tests from a
+# subdirectory of the git repo root.
+if True:
     generate_mongo_version_file()
 else:
     LOGGER.info("Skipping generating mongo version file since we're not in the root of a git repo")
