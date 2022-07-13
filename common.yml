@@ -654,7 +654,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        silent: true
+        # silent: true
         working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
           set -x
