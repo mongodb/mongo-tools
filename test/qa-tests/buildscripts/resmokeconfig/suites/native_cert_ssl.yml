@@ -1,15 +1,13 @@
 test_kind: js_test
 
 selector:
-  js_test:
-    roots:
+  roots:
     - jstests/ssl/*.js
 
 # ssl tests start their own mongod's.
 executor:
-  js_test:
-    config:
-      shell_options:
-        nodb: ''
-        ssl: ''
-        sslAllowInvalidCertificates: ''
+  config:
+    shell_options:
+      nodb: ""
+      ssl: ""
+      sslAllowInvalidCertificates: ""
