@@ -251,8 +251,9 @@ class MongodLauncher(object):
         # Set coordinateCommitReturnImmediatelyAfterPersistingDecision to false so that tests do
         # not need to rely on causal consistency or explicitly wait for the transaction to finish
         # committing.
-        if "coordinateCommitReturnImmediatelyAfterPersistingDecision" not in suite_set_parameters:
-            suite_set_parameters["coordinateCommitReturnImmediatelyAfterPersistingDecision"] = False
+        # XXX - commented out for mongo-tools repo since this is new in 5.0+
+        # if "coordinateCommitReturnImmediatelyAfterPersistingDecision" not in suite_set_parameters:
+        #     suite_set_parameters["coordinateCommitReturnImmediatelyAfterPersistingDecision"] = False
 
         # There's a periodic background thread that checks for and aborts expired transactions.
         # "transactionLifetimeLimitSeconds" specifies for how long a transaction can run before expiring
@@ -295,7 +296,6 @@ class MongodLauncher(object):
         _add_testing_set_parameters(suite_set_parameters)
 
         shortcut_opts = {
-            "enableMajorityReadConcern": self.config.MAJORITY_READ_CONCERN,
             "nojournal": self.config.NO_JOURNAL,
             "storageEngine": self.config.STORAGE_ENGINE,
             "transportLayer": self.config.TRANSPORT_LAYER,
@@ -303,6 +303,10 @@ class MongodLauncher(object):
             "wiredTigerEngineConfigString": self.config.WT_ENGINE_CONFIG,
             "wiredTigerIndexConfigString": self.config.WT_INDEX_CONFIG,
         }
+
+        # XXX - hack for mongo-tools
+        if self.config.MAJORITY_READ_CONCERN:
+            shortcut_opts["enableMajorityReadConcern"] = True
 
         if self.config.STORAGE_ENGINE == "inMemory":
             shortcut_opts["inMemorySizeGB"] = self.config.STORAGE_ENGINE_CACHE_SIZE
@@ -346,9 +350,10 @@ class MongodLauncher(object):
             mongod_options["storageEngine"] = "wiredTiger"
 
         # TODO (SERVER-63044): Remove the block below.
-        if executable.endswith("mongod"):
-            if "internalBatchUserMultiDeletesForTest" not in suite_set_parameters:
-                suite_set_parameters["internalBatchUserMultiDeletesForTest"] = 1
+        # XXX - commented out for mongo-tools repo since this is new in 5.0+
+        # if executable.endswith("mongod"):
+        #     if "internalBatchUserMultiDeletesForTest" not in suite_set_parameters:
+        #         suite_set_parameters["internalBatchUserMultiDeletesForTest"] = 1
 
         return self.fixturelib.mongod_program(logger, job_num, executable, process_kwargs,
                                               mongod_options)
