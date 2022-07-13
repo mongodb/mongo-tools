@@ -1,0 +1,33 @@
+test_kind: js_test
+
+selector:
+  js_test:
+    roots:
+        - jstests/dump/*.js
+        - jstests/restore/*.js
+
+executor:
+  js_test:
+    config:
+      shell_options:
+        global_vars:
+          TestData:
+            useTLS: true
+        eval: "load('jstests/configs/gzip_targets.js');"
+        tls: ''
+        tlsAllowInvalidCertificates: ''
+        tlsCAFile: jstests/libs/ca.pem
+        tlsCertificateKeyFile: jstests/libs/client.pem
+    hooks:
+    - class: CleanEveryN
+      n: 20
+    fixture:
+      class: MongoDFixture
+      mongod_options:
+        set_parameters:
+          enableTestCommands: 1
+        tlsMode: allowTLS
+        tlsCertificateKeyFile: jstests/libs/server.pem
+        tlsCAFile: jstests/libs/ca.pem
+        tlsAllowConnectionsWithoutCertificates: ''
+
