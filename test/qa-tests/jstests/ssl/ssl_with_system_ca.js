@@ -13,9 +13,7 @@
   }
 
   var testWithCerts = function(serverPem) {
-    jsTest.log(`Testing with SSL certs $ {
-            serverPem
-        }`);
+    jsTest.log(`Testing with SSL certs ${serverPem}`);
     // allowSSL instead of requireSSL so that the non-SSL connection succeeds.
     var conn = MongoRunner.runMongod(
       {sslMode: 'requireSSL', sslPEMKeyFile: "jstests/libs/" + serverPem});

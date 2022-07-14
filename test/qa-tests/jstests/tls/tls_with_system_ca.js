@@ -13,12 +13,10 @@
   }
 
   var testWithCerts = function(serverPem) {
-    jsTest.log(`Testing with TLS certs $ {
-            serverPem
-        }`);
+    jsTest.log(`Testing with TLS certs ${serverPem}`);
     // allowTLS instead of requireTLS so that the non-TLS connection succeeds.
     var conn = MongoRunner.runMongod(
-      {tklsMode: 'requireTLS', tlsCertificateKeyFile: "jstests/libs/" + serverPem});
+      {tlsMode: 'requireTLS', tlsCertificateKeyFile: "jstests/libs/" + serverPem});
 
     // Should not be able to authenticate with x509.
     // Authenticate call will return 1 on success, 0 on error.
