@@ -2115,7 +2115,7 @@ func TestRestoreClusteredIndex(t *testing.T) {
 	t.Run("restore from oplog with default index name", func(t *testing.T) {
 		testRestoreClusteredIndexFromOplog(t, "")
 	})
-	t.Run("restore from oplog with default index name", func(t *testing.T) {
+	t.Run("restore from oplog with custom index name", func(t *testing.T) {
 		testRestoreClusteredIndexFromOplog(t, "custom index name")
 	})
 }
