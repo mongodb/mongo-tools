@@ -745,6 +745,17 @@ functions:
 
           echo -n "$MONGOD_URI" > MONGOD_URI
 
+  "check third-party notices":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -e
+          set -x
+          ./etc/generate-notices.pl > ./THIRD-PARTY-NOTICES
+          git diff --exit-code
+
 pre:
   - command: shell.exec
     params:
@@ -2186,6 +2197,10 @@ tasks:
           set -e
           go tool vet bsondump mongo*
 
+- name: third-party-licenses
+  commands:
+    - func: "fetch source"
+    - func: "check third-party notices"
 
 buildvariants:
 
@@ -2206,6 +2221,7 @@ buildvariants:
   - name: mod-tidy
   - name: evergreen-validate
   - name: vet
+  - name: third-party-licenses
 
 #######################################
 #     Release Manager Buildvariant    #
