@@ -398,7 +398,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/3rf/mongo-lint
+License notice for github.com/3rf/mongo-lint (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2013 The Go Authors. All rights reserved.
@@ -430,7 +430,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/aws/aws-sdk-go
+License notice for github.com/aws/aws-sdk-go (LICENSE.txt)
 ----------------------------------------------------------------------
 
 
@@ -637,7 +637,7 @@ License notice for github.com/aws/aws-sdk-go
    limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for github.com/aws/aws-sdk-go/internal/sync/singleflight
+License notice for github.com/aws/aws-sdk-go/internal/sync/singleflight (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -669,7 +669,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/craiggwilson/goke
+License notice for github.com/craiggwilson/goke (LICENSE)
 ----------------------------------------------------------------------
 
                                  Apache License
@@ -875,7 +875,7 @@ License notice for github.com/craiggwilson/goke
    limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for github.com/davecgh/go-spew
+License notice for github.com/davecgh/go-spew (LICENSE)
 ----------------------------------------------------------------------
 
 ISC License
@@ -895,7 +895,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/go-stack/stack
+License notice for github.com/go-stack/stack (LICENSE.md)
 ----------------------------------------------------------------------
 
 The MIT License (MIT)
@@ -921,7 +921,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/golang/snappy
+License notice for github.com/golang/snappy (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2011 The Snappy-Go Authors. All rights reserved.
@@ -953,7 +953,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/google/go-cmp
+License notice for github.com/google/go-cmp (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2017 The Go Authors. All rights reserved.
@@ -985,7 +985,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/gopherjs/gopherjs
+License notice for github.com/gopherjs/gopherjs (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2013 Richard Musiol. All rights reserved.
@@ -1014,7 +1014,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/jessevdk/go-flags
+License notice for github.com/jessevdk/go-flags (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2012 Jesse van den Kieboom. All rights reserved.
@@ -1045,7 +1045,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/jmespath/go-jmespath
+License notice for github.com/jmespath/go-jmespath (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright 2015 James Saryerwinnie
@@ -1063,7 +1063,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for github.com/jtolds/gls
+License notice for github.com/jtolds/gls (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2013, Space Monkey, Inc.
@@ -1086,7 +1086,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/klauspost/compress
+License notice for github.com/klauspost/compress (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2012 The Go Authors. All rights reserved.
@@ -1395,7 +1395,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/klauspost/compress/internal/snapref
+License notice for github.com/klauspost/compress/internal/snapref (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2011 The Snappy-Go Authors. All rights reserved.
@@ -1427,7 +1427,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/klauspost/compress/zstd/internal/xxhash
+License notice for github.com/klauspost/compress/zstd/internal/xxhash (LICENSE.txt)
 ----------------------------------------------------------------------
 
 Copyright (c) 2016 Caleb Spare
@@ -1454,7 +1454,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/mattn/go-colorable
+License notice for github.com/mattn/go-colorable (LICENSE)
 ----------------------------------------------------------------------
 
 The MIT License (MIT)
@@ -1480,7 +1480,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/mattn/go-isatty
+License notice for github.com/mattn/go-isatty (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
@@ -1494,7 +1494,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/mattn/go-runewidth
+License notice for github.com/mattn/go-runewidth (LICENSE)
 ----------------------------------------------------------------------
 
 The MIT License (MIT)
@@ -1520,7 +1520,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/mgutz/ansi
+License notice for github.com/mgutz/ansi (LICENSE)
 ----------------------------------------------------------------------
 
 The MIT License (MIT)
@@ -1534,7 +1534,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 ----------------------------------------------------------------------
-License notice for github.com/nsf/termbox-go
+License notice for github.com/nsf/termbox-go (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (C) 2012 termbox-go authors
@@ -1558,7 +1558,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/pkg/errors
+License notice for github.com/pkg/errors (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2015, Dave Cheney <dave@cheney.net>
@@ -1586,7 +1586,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/pmezard/go-difflib
+License notice for github.com/pmezard/go-difflib (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2013, Patrick Mezard
@@ -1618,7 +1618,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/assertions
+License notice for github.com/smartystreets/assertions (LICENSE.md)
 ----------------------------------------------------------------------
 
 Copyright (c) 2016 SmartyStreets, LLC
@@ -1646,7 +1646,7 @@ requirements and restrictions.  Use of those components is subject to the terms
 and conditions outlined the respective license of each component.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/assertions/internal/go-render
+License notice for github.com/smartystreets/assertions/internal/go-render (LICENSE)
 ----------------------------------------------------------------------
 
 // Copyright (c) 2015 The Chromium Authors. All rights reserved.
@@ -1678,7 +1678,7 @@ License notice for github.com/smartystreets/assertions/internal/go-render
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/assertions/internal/oglematchers
+License notice for github.com/smartystreets/assertions/internal/oglematchers (LICENSE)
 ----------------------------------------------------------------------
 
 
@@ -1885,7 +1885,7 @@ License notice for github.com/smartystreets/assertions/internal/oglematchers
    limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/goconvey
+License notice for github.com/smartystreets/goconvey (LICENSE.md)
 ----------------------------------------------------------------------
 
 Copyright (c) 2016 SmartyStreets, LLC
@@ -1913,7 +1913,7 @@ requirements and restrictions.  Use of those components is subject to the terms
 and conditions outlined the respective license of each component.
 
 ----------------------------------------------------------------------
-License notice for github.com/stretchr/testify
+License notice for github.com/stretchr/testify (LICENSE)
 ----------------------------------------------------------------------
 
 MIT License
@@ -1939,7 +1939,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ----------------------------------------------------------------------
-License notice for github.com/xdg-go/pbkdf2
+License notice for github.com/xdg-go/pbkdf2 (LICENSE)
 ----------------------------------------------------------------------
 
 
@@ -2119,7 +2119,7 @@ License notice for github.com/xdg-go/pbkdf2
       of your accepting any such warranty or additional liability.
 
 ----------------------------------------------------------------------
-License notice for github.com/xdg-go/scram
+License notice for github.com/xdg-go/scram (LICENSE)
 ----------------------------------------------------------------------
 
 
@@ -2299,7 +2299,7 @@ License notice for github.com/xdg-go/scram
       of your accepting any such warranty or additional liability.
 
 ----------------------------------------------------------------------
-License notice for github.com/xdg-go/stringprep
+License notice for github.com/xdg-go/stringprep (LICENSE)
 ----------------------------------------------------------------------
 
 
@@ -2479,7 +2479,7 @@ License notice for github.com/xdg-go/stringprep
       of your accepting any such warranty or additional liability.
 
 ----------------------------------------------------------------------
-License notice for github.com/youmark/pkcs8
+License notice for github.com/youmark/pkcs8 (LICENSE)
 ----------------------------------------------------------------------
 
 The MIT License (MIT)
@@ -2504,7 +2504,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ----------------------------------------------------------------------
-License notice for go.mongodb.org/mongo-driver
+License notice for go.mongodb.org/mongo-driver (LICENSE)
 ----------------------------------------------------------------------
 
                                  Apache License
@@ -2710,7 +2710,7 @@ License notice for go.mongodb.org/mongo-driver
    limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for golang.org/x/crypto
+License notice for golang.org/x/crypto (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -2742,7 +2742,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for golang.org/x/sync
+License notice for golang.org/x/sync (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -2774,7 +2774,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for golang.org/x/sys
+License notice for golang.org/x/sys (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -2806,7 +2806,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for golang.org/x/term
+License notice for golang.org/x/term (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -2838,7 +2838,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for golang.org/x/text
+License notice for golang.org/x/text (LICENSE)
 ----------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -2870,7 +2870,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for gopkg.in/tomb.v2
+License notice for gopkg.in/tomb.v2 (LICENSE)
 ----------------------------------------------------------------------
 
 tomb - support for clean goroutine termination in Go.
@@ -2904,43 +2904,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for gopkg.in/yaml.v2
-----------------------------------------------------------------------
-
-The following files were ported to Go from C files of libyaml, and thus
-are still covered by their original copyright and license:
-
-    apic.go
-    emitterc.go
-    parserc.go
-    readerc.go
-    scannerc.go
-    writerc.go
-    yamlh.go
-    yamlprivateh.go
-
-Copyright (c) 2006 Kirill Simonov
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-----------------------------------------------------------------------
-License notice for gopkg.in/yaml.v2
+License notice for gopkg.in/yaml.v2 (LICENSE)
 ----------------------------------------------------------------------
 
                                  Apache License
@@ -3146,7 +3110,43 @@ License notice for gopkg.in/yaml.v2
    limitations under the License.
 
 ----------------------------------------------------------------------
-License notice for gopkg.in/yaml.v3
+License notice for gopkg.in/yaml.v2 (LICENSE.libyaml)
+----------------------------------------------------------------------
+
+The following files were ported to Go from C files of libyaml, and thus
+are still covered by their original copyright and license:
+
+    apic.go
+    emitterc.go
+    parserc.go
+    readerc.go
+    scannerc.go
+    writerc.go
+    yamlh.go
+    yamlprivateh.go
+
+Copyright (c) 2006 Kirill Simonov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+----------------------------------------------------------------------
+License notice for gopkg.in/yaml.v3 (LICENSE)
 ----------------------------------------------------------------------
 
 
