@@ -104,6 +104,7 @@ class Main:
             wanted = ["mongo", "mongos", "mongod"]
 
         for exe in wanted:
+            log(exe)
             if platform.system() == "Windows":
                 exe += ".exe"
             os.rename(os.path.join(extracted[0], exe), os.path.join("bin", exe))
