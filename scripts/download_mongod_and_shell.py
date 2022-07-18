@@ -109,7 +109,7 @@ class Main:
                 exe += ".exe"
             os.rename(os.path.join(extracted[0], exe), os.path.join("bin", exe))
 
-        if platform.system() == "Windows":
+        if platform.system() == "Windows" and not shell_only:
             dlls = glob.glob(os.path.join(self.dir, "mongodb-*", "bin", "*.dll"))
             for dll in dlls:
                 log(dll)
