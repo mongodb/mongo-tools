@@ -108,6 +108,11 @@ class Main:
                 exe += ".exe"
             os.rename(os.path.join(extracted[0], exe), os.path.join("bin", exe))
 
+        if platform.system() == "Windows":
+            dlls = glob.glob(os.path.join(self.dir, "mongodb-*", "bin", "*.dll"))
+            for dll in dlls:
+                os.rename(dll, os.path.join("bin", os.path.basename(dll)))
+
         os.remove(local)
         shutil.rmtree(extracted[0])
 
