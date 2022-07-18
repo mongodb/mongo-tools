@@ -186,14 +186,6 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "amazon2022",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
 		Name:      "debian81",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
