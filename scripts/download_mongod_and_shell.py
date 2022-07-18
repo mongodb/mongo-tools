@@ -111,6 +111,7 @@ class Main:
         if platform.system() == "Windows":
             dlls = glob.glob(os.path.join(self.dir, "mongodb-*", "bin", "*.dll"))
             for dll in dlls:
+                log(dll)
                 os.rename(dll, os.path.join("bin", os.path.basename(dll)))
 
         os.remove(local)
