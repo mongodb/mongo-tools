@@ -23,7 +23,7 @@ type AggregateOptions struct {
 
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
-	// false. See https://docs.mongodb.com/manual/core/schema-validation/ for more information about document
+	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
 	// validation.
 	BypassDocumentValidation *bool
 
@@ -34,6 +34,10 @@ type AggregateOptions struct {
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that the Aggregate operation can run before
+	// returning an error. MaxTime is still usable through the deprecated setter.
 	MaxTime *time.Duration
 
 	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
@@ -41,7 +45,7 @@ type AggregateOptions struct {
 	MaxAwaitTime *time.Duration
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is the empty string, which means that no comment will be included in the logs.
+	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
@@ -91,6 +95,10 @@ func (ao *AggregateOptions) SetCollation(c *Collation) *AggregateOptions {
 }
 
 // SetMaxTime sets the value for the MaxTime field.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver.
+// The more general Timeout option should be used in its place to control the amount of time that the
+// Aggregate operation can run before returning an error.
 func (ao *AggregateOptions) SetMaxTime(d time.Duration) *AggregateOptions {
 	ao.MaxTime = &d
 	return ao
