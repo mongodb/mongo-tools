@@ -145,3 +145,21 @@ Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects an
 #### Announce the release
 Copy your entry from CHANGELOG.md and post it to the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools) in the "Developer Tools" section with the tag `database-tools`.
 Also post it in the #mongo-tools slack channel to announce it internally.
+
+### Handling Release Task Failures
+
+Sometimes you may start the release process, only to discover that tasks that
+are part of the release, like `push`, fail in some cases. If the fix for these
+failures is to make changes in the repo, you need to partially restart the
+release process. Here are the steps to follow:
+
+1. Cancel the tasks still running for the release in Evergreen.
+2. Fix the issue in the repo and merge the fix to master.
+3. Delete the task from the `origin` remote (GitHub):
+   ```
+   $> git push origin --delete 100.5.4
+   ```
+4. Make a new tag and push it as you do for the normal release process.
+
+Evergreen should kick off a new set of tasks for the release. Then you can
+continue the normal release process from there.
