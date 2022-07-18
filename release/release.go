@@ -1123,6 +1123,7 @@ type LinuxRepo struct {
 var linuxRepoVersionsStable = []LinuxRepo{
 	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")}, // any 4.4 stable release version will send the package to the "4.4" repo
 	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")}, // any 5.0 stable release version will send the package to the "5.0" repo
+	{"6.0", "6.0.0", "server-6.0", os.Getenv("NOTARY_TOKEN_6_0")}, // any 6.0 stable release version will send the package to the "6.0" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
