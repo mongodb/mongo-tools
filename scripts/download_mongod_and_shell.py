@@ -108,6 +108,12 @@ class Main:
                 exe += ".exe"
             os.rename(os.path.join(extracted[0], exe), os.path.join("bin", exe))
 
+        # Copy dlls on Windows, but don't copy for the shell since we don't want to copy the dlls twice.
+        if platform.system() == "Windows" and not shell_only:
+            dlls = glob.glob(os.path.join(self.dir, "mongodb-*", "bin", "*.dll"))
+            for dll in dlls:
+                os.rename(dll, os.path.join("bin", os.path.basename(dll)))
+
         os.remove(local)
         shutil.rmtree(extracted[0])
 
