@@ -81,39 +81,14 @@ functions:
         PATH=$PATH:$HOME
         go run build.go -v ${target}
 
-  "download mongod":
-    command: shell.exec
+  "download mongod and shell":
+    command: subprocess.exec
     params:
       working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -x
-        set -v
-        set -e
-        mongotarget=$(if [ "${mongo_target}" ]; then echo "${mongo_target}"; else echo "${mongo_os}"; fi)
-        mongoversion=$(if [ "${mongo_version_always_use_latest}" ]; then echo "latest"; else echo "${mongo_version}"; fi)
-        PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
-        python="python3"
-        if [ "Windows_NT" = "$OS" ]; then
-          python="py.exe -3"
-        fi
-        dlurl=$($python binaryurl.py --edition=${mongo_edition} --target=$mongotarget --version=$mongoversion --arch=${mongo_arch|x86_64})
-        filename=$(echo $dlurl | sed -e "s_.*/__")
-        mkdir -p bin
-        curl -s $dlurl --output $filename
-        ${decompress} $filename
-        rm $filename
-        if [ "${only_shell}" ]; then
-          mv -f ./mongodb-*/bin/mongo${extension} ./bin/
-        else
-          mv -f ./mongodb-*/bin/mongo${extension} ./bin/
-          mv -f ./mongodb-*/bin/mongos${extension} ./bin/
-          mv -f ./mongodb-*/bin/mongod${extension} ./bin/
-        fi
-        if [ "Windows_NT" = "$OS" ]; then
-          mv -f ./mongodb-*/bin/netsnmp.dll ./bin/
-        fi
-        chmod +x ./bin/*
-        rm -rf ./mongodb-*
+      binary: bash
+      args:
+        - "./scripts/download_mongod_and_shell.sh"
+      add_expansions_to_env: true
 
   "get buildnumber":
     command: keyval.inc
@@ -679,7 +654,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        silent: true
+        # silent: true
         working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
           set -x
@@ -908,7 +883,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.4"
     - func: "start mongod"
@@ -925,7 +900,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.4"
     - func: "start mongod"
@@ -944,7 +919,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.6"
     - func: "start mongod"
@@ -961,7 +936,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.6"
     - func: "start mongod"
@@ -980,7 +955,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.0"
     - func: "start mongod"
@@ -1002,7 +977,7 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.0"
     - func: "start mongod"
@@ -1020,7 +995,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.0"
     - func: "create repl_set"
@@ -1038,7 +1013,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.0"
     - func: "start mongod"
@@ -1057,7 +1032,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.2"
     - func: "start mongod"
@@ -1083,7 +1058,7 @@ tasks:
         updates:
           - key: "mongod_args"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.2"
     - func: "start mongod"
@@ -1107,7 +1082,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "start mongod"
@@ -1133,7 +1108,7 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "start mongod"
@@ -1157,7 +1132,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "create repl_set"
@@ -1175,7 +1150,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.0"
     - func: "start mongod"
@@ -1201,7 +1176,7 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.0"
     - func: "start mongod"
@@ -1225,7 +1200,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.0"
     - func: "create repl_set"
@@ -1243,7 +1218,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.0"
     - func: "start mongod"
@@ -1263,7 +1238,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.1"
     - func: "start mongod"
@@ -1289,7 +1264,7 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.1"
     - func: "start mongod"
@@ -1313,7 +1288,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.1"
     - func: "create repl_set"
@@ -1331,7 +1306,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.1"
     - func: "start mongod"
@@ -1351,7 +1326,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.2"
     - func: "start mongod"
@@ -1377,7 +1352,7 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.2"
     - func: "start mongod"
@@ -1401,7 +1376,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.2"
     - func: "create repl_set"
@@ -1419,7 +1394,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.2"
     - func: "start mongod"
@@ -1439,7 +1414,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.3"
     - func: "start mongod"
@@ -1465,7 +1440,7 @@ tasks:
         updates:
           - key: "mongod_args_tls"
             concat: " --auth"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.3"
     - func: "start mongod"
@@ -1489,7 +1464,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.3"
     - func: "create repl_set"
@@ -1507,7 +1482,7 @@ tasks:
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.3"
     - func: "start mongod"
@@ -1522,192 +1497,188 @@ tasks:
       vars:
         target: test:awsauth
 
-# XXX - we are temporarily disabling all tests with 6.0 and latest until we
-# resolve the issue with installing the mongo shell. See
-# https://jira.mongodb.org/browse/TOOLS-3110 for details.
+- name: integration-6.0
+  tags: ["6.0"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "6.0"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true
 
-# - name: integration-6.0
-#   tags: ["6.0"]
-#   commands:
-#     - func: "fetch source"
-#     - command: expansions.update
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "6.0"
-#     - func: "start mongod"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "wait for mongod to be ready"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run make target"
-#       vars:
-#         target: test:integration test:srv -ssl=true
+- name: integration-6.0-auth
+  tags: ["6.0", "auth"]
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args_tls"
+            concat: " --auth"
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "6.0"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "create mongod users"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -auth=true
 
-# - name: integration-6.0-auth
-#   tags: ["6.0", "auth"]
-#   commands:
-#     - func: "fetch source"
-#     # Concat auth args
-#     - command: expansions.update
-#       params:
-#         updates:
-#           - key: "mongod_args_tls"
-#             concat: " --auth"
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "6.0"
-#     - func: "start mongod"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "wait for mongod to be ready"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "create mongod users"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run make target"
-#       vars:
-#         target: test:integration test:srv -ssl=true -auth=true
+- name: integration-6.0-cluster
+  tags: ["6.0", "cluster"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "6.0"
+    - func: "create repl_set"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -topology=replSet
 
-# - name: integration-6.0-cluster
-#   tags: ["6.0", "cluster"]
-#   commands:
-#     - func: "fetch source"
-#     - command: expansions.update
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "6.0"
-#     - func: "create repl_set"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run make target"
-#       vars:
-#         target: test:integration test:srv -ssl=true -topology=replSet
+- name: aws-auth-6.0
+  tags: ["6.0", "aws-auth"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "6.0"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "run make target"
+      vars:
+        target: test:awsauth
 
-# - name: aws-auth-6.0
-#   tags: ["6.0", "aws-auth"]
-#   commands:
-#     - func: "fetch source"
-#     - command: expansions.update
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "6.0"
-#     - func: "start mongod"
-#       vars:
-#         AWS_AUTH: "true"
-#     - func: "wait for mongod to be ready"
-#       vars:
-#         AWS_AUTH: "true"
-#     - func: "add-aws-auth-variables-to-file"
-#     - func: "setup-aws-auth-test-with-assume-role-credentials"
-#     - func: "run make target"
-#       vars:
-#         target: test:awsauth
+- name: integration-latest
+  tags: ["latest"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "latest"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true
 
-# - name: integration-latest
-#   tags: ["latest"]
-#   commands:
-#     - func: "fetch source"
-#     - command: expansions.update
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "latest"
-#     - func: "start mongod"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "wait for mongod to be ready"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run make target"
-#       vars:
-#         target: test:integration test:srv -ssl=true
+- name: integration-latest-auth
+  tags: ["latest", "auth"]
+  commands:
+    - func: "fetch source"
+    # Concat auth args
+    - command: expansions.update
+      params:
+        updates:
+          - key: "mongod_args_tls"
+            concat: " --auth"
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "latest"
+    - func: "start mongod"
+      vars:
+        USE_TLS: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        USE_TLS: "true"
+    - func: "create mongod users"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -auth=true
 
-# - name: integration-latest-auth
-#   tags: ["latest", "auth"]
-#   commands:
-#     - func: "fetch source"
-#     # Concat auth args
-#     - command: expansions.update
-#       params:
-#         updates:
-#           - key: "mongod_args_tls"
-#             concat: " --auth"
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "latest"
-#     - func: "start mongod"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "wait for mongod to be ready"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "create mongod users"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run make target"
-#       vars:
-#         target: test:integration test:srv -ssl=true -auth=true
+- name: integration-latest-cluster
+  tags: ["latest", "cluster"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "latest"
+    - func: "create repl_set"
+      vars:
+        USE_TLS: "true"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run make target"
+      vars:
+        target: test:integration test:srv -ssl=true -topology=replSet
 
-# - name: integration-latest-cluster
-#   tags: ["latest", "cluster"]
-#   commands:
-#     - func: "fetch source"
-#     - command: expansions.update
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "latest"
-#     - func: "create repl_set"
-#       vars:
-#         USE_TLS: "true"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run make target"
-#       vars:
-#         target: test:integration test:srv -ssl=true -topology=replSet
-
-# - name: aws-auth-latest
-#   tags: ["latest", "aws-auth"]
-#   commands:
-#     - func: "fetch source"
-#     - command: expansions.update
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "latest"
-#     - func: "start mongod"
-#       vars:
-#         AWS_AUTH: "true"
-#     - func: "wait for mongod to be ready"
-#       vars:
-#         AWS_AUTH: "true"
-#     - func: "add-aws-auth-variables-to-file"
-#     - func: "setup-aws-auth-test-with-assume-role-credentials"
-#     - func: "run make target"
-#       vars:
-#         target: test:awsauth
+- name: aws-auth-latest
+  tags: ["latest", "aws-auth"]
+  commands:
+    - func: "fetch source"
+    - command: expansions.update
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "latest"
+    - func: "start mongod"
+      vars:
+        AWS_AUTH: "true"
+    - func: "wait for mongod to be ready"
+      vars:
+        AWS_AUTH: "true"
+    - func: "add-aws-auth-variables-to-file"
+    - func: "setup-aws-auth-test-with-assume-role-credentials"
+    - func: "run make target"
+      vars:
+        target: test:awsauth
 
 - name: aws-auth-4.4
   tags: ["4.4", "aws-auth"]
   commands:
     - func: "fetch source"
     - command: expansions.update
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "start mongod"
@@ -1746,7 +1717,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.2"
     - func: "run make target"
@@ -1762,7 +1733,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "run make target"
@@ -1778,7 +1749,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.0"
     - func: "run make target"
@@ -1794,7 +1765,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.1"
     - func: "run make target"
@@ -1810,7 +1781,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.2"
     - func: "run make target"
@@ -1826,7 +1797,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.3"
     - func: "run make target"
@@ -1836,37 +1807,37 @@ tasks:
       vars:
         test_path: "test/legacy42"
 
-# - name: legacy-jstests-6.0 # The server jstests from the tools removal from server in 4.2
-#   tags: ["6.0"]
-#   commands:
-#     - func: "fetch source"
-#     - func: "get buildnumber"
-#     - func: "setup credentials"
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "6.0"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run legacy tests"
-#       vars:
-#         test_path: "test/legacy42"
+- name: legacy-jstests-6.0 # The server jstests from the tools removal from server in 4.2
+  tags: ["6.0"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "6.0"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy42"
 
-# - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
-#   tags: ["latest"]
-#   commands:
-#     - func: "fetch source"
-#     - func: "get buildnumber"
-#     - func: "setup credentials"
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "latest"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run legacy tests"
-#       vars:
-#         test_path: "test/legacy42"
+- name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
+  tags: ["latest"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "latest"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run legacy tests"
+      vars:
+        test_path: "test/legacy42"
 
 - name: mod-tidy
   commands:
@@ -1928,7 +1899,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.0"
     - func: "run make target"
@@ -1945,7 +1916,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.1"
     - func: "run make target"
@@ -1962,7 +1933,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.2"
     - func: "run make target"
@@ -1979,7 +1950,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "5.3"
     - func: "run make target"
@@ -1990,39 +1961,39 @@ tasks:
         resmoke_suite: "core${resmoke_use_tls}"
         excludes: "requires_unstable,${excludes}"
 
-# - name: qa-tests-6.0
-#   tags: ["6.0"]
-#   commands:
-#     - func: "fetch source"
-#     - func: "get buildnumber"
-#     - func: "setup credentials"
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "6.0"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run qa-tests"
-#       vars:
-#         resmoke_suite: "core${resmoke_use_tls}"
-#         excludes: "requires_unstable,${excludes}"
+- name: qa-tests-6.0
+  tags: ["6.0"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "6.0"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_tls}"
+        excludes: "requires_unstable,${excludes}"
 
-# - name: qa-tests-latest
-#   tags: ["latest"]
-#   commands:
-#     - func: "fetch source"
-#     - func: "get buildnumber"
-#     - func: "setup credentials"
-#     - func: "download mongod"
-#       vars:
-#         mongo_version: "latest"
-#     - func: "run make target"
-#       vars:
-#         target: build
-#     - func: "run qa-tests"
-#       vars:
-#         resmoke_suite: "core${resmoke_use_tls}"
-#         excludes: "requires_unstable,${excludes}"
+- name: qa-tests-latest
+  tags: ["latest"]
+  commands:
+    - func: "fetch source"
+    - func: "get buildnumber"
+    - func: "setup credentials"
+    - func: "download mongod and shell"
+      vars:
+        mongo_version: "latest"
+    - func: "run make target"
+      vars:
+        target: build
+    - func: "run qa-tests"
+      vars:
+        resmoke_suite: "core${resmoke_use_tls}"
+        excludes: "requires_unstable,${excludes}"
 
 - name: qa-tests-4.4
   tags: ["4.4"]
@@ -2030,7 +2001,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "run make target"
@@ -2047,7 +2018,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.2"
     - func: "run make target"
@@ -2064,7 +2035,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.0"
     - func: "run make target"
@@ -2081,7 +2052,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.6"
     - func: "run make target"
@@ -2098,7 +2069,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.4"
     - func: "run make target"
@@ -2115,7 +2086,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "3.2"
     - func: "run make target"
@@ -2132,7 +2103,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "run make target"
@@ -2146,7 +2117,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "run make target"
@@ -2163,7 +2134,7 @@ tasks:
     - func: "fetch source"
     - func: "get buildnumber"
     - func: "setup credentials"
-    - func: "download mongod"
+    - func: "download mongod and shell"
       vars:
         mongo_version: "4.4"
     - func: "run make target"
@@ -2294,8 +2265,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2381,7 +2352,7 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".latest"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2410,8 +2381,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2438,8 +2409,8 @@ buildvariants:
   tasks:
   - name: "unit"
   - name: ".5.0"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2474,8 +2445,8 @@ buildvariants:
   - name: ".4.4 !.aws-auth"
   - name: ".5.0 !.aws-auth"
   - name: ".5.3 !.aws-auth"
-#  - name: ".6.0 !.aws-auth"
-#  - name: ".latest !.aws-auth"
+  - name: ".6.0 !.aws-auth"
+  - name: ".latest !.aws-auth"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2540,8 +2511,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2572,8 +2543,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2611,8 +2582,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: "dist"
   - name: "sign"
     run_on: rhel80-small
@@ -2640,8 +2611,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: "dist"
   - name: "sign"
     run_on: rhel80-small
@@ -2704,8 +2675,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2733,8 +2704,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2801,8 +2772,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2870,8 +2841,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2903,8 +2874,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2965,8 +2936,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -2997,8 +2968,8 @@ buildvariants:
   - name: ".4.4"
   - name: ".5.0"
   - name: ".5.3"
-#  - name: ".6.0"
-#  - name: ".latest"
+  - name: ".6.0"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -3068,8 +3039,8 @@ buildvariants:
   - name: ".4.4 !.aws-auth"
   - name: ".5.0 !.aws-auth"
   - name: ".5.3 !.aws-auth"
-#  - name: ".6.0 !.aws-auth"
-#  - name: ".latest !.aws-auth"
+  - name: ".6.0 !.aws-auth"
+  - name: ".latest !.aws-auth"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"
@@ -3165,7 +3136,7 @@ buildvariants:
   # 6.x release in the future, but there is no 6.0.
   - name: ".5.1"
   - name: ".5.2"
-#  - name: ".latest"
+  - name: ".latest"
   - name: ".kerberos"
   - name: "dist"
   - name: "sign"

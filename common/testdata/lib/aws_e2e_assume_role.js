@@ -56,7 +56,9 @@ load("aws_e2e_lib.js");
     ]
   }));
 
-  assert(externalDB.auth({
+  const testConn = new Mongo("localhost:33333");
+  const testExternal = testConn.getDB('$external');
+  assert(testExternal.auth({
     user: credentials["AccessKeyId"],
     pwd: credentials["SecretAccessKey"],
     awsIamSessionToken: credentials["SessionToken"],
