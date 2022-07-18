@@ -2115,7 +2115,7 @@ func TestRestoreClusteredIndex(t *testing.T) {
 	t.Run("restore from oplog with default index name", func(t *testing.T) {
 		testRestoreClusteredIndexFromOplog(t, "")
 	})
-	t.Run("restore from oplog with default index name", func(t *testing.T) {
+	t.Run("restore from oplog with custom index name", func(t *testing.T) {
 		testRestoreClusteredIndexFromOplog(t, "custom index name")
 	})
 }
@@ -2137,7 +2137,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 
 	dataLen := createClusteredIndex(t, testDB, indexName)
 
-	withMongodump(t, testDB.Name(), "stocks", func(dir string) {
+	withMongodump(t, false, testDB.Name(), "stocks", func(dir string) {
 		restore, err := getRestoreWithArgs(
 			DropOption,
 			dir,
@@ -2283,10 +2283,264 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	}
 }
 
-func withMongodump(t *testing.T, db string, collection string, testCase func(string)) {
+// This tests the secondary index support added in server version 5.0. This
+// allows indexes on metadata fields and the timestamp fields.
+func TestRestoreTimeseriesCollectionWithSecondaryIndex50(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 5.0 or later and we have %s", fcv)
+	}
+
+	t.Run("restore from dump", func(t *testing.T) {
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t, false)
+	})
+
+	res := session.Database("admin").RunCommand(context.Background(), bson.M{"replSetGetStatus": 1})
+	if res.Err() != nil {
+		t.Skip("server is not part of a replicaset so we cannot test restore from oplog")
+	}
+
+	t.Run("restore from oplog", func(t *testing.T) {
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t, false)
+	})
+}
+
+// This tests the secondary index support added in server version 6.0. This
+// allows indexes on measurement fields as well.
+func TestRestoreTimeseriesCollectionWithSecondaryIndex60(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 6.0 or later and we have %s", fcv)
+	}
+
+	t.Run("restore from dump", func(t *testing.T) {
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t, true)
+	})
+
+	res := session.Database("admin").RunCommand(context.Background(), bson.M{"replSetGetStatus": 1})
+	if res.Err() != nil {
+		t.Skip("server is not part of a replicaset so we cannot test restore from oplog")
+	}
+
+	t.Run("restore from oplog", func(t *testing.T) {
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t, true)
+	})
+}
+
+func testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t *testing.T, onMeasurement bool) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	dataLen, timeseriesOptions := createTimeseriesCollectionWithSecondaryIndex(t, testDB, onMeasurement)
+
+	withMongodump(t, true, testDB.Name(), "weather", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(dataLen, result.Successes, "mongorestore reports %d successes", dataLen)
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertTimeseriesCollectionWithSecondaryIndex(t, testDB, timeseriesOptions, onMeasurement)
+	})
+}
+
+func testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t *testing.T, onMeasurement bool) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	_, timeseriesOptions := createTimeseriesCollectionWithSecondaryIndex(t, testDB, onMeasurement)
+
+	withOplogMongoDump(t, dbName, "weather", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			OplogReplayOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(0, result.Successes, "mongorestore reports 0 successes")
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertTimeseriesCollectionWithSecondaryIndex(t, testDB, timeseriesOptions, onMeasurement)
+	})
+}
+
+func createTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Database, onMeasurement bool) (int, bson.M) {
+	require := require.New(t)
+
+	timeseriesOptions := bson.M{
+		"timeField":   "timestamp",
+		"metaField":   "metadata",
+		"granularity": "hours",
+	}
+	createCollCmd := bson.D{
+		{"create", "weather"},
+		{"timeseries", timeseriesOptions},
+	}
+	res := testDB.RunCommand(context.Background(), createCollCmd, nil)
+	require.NoError(res.Err(), "can create a time series collection")
+
+	var err error
+	if onMeasurement {
+		_, err = testDB.Collection("weather").Indexes().CreateOne(
+			context.Background(),
+			mongo.IndexModel{
+				Keys: bson.D{{"temp", 1}, {"timestamp", 1}},
+			},
+		)
+	} else {
+		_, err = testDB.Collection("weather").Indexes().CreateOne(
+			context.Background(),
+			mongo.IndexModel{
+				Keys: bson.D{{"metadata.sensorId", 1}, {"timestamp", 1}},
+			},
+		)
+	}
+
+	require.NoError(err)
+
+	var r interface{}
+	err = res.Decode(&r)
+	require.NoError(err)
+
+	weather := testDB.Collection("weather")
+	var weatherData []interface{}
+	for i := 0; i < 24*4; i++ {
+		weatherData = append(
+			weatherData,
+			bson.M{
+				"metadata":  bson.M{"sensorId": 5578, "type": "temperature"},
+				"timestamp": time.Now().Add(time.Minute * (-15 * time.Duration(i))),
+				"temp":      10.0 + (float64(i) / 10.0),
+			},
+		)
+	}
+	_, err = weather.InsertMany(context.Background(), weatherData)
+	require.NoError(err, "can insert documents into collection")
+
+	// The system.buckets.weather collection ends up with 2 documents.
+	return 2, timeseriesOptions
+}
+
+func assertTimeseriesCollectionWithSecondaryIndex(
+	t *testing.T, testDB *mongo.Database, timeseriesOptions bson.M, onMeasurement bool,
+) {
+	require := require.New(t)
+
+	c, err := testDB.ListCollections(context.Background(), bson.M{})
+	require.NoError(err, "can get list of collections")
+
+	type collectionRes struct {
+		Name    string
+		Type    string
+		Options bson.M
+		Info    bson.D
+		IdIndex bson.D
+	}
+
+	var collections []collectionRes
+	// two Indexes should be created in addition to the _id, foo and foo_2
+	for c.Next(context.Background()) {
+		var res collectionRes
+		err = c.Decode(&res)
+		require.NoError(err, "can decode collection result")
+		collections = append(collections, res)
+	}
+
+	require.Len(collections, 3, "database has three collections")
+	var weather collectionRes
+	for _, c := range collections {
+		if c.Name == "weather" {
+			weather = c
+			break
+		}
+	}
+	require.Equal("weather", weather.Name, "collection is named weather")
+	require.Equal("timeseries", weather.Type, "collection type is timeseries")
+	for _, o := range []string{"granularity", "metaField", "timeField"} {
+		require.Equal(
+			timeseriesOptions[o],
+			weather.Options["timeseries"].(bson.M)[o],
+			"collection has expected timeseries %s option", o,
+		)
+	}
+
+	cursor, err := testDB.Collection("weather").Indexes().List(context.Background())
+	require.NoError(err, "can get list of indexes for weather collection")
+
+	type indexRes struct {
+		V    int32
+		Name string
+		Key  bson.M
+	}
+
+	var indexes []indexRes
+	err = cursor.All(context.Background(), &indexes)
+	require.NoError(err, "can get all index info from index list cursor")
+
+	require.Len(indexes, 1, "got info about one index")
+	var keys []string
+	for k := range indexes[0].Key {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	if onMeasurement {
+		require.Equal([]string{"temp", "timestamp"}, keys, "index has expected keys")
+	} else {
+		require.Equal([]string{"metadata.sensorId", "timestamp"}, keys, "index has expected keys")
+	}
+}
+
+func withMongodump(t *testing.T, isTS bool, db string, collection string, testCase func(string)) {
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
-	runMongodump(t, dir, db, collection)
+	runMongodump(t, isTS, dir, db, collection)
 	testCase(dir)
 }
 
@@ -2309,7 +2563,7 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	require.NoError(err, "can marshal query to JSON")
 
 	// We dump just the documents matching the query using mongodump "normally".
-	bsonFile := runMongodump(t, dir, "local", "oplog.rs", "--query", string(q))
+	bsonFile := runMongodump(t, false, dir, "local", "oplog.rs", "--query", string(q))
 
 	// Then we take the BSON dump file and rename it to "oplog.bson" and put
 	// it in the root of the dump directory.
@@ -2334,7 +2588,7 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	testCase(dir)
 }
 
-func runMongodump(t *testing.T, dir, db, collection string, args ...string) string {
+func runMongodump(t *testing.T, isTS bool, dir, db, collection string, args ...string) string {
 	require := require.New(t)
 
 	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
@@ -2356,7 +2610,11 @@ func runMongodump(t *testing.T, dir, db, collection string, args ...string) stri
 		cmdStr,
 	)
 
-	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
+	expectName := fmt.Sprintf("%s.bson", collection)
+	if isTS {
+		expectName = fmt.Sprintf("system.buckets.%s", expectName)
+	}
+	bsonFile := filepath.Join(dir, db, expectName)
 	_, err = os.Stat(bsonFile)
 	require.NoError(err, "dump created BSON data file")
 	_, err = os.Stat(filepath.Join(dir, db, fmt.Sprintf("%s.metadata.json", collection)))
