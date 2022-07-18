@@ -2283,7 +2283,9 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	}
 }
 
-func TestRestoreTimeseriesCollectionWithSecondaryIndex(t *testing.T) {
+// This tests the secondary index support added in server version 5.0. This
+// allows indexes on metadata fields and the timestamp fields.
+func TestRestoreTimeseriesCollectionWithSecondaryIndex50(t *testing.T) {
 	require := require.New(t)
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
@@ -2297,7 +2299,7 @@ func TestRestoreTimeseriesCollectionWithSecondaryIndex(t *testing.T) {
 	}
 
 	t.Run("restore from dump", func(t *testing.T) {
-		testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t)
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t, false)
 	})
 
 	res := session.Database("admin").RunCommand(context.Background(), bson.M{"replSetGetStatus": 1})
@@ -2306,11 +2308,40 @@ func TestRestoreTimeseriesCollectionWithSecondaryIndex(t *testing.T) {
 	}
 
 	t.Run("restore from oplog", func(t *testing.T) {
-		testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t)
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t, false)
 	})
 }
 
-func testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t *testing.T) {
+// This tests the secondary index support added in server version 6.0. This
+// allows indexes on measurement fields as well.
+func TestRestoreTimeseriesCollectionWithSecondaryIndex60(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 6.0 or later and we have %s", fcv)
+	}
+
+	t.Run("restore from dump", func(t *testing.T) {
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t, true)
+	})
+
+	res := session.Database("admin").RunCommand(context.Background(), bson.M{"replSetGetStatus": 1})
+	if res.Err() != nil {
+		t.Skip("server is not part of a replicaset so we cannot test restore from oplog")
+	}
+
+	t.Run("restore from oplog", func(t *testing.T) {
+		testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t, true)
+	})
+}
+
+func testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t *testing.T, onMeasurement bool) {
 	require := require.New(t)
 
 	session, err := testutil.GetBareSession()
@@ -2325,7 +2356,7 @@ func testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t *testing.T) {
 		}
 	}()
 
-	dataLen, timeseriesOptions := createTimeseriesCollectionWithSecondaryIndex(t, testDB)
+	dataLen, timeseriesOptions := createTimeseriesCollectionWithSecondaryIndex(t, testDB, onMeasurement)
 
 	withMongodump(t, true, testDB.Name(), "weather", func(dir string) {
 		restore, err := getRestoreWithArgs(
@@ -2340,11 +2371,11 @@ func testRestoreTimeseriesCollectionWithSecondaryIndexFromDump(t *testing.T) {
 		require.EqualValues(dataLen, result.Successes, "mongorestore reports %d successes", dataLen)
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-		assertTimeseriesCollectionWithSecondaryIndex(t, testDB, timeseriesOptions)
+		assertTimeseriesCollectionWithSecondaryIndex(t, testDB, timeseriesOptions, onMeasurement)
 	})
 }
 
-func testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t *testing.T) {
+func testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t *testing.T, onMeasurement bool) {
 	require := require.New(t)
 
 	session, err := testutil.GetBareSession()
@@ -2359,7 +2390,7 @@ func testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t *testing.T) {
 		}
 	}()
 
-	_, timeseriesOptions := createTimeseriesCollectionWithSecondaryIndex(t, testDB)
+	_, timeseriesOptions := createTimeseriesCollectionWithSecondaryIndex(t, testDB, onMeasurement)
 
 	withOplogMongoDump(t, dbName, "weather", func(dir string) {
 		restore, err := getRestoreWithArgs(
@@ -2375,11 +2406,11 @@ func testRestoreTimeseriesCollectionWithSecondaryIndexFromOplog(t *testing.T) {
 		require.EqualValues(0, result.Successes, "mongorestore reports 0 successes")
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-		assertTimeseriesCollectionWithSecondaryIndex(t, testDB, timeseriesOptions)
+		assertTimeseriesCollectionWithSecondaryIndex(t, testDB, timeseriesOptions, onMeasurement)
 	})
 }
 
-func createTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Database) (int, bson.M) {
+func createTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Database, onMeasurement bool) (int, bson.M) {
 	require := require.New(t)
 
 	timeseriesOptions := bson.M{
@@ -2394,12 +2425,23 @@ func createTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Da
 	res := testDB.RunCommand(context.Background(), createCollCmd, nil)
 	require.NoError(res.Err(), "can create a time series collection")
 
-	_, err := testDB.Collection("weather").Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys: bson.D{{"metadata.sensorId", 1}, {"timestamp", 1}},
-		},
-	)
+	var err error
+	if onMeasurement {
+		_, err = testDB.Collection("weather").Indexes().CreateOne(
+			context.Background(),
+			mongo.IndexModel{
+				Keys: bson.D{{"temp", 1}, {"timestamp", 1}},
+			},
+		)
+	} else {
+		_, err = testDB.Collection("weather").Indexes().CreateOne(
+			context.Background(),
+			mongo.IndexModel{
+				Keys: bson.D{{"metadata.sensorId", 1}, {"timestamp", 1}},
+			},
+		)
+	}
+
 	require.NoError(err)
 
 	var r interface{}
@@ -2425,7 +2467,9 @@ func createTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Da
 	return 2, timeseriesOptions
 }
 
-func assertTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Database, timeseriesOptions bson.M) {
+func assertTimeseriesCollectionWithSecondaryIndex(
+	t *testing.T, testDB *mongo.Database, timeseriesOptions bson.M, onMeasurement bool,
+) {
 	require := require.New(t)
 
 	c, err := testDB.ListCollections(context.Background(), bson.M{})
@@ -2485,7 +2529,12 @@ func assertTimeseriesCollectionWithSecondaryIndex(t *testing.T, testDB *mongo.Da
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	require.Equal([]string{"metadata.sensorId", "timestamp"}, keys, "index has expected keys")
+
+	if onMeasurement {
+		require.Equal([]string{"temp", "timestamp"}, keys, "index has expected keys")
+	} else {
+		require.Equal([]string{"metadata.sensorId", "timestamp"}, keys, "index has expected keys")
+	}
 }
 
 func withMongodump(t *testing.T, isTS bool, db string, collection string, testCase func(string)) {
