@@ -6,6 +6,11 @@
   'use strict';
   const HOST_TYPE = getBuildInfo().buildEnvironment.target_os;
 
+  if (HOST_TYPE === "macos") {
+    jsTest.log(`Adding certs macos`);
+    //runProgram("security", "add-trusted-cert", "-d", "-k", "/Library/Keychains/System.keychain", "jstests/libs/trusted-ca.pem");
+  }
+
   if (HOST_TYPE === "windows") {
     // SChannel backed follows Windows rules and only trusts the Root store in Local Machine and
     // Current User.

@@ -11,7 +11,8 @@ chmod 400 jstests/libs/key*
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     keychain="/Users/$(whoami)/Library/Keychains/login.keychain-db"
-    security add-trusted-cert -d -k $keychain jstests/libs/trusted-ca.pem
+    sudo security add-trusted-cert -d -k $keychain jstests/libs/trusted-ca.pem
+    sudo security add-trusted-cert -d -k /Library/Keychains/System.keychain jstests/libs/trusted-ca.pem
 fi
 
 PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
