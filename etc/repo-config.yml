@@ -366,8 +366,8 @@ repos:
     edition: enterprise
     bucket: repo.mongodb.org
     repos:
-      - yum/redhat/8/mongodb-org
-      - yum/redhat/8Server/mongodb-org
+      - yum/redhat/8/mongodb-enterprise
+      - yum/redhat/8Server/mongodb-enterprise
 
   - name: amazon
     type: rpm
