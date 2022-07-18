@@ -104,7 +104,6 @@ class Main:
             wanted = ["mongo", "mongos", "mongod"]
 
         for exe in wanted:
-            log(exe)
             if platform.system() == "Windows":
                 exe += ".exe"
             os.rename(os.path.join(extracted[0], exe), os.path.join("bin", exe))
@@ -113,7 +112,6 @@ class Main:
         if platform.system() == "Windows" and not shell_only:
             dlls = glob.glob(os.path.join(self.dir, "mongodb-*", "bin", "*.dll"))
             for dll in dlls:
-                log(dll)
                 os.rename(dll, os.path.join("bin", os.path.basename(dll)))
 
         os.remove(local)
