@@ -401,6 +401,22 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
+		Name:      "ubuntu2204",
+		Arch:      ArchArm64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: []string{"ssl", "failpoints"},
+	},
+	{
+		Name:      "ubuntu2204",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
 		Name:      "windows",
 		Arch:      ArchX86_64,
 		OS:        OSWindows,

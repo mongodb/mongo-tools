@@ -44,8 +44,25 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 	panic(cseNotSupportedMsg)
 }
 
+// RewrapDataKeyContext creates a Context to use for rewrapping a data key.
+func (m *MongoCrypt) RewrapDataKeyContext(filter []byte, opts *options.RewrapManyDataKeyOptions) (*Context, error) {
+	panic(cseNotSupportedMsg)
+}
+
 // CreateExplicitDecryptionContext creates a Context to use for explicit decryption.
 func (m *MongoCrypt) CreateExplicitDecryptionContext(doc bsoncore.Document) (*Context, error) {
+	panic(cseNotSupportedMsg)
+}
+
+// CryptSharedLibVersion returns the version number for the loaded crypt_shared library, or 0 if the
+// crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersion() uint64 {
+	panic(cseNotSupportedMsg)
+}
+
+// CryptSharedLibVersionString returns the version string for the loaded crypt_shared library, or an
+// empty string if the crypt_shared library was not loaded.
+func (m *MongoCrypt) CryptSharedLibVersionString() string {
 	panic(cseNotSupportedMsg)
 }
 
