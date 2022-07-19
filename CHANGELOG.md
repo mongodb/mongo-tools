@@ -6,7 +6,7 @@ _Released 2022-07-19_
 
 We are pleased to announce version 100.5.4 of the MongoDB Database Tools.
 
-This release mostly consists of build failure fixes, support for new platforms, and tests against server version 6.0. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL 8.3 on S390x. The version of Go driver used by the tools has been updated to 1.10.0.
+This release mostly consists of build failure fixes, support for new platforms, and tests against server version 6.0. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL 8.3 on s390x. The version of Go driver used by the tools has been updated to 1.10.0.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
@@ -36,7 +36,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - [TOOLS-3113 - Test secondary indexes on timeseries collections](https://jira.mongodb.org/browse/TOOLS-3113)
 - [TOOLS-3130 - Add 6.0 to list of linux repos we release to](https://jira.mongodb.org/browse/TOOLS-3130)
 - [TOOLS-3149 - Update the Go Driver to 1.10.0](https://jira.mongodb.org/browse/TOOLS-3149)
-- [TOOLS-3155 - Repo config for RHEL 8.3 on S390x is incorrect](https://jira.mongodb.org/browse/TOOLS-3155)
+- [TOOLS-3155 - Repo config for RHEL 8.3 on s390x is incorrect](https://jira.mongodb.org/browse/TOOLS-3155)
 - [TOOLS-2939 - Add Enterprise RHEL 8 zSeries](https://jira.mongodb.org/browse/TOOLS-2939)
 
 
