@@ -1209,9 +1209,9 @@ func linuxRelease(v version.Version) {
 
 		editionsToRelease := pf.Repos
 		versionsToRelease := linuxRepoVersionsStable
-		// if !canPerformStableRelease(v) {
-		// 	versionsToRelease = linuxRepoVersionsUnstable
-		// }
+		if !canPerformStableRelease(v) {
+			versionsToRelease = linuxRepoVersionsUnstable
+		}
 
 		for _, linuxRepo := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
