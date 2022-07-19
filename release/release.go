@@ -553,9 +553,18 @@ func buildDeb() {
 	}
 
 	output := releaseName + ".deb"
-	// create the .deb file.
-	log.Printf("running: dpkg -D1 -b %s %s", releaseName, output)
-	out, err := run("dpkg", "-D1", "-b", releaseName, output)
+	var out string
+	// Create the .deb file. On Ubuntu 22.04+, dpkg uses zstd compression by default.
+	// We want to create the deb using xz compression, since barque will not be able to read
+	// zstd compressed debs.
+	if strings.Contains(pf.Name, "ubuntu") && pf.Name >= "ubuntu2204" {
+		log.Printf("running: dpkg -D1 -b -Z xz %s %s", releaseName, output)
+		out, err = run("dpkg", "-D1", "-b", "-Z", "xz", releaseName, output)
+	} else {
+		log.Printf("running: dpkg -D1 -b %s %s", releaseName, output)
+		out, err = run("dpkg", "-D1", "-b", releaseName, output)
+	}
+
 	check(err, "run dpkg\n"+out)
 	// Copy to top level directory so we can upload it.
 	check(os.Link(
@@ -1199,9 +1208,9 @@ func linuxRelease(v version.Version) {
 
 		editionsToRelease := pf.Repos
 		versionsToRelease := linuxRepoVersionsStable
-		if !canPerformStableRelease(v) {
-			versionsToRelease = linuxRepoVersionsUnstable
-		}
+		// if !canPerformStableRelease(v) {
+		// 	versionsToRelease = linuxRepoVersionsUnstable
+		// }
 
 		for _, linuxRepo := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
