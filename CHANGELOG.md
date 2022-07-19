@@ -6,7 +6,7 @@ _Released 2022-07-19_
 
 We are pleased to announce version 100.5.4 of the MongoDB Database Tools.
 
-This release mostly consists of build failure fixes, support for new platforms, and tests against server version 6. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL 3.9 on S390x. The version of Go driver used by the tools has been updated to 1.10.0.
+This release mostly consists of build failure fixes, support for new platforms, and tests against server version 6.0. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL 8.3 on S390x. The version of Go driver used by the tools has been updated to 1.10.0.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
