@@ -556,10 +556,11 @@ func buildDeb() {
 	var out string
 	// Create the .deb file. On Ubuntu 22.04+, dpkg uses zstd compression by default.
 	// We want to create the deb using xz compression, since barque will not be able to read
-	// zstd compressed debs.
+	// zstd compressed debs. dpkg-deb is the underlying utility for building debs, and we can
+	// pass a compression option (-Z) to it.
 	if strings.Contains(pf.Name, "ubuntu") && pf.Name >= "ubuntu2204" {
-		log.Printf("running: dpkg -D1 -b -Z xz %s %s", releaseName, output)
-		out, err = run("dpkg", "-D1", "-b", "-Z", "xz", releaseName, output)
+		log.Printf("running: dpkg-deb -D -b -Z xz %s %s", releaseName, output)
+		out, err = run("dpkg-deb", "-D", "-b", "-Z", "xz", releaseName, output)
 	} else {
 		log.Printf("running: dpkg -D1 -b %s %s", releaseName, output)
 		out, err = run("dpkg", "-D1", "-b", releaseName, output)
