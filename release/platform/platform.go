@@ -280,6 +280,14 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
+		Name:      "rhel90",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []string{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
 		Name:      "suse12",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
