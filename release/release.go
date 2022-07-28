@@ -975,7 +975,7 @@ func uploadReleaseJSON(v version.Version) {
 
 		var dl download.ToolsDownload
 		dl.Name = pf.Name
-		dl.Arch = pf.Arch
+		dl.Arch = pf.Arch.String()
 		for _, a := range artifacts {
 			ext := path.Ext(a.URL)
 			if ext == ".sig" {
@@ -1219,7 +1219,7 @@ func linuxRelease(v version.Version) {
 				go func(mongoEdition string, linuxRepo LinuxRepo) {
 					var err error
 					prefix := fmt.Sprintf("%s-%s-%s", pf.Variant(), mongoEdition, linuxRepo.name)
-					arch := pf.Arch
+					arch := pf.Arch.String()
 					if pf.Pkg == platform.PkgRPM {
 						arch = pf.RPMArch()
 					}
@@ -1275,7 +1275,7 @@ func linuxRelease(v version.Version) {
 						}
 					}
 					check(err, "run curator for %s", prefix)
-				}(mongoEdition, linuxRepo)
+				}(mongoEdition.String(), linuxRepo)
 
 				// We need to sleep briefly between curator
 				// invocations because of an auth race condition in
