@@ -3,26 +3,41 @@ package platform
 import (
 	"fmt"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/release/env"
 )
 
+type OS string
+
 const (
-	OSWindows = "windows"
-	OSLinux   = "linux"
-	OSMac     = "mac"
+	OSWindows OS = "windows"
+	OSLinux      = "linux"
+	OSMac        = "mac"
+)
 
-	PkgDeb = "deb"
-	PkgRPM = "rpm"
+type Pkg string
 
-	RepoOrg        = "org"
-	RepoEnterprise = "enterprise"
+const (
+	PkgDeb Pkg = "deb"
+	PkgRPM     = "rpm"
+)
 
-	ArchArm64   = "arm64"
-	ArchS390x   = "s390x"
-	ArchPpc64le = "ppc64le"
-	ArchX86_64  = "x86_64"
+type Repo string
+
+const (
+	RepoOrg        Repo = "org"
+	RepoEnterprise      = "enterprise"
+)
+
+type Arch string
+
+const (
+	ArchArm64   Arch = "arm64"
+	ArchS390x        = "s390x"
+	ArchPpc64le      = "ppc64le"
+	ArchX86_64       = "x86_64"
 )
 
 // Platform represents a platform (a combination of OS, distro,
@@ -35,10 +50,10 @@ type Platform struct {
 	// special builds. In general, we want to use the OS name + arch for the
 	// variant name.
 	VariantName     string
-	Arch            string
-	OS              string
-	Pkg             string
-	Repos           []string
+	Arch            Arch
+	OS              OS
+	Pkg             Pkg
+	Repos           []Repo
 	BuildTags       []string
 	BinaryExt       string
 	SkipForJSONFeed bool
@@ -146,7 +161,7 @@ func (p Platform) DebianArch() string {
 		return "ppc64el"
 	// other archs are the same name on Debian.
 	default:
-		return p.Arch
+		return p.Arch.String()
 	}
 }
 
@@ -159,20 +174,132 @@ func (p Platform) RPMArch() string {
 		return "aarch64"
 	// other archs are the same name on RPM.
 	default:
-		return p.Arch
+		return p.Arch.String()
 	}
 }
 
 func (p Platform) ArtifactExtensions() []string {
 	switch p.OS {
 	case OSLinux:
-		return []string{"tgz", "tgz.sig", p.Pkg}
+		return []string{"tgz", "tgz.sig", p.Pkg.String()}
 	case OSMac:
 		return []string{"zip"}
 	case OSWindows:
 		return []string{"zip", "zip.sig", "msi"}
 	}
 	panic("unreachable")
+}
+
+func (p Platform) asGolangString() string {
+	tmpl := `
+{
+    Name: "%s",
+    Arch: %s,
+    OS: %s,%s%s
+    BuildTags: %s,%s
+}`
+
+	var pkg string
+	if p.Pkg != "" {
+		pkg = indentGolangField("Pkg", p.Pkg.ConstName())
+	}
+
+	var repos string
+	if len(p.Repos) > 0 {
+		var consts []string
+		for _, r := range p.Repos {
+			consts = append(consts, r.ConstName())
+		}
+		sort.Strings(consts)
+		repos = indentGolangField("Repos", fmt.Sprintf("[]Repo{%s}", strings.Join(consts, ", ")))
+	}
+
+	var buildTags string
+	if len(p.BuildTags) > 0 {
+		if len(p.BuildTags) == len(defaultBuildTags) {
+			buildTags = "defaultBuildTags"
+		} else {
+			var tags []string
+			for _, t := range p.BuildTags {
+				tags = append(tags, fmt.Sprintf(`"%s"`, t))
+			}
+			sort.Strings(tags)
+			buildTags = fmt.Sprintf("[]string{%s}", strings.Join(tags, ", "))
+		}
+	}
+
+	var binaryExt string
+	if p.BinaryExt != "" {
+		binaryExt = indentGolangField("BinaryExt", fmt.Sprintf(`"%s"`, p.BinaryExt))
+	}
+
+	return fmt.Sprintf(tmpl, p.Name, p.Arch.ConstName(), p.OS.ConstName(), pkg, repos, buildTags, binaryExt)
+}
+
+func indentGolangField(name, value string) string {
+	return fmt.Sprintf("\n    %s: %s,", name, value)
+}
+
+func (o OS) ConstName() string {
+	switch o {
+	case OSWindows:
+		return "OSWindows"
+	case OSLinux:
+		return "OSLinux"
+	case OSMac:
+		return "OSMac"
+	}
+	panic("unreachable")
+}
+
+func (o OS) String() string {
+	return string(o)
+}
+
+func (p Pkg) ConstName() string {
+	switch p {
+	case PkgDeb:
+		return "PkgDeb"
+	case PkgRPM:
+		return "PkgRPM"
+	}
+	panic("unreachable")
+}
+
+func (p Pkg) String() string {
+	return string(p)
+}
+
+func (r Repo) ConstName() string {
+	switch r {
+	case RepoOrg:
+		return "RepoOrg"
+	case RepoEnterprise:
+		return "RepoEnterprise"
+	}
+	panic("unreachable")
+}
+
+func (r Repo) String() string {
+	return string(r)
+}
+
+func (a Arch) ConstName() string {
+	switch a {
+	case ArchArm64:
+		return "ArchArm64"
+	case ArchS390x:
+		return "ArchS390x"
+	case ArchPpc64le:
+		return "ArchPpc64le"
+	case ArchX86_64:
+		return "ArchX86_64"
+	}
+	panic("unreachable")
+}
+
+func (a Arch) String() string {
+	return string(a)
 }
 
 var platformsByVariant map[string]Platform
@@ -186,7 +313,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -194,7 +321,7 @@ var platforms = []Platform{
 		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -202,23 +329,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "debian81",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "debian92",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -226,7 +337,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -234,7 +345,39 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "debian81",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "debian81",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "debian92",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "debian92",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -248,7 +391,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	// This is a special build that we upload to S3 but not to the release
@@ -269,7 +412,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -277,7 +420,7 @@ var platforms = []Platform{
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -285,7 +428,7 @@ var platforms = []Platform{
 		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -293,7 +436,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -301,7 +444,7 @@ var platforms = []Platform{
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -309,7 +452,7 @@ var platforms = []Platform{
 		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -317,7 +460,23 @@ var platforms = []Platform{
 		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel90",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel83",
+		Arch:      ArchS390x,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoEnterprise},
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
@@ -325,7 +484,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -333,7 +492,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -341,15 +500,15 @@ var platforms = []Platform{
 		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "failpoints"},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: []string{"failpoints", "ssl"},
 	},
 	{
 		Name:      "ubuntu1604",
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -357,7 +516,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -365,15 +524,15 @@ var platforms = []Platform{
 		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "failpoints"},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: []string{"failpoints", "ssl"},
 	},
 	{
 		Name:      "ubuntu1804",
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -381,7 +540,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -389,15 +548,15 @@ var platforms = []Platform{
 		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "failpoints"},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: []string{"failpoints", "ssl"},
 	},
 	{
 		Name:      "ubuntu2004",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -405,15 +564,15 @@ var platforms = []Platform{
 		Arch:      ArchArm64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
-		BuildTags: []string{"ssl", "failpoints"},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: []string{"failpoints", "ssl"},
 	},
 	{
 		Name:      "ubuntu2204",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{

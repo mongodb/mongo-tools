@@ -1,9 +1,12 @@
 package platform
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -46,7 +49,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 		if name == "" {
 			name = p.Name
 			if p.Arch != ArchX86_64 {
-				name += "-" + p.Arch
+				name += "-" + string(p.Arch)
 			}
 		}
 		if p.SkipForJSONFeed {
@@ -79,5 +82,43 @@ func TestPlatformsMatchCI(t *testing.T) {
 
 	for name, seen := range releasePlatforms {
 		assert.True(seen, "%s from the list of known platforms is in the evergreen config", name)
+	}
+}
+
+func TestPlatformsAreSorted(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	current := Platforms()
+	var sorted []Platform
+	for _, p := range current {
+		sorted = append(sorted, p)
+	}
+	sort.SliceStable(sorted, func(i, j int) bool {
+		if sorted[i].Name != sorted[j].Name {
+			return sorted[i].Name < sorted[j].Name
+		}
+		if sorted[i].OS != sorted[j].OS {
+			return sorted[i].OS < sorted[j].OS
+		}
+		if sorted[i].Arch != sorted[j].Arch {
+			return sorted[i].Arch < sorted[j].Arch
+		}
+
+		tagsI := sorted[i].BuildTags
+		tagsJ := sorted[j].BuildTags
+		sort.Strings(tagsI)
+		sort.Strings(tagsJ)
+
+		// We need to join on a string that will never appear in the tags. An
+		// emoji seems like a safe bet.
+		return strings.Join(tagsI, "❤") < strings.Join(tagsJ, "❤")
+	})
+	if !assert.Equal(t, sorted, current) {
+		var golang []string
+		for _, p := range sorted {
+			golang = append(golang, p.asGolangString())
+		}
+		fmt.Println("Sorted platforms:")
+		fmt.Printf("%s,\n", strings.Join(golang, ","))
 	}
 }
