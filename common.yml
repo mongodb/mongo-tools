@@ -2461,6 +2461,30 @@ buildvariants:
   - name: "push"
     run_on: rhel80-small
 
+- name: rhel62-no-sasl-or-kerberos
+  display_name: RHEL 6.2 w/o SASL or Kerberos
+  run_on:
+  - rhel62-small
+  expansions:
+    <<: [ *mongod_ssl_startup_args, *mongo_ssl_startup_args, *mongod_tls_startup_args, *mongo_tls_startup_args ]
+    mongo_os: "rhel62"
+    mongo_edition: "enterprise"
+    smoke_use_ssl: --use-ssl
+    resmoke_use_ssl: _ssl
+    smoke_use_tls: --use-tls
+    resmoke_use_tls: _tls
+    edition: enterprise
+    run_kinit: false
+    resmoke_args: --jobs 4
+  tasks:
+  - name: "unit"
+  - name: ".4.4"
+  - name: "dist"
+  - name: "sign"
+    run_on: rhel80-small
+  # We intentionally do not invoke the push task. We want to upload these
+  # binaries to S3, but we do not add them to the release feed or RPM repos.
+
 - name: rhel70
   display_name: RHEL 7.0
   run_on:

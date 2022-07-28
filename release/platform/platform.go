@@ -45,16 +45,24 @@ const (
 // There should be at least one evergreen buildvariant per platform,
 // and there may be multiple.
 type Platform struct {
-	Name      string
-	Arch      Arch
-	OS        OS
-	Pkg       Pkg
-	Repos     []Repo
-	BuildTags []string
-	BinaryExt string
+	Name string
+	// This is used to override the variant name. It should only be used for
+	// special builds. In general, we want to use the OS name + arch for the
+	// variant name.
+	VariantName     string
+	Arch            Arch
+	OS              OS
+	Pkg             Pkg
+	Repos           []Repo
+	BuildTags       []string
+	BinaryExt       string
+	SkipForJSONFeed bool
 }
 
 func (p Platform) Variant() string {
+	if p.VariantName != "" {
+		return p.VariantName
+	}
 	if p.Arch == ArchX86_64 {
 		return p.Name
 	}
@@ -129,8 +137,17 @@ func GetByVariant(variant string) (Platform, bool) {
 	return p, ok
 }
 
-func Count() int {
-	return len(platforms)
+// CountForReleaseJSON returns the number of platforms that we expect to put into the release
+// JSON. This is all platforms _except_ those where the `SkipForJSONFeed` field is true.
+func CountForReleaseJSON() int {
+	count := 0
+	for _, p := range platforms {
+		if p.SkipForJSONFeed {
+			continue
+		}
+		count++
+	}
+	return count
 }
 
 func (p Platform) DebianArch() string {
@@ -287,6 +304,9 @@ func (a Arch) String() string {
 
 var platformsByVariant map[string]Platform
 var defaultBuildTags = []string{"ssl", "sasl", "gssapi", "failpoints"}
+
+// Please keep this list sorted by Name and then Arch. This makes it easier to determine
+// whether a given platform exists in the list.
 var platforms = []Platform{
 	{
 		Name:      "amazon",
@@ -337,22 +357,6 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "debian81",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "debian92",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
-	},
-	{
 		Name:      "debian92",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
@@ -373,6 +377,19 @@ var platforms = []Platform{
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
+	},
+	// This is a special build that we upload to S3 but not to the release
+	// repos.
+	{
+		Name: "rhel62",
+		// This needs to match the name of the buildvariant in the Evergreen
+		// config.
+		VariantName:     "rhel62-no-sasl-or-kerberos",
+		Arch:            ArchX86_64,
+		OS:              OSLinux,
+		Pkg:             PkgRPM,
+		BuildTags:       []string{"ssl", "failpoints"},
+		SkipForJSONFeed: true,
 	},
 	{
 		Name:      "rhel70",
@@ -435,7 +452,7 @@ var platforms = []Platform{
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
-		Repos:     []string{RepoOrg, RepoEnterprise},
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
 		BuildTags: defaultBuildTags,
 	},
 	{

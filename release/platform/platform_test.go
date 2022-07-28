@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"sort"
 	"strings"
@@ -20,9 +21,13 @@ type EvergreenConfig struct {
 }
 
 type Variant struct {
-	Name        string   `yaml:"name"`
-	DisplayName string   `yaml:"display_name"`
-	RunOn       []string `yaml:"run_on"`
+	Name        string `yaml:"name"`
+	DisplayName string `yaml:"display_name"`
+	Tasks       []Task `yaml:"tasks"`
+}
+
+type Task struct {
+	Name string `yaml:"name"`
 }
 
 func TestPlatformsMatchCI(t *testing.T) {
@@ -38,13 +43,21 @@ func TestPlatformsMatchCI(t *testing.T) {
 	var config EvergreenConfig
 	yaml.Unmarshal(common, &config)
 
-	knownPlatforms := make(map[string]bool)
+	releasePlatforms := make(map[string]bool)
+	s3OnlyPlatforms := make(map[string]bool)
 	for _, p := range platforms {
-		name := p.Name
-		if p.Arch != ArchX86_64 {
-			name += "-" + string(p.Arch)
+		name := p.VariantName
+		if name == "" {
+			name = p.Name
+			if p.Arch != ArchX86_64 {
+				name += "-" + string(p.Arch)
+			}
 		}
-		knownPlatforms[name] = false
+		if p.SkipForJSONFeed {
+			s3OnlyPlatforms[name] = false
+		} else {
+			releasePlatforms[name] = false
+		}
 	}
 
 	for _, v := range config.Variants {
@@ -52,8 +65,12 @@ func TestPlatformsMatchCI(t *testing.T) {
 			continue
 		}
 
-		if _, ok := knownPlatforms[v.Name]; ok {
-			knownPlatforms[v.Name] = true
+		if _, ok := releasePlatforms[v.Name]; ok {
+			releasePlatforms[v.Name] = true
+		} else if _, ok := s3OnlyPlatforms[v.Name]; ok {
+			for _, t := range v.Tasks {
+				assert.NotEqual(t.Name, "push", "s3-only buildvariants should not include the push task")
+			}
 		} else {
 			assert.Fail(
 				"missing platform",
@@ -64,7 +81,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 		}
 	}
 
-	for name, seen := range knownPlatforms {
+	for name, seen := range releasePlatforms {
 		assert.True(seen, "%s from the list of known platforms is in the evergreen config", name)
 	}
 }
@@ -104,5 +121,19 @@ func TestPlatformsAreSorted(t *testing.T) {
 		}
 		fmt.Println("Sorted platforms:")
 		fmt.Printf("%s,\n", strings.Join(golang, ","))
+	}
+}
+
+func TestPlatformsHaveNoDuplicates(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	for _, p1 := range platforms {
+		var dupes int
+		for _, p2 := range platforms {
+			if reflect.DeepEqual(p1, p2) {
+				dupes++
+			}
+		}
+		assert.Equal(t, 1, dupes, "platform %v only occurs once in platforms list", p1)
 	}
 }
