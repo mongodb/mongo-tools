@@ -464,20 +464,20 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "rhel90",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
 		Name:      "rhel83",
 		Arch:      ArchS390x,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoEnterprise},
 		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
+	},
+	{
+		Name:      "rhel90",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "suse12",
