@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"sort"
 	"strings"
@@ -120,5 +121,19 @@ func TestPlatformsAreSorted(t *testing.T) {
 		}
 		fmt.Println("Sorted platforms:")
 		fmt.Printf("%s,\n", strings.Join(golang, ","))
+	}
+}
+
+func TestPlatformsHaveNoDuplicates(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	for _, p1 := range platforms {
+		var dupes int
+		for _, p2 := range platforms {
+			if reflect.DeepEqual(p1, p2) {
+				dupes++
+			}
+		}
+		assert.Equal(t, 1, dupes, "platform %v only occurs once in platforms list", p1)
 	}
 }

@@ -357,22 +357,6 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "debian81",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "debian92",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
-	},
-	{
 		Name:      "debian92",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
@@ -462,14 +446,6 @@ var platforms = []Platform{
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoEnterprise},
 		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "rhel83",
-		Arch:      ArchS390x,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoEnterprise},
-		BuildTags: []string{"ssl", "sasl", "gssapi", "failpoints"},
 	},
 	{
 		Name:      "rhel90",
