@@ -689,7 +689,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 
 	// finalize auth options, filling in missing passwords
 	if opts.Auth.ShouldAskForPassword() {
-		pass, err := password.Prompt()
+		pass, err := password.Prompt("mongo user")
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
 		}
@@ -701,7 +701,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		return fmt.Errorf("error determining whether client cert needs password: %v", err)
 	}
 	if shouldAskForSSLPassword {
-		pass, err := password.Prompt()
+		pass, err := password.Prompt("client certificate")
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
 		}
