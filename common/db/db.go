@@ -450,7 +450,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		}
 
 		var x509Subject string
-		var keyPasswd string
+		keyPasswd := opts.SSL.SSLPEMKeyPassword
 		var err error
 		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
 			keyPasswd = cs.SSLClientCertificateKeyPassword()

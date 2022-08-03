@@ -148,14 +148,14 @@ func TestVerbosityFlag(t *testing.T) {
 }
 
 type uriTester struct {
-	Name                 string
-	CS                   connstring.ConnString
-	OptsIn               *ToolOptions
-	OptsExpected         *ToolOptions
-	WithSSL              bool
-	WithGSSAPI           bool
-	ShouldError          bool
-	ShouldAskForPassword bool
+	Name                     string
+	CS                       connstring.ConnString
+	OptsIn                   *ToolOptions
+	OptsExpected             *ToolOptions
+	WithSSL                  bool
+	WithGSSAPI               bool
+	ShouldError              bool
+	AuthShouldAskForPassword bool
 }
 
 func TestParseAndSetOptions(t *testing.T) {
@@ -430,7 +430,7 @@ func TestParseAndSetOptions(t *testing.T) {
 				ShouldError: false,
 			},
 			{
-				Name: "should ask for password",
+				Name: "should ask for user password",
 				CS: connstring.ConnString{
 					AuthMechanism: "MONGODB-X509",
 					AuthSource:    "",
@@ -462,8 +462,8 @@ func TestParseAndSetOptions(t *testing.T) {
 					Kerberos:       &Kerberos{},
 					enabledOptions: EnabledOptions{Connection: true, URI: true},
 				},
-				ShouldError:          false,
-				ShouldAskForPassword: true,
+				ShouldError:              false,
+				AuthShouldAskForPassword: true,
 			},
 			{
 				Name: "single connect sets 'Direct'",
@@ -640,7 +640,7 @@ func TestParseAndSetOptions(t *testing.T) {
 				So(testCase.OptsIn.Kerberos.Service, ShouldResemble, testCase.OptsExpected.Kerberos.Service)
 				So(testCase.OptsIn.Kerberos.ServiceHost, ShouldResemble, testCase.OptsExpected.Kerberos.ServiceHost)
 				So(testCase.OptsIn.RetryWrites, ShouldResemble, testCase.OptsExpected.RetryWrites)
-				So(testCase.OptsIn.Auth.ShouldAskForPassword(), ShouldEqual, testCase.OptsIn.ShouldAskForPassword())
+				So(testCase.OptsIn.Auth.ShouldAskForPassword(), ShouldEqual, testCase.OptsExpected.Auth.ShouldAskForPassword())
 			}
 		})
 	})
@@ -940,8 +940,8 @@ func TestOptionsParsing(t *testing.T) {
 			{"--sslCAFile", "sslCertificateAuthorityFile", "foo", "bar"},
 			{"--sslCAFile", "tlsCAFile", "foo", "bar"},
 
-			{"--sslPEMKeyFile", "sslClientCertificateKeyFile", "foo", "bar"},
-			{"--sslPEMKeyFile", "tlsCertificateKeyFile", "foo", "bar"},
+			{"--sslPEMKeyFile", "sslClientCertificateKeyFile", "../db/testdata/test-client-pkcs8-unencrypted.pem", "bar"},
+			{"--sslPEMKeyFile", "tlsCertificateKeyFile", "../db/testdata/test-client-pkcs8-unencrypted.pem", "bar"},
 
 			{"--sslPEMKeyPassword", "sslClientCertificateKeyPassword", "foo", "bar"},
 			{"--sslPEMKeyPassword", "tlsCertificateKeyFilePassword", "foo", "bar"},

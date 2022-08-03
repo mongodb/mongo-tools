@@ -9,6 +9,7 @@
 package options
 
 import (
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -384,6 +385,36 @@ func (auth *Auth) ShouldAskForPassword() bool {
 		!(auth.Mechanism == "MONGODB-X509" || auth.Mechanism == "GSSAPI")
 }
 
+// ShouldAskForPassword returns true if the user specifies a ssl pem key file
+// flag but no password for that file, and the key file has any encrypted
+// blocks.
+func (ssl *SSL) ShouldAskForPassword() (bool, error) {
+	if ssl.SSLPEMKeyFile == "" || ssl.SSLPEMKeyPassword != "" {
+		return false, nil
+	}
+	return ssl.pemKeyFileHasEncryptedKey()
+}
+
+func (ssl *SSL) pemKeyFileHasEncryptedKey() (bool, error) {
+	b, err := ioutil.ReadFile(ssl.SSLPEMKeyFile)
+	if err != nil {
+		return false, err
+	}
+
+	for {
+		var v *pem.Block
+		v, b = pem.Decode(b)
+		if v == nil {
+			break
+		}
+		if v.Type == "ENCRYPTED PRIVATE KEY" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func NewURI(unparsed string) (*URI, error) {
 	cs, err := connstring.Parse(unparsed)
 	if err != nil {
@@ -658,11 +689,23 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 
 	// finalize auth options, filling in missing passwords
 	if opts.Auth.ShouldAskForPassword() {
-		pass, err := password.Prompt()
+		pass, err := password.Prompt("mongo user")
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
 		}
 		opts.Auth.Password = pass
+	}
+
+	shouldAskForSSLPassword, err := opts.SSL.ShouldAskForPassword()
+	if err != nil {
+		return fmt.Errorf("error determining whether client cert needs password: %v", err)
+	}
+	if shouldAskForSSLPassword {
+		pass, err := password.Prompt("client certificate")
+		if err != nil {
+			return fmt.Errorf("error reading password: %v", err)
+		}
+		opts.SSL.SSLPEMKeyPassword = pass
 	}
 
 	err = opts.ConnString.Validate()

@@ -113,7 +113,7 @@ func main() {
 	// we have to check this here, otherwise the user will be prompted
 	// for a password for each discovered node
 	if opts.Auth.ShouldAskForPassword() {
-		pass, err := password.Prompt()
+		pass, err := password.Prompt("mongo user")
 		if err != nil {
 			log.Logvf(log.Always, "Failed: %v", err)
 			os.Exit(util.ExitFailure)
