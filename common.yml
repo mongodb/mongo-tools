@@ -3393,3 +3393,41 @@ buildvariants:
       - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
+
+github_pr_aliases:
+  # Run all static analysis tasks.
+  - variant: "^static$"
+    task: ".*"
+  # Run unit, sign, and push for every platform.
+  - variant: ".*"
+    task: "^(unit|sign|push)$"
+  # Run tests with the race detector enabled.
+  - variant: "ubuntu-race"
+    task: "^.*$"
+  # Run all integration tests on one variant. We pick RHEL 8.0 because it's
+  # a relatively recent platform that supports a wide range of servers.
+  - variant: "rhel80"
+    task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
+  # RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.
+  - variant: "rhel70"
+    task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$"
+  # Run a subset of integration tests against the 3.4 version of MongoDB
+  # Server on all variants where that is the most recent supported version.
+  - variant: "^(amazon|debian81|macos|rhel62|ubuntu1604)$"
+    task: "integration-3.4"
+  # Run a subset of integration tests against the 4.2 version of MongoDB
+  # Server on all variants where that is the most recent supported version.
+  - variant: "^(rhel71-ppc64le|rhel81-ppc64le|ubuntu1604-arm64|ubuntu1804-ppc64le)$"
+    task: "integration-4.2"
+  # Run a subset of integration tests against the 4.4 version of MongoDB
+  # Server on all variants where that is the most recent supported version.
+  - variant: "^rhel62-no-sasl-or-kerberos$"
+    task: "integration-4.4"
+  # Run a subset of integration tests against the 5.0 version of MongoDB
+  # Server on all variants where that is the most recent supported version.
+  - variant: "^rhel83-s390x$"
+    task: "integration-5.0"
+  # Run a subset of integration tests against the latest version of MongoDB
+  # Server on all variants where that is the most recent supported version.
+  - variant: "^(amazon2|amazon2-arm64|debian10|debian11|debian92|rhel70|rhel72-s390x|rhel80|rhel82-arm64|suse12|suse15|ubuntu1804|ubuntu1804-arm64|ubuntu2004|ubuntu2004-arm64|windows)$"
+    task: "integration-latest"

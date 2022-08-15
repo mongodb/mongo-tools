@@ -12,7 +12,7 @@ require (
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.6.4
