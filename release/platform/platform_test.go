@@ -2,33 +2,16 @@ package platform
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools/evergreen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
-
-type EvergreenConfig struct {
-	Variants []Variant `yaml:"buildvariants"`
-}
-
-type Variant struct {
-	Name        string `yaml:"name"`
-	DisplayName string `yaml:"display_name"`
-	Tasks       []Task `yaml:"tasks"`
-}
-
-type Task struct {
-	Name string `yaml:"name"`
-}
 
 func TestPlatformsMatchCI(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
@@ -36,12 +19,8 @@ func TestPlatformsMatchCI(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	_, testPath, _, _ := runtime.Caller(0)
-	common, err := ioutil.ReadFile(filepath.Join(filepath.Dir(testPath), "..", "..", "common.yml"))
+	config, err := evergreen.Load()
 	require.NoError(err)
-
-	var config EvergreenConfig
-	yaml.Unmarshal(common, &config)
 
 	releasePlatforms := make(map[string]bool)
 	s3OnlyPlatforms := make(map[string]bool)
