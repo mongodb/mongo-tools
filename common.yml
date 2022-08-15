@@ -877,7 +877,7 @@ tasks:
       - func: "generate full JSON feed"
 
   - name: integration-3.4
-    tags: ["3.4"]
+    tags: ["3.4", "integration"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2077,23 +2077,6 @@ tasks:
         vars:
           resmoke_suite: "core${resmoke_use_ssl}"
           excludes: "requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
-
-  - name: qa-tests-3.2
-    tags: ["3.2"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "3.2"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_ssl}"
-          excludes: "requires_min_mongo_34,requires_min_mongo_36,requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
 
   - name: native-cert-ssl-4.4
     tags: ["4.4"]
