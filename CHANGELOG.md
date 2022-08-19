@@ -1,5 +1,23 @@
 # Database Tools Changelog
 
+## 100.6.0
+
+_Released 2022-08-19_
+
+We are pleased to announce version 100.6.0 of the MongoDB Database Tools.
+
+This release introduces a security enhancement. The tools will interactively prompt for a SSL key password if the corresponding SSL key is encrypted and no password is provided on the command line.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### New Feature
+
+- [TOOLS-2913 - Prompt for SSL key password when key is encrypted](https://jira.mongodb.org/browse/TOOLS-2913)
+
 ## 100.5.4
 
 _Released 2022-07-19_

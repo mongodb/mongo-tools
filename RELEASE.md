@@ -69,7 +69,11 @@ Create an annotated tag and push it:
 git tag -a -m vX.Y.Z X.Y.Z
 git push --tags
 ```
-This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools).
+It's important to use an _annotated_ tag and not a lightweight tag. A lightweight tag will not have its own metadata and may break the release process.
+Also ensure you are pushing the tag to the `mongodb/mongo-tools` repository and not to your fork.
+If necessary, you may find the correct remote using `git remote -v` and specify it via `git push <remote> --tags`.
+
+Pushing the tag should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools).
 If it doesn't, you may have to ask the project manager to give you the right permissions to do so.
 
 ##### Set Evergreen Priorities
@@ -85,6 +89,7 @@ Download the package for your OS and confirm that `mongodump --version` prints t
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
+You can get the sha256 sum locally using `shasum -a 256 <tools zip file>`.
 
 #### Update the changelog
 
