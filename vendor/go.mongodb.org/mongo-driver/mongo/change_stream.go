@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -38,7 +39,7 @@ var (
 	resumableErrorLabel                = "ResumableChangeStreamError"
 	errorCursorNotFound          int32 = 43 // CursorNotFound error code
 
-	// Whitelist of error codes that are considered resumable.
+	// Allowlist of error codes that are considered resumable.
 	resumableChangeStreamErrors = map[int32]struct{}{
 		6:     {}, // HostUnreachable
 		7:     {}, // HostNotFound
@@ -47,11 +48,11 @@ var (
 		189:   {}, // PrimarySteppedDown
 		262:   {}, // ExceededTimeLimit
 		9001:  {}, // SocketException
-		10107: {}, // NotMaster
+		10107: {}, // NotPrimary
 		11600: {}, // InterruptedAtShutdown
 		11602: {}, // InterruptedDueToReplStateChange
-		13435: {}, // NotMasterNoSlaveOk
-		13436: {}, // NotMasterOrSecondary
+		13435: {}, // NotPrimaryNoSecondaryOK
+		13436: {}, // NotPrimaryOrSecondary
 		63:    {}, // StaleShardVersion
 		150:   {}, // StaleEpoch
 		13388: {}, // StaleConfig
@@ -63,27 +64,28 @@ var (
 // ChangeStream is used to iterate over a stream of events. Each event can be decoded into a Go type via the Decode
 // method or accessed as raw BSON via the Current field. This type is not goroutine safe and must not be used
 // concurrently by multiple goroutines. For more information about change streams, see
-// https://docs.mongodb.com/manual/changeStreams/.
+// https://www.mongodb.com/docs/manual/changeStreams/.
 type ChangeStream struct {
 	// Current is the BSON bytes of the current event. This property is only valid until the next call to Next or
 	// TryNext. If continued access is required, a copy must be made.
 	Current bson.Raw
 
-	aggregate     *operation.Aggregate
-	pipelineSlice []bsoncore.Document
-	cursor        changeStreamCursor
-	cursorOptions driver.CursorOptions
-	batch         []bsoncore.Document
-	resumeToken   bson.Raw
-	err           error
-	sess          *session.Client
-	client        *Client
-	registry      *bsoncodec.Registry
-	streamType    StreamType
-	options       *options.ChangeStreamOptions
-	selector      description.ServerSelector
-	operationTime *primitive.Timestamp
-	wireVersion   *description.VersionRange
+	aggregate       *operation.Aggregate
+	pipelineSlice   []bsoncore.Document
+	pipelineOptions map[string]bsoncore.Value
+	cursor          changeStreamCursor
+	cursorOptions   driver.CursorOptions
+	batch           []bsoncore.Document
+	resumeToken     bson.Raw
+	err             error
+	sess            *session.Client
+	client          *Client
+	registry        *bsoncodec.Registry
+	streamType      StreamType
+	options         *options.ChangeStreamOptions
+	selector        description.ServerSelector
+	operationTime   *primitive.Timestamp
+	wireVersion     *description.VersionRange
 }
 
 type changeStreamConfig struct {
@@ -94,7 +96,7 @@ type changeStreamConfig struct {
 	streamType     StreamType
 	collectionName string
 	databaseName   string
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
@@ -104,11 +106,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cs := &ChangeStream{
-		client:        config.client,
-		registry:      config.registry,
-		streamType:    config.streamType,
-		options:       options.MergeChangeStreamOptions(opts...),
-		selector:      description.ReadPrefSelector(config.readPreference),
+		client:     config.client,
+		registry:   config.registry,
+		streamType: config.streamType,
+		options:    options.MergeChangeStreamOptions(opts...),
+		selector: description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(config.readPreference),
+			description.LatencySelector(config.client.localThreshold),
+		}),
 		cursorOptions: config.client.createBaseCursorOptions(),
 	}
 
@@ -128,17 +133,57 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
-		ServerAPI(cs.client.serverAPI).Crypt(config.crypt)
+		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
+	}
+	if comment := cs.options.Comment; comment != nil {
+		cs.aggregate.Comment(*comment)
+
+		commentVal, err := transformValue(cs.registry, comment, true, "comment")
+		if err != nil {
+			return nil, err
+		}
+		cs.cursorOptions.Comment = commentVal
 	}
 	if cs.options.BatchSize != nil {
 		cs.aggregate.BatchSize(*cs.options.BatchSize)
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
-		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
+		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
+	}
+	if cs.options.Custom != nil {
+		// Marshal all custom options before passing to the initial aggregate. Return
+		// any errors from Marshaling.
+		customOptions := make(map[string]bsoncore.Value)
+		for optionName, optionValue := range cs.options.Custom {
+			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			if err != nil {
+				cs.err = err
+				closeImplicitSession(cs.sess)
+				return nil, cs.Err()
+			}
+			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			customOptions[optionName] = optionValueBSON
+		}
+		cs.aggregate.CustomOptions(customOptions)
+	}
+	if cs.options.CustomPipeline != nil {
+		// Marshal all custom pipeline options before building pipeline slice. Return
+		// any errors from Marshaling.
+		cs.pipelineOptions = make(map[string]bsoncore.Value)
+		for optionName, optionValue := range cs.options.CustomPipeline {
+			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			if err != nil {
+				cs.err = err
+				closeImplicitSession(cs.sess)
+				return nil, cs.Err()
+			}
+			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			cs.pipelineOptions[optionName] = optionValueBSON
+		}
 	}
 
 	switch cs.streamType {
@@ -209,7 +254,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 
 	if resuming {
-		cs.replaceOptions(ctx, cs.wireVersion)
+		cs.replaceOptions(cs.wireVersion)
 
 		csOptDoc := cs.createPipelineOptionsDoc()
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
@@ -226,6 +271,16 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
+	// If no deadline is set on the passed-in context, cs.client.timeout is set, and context is not already
+	// a Timeout context, honor cs.client.timeout in new Timeout context for change stream operation execution
+	// and potential retry.
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.client.timeout != nil && !internal.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *cs.client.timeout)
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of executeOperation to avoid a context leak.
+		defer cancelFunc()
+	}
 	if original := cs.aggregate.Execute(ctx); original != nil {
 		retryableRead := cs.client.retryReads && cs.wireVersion != nil && cs.wireVersion.Max >= 6
 		if !retryableRead {
@@ -360,7 +415,16 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 	}
 
 	if cs.options.FullDocument != nil {
-		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+		// Only append a default "fullDocument" field if wire version is less than 6 (3.6). Otherwise,
+		// the server will assume users want the default behavior, and "fullDocument" does not need to be
+		// specified.
+		if *cs.options.FullDocument != options.Default || (cs.wireVersion != nil && cs.wireVersion.Max < 6) {
+			plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+		}
+	}
+
+	if cs.options.FullDocumentBeforeChange != nil {
+		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocumentBeforeChange", string(*cs.options.FullDocumentBeforeChange))
 	}
 
 	if cs.options.ResumeAfter != nil {
@@ -371,6 +435,10 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
+	}
+
+	if cs.options.ShowExpandedEvents != nil {
+		plDoc = bsoncore.AppendBooleanElement(plDoc, "showExpandedEvents", *cs.options.ShowExpandedEvents)
 	}
 
 	if cs.options.StartAfter != nil {
@@ -385,6 +453,11 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 
 	if cs.options.StartAtOperationTime != nil {
 		plDoc = bsoncore.AppendTimestampElement(plDoc, "startAtOperationTime", cs.options.StartAtOperationTime.T, cs.options.StartAtOperationTime.I)
+	}
+
+	// Append custom pipeline options.
+	for optionName, optionValue := range cs.pipelineOptions {
+		plDoc = bsoncore.AppendValueElement(plDoc, optionName, optionValue)
 	}
 
 	if plDoc, cs.err = bsoncore.AppendDocumentEnd(plDoc, plDocIdx); cs.err != nil {
@@ -405,7 +478,7 @@ func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {
 	return pipelineArr, cs.err
 }
 
-func (cs *ChangeStream) replaceOptions(ctx context.Context, wireVersion *description.VersionRange) {
+func (cs *ChangeStream) replaceOptions(wireVersion *description.VersionRange) {
 	// Cached resume token: use the resume token as the resumeAfter option and set no other resume options
 	if cs.resumeToken != nil {
 		cs.options.SetResumeAfter(cs.resumeToken)
@@ -601,7 +674,7 @@ func (cs *ChangeStream) isResumableError() bool {
 		return commandErr.HasErrorLabel(resumableErrorLabel)
 	}
 
-	// For wire versions below 9, a server error is resumable if its code is on the whitelist.
+	// For wire versions below 9, a server error is resumable if its code is on the allowlist.
 	_, resumable := resumableChangeStreamErrors[commandErr.Code]
 	return resumable
 }

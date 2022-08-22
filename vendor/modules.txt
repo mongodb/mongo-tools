@@ -55,8 +55,10 @@ github.com/craiggwilson/goke/pkg/git
 github.com/craiggwilson/goke/pkg/sh
 github.com/craiggwilson/goke/task
 github.com/craiggwilson/goke/task/internal
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
 # github.com/go-stack/stack v1.8.0
-github.com/go-stack/stack
+## explicit
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/go-cmp v0.5.2
@@ -76,11 +78,11 @@ github.com/jessevdk/go-flags
 github.com/jmespath/go-jmespath
 # github.com/jtolds/gls v4.20.0+incompatible
 github.com/jtolds/gls
-# github.com/klauspost/compress v1.10.1
-## explicit
+# github.com/klauspost/compress v1.13.6
+github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
-github.com/klauspost/compress/snappy
+github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/mattn/go-colorable v0.1.7
@@ -94,12 +96,16 @@ github.com/mattn/go-runewidth
 # github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 ## explicit
 github.com/mgutz/ansi
+# github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
+github.com/montanaflynn/stats
 # github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 ## explicit
 github.com/nsf/termbox-go
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 github.com/smartystreets/assertions
 github.com/smartystreets/assertions/internal/go-render/render
@@ -109,16 +115,20 @@ github.com/smartystreets/assertions/internal/oglematchers
 github.com/smartystreets/goconvey/convey
 github.com/smartystreets/goconvey/convey/gotest
 github.com/smartystreets/goconvey/convey/reporting
+# github.com/stretchr/testify v1.7.1
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
 # github.com/xdg-go/pbkdf2 v1.0.0
 github.com/xdg-go/pbkdf2
-# github.com/xdg-go/scram v1.0.2
+# github.com/xdg-go/scram v1.1.1
 github.com/xdg-go/scram
-# github.com/xdg-go/stringprep v1.0.2
+# github.com/xdg-go/stringprep v1.0.3
 github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.7.1
+# go.mongodb.org/mongo-driver v1.10.0
 ## explicit
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -128,6 +138,9 @@ go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/event
 go.mongodb.org/mongo-driver/internal
+go.mongodb.org/mongo-driver/internal/randutil
+go.mongodb.org/mongo-driver/internal/randutil/rand
+go.mongodb.org/mongo-driver/internal/uuid
 go.mongodb.org/mongo-driver/mongo
 go.mongodb.org/mongo-driver/mongo/address
 go.mongodb.org/mongo-driver/mongo/description
@@ -152,26 +165,33 @@ go.mongodb.org/mongo-driver/x/mongo/driver/ocsp
 go.mongodb.org/mongo-driver/x/mongo/driver/operation
 go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
-go.mongodb.org/mongo-driver/x/mongo/driver/uuid
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
-# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+# golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 ## explicit
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
-golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
+# golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 ## explicit
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.5
+# golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+golang.org/x/term
+# golang.org/x/text v0.3.7
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
+# golang.org/x/tools v0.0.0-20190531172133-b3315ee88b7d
+## explicit
 # gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
 ## explicit
 gopkg.in/tomb.v2
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3

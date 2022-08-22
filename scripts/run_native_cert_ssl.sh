@@ -9,6 +9,12 @@ mv bin/* test/qa-tests/
 cd test/qa-tests
 chmod 400 jstests/libs/key*
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    keychain="/Users/$(whoami)/Library/Keychains/login.keychain-db"
+    sudo security add-trusted-cert -d -k $keychain jstests/libs/trusted-ca.pem
+    sudo security add-trusted-cert -d -k /Library/Keychains/System.keychain jstests/libs/trusted-ca.pem
+fi
+
 PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
 python="python3"
 if [ "Windows_NT" = "$OS" ]; then

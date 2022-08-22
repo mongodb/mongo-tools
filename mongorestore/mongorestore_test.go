@@ -10,8 +10,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +26,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -969,6 +975,25 @@ func TestLongIndexName(t *testing.T) {
 				restore.TargetDirectory = "testdata/longindextestdump"
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
+
+				indexes := session.Database("longindextest").Collection("test_collection").Indexes()
+				c, err := indexes.List(context.Background())
+				So(err, ShouldBeNil)
+
+				type indexRes struct {
+					Name string
+				}
+				var names []string
+				for c.Next(context.Background()) {
+					var r indexRes
+					err := c.Decode(&r)
+					So(err, ShouldBeNil)
+					names = append(names, r.Name)
+				}
+				So(len(names), ShouldEqual, 2)
+				sort.Strings(names)
+				So(names[0], ShouldEqual, "_id_")
+				So(names[1], ShouldEqual, "a_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 			})
 		}
 
@@ -2050,4 +2075,296 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(count, ShouldEqual, 0)
 		})
 	})
+}
+
+// ----------------------------------------------------------------------
+// All tests from this point onwards use testify, not convey. See the
+// CONTRIBUING.md file in the top level of the repo for details on how to
+// write tests using testify.
+// ----------------------------------------------------------------------
+
+type indexInfo struct {
+	name string
+	keys []string
+}
+
+func TestRestoreClusteredIndex(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.3"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 5.3 or later and we have %s", fcv)
+	}
+
+	t.Run("restore from dump with default index name", func(t *testing.T) {
+		testRestoreClusteredIndexFromDump(t, "")
+	})
+	t.Run("restore from dump with custom index name", func(t *testing.T) {
+		testRestoreClusteredIndexFromDump(t, "custom index name")
+	})
+
+	res := session.Database("admin").RunCommand(context.Background(), bson.M{"replSetGetStatus": 1})
+	if res.Err() != nil {
+		t.Skip("server is not part of a replicaset so we cannot test restore from oplog")
+	}
+	t.Run("restore from oplog with default index name", func(t *testing.T) {
+		testRestoreClusteredIndexFromOplog(t, "")
+	})
+	t.Run("restore from oplog with default index name", func(t *testing.T) {
+		testRestoreClusteredIndexFromOplog(t, "custom index name")
+	})
+}
+
+func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	dataLen := createClusteredIndex(t, testDB, indexName)
+
+	withMongodump(t, testDB.Name(), "stocks", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(dataLen, result.Successes, "mongorestore reports %d successes", dataLen)
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertClusteredIndex(t, testDB, indexName)
+	})
+}
+
+func testRestoreClusteredIndexFromOplog(t *testing.T, indexName string) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	createClusteredIndex(t, testDB, indexName)
+
+	withOplogMongoDump(t, dbName, "stocks", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			OplogReplayOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(0, result.Successes, "mongorestore reports 0 successes")
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertClusteredIndex(t, testDB, indexName)
+	})
+}
+
+func createClusteredIndex(t *testing.T, testDB *mongo.Database, indexName string) int {
+	require := require.New(t)
+
+	fmt.Printf("creating index in %s db\n", testDB.Name())
+	indexOpts := bson.M{
+		"key":    bson.M{"_id": 1},
+		"unique": true,
+	}
+	if indexName != "" {
+		indexOpts["name"] = indexName
+	}
+	createCollCmd := bson.D{
+		{Key: "create", Value: "stocks"},
+		{Key: "clusteredIndex", Value: indexOpts},
+	}
+	res := testDB.RunCommand(context.Background(), createCollCmd, nil)
+	require.NoError(res.Err(), "can create a clustered collection")
+
+	var r interface{}
+	err := res.Decode(&r)
+	require.NoError(err)
+
+	stocks := testDB.Collection("stocks")
+	stockData := []interface{}{
+		bson.M{"ticker": "MDB", "price": 245.33},
+		bson.M{"ticker": "GOOG", "price": 2214.91},
+		bson.M{"ticker": "BLZE", "price": 6.23},
+	}
+	_, err = stocks.InsertMany(context.Background(), stockData)
+	require.NoError(err, "can insert documents into collection")
+
+	return len(stockData)
+}
+
+func assertClusteredIndex(t *testing.T, testDB *mongo.Database, indexName string) {
+	require := require.New(t)
+
+	c, err := testDB.ListCollections(context.Background(), bson.M{})
+	require.NoError(err, "can get list of collections")
+
+	type collectionRes struct {
+		Name    string
+		Type    string
+		Options bson.M
+		Info    bson.D
+		IdIndex bson.D
+	}
+
+	var collections []collectionRes
+	// two Indexes should be created in addition to the _id, foo and foo_2
+	for c.Next(context.Background()) {
+		var res collectionRes
+		err = c.Decode(&res)
+		require.NoError(err, "can decode collection result")
+		collections = append(collections, res)
+	}
+
+	require.Len(collections, 1, "database has one collection")
+	require.Equal("stocks", collections[0].Name, "collection is named stocks")
+	idx := clusteredIndexInfo(t, collections[0].Options)
+	expectName := indexName
+	if expectName == "" {
+		expectName = "_id_"
+	}
+	require.Equal(expectName, idx.name, "index is named '%s'", expectName)
+	require.Equal([]string{"_id"}, idx.keys, "index key is the '_id' field")
+}
+
+func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
+	idx, found := options["clusteredIndex"]
+	require.True(t, found, "options has key named 'clusteredIndex'")
+	require.IsType(t, bson.M{}, idx, "idx value is a bson.M")
+
+	idxM := idx.(bson.M)
+	name, found := idxM["name"]
+	require.True(t, found, "index has a key named 'name'")
+	require.IsType(t, "string", name, "key value is a string")
+
+	keys, found := idxM["key"]
+	require.True(t, found, "index has a key named 'key'")
+	require.IsType(t, bson.M{}, keys, "key value is a bson.M")
+
+	keysM := keys.(bson.M)
+	var keyNames []string
+	for k := range keysM {
+		keyNames = append(keyNames, k)
+	}
+
+	return indexInfo{
+		name: name.(string),
+		keys: keyNames,
+	}
+}
+
+func withMongodump(t *testing.T, db string, collection string, testCase func(string)) {
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	runMongodump(t, dir, db, collection)
+	testCase(dir)
+}
+
+func withOplogMongoDump(t *testing.T, db string, collection string, testCase func(string)) {
+	require := require.New(t)
+
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+
+	// This queries the local.oplog.rs collection for commands or CRUD
+	// operations on the collection we are testing (which will have a unique
+	// name for each test).
+	query := map[string]interface{}{
+		"$or": []map[string]string{
+			{"ns": fmt.Sprintf("%s.$cmd", db)},
+			{"ns": fmt.Sprintf("%s.%s", db, collection)},
+		},
+	}
+	q, err := json.Marshal(query)
+	require.NoError(err, "can marshal query to JSON")
+
+	// We dump just the documents matching the query using mongodump "normally".
+	bsonFile := runMongodump(t, dir, "local", "oplog.rs", "--query", string(q))
+
+	// Then we take the BSON dump file and rename it to "oplog.bson" and put
+	// it in the root of the dump directory.
+	newPath := filepath.Join(dir, "oplog.bson")
+	err = os.Rename(bsonFile, newPath)
+	require.NoError(err, "can rename %s -> %s", bsonFile, newPath)
+
+	// Finally, we remove the "local" dir created by mongodump so that
+	// mongorestore doesn't see it.
+	localDir := filepath.Join(dir, "local")
+	err = os.RemoveAll(localDir)
+	require.NoError(err, "can remove %s", localDir)
+
+	// With all that done, we now have a tree on disk like this:
+	//
+	// /tmp/mongorestore_test1152384390
+	// └── oplog.bson
+	//
+	// We can run `mongorestore --oplogReplay /tmp/mongorestore_test1152384390`
+	// to do a restore from the oplog.bson file.
+
+	testCase(dir)
+}
+
+func runMongodump(t *testing.T, dir, db, collection string, args ...string) string {
+	require := require.New(t)
+
+	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
+	cmd = append(cmd, testutil.GetBareArgs()...)
+	cmd = append(
+		cmd,
+		"--out", dir,
+		"--db", db,
+		"--collection", collection,
+	)
+	cmd = append(cmd, args...)
+	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
+	cmdStr := strings.Join(cmd, " ")
+	require.NoError(err, "can execute command %s with output: %s", cmdStr, out)
+	require.NotContains(
+		string(out),
+		"does not exist",
+		"running [%s] does not tell us the the namespace does not exist",
+		cmdStr,
+	)
+
+	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
+	_, err = os.Stat(bsonFile)
+	require.NoError(err, "dump created BSON data file")
+	_, err = os.Stat(filepath.Join(dir, db, fmt.Sprintf("%s.metadata.json", collection)))
+	require.NoError(err, "dump created JSON metadata file")
+
+	return bsonFile
+}
+
+func uniqueDBName() string {
+	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
 }

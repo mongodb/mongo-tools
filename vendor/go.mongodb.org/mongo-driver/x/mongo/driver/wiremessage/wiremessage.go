@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package wiremessage
 
 import (
@@ -78,7 +84,7 @@ type QueryFlag int32
 const (
 	_ QueryFlag = 1 << iota
 	TailableCursor
-	SlaveOK
+	SecondaryOK
 	OplogReplay
 	NoCursorTimeout
 	AwaitData
@@ -92,8 +98,8 @@ func (qf QueryFlag) String() string {
 	if qf&TailableCursor == TailableCursor {
 		strs = append(strs, "TailableCursor")
 	}
-	if qf&SlaveOK == SlaveOK {
-		strs = append(strs, "SlaveOK")
+	if qf&SecondaryOK == SecondaryOK {
+		strs = append(strs, "SecondaryOK")
 	}
 	if qf&OplogReplay == OplogReplay {
 		strs = append(strs, "OplogReplay")
@@ -181,6 +187,22 @@ const (
 	CompressorZLib
 	CompressorZstd
 )
+
+// String implements the fmt.Stringer interface.
+func (id CompressorID) String() string {
+	switch id {
+	case CompressorNoOp:
+		return "CompressorNoOp"
+	case CompressorSnappy:
+		return "CompressorSnappy"
+	case CompressorZLib:
+		return "CompressorZLib"
+	case CompressorZstd:
+		return "CompressorZstd"
+	default:
+		return "CompressorInvalid"
+	}
+}
 
 const (
 	// DefaultZlibLevel is the default level for zlib compression
@@ -391,7 +413,7 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 		return "", nil, rem, false
 	}
 
-	// After these assignments, rem will be the data containing the identifer string + the document sequence bytes and
+	// After these assignments, rem will be the data containing the identifier string + the document sequence bytes and
 	// rest will be the rest of the wire message after this document sequence.
 	rem, rest := rem[:length-4], rem[length-4:]
 

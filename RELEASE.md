@@ -69,7 +69,11 @@ Create an annotated tag and push it:
 git tag -a -m vX.Y.Z X.Y.Z
 git push --tags
 ```
-This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools).
+It's important to use an _annotated_ tag and not a lightweight tag. A lightweight tag will not have its own metadata and may break the release process.
+Also ensure you are pushing the tag to the `mongodb/mongo-tools` repository and not to your fork.
+If necessary, you may find the correct remote using `git remote -v` and specify it via `git push <remote> --tags`.
+
+Pushing the tag should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools).
 If it doesn't, you may have to ask the project manager to give you the right permissions to do so.
 
 ##### Set Evergreen Priorities
@@ -85,6 +89,7 @@ Download the package for your OS and confirm that `mongodump --version` prints t
 
 #### Update Homebrew Tap
 In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
+You can get the sha256 sum locally using `shasum -a 256 <tools zip file>`.
 
 #### Update the changelog
 
@@ -145,3 +150,21 @@ Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects an
 #### Announce the release
 Copy your entry from CHANGELOG.md and post it to the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools) in the "Developer Tools" section with the tag `database-tools`.
 Also post it in the #mongo-tools slack channel to announce it internally.
+
+### Handling Release Task Failures
+
+Sometimes you may start the release process only to discover that some tasks
+that are part of the release, like `push`, fail. If the fix for these failures
+is to make changes in the repo, you need to partially restart the release
+process. Here are the steps to follow:
+
+1. Cancel the tasks still running for the release in Evergreen.
+2. Fix the issue in the repo and merge the fix to master.
+3. Delete the task from the `origin` remote (GitHub):
+   ```
+   $> git push origin --delete 100.5.4
+   ```
+4. Make a new tag and push it as you do for the normal release process.
+
+Evergreen should kick off a new set of tasks for the release. Then you can
+continue the normal release process from there.

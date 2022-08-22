@@ -13,6 +13,8 @@
 *.temp
 *.zip
 
+!**/testdata/**
+
 /temp*
 
 bin/
@@ -27,3 +29,5 @@ vendor/pkg
 
 tags
 node_modules
+
+.ignore

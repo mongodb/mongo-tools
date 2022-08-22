@@ -45,7 +45,7 @@ type ContextDialer interface {
 // AuthMechanism: the mechanism to use for authentication. Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1",
 // "MONGODB-CR", "PLAIN", "GSSAPI", "MONGODB-X509", and "MONGODB-AWS". This can also be set through the "authMechanism"
 // URI option. (e.g. "authMechanism=PLAIN"). For more information, see
-// https://docs.mongodb.com/manual/core/authentication-mechanisms/.
+// https://www.mongodb.com/docs/manual/core/authentication-mechanisms/.
 //
 // AuthMechanismProperties can be used to specify additional configuration options for certain mechanisms. They can also
 // be set through the "authMechanismProperites" URI option
@@ -109,6 +109,7 @@ type ClientOptions struct {
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
+	MaxConnecting            *uint64
 	PoolMonitor              *event.PoolMonitor
 	Monitor                  *event.CommandMonitor
 	ServerMonitor            *event.ServerMonitor
@@ -120,7 +121,9 @@ type ClientOptions struct {
 	RetryWrites              *bool
 	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
-	SocketTimeout            *time.Duration
+	SRVMaxHosts              *int
+	SRVServiceName           *string
+	Timeout                  *time.Duration
 	TLSConfig                *tls.Config
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
@@ -136,11 +139,25 @@ type ClientOptions struct {
 	// release.
 	AuthenticateToAnything *bool
 
+	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
+	// encryption.
+	//
+	// Deprecated: This option is for internal use only and should not be set (see GODRIVER-2149). It may be
+	// changed or removed in any release.
+	Crypt driver.Crypt
+
 	// Deployment specifies a custom deployment to use for the new Client.
 	//
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
 	Deployment driver.Deployment
+
+	// SocketTimeout specifies the timeout to be used for the Client's socket reads and writes.
+	//
+	// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+	// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
+	// before returning an error. SocketTimeout is still usable through the deprecated setter.
+	SocketTimeout *time.Duration
 }
 
 // Client creates a new ClientOptions instance.
@@ -150,44 +167,58 @@ func Client() *ClientOptions {
 
 // Validate validates the client options. This method will return the first error found.
 func (c *ClientOptions) Validate() error {
-	c.validateAndSetError()
+	if c.err != nil {
+		return c.err
+	}
+	c.err = c.validate()
 	return c.err
 }
 
-func (c *ClientOptions) validateAndSetError() {
-	if c.err != nil {
-		return
-	}
-
+func (c *ClientOptions) validate() error {
 	// Direct connections cannot be made if multiple hosts are specified or an SRV URI is used.
 	if c.Direct != nil && *c.Direct {
 		if len(c.Hosts) > 1 {
-			c.err = errors.New("a direct connection cannot be made if multiple hosts are specified")
-			return
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
 		}
 		if c.cs != nil && c.cs.Scheme == connstring.SchemeMongoDBSRV {
-			c.err = errors.New("a direct connection cannot be made if an SRV URI is used")
-			return
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
 		}
+	}
+
+	if c.MaxPoolSize != nil && c.MinPoolSize != nil && *c.MaxPoolSize != 0 && *c.MinPoolSize > *c.MaxPoolSize {
+		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d", *c.MinPoolSize, *c.MaxPoolSize)
 	}
 
 	// verify server API version if ServerAPIOptions are passed in.
 	if c.ServerAPIOptions != nil {
-		c.err = c.ServerAPIOptions.ServerAPIVersion.Validate()
+		if err := c.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
 	}
 
 	// Validation for load-balanced mode.
 	if c.LoadBalanced != nil && *c.LoadBalanced {
 		if len(c.Hosts) > 1 {
-			c.err = internal.ErrLoadBalancedWithMultipleHosts
+			return internal.ErrLoadBalancedWithMultipleHosts
 		}
 		if c.ReplicaSet != nil {
-			c.err = internal.ErrLoadBalancedWithReplicaSet
+			return internal.ErrLoadBalancedWithReplicaSet
 		}
 		if c.Direct != nil {
-			c.err = internal.ErrLoadBalancedWithDirectConnection
+			return internal.ErrLoadBalancedWithDirectConnection
 		}
 	}
+
+	// Validation for srvMaxHosts.
+	if c.SRVMaxHosts != nil && *c.SRVMaxHosts > 0 {
+		if c.ReplicaSet != nil {
+			return internal.ErrSRVMaxHostsWithReplicaSet
+		}
+		if c.LoadBalanced != nil && *c.LoadBalanced {
+			return internal.ErrSRVMaxHostsWithLoadBalanced
+		}
+	}
+	return nil
 }
 
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
@@ -208,7 +239,7 @@ func (c *ClientOptions) GetURI() string {
 // If the URI format is incorrect or there are conflicting options specified in the URI an error will be recorded and
 // can be retrieved by calling Validate.
 //
-// For more information about the URI format, see https://docs.mongodb.com/manual/reference/connection-string/. See
+// For more information about the URI format, see https://www.mongodb.com/docs/manual/reference/connection-string/. See
 // mongo.Connect documentation for examples of using URIs for different Client configurations.
 func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	if c.err != nil {
@@ -290,6 +321,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.MinPoolSize = &cs.MinPoolSize
 	}
 
+	if cs.MaxConnectingSet {
+		c.MaxConnecting = &cs.MaxConnecting
+	}
+
 	if cs.ReadConcernLevel != "" {
 		c.ReadConcern = readconcern.New(readconcern.Level(cs.ReadConcernLevel))
 	}
@@ -336,6 +371,14 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 	if cs.SocketTimeoutSet {
 		c.SocketTimeout = &cs.SocketTimeout
+	}
+
+	if cs.SRVMaxHosts != 0 {
+		c.SRVMaxHosts = &cs.SRVMaxHosts
+	}
+
+	if cs.SRVServiceName != "" {
+		c.SRVServiceName = &cs.SRVServiceName
 	}
 
 	if cs.SSL {
@@ -410,6 +453,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.DisableOCSPEndpointCheck = &cs.SSLDisableOCSPEndpointCheck
 	}
 
+	if cs.TimeoutSet {
+		c.Timeout = &cs.Timeout
+	}
+
 	return c
 }
 
@@ -435,12 +482,12 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 //
 // 2. "zlib" - requires server version >= 3.6
 //
-// 3. "zstd" - requires server version >= 4.2, and driver version >= 1.2.0 with cgo support enabled or driver version >= 1.3.0
-//    without cgo
+// 3. "zstd" - requires server version >= 4.2, and driver version >= 1.2.0 with cgo support enabled or driver
+// version >= 1.3.0 without cgo.
 //
 // If this option is specified, the driver will perform a negotiation with the server to determine a common list of of
 // compressors and will use the first one in that list when performing operations. See
-// https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
+// https://www.mongodb.com/docs/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
 // information about configuring compression on the server and the server-side defaults.
 //
 // This can also be set through the "compressors" URI option (e.g. "compressors=zstd,zlib,snappy"). The default is
@@ -539,7 +586,7 @@ func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 
 // SetMaxPoolSize specifies that maximum number of connections allowed in the driver's connection pool to each server.
 // Requests to a server will block if this maximum is reached. This can also be set through the "maxPoolSize" URI option
-// (e.g. "maxPoolSize=100"). The default is 100. If this is 0, it will be set to math.MaxInt64.
+// (e.g. "maxPoolSize=100"). If this is 0, maximum connection pool size is not limited. The default is 100.
 func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 	c.MaxPoolSize = &u
 	return c
@@ -550,6 +597,14 @@ func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
 // the minimum. This can also be set through the "minPoolSize" URI option (e.g. "minPoolSize=100"). The default is 0.
 func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
 	c.MinPoolSize = &u
+	return c
+}
+
+// SetMaxConnecting specifies the maximum number of connections a connection pool may establish simultaneously. This can
+// also be set through the "maxConnecting" URI option (e.g. "maxConnecting=2"). If this is 0, the default is used. The
+// default is 2. Values greater than 100 are not recommended.
+func (c *ClientOptions) SetMaxConnecting(u uint64) *ClientOptions {
+	c.MaxConnecting = &u
 	return c
 }
 
@@ -593,7 +648,7 @@ func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptio
 // 3. "maxStalenessSeconds" (or "maxStaleness"): Specify a maximum replication lag for reads from secondaries in a
 // replica set (e.g. "maxStalenessSeconds=10").
 //
-// The default is readpref.Primary(). See https://docs.mongodb.com/manual/core/read-preference/#read-preference for
+// The default is readpref.Primary(). See https://www.mongodb.com/docs/manual/core/read-preference/#read-preference for
 // more information about read preferences.
 func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions {
 	c.ReadPreference = rp
@@ -659,8 +714,27 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 // SetSocketTimeout specifies how long the driver will wait for a socket read or write to return before returning a
 // network error. This can also be set through the "socketTimeoutMS" URI option (e.g. "socketTimeoutMS=1000"). The
 // default value is 0, meaning no timeout is used and socket operations can block indefinitely.
+//
+// Deprecated: This option is deprecated and will eventually be removed in version 2.0 of the driver. The more general
+// Timeout option should be used in its place to control the amount of time that a single operation can run on the Client
+// before returning an error.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
 	c.SocketTimeout = &d
+	return c
+}
+
+// SetTimeout specifies the amount of time that a single operation run on this Client can execute before returning an error.
+// The deadline of any operation run through the Client will be honored above any Timeout set on the Client; Timeout will only
+// be honored if there is no deadline on the operation Context. Timeout can also be set through the "timeoutMS" URI option
+// (e.g. "timeoutMS=1000"). The default value is nil, meaning operations do not inherit a timeout from the Client.
+//
+// If any Timeout is set (even 0) on the Client, the values of other, deprecated timeout-related options will be ignored.
+// In particular: ClientOptions.SocketTimeout, WriteConcern.wTimeout, MaxTime on operations, and TransactionOptions.MaxCommitTime.
+//
+// NOTE(benjirewis): SetTimeout represents unstable, provisional API. The behavior of the driver when a Timeout is specified is
+// subject to change.
+func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
+	c.Timeout = &d
 	return c
 }
 
@@ -760,6 +834,22 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 	return c
 }
 
+// SetSRVMaxHosts specifies the maximum number of SRV results to randomly select during polling. To limit the number
+// of hosts selected in SRV discovery, this function must be called before ApplyURI. This can also be set through
+// the "srvMaxHosts" URI option.
+func (c *ClientOptions) SetSRVMaxHosts(srvMaxHosts int) *ClientOptions {
+	c.SRVMaxHosts = &srvMaxHosts
+	return c
+}
+
+// SetSRVServiceName specifies a custom SRV service name to use in SRV polling. To use a custom SRV service name
+// in SRV discovery, this function must be called before ApplyURI. This can also be set through the "srvServiceName"
+// URI option.
+func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
+	c.SRVServiceName = &srvName
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
@@ -789,6 +879,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		if opt.ConnectTimeout != nil {
 			c.ConnectTimeout = opt.ConnectTimeout
 		}
+		if opt.Crypt != nil {
+			c.Crypt = opt.Crypt
+		}
 		if opt.HeartbeatInterval != nil {
 			c.HeartbeatInterval = opt.HeartbeatInterval
 		}
@@ -809,6 +902,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.MinPoolSize != nil {
 			c.MinPoolSize = opt.MinPoolSize
+		}
+		if opt.MaxConnecting != nil {
+			c.MaxConnecting = opt.MaxConnecting
 		}
 		if opt.PoolMonitor != nil {
 			c.PoolMonitor = opt.PoolMonitor
@@ -848,6 +944,15 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.SocketTimeout != nil {
 			c.SocketTimeout = opt.SocketTimeout
+		}
+		if opt.SRVMaxHosts != nil {
+			c.SRVMaxHosts = opt.SRVMaxHosts
+		}
+		if opt.SRVServiceName != nil {
+			c.SRVServiceName = opt.SRVServiceName
+		}
+		if opt.Timeout != nil {
+			c.Timeout = opt.Timeout
 		}
 		if opt.TLSConfig != nil {
 			c.TLSConfig = opt.TLSConfig
@@ -912,7 +1017,9 @@ func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassw
 		return "", err
 	}
 
-	data := append(keyData, '\n')
+	data := make([]byte, 0, len(keyData)+len(certData)+1)
+	data = append(data, keyData...)
+	data = append(data, '\n')
 	data = append(data, certData...)
 	return addClientCertFromBytes(cfg, data, keyPassword)
 }
@@ -930,7 +1037,8 @@ func addClientCertFromConcatenatedFile(cfg *tls.Config, certKeyFile, keyPassword
 // containing file and returns the certificate's subject name.
 func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
-	var certBlock, certDecodedBlock, keyBlock []byte
+	var certDecodedBlock []byte
+	var certBlocks, keyBlocks [][]byte
 
 	remaining := data
 	start := 0
@@ -941,7 +1049,8 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		}
 
 		if currentBlock.Type == "CERTIFICATE" {
-			certBlock = data[start : len(data)-len(remaining)]
+			certBlock := data[start : len(data)-len(remaining)]
+			certBlocks = append(certBlocks, certBlock)
 			certDecodedBlock = currentBlock.Bytes
 			start += len(certBlock)
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
@@ -966,29 +1075,31 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 					if err != nil {
 						return "", err
 					}
-					keyBytes, err = x509MarshalPKCS8PrivateKey(decrypted)
+					keyBytes, err = x509.MarshalPKCS8PrivateKey(decrypted)
 					if err != nil {
 						return "", err
 					}
 				}
 				var encoded bytes.Buffer
 				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
-				keyBlock = encoded.Bytes()
+				keyBlock := encoded.Bytes()
+				keyBlocks = append(keyBlocks, keyBlock)
 				start = len(data) - len(remaining)
 			} else {
-				keyBlock = data[start : len(data)-len(remaining)]
+				keyBlock := data[start : len(data)-len(remaining)]
+				keyBlocks = append(keyBlocks, keyBlock)
 				start += len(keyBlock)
 			}
 		}
 	}
-	if len(certBlock) == 0 {
+	if len(certBlocks) == 0 {
 		return "", fmt.Errorf("failed to find CERTIFICATE")
 	}
-	if len(keyBlock) == 0 {
+	if len(keyBlocks) == 0 {
 		return "", fmt.Errorf("failed to find PRIVATE KEY")
 	}
 
-	cert, err := tls.X509KeyPair(certBlock, keyBlock)
+	cert, err := tls.X509KeyPair(bytes.Join(certBlocks, []byte("\n")), bytes.Join(keyBlocks, []byte("\n")))
 	if err != nil {
 		return "", err
 	}
@@ -1002,7 +1113,7 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		return "", err
 	}
 
-	return x509CertSubject(crt), nil
+	return crt.Subject.String(), nil
 }
 
 func stringSliceContains(source []string, target string) bool {

@@ -8,13 +8,17 @@
 package testutil
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -44,7 +48,7 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
 		_, err := toolOptions.ParseArgs(fakeArgs)
 		if err != nil {
-			panic("Could not parse TOOLS_TESTING_MONGOD environment variable")
+			panic(fmt.Sprintf("Could not parse TOOLS_TESTING_MONGOD environment variable: %v", err))
 		}
 	} else {
 		ssl := GetSSLOptions()
@@ -169,4 +173,32 @@ func MergeOplogStreams(input [][]db.Oplog) []db.Oplog {
 	}
 
 	return ops
+}
+
+// MakeTempDir will attempt to create a temp directory. If it fails it will
+// abort the test. It returns two values. The first is the string containing
+// the path to the temp directory. The second is a cleanup func that will
+// remove the temp directory. You should always call the cleanup func with
+// `defer` immedatiately after calling this function:
+//
+//    dir, cleanup := testutil.MakeTempDir(t)
+//    defer cleanup()
+//
+// If the `TOOLS_TESTING_NO_CLEANUP` env var is not empty, then the cleanup
+// function will not delete the directory. This can be useful when
+// investigating test failures.
+func MakeTempDir(t *testing.T) (string, func()) {
+	require := require.New(t)
+
+	dir, err := ioutil.TempDir("", "mongo-tools-test")
+	require.NoError(err, "can create temp directory")
+	cleanup := func() {
+		if os.Getenv("TOOLS_TESTING_NO_CLEANUP") == "" {
+			err = os.RemoveAll(dir)
+			if err != nil {
+				t.Fatalf("Failed to delete temp directory: %v", err)
+			}
+		}
+	}
+	return dir, cleanup
 }

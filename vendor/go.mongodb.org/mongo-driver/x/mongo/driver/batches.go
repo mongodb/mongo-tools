@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package driver
 
 import (
@@ -5,10 +11,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
-
-// this is the amount of reserved buffer space in a message that the
-// driver reserves for command overhead.
-const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 
 // ErrDocumentTooLarge occurs when a document that is larger than the maximum size accepted by a
 // server is passed to an insert command.

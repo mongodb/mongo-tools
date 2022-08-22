@@ -1,10 +1,15 @@
-// NOTE: This file is maintained by hand because operationgen cannot generate it.
+// Copyright (C) MongoDB, Inc. 2021-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 package operation
 
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -28,12 +33,11 @@ type Command struct {
 	monitor        *event.CommandMonitor
 	resultResponse bsoncore.Document
 	resultCursor   *driver.BatchCursor
-	srvr           driver.Server
-	desc           description.Server
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 	serverAPI      *driver.ServerAPIOptions
 	createCursor   bool
 	cursorOpts     driver.CursorOptions
+	timeout        *time.Duration
 }
 
 // NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
@@ -67,7 +71,7 @@ func (c *Command) ResultCursor() (*driver.BatchCursor, error) {
 	return c.resultCursor, nil
 }
 
-// Execute runs this operations and returns an error if the operaiton did not execute successfully.
+// Execute runs this operations and returns an error if the operation did not execute successfully.
 func (c *Command) Execute(ctx context.Context) error {
 	if c.deployment == nil {
 		return errors.New("the Command operation must have a Deployment set before Execute can be called")
@@ -101,6 +105,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		Selector:       c.selector,
 		Crypt:          c.crypt,
 		ServerAPI:      c.serverAPI,
+		Timeout:        c.timeout,
 	}.Execute(ctx, nil)
 }
 
@@ -164,7 +169,7 @@ func (c *Command) ReadConcern(readConcern *readconcern.ReadConcern) *Command {
 	return c
 }
 
-// ReadPreference set the read prefernce used with this operation.
+// ReadPreference set the read preference used with this operation.
 func (c *Command) ReadPreference(readPreference *readpref.ReadPref) *Command {
 	if c == nil {
 		c = new(Command)
@@ -185,7 +190,7 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (c *Command) Crypt(crypt *driver.Crypt) *Command {
+func (c *Command) Crypt(crypt driver.Crypt) *Command {
 	if c == nil {
 		c = new(Command)
 	}
@@ -201,5 +206,15 @@ func (c *Command) ServerAPI(serverAPI *driver.ServerAPIOptions) *Command {
 	}
 
 	c.serverAPI = serverAPI
+	return c
+}
+
+// Timeout sets the timeout for this operation.
+func (c *Command) Timeout(timeout *time.Duration) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.timeout = timeout
 	return c
 }

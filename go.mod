@@ -9,17 +9,18 @@ require (
 	github.com/google/go-cmp v0.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/jessevdk/go-flags v1.4.0
-	github.com/klauspost/compress v1.10.1 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.6.4
+	github.com/stretchr/testify v1.7.1
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
-	go.mongodb.org/mongo-driver v1.7.1
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
+	go.mongodb.org/mongo-driver v1.10.0
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )

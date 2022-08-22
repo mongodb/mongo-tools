@@ -16,10 +16,14 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
+
+// random is a package-global pseudo-random number generator.
+var random = randutil.NewLockedRand()
 
 // ParseAndValidate parses the provided URI into a ConnString object.
 // It check that all values are valid.
@@ -80,6 +84,8 @@ type ConnString struct {
 	MaxPoolSizeSet                     bool
 	MinPoolSize                        uint64
 	MinPoolSizeSet                     bool
+	MaxConnecting                      uint64
+	MaxConnectingSet                   bool
 	Password                           string
 	PasswordSet                        bool
 	ReadConcernLevel                   string
@@ -97,6 +103,8 @@ type ConnString struct {
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
 	SocketTimeoutSet                   bool
+	SRVMaxHosts                        int
+	SRVServiceName                     string
 	SSL                                bool
 	SSLSet                             bool
 	SSLClientCertificateKeyFile        string
@@ -113,6 +121,8 @@ type ConnString struct {
 	SSLCaFileSet                       bool
 	SSLDisableOCSPEndpointCheck        bool
 	SSLDisableOCSPEndpointCheckSet     bool
+	Timeout                            time.Duration
+	TimeoutSet                         bool
 	WString                            string
 	WNumber                            int
 	WNumberSet                         bool
@@ -223,7 +233,7 @@ func (p *parser) parse(original string) error {
 		if strings.Contains(username, "/") {
 			return fmt.Errorf("unescaped slash in username")
 		}
-		p.Username, err = url.QueryUnescape(username)
+		p.Username, err = url.PathUnescape(username)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
 		}
@@ -236,7 +246,7 @@ func (p *parser) parse(original string) error {
 		if strings.Contains(password, "/") {
 			return fmt.Errorf("unescaped slash in password")
 		}
-		p.Password, err = url.QueryUnescape(password)
+		p.Password, err = url.PathUnescape(password)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid password")
 		}
@@ -254,14 +264,25 @@ func (p *parser) parse(original string) error {
 		hosts = uri[:idx]
 	}
 
-	var connectionArgsFromTXT []string
 	parsedHosts := strings.Split(hosts, ",")
+	uri = uri[len(hosts):]
+	extractedDatabase, err := extractDatabaseFromURI(uri)
+	if err != nil {
+		return err
+	}
 
+	uri = extractedDatabase.uri
+	p.Database = extractedDatabase.db
+
+	// grab connection arguments from URI
+	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
+	if err != nil {
+		return err
+	}
+
+	// grab connection arguments from TXT record and enable SSL if "mongodb+srv://"
+	var connectionArgsFromTXT []string
 	if p.Scheme == SchemeMongoDBSRV {
-		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, true)
-		if err != nil {
-			return err
-		}
 		connectionArgsFromTXT, err = p.dnsResolver.GetConnectionArgsFromTXT(hosts)
 		if err != nil {
 			return err
@@ -272,34 +293,43 @@ func (p *parser) parse(original string) error {
 		p.SSLSet = true
 	}
 
+	// add connection arguments from URI and TXT records to connstring
+	connectionArgPairs := make([]string, 0, len(connectionArgsFromTXT)+len(connectionArgsFromQueryString))
+	connectionArgPairs = append(connectionArgPairs, connectionArgsFromTXT...)
+	connectionArgPairs = append(connectionArgPairs, connectionArgsFromQueryString...)
+
+	for _, pair := range connectionArgPairs {
+		err := p.addOption(pair)
+		if err != nil {
+			return err
+		}
+	}
+
+	// do SRV lookup if "mongodb+srv://"
+	if p.Scheme == SchemeMongoDBSRV {
+		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, p.SRVServiceName, true)
+		if err != nil {
+			return err
+		}
+
+		// If p.SRVMaxHosts is non-zero and is less than the number of hosts, randomly
+		// select SRVMaxHosts hosts from parsedHosts.
+		if p.SRVMaxHosts > 0 && p.SRVMaxHosts < len(parsedHosts) {
+			random.Shuffle(len(parsedHosts), func(i, j int) {
+				parsedHosts[i], parsedHosts[j] = parsedHosts[j], parsedHosts[i]
+			})
+			parsedHosts = parsedHosts[:p.SRVMaxHosts]
+		}
+	}
+
 	for _, host := range parsedHosts {
 		err = p.addHost(host)
 		if err != nil {
-			return internal.WrapErrorf(err, "invalid host \"%s\"", host)
+			return internal.WrapErrorf(err, "invalid host %q", host)
 		}
 	}
 	if len(p.Hosts) == 0 {
 		return fmt.Errorf("must have at least 1 host")
-	}
-
-	uri = uri[len(hosts):]
-
-	extractedDatabase, err := extractDatabaseFromURI(uri)
-	if err != nil {
-		return err
-	}
-
-	uri = extractedDatabase.uri
-	p.Database = extractedDatabase.db
-
-	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
-	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
-
-	for _, pair := range connectionArgPairs {
-		err = p.addOption(pair)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = p.setDefaultAuthParams(extractedDatabase.db)
@@ -352,6 +382,16 @@ func (p *parser) validate() error {
 		}
 		if p.ReplicaSet != "" {
 			return internal.ErrLoadBalancedWithReplicaSet
+		}
+	}
+
+	// Check for invalid use of SRVMaxHosts.
+	if p.SRVMaxHosts > 0 {
+		if p.ReplicaSet != "" {
+			return internal.ErrSRVMaxHostsWithReplicaSet
+		}
+		if p.LoadBalanced {
+			return internal.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
 
@@ -530,7 +570,7 @@ func (p *parser) addHost(host string) error {
 	}
 	host, err := url.QueryUnescape(host)
 	if err != nil {
-		return internal.WrapErrorf(err, "invalid host \"%s\"", host)
+		return internal.WrapErrorf(err, "invalid host %q", host)
 	}
 
 	_, port, err := net.SplitHostPort(host)
@@ -563,12 +603,12 @@ func (p *parser) addOption(pair string) error {
 
 	key, err := url.QueryUnescape(kv[0])
 	if err != nil {
-		return internal.WrapErrorf(err, "invalid option key \"%s\"", kv[0])
+		return internal.WrapErrorf(err, "invalid option key %q", kv[0])
 	}
 
 	value, err := url.QueryUnescape(kv[1])
 	if err != nil {
-		return internal.WrapErrorf(err, "invalid option value \"%s\"", kv[1])
+		return internal.WrapErrorf(err, "invalid option value %q", kv[1])
 	}
 
 	lowerKey := strings.ToLower(key)
@@ -603,12 +643,12 @@ func (p *parser) addOption(pair string) error {
 		case "direct":
 			p.Connect = SingleConnect
 		default:
-			return fmt.Errorf("invalid 'connect' value: %s", value)
+			return fmt.Errorf("invalid 'connect' value: %q", value)
 		}
 		if p.DirectConnectionSet {
 			expectedValue := p.Connect == SingleConnect // directConnection should be true if connect=direct
 			if p.DirectConnection != expectedValue {
-				return fmt.Errorf("options connect=%s and directConnection=%v conflict", value, p.DirectConnection)
+				return fmt.Errorf("options connect=%q and directConnection=%v conflict", value, p.DirectConnection)
 			}
 		}
 
@@ -619,7 +659,7 @@ func (p *parser) addOption(pair string) error {
 			p.DirectConnection = true
 		case "false":
 		default:
-			return fmt.Errorf("invalid 'directConnection' value: %s", value)
+			return fmt.Errorf("invalid 'directConnection' value: %q", value)
 		}
 
 		if p.ConnectSet {
@@ -629,21 +669,21 @@ func (p *parser) addOption(pair string) error {
 			}
 
 			if p.Connect != expectedValue {
-				return fmt.Errorf("options connect=%s and directConnection=%s conflict", p.Connect, value)
+				return fmt.Errorf("options connect=%q and directConnection=%q conflict", p.Connect, value)
 			}
 		}
 		p.DirectConnectionSet = true
 	case "connecttimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.ConnectTimeout = time.Duration(n) * time.Millisecond
 		p.ConnectTimeoutSet = true
 	case "heartbeatintervalms", "heartbeatfrequencyms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.HeartbeatInterval = time.Duration(n) * time.Millisecond
 		p.HeartbeatIntervalSet = true
@@ -654,7 +694,7 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.J = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		p.JSet = true
@@ -665,45 +705,54 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.LoadBalanced = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		p.LoadBalancedSet = true
 	case "localthresholdms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.LocalThreshold = time.Duration(n) * time.Millisecond
 		p.LocalThresholdSet = true
 	case "maxidletimems":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.MaxConnIdleTime = time.Duration(n) * time.Millisecond
 		p.MaxConnIdleTimeSet = true
 	case "maxpoolsize":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.MaxPoolSize = uint64(n)
 		p.MaxPoolSizeSet = true
 	case "minpoolsize":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.MinPoolSize = uint64(n)
 		p.MinPoolSizeSet = true
+	case "maxconnecting":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %q: %q", key, value)
+		}
+		p.MaxConnecting = uint64(n)
+		p.MaxConnectingSet = true
 	case "readconcernlevel":
 		p.ReadConcernLevel = value
 	case "readpreference":
 		p.ReadPreference = value
 	case "readpreferencetags":
 		if value == "" {
-			// for when readPreferenceTags= at end of URI
+			// If "readPreferenceTags=" is supplied, append an empty map to tag sets to
+			// represent a wild-card.
+			p.ReadPreferenceTagSets = append(p.ReadPreferenceTagSets, map[string]string{})
 			break
 		}
 
@@ -712,7 +761,7 @@ func (p *parser) addOption(pair string) error {
 		for _, item := range items {
 			parts := strings.Split(item, ":")
 			if len(parts) != 2 {
-				return fmt.Errorf("invalid value for %s: %s", key, value)
+				return fmt.Errorf("invalid value for %q: %q", key, value)
 			}
 			tags[parts[0]] = parts[1]
 		}
@@ -720,7 +769,7 @@ func (p *parser) addOption(pair string) error {
 	case "maxstaleness", "maxstalenessseconds":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.MaxStaleness = time.Duration(n) * time.Second
 		p.MaxStalenessSet = true
@@ -733,7 +782,7 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.RetryWrites = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		p.RetryWritesSet = true
@@ -744,24 +793,49 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.RetryReads = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		p.RetryReadsSet = true
 	case "serverselectiontimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.ServerSelectionTimeout = time.Duration(n) * time.Millisecond
 		p.ServerSelectionTimeoutSet = true
 	case "sockettimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.SocketTimeout = time.Duration(n) * time.Millisecond
 		p.SocketTimeoutSet = true
+	case "srvmaxhosts":
+		// srvMaxHosts can only be set on URIs with the "mongodb+srv" scheme
+		if p.Scheme != SchemeMongoDBSRV {
+			return fmt.Errorf("cannot specify srvMaxHosts on non-SRV URI")
+		}
+
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %q: %q", key, value)
+		}
+		p.SRVMaxHosts = n
+	case "srvservicename":
+		// srvServiceName can only be set on URIs with the "mongodb+srv" scheme
+		if p.Scheme != SchemeMongoDBSRV {
+			return fmt.Errorf("cannot specify srvServiceName on non-SRV URI")
+		}
+
+		// srvServiceName must be between 1 and 62 characters according to
+		// our specification. Empty service names are not valid, and the service
+		// name (including prepended underscore) should not exceed the 63 character
+		// limit for DNS query subdomains.
+		if len(value) < 1 || len(value) > 62 {
+			return fmt.Errorf("srvServiceName value must be between 1 and 62 characters")
+		}
+		p.SRVServiceName = value
 	case "ssl", "tls":
 		switch value {
 		case "true":
@@ -769,7 +843,7 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.SSL = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		if p.tlsssl != nil && *p.tlsssl != p.SSL {
 			return errors.New("tls and ssl options, when both specified, must be equivalent")
@@ -804,7 +878,7 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.SSLInsecure = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		p.SSLInsecureSet = true
@@ -813,6 +887,13 @@ func (p *parser) addOption(pair string) error {
 		p.SSLSet = true
 		p.SSLCaFile = value
 		p.SSLCaFileSet = true
+	case "timeoutms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %q: %q", key, value)
+		}
+		p.Timeout = time.Duration(n) * time.Millisecond
+		p.TimeoutSet = true
 	case "tlsdisableocspendpointcheck":
 		p.SSL = true
 		p.SSLSet = true
@@ -823,13 +904,13 @@ func (p *parser) addOption(pair string) error {
 		case "false":
 			p.SSLDisableOCSPEndpointCheck = false
 		default:
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.SSLDisableOCSPEndpointCheckSet = true
 	case "w":
 		if w, err := strconv.Atoi(value); err == nil {
 			if w < 0 {
-				return fmt.Errorf("invalid value for %s: %s", key, value)
+				return fmt.Errorf("invalid value for %q: %q", key, value)
 			}
 
 			p.WNumber = w
@@ -844,7 +925,7 @@ func (p *parser) addOption(pair string) error {
 	case "wtimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.WTimeout = time.Duration(n) * time.Millisecond
 		p.WTimeoutSet = true
@@ -855,13 +936,13 @@ func (p *parser) addOption(pair string) error {
 		}
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.WTimeout = time.Duration(n) * time.Millisecond
 	case "zlibcompressionlevel":
 		level, err := strconv.Atoi(value)
 		if err != nil || (level < -1 || level > 9) {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		if level == -1 {
@@ -873,7 +954,7 @@ func (p *parser) addOption(pair string) error {
 		const maxZstdLevel = 22 // https://github.com/facebook/zstd/blob/a880ca239b447968493dd2fed3850e766d6305cc/contrib/linux-kernel/lib/zstd/compress.c#L3291
 		level, err := strconv.Atoi(value)
 		if err != nil || (level < -1 || level > maxZstdLevel) {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
+			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 
 		if level == -1 {
@@ -943,7 +1024,7 @@ func extractDatabaseFromURI(uri string) (extractedDatabase, error) {
 
 	escapedDatabase, err := url.QueryUnescape(database)
 	if err != nil {
-		return extractedDatabase{}, internal.WrapErrorf(err, "invalid database \"%s\"", database)
+		return extractedDatabase{}, internal.WrapErrorf(err, "invalid database %q", database)
 	}
 
 	uri = uri[len(database):]

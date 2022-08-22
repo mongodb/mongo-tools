@@ -8,7 +8,7 @@ package topology
 
 import (
 	"context"
-	"math"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,15 +16,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"golang.org/x/sync/semaphore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
-// ErrPoolConnected is returned from an attempt to connect an already connected pool
-var ErrPoolConnected = PoolError("attempted to Connect to an already connected pool")
+// Connection pool state constants.
+const (
+	poolPaused int = iota
+	poolReady
+	poolClosed
+)
 
-// ErrPoolDisconnected is returned from an attempt to Close an already disconnected
-// or disconnecting pool.
-var ErrPoolDisconnected = PoolError("attempted to check out a connection from closed connection pool")
+// ErrPoolNotPaused is returned when attempting to mark a connection pool "ready" that is not
+// currently "paused".
+var ErrPoolNotPaused = PoolError("only a paused pool can be marked ready")
+
+// ErrPoolClosed is returned when attempting to check out a connection from a closed pool.
+var ErrPoolClosed = PoolError("attempted to check out a connection from closed connection pool")
 
 // ErrConnectionClosed is returned from an attempt to use an already closed connection.
 var ErrConnectionClosed = ConnectionError{ConnectionID: "<closed>", message: "connection is closed"}
@@ -35,233 +42,309 @@ var ErrWrongPool = PoolError("connection does not belong to this pool")
 // PoolError is an error returned from a Pool method.
 type PoolError string
 
-// maintainInterval is the interval at which the background routine to close stale connections will be run.
-var maintainInterval = time.Minute
-
 func (pe PoolError) Error() string { return string(pe) }
+
+// poolClearedError is an error returned when the connection pool is cleared or currently paused. It
+// is a retryable error.
+type poolClearedError struct {
+	err     error
+	address address.Address
+}
+
+func (pce poolClearedError) Error() string {
+	return fmt.Sprintf(
+		"connection pool for %v was cleared because another operation failed with: %v",
+		pce.address,
+		pce.err)
+}
+
+// Retryable returns true. All poolClearedErrors are retryable.
+func (poolClearedError) Retryable() bool { return true }
+
+// Assert that poolClearedError is a driver.RetryablePoolError.
+var _ driver.RetryablePoolError = poolClearedError{}
 
 // poolConfig contains all aspects of the pool that can be configured
 type poolConfig struct {
-	Address     address.Address
-	MinPoolSize uint64
-	MaxPoolSize uint64 // MaxPoolSize is not used because handling the max number of connections in the pool is handled in server. This is only used for command monitoring
-	MaxIdleTime time.Duration
-	PoolMonitor *event.PoolMonitor
+	Address          address.Address
+	MinPoolSize      uint64
+	MaxPoolSize      uint64
+	MaxConnecting    uint64
+	MaxIdleTime      time.Duration
+	MaintainInterval time.Duration
+	PoolMonitor      *event.PoolMonitor
+	handshakeErrFn   func(error, uint64, *primitive.ObjectID)
 }
 
-// checkOutResult is all the values that can be returned from a checkOut
-type checkOutResult struct {
-	c      *connection
-	err    error
-	reason string
-}
-
-// pool is a wrapper of resource pool that follows the CMAP spec for connection pools
 type pool struct {
-	address    address.Address
-	opts       []ConnectionOption
-	conns      *resourcePool // pool for non-checked out connections
-	generation *poolGenerationMap
-	monitor    *event.PoolMonitor
+	// The following integer fields must be accessed using the atomic package
+	// and should be at the beginning of the struct.
+	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
+	// - suggested layout: https://go101.org/article/memory-layout.html
 
-	// Must be accessed using the atomic package.
-	connected                    int32
+	nextID                       uint64 // nextID is the next pool ID for a new connection.
 	pinnedCursorConnections      uint64
 	pinnedTransactionConnections uint64
 
-	nextid uint64
-	opened map[uint64]*connection // opened holds all of the currently open connections.
-	sem    *semaphore.Weighted
-	sync.Mutex
+	address       address.Address
+	minSize       uint64
+	maxSize       uint64
+	maxConnecting uint64
+	monitor       *event.PoolMonitor
+
+	// handshakeErrFn is used to handle any errors that happen during connection establishment and
+	// handshaking.
+	handshakeErrFn func(error, uint64, *primitive.ObjectID)
+
+	connOpts   []ConnectionOption
+	generation *poolGenerationMap
+
+	maintainInterval time.Duration   // maintainInterval is the maintain() loop interval.
+	maintainReady    chan struct{}   // maintainReady is a signal channel that starts the maintain() loop when ready() is called.
+	backgroundDone   *sync.WaitGroup // backgroundDone waits for all background goroutines to return.
+
+	stateMu      sync.RWMutex // stateMu guards state, lastClearErr
+	state        int          // state is the current state of the connection pool.
+	lastClearErr error        // lastClearErr is the last error that caused the pool to be cleared.
+
+	// createConnectionsCond is the condition variable that controls when the createConnections()
+	// loop runs or waits. Its lock guards cancelBackgroundCtx, conns, and newConnWait. Any changes
+	// to the state of the guarded values must be made while holding the lock to prevent undefined
+	// behavior in the createConnections() waiting logic.
+	createConnectionsCond *sync.Cond
+	cancelBackgroundCtx   context.CancelFunc     // cancelBackgroundCtx is called to signal background goroutines to stop.
+	conns                 map[uint64]*connection // conns holds all currently open connections.
+	newConnWait           wantConnQueue          // newConnWait holds all wantConn requests for new connections.
+
+	idleMu       sync.Mutex    // idleMu guards idleConns, idleConnWait
+	idleConns    []*connection // idleConns holds all idle connections.
+	idleConnWait wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
 }
 
-// connectionExpiredFunc checks if a given connection is stale and should be removed from the resource pool
-func connectionExpiredFunc(v interface{}) bool {
-	if v == nil {
-		return true
-	}
+// getState returns the current state of the pool. Callers must not hold the stateMu lock.
+func (p *pool) getState() int {
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
 
-	c, ok := v.(*connection)
-	if !ok {
-		return true
-	}
+	return p.state
+}
 
+// connectionPerished checks if a given connection is perished and should be removed from the pool.
+func connectionPerished(conn *connection) (string, bool) {
 	switch {
-	case atomic.LoadInt32(&c.pool.connected) != connected:
-		c.expireReason = event.ReasonPoolClosed
-	case c.closed():
+	case conn.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
-		c.expireReason = event.ReasonConnectionErrored
-	case c.idleTimeoutExpired():
-		c.expireReason = event.ReasonIdle
-	case c.pool.stale(c):
-		c.expireReason = event.ReasonStale
-	default:
-		return false
+		return event.ReasonError, true
+	case conn.idleTimeoutExpired():
+		return event.ReasonIdle, true
+	case conn.pool.stale(conn):
+		return event.ReasonStale, true
 	}
-
-	return true
+	return "", false
 }
 
-// connectionCloseFunc closes a given connection. If ctx is nil, the closing will occur in the background
-func connectionCloseFunc(v interface{}) {
-	c, ok := v.(*connection)
-	if !ok || v == nil {
-		return
-	}
-
-	// The resource pool will only close connections if they're expired or the pool is being disconnected and
-	// resourcePool.Close() is called. For the former case, c.expireReason will be set. In the latter, it will not, so
-	// we use ReasonPoolClosed.
-	reason := c.expireReason
-	if c.expireReason == "" {
-		reason = event.ReasonPoolClosed
-	}
-
-	_ = c.pool.removeConnection(c, reason)
-	go func() {
-		_ = c.pool.closeConnection(c)
-	}()
-}
-
-// connectionInitFunc returns an init function for the resource pool that will make new connections for this pool
-func (p *pool) connectionInitFunc() interface{} {
-	c, _, err := p.makeNewConnection()
-	if err != nil {
-		return nil
-	}
-
-	go c.connect(context.Background())
-
-	return c
-}
-
-// newPool creates a new pool that will hold size number of idle connections. It will use the
-// provided options when creating connections.
-func newPool(config poolConfig, connOpts ...ConnectionOption) (*pool, error) {
-	opts := connOpts
+// newPool creates a new pool. It will use the provided options when creating connections.
+func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	if config.MaxIdleTime != time.Duration(0) {
-		opts = append(opts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
-	}
-	if config.PoolMonitor != nil {
-		opts = append(opts, withPoolMonitor(func(_ *event.PoolMonitor) *event.PoolMonitor { return config.PoolMonitor }))
+		connOpts = append(connOpts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
 	}
 
-	var maxConns = config.MaxPoolSize
-	if maxConns == 0 {
-		maxConns = math.MaxInt64
+	var maxConnecting uint64 = 2
+	if config.MaxConnecting > 0 {
+		maxConnecting = config.MaxConnecting
+	}
+
+	maintainInterval := 10 * time.Second
+	if config.MaintainInterval != 0 {
+		maintainInterval = config.MaintainInterval
 	}
 
 	pool := &pool{
-		address:    config.Address,
-		monitor:    config.PoolMonitor,
-		connected:  disconnected,
-		opened:     make(map[uint64]*connection),
-		opts:       opts,
-		sem:        semaphore.NewWeighted(int64(maxConns)),
-		generation: newPoolGenerationMap(),
+		address:               config.Address,
+		minSize:               config.MinPoolSize,
+		maxSize:               config.MaxPoolSize,
+		maxConnecting:         maxConnecting,
+		monitor:               config.PoolMonitor,
+		handshakeErrFn:        config.handshakeErrFn,
+		connOpts:              connOpts,
+		generation:            newPoolGenerationMap(),
+		state:                 poolPaused,
+		maintainInterval:      maintainInterval,
+		maintainReady:         make(chan struct{}, 1),
+		backgroundDone:        &sync.WaitGroup{},
+		createConnectionsCond: sync.NewCond(&sync.Mutex{}),
+		conns:                 make(map[uint64]*connection, config.MaxPoolSize),
+		idleConns:             make([]*connection, 0, config.MaxPoolSize),
 	}
-	pool.opts = append(pool.opts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
+	// minSize must not exceed maxSize if maxSize is not 0
+	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
+		pool.minSize = pool.maxSize
+	}
+	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
-	// we do not pass in config.MaxPoolSize because we manage the max size at this level rather than the resource pool level
-	rpc := resourcePoolConfig{
-		MaxSize:          maxConns,
-		MinSize:          config.MinPoolSize,
-		MaintainInterval: maintainInterval,
-		ExpiredFn:        connectionExpiredFunc,
-		CloseFn:          connectionCloseFunc,
-		InitFn:           pool.connectionInitFunc,
+	pool.generation.connect()
+
+	// Create a Context with cancellation that's used to signal the createConnections() and
+	// maintain() background goroutines to stop. Also create a "backgroundDone" WaitGroup that is
+	// used to wait for the background goroutines to return.
+	var ctx context.Context
+	ctx, pool.cancelBackgroundCtx = context.WithCancel(context.Background())
+
+	for i := 0; i < int(pool.maxConnecting); i++ {
+		pool.backgroundDone.Add(1)
+		go pool.createConnections(ctx, pool.backgroundDone)
+	}
+
+	// If maintainInterval is not positive, don't start the maintain() goroutine. Expect that
+	// negative values are only used in testing; this config value is not user-configurable.
+	if maintainInterval > 0 {
+		pool.backgroundDone.Add(1)
+		go pool.maintain(ctx, pool.backgroundDone)
 	}
 
 	if pool.monitor != nil {
 		pool.monitor.Event(&event.PoolEvent{
 			Type: event.PoolCreated,
 			PoolOptions: &event.MonitorPoolOptions{
-				MaxPoolSize:        rpc.MaxSize,
-				MinPoolSize:        rpc.MinSize,
-				WaitQueueTimeoutMS: uint64(config.MaxIdleTime) / uint64(time.Millisecond),
+				MaxPoolSize: config.MaxPoolSize,
+				MinPoolSize: config.MinPoolSize,
 			},
 			Address: pool.address.String(),
 		})
 	}
 
-	rp, err := newResourcePool(rpc)
-	if err != nil {
-		return nil, err
-	}
-	pool.conns = rp
-
-	return pool, nil
+	return pool
 }
 
 // stale checks if a given connection's generation is below the generation of the pool
-func (p *pool) stale(c *connection) bool {
-	return c == nil || p.generation.stale(c.desc.ServiceID, c.generation)
+func (p *pool) stale(conn *connection) bool {
+	return conn == nil || p.generation.stale(conn.desc.ServiceID, conn.generation)
 }
 
-// connect puts the pool into the connected state, allowing it to be used and will allow items to begin being processed from the wait queue
-func (p *pool) connect() error {
-	if !atomic.CompareAndSwapInt32(&p.connected, disconnected, connected) {
-		return ErrPoolConnected
+// ready puts the pool into the "ready" state and starts the background connection creation and
+// monitoring goroutines. ready must be called before connections can be checked out. An unused,
+// connected pool must be closed or it will leak goroutines and will not be garbage collected.
+func (p *pool) ready() error {
+	// While holding the stateMu lock, set the pool to "ready" if it is currently "paused".
+	p.stateMu.Lock()
+	if p.state == poolReady {
+		p.stateMu.Unlock()
+		return nil
 	}
-	p.generation.connect()
-	p.conns.initialize()
+	if p.state != poolPaused {
+		p.stateMu.Unlock()
+		return ErrPoolNotPaused
+	}
+	p.lastClearErr = nil
+	p.state = poolReady
+	p.stateMu.Unlock()
+
+	// Signal maintain() to wake up immediately when marking the pool "ready".
+	select {
+	case p.maintainReady <- struct{}{}:
+	default:
+	}
+
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:    event.PoolReady,
+			Address: p.address.String(),
+		})
+	}
+
 	return nil
 }
 
-// disconnect disconnects the pool and closes all connections including those both in and out of the pool
-func (p *pool) disconnect(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt32(&p.connected, connected, disconnecting) {
-		return ErrPoolDisconnected
+// close closes the pool, closes all connections associated with the pool, and stops all background
+// goroutines. All subsequent checkOut requests will return an error. An unused, ready pool must be
+// closed or it will leak goroutines and will not be garbage collected.
+func (p *pool) close(ctx context.Context) {
+	p.stateMu.Lock()
+	if p.state == poolClosed {
+		p.stateMu.Unlock()
+		return
 	}
+	p.state = poolClosed
+	p.stateMu.Unlock()
+
+	// Call cancelBackgroundCtx() to exit the maintain() and createConnections() background
+	// goroutines. Broadcast to the createConnectionsCond to wake up all createConnections()
+	// goroutines. We must hold the createConnectionsCond lock here because we're changing the
+	// condition by cancelling the "background goroutine" Context, even tho cancelling the Context
+	// is also synchronized by a lock. Otherwise, we run into an intermittent bug that prevents the
+	// createConnections() goroutines from exiting.
+	p.createConnectionsCond.L.Lock()
+	p.cancelBackgroundCtx()
+	p.createConnectionsCond.Broadcast()
+	p.createConnectionsCond.L.Unlock()
+
+	// Wait for all background goroutines to exit.
+	p.backgroundDone.Wait()
+
+	p.generation.disconnect()
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	p.conns.Close()
-	p.generation.disconnect()
-
-	var err error
-	if dl, ok := ctx.Deadline(); ok {
-		// If we have a deadline then we interpret it as a request to gracefully shutdown. We wait
-		// until either all the connections have landed back in the pool (and have been closed) or
-		// until the timer is done.
-		ticker := time.NewTicker(1 * time.Second)
+	// If we have a deadline then we interpret it as a request to gracefully shutdown. We wait until
+	// either all the connections have been checked back into the pool (i.e. total open connections
+	// equals idle connections) or until the Context deadline is reached.
+	if _, ok := ctx.Deadline(); ok {
+		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
-		timer := time.NewTimer(time.Now().Sub(dl))
-		defer timer.Stop()
+
+	graceful:
 		for {
-			select {
-			case <-timer.C:
-			case <-ctx.Done():
-			case <-ticker.C: // Can we replace this with an actual signal channel? We will know when p.inflight hits zero from the close method.
-				p.Lock()
-				if len(p.opened) > 0 {
-					p.Unlock()
-					continue
-				}
-				p.Unlock()
+			if p.totalConnectionCount() == p.availableConnectionCount() {
+				break graceful
 			}
-			break
+
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				break graceful
+			default:
+			}
 		}
 	}
 
-	// We copy the remaining connections into a slice, then iterate it to close them. This allows us
-	// to use a single function to actually clean up and close connections at the expense of a
-	// double iteration in the worse case.
-	p.Lock()
-	toClose := make([]*connection, 0, len(p.opened))
-	for _, pc := range p.opened {
-		toClose = append(toClose, pc)
+	// Empty the idle connections stack and try to deliver ErrPoolClosed to any waiting wantConns
+	// from idleConnWait while holding the idleMu lock.
+	p.idleMu.Lock()
+	p.idleConns = p.idleConns[:0]
+	for {
+		w := p.idleConnWait.popFront()
+		if w == nil {
+			break
+		}
+		w.tryDeliver(nil, ErrPoolClosed)
 	}
-	p.Unlock()
-	for _, pc := range toClose {
-		_ = p.removeConnection(pc, event.ReasonPoolClosed)
-		_ = p.closeConnection(pc) // We don't care about errors while closing the connection.
+	p.idleMu.Unlock()
+
+	// Collect all conns from the pool and try to deliver ErrPoolClosed to any waiting wantConns
+	// from newConnWait while holding the createConnectionsCond lock. We can't call removeConnection
+	// on the connections while holding any locks, so do that after we release the lock.
+	p.createConnectionsCond.L.Lock()
+	conns := make([]*connection, 0, len(p.conns))
+	for _, conn := range p.conns {
+		conns = append(conns, conn)
 	}
-	atomic.StoreInt32(&p.connected, disconnected)
-	p.conns.clearTotal()
+	for {
+		w := p.newConnWait.popFront()
+		if w == nil {
+			break
+		}
+		w.tryDeliver(nil, ErrPoolClosed)
+	}
+	p.createConnectionsCond.L.Unlock()
+
+	// Now that we're not holding any locks, remove all of the connections we collected from the
+	// pool.
+	for _, conn := range conns {
+		_ = p.removeConnection(conn, event.ReasonPoolClosed)
+		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
+	}
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
@@ -269,52 +352,6 @@ func (p *pool) disconnect(ctx context.Context) error {
 			Address: p.address.String(),
 		})
 	}
-
-	return err
-}
-
-// makeNewConnection creates a new connection instance and emits a ConnectionCreatedEvent. The caller must call
-// connection.connect on the returned instance before using it for operations. This function ensures that a
-// ConnectionClosed event is published if there is an error after the ConnectionCreated event has been published. The
-// caller must not hold the pool lock when calling this function.
-func (p *pool) makeNewConnection() (*connection, string, error) {
-	c, err := newConnection(p.address, p.opts...)
-	if err != nil {
-		return nil, event.ReasonConnectionErrored, err
-	}
-
-	c.pool = p
-	c.poolID = atomic.AddUint64(&p.nextid, 1)
-
-	if p.monitor != nil {
-		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionCreated,
-			Address:      p.address.String(),
-			ConnectionID: c.poolID,
-		})
-	}
-
-	if atomic.LoadInt32(&p.connected) != connected {
-		// Manually publish a ConnectionClosed event here because the connection reference hasn't been stored and we
-		// need to ensure each ConnectionCreated event has a corresponding ConnectionClosed event.
-		if p.monitor != nil {
-			p.monitor.Event(&event.PoolEvent{
-				Type:         event.ConnectionClosed,
-				Address:      p.address.String(),
-				ConnectionID: c.poolID,
-				Reason:       event.ReasonPoolClosed,
-			})
-		}
-		_ = p.closeConnection(c) // The pool is disconnected or disconnecting, ignore the error from closing the connection.
-		return nil, event.ReasonPoolClosed, ErrPoolDisconnected
-	}
-
-	p.Lock()
-	p.opened[c.poolID] = c
-	p.Unlock()
-
-	return c, "", nil
-
 }
 
 func (p *pool) pinConnectionToCursor() {
@@ -335,13 +372,29 @@ func (p *pool) unpinConnectionFromTransaction() {
 	atomic.AddUint64(&p.pinnedTransactionConnections, ^uint64(0))
 }
 
-// Checkout returns a connection from the pool
-func (p *pool) get(ctx context.Context) (*connection, error) {
-	if ctx == nil {
-		ctx = context.Background()
+// checkOut checks out a connection from the pool. If an idle connection is not available, the
+// checkOut enters a queue waiting for either the next idle or new connection. If the pool is not
+// ready, checkOut returns an error.
+// Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
+func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
+	// TODO(CSOT): If a Timeout was specified at any level, respect the Timeout is server selection, connection
+	// TODO checkout.
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:    event.GetStarted,
+			Address: p.address.String(),
+		})
 	}
 
-	if atomic.LoadInt32(&p.connected) != connected {
+	// Check the pool state while holding a stateMu read lock. If the pool state is not "ready",
+	// return an error. Do all of this while holding the stateMu read lock to prevent a state change between
+	// checking the state and entering the wait queue. Not holding the stateMu read lock here may
+	// allow a checkOut() to enter the wait queue after clear() pauses the pool and clears the wait
+	// queue, resulting in createConnections() doing work while the pool is "paused".
+	p.stateMu.RLock()
+	switch p.state {
+	case poolClosed:
+		p.stateMu.RUnlock()
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -349,11 +402,92 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonPoolClosed,
 			})
 		}
-		return nil, ErrPoolDisconnected
+		return nil, ErrPoolClosed
+	case poolPaused:
+		err := poolClearedError{err: p.lastClearErr, address: p.address}
+		p.stateMu.RUnlock()
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:    event.GetFailed,
+				Address: p.address.String(),
+				Reason:  event.ReasonConnectionErrored,
+			})
+		}
+		return nil, err
 	}
 
-	err := p.sem.Acquire(ctx, 1)
-	if err != nil {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Create a wantConn, which we will use to request an existing idle or new connection. Always
+	// cancel the wantConn if checkOut() returned an error to make sure any delivered connections
+	// are returned to the pool (e.g. if a connection was delivered immediately after the Context
+	// timed out).
+	w := newWantConn()
+	defer func() {
+		if err != nil {
+			w.cancel(p, err)
+		}
+	}()
+
+	// Get in the queue for an idle connection. If getOrQueueForIdleConn returns true, it was able to
+	// immediately deliver an idle connection to the wantConn, so we can return the connection or
+	// error from the wantConn without waiting for "ready".
+	if delivered := p.getOrQueueForIdleConn(w); delivered {
+		// If delivered = true, we didn't enter the wait queue and will return either a connection
+		// or an error, so unlock the stateMu lock here.
+		p.stateMu.RUnlock()
+
+		if w.err != nil {
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:    event.GetFailed,
+					Address: p.address.String(),
+					Reason:  event.ReasonConnectionErrored,
+				})
+			}
+			return nil, w.err
+		}
+
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:         event.GetSucceeded,
+				Address:      p.address.String(),
+				ConnectionID: w.conn.poolID,
+			})
+		}
+		return w.conn, nil
+	}
+
+	// If we didn't get an immediately available idle connection, also get in the queue for a new
+	// connection while we're waiting for an idle connection.
+	p.queueForNewConn(w)
+	p.stateMu.RUnlock()
+
+	// Wait for either the wantConn to be ready or for the Context to time out.
+	select {
+	case <-w.ready:
+		if w.err != nil {
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:    event.GetFailed,
+					Address: p.address.String(),
+					Reason:  event.ReasonConnectionErrored,
+				})
+			}
+			return nil, w.err
+		}
+
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:         event.GetSucceeded,
+				Address:      p.address.String(),
+				ConnectionID: w.conn.poolID,
+			})
+		}
+		return w.conn, nil
+	case <-ctx.Done():
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -361,151 +495,30 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
-		errWaitQueueTimeout := WaitQueueTimeoutError{
+		return nil, WaitQueueTimeoutError{
 			Wrapped:                      ctx.Err(),
 			PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
 			PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
-			maxPoolSize:                  p.conns.maxSize,
-		}
-		return nil, errWaitQueueTimeout
-	}
-
-	// This loop is so that we don't end up with more than maxPoolSize connections if p.conns.Maintain runs between
-	// calling p.conns.Get() and making the new connection
-	for {
-		if atomic.LoadInt32(&p.connected) != connected {
-			if p.monitor != nil {
-				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
-					Address: p.address.String(),
-					Reason:  event.ReasonPoolClosed,
-				})
-			}
-			p.sem.Release(1)
-			return nil, ErrPoolDisconnected
-		}
-
-		connVal := p.conns.Get()
-		if c, ok := connVal.(*connection); ok && connVal != nil {
-			// call connect if not connected
-			if atomic.LoadInt32(&c.connected) == initialized {
-				c.connect(ctx)
-			}
-
-			err := c.wait()
-			if err != nil {
-				// Call removeConnection to remove the connection reference and emit a ConnectionClosed event.
-				_ = p.removeConnection(c, event.ReasonConnectionErrored)
-				p.conns.decrementTotal()
-				p.sem.Release(1)
-
-				if p.monitor != nil {
-					p.monitor.Event(&event.PoolEvent{
-						Type:    event.GetFailed,
-						Address: p.address.String(),
-						Reason:  event.ReasonConnectionErrored,
-					})
-				}
-				return nil, err
-			}
-
-			if p.monitor != nil {
-				p.monitor.Event(&event.PoolEvent{
-					Type:         event.GetSucceeded,
-					Address:      p.address.String(),
-					ConnectionID: c.poolID,
-				})
-			}
-			return c, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			if p.monitor != nil {
-				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
-					Address: p.address.String(),
-					Reason:  event.ReasonTimedOut,
-				})
-			}
-			p.sem.Release(1)
-			return nil, ctx.Err()
-		default:
-			// The pool is empty, so we try to make a new connection. If incrementTotal fails, the resource pool has
-			// more resources than we previously thought, so we try to get a resource again.
-			made := p.conns.incrementTotal()
-			if !made {
-				continue
-			}
-			c, reason, err := p.makeNewConnection()
-
-			if err != nil {
-				if p.monitor != nil {
-					// We only publish a GetFailed event because makeNewConnection has already published
-					// ConnectionClosed if needed.
-					p.monitor.Event(&event.PoolEvent{
-						Type:    event.GetFailed,
-						Address: p.address.String(),
-						Reason:  reason,
-					})
-				}
-				p.conns.decrementTotal()
-				p.sem.Release(1)
-				return nil, err
-			}
-
-			c.connect(ctx)
-			// wait for conn to be connected
-			err = c.wait()
-			if err != nil {
-				// Call removeConnection to remove the connection reference and fire a ConnectionClosedEvent.
-				_ = p.removeConnection(c, event.ReasonConnectionErrored)
-				p.conns.decrementTotal()
-				p.sem.Release(1)
-
-				if p.monitor != nil {
-					p.monitor.Event(&event.PoolEvent{
-						Type:    event.GetFailed,
-						Address: p.address.String(),
-						Reason:  event.ReasonConnectionErrored,
-					})
-				}
-				return nil, err
-			}
-
-			if p.monitor != nil {
-				p.monitor.Event(&event.PoolEvent{
-					Type:         event.GetSucceeded,
-					Address:      p.address.String(),
-					ConnectionID: c.poolID,
-				})
-			}
-			return c, nil
+			maxPoolSize:                  p.maxSize,
+			totalConnectionCount:         p.totalConnectionCount(),
 		}
 	}
 }
 
-// closeConnection closes a connection, not the pool itself. This method will actually closeConnection the connection,
-// making it unusable, to instead return the connection to the pool, use put.
-func (p *pool) closeConnection(c *connection) error {
-	if c.pool != p {
+// closeConnection closes a connection.
+func (p *pool) closeConnection(conn *connection) error {
+	if conn.pool != p {
 		return ErrWrongPool
 	}
 
-	if atomic.LoadInt32(&c.connected) == connected {
-		c.closeConnectContext()
-		_ = c.wait() // Make sure that the connection has finished connecting
+	if atomic.LoadInt64(&conn.state) == connConnected {
+		conn.closeConnectContext()
+		conn.wait() // Make sure that the connection has finished connecting.
 	}
 
-	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
-		return nil // We're closing an already closed connection
-	}
-
-	if c.nc != nil {
-		err := c.nc.Close()
-		if err != nil {
-			return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to close net.Conn"}
-		}
+	err := conn.close()
+	if err != nil {
+		return ConnectionError{ConnectionID: conn.id, Wrapped: err, message: "failed to close net.Conn"}
 	}
 
 	return nil
@@ -515,77 +528,608 @@ func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint
 	return p.generation.addConnection(serviceID)
 }
 
-// removeConnection removes a connection from the pool.
-func (p *pool) removeConnection(c *connection, reason string) error {
-	if c.pool != p {
-		return ErrWrongPool
-	}
-
-	var publishEvent bool
-	p.Lock()
-	if _, ok := p.opened[c.poolID]; ok {
-		publishEvent = true
-		delete(p.opened, c.poolID)
-	}
-	p.Unlock()
-
-	// Only update the generation numbers map if the connection has retrieved its generation number. Otherwise, we'd
-	// decrement the count for the generation even though it had never been incremented.
-	if c.hasGenerationNumber() {
-		p.generation.removeConnection(c.desc.ServiceID)
-	}
-
-	if publishEvent && p.monitor != nil {
-		c.pool.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionClosed,
-			Address:      c.pool.address.String(),
-			ConnectionID: c.poolID,
-			Reason:       reason,
-		})
-	}
-	return nil
-}
-
-// put returns a connection to this pool. If the pool is connected, the connection is not
-// stale, and there is space in the cache, the connection is returned to the cache. This
-// assumes that the connection has already been counted in p.conns.totalSize.
-func (p *pool) put(c *connection) error {
-	defer p.sem.Release(1)
-	if p.monitor != nil {
-		var cid uint64
-		var addr string
-		if c != nil {
-			cid = c.poolID
-			addr = c.addr.String()
-		}
-		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionReturned,
-			ConnectionID: cid,
-			Address:      addr,
-		})
-	}
-
-	if c == nil {
+// removeConnection removes a connection from the pool and emits a "ConnectionClosed" event.
+func (p *pool) removeConnection(conn *connection, reason string) error {
+	if conn == nil {
 		return nil
 	}
 
-	if c.pool != p {
+	if conn.pool != p {
 		return ErrWrongPool
 	}
 
-	_ = p.conns.Put(c)
+	p.createConnectionsCond.L.Lock()
+	_, ok := p.conns[conn.poolID]
+	if !ok {
+		// If the connection has been removed from the pool already, exit without doing any
+		// additional state changes.
+		p.createConnectionsCond.L.Unlock()
+		return nil
+	}
+	delete(p.conns, conn.poolID)
+	// Signal the createConnectionsCond so any goroutines waiting for a new connection slot in the
+	// pool will proceed.
+	p.createConnectionsCond.Signal()
+	p.createConnectionsCond.L.Unlock()
+
+	// Only update the generation numbers map if the connection has retrieved its generation number.
+	// Otherwise, we'd decrement the count for the generation even though it had never been
+	// incremented.
+	if conn.hasGenerationNumber() {
+		p.generation.removeConnection(conn.desc.ServiceID)
+	}
+
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionClosed,
+			Address:      p.address.String(),
+			ConnectionID: conn.poolID,
+			Reason:       reason,
+		})
+	}
 
 	return nil
 }
 
-// clear clears the pool by incrementing the generation
-func (p *pool) clear(serviceID *primitive.ObjectID) {
+// checkIn returns an idle connection to the pool. If the connection is perished or the pool is
+// closed, it is removed from the connection pool and closed.
+func (p *pool) checkIn(conn *connection) error {
+	if conn == nil {
+		return nil
+	}
+	if conn.pool != p {
+		return ErrWrongPool
+	}
+
 	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionReturned,
+			ConnectionID: conn.poolID,
+			Address:      conn.addr.String(),
+		})
+	}
+
+	return p.checkInNoEvent(conn)
+}
+
+// checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
+// not publish events. It is only intended for use by pool-internal functions.
+func (p *pool) checkInNoEvent(conn *connection) error {
+	if conn == nil {
+		return nil
+	}
+	if conn.pool != p {
+		return ErrWrongPool
+	}
+
+	// Bump the connection idle deadline here because we're about to make the connection "available".
+	// The idle deadline is used to determine when a connection has reached its max idle time and
+	// should be closed. A connection reaches its max idle time when it has been "available" in the
+	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
+	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
+	// connection should never be perished due to max idle time.
+	conn.bumpIdleDeadline()
+
+	if reason, perished := connectionPerished(conn); perished {
+		_ = p.removeConnection(conn, reason)
+		go func() {
+			_ = p.closeConnection(conn)
+		}()
+		return nil
+	}
+
+	if conn.pool.getState() == poolClosed {
+		_ = p.removeConnection(conn, event.ReasonPoolClosed)
+		go func() {
+			_ = p.closeConnection(conn)
+		}()
+		return nil
+	}
+
+	p.idleMu.Lock()
+	defer p.idleMu.Unlock()
+
+	for {
+		w := p.idleConnWait.popFront()
+		if w == nil {
+			break
+		}
+		if w.tryDeliver(conn, nil) {
+			return nil
+		}
+	}
+
+	for _, idle := range p.idleConns {
+		if idle == conn {
+			return fmt.Errorf("duplicate idle conn %p in idle connections stack", conn)
+		}
+	}
+
+	p.idleConns = append(p.idleConns, conn)
+	return nil
+}
+
+// clear marks all connections as stale by incrementing the generation number, stops all background
+// goroutines, removes all requests from idleConnWait and newConnWait, and sets the pool state to
+// "paused". If serviceID is nil, clear marks all connections as stale. If serviceID is not nil,
+// clear marks only connections associated with the given serviceID stale (for use in load balancer
+// mode).
+func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
+	if p.getState() == poolClosed {
+		return
+	}
+
+	p.generation.clear(serviceID)
+
+	// If serviceID is nil (i.e. not in load balancer mode), transition the pool to a paused state
+	// by stopping all background goroutines, clearing the wait queues, and setting the pool state
+	// to "paused".
+	sendEvent := true
+	if serviceID == nil {
+		// While holding the stateMu lock, set the pool state to "paused" if it's currently "ready",
+		// and set lastClearErr to the error that caused the pool to be cleared. If the pool is
+		// already paused, don't send another "ConnectionPoolCleared" event.
+		p.stateMu.Lock()
+		if p.state == poolPaused {
+			sendEvent = false
+		}
+		if p.state == poolReady {
+			p.state = poolPaused
+		}
+		p.lastClearErr = err
+		p.stateMu.Unlock()
+
+		pcErr := poolClearedError{err: err, address: p.address}
+
+		// Clear the idle connections wait queue.
+		p.idleMu.Lock()
+		for {
+			w := p.idleConnWait.popFront()
+			if w == nil {
+				break
+			}
+			w.tryDeliver(nil, pcErr)
+		}
+		p.idleMu.Unlock()
+
+		// Clear the new connections wait queue. This effectively pauses the createConnections()
+		// background goroutine because newConnWait is empty and checkOut() won't insert any more
+		// wantConns into newConnWait until the pool is marked "ready" again.
+		p.createConnectionsCond.L.Lock()
+		for {
+			w := p.newConnWait.popFront()
+			if w == nil {
+				break
+			}
+			w.tryDeliver(nil, pcErr)
+		}
+		p.createConnectionsCond.L.Unlock()
+	}
+
+	if sendEvent && p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:      event.PoolCleared,
 			Address:   p.address.String(),
 			ServiceID: serviceID,
 		})
 	}
-	p.generation.clear(serviceID)
+}
+
+// getOrQueueForIdleConn attempts to deliver an idle connection to the given wantConn. If there is
+// an idle connection in the idle connections stack, it pops an idle connection, delivers it to the
+// wantConn, and returns true. If there are no idle connections in the idle connections stack, it
+// adds the wantConn to the idleConnWait queue and returns false.
+func (p *pool) getOrQueueForIdleConn(w *wantConn) bool {
+	p.idleMu.Lock()
+	defer p.idleMu.Unlock()
+
+	// Try to deliver an idle connection from the idleConns stack first.
+	for len(p.idleConns) > 0 {
+		conn := p.idleConns[len(p.idleConns)-1]
+		p.idleConns = p.idleConns[:len(p.idleConns)-1]
+
+		if conn == nil {
+			continue
+		}
+
+		if reason, perished := connectionPerished(conn); perished {
+			_ = conn.pool.removeConnection(conn, reason)
+			go func() {
+				_ = conn.pool.closeConnection(conn)
+			}()
+			continue
+		}
+
+		if !w.tryDeliver(conn, nil) {
+			// If we couldn't deliver the conn to w, put it back in the idleConns stack.
+			p.idleConns = append(p.idleConns, conn)
+		}
+
+		// If we got here, we tried to deliver an idle conn to w. No matter if tryDeliver() returned
+		// true or false, w is no longer waiting and doesn't need to be added to any wait queues, so
+		// return delivered = true.
+		return true
+	}
+
+	p.idleConnWait.cleanFront()
+	p.idleConnWait.pushBack(w)
+	return false
+}
+
+func (p *pool) queueForNewConn(w *wantConn) {
+	p.createConnectionsCond.L.Lock()
+	defer p.createConnectionsCond.L.Unlock()
+
+	p.newConnWait.cleanFront()
+	p.newConnWait.pushBack(w)
+	p.createConnectionsCond.Signal()
+}
+
+func (p *pool) totalConnectionCount() int {
+	p.createConnectionsCond.L.Lock()
+	defer p.createConnectionsCond.L.Unlock()
+
+	return len(p.conns)
+}
+
+func (p *pool) availableConnectionCount() int {
+	p.idleMu.Lock()
+	defer p.idleMu.Unlock()
+
+	return len(p.idleConns)
+}
+
+// createConnections creates connections for wantConn requests on the newConnWait queue.
+func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// condition returns true if the createConnections() loop should continue and false if it should
+	// wait. Note that the condition also listens for Context cancellation, which also causes the
+	// loop to continue, allowing for a subsequent check to return from createConnections().
+	condition := func() bool {
+		checkOutWaiting := p.newConnWait.len() > 0
+		poolHasSpace := p.maxSize == 0 || uint64(len(p.conns)) < p.maxSize
+		cancelled := ctx.Err() != nil
+		return (checkOutWaiting && poolHasSpace) || cancelled
+	}
+
+	// wait waits for there to be an available wantConn and for the pool to have space for a new
+	// connection. When the condition becomes true, it creates a new connection and returns the
+	// waiting wantConn and new connection. If the Context is cancelled or there are any
+	// errors, wait returns with "ok = false".
+	wait := func() (*wantConn, *connection, bool) {
+		p.createConnectionsCond.L.Lock()
+		defer p.createConnectionsCond.L.Unlock()
+
+		for !condition() {
+			p.createConnectionsCond.Wait()
+		}
+
+		if ctx.Err() != nil {
+			return nil, nil, false
+		}
+
+		p.newConnWait.cleanFront()
+		w := p.newConnWait.popFront()
+		if w == nil {
+			return nil, nil, false
+		}
+
+		conn := newConnection(p.address, p.connOpts...)
+		conn.pool = p
+		conn.poolID = atomic.AddUint64(&p.nextID, 1)
+		p.conns[conn.poolID] = conn
+
+		return w, conn, true
+	}
+
+	for ctx.Err() == nil {
+		w, conn, ok := wait()
+		if !ok {
+			continue
+		}
+
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:         event.ConnectionCreated,
+				Address:      p.address.String(),
+				ConnectionID: conn.poolID,
+			})
+		}
+
+		// Pass the createConnections context to connect to allow pool close to cancel connection
+		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
+		err := conn.connect(ctx)
+		if err != nil {
+			w.tryDeliver(nil, err)
+
+			// If there's an error connecting the new connection, call the handshake error handler
+			// that implements the SDAM handshake error handling logic. This must be called after
+			// delivering the connection error to the waiting wantConn. If it's called before, the
+			// handshake error handler may clear the connection pool, leading to a different error
+			// message being delivered to the same waiting wantConn in idleConnWait when the wait
+			// queues are cleared.
+			if p.handshakeErrFn != nil {
+				p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
+			}
+
+			_ = p.removeConnection(conn, event.ReasonError)
+			_ = p.closeConnection(conn)
+			continue
+		}
+
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:         event.ConnectionReady,
+				Address:      p.address.String(),
+				ConnectionID: conn.poolID,
+			})
+		}
+
+		if w.tryDeliver(conn, nil) {
+			continue
+		}
+
+		_ = p.checkInNoEvent(conn)
+	}
+}
+
+func (p *pool) maintain(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ticker := time.NewTicker(p.maintainInterval)
+	defer ticker.Stop()
+
+	// remove removes the *wantConn at index i from the slice and returns the new slice. The order
+	// of the slice is not maintained.
+	remove := func(arr []*wantConn, i int) []*wantConn {
+		end := len(arr) - 1
+		arr[i], arr[end] = arr[end], arr[i]
+		return arr[:end]
+	}
+
+	// removeNotWaiting removes any wantConns that are no longer waiting from given slice of
+	// wantConns. That allows maintain() to use the size of its wantConns slice as an indication of
+	// how many new connection requests are outstanding and subtract that from the number of
+	// connections to ask for when maintaining minPoolSize.
+	removeNotWaiting := func(arr []*wantConn) []*wantConn {
+		for i := len(arr) - 1; i >= 0; i-- {
+			w := arr[i]
+			if !w.waiting() {
+				arr = remove(arr, i)
+			}
+		}
+
+		return arr
+	}
+
+	wantConns := make([]*wantConn, 0, p.minSize)
+	defer func() {
+		for _, w := range wantConns {
+			w.tryDeliver(nil, ErrPoolClosed)
+		}
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+		case <-p.maintainReady:
+		case <-ctx.Done():
+			return
+		}
+
+		// Only maintain the pool while it's in the "ready" state. If the pool state is not "ready",
+		// wait for the next tick or "ready" signal. Do all of this while holding the stateMu read
+		// lock to prevent a state change between checking the state and entering the wait queue.
+		// Not holding the stateMu read lock here may allow maintain() to request wantConns after
+		// clear() pauses the pool and clears the wait queue, resulting in createConnections()
+		// doing work while the pool is "paused".
+		p.stateMu.RLock()
+		if p.state != poolReady {
+			p.stateMu.RUnlock()
+			continue
+		}
+
+		p.removePerishedConns()
+
+		// Remove any wantConns that are no longer waiting.
+		wantConns = removeNotWaiting(wantConns)
+
+		// Figure out how many more wantConns we need to satisfy minPoolSize. Assume that the
+		// outstanding wantConns (i.e. the ones that weren't removed from the slice) will all return
+		// connections when they're ready, so only add wantConns to make up the difference. Limit
+		// the number of connections requested to max 10 at a time to prevent overshooting
+		// minPoolSize in case other checkOut() calls are requesting new connections, too.
+		total := p.totalConnectionCount()
+		n := int(p.minSize) - total - len(wantConns)
+		if n > 10 {
+			n = 10
+		}
+
+		for i := 0; i < n; i++ {
+			w := newWantConn()
+			p.queueForNewConn(w)
+			wantConns = append(wantConns, w)
+
+			// Start a goroutine for each new wantConn, waiting for it to be ready.
+			go func() {
+				<-w.ready
+				if w.conn != nil {
+					_ = p.checkInNoEvent(w.conn)
+				}
+			}()
+		}
+		p.stateMu.RUnlock()
+	}
+}
+
+func (p *pool) removePerishedConns() {
+	p.idleMu.Lock()
+	defer p.idleMu.Unlock()
+
+	for i := range p.idleConns {
+		conn := p.idleConns[i]
+		if conn == nil {
+			continue
+		}
+
+		if reason, perished := connectionPerished(conn); perished {
+			p.idleConns[i] = nil
+
+			_ = p.removeConnection(conn, reason)
+			go func() {
+				_ = p.closeConnection(conn)
+			}()
+		}
+	}
+
+	p.idleConns = compact(p.idleConns)
+}
+
+// compact removes any nil pointers from the slice and keeps the non-nil pointers, retaining the
+// order of the non-nil pointers.
+func compact(arr []*connection) []*connection {
+	offset := 0
+	for i := range arr {
+		if arr[i] == nil {
+			continue
+		}
+		arr[offset] = arr[i]
+		offset++
+	}
+	return arr[:offset]
+}
+
+// A wantConn records state about a wanted connection (that is, an active call to checkOut).
+// The conn may be gotten by creating a new connection or by finding an idle connection, or a
+// cancellation may make the conn no longer wanted. These three options are racing against each
+// other and use wantConn to coordinate and agree about the winning outcome.
+// Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1174-1240
+type wantConn struct {
+	ready chan struct{}
+
+	mu   sync.Mutex // Guards conn, err
+	conn *connection
+	err  error
+}
+
+func newWantConn() *wantConn {
+	return &wantConn{
+		ready: make(chan struct{}, 1),
+	}
+}
+
+// waiting reports whether w is still waiting for an answer (connection or error).
+func (w *wantConn) waiting() bool {
+	select {
+	case <-w.ready:
+		return false
+	default:
+		return true
+	}
+}
+
+// tryDeliver attempts to deliver conn, err to w and reports whether it succeeded.
+func (w *wantConn) tryDeliver(conn *connection, err error) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.conn != nil || w.err != nil {
+		return false
+	}
+
+	w.conn = conn
+	w.err = err
+	if w.conn == nil && w.err == nil {
+		panic("x/mongo/driver/topology: internal error: misuse of tryDeliver")
+	}
+	close(w.ready)
+	return true
+}
+
+// cancel marks w as no longer wanting a result (for example, due to cancellation). If a connection
+// has been delivered already, cancel returns it with p.checkInNoEvent(). Note that the caller must
+// not hold any locks on the pool while calling cancel.
+func (w *wantConn) cancel(p *pool, err error) {
+	if err == nil {
+		panic("x/mongo/driver/topology: internal error: misuse of cancel")
+	}
+
+	w.mu.Lock()
+	if w.conn == nil && w.err == nil {
+		close(w.ready) // catch misbehavior in future delivery
+	}
+	conn := w.conn
+	w.conn = nil
+	w.err = err
+	w.mu.Unlock()
+
+	if conn != nil {
+		_ = p.checkInNoEvent(conn)
+	}
+}
+
+// A wantConnQueue is a queue of wantConns.
+// Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1242-1306
+type wantConnQueue struct {
+	// This is a queue, not a deque.
+	// It is split into two stages - head[headPos:] and tail.
+	// popFront is trivial (headPos++) on the first stage, and
+	// pushBack is trivial (append) on the second stage.
+	// If the first stage is empty, popFront can swap the
+	// first and second stages to remedy the situation.
+	//
+	// This two-stage split is analogous to the use of two lists
+	// in Okasaki's purely functional queue but without the
+	// overhead of reversing the list when swapping stages.
+	head    []*wantConn
+	headPos int
+	tail    []*wantConn
+}
+
+// len returns the number of items in the queue.
+func (q *wantConnQueue) len() int {
+	return len(q.head) - q.headPos + len(q.tail)
+}
+
+// pushBack adds w to the back of the queue.
+func (q *wantConnQueue) pushBack(w *wantConn) {
+	q.tail = append(q.tail, w)
+}
+
+// popFront removes and returns the wantConn at the front of the queue.
+func (q *wantConnQueue) popFront() *wantConn {
+	if q.headPos >= len(q.head) {
+		if len(q.tail) == 0 {
+			return nil
+		}
+		// Pick up tail as new head, clear tail.
+		q.head, q.headPos, q.tail = q.tail, 0, q.head[:0]
+	}
+	w := q.head[q.headPos]
+	q.head[q.headPos] = nil
+	q.headPos++
+	return w
+}
+
+// peekFront returns the wantConn at the front of the queue without removing it.
+func (q *wantConnQueue) peekFront() *wantConn {
+	if q.headPos < len(q.head) {
+		return q.head[q.headPos]
+	}
+	if len(q.tail) > 0 {
+		return q.tail[0]
+	}
+	return nil
+}
+
+// cleanFront pops any wantConns that are no longer waiting from the head of the queue.
+func (q *wantConnQueue) cleanFront() {
+	for {
+		w := q.peekFront()
+		if w == nil || w.waiting() {
+			return
+		}
+		q.popFront()
+	}
 }

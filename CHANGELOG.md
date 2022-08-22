@@ -1,5 +1,106 @@
 # Database Tools Changelog
 
+## 100.6.0
+
+_Released 2022-08-19_
+
+We are pleased to announce version 100.6.0 of the MongoDB Database Tools.
+
+This release introduces a security enhancement. The tools will interactively prompt for a SSL key password if the corresponding SSL key is encrypted and no password is provided on the command line.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### New Feature
+
+- [TOOLS-2913 - Prompt for SSL key password when key is encrypted](https://jira.mongodb.org/browse/TOOLS-2913)
+
+## 100.5.4
+
+_Released 2022-07-19_
+
+We are pleased to announce version 100.5.4 of the MongoDB Database Tools.
+
+This release mostly consists of build failure fixes, support for new platforms, and tests against server version 6.0. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL 8.3 on s390x. The version of Go driver used by the tools has been updated to 1.10.0.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Build Failure
+
+- [TOOLS-3100 - Fix native-cert-ssl-4.4 task failure in all build variants](https://jira.mongodb.org/browse/TOOLS-3100)
+- [TOOLS-3101 - Fix failing aws-auth-6.0 and aws-auth-latest tasks](https://jira.mongodb.org/browse/TOOLS-3101)
+- [TOOLS-3102 - Fix intermittent failures of qa-tests-{5.3, 6.0, latest} tasks](https://jira.mongodb.org/browse/TOOLS-3102)
+- [TOOLS-3110 - Fix integration test failures with server 6.0+](https://jira.mongodb.org/browse/TOOLS-3110)
+- [TOOLS-3111 - Fix intermittent legacy JS test task failure](https://jira.mongodb.org/browse/TOOLS-3111)
+- [TOOLS-3122 - Fix SSL cert test(s) on RHEL 6.2](https://jira.mongodb.org/browse/TOOLS-3122)
+- [TOOLS-3156 - Unable to publish to Ubuntu 22.04 repos](https://jira.mongodb.org/browse/TOOLS-3156)
+
+### Task
+
+- [TOOLS-3045 - Add tests for latest server release](https://jira.mongodb.org/browse/TOOLS-3045)
+- [TOOLS-3051 - Release Tools with Debian 11](https://jira.mongodb.org/browse/TOOLS-3051)
+- [TOOLS-3058 - Add Ubuntu 22.04 ARM to Tools](https://jira.mongodb.org/browse/TOOLS-3058)
+- [TOOLS-3059 - Release Tools with Ubuntu 22.04 ARM](https://jira.mongodb.org/browse/TOOLS-3059)
+- [TOOLS-3060 - Add Ubuntu 22.04 x86 to Tools](https://jira.mongodb.org/browse/TOOLS-3060)
+- [TOOLS-3061 - Release Tools with Ubuntu 22.04 x86](https://jira.mongodb.org/browse/TOOLS-3061)
+- [TOOLS-3103 - Add tests for 6.0 to evergreen](https://jira.mongodb.org/browse/TOOLS-3103)
+- [TOOLS-3113 - Test secondary indexes on timeseries collections](https://jira.mongodb.org/browse/TOOLS-3113)
+- [TOOLS-3130 - Add 6.0 to list of linux repos we release to](https://jira.mongodb.org/browse/TOOLS-3130)
+- [TOOLS-3149 - Update the Go Driver to 1.10.0](https://jira.mongodb.org/browse/TOOLS-3149)
+- [TOOLS-3155 - Repo config for RHEL 8.3 on s390x is incorrect](https://jira.mongodb.org/browse/TOOLS-3155)
+- [TOOLS-2939 - Add Enterprise RHEL 8 zSeries](https://jira.mongodb.org/browse/TOOLS-2939)
+
+
+## 100.5.3
+
+_Released 2022-06-14_
+
+We are pleased to announce version 100.5.3 of the MongoDB Database Tools.
+
+This release contains a number of bug fixes and changes. Highlights include support for clustered collections in mongorestore, updating our Go version from 1.16.7 to 1.17.8 to address CVEs, and supported platform updates.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+
+### Build Failure
+
+* [TOOLS-3119 - All builds are failing on RHEL6.2](https://jira.mongodb.org/browse/TOOLS-3119)
+* [TOOLS-3126 - The unit tests for options processing segfault on macOS](https://jira.mongodb.org/browse/TOOLS-3126)
+* [TOOLS-3127 - The dist CI task is failing on Windows](https://jira.mongodb.org/browse/TOOLS-3127)
+
+### Bug
+
+* [TOOLS-2958 - An index deletion or collMod in the oplog can be applied to the wrong index](https://jira.mongodb.org/browse/TOOLS-2958)
+* [TOOLS-2961 - The RHEL82 ARM release does not use the correct architecture](https://jira.mongodb.org/browse/TOOLS-2961)
+* [TOOLS-2963 - Tools are not prompting for a password in many cases where they should](https://jira.mongodb.org/browse/TOOLS-2963)
+* [TOOLS-3044 - The zip file for tools on Windows contains invalid paths](https://jira.mongodb.org/browse/TOOLS-3044)
+* [TOOLS-3071 - Tools installed by RPM packages to /usr/bin are owned by mongod:mongod instead of root:root](https://jira.mongodb.org/browse/TOOLS-3071)
+
+### Task
+
+* [TOOLS-2906 - Update Evergreen config to use new merge key format](https://jira.mongodb.org/browse/TOOLS-2906)
+* [TOOLS-3001 - bsondump should allow documents up to the internal max bson size (16mb + 16kb)](https://jira.mongodb.org/browse/TOOLS-3001)
+* [TOOLS-3028 - Remove evergreen batchtimes from ZAP](https://jira.mongodb.org/browse/TOOLS-3028)
+* [TOOLS-3049 - Update the Go version used to build mongo-tools to address several critical and high CVEs](https://jira.mongodb.org/browse/TOOLS-3049)
+* [TOOLS-3050 - Add Debian 11 to platforms we publish tools packages for](https://jira.mongodb.org/browse/TOOLS-3050)
+* [TOOLS-3095 - Remove Ubuntu 14.04 from CI and release platforms](https://jira.mongodb.org/browse/TOOLS-3095)
+* [TOOLS-3104 - Add tests for 5.3 to evergreen](https://jira.mongodb.org/browse/TOOLS-3104)
+* [TOOLS-3105 - Pin Go driver to version 1.9.1](https://jira.mongodb.org/browse/TOOLS-3105)
+* [TOOLS-3106 - Remove tests for 5.1 and 5.2 for most platforms](https://jira.mongodb.org/browse/TOOLS-3106)
+* [TOOLS-3108 - Update mongorestore to support clustered indexes](https://jira.mongodb.org/browse/TOOLS-3108)
+* [TOOLS-3116 - Change Windows build to run on windows-vsCurrent-large](https://jira.mongodb.org/browse/TOOLS-3116)
+
 ## 100.5.2
 
 _Released 2022-02-01_

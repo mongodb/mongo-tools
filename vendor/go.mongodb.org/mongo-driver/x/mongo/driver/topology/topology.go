@@ -13,20 +13,27 @@ package topology // import "go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 import (
 	"context"
 	"errors"
-	"math/rand"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"fmt"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
+)
+
+// Topology state constants.
+const (
+	topologyDisconnected int64 = iota
+	topologyDisconnecting
+	topologyConnected
+	topologyConnecting
 )
 
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
@@ -48,6 +55,9 @@ var ErrServerSelectionTimeout = errors.New("server selection timeout")
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
 
+// random is a package-global pseudo-random number generator.
+var random = randutil.NewLockedRand()
+
 // These constants are the available monitoring modes.
 const (
 	AutomaticMode MonitorMode = iota
@@ -56,7 +66,7 @@ const (
 
 // Topology represents a MongoDB deployment.
 type Topology struct {
-	connectionstate int32
+	state int64
 
 	cfg *config
 
@@ -144,7 +154,7 @@ func New(opts ...Option) (*Topology, error) {
 // Connect initializes a Topology and starts the monitoring process. This function
 // must be called to properly monitor the topology.
 func (t *Topology) Connect() error {
-	if !atomic.CompareAndSwapInt32(&t.connectionstate, disconnected, connecting) {
+	if !atomic.CompareAndSwapInt64(&t.state, topologyDisconnected, topologyConnecting) {
 		return ErrTopologyConnected
 	}
 
@@ -226,14 +236,14 @@ func (t *Topology) Connect() error {
 
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
 
-	atomic.StoreInt32(&t.connectionstate, connected)
+	atomic.StoreInt64(&t.state, topologyConnected)
 	return nil
 }
 
 // Disconnect closes the topology. It stops the monitoring thread and
 // closes all open subscriptions.
 func (t *Topology) Disconnect(ctx context.Context) error {
-	if !atomic.CompareAndSwapInt32(&t.connectionstate, connected, disconnecting) {
+	if !atomic.CompareAndSwapInt64(&t.state, topologyConnected, topologyDisconnecting) {
 		return ErrTopologyClosed
 	}
 
@@ -265,7 +275,7 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 
 	t.desc.Store(description.Topology{})
 
-	atomic.StoreInt32(&t.connectionstate, disconnected)
+	atomic.StoreInt64(&t.state, topologyDisconnected)
 	t.publishTopologyClosedEvent()
 	return nil
 }
@@ -287,7 +297,7 @@ func (t *Topology) Kind() description.TopologyKind { return t.Description().Kind
 // and will be pre-populated with the current description.Topology.
 // Subscribe implements the driver.Subscriber interface.
 func (t *Topology) Subscribe() (*driver.Subscription, error) {
-	if atomic.LoadInt32(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return nil, errors.New("cannot subscribe to Topology that is not connected")
 	}
 	ch := make(chan description.Topology, 1)
@@ -335,7 +345,7 @@ func (t *Topology) Unsubscribe(sub *driver.Subscription) error {
 // RequestImmediateCheck will send heartbeats to all the servers in the
 // topology right away, instead of waiting for the heartbeat timeout.
 func (t *Topology) RequestImmediateCheck() {
-	if atomic.LoadInt32(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return
 	}
 	t.serversLock.Lock()
@@ -346,10 +356,10 @@ func (t *Topology) RequestImmediateCheck() {
 }
 
 // SelectServer selects a server with given a selector. SelectServer complies with the
-// server selection spec, and will time out after severSelectionTimeout or when the
+// server selection spec, and will time out after serverSelectionTimeout or when the
 // parent context is done.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
-	if atomic.LoadInt32(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return nil, ErrTopologyClosed
 	}
 	var ssTimeoutCh <-chan time.Time
@@ -395,26 +405,77 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			continue
 		}
 
-		selected := suitable[rand.Intn(len(suitable))]
-		selectedS, err := t.FindServer(selected)
-		switch {
-		case err != nil:
-			return nil, err
-		case selectedS != nil:
-			return selectedS, nil
-		default:
-			// We don't have an actual server for the provided description.
-			// This could happen for a number of reasons, including that the
-			// server has since stopped being a part of this topology, or that
-			// the server selector returned no suitable servers.
+		// If there's only one suitable server description, try to find the associated server and
+		// return it. This is an optimization primarily for standalone and load-balanced deployments.
+		if len(suitable) == 1 {
+			server, err := t.FindServer(suitable[0])
+			if err != nil {
+				return nil, err
+			}
+			if server == nil {
+				continue
+			}
+			return server, nil
 		}
+
+		// Randomly select 2 suitable server descriptions and find servers for them. We select two
+		// so we can pick the one with the one with fewer in-progress operations below.
+		desc1, desc2 := pick2(suitable)
+		server1, err := t.FindServer(desc1)
+		if err != nil {
+			return nil, err
+		}
+		server2, err := t.FindServer(desc2)
+		if err != nil {
+			return nil, err
+		}
+
+		// If we don't have an actual server for one or both of the provided descriptions, either
+		// return the one server we have, or try again if they're both nil. This could happen for a
+		// number of reasons, including that the server has since stopped being a part of this
+		// topology.
+		if server1 == nil || server2 == nil {
+			if server1 == nil && server2 == nil {
+				continue
+			}
+			if server1 != nil {
+				return server1, nil
+			}
+			return server2, nil
+		}
+
+		// Of the two randomly selected suitable servers, pick the one with fewer in-use connections.
+		// We use in-use connections as an analog for in-progress operations because they are almost
+		// always the same value for a given server.
+		if server1.OperationCount() < server2.OperationCount() {
+			return server1, nil
+		}
+		return server2, nil
 	}
+}
+
+// pick2 returns 2 random server descriptions from the input slice of server descriptions,
+// guaranteeing that the same element from the slice is not picked twice. The order of server
+// descriptions in the input slice may be modified. If fewer than 2 server descriptions are
+// provided, pick2 will panic.
+func pick2(ds []description.Server) (description.Server, description.Server) {
+	// Select a random index from the input slice and keep the server description from that index.
+	idx := random.Intn(len(ds))
+	s1 := ds[idx]
+
+	// Swap the selected index to the end and reslice to remove it so we don't pick the same server
+	// description twice.
+	ds[idx], ds[len(ds)-1] = ds[len(ds)-1], ds[idx]
+	ds = ds[:len(ds)-1]
+
+	// Select another random index from the input slice and return both selected server descriptions.
+	return s1, ds[random.Intn(len(ds))]
 }
 
 // FindServer will attempt to find a server that fits the given server description.
 // This method will return nil, nil if a matching server could not be found.
 func (t *Topology) FindServer(selected description.Server) (*SelectedServer, error) {
-	if atomic.LoadInt32(&t.connectionstate) != connected {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
 		return nil, ErrTopologyClosed
 	}
 	t.serversLock.Lock()
@@ -494,7 +555,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 func (t *Topology) pollSRVRecords() {
 	defer t.pollingwg.Done()
 
-	serverConfig, _ := newServerConfig(t.cfg.serverOpts...)
+	serverConfig := newServerConfig(t.cfg.serverOpts...)
 	heartbeatInterval := serverConfig.heartbeatInterval
 
 	pollTicker := time.NewTicker(t.rescanSRVInterval)
@@ -527,7 +588,7 @@ func (t *Topology) pollSRVRecords() {
 			break
 		}
 
-		parsedHosts, err := t.dnsResolver.ParseHosts(hosts, false)
+		parsedHosts, err := t.dnsResolver.ParseHosts(hosts, t.cfg.srvServiceName, false)
 		// DNS problem or no verified hosts returned
 		if err != nil || len(parsedHosts) == 0 {
 			if !t.pollHeartbeatTime.Load().(bool) {
@@ -581,11 +642,25 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		t.fsm.removeServerByAddr(addr)
 		t.publishServerClosedEvent(s.address)
 	}
+
+	// Now that we've removed all the hosts that disappeared from the SRV record, we need to add any
+	// new hosts added to the SRV record. If adding all of the new hosts would increase the number
+	// of servers past srvMaxHosts, shuffle the list of added hosts.
+	if t.cfg.srvMaxHosts > 0 && len(t.servers)+len(diff.Added) > t.cfg.srvMaxHosts {
+		random.Shuffle(len(diff.Added), func(i, j int) {
+			diff.Added[i], diff.Added[j] = diff.Added[j], diff.Added[i]
+		})
+	}
+	// Add all added hosts until the number of servers reaches srvMaxHosts.
 	for _, a := range diff.Added {
+		if t.cfg.srvMaxHosts > 0 && len(t.servers) >= t.cfg.srvMaxHosts {
+			break
+		}
 		addr := address.Address(a).Canonicalize()
 		_ = t.addServer(addr)
 		t.fsm.addServer(addr)
 	}
+
 	//store new description
 	newDesc := description.Topology{
 		Kind:                  t.fsm.Kind,
@@ -610,7 +685,6 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	t.subLock.Unlock()
 
 	return true
-
 }
 
 // apply updates the Topology and its underlying FSM based on the provided server description and returns the server
@@ -631,11 +705,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	}
 
 	var current description.Topology
-	var err error
-	current, desc, err = t.fsm.apply(desc)
-	if err != nil {
-		return desc
-	}
+	current, desc = t.fsm.apply(desc)
 
 	if !oldDesc.Equal(desc) {
 		t.publishServerDescriptionChangedEvent(oldDesc, desc)

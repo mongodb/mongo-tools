@@ -28,16 +28,16 @@ const (
 
 // Prompt displays a prompt asking for the password and returns the
 // password the user enters as a string.
-func Prompt() (string, error) {
+func Prompt(what string) (string, error) {
 	var pass string
 	var err error
 	if IsTerminal() {
 		log.Logv(log.DebugLow, "standard input is a terminal; reading password from terminal")
-		fmt.Fprintf(os.Stderr, "Enter password:")
+		fmt.Fprintf(os.Stderr, "Enter password for %s:", what)
 		pass, err = readPassInteractively()
 	} else {
 		log.Logv(log.Always, "reading password from standard input")
-		fmt.Fprintf(os.Stderr, "Enter password:")
+		fmt.Fprintf(os.Stderr, "Enter password for %s:", what)
 		pass, err = readPassNonInteractively(os.Stdin)
 	}
 	if err != nil {

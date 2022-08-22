@@ -24,12 +24,13 @@ var pkgNames = []string{
 	"mongostat", "mongotop",
 	"mongofiles",
 	"common",
+	"release",
 }
 
 // BuildTools is an Executor that builds the tools.
 func BuildTools(ctx *task.Context) error {
 	for _, pkg := range selectedPkgs(ctx) {
-		if pkg != "common" {
+		if pkg != "common" && pkg != "release" {
 			err := buildToolBinary(ctx, pkg, "bin")
 			if err != nil {
 				return err
