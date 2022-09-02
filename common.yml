@@ -562,7 +562,7 @@ functions:
           set -x
           set -v
           set -e
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s latest
+          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.47.3
 
   "create auth_user":
     - command: shell.exec
