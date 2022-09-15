@@ -149,7 +149,7 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 		matcher += string(c)
 		from = from[width:]
 	}
-	matcher = fmt.Sprintf("^%s$", matcher)
+	matcher = fmt.Sprintf("(?s)^%s$", matcher)
 	// The regexp we generated should always compile (it's not the user's fault)
 	re = regexp.MustCompile(matcher)
 
