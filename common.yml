@@ -3400,7 +3400,7 @@ github_pr_aliases:
     task: ".*"
   # Run unit, sign, and push for every platform.
   - variant: ".*"
-    task: "^(unit|sign|push)$"
+    task: "^unit$"
   # Run tests with the race detector enabled.
   - variant: "ubuntu-race"
     task: "^.*$"

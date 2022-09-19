@@ -107,7 +107,7 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 		{
 			comment: "Run unit, sign, and push for every platform.",
 			variant: `.*`,
-			tasks:   `^(unit|sign|push)$`,
+			tasks:   `^unit$`,
 		},
 		{
 			comment: "Run tests with the race detector enabled.",
