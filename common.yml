@@ -3400,7 +3400,7 @@ github_pr_aliases:
   # Run all static analysis tasks.
   - variant: "^static$"
     task: ".*"
-  # Run unit, sign, and push for every platform.
+  # Run unit for every platform.
   - variant: ".*"
     task: "^unit$"
   # Run tests with the race detector enabled.
