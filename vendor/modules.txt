@@ -57,8 +57,6 @@ github.com/craiggwilson/goke/task
 github.com/craiggwilson/goke/task/internal
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/go-stack/stack v1.8.0
-## explicit
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/go-cmp v0.5.2
@@ -96,6 +94,9 @@ github.com/mattn/go-runewidth
 # github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 ## explicit
 github.com/mgutz/ansi
+# github.com/mitchellh/go-wordwrap v1.0.1
+## explicit
+github.com/mitchellh/go-wordwrap
 # github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 github.com/montanaflynn/stats
 # github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
@@ -184,8 +185,6 @@ golang.org/x/term
 # golang.org/x/text v0.3.7
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.0.0-20190531172133-b3315ee88b7d
-## explicit
 # gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
 ## explicit
 gopkg.in/tomb.v2
