@@ -1,0 +1,8 @@
+# Snyk (https://snyk.io) policy file
+exclude:
+  code:
+    - "test/**"
+    - "release/**"
+    - "scripts/**"
+    - "common/testdata/**"
+    - "/._test.go"
