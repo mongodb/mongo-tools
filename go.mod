@@ -6,7 +6,7 @@ require (
 	github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43
 	github.com/aws/aws-sdk-go v1.34.28
 	github.com/craiggwilson/goke v0.0.0-20200309222237-69a77cdfe646
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.9
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/mattn/go-colorable v0.1.7 // indirect
@@ -16,9 +16,9 @@ require (
 	github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.6.4
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
-	go.mongodb.org/mongo-driver v1.10.0
+	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
