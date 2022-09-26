@@ -18,7 +18,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.7.1
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
-	go.mongodb.org/mongo-driver v1.10.0
+	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/tomb.v2 v2.0.0-20140626144623-14b3d72120e8
