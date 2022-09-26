@@ -1,0 +1,12 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: "gomod" 
+    directory: "/" 
+    schedule:
+      interval: "daily" # setting this daily at first
+    open-pull-requests-limit: 20 # setting this high for the first round
+    reviewers:
+      - tfogo
