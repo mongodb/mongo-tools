@@ -16,7 +16,7 @@ require (
 	github.com/nsf/termbox-go v0.0.0-20160718140619-0723e7c3d0a3
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.6.4
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 	go.mongodb.org/mongo-driver v1.10.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
