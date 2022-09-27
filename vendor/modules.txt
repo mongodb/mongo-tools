@@ -1,4 +1,4 @@
-# github.com/3rf/mongo-lint v0.0.0-20140702032649-f6cf4f8a7d07
+# github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43
 ## explicit
 github.com/3rf/mongo-lint
 github.com/3rf/mongo-lint/golint
