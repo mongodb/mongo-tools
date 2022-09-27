@@ -48,6 +48,15 @@ func RunOutput(ctx *task.Context, name string, args ...string) (string, error) {
 	return strings.TrimRight(output.String(), "\r\n"), err
 }
 
+// RunBuffered runs the specified command and returns the actual command exectued, stdout, and stderr.
+func RunBuffered(ctx *task.Context, name string, args ...string) (string, string, string, error) {
+	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+	err := cmd.Run()
+	return cmd.String(), stdout.String(), stderr.String(), err
+}
+
 // RunCmd runs the provided command.
 func RunCmd(ctx *task.Context, cmd *exec.Cmd) error {
 	LogCmd(ctx, cmd)

@@ -88,12 +88,12 @@ func (b *Builder) Hide() *Builder {
 }
 
 type declaredTask struct {
-	name            string
-	continueOnError bool
 	declaredArgs    []DeclaredTaskArg
-	description     string
 	dependencies    []string
+	name            string
+	description     string
 	executor        Executor
+	continueOnError bool
 	hidden          bool
 }
 

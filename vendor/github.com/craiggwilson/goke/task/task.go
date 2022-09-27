@@ -33,7 +33,7 @@ var Required = Validator(func(name, s string) error {
 
 // ChainValidator is a validator that is the conjunction of the given validators.
 func ChainValidator(validators ...Validator) Validator {
-	return Validator(func(name, s string) error {
+	return func(name, s string) error {
 		for _, validator := range validators {
 			if validator != nil {
 				if err := validator(name, s); err != nil {
@@ -43,7 +43,7 @@ func ChainValidator(validators ...Validator) Validator {
 		}
 
 		return nil
-	})
+	}
 }
 
 // DeclaredTaskArg is an argument for a particular task.
