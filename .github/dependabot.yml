@@ -6,7 +6,6 @@ updates:
   - package-ecosystem: "gomod" 
     directory: "/" 
     schedule:
-      interval: "daily" # setting this daily at first
-    open-pull-requests-limit: 20 # setting this high for the first round
+      interval: "weekly" 
     reviewers:
       - tfogo
