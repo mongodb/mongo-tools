@@ -1,8 +1,8 @@
 github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43 h1:0vMGqPI4f0gagBvQrgsQYXKmb6NL2+2WT+AlWCCmb9Q=
 github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43/go.mod h1:ggh9ZlgUveoGPv/xlt2+6f/bGVEl/h+WlV4LX/dyxEI=
 github.com/aws/aws-sdk-go v1.22.1/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
-github.com/aws/aws-sdk-go v1.44.106 h1:FzINxRGt0gAzz01ixtKfkjiDOnnpd/uNbstW/qPW2QE=
-github.com/aws/aws-sdk-go v1.44.106/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
+github.com/aws/aws-sdk-go v1.44.107 h1:VP7Rq3wzsOV7wrfHqjAAKRksD4We58PaoVSDPKhm8nw=
+github.com/aws/aws-sdk-go v1.44.107/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/craiggwilson/goke v0.0.0-20220110201909-adb8bfb05d58 h1:AKK/n9wLDB2exckK5+qce+BzKZSWxZgrCa3/dMOi0Zk=
 github.com/craiggwilson/goke v0.0.0-20220110201909-adb8bfb05d58/go.mod h1:IX+FckvUr3c6SNWSzspUD94HqCMFCW+sIK0lJGSkWkg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
