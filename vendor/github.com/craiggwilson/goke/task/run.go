@@ -4,17 +4,22 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/craiggwilson/goke/task/internal"
 	"github.com/mattn/go-isatty"
+
+	"github.com/craiggwilson/goke/task/internal"
 )
+
+const trueString = "true"
 
 // Run orders the tasks be dependencies to build an execution plan and then executes each required task.
 func Run(registry *Registry, arguments []string) error {
-	opts, err := parseArgs(registry, arguments)
+	opts, err := parseArgs(arguments)
 	if err != nil {
 		return err
 	}
@@ -34,7 +39,7 @@ func Run(registry *Registry, arguments []string) error {
 		return printHelp(ui, registry)
 	}
 
-	writer := internal.NewPrefixWriter(os.Stdout)
+	writer := internal.NewPrefixWriter(&syncWriter{Writer: os.Stdout})
 	prefix := []byte("       | ")
 
 	totalStartTime := time.Now()
@@ -84,8 +89,8 @@ func Run(registry *Registry, arguments []string) error {
 		return fmt.Errorf("task(s) %s failed", failedTasks)
 	}
 
-	fmt.Fprintln(writer, "---------------")
-	fmt.Fprintln(writer, ui.Success(fmt.Sprint("Completed in ", totalDuration)))
+	_, _ = fmt.Fprintln(writer, "---------------")
+	_, _ = fmt.Fprintln(writer, ui.Success(fmt.Sprint("Completed in ", totalDuration)))
 
 	return nil
 }
@@ -114,7 +119,7 @@ func argsForTask(task Task, args globalArgs) (map[string]string, error) {
 	return taskArgs, nil
 }
 
-func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
+func parseArgs(arguments []string) (*runOptions, error) {
 	var requiredTaskNames []string
 	args := globalArgs{}
 	for _, arg := range arguments {
@@ -134,12 +139,12 @@ func parseArgs(registry *Registry, arguments []string) (*runOptions, error) {
 	}
 
 	verboseArg, _ := args.get("", "verbose")
-	verbose := verboseArg == "true"
+	verbose := verboseArg == trueString
 	helpArg, _ := args.get("", "help")
-	help := helpArg == "true"
+	help := helpArg == trueString
 
 	color := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
-	if colorArg, ok := args.get("", "color"); ok && colorArg != "true" {
+	if colorArg, ok := args.get("", "color"); ok && colorArg != trueString {
 		color = false
 	}
 
@@ -159,7 +164,7 @@ func parseArg(arg string) (string, string, string) {
 	parts := strings.SplitN(arg, "=", 2)
 	ns, name := parseArgName(parts[0])
 	if len(parts) == 1 {
-		return ns, name, "true"
+		return ns, name, trueString
 	}
 
 	return ns, name, parts[1]
@@ -208,4 +213,16 @@ func (ga globalArgs) set(taskName, argName, value string) {
 	}
 
 	ta[argName] = value
+}
+
+type syncWriter struct {
+	io.Writer
+
+	mu sync.Mutex
+}
+
+func (w *syncWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.Writer.Write(p)
 }

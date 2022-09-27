@@ -12,16 +12,16 @@ type RegistryOption func(r *Registry)
 // WithAutoNamespaces tells the registry whether to automatically create
 // namespace tasks.
 func WithAutoNamespaces(v bool) RegistryOption {
-	return RegistryOption(func(r *Registry) {
+	return func(r *Registry) {
 		r.autoNS = v
-	})
+	}
 }
 
 // WithNamespaceSeparator sets the separator for namespaces.
 func WithNamespaceSeparator(s string) RegistryOption {
-	return RegistryOption(func(r *Registry) {
+	return func(r *Registry) {
 		r.nsSeparator = s
-	})
+	}
 }
 
 // NewRegistry creates a new registry.

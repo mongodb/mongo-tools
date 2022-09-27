@@ -2,6 +2,8 @@ package termbox
 
 import (
 	"syscall"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // public API
@@ -42,10 +44,15 @@ func Init() error {
 		return err
 	}
 
-	orig_size = get_term_size(out)
+	orig_size, orig_window = get_term_size(out)
 	win_size := get_win_size(out)
 
 	err = set_console_screen_buffer_size(out, win_size)
+	if err != nil {
+		return err
+	}
+
+	err = fix_win_size(out, win_size)
 	if err != nil {
 		return err
 	}
@@ -56,7 +63,7 @@ func Init() error {
 	}
 
 	show_cursor(false)
-	term_size = get_term_size(out)
+	term_size, _ = get_term_size(out)
 	back_buffer.init(int(term_size.x), int(term_size.y))
 	front_buffer.init(int(term_size.x), int(term_size.y))
 	back_buffer.clear()
@@ -86,9 +93,10 @@ func Close() {
 	}
 	<-cancel_done_comm
 
+	set_console_screen_buffer_size(out, orig_size)
+	set_console_window_info(out, &orig_window)
 	set_console_cursor_info(out, &orig_cursor_info)
 	set_console_cursor_position(out, coord{})
-	set_console_screen_buffer_size(out, orig_size)
 	set_console_mode(in, orig_mode)
 	syscall.Close(in)
 	syscall.Close(out)
@@ -103,18 +111,37 @@ func Interrupt() {
 	interrupt_comm <- struct{}{}
 }
 
+// https://docs.microsoft.com/en-us/windows/console/char-info-str
+const (
+	common_lvb_leading_byte  = 0x0100
+	common_lvb_trailing_byte = 0x0200
+)
+
 // Synchronizes the internal back buffer with the terminal.
 func Flush() error {
 	update_size_maybe()
 	prepare_diff_messages()
 	for _, diff := range diffbuf {
+		chars := []char_info{}
+		for _, char := range diff.chars {
+			if runewidth.RuneWidth(rune(char.char)) > 1 {
+				char.attr |= common_lvb_leading_byte
+				chars = append(chars, char)
+				chars = append(chars, char_info{
+					char: char.char,
+					attr: char.attr | common_lvb_trailing_byte,
+				})
+			} else {
+				chars = append(chars, char)
+			}
+		}
 		r := small_rect{
 			left:   0,
 			top:    diff.pos,
 			right:  term_size.x - 1,
 			bottom: diff.pos + diff.lines - 1,
 		}
-		write_console_output(out, diff.chars, r)
+		write_console_output(out, chars, r)
 	}
 	if !is_cursor_hidden(cursor_x, cursor_y) {
 		move_cursor(cursor_x, cursor_y)
@@ -154,6 +181,50 @@ func SetCell(x, y int, ch rune, fg, bg Attribute) {
 	}
 
 	back_buffer.cells[y*back_buffer.width+x] = Cell{ch, fg, bg}
+}
+
+// Returns the specified cell from the internal back buffer.
+func GetCell(x, y int) Cell {
+	return back_buffer.cells[y*back_buffer.width+x]
+}
+
+// Changes cell's character (rune) in the internal back buffer at the
+// specified position.
+func SetChar(x, y int, ch rune) {
+	if x < 0 || x >= back_buffer.width {
+		return
+	}
+	if y < 0 || y >= back_buffer.height {
+		return
+	}
+
+	back_buffer.cells[y*back_buffer.width+x].Ch = ch
+}
+
+// Changes cell's foreground attributes in the internal back buffer at
+// the specified position.
+func SetFg(x, y int, fg Attribute) {
+	if x < 0 || x >= back_buffer.width {
+		return
+	}
+	if y < 0 || y >= back_buffer.height {
+		return
+	}
+
+	back_buffer.cells[y*back_buffer.width+x].Fg = fg
+}
+
+// Changes cell's background attributes in the internal back buffer at
+// the specified position.
+func SetBg(x, y int, bg Attribute) {
+	if x < 0 || x >= back_buffer.width {
+		return
+	}
+	if y < 0 || y >= back_buffer.height {
+		return
+	}
+
+	back_buffer.cells[y*back_buffer.width+x].Bg = bg
 }
 
 // Returns a slice into the termbox's back buffer. You can get its dimensions

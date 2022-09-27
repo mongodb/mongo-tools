@@ -3,8 +3,10 @@ package sh
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/craiggwilson/goke/task"
 
@@ -15,8 +17,30 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+const numHTTPRetries = 5
+
 // DownloadHTTP issues a GET request against the provided url and downloads the contents to the toPath.
+//
+// This method will retry HTTP requests that fail.
 func DownloadHTTP(ctx *task.Context, url string, toPath string) error {
+	var err error
+	for i := 0; i < numHTTPRetries; i++ {
+		ctx.Logf("attempting HTTP download (%d/%d)\n", i+1, numHTTPRetries)
+		// This is a very simplistic retry. Some HTTP response codes do not benefit
+		// from being retried, e.g. 4XX errors that are typically the client's
+		// fault. Additionally, some errors may occur before the HTTP request is
+		// even sent. Despite this, given the use-case for this package (i.e. not
+		// production codepaths), we opt for simplicity rather than error-prone
+		// case-checking of errors.
+		if err = downloadHTTP(ctx, url, toPath); err == nil {
+			return nil
+		}
+	}
+
+	return err
+}
+
+func downloadHTTP(ctx *task.Context, url string, toPath string) error {
 	ctx.Logf("download: %s -> %s\n", url, toPath)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -27,10 +51,16 @@ func DownloadHTTP(ctx *task.Context, url string, toPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed issuing GET request: %v", err)
 	}
-	if res.Body == nil {
-		return errors.New("no body from the GET request")
-	}
 	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		buf := strings.Builder{}
+		_, err := io.Copy(&buf, res.Body)
+		if err == nil {
+			err = errors.New(buf.String())
+		}
+
+		return fmt.Errorf("received non-200 response (%d) for GET: %w", res.StatusCode, err)
+	}
 
 	return copyTo(url, res.Body, toPath, 0666)
 }
@@ -68,30 +98,52 @@ func DownloadS3(ctx *task.Context, from S3Object, toPath string, profile string)
 	return err
 }
 
-// UploadS3 uploads a file to S3.
+// HeadS3 checks if an object exists on S3.
+func HeadS3(ctx *task.Context, from S3Object, profile string) error {
+	ctx.Logf("s3 check: %s/%s\n", from.Bucket, from.Key)
+
+	var err error
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:      aws.String(from.Region),
+		Credentials: s3Credentials(ctx, profile),
+	}))
+
+	svc := s3.New(sess)
+	_, err = svc.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(from.Bucket),
+		Key:    aws.String(from.Key),
+	})
+
+	return err
+}
+
+// UploadS3 reads the file at the provided path and uploads the contents to S3.
 func UploadS3(ctx *task.Context, fromPath string, to S3Object, profile string) error {
 	ctx.Logf("s3 upload: %s -> %s/%s\n", fromPath, to.Bucket, to.Key)
 
-	var err error
+	var f *os.File
+	f, err := os.Open(fromPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return UploadReaderToS3(ctx, f, to, profile)
+}
+
+// UploadReaderToS3 uploads the contents of the provided reader to S3.
+func UploadReaderToS3(ctx *task.Context, reader io.Reader, to S3Object, profile string) error {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:      aws.String(to.Region),
 		Credentials: s3Credentials(ctx, profile),
 	}))
 
 	uploader := s3manager.NewUploader(sess)
-	var f *os.File
-	f, err = os.Open(fromPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
+	_, err := uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: aws.String(to.Bucket),
 		Key:    aws.String(to.Key),
-		Body:   f,
+		Body:   reader,
 	})
-
 	return err
 }
 

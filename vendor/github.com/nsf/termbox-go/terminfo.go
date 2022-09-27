@@ -69,6 +69,12 @@ func load_terminfo() ([]byte, error) {
 		}
 	}
 
+	// next, /lib/terminfo
+	data, err = ti_try_path("/lib/terminfo")
+	if err == nil {
+		return data, nil
+	}
+
 	// fall back to /usr/share/terminfo
 	return ti_try_path("/usr/share/terminfo")
 }
@@ -151,11 +157,16 @@ func setup_term() (err error) {
 		return
 	}
 
+	number_sec_len := int16(2)
+	if header[0] == 542 { // doc says it should be octal 0542, but what I see it terminfo files is 542, learn to program please... thank you..
+		number_sec_len = 4
+	}
+
 	if (header[1]+header[2])%2 != 0 {
 		// old quirk to align everything on word boundaries
 		header[2] += 1
 	}
-	str_offset = ti_header_length + header[1] + header[2] + 2*header[3]
+	str_offset = ti_header_length + header[1] + header[2] + number_sec_len*header[3]
 	table_offset = str_offset + 2*header[4]
 
 	keys = make([]string, 0xFFFF-key_min)
@@ -211,7 +222,21 @@ func ti_read_string(rd *bytes.Reader, str_off, table int16) (string, error) {
 // "Maps" the function constants from termbox.go to the number of the respective
 // string capability in the terminfo file. Taken from (ncurses) term.h.
 var ti_funcs = []int16{
-	28, 40, 16, 13, 5, 39, 36, 27, 26, 34, 89, 88,
+	28,  // enter ca
+	40,  // exit ca
+	16,  // show cursor
+	13,  // hide cursor
+	5,   // clear screen
+	39,  // sgr0
+	36,  // underline
+	27,  // bold
+	32,  // hidden
+	26,  // blink
+	30,  // dim
+	311, // cursive
+	34,  // reverse
+	89,  // enter keypad ("keypad_xmit")
+	88,  // exit keypad ("keypad_local")
 }
 
 // Same as above for the special keys.
