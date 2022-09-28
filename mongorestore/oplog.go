@@ -67,7 +67,8 @@ func shouldIgnoreNamespace(ns string) bool {
 		ns == "config.image_collection" ||
 		ns == "config.mongos" ||
 		ns == "config.system.sessions" ||
-		ns == "config.system.indexBuilds" {
+		ns == "config.system.indexBuilds" ||
+		ns == "config.system.preimages" {
 		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
 		return true
 	}

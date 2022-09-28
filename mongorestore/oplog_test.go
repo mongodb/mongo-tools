@@ -629,6 +629,10 @@ func TestShouldIgnoreNamespacee(t *testing.T) {
 			output: true,
 		},
 		{
+			ns:     "config.system.preimages",
+			output: true,
+		},
+		{
 			ns:     "config.transactions",
 			output: true,
 		},
