@@ -46,7 +46,7 @@ const (
 
 func HasTestType(testType string) bool {
 	envVal := os.Getenv(testType)
-	return envVal == "true"
+	return envVal != ""
 }
 
 // Skip the test if the specified type is not being run.
