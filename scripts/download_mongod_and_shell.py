@@ -28,7 +28,7 @@ def main():
     )
     parser.add_argument(
         "--edition",
-        help="edition of MongoDB to use (e.g. 'targeted', 'enterprise'); defaults to 'base'",
+        help="edition of MongoDB to use, either 'community' or 'enterprise'; defaults to 'community'",
     )
     parser.add_argument(
         "--target",
@@ -121,7 +121,7 @@ class Main:
 class Wanted:
     def __init__(self, edition, version, target, arch):
         if not edition:
-            edition = "base"
+            edition = "community"
         if not arch:
             sys.exit("must specify --arch")
         if not target:
@@ -219,8 +219,14 @@ class UrlFinder:
         return True
 
     def is_correct_download(self, download):
+        edition = download["edition"]
         return (
-            download["edition"] == self.wanted.edition
+            (
+                (self.wanted.edition == "enterprise" and edition == "enterprise")
+                # The community edition used to be called "base" but is now
+                # called "targeted".
+                or (edition == "base" or edition == "targeted")
+            )
             and download["target"] == self.wanted.target
             and download["arch"] == self.wanted.arch
         )
