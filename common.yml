@@ -165,24 +165,6 @@ functions:
         fi
         PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
 
-  "start mongod cluster":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      background: true
-      script: |
-        set -x
-        set -v
-        set -e
-        rm -rf mongodb/db_files mongodb/${logfile|run.log}
-        mkdir -p mongodb/db_files
-        MONGOD_ARGS="${mongod_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGOD_ARGS="${mongod_args_tls}"
-        fi;
-        echo "Starting mongod cluster..."
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 --replSet repltester
-
   "wait for mongod to be ready":
     command: shell.exec
     params:
@@ -542,17 +524,6 @@ functions:
           set -e
           mkdir -p bin
 
-  "fetch ftdc":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          GOPATH=$PWD go get github.com/10gen/ftdc-utils/cmd/ftdc
-
   "fetch golangci-lint":
     - command: shell.exec
       type: test
@@ -563,37 +534,6 @@ functions:
           set -v
           set -e
           curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.47.3
-
-  "create auth_user":
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          ./bin/mongo --port ${mongod_port} admin --eval "db.createUser({user:\"authorizedUser\", pwd: \"authorizedPwd\", roles:[\"readWriteAnyDatabase\", \"clusterManager\"]});"
-
-  "create sharded_cluster":
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        background: true
-        script: |
-          set -x
-          set -v
-          set -e
-          echo "starting sharded cluster"
-          mkdir -p /data/db/
-          PATH=./bin:$PATH ./bin/mongo --nodb --eval 'var d = new ShardingTest({shards:3, mongos:[{port:${mongod_port}}]}); while(true){sleep(1000)}'
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          ./bin/mongo --nodb --eval 'var d; assert.soon(function(x){try{d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection");d.setLogLevel(5, "write");'
 
   "create repl_set":
     - command: shell.exec
