@@ -2,7 +2,7 @@
 ## explicit
 github.com/3rf/mongo-lint
 github.com/3rf/mongo-lint/golint
-# github.com/aws/aws-sdk-go v1.44.106
+# github.com/aws/aws-sdk-go v1.44.109
 ## explicit; go 1.11
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
