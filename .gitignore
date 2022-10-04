@@ -15,6 +15,8 @@
 
 !**/testdata/**
 
+/mongorestore/testdata/txntest/oplog.bson
+
 /temp*
 
 bin/
