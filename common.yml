@@ -318,80 +318,13 @@ functions:
               release.msi
 
   "sign macos zip":
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        silent: false
-        script: |
-          # put apple credentials into env vars
-          AC_USERNAME="${ac_username}"
-          AC_PASSWORD="${ac_password}"
-
-          # turn on verbose debugging for remainder of script
-          set -o xtrace
-          set -o errexit
-          set -o verbose
-
-          # this function should do nothing on non-mac platforms
-          if [ "${mongo_os}" != "osx" ]; then
-              exit 0
-          fi
-
-          # download and unzip gon
-          curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
-          unzip gon.zip
-
-          # untar the release package and rename dir to "release"
-          tar xvzf release.tgz
-          pkgname=$(ls | grep mongodb-database-tools)
-          rm release.tgz
-
-          # gon signing config
-          cat <<EOF_GON_SIGN_JSON > gon-sign.json
-          {
-            "source" : [
-              "$pkgname/bin/bsondump",
-              "$pkgname/bin/mongodump",
-              "$pkgname/bin/mongoexport",
-              "$pkgname/bin/mongofiles",
-              "$pkgname/bin/mongoimport",
-              "$pkgname/bin/mongorestore",
-              "$pkgname/bin/mongostat",
-              "$pkgname/bin/mongotop"
-            ],
-            "bundle_id" : "com.mongodb.mongotools",
-            "apple_id": {
-              "username": "$AC_USERNAME",
-              "password": "$AC_PASSWORD"
-            },
-            "sign" :{
-              "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
-            }
-          }
-          EOF_GON_SIGN_JSON
-
-          # gon notarization config
-          cat <<EOF_GON_NOTARIZE_JSON > gon-notarize.json
-          {
-            "notarize": [{
-              "path": "$PWD/release.zip",
-              "bundle_id" : "com.mongodb.mongotools",
-              "staple": false
-            }],
-            "apple_id": {
-              "username": "$AC_USERNAME",
-              "password": "$AC_PASSWORD"
-            }
-          }
-          EOF_GON_NOTARIZE_JSON
-
-          # sign binaries, re-package as zip, and notarize zip
-          ssh -v -p 2222 localhost -t "
-            cd $PWD \
-            && ./gon -log-level=info gon-sign.json \
-            && zip -r release.zip $pkgname \
-            && ./gon -log-level=info gon-notarize.json
-          "
+    command: subprocess.exec
+    params:
+      binary: bash
+      working_dir: src/github.com/mongodb/mongo-tools
+      args:
+        - "./scripts/sign_macos_zip.sh"
+      add_expansions_to_env: true
 
   "sign linux packages":
     - command: shell.exec
@@ -757,6 +690,7 @@ pre:
           fi
           export EVG_USER='${evg_user}'
           export EVG_KEY='${evg_key}'
+          export EVG_TASK_ID='${task_id}'
           export AWS_ACCESS_KEY_ID='${release_aws_access_key_id}'
           export AWS_SECRET_ACCESS_KEY='${release_aws_secret}'
           export NOTARY_TOKEN_4_4='${signing_auth_token_server_4_4}'
@@ -843,6 +777,7 @@ tasks:
     depends_on:
       - name: dist
     commands:
+      - func: "fetch source"
       - func: "fetch dist release artifacts"
       - func: "sign msi installer"
       - func: "sign macos zip"
