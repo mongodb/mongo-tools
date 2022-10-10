@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43
-	github.com/aws/aws-sdk-go v1.44.106
+	github.com/aws/aws-sdk-go v1.44.114
 	github.com/craiggwilson/goke v0.0.0-20220110201909-adb8bfb05d58
 	github.com/google/go-cmp v0.5.9
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
