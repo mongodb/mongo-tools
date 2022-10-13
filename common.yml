@@ -78,6 +78,7 @@ functions:
         ${_set_shell_env}
         ${_maybe_enable_devtoolset_7}
         PATH=$PATH:$HOME
+        env|sort
         go run build.go -v ${target}
 
   "download mongod and shell":
