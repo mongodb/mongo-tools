@@ -24,7 +24,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const txnTestDataFile = "testdata/transactions.json"
+const txnTestDataFilePre61 = "testdata/transactions.json"
+const txnTestDataFile61Plus = "testdata/transactions-6.1.json"
 
 type txnTestDataMap map[string]*txnTestDataCase
 
@@ -41,7 +42,16 @@ func TestMongorestoreTxns(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
-	data, err := readTxnTestData(txnTestDataFile)
+	restore, err := getRestoreWithArgs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	file := txnTestDataFilePre61
+	if restore.serverVersion.GTE(db.Version{6, 1, 0}) {
+		file = txnTestDataFile61Plus
+	}
+	data, err := readTxnTestData(file)
 	if err != nil {
 		t.Fatal(err)
 	}
