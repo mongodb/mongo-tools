@@ -24,6 +24,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+// Test files with applyOps transaction entries for
+// MongoDB server versions <6.1 and >=6.1, respectively.
 const txnTestDataFilePre61 = "testdata/transactions.json"
 const txnTestDataFile61Plus = "testdata/transactions-6.1.json"
 
