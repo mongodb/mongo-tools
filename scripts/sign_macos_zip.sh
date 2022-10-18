@@ -1,7 +1,5 @@
 #!/bin/bash
 
-ls -la
-
 # turn on verbose debugging for remainder of script
 set -o xtrace
 set -o errexit
@@ -14,7 +12,6 @@ fi
 
 # untar the release package and get the package name
 tar xvzf release.tgz
-ls -la
 pkgname=$(ls | grep mongodb-database-tools)
 rm release.tgz
 
