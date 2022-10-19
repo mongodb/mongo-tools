@@ -15,8 +15,13 @@ else
     arch="x86_64"
 fi
 
+edition="community"
+if [ "$mongo_edition" = "enterprise" ]; then
+    edition="enterprise"
+fi
+
 ./scripts/download_mongod_and_shell.py \
     --arch "$arch" \
-    --edition "$mongo_edition" \
+    --edition "$edition" \
     --target "$target" \
     --version "$mongo_version"

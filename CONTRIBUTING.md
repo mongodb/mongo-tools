@@ -53,8 +53,8 @@ To run unit and integration tests:
 ```
 go test -v ./...
 ```
-If TOOLS_TESTING_UNIT is set to "true" in the environment, unit tests will run.
-If TOOLS_TESTING_INTEGRATION is set to "true" in the environment, integration tests will run.
+If TOOLS_TESTING_UNIT is set to a true value in the environment, unit tests will run.
+If TOOLS_TESTING_INTEGRATION is set to a true value in the environment, integration tests will run.
 
 Integration tests require a `mongod` (running on port 33333) while unit tests do not.
 
