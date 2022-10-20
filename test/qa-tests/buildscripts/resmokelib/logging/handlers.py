@@ -144,7 +144,7 @@ class HTTPHandler(object):
             passwd=password)
 
         self.url_root = url_root
-        self.url_opener = urllib.request.build_opener(digest_handler, urllib2.HTTPErrorProcessor())
+        self.url_opener = urllib.request.build_opener(digest_handler, urllib.request.HTTPErrorProcessor())
 
     def _make_url(self, endpoint):
         return "%s/%s/" % (self.url_root.rstrip("/"), endpoint.strip("/"))

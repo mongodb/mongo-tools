@@ -105,7 +105,7 @@ digest_handler.add_password(
 # Python 2.7, and allows REST response codes (e.g.
 # "201 Created") which are treated as errors by
 # older versions.
-class HTTPErrorProcessor(urllib2.HTTPErrorProcessor):
+class HTTPErrorProcessor(urllib.request.HTTPErrorProcessor):
     def http_response(self, request, response):
         code, msg, hdrs = response.code, response.msg, response.info()
 
