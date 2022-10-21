@@ -159,7 +159,7 @@ class HTTPHandler(object):
         """
 
         data = utils.default_if_none(data, [])
-        data = json.dumps(data, encoding="utf-8")
+        data = json.dumps(data).encode("utf-8")
 
         headers = utils.default_if_none(headers, {})
         headers["Content-Type"] = "application/json; charset=utf-8"
