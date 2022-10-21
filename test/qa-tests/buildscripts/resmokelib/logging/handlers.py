@@ -168,11 +168,11 @@ class HTTPHandler(object):
         request = urllib.request.Request(url=url, data=data, headers=headers)
 
         response = self.url_opener.open(request, timeout=timeout_secs)
-        headers = response.info()
+        headers = response.headers()
 
-        content_type = headers.gettype()
+        content_type = headers.get_content_type()
         if content_type == "application/json":
-            encoding = headers.getparam("charset") or "utf-8"
+            encoding = headers.get_content_charset() or "utf-8"
             return json.load(response, encoding=encoding)
 
         return response.read()
