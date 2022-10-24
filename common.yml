@@ -1016,7 +1016,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: integration-5.0
     tags: ["5.0"]
@@ -1084,7 +1084,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: aws-auth-5.0
     tags: ["5.0", "aws-auth"]
@@ -1172,7 +1172,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: aws-auth-5.1
     tags: ["5.1", "aws-auth"]
@@ -1260,7 +1260,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: aws-auth-5.2
     tags: ["5.2", "aws-auth"]
@@ -1348,7 +1348,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: aws-auth-5.3
     tags: ["5.3", "aws-auth"]
@@ -1436,7 +1436,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: aws-auth-6.0
     tags: ["6.0", "aws-auth"]
@@ -1524,7 +1524,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -topology=replSet
+          target: test:integration test:srv -ssl=true
 
   - name: aws-auth-latest
     tags: ["latest", "aws-auth"]
