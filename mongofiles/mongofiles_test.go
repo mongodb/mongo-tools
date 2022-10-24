@@ -340,7 +340,7 @@ func TestMongoFilesCommands(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
-		"with a MongoDump instance", t, func() {
+		"with a MongoFiles instance", t, func() {
 
 		bytesExpected, err := setUpGridFSTestData()
 		So(err, ShouldBeNil)
