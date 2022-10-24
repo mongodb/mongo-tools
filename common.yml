@@ -17,10 +17,12 @@ variables:
       mongod_args: "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem"
       replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\", sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
+      MLAUNCH_ARGS: "--port 33333 --sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslClientCertificate common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
     tls: &mongod_tls_startup_args
       mongod_args_tls: "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem"
       replsettest_tls_config: "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"common/db/testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
+      MLAUNCH_ARGS_TLS: "--port 33333 --tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsClientCertificateKeyFile common/db/testdata/test-client.pem --tlsAllowInvalidCertificates"
 
   mongo_arguments:
     ssl: &mongo_ssl_startup_args
@@ -29,6 +31,11 @@ variables:
     tls: &mongo_tls_startup_args
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
+
+  mongos_arguments:
+    default: &mongos_default_startup_args
+      mongos_port: 33333
+      mongod_shard_port: 33334
 
 functions:
   "run legacy tests":
@@ -501,6 +508,27 @@ functions:
             MONGO_ARGS="${mongo_args_tls}"
           fi;
           ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+
+  "install mlaunch":
+    command: shell.exec
+    params:
+      script: |
+        set -x
+        set -v
+        set -e
+
+        PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
+        python3 --version
+        python3 -m pip install --user 'mtools @ git+https://github.com/autarch/mtools@180741591f01da0c1c2740b651d221e1c2ccc29e#egg=mtools[mlaunch]'
+
+  "create sharded cluster":
+    command: subprocess.exec
+    params:
+      binary: bash
+      working_dir: src/github.com/mongodb/mongo-tools
+      args:
+        - "./scripts/run_mlaunch.sh"
+      add_expansions_to_env: true
 
   "add-aws-auth-variables-to-file":
     - command: shell.exec
@@ -1437,6 +1465,26 @@ tasks:
         vars:
           target: test:integration test:srv -ssl=true
 
+  - name: integration-6.0-sharded
+    tags: ["6.0", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.0"
+      - func: "install mlaunch"
+      - func: "create sharded cluster"
+        vars:
+          USE_TLS: "true"
+          MLAUNCH_SHARDED_CLUTER: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration test:srv -ssl=true
+
   - name: aws-auth-6.0
     tags: ["6.0", "aws-auth"]
     commands:
@@ -2077,6 +2125,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "amzn64"
       mongo_edition: "enterprise"
@@ -2113,6 +2162,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "amazon2"
       mongo_edition: "enterprise"
@@ -2155,6 +2205,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "debian81"
       mongo_edition: "enterprise"
@@ -2186,6 +2237,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "debian92"
       mongo_edition: "enterprise"
@@ -2223,6 +2275,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "debian10"
       mongo_edition: "enterprise"
@@ -2259,6 +2312,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "debian11"
       mongo_edition: "enterprise"
@@ -2297,6 +2351,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "osx"
       mongo_target: "osx-ssl"
@@ -2339,6 +2394,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel62"
       mongo_edition: "enterprise"
@@ -2374,6 +2430,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel62"
       mongo_edition: "enterprise"
@@ -2404,6 +2461,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel70"
       mongo_edition: "enterprise"
@@ -2443,6 +2501,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel80"
       mongo_edition: "enterprise"
@@ -2481,6 +2540,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel90"
       mongo_edition: "enterprise"
@@ -2519,6 +2579,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "suse12"
       mongo_edition: "enterprise"
@@ -2557,6 +2618,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "suse15"
       mongo_edition: "enterprise"
@@ -2596,6 +2658,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1604"
       mongo_edition: "enterprise"
@@ -2631,6 +2694,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
@@ -2669,6 +2733,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2004"
       mongo_edition: "enterprise"
@@ -2704,6 +2769,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2204"
       mongo_edition: "enterprise"
@@ -2740,6 +2806,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "windows-64"
       mongo_edition: "enterprise"
@@ -2789,6 +2856,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1604"
       mongo_edition: "enterprise"
@@ -2827,6 +2895,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
@@ -2867,6 +2936,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2004"
       mongo_edition: "enterprise"
@@ -2905,6 +2975,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2204"
       mongo_edition: "enterprise"
@@ -2940,6 +3011,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "amazon2"
       mongo_edition: "enterprise"
@@ -2979,6 +3051,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel82"
       mongo_edition: "enterprise"
@@ -3021,6 +3094,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel71"
       mongo_edition: "enterprise"
@@ -3059,6 +3133,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel81"
       mongo_edition: "enterprise"
@@ -3100,6 +3175,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1604"
       mongo_edition: "enterprise"
@@ -3134,6 +3210,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
@@ -3173,6 +3250,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel72"
       mongo_edition: "enterprise"
@@ -3213,6 +3291,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "rhel83"
       mongo_edition: "enterprise"
@@ -3253,6 +3332,7 @@ buildvariants:
           *mongo_ssl_startup_args,
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
+          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
