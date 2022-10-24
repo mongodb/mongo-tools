@@ -13,9 +13,6 @@ stepback: true
 variables:
   # Common mongodb arguments
   mongod_arguments:
-    default: &mongod_default_startup_args
-      mongod_args: ""
-      mongod_port: 33333
     ssl: &mongod_ssl_startup_args
       mongod_args: "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem"
       replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\", sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
@@ -26,9 +23,6 @@ variables:
       mongod_port: 33333
 
   mongo_arguments:
-    default: &mongo_default_startup_args
-      mongo_args: &mongo_default_startup_args_string "--port 33333"
-      mongod_port: 33333
     ssl: &mongo_ssl_startup_args
       mongo_args: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslAllowInvalidCertificates"
       mongod_port: 33333
