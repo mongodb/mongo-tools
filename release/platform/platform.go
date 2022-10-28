@@ -34,7 +34,11 @@ const (
 type Arch string
 
 const (
-	ArchArm64   Arch = "arm64"
+	ArchArm64 Arch = "arm64"
+	// While arm64 and aarch64 are the same architecture, some Linux distros
+	// want packages labeled arm64 (Debian and RHEL) and others want aarch64
+	// (Amazon 2).
+	ArchAarch64 Arch = "aarch64"
 	ArchS390x        = "s390x"
 	ArchPpc64le      = "ppc64le"
 	ArchX86_64       = "x86_64"
@@ -169,13 +173,7 @@ func (p Platform) RPMArch() string {
 	if p.Pkg != PkgRPM {
 		panic("called RPMArch on non-rpm platform")
 	}
-	switch p.Arch {
-	case ArchArm64:
-		return "aarch64"
-	// other archs are the same name on RPM.
-	default:
-		return p.Arch.String()
-	}
+	return p.Arch.String()
 }
 
 func (p Platform) ArtifactExtensions() []string {
@@ -288,6 +286,8 @@ func (a Arch) ConstName() string {
 	switch a {
 	case ArchArm64:
 		return "ArchArm64"
+	case ArchAarch64:
+		return "ArchAarch64"
 	case ArchS390x:
 		return "ArchS390x"
 	case ArchPpc64le:
@@ -318,7 +318,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "amazon2",
-		Arch:      ArchArm64,
+		Arch:      ArchAarch64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoEnterprise, RepoOrg},
