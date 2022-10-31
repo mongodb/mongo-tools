@@ -36,8 +36,7 @@ type Arch string
 const (
 	ArchArm64 Arch = "arm64"
 	// While arm64 and aarch64 are the same architecture, some Linux distros
-	// want packages labeled arm64 (Debian and RHEL) and others want aarch64
-	// (Amazon 2).
+	// use arm64 (Debian and RHEL) and others use aarch64 (Amazon 2).
 	ArchAarch64 Arch = "aarch64"
 	ArchS390x        = "s390x"
 	ArchPpc64le      = "ppc64le"
