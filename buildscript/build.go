@@ -55,11 +55,6 @@ func TestIntegration(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
 }
 
-// TestSRV is an Executor that runs all SRV tests for the provided packages.
-func TestSRV(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.SRVConnectionStringTestType)
-}
-
 // TestAWSAuth is an Executor that runs all AWS auth tests for the provided packages.
 func TestAWSAuth(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.AWSAuthTestType)

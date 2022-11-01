@@ -996,11 +996,10 @@ func TestParsePositionalArgsAsURI(t *testing.T) {
 }
 
 func TestOptionsParsingForSRV(t *testing.T) {
-
-	testtype.SkipUnlessTestType(t, testtype.SRVConnectionStringTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	atlasURI, ok := os.LookupEnv("ATLAS_URI")
 	if !ok {
-		t.Errorf("test requires ATLAS_URI to be set")
+		t.Skip("test requires ATLAS_URI to be set")
 	}
 	cs, err := connstring.Parse(atlasURI)
 	if err != nil {

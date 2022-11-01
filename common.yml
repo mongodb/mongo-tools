@@ -793,7 +793,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-3.4-mmapv1
     tags: ["3.4", "mmap"]
@@ -812,7 +812,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-3.6
     tags: ["3.6"]
@@ -829,7 +829,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-3.6-mmapv1
     tags: ["3.6", "mmap"]
@@ -848,7 +848,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-4.0
     tags: ["4.0"]
@@ -865,7 +865,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-4.0-auth
     tags: ["4.0", "auth"]
@@ -888,7 +888,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-4.0-cluster
     tags: ["4.0", "cluster"]
@@ -906,7 +906,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-4.0-mmapv1
     tags: ["4.0", "mmap"]
@@ -925,7 +925,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-4.2
     tags: ["4.2"]
@@ -946,7 +946,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-4.2-auth
     tags: ["4.2", "auth"]
@@ -975,7 +975,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-4.4
     tags: ["4.4"]
@@ -996,7 +996,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-4.4-auth
     tags: ["4.4", "auth"]
@@ -1025,7 +1025,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-4.4-cluster
     tags: ["4.4", "cluster"]
@@ -1043,7 +1043,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-5.0
     tags: ["5.0"]
@@ -1064,7 +1064,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-5.0-auth
     tags: ["5.0", "auth"]
@@ -1093,7 +1093,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-5.0-cluster
     tags: ["5.0", "cluster"]
@@ -1111,7 +1111,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: aws-auth-5.0
     tags: ["5.0", "aws-auth"]
@@ -1152,7 +1152,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-5.1-auth
     tags: ["5.1", "auth"]
@@ -1181,7 +1181,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-5.1-cluster
     tags: ["5.1", "cluster"]
@@ -1199,7 +1199,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: aws-auth-5.1
     tags: ["5.1", "aws-auth"]
@@ -1240,7 +1240,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-5.2-auth
     tags: ["5.2", "auth"]
@@ -1269,7 +1269,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-5.2-cluster
     tags: ["5.2", "cluster"]
@@ -1287,7 +1287,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: aws-auth-5.2
     tags: ["5.2", "aws-auth"]
@@ -1328,7 +1328,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-5.3-auth
     tags: ["5.3", "auth"]
@@ -1357,7 +1357,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-5.3-cluster
     tags: ["5.3", "cluster"]
@@ -1375,7 +1375,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: aws-auth-5.3
     tags: ["5.3", "aws-auth"]
@@ -1416,7 +1416,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-6.0-auth
     tags: ["6.0", "auth"]
@@ -1445,7 +1445,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-6.0-cluster
     tags: ["6.0", "cluster"]
@@ -1463,7 +1463,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-6.0-sharded
     tags: ["6.0", "sharded"]
@@ -1483,7 +1483,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: aws-auth-6.0
     tags: ["6.0", "aws-auth"]
@@ -1524,7 +1524,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: integration-latest-auth
     tags: ["latest", "auth"]
@@ -1553,7 +1553,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true
 
   - name: integration-latest-cluster
     tags: ["latest", "cluster"]
@@ -1571,7 +1571,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration test:srv -ssl=true
+          target: test:integration -ssl=true
 
   - name: aws-auth-latest
     tags: ["latest", "aws-auth"]

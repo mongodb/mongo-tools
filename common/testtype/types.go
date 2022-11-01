@@ -37,9 +37,6 @@ const (
 	// For now mongoreplay tests are unique, and will have to be explicitly run.
 	MongoReplayTestType = "TOOLS_TESTING_REPLAY"
 
-	// For testing options parsing. Requires an SRV URI in the ATLAS_URI environment variable.
-	SRVConnectionStringTestType = "TOOLS_TESTING_SRV"
-
 	// For testing AWS auth via an STS AssumeRole request.
 	AWSAuthTestType = "TOOLS_TESTING_AWS_AUTH"
 )
