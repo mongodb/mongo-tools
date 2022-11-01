@@ -7,12 +7,16 @@
 package mongofiles
 
 import (
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"strings"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -482,6 +486,76 @@ func TestPositionalArgumentParsing(t *testing.T) {
 			}
 		}
 	})
+}
+
+type NamedArgumentTestCase struct {
+	InputArgs    []string
+	ExpectedOpts Options
+	ExpectErr    string
+	AuthType     string
+}
+
+func TestNamedArgumentParsing(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	dbName := "otherdb"
+	host := "localhost"
+	port := "12345"
+	NamedArgumentTestCases := []NamedArgumentTestCase{
+		{
+			InputArgs: []string{
+				"--db", dbName,
+				"--host", host,
+				"--port", port,
+			},
+			ExpectedOpts: Options{
+				ToolOptions: &options.ToolOptions{
+					Namespace: &options.Namespace{
+						DB: dbName,
+					},
+					Connection: &options.Connection{
+						Host: host,
+						Port: port,
+					},
+				},
+			},
+		},
+		{
+			InputArgs: []string{
+				"-d", dbName,
+				"--host", host,
+				"--port", port,
+			},
+			ExpectedOpts: Options{
+				ToolOptions: &options.ToolOptions{
+					Namespace: &options.Namespace{
+						DB: dbName,
+					},
+					Connection: &options.Connection{
+						Host: host,
+						Port: port,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range NamedArgumentTestCases {
+		t.Run(strings.Join(tc.InputArgs, " "), func(t *testing.T) {
+			t.Logf("Testing: %s", tc.InputArgs)
+			opts, err := ParseOptions(tc.InputArgs, "", "")
+
+			if tc.ExpectErr != "" {
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldEqual, tc.ExpectErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedOpts.ToolOptions.Namespace.DB, opts.ToolOptions.Namespace.DB)
+				assert.Equal(t, tc.ExpectedOpts.ToolOptions.Connection.Host, opts.ToolOptions.Connection.Host)
+				assert.Equal(t, tc.ExpectedOpts.ToolOptions.Connection.Port, opts.ToolOptions.Connection.Port)
+			}
+		})
+	}
 }
 
 func TestGetRegexWithOptions(t *testing.T) {
