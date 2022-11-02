@@ -2929,7 +2929,7 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: amazon2-arm64
+  - name: amazon2-aarch64
     display_name: Amazon Linux ARM v2
     run_on:
       - amazon2-arm64-small
