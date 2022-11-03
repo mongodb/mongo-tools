@@ -1,5 +1,31 @@
 # Database Tools Changelog
 
+## 100.6.1
+
+_Released 2022-11-03_
+
+We are pleased to announce version 100.6.1 of the MongoDB Database Tools.
+
+This release fixes an issue where users without permissions to read `config.system.preimages` could not run mongodump. This release also fixes issues with installing the Database Tools on Amazon Linux 2 aarch64 and RHEL 8.3 s390x. The Database Tools are now available on RHEL 9.0 x86. We also made several improvements to our testing and release infrastructure.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+- [TOOLS-3176 - Ignore config.system.preimages namespace](https://jira.mongodb.org/browse/TOOLS-3176)
+- [TOOLS-3179 - Mongo Tools Enterprise Z series package is being published to Community repo](https://jira.mongodb.org/browse/TOOLS-3179)
+- [TOOLS-3204 - Tools should not be packaged as arm64 on aarch64 platforms](https://jira.mongodb.org/browse/TOOLS-3176)
+
+### Task
+- [TOOLS-2956 - Use the new notary service to notarize MacOS builds](https://jira.mongodb.org/browse/TOOLS-2956)
+- [TOOLS-3056 - Add RHEL9 x86 to Tools](https://jira.mongodb.org/browse/TOOLS-3056)
+- [TOOLS-3185 - Fix TestMongorestoreTxns failure on all platforms when run against latest Server](https://jira.mongodb.org/browse/TOOLS-3185)
+- [TOOLS-3201 - Add a .snyk file to exclude tests from snyk code analysis](https://jira.mongodb.org/browse/TOOLS-3201)
+
 ## 100.6.0
 
 _Released 2022-08-19_
