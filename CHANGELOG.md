@@ -14,18 +14,17 @@ Questions and inquiries can be asked on the [MongoDB Developer Community Forum](
 Please make sure to tag forum posts with `database-tools`.
 Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
 
-Bug
+### Bug
 
-    [TOOLS-3176] - Ignore config.system.preimages namespace
-    [TOOLS-3179] - Mongo Tools Enterprise Z series package is being published to Community repo
-    [TOOLS-3204] - Tools should not be packaged as arm64 on aarch64 platforms
+- [TOOLS-3176 - Ignore config.system.preimages namespace](https://jira.mongodb.org/browse/TOOLS-3176)
+- [TOOLS-3179 - Mongo Tools Enterprise Z series package is being published to Community repo](https://jira.mongodb.org/browse/TOOLS-3179)
+- [TOOLS-3204 - Tools should not be packaged as arm64 on aarch64 platforms](https://jira.mongodb.org/browse/TOOLS-3176)
 
-Task
-
-    [TOOLS-2956] - Use the new notary service to notarize MacOS builds
-    [TOOLS-3056] - Add RHEL9 x86 to Tools
-    [TOOLS-3185] - Fix TestMongorestoreTxns failure on all platforms when run against latest Server
-    [TOOLS-3201] - Add a .snyk file to exclude tests from snyk code analysis
+### Task
+- [TOOLS-2956 - Use the new notary service to notarize MacOS builds](https://jira.mongodb.org/browse/TOOLS-2956)
+- [TOOLS-3056 - Add RHEL9 x86 to Tools](https://jira.mongodb.org/browse/TOOLS-3056)
+- [TOOLS-3185 - Fix TestMongorestoreTxns failure on all platforms when run against latest Server](https://jira.mongodb.org/browse/TOOLS-3185)
+- [TOOLS-3201 - Add a .snyk file to exclude tests from snyk code analysis](https://jira.mongodb.org/browse/TOOLS-3201)
 
 ## 100.6.0
 
