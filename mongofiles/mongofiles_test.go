@@ -892,4 +892,7 @@ func TestInvalidHostnameAndPort(t *testing.T) {
 
 	_, err = getMongofilesWithArgs("get", "filename", "--host", "555.555.555.555")
 	assert.ErrorContains(t, err, "error connecting to host")
+
+	_, err = getMongofilesWithArgs("get", "filename", "--host", "localhost", "--port", "12345")
+	assert.ErrorContains(t, err, "error connecting to host")
 }
