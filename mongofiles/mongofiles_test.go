@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -339,70 +340,88 @@ func TestValidArguments(t *testing.T) {
 func TestPut(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	Convey("Testing the 'put' command", t, func() {
-		Convey("with filename", func() {
+	t.Run("put command", func(t *testing.T) {
+		t.Run("with filename", func(t *testing.T) {
 			testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
 
 			mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			str, err := mf.Run(false)
-			So(err, ShouldBeNil)
-			So(str, ShouldBeEmpty)
+			require.NoError(t, err)
+			require.Empty(t, str)
 
 			mf, err = simpleMongoFilesInstanceCommandOnly("list")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
+			require.NoError(t, err)
 
 			str, err = mf.Run(false)
-			So(err, ShouldBeNil)
-			So(str, ShouldContainSubstring, "testdata/lorem_ipsum_multi_args_0.txt	3411")
+			require.NoError(t, err)
+			require.Contains(t, str, "testdata/lorem_ipsum_multi_args_0.txt	3411")
 		})
 
-		Convey("with --local and filename", func() {
+		t.Run("with --local and filename", func(t *testing.T) {
 			testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
 
 			mf, err := simpleMongoFilesInstanceWithFilename("put", "new_name.txt")
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			mf.StorageOptions.LocalFileName = testFile
 
 			str, err := mf.Run(false)
-			So(err, ShouldBeNil)
-			So(str, ShouldBeEmpty)
+			require.NoError(t, err)
+			require.Empty(t, str)
 
 			mf, err = simpleMongoFilesInstanceWithFilename("list", "new_name.txt")
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			str, err = mf.Run(false)
-			So(err, ShouldBeNil)
-			So(str, ShouldContainSubstring, "new_name.txt	3411")
+			require.NoError(t, err)
+			require.Contains(t, str, "new_name.txt	3411")
 		})
 
-		Convey("with file that does not exist", func() {
+		t.Run("with --prefix and filename", func(t *testing.T) {
+			testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
+
+			mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+			require.NoError(t, err)
+			mf.StorageOptions.GridFSPrefix = "prefix_test"
+
+			str, err := mf.Run(false)
+			require.NoError(t, err)
+			require.Empty(t, str)
+
+			mf, err = simpleMongoFilesInstanceCommandOnly("list")
+			require.NoError(t, err)
+			mf.StorageOptions.GridFSPrefix = "prefix_test"
+
+			str, err = mf.Run(false)
+			require.NoError(t, err)
+			fmt.Println(str)
+			require.Contains(t, str, "testdata/lorem_ipsum_287613_bytes.txt	287613")
+		})
+
+		t.Run("with file that does not exist", func(t *testing.T) {
 			testFile := util.ToUniversalPath("does-not-exist.txt")
 
 			mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			_, err = mf.Run(false)
-			So(err.Error(), ShouldContainSubstring, "error while opening local gridFile 'does-not-exist.txt'")
+			require.ErrorContains(t, err, "error while opening local gridFile 'does-not-exist.txt'")
 		})
 
-		Convey("with --local file that does not exist", func() {
+		t.Run("with --local file that does not exist", func(t *testing.T) {
 			testFile := util.ToUniversalPath("does-not-exist.txt")
 
 			mf, err := simpleMongoFilesInstanceWithFilename("put", "something.txt")
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 			mf.StorageOptions.LocalFileName = testFile
 
 			_, err = mf.Run(false)
-			So(err.Error(), ShouldContainSubstring, "error while opening local gridFile 'does-not-exist.txt'")
+			require.ErrorContains(t, err, "error while opening local gridFile 'does-not-exist.txt'")
 		})
 
-		Reset(func() {
-			So(tearDownGridFSTestData(), ShouldBeNil)
-		})
+		require.NoError(t, tearDownGridFSTestData())
 	})
 }
 
