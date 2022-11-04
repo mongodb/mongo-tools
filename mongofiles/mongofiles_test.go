@@ -679,24 +679,6 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
-		Convey("Testing the 'search' command with files that are in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("search", "file")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
-
-			Convey("produce some output", func() {
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(len(str), ShouldNotEqual, 0)
-
-				lines := cleanAndTokenizeTestOutput(str)
-				So(len(lines), ShouldEqual, len(testFiles))
-
-				bytesGotten := getFilesAndBytesFromLines(lines)
-				So(bytesGotten, ShouldResemble, bytesExpected)
-			})
-		})
-
 		Convey("Testing the 'get' command with a file that is in GridFS should", func() {
 			mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
 			So(err, ShouldBeNil)
@@ -1073,4 +1055,59 @@ func TestInvalidHostnameAndPort(t *testing.T) {
 
 	_, err = getMongofilesWithArgs("get", "filename", "--host", "localhost", "--port", "12345")
 	assert.ErrorContains(t, err, "error connecting to host")
+}
+
+func TestSearch(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	require.NoError(t, tearDownGridFSTestData())
+
+	filesExpected, err := setUpGridFSTestData()
+	require.NoError(t, err)
+
+	t.Run("search string one file", func(*testing.T) {
+		for file, size := range filesExpected {
+			t.Run(fmt.Sprintf(`searching for "%s"`, file), func(t *testing.T) {
+				mf, err := simpleMongoFilesInstanceWithFilename("search", file)
+				require.NoError(t, err)
+
+				str, err := mf.Run(false)
+				require.NoError(t, err)
+				require.Greater(t, len(str), 0)
+
+				bytesGotten := getFilesAndBytesFromLines(cleanAndTokenizeTestOutput(str))
+				expect := map[string]int{file: size}
+				require.Equal(t, expect, bytesGotten)
+			})
+		}
+	})
+
+	t.Run("search string matches all files", func(*testing.T) {
+		for _, s := range []string{"file", "ile", "test"} {
+			t.Run(fmt.Sprintf(`searching for "%s"`, s), func(t *testing.T) {
+				mf, err := simpleMongoFilesInstanceWithFilename("search", s)
+				require.NoError(t, err)
+
+				str, err := mf.Run(false)
+				require.NoError(t, err)
+				require.Greater(t, len(str), 0)
+
+				bytesGotten := getFilesAndBytesFromLines(cleanAndTokenizeTestOutput(str))
+				require.Equal(t, filesExpected, bytesGotten)
+			})
+		}
+	})
+
+	t.Run("non-matching searching strings", func(*testing.T) {
+		for _, s := range []string{"random", "120549u12905", "filers"} {
+			t.Run(fmt.Sprintf(`searching for "%s"`, s), func(t *testing.T) {
+				mf, err := simpleMongoFilesInstanceWithFilename("search", s)
+				require.NoError(t, err)
+
+				str, err := mf.Run(false)
+				require.NoError(t, err)
+				require.Empty(t, str)
+			})
+		}
+	})
 }
