@@ -538,6 +538,10 @@ func TestNamedArgumentParsing(t *testing.T) {
 				},
 			},
 		},
+		{
+			InputArgs: []string{"--invalid", "42"},
+			ExpectErr: `unknown option "invalid"`,
+		},
 	}
 
 	for _, tc := range NamedArgumentTestCases {
@@ -546,8 +550,8 @@ func TestNamedArgumentParsing(t *testing.T) {
 			opts, err := ParseOptions(tc.InputArgs, "", "")
 
 			if tc.ExpectErr != "" {
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, tc.ExpectErr)
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tc.ExpectErr)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.ExpectedOpts.ToolOptions.Namespace.DB, opts.ToolOptions.Namespace.DB)
