@@ -22,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -811,4 +812,14 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
 	So(err, ShouldBeNil)
 	So(isContentSame, ShouldBeTrue)
+}
+
+func TestInvalidHostnameAndPort(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	_, err := getMongofilesWithArgs("get", "filename", "--host", "not-a-valid-hostname")
+	assert.ErrorContains(t, err, "error connecting to host")
+
+	_, err = getMongofilesWithArgs("get", "filename", "--host", "555.555.555.555")
+	assert.ErrorContains(t, err, "error connecting to host")
 }
