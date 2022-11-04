@@ -336,6 +336,76 @@ func TestValidArguments(t *testing.T) {
 	})
 }
 
+func TestPut(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	Convey("Testing the 'put' command", t, func() {
+		Convey("with filename", func() {
+			testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
+
+			mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+			So(err, ShouldBeNil)
+
+			str, err := mf.Run(false)
+			So(err, ShouldBeNil)
+			So(str, ShouldBeEmpty)
+
+			mf, err = simpleMongoFilesInstanceCommandOnly("list")
+			So(err, ShouldBeNil)
+			So(mf, ShouldNotBeNil)
+
+			str, err = mf.Run(false)
+			So(err, ShouldBeNil)
+			So(str, ShouldContainSubstring, "testdata/lorem_ipsum_multi_args_0.txt	3411")
+		})
+
+		Convey("with --local and filename", func() {
+			testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
+
+			mf, err := simpleMongoFilesInstanceWithFilename("put", "new_name.txt")
+			So(err, ShouldBeNil)
+
+			mf.StorageOptions.LocalFileName = testFile
+
+			str, err := mf.Run(false)
+			So(err, ShouldBeNil)
+			So(str, ShouldBeEmpty)
+
+			mf, err = simpleMongoFilesInstanceWithFilename("list", "new_name.txt")
+			So(err, ShouldBeNil)
+
+			str, err = mf.Run(false)
+			So(err, ShouldBeNil)
+			So(str, ShouldContainSubstring, "new_name.txt	3411")
+		})
+
+		Convey("with file that does not exist", func() {
+			testFile := util.ToUniversalPath("does-not-exist.txt")
+
+			mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+			So(err, ShouldBeNil)
+
+			_, err = mf.Run(false)
+			So(err.Error(), ShouldContainSubstring, "error while opening local gridFile 'does-not-exist.txt'")
+		})
+
+		Convey("with --local file that does not exist", func() {
+			testFile := util.ToUniversalPath("does-not-exist.txt")
+
+			mf, err := simpleMongoFilesInstanceWithFilename("put", "something.txt")
+			So(err, ShouldBeNil)
+			mf.StorageOptions.LocalFileName = testFile
+
+			_, err = mf.Run(false)
+			So(err.Error(), ShouldContainSubstring, "error while opening local gridFile 'does-not-exist.txt'")
+		})
+
+		Reset(func() {
+			So(tearDownGridFSTestData(), ShouldBeNil)
+		})
+	})
+}
+
 // Test that the output from mongofiles is actually correct
 func TestMongoFilesCommands(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
