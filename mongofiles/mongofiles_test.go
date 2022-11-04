@@ -345,6 +345,11 @@ func TestValidArguments(t *testing.T) {
 func TestPut(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
+	sp, err := db.NewSessionProvider(*toolOptions)
+	require.NoError(t, err)
+	session, err := sp.GetSession()
+	require.NoError(t, err)
+
 	t.Run("with filename", func(t *testing.T) {
 		testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
 
@@ -402,6 +407,45 @@ func TestPut(t *testing.T) {
 		require.NoError(t, err)
 		fmt.Println(str)
 		require.Contains(t, str, "testdata/lorem_ipsum_287613_bytes.txt	287613")
+	})
+
+	t.Run("with --replace and filename", func(t *testing.T) {
+		require.NoError(t, tearDownGridFSTestData())
+
+		testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
+
+		mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+		require.NoError(t, err)
+
+		for i := 1; i <= 3; i++ {
+			str, err := mf.Run(false)
+			require.NoError(t, err)
+			require.Empty(t, str)
+		}
+
+		count, err := session.Database(testDB).
+			Collection("fs.files").
+			CountDocuments(context.Background(), bson.D{})
+		require.NoError(t, err)
+		require.Equal(t, int64(3), count, "by default files with the same name are not replaced")
+
+		require.NoError(t, tearDownGridFSTestData())
+
+		mf, err = simpleMongoFilesInstanceWithFilename("put", testFile)
+		require.NoError(t, err)
+		mf.StorageOptions.Replace = true
+
+		for i := 1; i <= 3; i++ {
+			str, err := mf.Run(false)
+			require.NoError(t, err)
+			require.Empty(t, str)
+		}
+
+		count, err = session.Database(testDB).
+			Collection("fs.files").
+			CountDocuments(context.Background(), bson.D{})
+		require.NoError(t, err)
+		require.Equal(t, int64(1), count, "only one file when using --replace")
 	})
 
 	t.Run("with file that does not exist", func(t *testing.T) {
@@ -493,11 +537,6 @@ func TestPut(t *testing.T) {
 		// We sprintf this to hex to make failures readable.
 		require.Equal(t, fmt.Sprintf("%x", putSum), fmt.Sprintf("%x", getSum))
 
-		sp, err := db.NewSessionProvider(*toolOptions)
-		require.NoError(t, err)
-		session, err := sp.GetSession()
-		require.NoError(t, err)
-
 		fileRes := session.Database(testDB).
 			Collection("fs.files").
 			FindOne(context.Background(), bson.M{"filename": putFile})
@@ -522,6 +561,26 @@ func TestPut(t *testing.T) {
 	})
 
 	require.NoError(t, tearDownGridFSTestData())
+}
+
+func TestPutID(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	require.NoError(t, tearDownGridFSTestData())
+
+	t.Run("with filename", func(t *testing.T) {
+		testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
+
+		mf, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", testFile, "42")
+		require.NoError(t, err)
+
+		str, err := mf.Run(false)
+		require.NoError(t, err)
+		require.Empty(t, str)
+
+		str, err = mf.Run(false)
+		require.ErrorContains(t, err, "duplicate key error", "put_id twice with the same id returns an error the second time")
+	})
 }
 
 // Test that the output from mongofiles is actually correct
