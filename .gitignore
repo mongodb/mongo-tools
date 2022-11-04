@@ -33,3 +33,5 @@ tags
 node_modules
 
 .ignore
+
+/data
