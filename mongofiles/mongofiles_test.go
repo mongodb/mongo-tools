@@ -56,6 +56,13 @@ var (
 	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID(), "testfile4": primitive.NewObjectID()}
 )
 
+type FsFile struct {
+	Length   int64 `bson:"length"`
+	Metadata struct {
+		ContentType string `bson:"contentType"`
+	} `bson:"metadata"`
+}
+
 // put in some test data into GridFS
 func setUpGridFSTestData() (map[string]int, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
@@ -353,13 +360,15 @@ func TestPut(t *testing.T) {
 	t.Run("with file that does not exist", testPutWithFileThatDoesNotExist)
 	t.Run("with --local file that does not exist", testPutWithLocalAndFileThatDoesNotExist)
 	t.Run("with directory instead of file", testPutWithDirectory)
+	t.Run("with --type set", testPutWithType)
 	t.Run("with large file", testPutWithLargeFile)
 
 	require.NoError(t, tearDownGridFSTestData())
 }
 
 func testPutWithFilename(t *testing.T) {
-	testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
+	path := "testdata/lorem_ipsum_multi_args_0.txt"
+	testFile := util.ToUniversalPath(path)
 
 	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
 	require.NoError(t, err)
@@ -374,6 +383,17 @@ func testPutWithFilename(t *testing.T) {
 	str, err = mf.Run(false)
 	require.NoError(t, err)
 	require.Contains(t, str, "testdata/lorem_ipsum_multi_args_0.txt	3411")
+
+	session := getTestDBSession(t)
+	fileRes := session.Database(testDB).
+		Collection("fs.files").
+		FindOne(context.Background(), bson.M{"filename": testFile})
+	require.NoError(t, fileRes.Err())
+
+	var file FsFile
+	err = fileRes.Decode(&file)
+	require.NoError(t, err)
+	require.Empty(t, file.Metadata.ContentType, "content type is not set when --type is not passed")
 }
 
 func testPutWithFilenameAndLocal(t *testing.T) {
@@ -467,6 +487,28 @@ func testPutWithDirectory(t *testing.T) {
 	require.ErrorContains(t, err, "error while storing 'testdata' into GridFS: read testdata: is a directory")
 }
 
+func testPutWithType(t *testing.T) {
+	require.NoError(t, tearDownGridFSTestData())
+
+	testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
+	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+
+	mf.StorageOptions.ContentType = "text/html"
+	_, err = mf.Run(false)
+
+	session := getTestDBSession(t)
+	fileRes := session.Database(testDB).
+		Collection("fs.files").
+		FindOne(context.Background(), bson.M{"filename": testFile})
+	require.NoError(t, fileRes.Err())
+
+	var file FsFile
+	err = fileRes.Decode(&file)
+	require.NoError(t, err)
+	require.Equal(t, "text/html", file.Metadata.ContentType)
+}
+
 func testPutWithLargeFile(t *testing.T) {
 	require.NoError(t, tearDownGridFSTestData())
 
@@ -531,9 +573,6 @@ func testPutWithLargeFile(t *testing.T) {
 		FindOne(context.Background(), bson.M{"filename": putFile})
 	require.NoError(t, fileRes.Err())
 
-	type FsFile struct {
-		Length int64 `bson:"length"`
-	}
 	var file FsFile
 	err = fileRes.Decode(&file)
 	require.NoError(t, err)
