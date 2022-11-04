@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
@@ -345,222 +346,228 @@ func TestValidArguments(t *testing.T) {
 func TestPut(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	sp, err := db.NewSessionProvider(*toolOptions)
-	require.NoError(t, err)
-	session, err := sp.GetSession()
-	require.NoError(t, err)
-
-	t.Run("with filename", func(t *testing.T) {
-		testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-		require.NoError(t, err)
-
-		str, err := mf.Run(false)
-		require.NoError(t, err)
-		require.Empty(t, str)
-
-		mf, err = simpleMongoFilesInstanceCommandOnly("list")
-		require.NoError(t, err)
-
-		str, err = mf.Run(false)
-		require.NoError(t, err)
-		require.Contains(t, str, "testdata/lorem_ipsum_multi_args_0.txt	3411")
-	})
-
-	t.Run("with --local and filename", func(t *testing.T) {
-		testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", "new_name.txt")
-		require.NoError(t, err)
-
-		mf.StorageOptions.LocalFileName = testFile
-
-		str, err := mf.Run(false)
-		require.NoError(t, err)
-		require.Empty(t, str)
-
-		mf, err = simpleMongoFilesInstanceWithFilename("list", "new_name.txt")
-		require.NoError(t, err)
-
-		str, err = mf.Run(false)
-		require.NoError(t, err)
-		require.Contains(t, str, "new_name.txt	3411")
-	})
-
-	t.Run("with --prefix and filename", func(t *testing.T) {
-		testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-		require.NoError(t, err)
-		mf.StorageOptions.GridFSPrefix = "prefix_test"
-
-		str, err := mf.Run(false)
-		require.NoError(t, err)
-		require.Empty(t, str)
-
-		mf, err = simpleMongoFilesInstanceCommandOnly("list")
-		require.NoError(t, err)
-		mf.StorageOptions.GridFSPrefix = "prefix_test"
-
-		str, err = mf.Run(false)
-		require.NoError(t, err)
-		fmt.Println(str)
-		require.Contains(t, str, "testdata/lorem_ipsum_287613_bytes.txt	287613")
-	})
-
-	t.Run("with --replace and filename", func(t *testing.T) {
-		require.NoError(t, tearDownGridFSTestData())
-
-		testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-		require.NoError(t, err)
-
-		for i := 1; i <= 3; i++ {
-			str, err := mf.Run(false)
-			require.NoError(t, err)
-			require.Empty(t, str)
-		}
-
-		count, err := session.Database(testDB).
-			Collection("fs.files").
-			CountDocuments(context.Background(), bson.D{})
-		require.NoError(t, err)
-		require.Equal(t, int64(3), count, "by default files with the same name are not replaced")
-
-		require.NoError(t, tearDownGridFSTestData())
-
-		mf, err = simpleMongoFilesInstanceWithFilename("put", testFile)
-		require.NoError(t, err)
-		mf.StorageOptions.Replace = true
-
-		for i := 1; i <= 3; i++ {
-			str, err := mf.Run(false)
-			require.NoError(t, err)
-			require.Empty(t, str)
-		}
-
-		count, err = session.Database(testDB).
-			Collection("fs.files").
-			CountDocuments(context.Background(), bson.D{})
-		require.NoError(t, err)
-		require.Equal(t, int64(1), count, "only one file when using --replace")
-	})
-
-	t.Run("with file that does not exist", func(t *testing.T) {
-		testFile := util.ToUniversalPath("does-not-exist.txt")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-		require.NoError(t, err)
-
-		_, err = mf.Run(false)
-		require.ErrorContains(t, err, "error while opening local gridFile 'does-not-exist.txt'")
-	})
-
-	t.Run("with --local file that does not exist", func(t *testing.T) {
-		testFile := util.ToUniversalPath("does-not-exist.txt")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", "something.txt")
-		require.NoError(t, err)
-		mf.StorageOptions.LocalFileName = testFile
-
-		_, err = mf.Run(false)
-		require.ErrorContains(t, err, "error while opening local gridFile 'does-not-exist.txt'")
-	})
-
-	t.Run("with directory instead of file", func(t *testing.T) {
-		testFile := util.ToUniversalPath("testdata")
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
-		require.NoError(t, err)
-
-		_, err = mf.Run(false)
-		require.ErrorContains(t, err, "error while storing 'testdata' into GridFS: read testdata: is a directory")
-	})
-
-	t.Run("with large file", func(t *testing.T) {
-		require.NoError(t, tearDownGridFSTestData())
-
-		td, err := ioutil.TempDir("", "mongofiles_")
-		require.NoError(t, err)
-		defer func() {
-			removeErr := os.RemoveAll(td)
-			require.NoError(t, removeErr)
-		}()
-
-		putFile := filepath.Join(td, "put-file.txt")
-		f, err := os.Create(putFile)
-		require.NoError(t, err)
-
-		// This creates a 40 megabyte file with some arbitrary content.
-		for i := 1; i <= 40; i++ {
-			_, err = f.WriteString(strings.Repeat(fmt.Sprintf("%d", i), 1024*1024))
-			require.NoError(t, err)
-		}
-
-		err = f.Close()
-		require.NoError(t, err)
-
-		mf, err := simpleMongoFilesInstanceWithFilename("put", putFile)
-		require.NoError(t, err)
-
-		_, err = mf.Run(false)
-		require.NoError(t, err)
-
-		getFile := filepath.Join(td, "get-file.txt")
-		mf, err = simpleMongoFilesInstanceWithFilename("get", putFile)
-		require.NoError(t, err)
-
-		mf.StorageOptions.LocalFileName = getFile
-		_, err = mf.Run(false)
-		require.NoError(t, err)
-
-		f, err = os.Open(putFile)
-		require.NoError(t, err)
-
-		h := md5.New()
-		_, err = io.Copy(h, f)
-		require.NoError(t, err)
-
-		putSum := h.Sum(nil)
-
-		f, err = os.Open(getFile)
-		require.NoError(t, err)
-
-		h = md5.New()
-		_, err = io.Copy(h, f)
-		require.NoError(t, err)
-
-		getSum := h.Sum(nil)
-
-		// We sprintf this to hex to make failures readable.
-		require.Equal(t, fmt.Sprintf("%x", putSum), fmt.Sprintf("%x", getSum))
-
-		fileRes := session.Database(testDB).
-			Collection("fs.files").
-			FindOne(context.Background(), bson.M{"filename": putFile})
-		require.NoError(t, fileRes.Err())
-
-		type FsFile struct {
-			Length int64 `bson:"length"`
-		}
-		var file FsFile
-		err = fileRes.Decode(&file)
-		require.NoError(t, err)
-
-		require.GreaterOrEqual(t, file.Length, int64(40*1024*1024))
-
-		count, err := session.Database(testDB).
-			Collection("fs.chunks").
-			CountDocuments(context.Background(), bson.D{})
-		require.NoError(t, err)
-
-		// Each chunk is a maximum of 255KB.
-		require.Equal(t, math.Ceil(float64(file.Length)/(1024*255)), float64(count))
-	})
+	t.Run("with filename", testPutWithFilename)
+	t.Run("with --local and filename", testPutWithFilenameAndLocal)
+	t.Run("with --prefix and filename", testPutWithPrefixAndFilename)
+	t.Run("with --replace and filename", testPutWithReplaceAndFilename)
+	t.Run("with file that does not exist", testPutWithFileThatDoesNotExist)
+	t.Run("with --local file that does not exist", testPutWithLocalAndFileThatDoesNotExist)
+	t.Run("with directory instead of file", testPutWithDirectory)
+	t.Run("with large file", testPutWithLargeFile)
 
 	require.NoError(t, tearDownGridFSTestData())
+}
+
+func testPutWithFilename(t *testing.T) {
+	testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+
+	str, err := mf.Run(false)
+	require.NoError(t, err)
+	require.Empty(t, str)
+
+	mf, err = simpleMongoFilesInstanceCommandOnly("list")
+	require.NoError(t, err)
+
+	str, err = mf.Run(false)
+	require.NoError(t, err)
+	require.Contains(t, str, "testdata/lorem_ipsum_multi_args_0.txt	3411")
+}
+
+func testPutWithFilenameAndLocal(t *testing.T) {
+	testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", "new_name.txt")
+	require.NoError(t, err)
+
+	mf.StorageOptions.LocalFileName = testFile
+
+	str, err := mf.Run(false)
+	require.NoError(t, err)
+	require.Empty(t, str)
+
+	mf, err = simpleMongoFilesInstanceWithFilename("list", "new_name.txt")
+	require.NoError(t, err)
+
+	str, err = mf.Run(false)
+	require.NoError(t, err)
+	require.Contains(t, str, "new_name.txt	3411")
+}
+
+func testPutWithPrefixAndFilename(t *testing.T) {
+	testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+	mf.StorageOptions.GridFSPrefix = "prefix_test"
+
+	str, err := mf.Run(false)
+	require.NoError(t, err)
+	require.Empty(t, str)
+
+	mf, err = simpleMongoFilesInstanceCommandOnly("list")
+	require.NoError(t, err)
+	mf.StorageOptions.GridFSPrefix = "prefix_test"
+
+	str, err = mf.Run(false)
+	require.NoError(t, err)
+	fmt.Println(str)
+	require.Contains(t, str, "testdata/lorem_ipsum_287613_bytes.txt	287613")
+}
+
+func testPutWithReplaceAndFilename(t *testing.T) {
+	require.NoError(t, tearDownGridFSTestData())
+
+	testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+
+	for i := 1; i <= 3; i++ {
+		str, err := mf.Run(false)
+		require.NoError(t, err)
+		require.Empty(t, str)
+	}
+
+	session := getTestDBSession(t)
+	count, err := session.Database(testDB).
+		Collection("fs.files").
+		CountDocuments(context.Background(), bson.D{})
+	require.NoError(t, err)
+	require.Equal(t, int64(3), count, "by default files with the same name are not replaced")
+
+	require.NoError(t, tearDownGridFSTestData())
+
+	mf, err = simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+	mf.StorageOptions.Replace = true
+
+	for i := 1; i <= 3; i++ {
+		str, err := mf.Run(false)
+		require.NoError(t, err)
+		require.Empty(t, str)
+	}
+
+	count, err = session.Database(testDB).
+		Collection("fs.files").
+		CountDocuments(context.Background(), bson.D{})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count, "only one file when using --replace")
+}
+
+func testPutWithDirectory(t *testing.T) {
+	testFile := util.ToUniversalPath("testdata")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+
+	_, err = mf.Run(false)
+	require.ErrorContains(t, err, "error while storing 'testdata' into GridFS: read testdata: is a directory")
+}
+
+func testPutWithLargeFile(t *testing.T) {
+	require.NoError(t, tearDownGridFSTestData())
+
+	td, err := ioutil.TempDir("", "mongofiles_")
+	require.NoError(t, err)
+	defer func() {
+		removeErr := os.RemoveAll(td)
+		require.NoError(t, removeErr)
+	}()
+
+	putFile := filepath.Join(td, "put-file.txt")
+	f, err := os.Create(putFile)
+	require.NoError(t, err)
+
+	// This creates a 40 megabyte file with some arbitrary content.
+	for i := 1; i <= 40; i++ {
+		_, err = f.WriteString(strings.Repeat(fmt.Sprintf("%d", i), 1024*1024))
+		require.NoError(t, err)
+	}
+
+	err = f.Close()
+	require.NoError(t, err)
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", putFile)
+	require.NoError(t, err)
+
+	_, err = mf.Run(false)
+	require.NoError(t, err)
+
+	getFile := filepath.Join(td, "get-file.txt")
+	mf, err = simpleMongoFilesInstanceWithFilename("get", putFile)
+	require.NoError(t, err)
+
+	mf.StorageOptions.LocalFileName = getFile
+	_, err = mf.Run(false)
+	require.NoError(t, err)
+
+	f, err = os.Open(putFile)
+	require.NoError(t, err)
+
+	h := md5.New()
+	_, err = io.Copy(h, f)
+	require.NoError(t, err)
+
+	putSum := h.Sum(nil)
+
+	f, err = os.Open(getFile)
+	require.NoError(t, err)
+
+	h = md5.New()
+	_, err = io.Copy(h, f)
+	require.NoError(t, err)
+
+	getSum := h.Sum(nil)
+
+	// We sprintf this to hex to make failures readable.
+	require.Equal(t, fmt.Sprintf("%x", putSum), fmt.Sprintf("%x", getSum))
+
+	session := getTestDBSession(t)
+	fileRes := session.Database(testDB).
+		Collection("fs.files").
+		FindOne(context.Background(), bson.M{"filename": putFile})
+	require.NoError(t, fileRes.Err())
+
+	type FsFile struct {
+		Length int64 `bson:"length"`
+	}
+	var file FsFile
+	err = fileRes.Decode(&file)
+	require.NoError(t, err)
+
+	require.GreaterOrEqual(t, file.Length, int64(40*1024*1024))
+
+	count, err := session.Database(testDB).
+		Collection("fs.chunks").
+		CountDocuments(context.Background(), bson.D{})
+	require.NoError(t, err)
+
+	// Each chunk is a maximum of 255KB.
+	require.Equal(t, math.Ceil(float64(file.Length)/(1024*255)), float64(count))
+}
+
+func testPutWithFileThatDoesNotExist(t *testing.T) {
+	testFile := util.ToUniversalPath("does-not-exist.txt")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	require.NoError(t, err)
+
+	_, err = mf.Run(false)
+	require.ErrorContains(t, err, "error while opening local gridFile 'does-not-exist.txt'")
+}
+
+func testPutWithLocalAndFileThatDoesNotExist(t *testing.T) {
+	testFile := util.ToUniversalPath("does-not-exist.txt")
+
+	mf, err := simpleMongoFilesInstanceWithFilename("put", "something.txt")
+	require.NoError(t, err)
+	mf.StorageOptions.LocalFileName = testFile
+
+	_, err = mf.Run(false)
+	require.ErrorContains(t, err, "error while opening local gridFile 'does-not-exist.txt'")
 }
 
 func TestPutID(t *testing.T) {
@@ -1110,4 +1117,13 @@ func TestSearch(t *testing.T) {
 			})
 		}
 	})
+}
+
+func getTestDBSession(t *testing.T) *mongo.Client {
+	sp, err := db.NewSessionProvider(*toolOptions)
+	require.NoError(t, err)
+	session, err := sp.GetSession()
+	require.NoError(t, err)
+
+	return session
 }
