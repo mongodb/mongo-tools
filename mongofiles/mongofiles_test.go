@@ -581,6 +581,62 @@ func TestPutID(t *testing.T) {
 		str, err = mf.Run(false)
 		require.ErrorContains(t, err, "duplicate key error", "put_id twice with the same id returns an error the second time")
 	})
+
+	t.Run("with many different IDs", func(t *testing.T) {
+		ids := []string{
+			`test_id`,
+			`{"a":"b"}`,
+			`{"$numberLong":"999999999999999"}`,
+			`{"a":{"b":{"c":{}}}}`,
+		}
+		for _, idToTest := range ids {
+			runPutIDTestCase(idToTest, t)
+		}
+	})
+}
+
+func runPutIDTestCase(idToTest string, t *testing.T) {
+	remoteName := "remoteName"
+	mf, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", remoteName, idToTest)
+
+	require.NoError(t, err)
+	mf.StorageOptions.LocalFileName = util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
+
+	t.Run("insert the file", func(t *testing.T) {
+		str, err := mf.Run(false)
+		require.NoError(t, err)
+		require.Empty(t, str)
+	})
+
+	t.Run("list sees the file", func(t *testing.T) {
+		bytesGotten, err := getFilesAndBytesListFromGridFS()
+		require.NoError(t, err)
+		require.Contains(t, bytesGotten, remoteName)
+	})
+
+	t.Run("get_id finds same content as original", func(t *testing.T) {
+		mfAfter, err := simpleMongoFilesInstanceWithID("get_id", idToTest)
+		require.NoError(t, err)
+
+		mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
+
+		str, err := mfAfter.Run(false)
+		require.NoError(t, err)
+		require.Empty(t, str)
+
+		loremIpsumOrig, err := os.Open(util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt"))
+		require.NoError(t, err)
+
+		loremIpsumCopy, err := os.Open("lorem_ipsum_copy.txt")
+		require.NoError(t, err)
+
+		defer loremIpsumOrig.Close()
+		defer loremIpsumCopy.Close()
+
+		isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
+		require.NoError(t, err)
+		require.True(t, isContentSame)
+	})
 }
 
 // Test that the output from mongofiles is actually correct
@@ -926,12 +982,6 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
-		Convey("Testing the 'put_id' command by putting some lorem ipsum file with 287613 bytes with different ids should succeed", func() {
-			for _, idToTest := range []string{`test_id`, `{"a":"b"}`, `{"$numberLong":"999999999999999"}`, `{"a":{"b":{"c":{}}}}`} {
-				runPutIDTestCase(idToTest, t)
-			}
-		})
-
 		Convey("Testing the 'delete' command with a file that is in GridFS should", func() {
 			mf, err := simpleMongoFilesInstanceWithFilename("delete", "testfile2")
 			So(err, ShouldBeNil)
@@ -1010,55 +1060,6 @@ func TestDefaultWriteConcern(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(mf.SessionProvider.DB("test").WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
 	})
-}
-
-func runPutIDTestCase(idToTest string, t *testing.T) {
-	remoteName := "remoteName"
-	mongoFilesInstance, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", remoteName, idToTest)
-
-	var buff bytes.Buffer
-	log.SetWriter(&buff)
-
-	So(err, ShouldBeNil)
-	So(mongoFilesInstance, ShouldNotBeNil)
-	mongoFilesInstance.StorageOptions.LocalFileName = util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
-
-	t.Log("Should correctly insert the file into GridFS")
-	str, err := mongoFilesInstance.Run(false)
-	So(err, ShouldBeNil)
-	So(str, ShouldEqual, "")
-	So(buff.Len(), ShouldNotEqual, 0)
-
-	t.Log("and its filename should exist when the 'list' command is run")
-	bytesGotten, err := getFilesAndBytesListFromGridFS()
-	So(err, ShouldBeNil)
-	So(bytesGotten, ShouldContainKey, remoteName)
-
-	t.Log("and get_id should have exactly the same content as the original file")
-
-	mfAfter, err := simpleMongoFilesInstanceWithID("get_id", idToTest)
-	So(err, ShouldBeNil)
-	So(mfAfter, ShouldNotBeNil)
-
-	mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
-	buff.Truncate(0)
-	str, err = mfAfter.Run(false)
-	So(err, ShouldBeNil)
-	So(str, ShouldEqual, "")
-	So(buff.Len(), ShouldNotEqual, 0)
-
-	loremIpsumOrig, err := os.Open(util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt"))
-	So(err, ShouldBeNil)
-
-	loremIpsumCopy, err := os.Open("lorem_ipsum_copy.txt")
-	So(err, ShouldBeNil)
-
-	defer loremIpsumOrig.Close()
-	defer loremIpsumCopy.Close()
-
-	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
-	So(err, ShouldBeNil)
-	So(isContentSame, ShouldBeTrue)
 }
 
 func TestInvalidHostnameAndPort(t *testing.T) {
