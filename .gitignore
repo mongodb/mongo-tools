@@ -15,6 +15,7 @@
 
 !**/testdata/**
 
+/mongofiles/lorem_ipsum_copy.txt
 /mongorestore/testdata/txntest/oplog.bson
 
 /temp*
@@ -35,3 +36,4 @@ node_modules
 .ignore
 
 /data
+
