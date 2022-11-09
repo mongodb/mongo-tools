@@ -40,21 +40,24 @@ var (
 	testServer = "localhost"
 	testPort   = db.DefaultTestPort
 
-	ssl        = testutil.GetSSLOptions()
-	auth       = testutil.GetAuthOptions()
-	connection = &options.Connection{
+	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID(), "testfile4": primitive.NewObjectID()}
+)
+
+func toolOptions() options.ToolOptions {
+	connection := &options.Connection{
 		Host: testServer,
 		Port: testPort,
 	}
-	toolOptions = &options.ToolOptions{
+	ssl := testutil.GetSSLOptions()
+	auth := testutil.GetAuthOptions()
+	return options.ToolOptions{
 		SSL:        &ssl,
 		Connection: connection,
 		Auth:       &auth,
 		Verbosity:  &options.Verbosity{},
 		URI:        &options.URI{},
 	}
-	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID(), "testfile4": primitive.NewObjectID()}
-)
+}
 
 type FsFile struct {
 	Length   int64 `bson:"length"`
@@ -65,7 +68,7 @@ type FsFile struct {
 
 // put in some test data into GridFS
 func setUpGridFSTestData() (map[string]int, error) {
-	sessionProvider, err := db.NewSessionProvider(*toolOptions)
+	sessionProvider, err := db.NewSessionProvider(toolOptions())
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +111,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 
 // remove test data from GridFS
 func tearDownGridFSTestData() error {
-	sessionProvider, err := db.NewSessionProvider(*toolOptions)
+	sessionProvider, err := db.NewSessionProvider(toolOptions())
 	if err != nil {
 		return err
 	}
@@ -122,55 +125,6 @@ func tearDownGridFSTestData() error {
 	}
 
 	return nil
-}
-func simpleMongoFilesInstanceWithID(command, ID string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, "", ID)
-}
-func simpleMongoFilesInstanceWithFilename(command, fname string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, fname, "")
-}
-func simpleMongoFilesInstanceCommandOnly(command string) (*MongoFiles, error) {
-	return simpleMongoFilesInstanceWithFilenameAndID(command, "", "")
-}
-func simpleMongoFilesInstanceWithMultipleFileNames(command string, fnames ...string) (*MongoFiles, error) {
-	mongofiles, err := simpleMongoFilesInstanceCommandOnly(command)
-	if err != nil {
-		return nil, err
-	}
-
-	mongofiles.FileNameList = fnames
-	return mongofiles, nil
-}
-
-func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*MongoFiles, error) {
-	sessionProvider, err := db.NewSessionProvider(*toolOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	mongofiles := MongoFiles{
-		ToolOptions:     toolOptions,
-		InputOptions:    &InputOptions{},
-		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-		SessionProvider: sessionProvider,
-		Command:         command,
-		FileName:        fname,
-		Id:              ID,
-	}
-
-	return &mongofiles, nil
-}
-
-// simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
-// Use this for tests that don't communicate with the server (e.g. options parsing tests)
-func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
-	return &MongoFiles{
-		ToolOptions:    toolOptions,
-		InputOptions:   &InputOptions{},
-		StorageOptions: &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-		Command:        command,
-		FileName:       fname,
-	}
 }
 
 func getMongofilesWithArgs(args ...string) (*MongoFiles, error) {
@@ -251,7 +205,7 @@ func getFilesAndBytesFromLines(lines []string) map[string]int {
 }
 
 func getFilesAndBytesListFromGridFS() (map[string]int, error) {
-	mfAfter, err := simpleMongoFilesInstanceCommandOnly("list")
+	mfAfter, err := newMongoFilesBuilder("list").Build()
 	if err != nil {
 		return nil, err
 	}
@@ -370,21 +324,21 @@ func testPutWithFilename(t *testing.T) {
 	path := "testdata/lorem_ipsum_multi_args_0.txt"
 	testFile := util.ToUniversalPath(path)
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 
 	str, err := mf.Run(false)
 	require.NoError(t, err)
 	require.Empty(t, str)
 
-	mf, err = simpleMongoFilesInstanceCommandOnly("list")
+	mf, err = newMongoFilesBuilder("list").WithFileName(testFile).Build()
 	require.NoError(t, err)
 
 	str, err = mf.Run(false)
 	require.NoError(t, err)
 	require.Contains(t, str, "testdata/lorem_ipsum_multi_args_0.txt	3411")
 
-	session := getTestDBSession(t)
+	session := getSessionFromMongoFiles(t, mf)
 	fileRes := session.Database(testDB).
 		Collection("fs.files").
 		FindOne(context.Background(), bson.M{"filename": testFile})
@@ -399,7 +353,7 @@ func testPutWithFilename(t *testing.T) {
 func testPutWithFilenameAndLocal(t *testing.T) {
 	testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", "new_name.txt")
+	mf, err := newMongoFilesBuilder("put").WithFileName("new_name.txt").Build()
 	require.NoError(t, err)
 
 	mf.StorageOptions.LocalFileName = testFile
@@ -408,7 +362,7 @@ func testPutWithFilenameAndLocal(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, str)
 
-	mf, err = simpleMongoFilesInstanceWithFilename("list", "new_name.txt")
+	mf, err = newMongoFilesBuilder("list").WithFileName("new_name.txt").Build()
 	require.NoError(t, err)
 
 	str, err = mf.Run(false)
@@ -419,7 +373,7 @@ func testPutWithFilenameAndLocal(t *testing.T) {
 func testPutWithPrefixAndFilename(t *testing.T) {
 	testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 	mf.StorageOptions.GridFSPrefix = "prefix_test"
 
@@ -427,7 +381,7 @@ func testPutWithPrefixAndFilename(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, str)
 
-	mf, err = simpleMongoFilesInstanceCommandOnly("list")
+	mf, err = newMongoFilesBuilder("list").Build()
 	require.NoError(t, err)
 	mf.StorageOptions.GridFSPrefix = "prefix_test"
 
@@ -442,7 +396,7 @@ func testPutWithReplaceAndFilename(t *testing.T) {
 
 	testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 
 	for i := 1; i <= 3; i++ {
@@ -451,7 +405,7 @@ func testPutWithReplaceAndFilename(t *testing.T) {
 		require.Empty(t, str)
 	}
 
-	session := getTestDBSession(t)
+	session := getSessionFromMongoFiles(t, mf)
 	count, err := session.Database(testDB).
 		Collection("fs.files").
 		CountDocuments(context.Background(), bson.D{})
@@ -460,7 +414,7 @@ func testPutWithReplaceAndFilename(t *testing.T) {
 
 	require.NoError(t, tearDownGridFSTestData())
 
-	mf, err = simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err = newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 	mf.StorageOptions.Replace = true
 
@@ -480,7 +434,7 @@ func testPutWithReplaceAndFilename(t *testing.T) {
 func testPutWithDirectory(t *testing.T) {
 	testFile := util.ToUniversalPath("testdata")
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 
 	_, err = mf.Run(false)
@@ -491,13 +445,13 @@ func testPutWithType(t *testing.T) {
 	require.NoError(t, tearDownGridFSTestData())
 
 	testFile := util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
-	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 
 	mf.StorageOptions.ContentType = "text/html"
 	_, err = mf.Run(false)
 
-	session := getTestDBSession(t)
+	session := getSessionFromMongoFiles(t, mf)
 	fileRes := session.Database(testDB).
 		Collection("fs.files").
 		FindOne(context.Background(), bson.M{"filename": testFile})
@@ -532,14 +486,14 @@ func testPutWithLargeFile(t *testing.T) {
 	err = f.Close()
 	require.NoError(t, err)
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", putFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(putFile).Build()
 	require.NoError(t, err)
 
 	_, err = mf.Run(false)
 	require.NoError(t, err)
 
 	getFile := filepath.Join(td, "get-file.txt")
-	mf, err = simpleMongoFilesInstanceWithFilename("get", putFile)
+	mf, err = newMongoFilesBuilder("get").WithFileName(putFile).Build()
 	require.NoError(t, err)
 
 	mf.StorageOptions.LocalFileName = getFile
@@ -567,7 +521,7 @@ func testPutWithLargeFile(t *testing.T) {
 	// We sprintf this to hex to make failures readable.
 	require.Equal(t, fmt.Sprintf("%x", putSum), fmt.Sprintf("%x", getSum))
 
-	session := getTestDBSession(t)
+	session := getSessionFromMongoFiles(t, mf)
 	fileRes := session.Database(testDB).
 		Collection("fs.files").
 		FindOne(context.Background(), bson.M{"filename": putFile})
@@ -591,7 +545,7 @@ func testPutWithLargeFile(t *testing.T) {
 func testPutWithFileThatDoesNotExist(t *testing.T) {
 	testFile := util.ToUniversalPath("does-not-exist.txt")
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", testFile)
+	mf, err := newMongoFilesBuilder("put").WithFileName(testFile).Build()
 	require.NoError(t, err)
 
 	_, err = mf.Run(false)
@@ -601,7 +555,7 @@ func testPutWithFileThatDoesNotExist(t *testing.T) {
 func testPutWithLocalAndFileThatDoesNotExist(t *testing.T) {
 	testFile := util.ToUniversalPath("does-not-exist.txt")
 
-	mf, err := simpleMongoFilesInstanceWithFilename("put", "something.txt")
+	mf, err := newMongoFilesBuilder("put").WithFileName("something.txt").Build()
 	require.NoError(t, err)
 	mf.StorageOptions.LocalFileName = testFile
 
@@ -617,7 +571,7 @@ func TestPutID(t *testing.T) {
 	t.Run("with filename", func(t *testing.T) {
 		testFile := util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt")
 
-		mf, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", testFile, "42")
+		mf, err := newMongoFilesBuilder("put_id").WithID("42").WithFileName(testFile).Build()
 		require.NoError(t, err)
 
 		str, err := mf.Run(false)
@@ -643,7 +597,7 @@ func TestPutID(t *testing.T) {
 
 func runPutIDTestCase(idToTest string, t *testing.T) {
 	remoteName := "remoteName"
-	mf, err := simpleMongoFilesInstanceWithFilenameAndID("put_id", remoteName, idToTest)
+	mf, err := newMongoFilesBuilder("put_id").WithID(idToTest).WithFileName(remoteName).Build()
 
 	require.NoError(t, err)
 	mf.StorageOptions.LocalFileName = util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt")
@@ -661,7 +615,7 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	})
 
 	t.Run("get_id finds same content as original", func(t *testing.T) {
-		mfAfter, err := simpleMongoFilesInstanceWithID("get_id", idToTest)
+		mfAfter, err := newMongoFilesBuilder("get_id").WithID(idToTest).Build()
 		require.NoError(t, err)
 
 		mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
@@ -696,7 +650,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("Testing the 'list' command with a file that isn't in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish")
+			mf, err := newMongoFilesBuilder("list").WithFileName("gibberish").Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -708,7 +662,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'list' command with files that are in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("list", "testf")
+			mf, err := newMongoFilesBuilder("list").WithFileName("testf").Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -726,7 +680,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
+			mf, err := newMongoFilesBuilder("get").WithFileName("testfile1").Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -770,7 +724,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'get' command with multiple files that are in GridFS should", func() {
 			localTestFiles := []string{"testfile1", "testfile2", "testfile3"}
-			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", localTestFiles...)
+			mf, err := newMongoFilesBuilder("get").WithFileNames(localTestFiles).Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -821,13 +775,13 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1")
+			mf, _ := newMongoFilesBuilder("get").WithFileName("testfile1").Build()
 			id := idOfFile("testfile1")
 
 			So(err, ShouldBeNil)
 			idString := id
 
-			mf, err = simpleMongoFilesInstanceWithID("get_id", idString)
+			mf, err = newMongoFilesBuilder("get_id").WithID(idString).Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -865,7 +819,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get_regex' command should", func() {
-			mf, err := simpleMongoFilesInstanceCommandOnly(GetRegex)
+			mf, err := newMongoFilesBuilder(GetRegex).Build()
 			So(err, ShouldBeNil)
 
 			Convey("return expected test files, but no others, when called without any server options", func() {
@@ -934,7 +888,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_2.txt"),
 			}
 
-			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", localTestFiles...)
+			mf, err := newMongoFilesBuilder("put").WithFileNames(localTestFiles).Build()
 			So(err, ShouldBeNil)
 
 			var buff bytes.Buffer
@@ -977,7 +931,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				const localFileName = "lorem_ipsum_copy.txt"
 				buff.Truncate(0)
 				for _, testFile := range localTestFiles {
-					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", testFile)
+					mfAfter, err := newMongoFilesBuilder("get").WithFileName(testFile).Build()
 					So(err, ShouldBeNil)
 					So(mf, ShouldNotBeNil)
 
@@ -1011,7 +965,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'delete' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("delete", "testfile2")
+			mf, err := newMongoFilesBuilder("delete").WithFileName("testfile2").Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -1036,10 +990,10 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'delete_id' command with a file that is in GridFS should", func() {
 			// hack to grab an _id
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile2")
+			mf, _ := newMongoFilesBuilder("get").WithFileName("testfile2").Build()
 			idString := idOfFile("testfile2")
 
-			mf, err := simpleMongoFilesInstanceWithID("delete_id", idString)
+			mf, err := newMongoFilesBuilder("delete_id").WithID(idString).Build()
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -1073,7 +1027,8 @@ func TestMongoFilesCommands(t *testing.T) {
 // Test that when no write concern is specified, a majority write concern is set.
 func TestDefaultWriteConcern(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	if ssl.UseSSL {
+	opts := toolOptions()
+	if opts.SSL.UseSSL {
 		t.Skip("Skipping non-SSL test with SSL configuration")
 	}
 
@@ -1114,7 +1069,7 @@ func TestSearch(t *testing.T) {
 	t.Run("search string one file", func(*testing.T) {
 		for file, size := range filesExpected {
 			t.Run(fmt.Sprintf(`searching for "%s"`, file), func(t *testing.T) {
-				mf, err := simpleMongoFilesInstanceWithFilename("search", file)
+				mf, err := newMongoFilesBuilder("search").WithFileName(file).Build()
 				require.NoError(t, err)
 
 				str, err := mf.Run(false)
@@ -1131,7 +1086,7 @@ func TestSearch(t *testing.T) {
 	t.Run("search string matches all files", func(*testing.T) {
 		for _, s := range []string{"file", "ile", "test"} {
 			t.Run(fmt.Sprintf(`searching for "%s"`, s), func(t *testing.T) {
-				mf, err := simpleMongoFilesInstanceWithFilename("search", s)
+				mf, err := newMongoFilesBuilder("search").WithFileName(s).Build()
 				require.NoError(t, err)
 
 				str, err := mf.Run(false)
@@ -1147,7 +1102,7 @@ func TestSearch(t *testing.T) {
 	t.Run("non-matching searching strings", func(*testing.T) {
 		for _, s := range []string{"random", "120549u12905", "filers"} {
 			t.Run(fmt.Sprintf(`searching for "%s"`, s), func(t *testing.T) {
-				mf, err := simpleMongoFilesInstanceWithFilename("search", s)
+				mf, err := newMongoFilesBuilder("search").WithFileName(s).Build()
 				require.NoError(t, err)
 
 				str, err := mf.Run(false)
@@ -1158,11 +1113,96 @@ func TestSearch(t *testing.T) {
 	})
 }
 
-func getTestDBSession(t *testing.T) *mongo.Client {
-	sp, err := db.NewSessionProvider(*toolOptions)
-	require.NoError(t, err)
-	session, err := sp.GetSession()
+func TestWriteConcern(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	concerns := []*writeconcern.WriteConcern{
+		writeconcern.New(writeconcern.WMajority()),
+		writeconcern.New(writeconcern.W(1), writeconcern.WTimeout(10000)),
+		writeconcern.New(writeconcern.W(2), writeconcern.WTimeout(10000)),
+	}
+	for _, c := range concerns {
+		mf, err := newMongoFilesBuilder("put").
+			WithFileName("irrelevant").
+			WithWriteConcern(c).
+			Build()
+		require.NoError(t, err)
+
+		session := getSessionFromMongoFiles(t, mf)
+		require.Equal(t, c, session.Database("admin").WriteConcern())
+	}
+}
+
+func getSessionFromMongoFiles(t *testing.T, mf *MongoFiles) *mongo.Client {
+	session, err := mf.SessionProvider.GetSession()
 	require.NoError(t, err)
 
 	return session
+}
+
+type mongoFilesBuilder struct {
+	command      string
+	id           string
+	fileName     string
+	fileNameList []string
+	opts         options.ToolOptions
+}
+
+func newMongoFilesBuilder(command string) *mongoFilesBuilder {
+	return &mongoFilesBuilder{
+		command: command,
+		opts:    toolOptions(),
+	}
+}
+
+func (mfb *mongoFilesBuilder) WithID(id string) *mongoFilesBuilder {
+	mfb.id = id
+	return mfb
+}
+
+func (mfb *mongoFilesBuilder) WithFileName(fileName string) *mongoFilesBuilder {
+	mfb.fileName = fileName
+	return mfb
+}
+
+func (mfb *mongoFilesBuilder) WithFileNames(filenames []string) *mongoFilesBuilder {
+	mfb.fileNameList = filenames
+	return mfb
+}
+
+func (mfb *mongoFilesBuilder) WithWriteConcern(writeConcern *writeconcern.WriteConcern) *mongoFilesBuilder {
+	mfb.opts.WriteConcern = writeConcern
+	return mfb
+}
+
+func (mfb *mongoFilesBuilder) Build() (*MongoFiles, error) {
+	sessionProvider, err := db.NewSessionProvider(mfb.opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MongoFiles{
+		ToolOptions:     &mfb.opts,
+		InputOptions:    &InputOptions{},
+		StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		SessionProvider: sessionProvider,
+		Command:         mfb.command,
+		FileName:        mfb.fileName,
+		FileNameList:    mfb.fileNameList,
+		Id:              mfb.id,
+	}, nil
+
+}
+
+// simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
+// Use this for tests that don't communicate with the server (e.g. options parsing tests)
+func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
+	opts := toolOptions()
+	return &MongoFiles{
+		ToolOptions:    &opts,
+		InputOptions:   &InputOptions{},
+		StorageOptions: &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+		Command:        command,
+		FileName:       fname,
+	}
 }
