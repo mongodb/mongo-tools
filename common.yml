@@ -11,19 +11,6 @@ exec_timeout_secs: 10800
 stepback: true
 
 variables:
-  # Common mongodb arguments
-  mongod_arguments:
-    ssl: &mongod_ssl_startup_args
-      mongod_args: "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem"
-      replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\", sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
-      mongod_port: 33333
-      MLAUNCH_ARGS: "--port 33333 --sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslClientCertificate common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
-    tls: &mongod_tls_startup_args
-      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem"
-      replsettest_tls_config: "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"common/db/testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
-      mongod_port: 33333
-      MLAUNCH_ARGS_TLS: "--port 33333 --tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsClientCertificateKeyFile common/db/testdata/test-client.pem --tlsAllowInvalidCertificates"
-
   mongo_arguments:
     ssl: &mongo_ssl_startup_args
       mongo_args: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslAllowInvalidCertificates"
@@ -31,11 +18,6 @@ variables:
     tls: &mongo_tls_startup_args
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
-
-  mongos_arguments:
-    default: &mongos_default_startup_args
-      mongos_port: 33333
-      mongod_shard_port: 33334
 
 functions:
   "run legacy tests":
@@ -141,35 +123,6 @@ functions:
         # Resmoke hardcodes the location of this file so we need to copy it to the working directory
         # we run resmoke from.
         cp mci.buildlogger test/qa-tests
-
-  "start mongod":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      background: true
-      script: |
-        set -x
-        set -v
-        set -e
-        rm -rf mongodb/db_files mongodb/${logfile|run.log}
-        mkdir -p mongodb/db_files
-        MONGOD_ARGS="${mongod_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGOD_ARGS="${mongod_args_tls}"
-        elif [ "${AWS_AUTH}" = "true" ]; then
-          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
-        fi;
-        echo "Starting mongod..."
-        storage_args=''
-        if [ "${STORAGE_ENGINE}" != '' ]; then
-          storage_args='--storageEngine ${STORAGE_ENGINE}'
-        fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension} \
-           --port ${mongod_port} \
-           $MONGOD_ARGS \
-           --dbpath mongodb/db_files \
-           --setParameter=enableTestCommands=1 \
-           $storage_args
 
   "wait for mongod to be ready":
     command: shell.exec
@@ -474,41 +427,6 @@ functions:
           set -e
           curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.47.3
 
-  "create repl_set":
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        background: true
-        script: |
-          set -x
-          set -v
-          set -e
-          echo "starting repl set"
-          MONGO_ARGS="${mongo_args}"
-          NODE_OPTIONS=""
-          mkdir -p /data/db/
-          if [ "${USE_TLS}" = "true" ]; then
-            NODE_OPTIONS="${replsettest_tls_config}"
-            MONGO_ARGS="${mongo_args_tls}"
-          elif [ "${USE_SSL}" = "true" ]; then
-            NODE_OPTIONS="${replsettest_ssl_config}"
-          fi
-
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
-
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          MONGO_ARGS="${mongo_args}"
-          if [ "${USE_TLS}" = "true" ]; then
-            MONGO_ARGS="${mongo_args_tls}"
-          fi;
-          ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
-
   "install mlaunch":
     command: shell.exec
     params:
@@ -521,7 +439,7 @@ functions:
         python3 --version
         python3 -m pip install --user 'mtools @ git+https://github.com/autarch/mtools@180741591f01da0c1c2740b651d221e1c2ccc29e#egg=mtools[mlaunch]'
 
-  "create sharded cluster":
+  "run server with mlaunch":
     command: subprocess.exec
     params:
       binary: bash
@@ -786,7 +704,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "3.4"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
+        vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
       - func: "wait for mongod to be ready"
       - func: "run make target"
         vars:
@@ -803,8 +724,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "3.4"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           STORAGE_ENGINE: "mmapv1"
       - func: "wait for mongod to be ready"
       - func: "run make target"
@@ -822,7 +745,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "3.6"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
+        vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
       - func: "wait for mongod to be ready"
       - func: "run make target"
         vars:
@@ -839,8 +765,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "3.6"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           STORAGE_ENGINE: "mmapv1"
       - func: "wait for mongod to be ready"
       - func: "run make target"
@@ -858,7 +786,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
+        vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
       - func: "wait for mongod to be ready"
       - func: "run make target"
         vars:
@@ -871,16 +802,14 @@ tasks:
     tags: ["4.0", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
+        vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
       - func: "wait for mongod to be ready"
       - func: "create mongod users"
       - func: "run make target"
@@ -898,7 +827,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.0"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_SSL: "true"
       - func: "run make target"
@@ -916,8 +846,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           STORAGE_ENGINE: "mmapv1"
       - func: "wait for mongod to be ready"
       - func: "run make target"
@@ -935,8 +867,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -952,17 +886,14 @@ tasks:
     tags: ["4.2", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -985,8 +916,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1002,17 +935,14 @@ tasks:
     tags: ["4.4", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1035,7 +965,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1053,8 +984,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1070,17 +1003,14 @@ tasks:
     tags: ["5.0", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1103,7 +1033,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1121,8 +1052,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1141,8 +1074,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.1"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1158,17 +1093,14 @@ tasks:
     tags: ["5.1", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.1"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1191,7 +1123,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.1"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1209,8 +1142,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.1"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1229,8 +1164,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.2"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1246,17 +1183,14 @@ tasks:
     tags: ["5.2", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.2"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1279,7 +1213,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.2"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1297,8 +1232,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.2"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1317,8 +1254,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.3"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1334,17 +1273,14 @@ tasks:
     tags: ["5.3", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.3"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1367,7 +1303,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.3"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1385,8 +1322,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.3"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1405,8 +1344,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1422,17 +1363,14 @@ tasks:
     tags: ["6.0", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1455,7 +1393,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1474,7 +1413,7 @@ tasks:
         vars:
           mongo_version: "6.0"
       - func: "install mlaunch"
-      - func: "create sharded cluster"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
           MLAUNCH_SHARDED_CLUTER: "true"
@@ -1493,8 +1432,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1513,8 +1454,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1530,17 +1473,14 @@ tasks:
     tags: ["latest", "auth"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
+          USE_AUTH: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1563,7 +1503,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
-      - func: "create repl_set"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1581,8 +1522,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1601,8 +1544,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "start mongod"
+      - func: "install mlaunch"
+      - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "single"
           AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -2121,11 +2066,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "amzn64"
       mongo_edition: "enterprise"
@@ -2158,11 +2100,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "amazon2"
       mongo_edition: "enterprise"
@@ -2201,11 +2140,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "debian81"
       mongo_edition: "enterprise"
@@ -2233,11 +2169,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "debian92"
       mongo_edition: "enterprise"
@@ -2271,11 +2204,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "debian10"
       mongo_edition: "enterprise"
@@ -2308,11 +2238,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "debian11"
       mongo_edition: "enterprise"
@@ -2347,11 +2274,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "osx"
       mongo_target: "osx-ssl"
@@ -2390,11 +2314,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel62"
       mongo_edition: "enterprise"
@@ -2426,11 +2347,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel62"
       mongo_edition: "enterprise"
@@ -2457,11 +2375,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel70"
       mongo_edition: "enterprise"
@@ -2497,11 +2412,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel80"
       mongo_edition: "enterprise"
@@ -2536,11 +2448,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel90"
       mongo_edition: "enterprise"
@@ -2575,11 +2484,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "suse12"
       mongo_edition: "enterprise"
@@ -2614,11 +2520,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "suse15"
       mongo_edition: "enterprise"
@@ -2654,11 +2557,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1604"
       mongo_edition: "enterprise"
@@ -2690,11 +2590,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
@@ -2729,11 +2626,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2004"
       mongo_edition: "enterprise"
@@ -2765,11 +2659,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2204"
       mongo_edition: "enterprise"
@@ -2802,11 +2693,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "windows-64"
       mongo_edition: "enterprise"
@@ -2852,11 +2740,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1604"
       mongo_edition: "enterprise"
@@ -2891,11 +2776,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
@@ -2932,11 +2814,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2004"
       mongo_edition: "enterprise"
@@ -2971,11 +2850,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu2204"
       mongo_edition: "enterprise"
@@ -3007,11 +2883,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "amazon2"
       mongo_edition: "enterprise"
@@ -3047,11 +2920,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel82"
       mongo_edition: "enterprise"
@@ -3090,11 +2960,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel71"
       mongo_edition: "enterprise"
@@ -3129,11 +2996,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel81"
       mongo_edition: "enterprise"
@@ -3171,11 +3035,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1604"
       mongo_edition: "enterprise"
@@ -3206,11 +3067,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
@@ -3246,11 +3104,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel72"
       mongo_edition: "enterprise"
@@ -3287,11 +3142,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "rhel83"
       mongo_edition: "enterprise"
@@ -3328,11 +3180,8 @@ buildvariants:
     expansions:
       <<:
         [
-          *mongod_ssl_startup_args,
           *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
           *mongo_tls_startup_args,
-          *mongos_default_startup_args,
         ]
       mongo_os: "ubuntu1804"
       mongo_edition: "enterprise"
