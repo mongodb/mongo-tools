@@ -36,6 +36,6 @@ elif [ -n "$MLAUNCH_SINGLE_NODE" ]; then
 fi
 
 # The ./bin directory contains our downloaded mongod and mongos.
-PATH=./bin:$PATH
+PATH=./bin:$HOME/.local/bin:$PATH
 
 mlaunch $CLUSTER_TYPE $MLAUNCH_ARGS
