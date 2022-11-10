@@ -6,7 +6,7 @@ set -e
 
 echo "starting sharded cluster"
 
-MLAUNCH_ARGS="--port 33333"
+MLAUNCH_ARGS="--port 33333 --setParameter enableTestCommands=1"
 
 if [ "$USE_SSL" = "true" ]; then
     MLAUNCH_ARGS="$MLAUNCH_ARGS --sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslClientCertificate common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
@@ -29,13 +29,13 @@ if [ -n "$STORAGE_ENGINE" ]; then
 fi
 
 CLUSTER_TYPE="--replicaset --nodes 3"
-if [ -n "$MLAUNCH_SHARDED_CLUSTER" ]; then
+if [ "$MLAUNCH_CLUSTER_TYPE" = "sharded" ]; then
     CLUSTER_TYPE="$CLUSTER_TYPE --sharded 3"
-elif [ -n "$MLAUNCH_SINGLE_NODE" ]; then
+elif [ "$MLAUNCH_CLUSTER_TYPE" = "single" ]; then
     CLUSTER_TYPE="--single"
 fi
 
 # The ./bin directory contains our downloaded mongod and mongos.
 PATH=./bin:$HOME/.local/bin:$PATH
 
-mlaunch $CLUSTER_TYPE $MLAUNCH_ARGS
+mlaunch init $CLUSTER_TYPE $MLAUNCH_ARGS

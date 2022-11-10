@@ -1415,8 +1415,8 @@ tasks:
       - func: "install mlaunch"
       - func: "run server with mlaunch"
         vars:
+          MLAUNCH_CLUSTER_TYPE: "sharded"
           USE_TLS: "true"
-          MLAUNCH_SHARDED_CLUTER: "true"
       - func: "run make target"
         vars:
           target: build
