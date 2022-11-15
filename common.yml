@@ -135,7 +135,7 @@ functions:
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGO_ARGS="${mongo_args_tls}"
-        elif [ "${AWS_AUTH}" = "true" ]; then
+        elif [ "${USE_AWS_AUTH}" = "true" ]; then
           MONGO_ARGS="--port 33333"
         fi;
         while true ; do
@@ -1056,10 +1056,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
@@ -1146,10 +1146,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
@@ -1236,10 +1236,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
@@ -1326,10 +1326,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
@@ -1436,10 +1436,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
@@ -1526,10 +1526,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
@@ -1548,10 +1548,10 @@ tasks:
       - func: "run server with mlaunch"
         vars:
           MLAUNCH_CLUSTER_TYPE: "single"
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "wait for mongod to be ready"
         vars:
-          AWS_AUTH: "true"
+          USE_AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
