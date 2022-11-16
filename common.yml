@@ -156,18 +156,6 @@ functions:
             fi
         done
 
-  "create mongod users":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        ${_set_shell_env}
-        MONGO_ARGS="${mongo_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGO_ARGS="${mongo_args_tls}"
-        fi
-        echo "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });" | ./bin/mongo${extension} $MONGO_ARGS admin
-
   "create release artifacts":
     # build release artifacts
     - command: shell.exec
@@ -440,13 +428,12 @@ functions:
         python3 -m pip install --user mtools[mlaunch]
 
   "run server with mlaunch":
-    command: subprocess.exec
+    command: shell.exec
     params:
-      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
-      args:
-        - "./scripts/run_mlaunch.sh"
-      add_expansions_to_env: true
+      script: |
+        ${_set_shell_env}
+        ./scripts/run_mlaunch.sh
 
   "add-aws-auth-variables-to-file":
     - command: shell.exec
@@ -811,7 +798,6 @@ tasks:
           MLAUNCH_CLUSTER_TYPE: "single"
           USE_AUTH: "true"
       - func: "wait for mongod to be ready"
-      - func: "create mongod users"
       - func: "run make target"
         vars:
           target: build
@@ -898,7 +884,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -947,7 +932,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1015,7 +999,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1105,7 +1088,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1195,7 +1177,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1285,7 +1266,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1375,7 +1355,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1485,7 +1464,6 @@ tasks:
       - func: "wait for mongod to be ready"
         vars:
           USE_TLS: "true"
-      - func: "create mongod users"
         vars:
           USE_TLS: "true"
       - func: "run make target"

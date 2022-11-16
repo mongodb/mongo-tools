@@ -14,12 +14,12 @@ elif [ -n "$USE_SSL" ]; then
     MLAUNCH_ARGS="$MLAUNCH_ARGS --sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslClientCertificate common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
 fi
 
-if [ -n "$USE_AWS_AUTH" ]; then
-    MLAUNCH_ARGS="$MLAUNCH_ARGS --auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
+if [ -n "$USE_AUTH" ] || [ -n "$USE_AWS_AUTH" ]; then
+    MLAUNCH_ARGS="$MLAUNCH_ARGS --auth --username $TOOLS_TESTING_AUTH_USERNAME --password $TOOLS_TESTING_AUTH_PASSWORD"
 fi
 
-if [ -n "$USE_AUTH" ]; then
-    MLAUNCH_ARGS="$MLAUNCH_ARGS --auth"
+if [ -n "$USE_AWS_AUTH" ]; then
+    MLAUNCH_ARGS="$MLAUNCH_ARGS --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
 fi
 
 if [ -n "$STORAGE_ENGINE" ]; then
