@@ -13,10 +13,10 @@ stepback: true
 variables:
   mongo_arguments:
     ssl: &mongo_ssl_startup_args
-      mongo_args: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --sslAllowInvalidCertificates"
+      mongo_args: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
       mongod_port: 33333
     tls: &mongo_tls_startup_args
-      mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
+      mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-client.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
 functions:
