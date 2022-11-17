@@ -588,6 +588,17 @@ pre:
       file: expansions.yml
 
 post:
+  # This prints out the logs from all servers started by mlaunch.
+  - command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      shell: bash
+      script: |
+        for file in data/**/*/*.log; do
+            echo "$file"
+            echo "--------------------------------------"
+            cat "$file"
+        done
   # attach.results works for jstests, gotest.parse_files for golang tests
   - command: attach.results
     params:
