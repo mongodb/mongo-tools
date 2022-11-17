@@ -133,11 +133,11 @@ functions:
         set -v
         SECS=0
         MONGO_ARGS="${mongo_args}"
-        if [ "${USE_TLS}" = "true" ]; then
+        if [ -n "${USE_TLS}" ]; then
           MONGO_ARGS="${mongo_args_tls}"
-        elif [ "${USE_SSL}" = "true" ]; then
+        elif [ -n "${USE_SSL}" ]; then
           MONGO_ARGS="${mongo_args_ssl}"
-        elif [ "${USE_AWS_AUTH}" = "true" ]; then
+        elif [ -n "${USE_AWS_AUTH}" ]; then
           MONGO_ARGS="--port 33333"
         fi;
         while true ; do
@@ -436,6 +436,7 @@ functions:
       script: |
         ${_set_shell_env}
         ./scripts/run_mlaunch.sh
+      add_expansions_to_env: true
 
   "add-aws-auth-variables-to-file":
     - command: shell.exec
