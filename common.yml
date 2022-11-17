@@ -12,12 +12,12 @@ stepback: true
 
 variables:
   mongo_arguments:
+    default:
+      mongo_args: "--port 33333"
     ssl: &mongo_ssl_startup_args
-      mongo_args: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
-      mongod_port: 33333
+      mongo_args_ssl: "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-client.pem --sslAllowInvalidCertificates"
     tls: &mongo_tls_startup_args
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-client.pem --tlsAllowInvalidCertificates"
-      mongod_port: 33333
 
 functions:
   "run legacy tests":
@@ -135,6 +135,8 @@ functions:
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
           MONGO_ARGS="${mongo_args_tls}"
+        elif [ "${USE_SSL}" = "true" ]; then
+          MONGO_ARGS="${mongo_args_ssl}"
         elif [ "${USE_AWS_AUTH}" = "true" ]; then
           MONGO_ARGS="--port 33333"
         fi;
