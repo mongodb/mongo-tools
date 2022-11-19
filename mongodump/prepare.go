@@ -157,6 +157,7 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 			collName == "system.indexBuilds" ||
 			collName == "image_collection" ||
 			collName == "mongos" ||
+			collName == "system.preimages" ||
 			strings.HasPrefix(collName, "cache.") {
 			return true
 		}

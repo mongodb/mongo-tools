@@ -123,6 +123,11 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		},
 		{
 			db:     "config",
+			coll:   "system.preimages",
+			output: true,
+		},
+		{
+			db:     "config",
 			coll:   "cache.foo",
 			output: true,
 		},

@@ -14,6 +14,11 @@ import "io"
 // private API
 
 const (
+	// for future contributors: after adding something here,
+	// you have to add the corresponding index in a terminfo
+	// file to `terminfo.go#ti_funcs`. The values can be taken
+	// from (ncurses) `term.h`. The builtin terminfo at terminfo_builtin.go
+	// also needs adjusting with the new values.
 	t_enter_ca = iota
 	t_exit_ca
 	t_show_cursor
@@ -22,7 +27,10 @@ const (
 	t_sgr0
 	t_underline
 	t_bold
+	t_hidden
 	t_blink
+	t_dim
+	t_cursive
 	t_reverse
 	t_enter_keypad
 	t_exit_keypad
@@ -40,6 +48,14 @@ type input_event struct {
 	data []byte
 	err  error
 }
+
+type extract_event_res int
+
+const (
+	event_not_extracted extract_event_res = iota
+	event_extracted
+	esc_wait
+)
 
 var (
 	// term specific sequences
@@ -94,10 +110,19 @@ func write_sgr_fg(a Attribute) {
 		outbuf.WriteString("\033[38;5;")
 		outbuf.Write(strconv.AppendUint(intbuf, uint64(a-1), 10))
 		outbuf.WriteString("m")
+	case OutputRGB:
+		r, g, b := AttributeToRGB(a)
+		outbuf.WriteString(escapeRGB(true, r, g, b))
 	default:
-		outbuf.WriteString("\033[3")
-		outbuf.Write(strconv.AppendUint(intbuf, uint64(a-1), 10))
-		outbuf.WriteString("m")
+		if a < ColorDarkGray {
+			outbuf.WriteString("\033[3")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(a-ColorBlack), 10))
+			outbuf.WriteString("m")
+		} else {
+			outbuf.WriteString("\033[9")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(a-ColorDarkGray), 10))
+			outbuf.WriteString("m")
+		}
 	}
 }
 
@@ -107,10 +132,19 @@ func write_sgr_bg(a Attribute) {
 		outbuf.WriteString("\033[48;5;")
 		outbuf.Write(strconv.AppendUint(intbuf, uint64(a-1), 10))
 		outbuf.WriteString("m")
+	case OutputRGB:
+		r, g, b := AttributeToRGB(a)
+		outbuf.WriteString(escapeRGB(false, r, g, b))
 	default:
-		outbuf.WriteString("\033[4")
-		outbuf.Write(strconv.AppendUint(intbuf, uint64(a-1), 10))
-		outbuf.WriteString("m")
+		if a < ColorDarkGray {
+			outbuf.WriteString("\033[4")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(a-ColorBlack), 10))
+			outbuf.WriteString("m")
+		} else {
+			outbuf.WriteString("\033[10")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(a-ColorDarkGray), 10))
+			outbuf.WriteString("m")
+		}
 	}
 }
 
@@ -123,13 +157,45 @@ func write_sgr(fg, bg Attribute) {
 		outbuf.WriteString("\033[48;5;")
 		outbuf.Write(strconv.AppendUint(intbuf, uint64(bg-1), 10))
 		outbuf.WriteString("m")
+	case OutputRGB:
+		r, g, b := AttributeToRGB(fg)
+		outbuf.WriteString(escapeRGB(true, r, g, b))
+		r, g, b = AttributeToRGB(bg)
+		outbuf.WriteString(escapeRGB(false, r, g, b))
 	default:
-		outbuf.WriteString("\033[3")
-		outbuf.Write(strconv.AppendUint(intbuf, uint64(fg-1), 10))
-		outbuf.WriteString(";4")
-		outbuf.Write(strconv.AppendUint(intbuf, uint64(bg-1), 10))
-		outbuf.WriteString("m")
+		if fg < ColorDarkGray {
+			outbuf.WriteString("\033[3")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(fg-ColorBlack), 10))
+			outbuf.WriteString(";")
+		} else {
+			outbuf.WriteString("\033[9")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(fg-ColorDarkGray), 10))
+			outbuf.WriteString(";")
+		}
+		if bg < ColorDarkGray {
+			outbuf.WriteString("4")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(bg-ColorBlack), 10))
+			outbuf.WriteString("m")
+		} else {
+			outbuf.WriteString("10")
+			outbuf.Write(strconv.AppendUint(intbuf, uint64(bg-ColorDarkGray), 10))
+			outbuf.WriteString("m")
+		}
 	}
+}
+
+func escapeRGB(fg bool, r uint8, g uint8, b uint8) string {
+	var escape string = "\033["
+	if fg {
+		escape += "38"
+	} else {
+		escape += "48"
+	}
+	escape += ";2;"
+	escape += strconv.FormatUint(uint64(r), 10) + ";"
+	escape += strconv.FormatUint(uint64(g), 10) + ";"
+	escape += strconv.FormatUint(uint64(b), 10) + "m"
+	return escape
 }
 
 type winsize struct {
@@ -189,9 +255,12 @@ func send_attr(fg, bg Attribute) {
 		if bgcol != ColorDefault {
 			bgcol = grayscale[bgcol]
 		}
+	case OutputRGB:
+		fgcol = fg
+		bgcol = bg
 	default:
-		fgcol = fg & 0x0F
-		bgcol = bg & 0x0F
+		fgcol = fg & 0xFF
+		bgcol = bg & 0xFF
 	}
 
 	if fgcol != ColorDefault {
@@ -207,11 +276,23 @@ func send_attr(fg, bg Attribute) {
 	if fg&AttrBold != 0 {
 		outbuf.WriteString(funcs[t_bold])
 	}
-	if bg&AttrBold != 0 {
+	/*if bg&AttrBold != 0 {
+		outbuf.WriteString(funcs[t_blink])
+	}*/
+	if fg&AttrBlink != 0 {
 		outbuf.WriteString(funcs[t_blink])
 	}
 	if fg&AttrUnderline != 0 {
 		outbuf.WriteString(funcs[t_underline])
+	}
+	if fg&AttrCursive != 0 {
+		outbuf.WriteString(funcs[t_cursive])
+	}
+	if fg&AttrHidden != 0 {
+		outbuf.WriteString(funcs[t_hidden])
+	}
+	if fg&AttrDim != 0 {
+		outbuf.WriteString(funcs[t_dim])
 	}
 	if fg&AttrReverse|bg&AttrReverse != 0 {
 		outbuf.WriteString(funcs[t_reverse])
@@ -233,10 +314,7 @@ func send_char(x, y int, ch rune) {
 func flush() error {
 	_, err := io.Copy(out, &outbuf)
 	outbuf.Reset()
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func send_clear() error {
@@ -420,7 +498,7 @@ func parse_escape_sequence(event *Event, buf []byte) (int, bool) {
 		}
 	}
 
-	// if none of the keys match, let's try mouse seqences
+	// if none of the keys match, let's try mouse sequences
 	return parse_mouse_event(event, bufstr)
 }
 
@@ -443,17 +521,27 @@ func extract_raw_event(data []byte, event *Event) bool {
 	return true
 }
 
-func extract_event(inbuf []byte, event *Event) bool {
+func extract_event(inbuf []byte, event *Event, allow_esc_wait bool) extract_event_res {
 	if len(inbuf) == 0 {
 		event.N = 0
-		return false
+		return event_not_extracted
 	}
 
 	if inbuf[0] == '\033' {
 		// possible escape sequence
 		if n, ok := parse_escape_sequence(event, inbuf); n != 0 {
 			event.N = n
-			return ok
+			if ok {
+				return event_extracted
+			} else {
+				return event_not_extracted
+			}
+		}
+
+		// possible partially read escape sequence; trigger a wait if appropriate
+		if enable_wait_for_escape_sequence() && allow_esc_wait {
+			event.N = 0
+			return esc_wait
 		}
 
 		// it's not escape sequence, then it's Alt or Esc, check input_mode
@@ -464,17 +552,17 @@ func extract_event(inbuf []byte, event *Event) bool {
 			event.Key = KeyEsc
 			event.Mod = 0
 			event.N = 1
-			return true
+			return event_extracted
 		case input_mode&InputAlt != 0:
 			// if we're in alt mode, set Alt modifier to event and redo parsing
 			event.Mod = ModAlt
-			ok := extract_event(inbuf[1:], event)
-			if ok {
+			status := extract_event(inbuf[1:], event, false)
+			if status == event_extracted {
 				event.N++
 			} else {
 				event.N = 0
 			}
-			return ok
+			return status
 		default:
 			panic("unreachable")
 		}
@@ -489,7 +577,7 @@ func extract_event(inbuf []byte, event *Event) bool {
 		event.Ch = 0
 		event.Key = Key(inbuf[0])
 		event.N = 1
-		return true
+		return event_extracted
 	}
 
 	// the only possible option is utf8 rune
@@ -497,10 +585,10 @@ func extract_event(inbuf []byte, event *Event) bool {
 		event.Ch = r
 		event.Key = 0
 		event.N = n
-		return true
+		return event_extracted
 	}
 
-	return false
+	return event_not_extracted
 }
 
 func fcntl(fd int, cmd int, arg int) (val int, err error) {

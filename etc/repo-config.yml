@@ -57,14 +57,12 @@ templates:
      </body>
     </html>
 
-
 repos:
-
-####################
-#
-# Community Repos:
-#
-####################
+  ####################
+  #
+  # Community Repos:
+  #
+  ####################
 
   - name: rhel62
     type: rpm
@@ -306,11 +304,11 @@ repos:
     repos:
       - apt/ubuntu/dists/jammy/mongodb-org
 
-####################
-#
-# Enterprise Repos:
-#
-####################
+  ####################
+  #
+  # Enterprise Repos:
+  #
+  ####################
 
   - name: rhel62
     type: rpm
@@ -368,7 +366,6 @@ repos:
       - yum/redhat/8/mongodb-enterprise
       - yum/redhat/8Server/mongodb-enterprise
 
-
   - name: rhel82
     type: rpm
     edition: enterprise
@@ -380,7 +377,7 @@ repos:
   - name: rhel83
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.org
+    bucket: repo.mongodb.com
     repos:
       - yum/redhat/8/mongodb-enterprise
       - yum/redhat/8Server/mongodb-enterprise
