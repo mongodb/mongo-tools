@@ -348,6 +348,39 @@ func TestServerCertificateVerification(t *testing.T) {
 	})
 }
 
+func TestServerMultipleCertificateVerification(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
+
+	auth := DBGetAuthOptions()
+
+	Convey("When initializing a session provider", t, func() {
+		Convey("connection shall succeed if provided with multiple certificates", func() {
+			ssl := options.SSL{
+				UseSSL:        true,
+				SSLCAFile:     "../db/testdata/ca-ia.pem",
+				SSLPEMKeyFile: "../db/testdata/test-client-multiple-certs.pem",
+			}
+			opts := options.ToolOptions{
+				Connection: &options.Connection{
+					Port:    DefaultTestPort,
+					Timeout: 10,
+				},
+				URI:  DBGetConnString(),
+				SSL:  &ssl,
+				Auth: &auth,
+			}
+			opts.URI.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+			provider, err := NewSessionProvider(opts)
+			So(err, ShouldBeNil)
+			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
+			Convey("and should be closeable", func() {
+				provider.Close()
+			})
+		})
+	})
+}
+
 func TestServerPKCS8Verification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
