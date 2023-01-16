@@ -2,7 +2,7 @@
 ## explicit
 github.com/3rf/mongo-lint
 github.com/3rf/mongo-lint/golint
-# github.com/aws/aws-sdk-go v1.44.114
+# github.com/aws/aws-sdk-go v1.44.180
 ## explicit; go 1.11
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -194,22 +194,22 @@ golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
+# golang.org/x/net v0.1.0
 ## explicit; go 1.17
 golang.org/x/net/context
 # golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7
 ## explicit
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
+# golang.org/x/sys v0.1.0
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+# golang.org/x/term v0.1.0
 ## explicit; go 1.17
 golang.org/x/term
-# golang.org/x/text v0.3.7
+# golang.org/x/text v0.4.0
 ## explicit; go 1.17
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
