@@ -22,12 +22,45 @@ import (
 const ExistsDB = "restore_collection_exists"
 
 func TestCollectionExists(t *testing.T) {
-
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
 	}
+
+	Convey("With a mongorestore connected to atlas proxy", t, func() {
+		sessionProvider, _, err := testutil.GetBareSessionProvider()
+		So(err, ShouldBeNil)
+		defer sessionProvider.Close()
+
+		restore := &MongoRestore{
+			SessionProvider: sessionProvider,
+			isAtlasProxy:    true,
+			ToolOptions:     &commonOpts.ToolOptions{Namespace: &commonOpts.Namespace{}},
+			InputOptions:    &InputOptions{RestoreDBUsersAndRoles: false},
+		}
+		session, err := restore.SessionProvider.GetSession()
+
+		Convey("With RestoreDBUsersAndRoles is false", func() {
+			// This case shouldn't error and should instead not return that it will try to restore users and roles.
+			So(err, ShouldBeNil)
+			_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
+			So(err, ShouldBeNil)
+			So(restore.ShouldRestoreUsersAndRoles(), ShouldBeFalse)
+		})
+
+		Convey("With RestoreDBUsersAndRoles is true", func() {
+			// This case should error because it has explicitly been set to restore users and roles, but thats
+			// not possible with an atlas proxy.
+			restore.InputOptions.RestoreDBUsersAndRoles = true
+			err = restore.ParseAndValidateOptions()
+			So(err, ShouldBeError)
+		})
+
+		Reset(func() {
+			session.Database("admin").Drop(nil)
+		})
+	})
 
 	Convey("With a test mongorestore", t, func() {
 		sessionProvider, _, err := testutil.GetBareSessionProvider()

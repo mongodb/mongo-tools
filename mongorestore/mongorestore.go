@@ -204,11 +204,10 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return err
 	}
 	if restore.isAtlasProxy {
+		if restore.InputOptions.RestoreDBUsersAndRoles || restore.ToolOptions.Namespace.DB == "admin" {
+			return fmt.Errorf("cannot restore to the admin database when connected to an atlas proxy")
+		}
 		log.Logv(log.DebugLow, "restoring to an atlas proxy")
-	}
-	if restore.InputOptions.RestoreDBUsersAndRoles ||
-		restore.ToolOptions.Namespace.DB == "admin" {
-		return fmt.Errorf("cannot restore to the admin database when connected to an atlas proxy")
 	}
 
 	if restore.InputOptions.OplogLimit != "" {
