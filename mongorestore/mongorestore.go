@@ -64,6 +64,7 @@ type MongoRestore struct {
 	objCheck         bool
 	oplogLimit       primitive.Timestamp
 	isMongos         bool
+	isAtlasProxy     bool
 	useWriteCommands bool
 	authVersions     authVersionPair
 
@@ -196,6 +197,18 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 	if restore.isMongos {
 		log.Logv(log.DebugLow, "restoring to a sharded system")
+	}
+
+	restore.isAtlasProxy, err = restore.SessionProvider.IsAtlasProxy()
+	if err != nil {
+		return err
+	}
+	if restore.isAtlasProxy {
+		log.Logv(log.DebugLow, "restoring to an atlas proxy")
+	}
+	if restore.InputOptions.RestoreDBUsersAndRoles ||
+		restore.ToolOptions.Namespace.DB == "admin" {
+		return fmt.Errorf("cannot restore to the admin database when connected to an atlas proxy")
 	}
 
 	if restore.InputOptions.OplogLimit != "" {

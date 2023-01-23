@@ -9,6 +9,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"go.mongodb.org/mongo-driver/bson"
@@ -126,6 +127,28 @@ func (sp *SessionProvider) DatabaseNames() ([]string, error) {
 // 	}
 // 	return session.DB(dbName).CollectionNames()
 // }
+
+// IsAtlasProxy checks if the connected SessionProvider is an atlas proxy.
+func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
+	session, err := sp.GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	// Only the atlas proxy will respond to this command without an error.
+	result := session.Database("admin").RunCommand(
+		context.Background(),
+		&bson.M{"atlasVersion": 1},
+	)
+	if result.Err() != nil {
+		if strings.Contains(result.Err().Error(), "no such command") {
+			return false, nil
+		}
+		return false, result.Err()
+	}
+
+	return true, nil
+}
 
 // GetNodeType checks if the connected SessionProvider is a mongos, standalone, or replset,
 // by looking at the result of calling isMaster.
