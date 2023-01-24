@@ -574,7 +574,7 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 			md.ToolOptions.Namespace.Collection = "some_collection"
 			md.ToolOptions.Namespace.DB = ""
 
-			err := md.Init()
+			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "cannot dump a collection without a specified database")
 		})
@@ -584,7 +584,7 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 			md.OutputOptions.Out = ""
 			md.InputOptions.Query = "{_id:\"\"}"
 
-			err := md.Init()
+			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "cannot dump using a query without a specified collection")
 		})
