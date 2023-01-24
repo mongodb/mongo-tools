@@ -435,11 +435,13 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 }
 
 // CreateAllIntents iterates through all dbs and collections and builds
-// dump intents for each collection.
-func (dump *MongoDump) CreateAllIntents() error {
+// dump intents for each collection. Returns the db names that the intents
+// are created from.
+func (dump *MongoDump) CreateAllIntents() ([]string, error) {
+	validDbs := make([]string, 0)
 	dbs, err := dump.SessionProvider.DatabaseNames()
 	if err != nil {
-		return fmt.Errorf("error getting database names: %v", err)
+		return nil, fmt.Errorf("error getting database names: %v", err)
 	}
 	log.Logvf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
 	for _, dbName := range dbs {
@@ -447,11 +449,17 @@ func (dump *MongoDump) CreateAllIntents() error {
 			// local can only be explicitly dumped
 			continue
 		}
+		if dbName == "admin" && dump.isAtlasProxy {
+			// admin can't be dumped if the cluster is connected via atlas proxy
+			continue
+		}
+
+		validDbs = append(validDbs, dbName)
 		if err := dump.CreateIntentsForDatabase(dbName); err != nil {
-			return fmt.Errorf("error creating intents for database %s: %v", dbName, err)
+			return nil, fmt.Errorf("error creating intents for database %s: %v", dbName, err)
 		}
 	}
-	return nil
+	return validDbs, nil
 }
 
 func nameGz(gz bool, name string) string {

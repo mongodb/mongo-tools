@@ -43,7 +43,6 @@ func TestCollectionExists(t *testing.T) {
 
 		Convey("With RestoreDBUsersAndRoles is false", func() {
 			// This case shouldn't error and should instead not return that it will try to restore users and roles.
-			So(err, ShouldBeNil)
 			_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
 			So(err, ShouldBeNil)
 			So(restore.ShouldRestoreUsersAndRoles(), ShouldBeFalse)

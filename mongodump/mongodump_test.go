@@ -828,6 +828,43 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	})
 }
 
+func TestMongoDumpAtlasProxy(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	Convey("With a mongodump connected to atlas proxy", t, func() {
+		sessionProvider, _, err := testutil.GetBareSessionProvider()
+		So(err, ShouldBeNil)
+		defer sessionProvider.Close()
+
+		md := simpleMongoDumpInstance()
+		md.isAtlasProxy = true
+		md.OutputOptions.DumpDBUsersAndRoles = false
+
+		session, err := sessionProvider.GetSession()
+		Convey("With DumpDBUsersAndRoles is false", func() {
+			// This case shouldn't error and should instead not return that it will try to restore users and roles.
+			_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
+			So(err, ShouldBeNil)
+			dbNames, err := md.CreateAllIntents()
+			So(err, ShouldBeNil)
+			So(len(dbNames), ShouldBeZeroValue)
+		})
+
+		Convey("With DumpDBUsersAndRoles is true", func() {
+			// This case should error because it has explicitly been set to dump users and roles for a DB, but thats
+			// not possible with an atlas proxy.
+			md.OutputOptions.DumpDBUsersAndRoles = true
+			err = md.Init()
+			So(err, ShouldBeError)
+		})
+
+		Reset(func() {
+			session.Database("admin").Drop(nil)
+		})
+	})
+}
+
 func TestMongoDumpMetaData(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)

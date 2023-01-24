@@ -66,6 +66,7 @@ type MongoDump struct {
 	oplogStart      primitive.Timestamp
 	oplogEnd        primitive.Timestamp
 	isMongos        bool
+	isAtlasProxy    bool
 	storageEngine   storageEngineType
 	authVersion     int
 	archive         *archive.Writer
@@ -163,6 +164,15 @@ func (dump *MongoDump) Init() error {
 	dump.isMongos, err = dump.SessionProvider.IsMongos()
 	if err != nil {
 		return fmt.Errorf("error checking for Mongos: %v", err)
+	}
+
+	dump.isAtlasProxy, err = dump.SessionProvider.IsAtlasProxy()
+	if err != nil {
+		return fmt.Errorf("error checking for AtlasProxy: %v", err)
+	}
+	if dump.isAtlasProxy &&
+		(dump.OutputOptions.DumpDBUsersAndRoles || dump.ToolOptions.DB == "admin") {
+		return fmt.Errorf("can't dump from admin database when connecting to a cluster via an atlas proxy")
 	}
 
 	if dump.isMongos && dump.OutputOptions.Oplog {
@@ -287,7 +297,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// switch on what kind of execution to do
 	switch {
 	case dump.ToolOptions.DB == "" && dump.ToolOptions.Collection == "":
-		err = dump.CreateAllIntents()
+		_, err = dump.CreateAllIntents()
 	case dump.ToolOptions.DB != "" && dump.ToolOptions.Collection == "":
 		err = dump.CreateIntentsForDatabase(dump.ToolOptions.DB)
 	case dump.ToolOptions.DB != "" && dump.ToolOptions.Collection != "":
@@ -338,7 +348,9 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 	}
 
-	if !dump.SkipUsersAndRoles {
+	// Dump users and roles only if these settings are not configured to be skipped,
+	// and mongodump isn't connected to an atlas proxy.
+	if !dump.SkipUsersAndRoles && !dump.isAtlasProxy {
 		if dump.ToolOptions.DB == "admin" || dump.ToolOptions.DB == "" {
 			err = dump.DumpUsersAndRoles()
 			if err != nil {
