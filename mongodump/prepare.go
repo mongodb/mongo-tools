@@ -434,16 +434,15 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	return colsIter.Err()
 }
 
-// CreateAllIntents iterates through all dbs and collections and builds
-// dump intents for each collection. Returns the db names that the intents
-// are created from.
-func (dump *MongoDump) CreateAllIntents() ([]string, error) {
+func (dump *MongoDump) GetValidDbs() ([]string, error) {
 	validDbs := make([]string, 0)
+	dump.SessionProvider.GetSession()
 	dbs, err := dump.SessionProvider.DatabaseNames()
 	if err != nil {
 		return nil, fmt.Errorf("error getting database names: %v", err)
 	}
 	log.Logvf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
+
 	for _, dbName := range dbs {
 		if dbName == "local" {
 			// local can only be explicitly dumped
@@ -455,11 +454,25 @@ func (dump *MongoDump) CreateAllIntents() ([]string, error) {
 		}
 
 		validDbs = append(validDbs, dbName)
+	}
+
+	return validDbs, nil
+}
+
+// CreateAllIntents iterates through all dbs and collections and builds
+// dump intents for each collection. Returns the db names that the intents
+// are created from.
+func (dump *MongoDump) CreateAllIntents() error {
+	dbs, err := dump.GetValidDbs()
+	if err != nil {
+		return err
+	}
+	for _, dbName := range dbs {
 		if err := dump.CreateIntentsForDatabase(dbName); err != nil {
-			return nil, fmt.Errorf("error creating intents for database %s: %v", dbName, err)
+			return fmt.Errorf("error creating intents for database %s: %v", dbName, err)
 		}
 	}
-	return validDbs, nil
+	return nil
 }
 
 func nameGz(gz bool, name string) string {

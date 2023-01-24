@@ -840,22 +840,23 @@ func TestMongoDumpAtlasProxy(t *testing.T) {
 		md := simpleMongoDumpInstance()
 		md.isAtlasProxy = true
 		md.OutputOptions.DumpDBUsersAndRoles = false
+		md.SessionProvider = sessionProvider
 
 		session, err := sessionProvider.GetSession()
 		Convey("With DumpDBUsersAndRoles is false", func() {
 			// This case shouldn't error and should instead not return that it will try to restore users and roles.
 			_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
 			So(err, ShouldBeNil)
-			dbNames, err := md.CreateAllIntents()
+			dbNames, err := md.GetValidDbs()
 			So(err, ShouldBeNil)
-			So(len(dbNames), ShouldBeZeroValue)
+			So(dbNames, ShouldNotContain, "admin")
 		})
 
 		Convey("With DumpDBUsersAndRoles is true", func() {
 			// This case should error because it has explicitly been set to dump users and roles for a DB, but thats
 			// not possible with an atlas proxy.
 			md.OutputOptions.DumpDBUsersAndRoles = true
-			err = md.Init()
+			err = md.ValidateOptions()
 			So(err, ShouldBeError)
 		})
 

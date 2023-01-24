@@ -130,6 +130,8 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("compression can't be used when dumping a single collection to standard output")
 	case dump.OutputOptions.NumParallelCollections <= 0:
 		return fmt.Errorf("numParallelCollections must be positive")
+	case dump.isAtlasProxy && (dump.OutputOptions.DumpDBUsersAndRoles || dump.ToolOptions.DB == "admin"):
+		return fmt.Errorf("can't dump from admin database when connecting to a cluster via an atlas proxy")
 	}
 	return nil
 }
@@ -141,14 +143,6 @@ func (dump *MongoDump) Init() error {
 	// this would be default, but explicit setting protects us from any
 	// redefinition of the constants.
 	dump.storageEngine = storageEngineUnknown
-
-	err := dump.ValidateOptions()
-	if err != nil {
-		return fmt.Errorf("bad option: %v", err)
-	}
-	if dump.OutputWriter == nil {
-		dump.OutputWriter = os.Stdout
-	}
 
 	pref, err := db.NewReadPreference(dump.InputOptions.ReadPreference, dump.ToolOptions.URI.ParsedConnString())
 	if err != nil {
@@ -170,9 +164,13 @@ func (dump *MongoDump) Init() error {
 	if err != nil {
 		return fmt.Errorf("error checking for AtlasProxy: %v", err)
 	}
-	if dump.isAtlasProxy &&
-		(dump.OutputOptions.DumpDBUsersAndRoles || dump.ToolOptions.DB == "admin") {
-		return fmt.Errorf("can't dump from admin database when connecting to a cluster via an atlas proxy")
+
+	err = dump.ValidateOptions()
+	if err != nil {
+		return fmt.Errorf("bad option: %v", err)
+	}
+	if dump.OutputWriter == nil {
+		dump.OutputWriter = os.Stdout
 	}
 
 	if dump.isMongos && dump.OutputOptions.Oplog {
@@ -297,7 +295,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// switch on what kind of execution to do
 	switch {
 	case dump.ToolOptions.DB == "" && dump.ToolOptions.Collection == "":
-		_, err = dump.CreateAllIntents()
+		err = dump.CreateAllIntents()
 	case dump.ToolOptions.DB != "" && dump.ToolOptions.Collection == "":
 		err = dump.CreateIntentsForDatabase(dump.ToolOptions.DB)
 	case dump.ToolOptions.DB != "" && dump.ToolOptions.Collection != "":
