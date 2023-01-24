@@ -127,26 +127,6 @@ func New(opts Options) (*MongoRestore, error) {
 	return restore, nil
 }
 
-// SupportsCollectionUUID was removed from common/db/command.go, so copied to here
-func SupportsCollectionUUID(sp *db.SessionProvider) (bool, error) {
-	session, err := sp.GetSession()
-	if err != nil {
-		return false, err
-	}
-
-	collInfo, err := db.GetCollectionInfo(session.Database("admin").Collection("system.version"))
-	if err != nil {
-		return false, err
-	}
-
-	// On FCV 3.6+, admin.system.version will have a UUID
-	if collInfo != nil && collInfo.GetUUID() != "" {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 // Close ends any connections and cleans up other internal state.
 func (restore *MongoRestore) Close() {
 	restore.SessionProvider.Close()
@@ -311,18 +291,8 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		restore.OutputOptions.NumInsertionWorkers = 1
 	}
 
-	if restore.OutputOptions.PreserveUUID {
-		if !restore.OutputOptions.Drop {
-			return fmt.Errorf("cannot specify --preserveUUID without --drop")
-		}
-
-		ok, err := SupportsCollectionUUID(restore.SessionProvider)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return fmt.Errorf("target host does not support --preserveUUID")
-		}
+	if restore.OutputOptions.PreserveUUID && !restore.OutputOptions.Drop {
+		return fmt.Errorf("cannot specify --preserveUUID without --drop")
 	}
 
 	// a single dash signals reading from stdin

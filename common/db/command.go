@@ -203,28 +203,6 @@ func (sp *SessionProvider) IsMongos() (bool, error) {
 }
 
 //
-// // SupportsCollectionUUID returns true if the connected server identifies
-// // collections with UUIDs
-// func (sp *SessionProvider) SupportsCollectionUUID() (bool, error) {
-// 	session, err := sp.GetSession()
-// 	if err != nil {
-// 		return false, err
-// 	}
-//
-// 	collInfo, err := GetCollectionInfo(session.Database("admin").Collection("system.version"))
-// 	if err != nil {
-// 		return false, err
-// 	}
-//
-// 	// On FCV 3.6+, admin.system.version will have a UUID
-// 	if collInfo != nil && collInfo.GetUUID() != "" {
-// 		return true, nil
-// 	}
-//
-// 	return false, nil
-// }
-
-//
 // // SupportsWriteCommands returns true if the connected server supports write
 // // commands, returns false otherwise.
 // func (sp *SessionProvider) SupportsWriteCommands() (bool, error) {
