@@ -132,6 +132,8 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("numParallelCollections must be positive")
 	case dump.isAtlasProxy && (dump.OutputOptions.DumpDBUsersAndRoles || dump.ToolOptions.DB == "admin"):
 		return fmt.Errorf("can't dump from admin database when connecting to a cluster via an atlas proxy")
+	case dump.isAtlasProxy && dump.OutputOptions.Oplog:
+		return fmt.Errorf("can't dump with oplog option when connecting to a cluster via an atlas proxy")
 	}
 	return nil
 }
@@ -234,6 +236,8 @@ func (dump *MongoDump) Dump() (err error) {
 		dump.query = query
 	}
 
+	// If we enter this case, then we're not connected to an atlas proxy otherwise
+	// mongodump would have errored earlier.
 	if !dump.SkipUsersAndRoles && dump.OutputOptions.DumpDBUsersAndRoles {
 		// first make sure this is possible with the connected database
 		dump.authVersion, err = auth.GetAuthVersion(dump.SessionProvider)
@@ -312,6 +316,8 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 	}
 
+	// If we enter this case, then we're not connected to an atlas proxy otherwise
+	// mongodump would have errored earlier.
 	if !dump.SkipUsersAndRoles && dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.DB != "admin" {
 		err = dump.CreateUsersRolesVersionIntentsForDB(dump.ToolOptions.DB)
 		if err != nil {
