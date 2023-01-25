@@ -586,6 +586,8 @@ func TestMongoDumpSkipsConfigDBForFullDump(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, dbNames, "config")
 	require.NotContains(t, dbNames, "local")
+	session.Database("config").Collection("testcol").Drop(nil)
+	session.Database("local").Collection("testcol").Drop(nil)
 }
 
 func TestMongoDumpValidateOptions(t *testing.T) {
