@@ -12,6 +12,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -562,6 +563,29 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 		So(iter.Err(), ShouldBeNil)
 		So(iter.Close(context.Background()), ShouldBeNil)
 	})
+}
+
+func TestMongoDumpSkipsConfigDBForFullDump(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	defer sessionProvider.Close()
+
+	md := simpleMongoDumpInstance()
+	md.SessionProvider = sessionProvider
+
+	session, err := sessionProvider.GetSession()
+	_, err = session.Database("config").Collection("testcol").InsertOne(nil, bson.M{})
+	require.NoError(t, err)
+	_, err = session.Database("local").Collection("testcol").InsertOne(nil, bson.M{})
+	require.NoError(t, err)
+
+	dbNames, err := md.GetValidDbs()
+	require.NoError(t, err)
+	require.NotContains(t, dbNames, "config")
+	require.NotContains(t, dbNames, "local")
 }
 
 func TestMongoDumpValidateOptions(t *testing.T) {
