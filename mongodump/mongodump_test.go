@@ -565,29 +565,6 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 	})
 }
 
-func TestMongoDumpSkipsConfigDBForFullDump(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	defer sessionProvider.Close()
-
-	md := simpleMongoDumpInstance()
-	md.SessionProvider = sessionProvider
-
-	session, err := sessionProvider.GetSession()
-	_, err = session.Database("config").Collection("testcol").InsertOne(nil, bson.M{})
-	require.NoError(t, err)
-
-	dbNames, err := md.GetValidDbs()
-	require.NoError(t, err)
-	require.NotContains(t, dbNames, "config")
-	require.NotContains(t, dbNames, "local")
-	session.Database("config").Collection("testcol").Drop(nil)
-	session.Database("local").Collection("testcol").Drop(nil)
-}
-
 func TestMongoDumpValidateOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -1991,6 +1968,28 @@ func TestFailDuringResharding(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
 		})
-
 	})
+}
+
+func TestMongoDumpSkipsConfigDBForFullDump(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	defer sessionProvider.Close()
+
+	md := simpleMongoDumpInstance()
+	md.SessionProvider = sessionProvider
+
+	session, err := sessionProvider.GetSession()
+	_, err = session.Database("config").Collection("testcol").InsertOne(nil, bson.M{})
+	require.NoError(t, err)
+
+	dbNames, err := md.GetValidDbs()
+	require.NoError(t, err)
+	require.NotContains(t, dbNames, "config")
+	require.NotContains(t, dbNames, "local")
+	session.Database("config").Collection("testcol").Drop(nil)
+	session.Database("local").Collection("testcol").Drop(nil)
 }
