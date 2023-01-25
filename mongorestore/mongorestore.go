@@ -124,6 +124,22 @@ func New(opts Options) (*MongoRestore, error) {
 		terminate:       false,
 		indexCatalog:    idx.NewIndexCatalog(),
 	}
+
+	restore.isMongos, err = restore.SessionProvider.IsMongos()
+	if err != nil {
+		return nil, err
+	}
+	if restore.isMongos {
+		log.Logv(log.DebugLow, "restoring to a sharded system")
+	}
+	restore.isAtlasProxy, err = restore.SessionProvider.IsAtlasProxy()
+	if err != nil {
+		return nil, err
+	}
+	if restore.isAtlasProxy {
+		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
+	}
+
 	return restore, nil
 }
 
@@ -170,19 +186,6 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return fmt.Errorf("cannot use --restoreDbUsersAndRoles with the admin database")
 	}
 
-	var err error
-	restore.isMongos, err = restore.SessionProvider.IsMongos()
-	if err != nil {
-		return err
-	}
-	if restore.isMongos {
-		log.Logv(log.DebugLow, "restoring to a sharded system")
-	}
-
-	restore.isAtlasProxy, err = restore.SessionProvider.IsAtlasProxy()
-	if err != nil {
-		return err
-	}
 	if restore.isAtlasProxy {
 		if restore.InputOptions.RestoreDBUsersAndRoles || restore.ToolOptions.Namespace.DB == "admin" {
 			return fmt.Errorf("cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster")
@@ -193,6 +196,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
 	}
 
+	var err error
 	if restore.InputOptions.OplogLimit != "" {
 		if !restore.InputOptions.OplogReplay {
 			return fmt.Errorf("cannot use --oplogLimit without --oplogReplay enabled")
