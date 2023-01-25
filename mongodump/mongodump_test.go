@@ -579,8 +579,6 @@ func TestMongoDumpSkipsConfigDBForFullDump(t *testing.T) {
 	session, err := sessionProvider.GetSession()
 	_, err = session.Database("config").Collection("testcol").InsertOne(nil, bson.M{})
 	require.NoError(t, err)
-	_, err = session.Database("local").Collection("testcol").InsertOne(nil, bson.M{})
-	require.NoError(t, err)
 
 	dbNames, err := md.GetValidDbs()
 	require.NoError(t, err)
