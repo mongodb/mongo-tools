@@ -52,6 +52,7 @@ func TestCollectionExists(t *testing.T) {
 			// This case should error because it has explicitly been set to restore users and roles, but thats
 			// not possible with an atlas proxy.
 			restore.InputOptions.RestoreDBUsersAndRoles = true
+			restore.ToolOptions.DB = "test"
 			err = restore.ParseAndValidateOptions()
 			So(err, ShouldBeError)
 			So(err.Error(), ShouldContainSubstring, "cannot restore to the admin database when connected to an atlas proxy")
