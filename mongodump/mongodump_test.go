@@ -12,6 +12,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -592,6 +593,36 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 	})
 }
 
+func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	defer sessionProvider.Close()
+
+	md := simpleMongoDumpInstance()
+	md.isAtlasProxy = true
+	md.OutputOptions.DumpDBUsersAndRoles = false
+	md.SessionProvider = sessionProvider
+
+	session, err := sessionProvider.GetSession()
+	// This case shouldn't error and should instead not return that it will try to restore users and roles.
+	_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
+	require.NoError(t, err)
+	dbNames, err := md.GetValidDbs()
+	require.NoError(t, err)
+	require.NotContains(t, dbNames, "admin")
+
+	// This case should error because it has explicitly been set to dump users and roles for a DB, but thats
+	// not possible with an atlas proxy.
+	md.OutputOptions.DumpDBUsersAndRoles = true
+	err = md.ValidateOptions()
+	require.Error(t, err, "can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster")
+
+	session.Database("admin").Collection("testcol").Drop(nil)
+}
+
 func TestMongoDumpBSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
@@ -824,45 +855,6 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 
 		Reset(func() {
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
-		})
-	})
-}
-
-func TestMongoDumpAtlasProxy(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
-
-	Convey("With a mongodump connected to atlas proxy", t, func() {
-		sessionProvider, _, err := testutil.GetBareSessionProvider()
-		So(err, ShouldBeNil)
-		defer sessionProvider.Close()
-
-		md := simpleMongoDumpInstance()
-		md.isAtlasProxy = true
-		md.OutputOptions.DumpDBUsersAndRoles = false
-		md.SessionProvider = sessionProvider
-
-		session, err := sessionProvider.GetSession()
-		Convey("With DumpDBUsersAndRoles is false", func() {
-			// This case shouldn't error and should instead not return that it will try to restore users and roles.
-			_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
-			So(err, ShouldBeNil)
-			dbNames, err := md.GetValidDbs()
-			So(err, ShouldBeNil)
-			So(dbNames, ShouldNotContain, "admin")
-		})
-
-		Convey("With DumpDBUsersAndRoles is true", func() {
-			// This case should error because it has explicitly been set to dump users and roles for a DB, but thats
-			// not possible with an atlas proxy.
-			md.OutputOptions.DumpDBUsersAndRoles = true
-			err = md.ValidateOptions()
-			So(err, ShouldBeError)
-			So(err.Error(), ShouldContainSubstring, "can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster")
-		})
-
-		Reset(func() {
-			session.Database("admin").Drop(nil)
 		})
 	})
 }
