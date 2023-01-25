@@ -55,7 +55,7 @@ func TestCollectionExists(t *testing.T) {
 			restore.ToolOptions.DB = "test"
 			err = restore.ParseAndValidateOptions()
 			So(err, ShouldBeError)
-			So(err.Error(), ShouldContainSubstring, "cannot restore to the admin database when connected to an atlas proxy")
+			So(err.Error(), ShouldContainSubstring, "cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster")
 		})
 
 		Reset(func() {

@@ -185,12 +185,12 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 	if restore.isAtlasProxy {
 		if restore.InputOptions.RestoreDBUsersAndRoles || restore.ToolOptions.Namespace.DB == "admin" {
-			return fmt.Errorf("cannot restore to the admin database when connected to an atlas proxy")
+			return fmt.Errorf("cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster")
 		}
 		if restore.InputOptions.OplogReplay {
-			return fmt.Errorf("cannot restore with oplog replay when connected to an atlas proxy")
+			return fmt.Errorf("cannot restore with oplog replay when connected to a MongoDB Atlas free or shared cluster")
 		}
-		log.Logv(log.DebugLow, "restoring to an atlas proxy")
+		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
 	}
 
 	if restore.InputOptions.OplogLimit != "" {
