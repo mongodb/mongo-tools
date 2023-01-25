@@ -54,6 +54,7 @@ func TestCollectionExists(t *testing.T) {
 			restore.InputOptions.RestoreDBUsersAndRoles = true
 			err = restore.ParseAndValidateOptions()
 			So(err, ShouldBeError)
+			So(err.Error(), ShouldContainSubstring, "cannot restore to the admin database when connected to an atlas proxy")
 		})
 
 		Reset(func() {

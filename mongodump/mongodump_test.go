@@ -858,6 +858,7 @@ func TestMongoDumpAtlasProxy(t *testing.T) {
 			md.OutputOptions.DumpDBUsersAndRoles = true
 			err = md.ValidateOptions()
 			So(err, ShouldBeError)
+			So(err.Error(), ShouldContainSubstring, "can't dump from admin database when connecting to a cluster via an atlas proxy")
 		})
 
 		Reset(func() {
