@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
 
@@ -41,6 +42,28 @@ func newMongoRestore() *MongoRestore {
 		includer:     includer,
 		excluder:     excluder,
 	}
+}
+
+func TestIsDirValidForFullRestore(t *testing.T) {
+	var mr *MongoRestore
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	mr = newMongoRestore()
+
+	// A directory representing the config db shouldn't be restored during a full restore unless configured to be.
+	shouldCreateIntents, err := mr.shouldCreateIntentsForDir("config")
+	require.NoError(t, err)
+	require.False(t, shouldCreateIntents)
+
+	// When nsInclude is specified, then the config db can be marked as being able to have intents created for it,
+	// even if there is no namespace in the config db in the nsInclude. This is because all config namespaces will
+	// later be filtered out, if non are included as a pattern.
+	var include []string
+	include = append(include, "test.*")
+	mr.NSOptions.NSInclude = include
+	shouldCreateIntents, err = mr.shouldCreateIntentsForDir("config")
+	require.NoError(t, err)
+	require.True(t, shouldCreateIntents)
 }
 
 func TestCreateAllIntents(t *testing.T) {

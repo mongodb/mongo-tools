@@ -305,6 +305,21 @@ func (restore *MongoRestore) getCollectionNameFromMetadata(metadataFullPath stri
 	return metadata.CollectionName, nil
 }
 
+// shouldCreateIntentsForDir returns whether a directory represents a database that can
+// be restored with the configured options.
+func (restore *MongoRestore) shouldCreateIntentsForDir(dirName string) (bool, error) {
+	if err := util.ValidateDBName(dirName); err != nil {
+		return false, fmt.Errorf("invalid database name '%v': %v", dirName, err)
+	}
+	// Don't restore anything into the config DB if doing a full restore.
+	// If nsInclude is specified, then we can create intents for the config
+	// DB and they will only be restored if they match an include pattern.
+	if dirName == "config" && restore.NSOptions.NSInclude == nil {
+		return false, nil
+	}
+	return true, nil
+}
+
 // CreateAllIntents drills down into a dump folder, creating intents for all of
 // the databases and collections it finds.
 func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
@@ -315,13 +330,16 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
-			if err = util.ValidateDBName(entry.Name()); err != nil {
-				return fmt.Errorf("invalid database name '%v': %v", entry.Name(), err)
-			}
-			err = restore.CreateIntentsForDB(entry.Name(), entry)
+			shouldCreateIntents, err := restore.shouldCreateIntentsForDir(entry.Name())
 			if err != nil {
 				return err
 			}
+			if shouldCreateIntents {
+				if err = restore.CreateIntentsForDB(entry.Name(), entry); err != nil {
+					return err
+				}
+			}
+
 		} else {
 			if entry.Name() == "oplog.bson" {
 				if restore.InputOptions.OplogReplay {
