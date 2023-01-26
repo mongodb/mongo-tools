@@ -317,6 +317,11 @@ func (restore *MongoRestore) shouldCreateIntentsForDir(dirName string) (bool, er
 	if dirName == "config" && restore.NSOptions.NSInclude == nil {
 		return false, nil
 	}
+	// Don't restore anything into the admin DB if connected to atlas proxy.
+	if dirName == "admin" && restore.isAtlasProxy {
+		return false, nil
+	}
+
 	return true, nil
 }
 

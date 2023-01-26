@@ -447,6 +447,10 @@ func (dump *MongoDump) GetValidDbs() ([]string, error) {
 			// local and config can only be explicitly dumped
 			continue
 		}
+		if dbName == "admin" && dump.isAtlasProxy {
+			// admin can't be dumped if the cluster is connected via atlas proxy
+			continue
+		}
 
 		validDbs = append(validDbs, dbName)
 	}

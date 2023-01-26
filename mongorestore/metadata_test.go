@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
 
@@ -21,8 +22,40 @@ import (
 
 const ExistsDB = "restore_collection_exists"
 
-func TestCollectionExists(t *testing.T) {
+func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	_, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
 
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	defer sessionProvider.Close()
+	restore := &MongoRestore{
+		SessionProvider: sessionProvider,
+		isAtlasProxy:    true,
+		ToolOptions:     &commonOpts.ToolOptions{Namespace: &commonOpts.Namespace{}},
+		InputOptions:    &InputOptions{RestoreDBUsersAndRoles: false},
+	}
+	session, err := restore.SessionProvider.GetSession()
+
+	// This case shouldn't error and should instead not return that it will try to restore users and roles.
+	_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
+	require.NoError(t, err)
+	require.False(t, restore.ShouldRestoreUsersAndRoles())
+
+	// This case should error because it has explicitly been set to restore users and roles, but thats
+	// not possible with an atlas proxy.
+	restore.InputOptions.RestoreDBUsersAndRoles = true
+	restore.ToolOptions.DB = "test"
+	err = restore.ParseAndValidateOptions()
+	require.Error(t, err, "cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster")
+
+	session.Database("admin").Collection("testcol").Drop(nil)
+}
+
+func TestCollectionExists(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
 	if err != nil {
