@@ -12,6 +12,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -574,7 +575,7 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 			md.ToolOptions.Namespace.Collection = "some_collection"
 			md.ToolOptions.Namespace.DB = ""
 
-			err := md.Init()
+			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "cannot dump a collection without a specified database")
 		})
@@ -584,12 +585,42 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 			md.OutputOptions.Out = ""
 			md.InputOptions.Query = "{_id:\"\"}"
 
-			err := md.Init()
+			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "cannot dump using a query without a specified collection")
 		})
 
 	})
+}
+
+func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	defer sessionProvider.Close()
+
+	md := simpleMongoDumpInstance()
+	md.isAtlasProxy = true
+	md.OutputOptions.DumpDBUsersAndRoles = false
+	md.SessionProvider = sessionProvider
+
+	session, err := sessionProvider.GetSession()
+	// This case shouldn't error and should instead not return that it will try to restore users and roles.
+	_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
+	require.NoError(t, err)
+	dbNames, err := md.GetValidDbs()
+	require.NoError(t, err)
+	require.NotContains(t, dbNames, "admin")
+
+	// This case should error because it has explicitly been set to dump users and roles for a DB, but thats
+	// not possible with an atlas proxy.
+	md.OutputOptions.DumpDBUsersAndRoles = true
+	err = md.ValidateOptions()
+	require.Error(t, err, "can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster")
+
+	session.Database("admin").Collection("testcol").Drop(nil)
 }
 
 func TestMongoDumpBSON(t *testing.T) {

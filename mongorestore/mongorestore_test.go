@@ -469,35 +469,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 	})
 }
 
-func TestMongorestoreCantPreserveUUID(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
-	fcv := testutil.GetFCV(session)
-	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp >= 0 {
-		t.Skip("Requires server with FCV less than 3.6")
-	}
-
-	Convey("PreserveUUID restore with incompatible destination FCV errors", t, func() {
-		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			PreserveUUIDOption,
-			DropOption,
-			"testdata/oplogdump",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		result := restore.Restore()
-		So(result.Err, ShouldNotBeNil)
-		So(result.Err.Error(), ShouldContainSubstring, "target host does not support --preserveUUID")
-	})
-}
-
 func TestMongorestorePreserveUUID(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
