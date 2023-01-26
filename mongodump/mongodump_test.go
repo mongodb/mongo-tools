@@ -1866,6 +1866,8 @@ func TestFailDuringResharding(t *testing.T) {
 		md.ToolOptions.Namespace = &options.Namespace{}
 		err = md.Init()
 		So(err, ShouldBeNil)
+		// Hack to not fail validating inputs on both --db and --oplog being specified.
+		md.ToolOptions.DB = "config"
 
 		DefaultErrorMsg := "detected resharding in progress. Cannot dump with --oplog while resharding"
 		OplogErrorMsg := "cannot dump with oplog while resharding"
