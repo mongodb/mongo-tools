@@ -140,9 +140,10 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 		context.Background(),
 		&bson.M{"atlasVersion": 1},
 	)
+
 	if result.Err() != nil {
 		// Sharded clusters use "cmd" and non-sharded clusters use "command".
-		if strings.Contains(result.Err().Error(), "no such command") || strings.Contains(result.Err().Error(), "no such cmd") {
+		if strings.Contains(result.Err().Error(), "CommandNotFound") {
 			return false, nil
 		}
 		return false, result.Err()
