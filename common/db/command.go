@@ -140,7 +140,6 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 		context.Background(),
 		&bson.M{"atlasVersion": 1},
 	)
-
 	if result.Err() != nil {
 		if strings.Contains(result.Err().Error(), "CommandNotFound") {
 			return false, nil
