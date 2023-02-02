@@ -1927,6 +1927,7 @@ func TestFailDuringResharding(t *testing.T) {
 			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
 		})
 
+		md.ToolOptions.DB = "test"
 		Convey("dump should fail if config.reshardingOperations created in oplog", func() {
 			failpoint.ParseFailpoints("PauseBeforeDumping")
 			defer failpoint.Reset()
