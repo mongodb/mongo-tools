@@ -1996,7 +1996,7 @@ func TestFailDuringResharding(t *testing.T) {
 			close(done)
 
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
+			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
 		})
 
 	})
