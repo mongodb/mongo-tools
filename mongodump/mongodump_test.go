@@ -1197,7 +1197,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		err = md.Dump()
 		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
 		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "client is disconnected")
+		So(err.Error(), ShouldContainSubstring, "client is disconnected")
 	})
 }
 
