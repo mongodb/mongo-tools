@@ -296,6 +296,27 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error connecting to host: %v", err)
 	}
 
+	// If oplog capturing is enabled, we first check the most recent
+	// oplog entry and save its timestamp, this will let us later
+	// copy all oplog entries that occurred while dumping, creating
+	// what is effectively a point-in-time snapshot.
+	if dump.OutputOptions.Oplog {
+		err := dump.determineOplogCollectionName()
+		if err != nil {
+			return fmt.Errorf("error finding oplog: %v", err)
+		}
+		log.Logvf(log.Info, "getting most recent oplog timestamp")
+		dump.oplogStart, err = dump.getOplogCopyStartTime()
+		if err != nil {
+			return fmt.Errorf("error getting oplog start: %v", err)
+		}
+	}
+
+	if failpoint.Enabled(failpoint.PauseBeforeDumping) {
+		log.Logvf(log.Info, "failpoint.PauseBeforeDumping: sleeping 15 sec")
+		time.Sleep(15 * time.Second)
+	}
+
 	// switch on what kind of execution to do
 	switch {
 	case dump.ToolOptions.DB == "" && dump.ToolOptions.Collection == "":
@@ -372,27 +393,6 @@ func (dump *MongoDump) Dump() (err error) {
 				}
 			}
 		}
-	}
-
-	// If oplog capturing is enabled, we first check the most recent
-	// oplog entry and save its timestamp, this will let us later
-	// copy all oplog entries that occurred while dumping, creating
-	// what is effectively a point-in-time snapshot.
-	if dump.OutputOptions.Oplog {
-		err := dump.determineOplogCollectionName()
-		if err != nil {
-			return fmt.Errorf("error finding oplog: %v", err)
-		}
-		log.Logvf(log.Info, "getting most recent oplog timestamp")
-		dump.oplogStart, err = dump.getOplogCopyStartTime()
-		if err != nil {
-			return fmt.Errorf("error getting oplog start: %v", err)
-		}
-	}
-
-	if failpoint.Enabled(failpoint.PauseBeforeDumping) {
-		log.Logvf(log.Info, "failpoint.PauseBeforeDumping: sleeping 15 sec")
-		time.Sleep(15 * time.Second)
 	}
 
 	// IO Phase II

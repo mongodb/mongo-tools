@@ -1197,7 +1197,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		err = md.Dump()
 		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
 		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "client is disconnected")
+		So(err.Error(), ShouldContainSubstring, "client is disconnected")
 	})
 }
 
@@ -1931,21 +1931,13 @@ func TestFailDuringResharding(t *testing.T) {
 			failpoint.ParseFailpoints("PauseBeforeDumping")
 			defer failpoint.Reset()
 
-			done := make(chan struct{})
 			go func() {
-				select {
-				case <-done:
-					return
-				default:
-					session.Database("config").CreateCollection(ctx, "reshardingOperations")
-					time.Sleep(1 * time.Second)
-					session.Database("config").Collection("reshardingOperations").Drop(ctx)
-					time.Sleep(1 * time.Second)
-				}
+				time.Sleep(2 * time.Second)
+				session.Database("config").CreateCollection(ctx, "reshardingOperations")
+				session.Database("config").Collection("reshardingOperations").Drop(ctx)
 			}()
 
 			err = md.Dump()
-			close(done)
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
@@ -1955,21 +1947,13 @@ func TestFailDuringResharding(t *testing.T) {
 			failpoint.ParseFailpoints("PauseBeforeDumping")
 			defer failpoint.Reset()
 
-			done := make(chan struct{})
 			go func() {
-				select {
-				case <-done:
-					return
-				default:
-					session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
-					time.Sleep(1 * time.Second)
-					session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
-					time.Sleep(1 * time.Second)
-				}
+				time.Sleep(2 * time.Second)
+				session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
+				session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
 			}()
 
 			err = md.Dump()
-			close(done)
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
@@ -1979,21 +1963,13 @@ func TestFailDuringResharding(t *testing.T) {
 			failpoint.ParseFailpoints("PauseBeforeDumping")
 			defer failpoint.Reset()
 
-			done := make(chan struct{})
 			go func() {
-				select {
-				case <-done:
-					return
-				default:
-					session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
-					time.Sleep(1 * time.Second)
-					session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
-					time.Sleep(1 * time.Second)
-				}
+				time.Sleep(2 * time.Second)
+				session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
+				session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
 			}()
 
 			err = md.Dump()
-			close(done)
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
