@@ -64,7 +64,7 @@ class Main:
         if self.wanted.is_latest() or version_is_greater_or_equal(
             self.wanted.version, "6.0"
         ):
-            for version in ["5.3", "5.2", "5.1", "5.0"]:
+            for version in ["6.3", "5.3", "5.2", "5.1", "5.0"]:
                 finder.wanted.version = version
                 url = finder.url_for_wanted()
                 if url:
