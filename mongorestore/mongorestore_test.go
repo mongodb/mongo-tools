@@ -1970,7 +1970,13 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 				numIndexes++
 			}
 
-			So(numIndexes, ShouldEqual, 0)
+			if (restore.serverVersion.GTE(db.Version{6, 3, 0})) {
+				Convey("--noIndexRestore should make no impact on the default meta, time index for time-series collections if server version >= 6.3.0", func() {
+					So(numIndexes, ShouldEqual, 1)
+				})
+			} else {
+				So(numIndexes, ShouldEqual, 0)
+			}
 
 			cur, err := testdb.ListCollections(ctx, bson.M{"name": "system.buckets.foo_ts"})
 			So(err, ShouldBeNil)
