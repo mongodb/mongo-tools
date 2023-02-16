@@ -1093,6 +1093,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.0"
       - func: "start mongod"
         vars:
@@ -1181,6 +1182,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.1"
       - func: "start mongod"
         vars:
@@ -1269,6 +1271,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.2"
       - func: "start mongod"
         vars:
@@ -1357,6 +1360,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.3"
       - func: "start mongod"
         vars:
@@ -1445,6 +1449,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "6.0"
       - func: "start mongod"
         vars:
@@ -1533,6 +1538,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "latest"
       - func: "start mongod"
         vars:
@@ -1553,6 +1559,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "4.4"
       - func: "start mongod"
         vars:
