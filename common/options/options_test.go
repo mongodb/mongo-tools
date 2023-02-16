@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"runtime"
@@ -1090,4 +1091,136 @@ func TestDeprecationWarning(t *testing.T) {
 			So(result, ShouldContainSubstring, deprecationWarningSSLAllow)
 		})
 	})
+}
+
+func TestPasswordPrompt(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	pw := "some-password"
+	expectPrompt := "Enter password for mongo user:\n"
+
+	t.Run("no prompt with user unset", func(t *testing.T) {
+		stderr, cleanupStderr := mockStderr(t)
+		defer cleanupStderr()
+
+		cleanup := mockStdin(t, pw)
+		defer cleanup()
+
+		opts := newTestOpts(t)
+		err := opts.NormalizeOptionsAndURI()
+		require.NoError(t, err)
+
+		prompt, err := ioutil.ReadFile(stderr.Name())
+		require.NoError(t, err)
+		require.Empty(t, string(prompt))
+	})
+
+	t.Run("prompt when user is set and password is not", func(t *testing.T) {
+		stderr, cleanupStderr := mockStderr(t)
+		defer cleanupStderr()
+
+		cleanup := mockStdin(t, pw)
+		defer cleanup()
+
+		opts := newTestOpts(t)
+		opts.Auth.Username = "someuser"
+		err := opts.NormalizeOptionsAndURI()
+		require.NoError(t, err)
+
+		prompt, err := ioutil.ReadFile(stderr.Name())
+		require.NoError(t, err)
+		require.Equal(t, expectPrompt, string(prompt))
+		require.Equal(t, pw, opts.ConnString.Password)
+	})
+
+	t.Run("prompt when host, port, and user are set but uri is not", func(t *testing.T) {
+		stderr, cleanupStderr := mockStderr(t)
+		defer cleanupStderr()
+
+		cleanup := mockStdin(t, pw)
+		defer cleanup()
+
+		opts := newTestOpts(t)
+		opts.Auth.Username = "someuser"
+		opts.Host = "localhost"
+		opts.Port = "12345"
+		opts.URI = nil
+		err := opts.NormalizeOptionsAndURI()
+		require.NoError(t, err)
+
+		prompt, err := ioutil.ReadFile(stderr.Name())
+		require.NoError(t, err)
+		require.Equal(t, expectPrompt, string(prompt))
+		require.Equal(t, pw, opts.ConnString.Password)
+	})
+
+	t.Run("prompt when user is set and password is not and mechanism is PLAIN", func(t *testing.T) {
+		stderr, cleanupStderr := mockStderr(t)
+		defer cleanupStderr()
+
+		cleanup := mockStdin(t, pw)
+		defer cleanup()
+
+		opts := newTestOpts(t)
+		opts.Auth.Username = "someuser"
+		opts.Auth.Mechanism = "PLAIN"
+		opts.SSL.UseSSL = true
+		err := opts.NormalizeOptionsAndURI()
+		require.NoError(t, err)
+
+		prompt, err := ioutil.ReadFile(stderr.Name())
+		require.NoError(t, err)
+		require.Equal(t, expectPrompt, string(prompt))
+		require.Equal(t, pw, opts.ConnString.Password)
+	})
+}
+
+func newTestOpts(t *testing.T) *ToolOptions {
+	enabled := EnabledOptions{Auth: true, Connection: true, URI: true}
+	opts := New("test", "", "", "", true, enabled)
+
+	var err error
+	opts.URI, err = NewURI("mongodb://localhost:12345")
+	require.NoError(t, err)
+
+	return opts
+}
+
+func mockStderr(t *testing.T) (*os.File, func()) {
+	file, err := os.CreateTemp("", "mongo-tools-mock-stderr")
+	require.NoError(t, err)
+
+	oldStderr := os.Stderr
+	os.Stderr = file
+
+	return file, func() {
+		os.Stderr = oldStderr
+		file.Close()
+		rmErr := os.Remove(file.Name())
+		require.NoError(t, rmErr)
+	}
+}
+
+func mockStdin(t *testing.T, content string) func() {
+	file, err := os.CreateTemp("", "mongo-tools-mock-stdin")
+	require.NoError(t, err)
+
+	_, err = file.WriteString(content)
+	require.NoError(t, err)
+
+	err = file.Close()
+	require.NoError(t, err)
+
+	oldStdin := os.Stdin
+
+	file, err = os.Open(file.Name())
+	require.NoError(t, err)
+	os.Stdin = file
+
+	return func() {
+		os.Stdin = oldStdin
+		file.Close()
+		rmErr := os.Remove(file.Name())
+		require.NoError(t, rmErr)
+	}
 }
