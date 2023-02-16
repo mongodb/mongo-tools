@@ -15,7 +15,6 @@ else
     arch="x86_64"
 fi
 
-edition="community"
 if [ "$mongo_edition" = "enterprise" ]; then
     edition="enterprise"
 fi
