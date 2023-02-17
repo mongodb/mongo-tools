@@ -1971,7 +1971,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			}
 
 			if (restore.serverVersion.GTE(db.Version{6, 3, 0})) {
-				Convey("--noIndexRestore should make no impact on the default meta, time index for time-series collections if server version >= 6.3.0", func() {
+				Convey("--noIndexRestore should build the index on meta, time by default for time-series collections if server version >= 6.3.0", func() {
 					So(numIndexes, ShouldEqual, 1)
 				})
 			} else {
