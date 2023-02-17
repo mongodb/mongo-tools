@@ -55,11 +55,6 @@ func TestIntegration(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
 }
 
-// TestSRV is an Executor that runs all SRV tests for the provided packages.
-func TestSRV(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.SRVConnectionStringTestType)
-}
-
 // TestAWSAuth is an Executor that runs all AWS auth tests for the provided packages.
 func TestAWSAuth(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.AWSAuthTestType)
@@ -128,14 +123,16 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 
 		// Append any existing environment variables, along
 		// with the ones indicating which test types to run.
-		env := append([]string{}, os.Environ()...)
-		env = append(env, testType+"=true")
+		env := []string{testType + "=true"}
 		if ctx.Get("ssl") == "true" {
 			env = append(env, testtype.SSLTestType+"=true")
 		}
 		if ctx.Get("auth") == "true" {
 			env = append(env, testtype.AuthTestType+"=true")
 		}
+
+		ctx.Logf("cmd env: %v\n", env)
+		env = append(env, os.Environ()...)
 
 		out := io.MultiWriter(ctx, outFile)
 

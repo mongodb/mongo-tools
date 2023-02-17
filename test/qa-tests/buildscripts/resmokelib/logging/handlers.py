@@ -144,7 +144,7 @@ class HTTPHandler(object):
             passwd=password)
 
         self.url_root = url_root
-        self.url_opener = urllib.request.build_opener(digest_handler, urllib2.HTTPErrorProcessor())
+        self.url_opener = urllib.request.build_opener(digest_handler, urllib.request.HTTPErrorProcessor())
 
     def _make_url(self, endpoint):
         return "%s/%s/" % (self.url_root.rstrip("/"), endpoint.strip("/"))
@@ -159,7 +159,7 @@ class HTTPHandler(object):
         """
 
         data = utils.default_if_none(data, [])
-        data = json.dumps(data, encoding="utf-8")
+        data = json.dumps(data).encode("utf-8")
 
         headers = utils.default_if_none(headers, {})
         headers["Content-Type"] = "application/json; charset=utf-8"
@@ -168,11 +168,11 @@ class HTTPHandler(object):
         request = urllib.request.Request(url=url, data=data, headers=headers)
 
         response = self.url_opener.open(request, timeout=timeout_secs)
-        headers = response.info()
+        headers = response.headers()
 
-        content_type = headers.gettype()
+        content_type = headers.get_content_type()
         if content_type == "application/json":
-            encoding = headers.getparam("charset") or "utf-8"
+            encoding = headers.get_content_charset() or "utf-8"
             return json.load(response, encoding=encoding)
 
         return response.read()
