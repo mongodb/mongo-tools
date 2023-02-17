@@ -28,7 +28,7 @@ def main():
     )
     parser.add_argument(
         "--edition",
-        help="edition of MongoDB to use, either 'community' or 'enterprise'; defaults to 'community'",
+        help="edition of MongoDB to use, either 'targeted' or 'enterprise'; defaults to 'targeted'",
     )
     parser.add_argument(
         "--target",
@@ -121,7 +121,7 @@ class Main:
 class Wanted:
     def __init__(self, edition, version, target, arch):
         if not edition:
-            edition = "community"
+            edition = "targeted"
         if not arch:
             sys.exit("must specify --arch")
         if not target:
@@ -225,7 +225,8 @@ class UrlFinder:
                 (self.wanted.edition == "enterprise" and edition == "enterprise")
                 # The community edition used to be called "base" but is now
                 # called "targeted".
-                or (edition == "base" or edition == "targeted")
+                or ((edition == "base" or edition == "targeted")
+                    and (self.wanted.edition == "base" or self.wanted.edition == "targeted"))
             )
             and download["target"] == self.wanted.target
             and download["arch"] == self.wanted.arch
