@@ -2307,9 +2307,9 @@ buildvariants:
       smoke_use_tls: --use-tls
       resmoke_use_tls: _tls
       USE_SSL: "true"
+    # We removed support for 3.4 on MacOS in TOOLS-3249
     tasks:
       - name: "unit"
-      - name: ".3.4"
       - name: ".3.6"
       - name: ".4.0"
       - name: ".4.2"
