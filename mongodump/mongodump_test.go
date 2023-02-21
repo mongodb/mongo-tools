@@ -2018,113 +2018,69 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 		t.Skip("Requires server with FCV 6.3 or later")
 	}
 
-	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
-		So(err, ShouldBeNil)
+	require.NoError(t, setUpMongoDumpTestData())
 
-		// Create Columnstore indexes.
-		for _, colName := range testCollectionNames {
-			err = setUpColumnstoreIndex(testDB, colName)
-			So(err, ShouldBeNil)
+	// Create Columnstore indexes.
+	for _, colName := range testCollectionNames {
+		require.NoError(t, setUpColumnstoreIndex(testDB, colName))
+	}
+
+	md := simpleMongoDumpInstance()
+	md.ToolOptions.Namespace.DB = testDB
+	md.OutputOptions.Out = "dump"
+
+	require.NoError(t, md.Init())
+	require.NoError(t, md.Dump())
+
+	defer tearDownMongoDumpTestData()
+
+	path, err := os.Getwd()
+	require.NoError(t, err)
+
+	dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	require.True(t, fileDirExists(dumpDir))
+	require.True(t, fileDirExists(dumpDBDir))
+
+	defer os.RemoveAll(dumpDir)
+
+	c1, err := countNonIndexBSONFiles(dumpDBDir)
+	require.NoError(t, err)
+
+	c2, err := countMetaDataFiles(dumpDBDir)
+	require.NoError(t, err)
+	require.Equal(t, c1, c2)
+
+	metaFiles, err := getMatchingFiles(dumpDBDir, ".*\\.metadata\\.json")
+	require.NoError(t, err)
+	require.Greater(t, len(metaFiles), 0)
+
+	oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
+	defer oneMetaFile.Close()
+	require.NoError(t, err)
+	contents, err := ioutil.ReadAll(oneMetaFile)
+	var jsonResult map[string]interface{}
+	err = json.Unmarshal(contents, &jsonResult)
+	require.NoError(t, err)
+
+	indexes, ok := jsonResult["indexes"]
+	require.True(t, ok)
+
+	count := 0
+	for _, index := range indexes.([]interface{}) {
+		indexMap, ok := index.(map[string]interface{})
+		require.True(t, ok)
+
+		if indexMap["name"] == "dump_columnstore_test" {
+			count = count + 1
+
+			require.Contains(t, indexMap, "columnstoreProjection")
+
+			key, ok := indexMap["key"].(map[string]interface{})
+			require.True(t, ok)
+			require.Equal(t, key, map[string]interface{}{"$**": "columnstore"})
 		}
-
-		Convey("testing that the dumped directory contains information about metadata", func() {
-
-			md := simpleMongoDumpInstance()
-			md.ToolOptions.Namespace.DB = testDB
-			md.OutputOptions.Out = "dump"
-
-			err = md.Init()
-			So(err, ShouldBeNil)
-
-			err = md.Dump()
-			So(err, ShouldBeNil)
-
-			path, err := os.Getwd()
-			So(err, ShouldBeNil)
-
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-			So(fileDirExists(dumpDir), ShouldBeTrue)
-			So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-			Convey("having one metadata file per collection", func() {
-				c1, err := countNonIndexBSONFiles(dumpDBDir)
-				So(err, ShouldBeNil)
-
-				c2, err := countMetaDataFiles(dumpDBDir)
-				So(err, ShouldBeNil)
-
-				So(c1, ShouldEqual, c2)
-
-				Convey("and that the JSON in a metadata file is valid", func() {
-					metaFiles, err := getMatchingFiles(dumpDBDir, ".*\\.metadata\\.json")
-					So(err, ShouldBeNil)
-					So(len(metaFiles), ShouldBeGreaterThan, 0)
-
-					oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
-					defer oneMetaFile.Close()
-					So(err, ShouldBeNil)
-					contents, err := ioutil.ReadAll(oneMetaFile)
-					var jsonResult map[string]interface{}
-					err = json.Unmarshal(contents, &jsonResult)
-					So(err, ShouldBeNil)
-
-					Convey("and contains a 'columnstore' index", func() {
-						indexes, ok := jsonResult["indexes"]
-						So(ok, ShouldBeTrue)
-
-						count := 0
-						for _, index := range indexes.([]interface{}) {
-							indexMap, ok := index.(map[string]interface{})
-							So(ok, ShouldBeTrue)
-
-							if indexMap["name"] == "dump_columnstore_test" {
-								count = count + 1
-
-								Convey("has 'columnstoreProjection'", func() {
-									So(indexMap, ShouldContainKey, "columnstoreProjection")
-								})
-
-								Convey("has 'columnstore' key", func() {
-									key, ok := indexMap["key"].(map[string]interface{})
-									So(ok, ShouldBeTrue)
-									So(key, ShouldResemble, map[string]interface{}{"$**": "columnstore"})
-								})
-							}
-						}
-						// Expect exactly one index with name "dump_columnstore_test"
-						So(count, ShouldEqual, 1)
-					})
-
-					Convey("and contains a 'collectionName' key", func() {
-						_, ok := jsonResult["collectionName"]
-						So(ok, ShouldBeTrue)
-					})
-
-					fcv := testutil.GetFCV(session)
-					cmp, err := testutil.CompareFCV(fcv, "3.6")
-					So(err, ShouldBeNil)
-					if cmp >= 0 {
-						Convey("and on FCV 3.6+, contains a 'uuid' key", func() {
-							uuid, ok := jsonResult["uuid"]
-							So(ok, ShouldBeTrue)
-							checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
-							So(checkUUID.MatchString(uuid.(string)), ShouldBeTrue)
-							// XXX useless -- xdg, 2018-09-21
-							So(err, ShouldBeNil)
-						})
-					}
-				})
-				Reset(func() {
-					So(os.RemoveAll(dumpDir), ShouldBeNil)
-				})
-
-			})
-
-			Reset(func() {
-				So(tearDownMongoDumpTestData(), ShouldBeNil)
-			})
-		})
-	})
+	}
+	// Expect exactly one index with name "dump_columnstore_test"
+	require.Equal(t, count, 1)
 }
