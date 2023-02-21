@@ -694,6 +694,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 			return fmt.Errorf("error reading password: %v", err)
 		}
 		opts.Auth.Password = pass
+		opts.ConnString.Password = pass
 	}
 
 	shouldAskForSSLPassword, err := opts.SSL.ShouldAskForPassword()
@@ -710,7 +711,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 
 	err = opts.ConnString.Validate()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "connection string failed validation")
 	}
 
 	// Connect directly to a host if there's no replica set specified, or
