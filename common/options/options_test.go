@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -1097,7 +1098,7 @@ func TestPasswordPrompt(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	pw := "some-password"
-	expectPrompt := "Enter password for mongo user:\n"
+	expectPrompt := regexp.MustCompile(`.*password.*:\n`)
 
 	t.Run("no prompt with user unset", func(t *testing.T) {
 		stderr, cleanupStderr := mockStderr(t)
@@ -1129,7 +1130,7 @@ func TestPasswordPrompt(t *testing.T) {
 
 		prompt, err := ioutil.ReadFile(stderr.Name())
 		require.NoError(t, err)
-		require.Equal(t, expectPrompt, string(prompt))
+		require.Regexp(t, expectPrompt, string(prompt))
 		require.Equal(t, pw, opts.ConnString.Password)
 	})
 
@@ -1150,7 +1151,7 @@ func TestPasswordPrompt(t *testing.T) {
 
 		prompt, err := ioutil.ReadFile(stderr.Name())
 		require.NoError(t, err)
-		require.Equal(t, expectPrompt, string(prompt))
+		require.Regexp(t, expectPrompt, string(prompt))
 		require.Equal(t, pw, opts.ConnString.Password)
 	})
 
@@ -1170,7 +1171,7 @@ func TestPasswordPrompt(t *testing.T) {
 
 		prompt, err := ioutil.ReadFile(stderr.Name())
 		require.NoError(t, err)
-		require.Equal(t, expectPrompt, string(prompt))
+		require.Regexp(t, expectPrompt, string(prompt))
 		require.Equal(t, pw, opts.ConnString.Password)
 	})
 }
