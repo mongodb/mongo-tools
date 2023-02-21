@@ -144,7 +144,9 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 		if strings.Contains(result.Err().Error(), "CommandNotFound") {
 			return false, nil
 		}
-		return false, result.Err()
+		if strings.Contains(result.Err().Error(), "no such cmd") {
+			return false, nil
+		}
 	}
 
 	return true, nil
