@@ -348,6 +348,33 @@ func setUpDBView(dbName string, colName string) error {
 	return nil
 }
 
+func setUpColumnstoreIndex(dbName string, colName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	createIndexCmd := bson.D{
+		{"createIndexes", colName},
+		{"indexes", bson.A{
+			bson.D{
+				{"key", bson.D{{"$**", "columnstore"}}},
+				{"name", "dump_columnstore_test"},
+				{"columnstoreProjection", bson.D{
+					{`"`, 0},
+				}},
+			},
+		}},
+	}
+	var r bson.M
+	err = sessionProvider.Run(createIndexCmd, &r, dbName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func turnOnProfiling(dbName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -1975,5 +2002,129 @@ func TestFailDuringResharding(t *testing.T) {
 			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
 		})
 
+	})
+}
+
+func TestMongoDumpColumnstoreIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(ioutil.Discard)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Errorf("could not get session: %v", err)
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.3"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 6.3 or later")
+	}
+
+	Convey("With a MongoDump instance", t, func() {
+		err := setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		// Create Columnstore indexes.
+		for _, colName := range testCollectionNames {
+			err = setUpColumnstoreIndex(testDB, colName)
+			So(err, ShouldBeNil)
+		}
+
+		Convey("testing that the dumped directory contains information about metadata", func() {
+
+			md := simpleMongoDumpInstance()
+			md.ToolOptions.Namespace.DB = testDB
+			md.OutputOptions.Out = "dump"
+
+			err = md.Init()
+			So(err, ShouldBeNil)
+
+			err = md.Dump()
+			So(err, ShouldBeNil)
+
+			path, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			So(fileDirExists(dumpDir), ShouldBeTrue)
+			So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+			Convey("having one metadata file per collection", func() {
+				c1, err := countNonIndexBSONFiles(dumpDBDir)
+				So(err, ShouldBeNil)
+
+				c2, err := countMetaDataFiles(dumpDBDir)
+				So(err, ShouldBeNil)
+
+				So(c1, ShouldEqual, c2)
+
+				Convey("and that the JSON in a metadata file is valid", func() {
+					metaFiles, err := getMatchingFiles(dumpDBDir, ".*\\.metadata\\.json")
+					So(err, ShouldBeNil)
+					So(len(metaFiles), ShouldBeGreaterThan, 0)
+
+					oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
+					defer oneMetaFile.Close()
+					So(err, ShouldBeNil)
+					contents, err := ioutil.ReadAll(oneMetaFile)
+					var jsonResult map[string]interface{}
+					err = json.Unmarshal(contents, &jsonResult)
+					So(err, ShouldBeNil)
+
+					Convey("and contains a 'columnstore' index", func() {
+						indexes, ok := jsonResult["indexes"]
+						So(ok, ShouldBeTrue)
+
+						count := 0
+						for _, index := range indexes.([]interface{}) {
+							indexMap, ok := index.(map[string]interface{})
+							So(ok, ShouldBeTrue)
+
+							if indexMap["name"] == "dump_columnstore_test" {
+								count = count + 1
+
+								Convey("has 'columnstoreProjection'", func() {
+									So(indexMap, ShouldContainKey, "columnstoreProjection")
+								})
+
+								Convey("has 'columnstore' key", func() {
+									key, ok := indexMap["key"].(map[string]interface{})
+									So(ok, ShouldBeTrue)
+									So(key, ShouldResemble, map[string]interface{}{"$**": "columnstore"})
+								})
+							}
+						}
+						// Expect exactly one index with name "dump_columnstore_test"
+						So(count, ShouldEqual, 1)
+					})
+
+					Convey("and contains a 'collectionName' key", func() {
+						_, ok := jsonResult["collectionName"]
+						So(ok, ShouldBeTrue)
+					})
+
+					fcv := testutil.GetFCV(session)
+					cmp, err := testutil.CompareFCV(fcv, "3.6")
+					So(err, ShouldBeNil)
+					if cmp >= 0 {
+						Convey("and on FCV 3.6+, contains a 'uuid' key", func() {
+							uuid, ok := jsonResult["uuid"]
+							So(ok, ShouldBeTrue)
+							checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
+							So(checkUUID.MatchString(uuid.(string)), ShouldBeTrue)
+							// XXX useless -- xdg, 2018-09-21
+							So(err, ShouldBeNil)
+						})
+					}
+				})
+				Reset(func() {
+					So(os.RemoveAll(dumpDir), ShouldBeNil)
+				})
+
+			})
+
+			Reset(func() {
+				So(tearDownMongoDumpTestData(), ShouldBeNil)
+			})
+		})
 	})
 }
