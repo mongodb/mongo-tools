@@ -2368,9 +2368,9 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 	if res.Err() != nil {
 		t.Skip("server is not part of a replicaset so we cannot test restore from oplog")
 	}
-	//t.Run("restore from oplog with default index name", func(t *testing.T) {
-	//	testRestoreColumnstoreIndexFromOplog(t, "")
-	//})
+	t.Run("restore from oplog", func(t *testing.T) {
+		testRestoreColumnstoreIndexFromOplog(t)
+	})
 	//t.Run("restore from oplog with default index name", func(t *testing.T) {
 	//	testRestoreColumnstoreIndexFromOplog(t, "custom index name")
 	//})
@@ -2528,4 +2528,41 @@ func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo 
 	}
 	require.NotNil(t, columnstoreIndexInfo, "found columnstore index info")
 	return *columnstoreIndexInfo
+}
+
+func testRestoreColumnstoreIndexFromOplog(t *testing.T) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	key := "$**"
+	columnstoreProjection := map[string]int32{"price": 0}
+	createColumnstoreIndex(t, testDB, key, columnstoreProjection)
+
+	withOplogMongoDump(t, dbName, "stocks", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			OplogReplayOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(0, result.Successes, "mongorestore reports 0 successes")
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertColumnstoreIndex(t, testDB, key, columnstoreProjection)
+	})
 }
