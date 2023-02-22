@@ -148,6 +148,7 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 		if strings.Contains(result.Err().Error(), "no such cmd") {
 			return false, nil
 		}
+		return false, result.Err()
 	}
 
 	return true, nil
