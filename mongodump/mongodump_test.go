@@ -2005,6 +2005,7 @@ func TestFailDuringResharding(t *testing.T) {
 	})
 }
 
+// TestMongoDumpColumnstoreIndexes tests dumping a collection with Columnstore Indexes.
 func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(ioutil.Discard)
