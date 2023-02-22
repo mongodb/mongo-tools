@@ -2348,6 +2348,7 @@ func uniqueDBName() string {
 	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
 }
 
+// TestRestoreColumnstoreIndex tests restoring Columnstore Indexes in restored collections.
 func TestRestoreColumnstoreIndex(t *testing.T) {
 	require := require.New(t)
 
@@ -2374,6 +2375,7 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 	})
 }
 
+// testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
 func testRestoreColumnstoreIndexFromDump(t *testing.T) {
 	require := require.New(t)
 
@@ -2410,6 +2412,8 @@ func testRestoreColumnstoreIndexFromDump(t *testing.T) {
 	})
 }
 
+// createColumnstoreIndex creates a collection with a Columnstore Index in testDB.
+// The created Columnstore Index has key and columnstoreProjection specified in the function argument.
 func createColumnstoreIndex(t *testing.T, testDB *mongo.Database, key string, columnstoreProjection map[string]int32) int {
 	require := require.New(t)
 
@@ -2451,6 +2455,7 @@ func createColumnstoreIndex(t *testing.T, testDB *mongo.Database, key string, co
 	return len(stockData)
 }
 
+// assertColumnstoreIndex asserts the "stock" collection in testDB has a Columnstore Index with the expected key and the expected columnstoreProjection field.
 func assertColumnstoreIndex(t *testing.T, testDB *mongo.Database, expectedKey string, expectedColumnstoreProjection map[string]int32) {
 	require := require.New(t)
 
@@ -2481,6 +2486,8 @@ func assertColumnstoreIndex(t *testing.T, testDB *mongo.Database, expectedKey st
 	require.Equal(expectedColumnstoreProjection, idx.columnstoreProjection, "columnstoreProjection is expected")
 }
 
+// columnstoreIndexInfo collects info about a Columnstore Index frm the test collection.
+// columnstoreIndexInfo returns non-empty indexInfo with the name, keys, and columnstoreProjection of a Columnstore Index if present in the collection.
 func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo {
 	c, err := collection.Indexes().List(context.Background())
 	require.NoError(t, err, "can list indexes")
@@ -2528,6 +2535,7 @@ func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo 
 	return *columnstoreIndexInfo
 }
 
+// testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from oplog replay.
 func testRestoreColumnstoreIndexFromOplog(t *testing.T) {
 	require := require.New(t)
 
