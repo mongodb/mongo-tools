@@ -2063,7 +2063,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 type indexInfo struct {
 	name string
 	keys []string
-	// columnstoreProjection contains info of the columnstoreProjection key in columnstore indexes.
+	// columnstoreProjection contains info about columnstoreProjection key in columnstore indexes.
 	columnstoreProjection map[string]int32
 }
 
@@ -2392,7 +2392,7 @@ func testRestoreColumnstoreIndexFromDump(t *testing.T) {
 	}()
 
 	key := "$**"
-	columnstoreProjection := map[string]int32{"price": 0}
+	columnstoreProjection := map[string]int32{"price": 1}
 	dataLen := createColumnstoreIndex(t, testDB, key, columnstoreProjection)
 
 	withMongodump(t, testDB.Name(), "stocks", func(dir string) {
@@ -2486,7 +2486,7 @@ func assertColumnstoreIndex(t *testing.T, testDB *mongo.Database, expectedKey st
 	require.Equal(expectedColumnstoreProjection, idx.columnstoreProjection, "columnstoreProjection is expected")
 }
 
-// columnstoreIndexInfo collects info about a Columnstore Index frm the test collection.
+// columnstoreIndexInfo collects info about the Columnstore Index from the test collection.
 // columnstoreIndexInfo returns non-empty indexInfo with the name, keys, and columnstoreProjection of a Columnstore Index if present in the collection.
 func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo {
 	c, err := collection.Indexes().List(context.Background())
@@ -2552,7 +2552,7 @@ func testRestoreColumnstoreIndexFromOplog(t *testing.T) {
 	}()
 
 	key := "$**"
-	columnstoreProjection := map[string]int32{"price": 0}
+	columnstoreProjection := map[string]int32{"price": 1}
 	createColumnstoreIndex(t, testDB, key, columnstoreProjection)
 
 	withOplogMongoDump(t, dbName, "stocks", func(dir string) {

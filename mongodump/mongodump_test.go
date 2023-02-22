@@ -361,7 +361,7 @@ func setUpColumnstoreIndex(dbName string, colName string) error {
 				{"key", bson.D{{"$**", "columnstore"}}},
 				{"name", "dump_columnstore_test"},
 				{"columnstoreProjection", bson.D{
-					{`"`, 0},
+					{"_id", 1},
 				}},
 			},
 		}},
