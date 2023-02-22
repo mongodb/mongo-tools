@@ -2061,8 +2061,9 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 // ----------------------------------------------------------------------
 
 type indexInfo struct {
-	name                  string
-	keys                  []string
+	name string
+	keys []string
+	// columnstoreProjection contains info of the columnstoreProjection key in columnstore indexes.
 	columnstoreProjection map[string]int32
 }
 
@@ -2371,9 +2372,6 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 	t.Run("restore from oplog", func(t *testing.T) {
 		testRestoreColumnstoreIndexFromOplog(t)
 	})
-	//t.Run("restore from oplog with default index name", func(t *testing.T) {
-	//	testRestoreColumnstoreIndexFromOplog(t, "custom index name")
-	//})
 }
 
 func testRestoreColumnstoreIndexFromDump(t *testing.T) {
@@ -2501,7 +2499,7 @@ func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo 
 		require.NoError(t, err, "can decode index")
 		require.Equal(t, 1, len(res.Key), "has one index key")
 
-		// Find the key "columnstore"
+		// Find the key "columnstore".
 		for _, keyVal := range res.Key {
 			if keyVal.Value == "columnstore" {
 				isColumnstore = true
