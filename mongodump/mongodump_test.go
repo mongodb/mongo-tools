@@ -2055,32 +2055,34 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, len(metaFiles), 0)
 
-	oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
-	defer oneMetaFile.Close()
-	require.NoError(t, err)
-	contents, err := ioutil.ReadAll(oneMetaFile)
-	var jsonResult map[string]interface{}
-	err = json.Unmarshal(contents, &jsonResult)
-	require.NoError(t, err)
+	for _, metaFile := range metaFiles {
+		oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFile)))
+		defer oneMetaFile.Close()
+		require.NoError(t, err)
+		contents, err := ioutil.ReadAll(oneMetaFile)
+		var jsonResult map[string]interface{}
+		err = json.Unmarshal(contents, &jsonResult)
+		require.NoError(t, err)
 
-	indexes, ok := jsonResult["indexes"]
-	require.True(t, ok)
-
-	count := 0
-	for _, index := range indexes.([]interface{}) {
-		indexMap, ok := index.(map[string]interface{})
+		indexes, ok := jsonResult["indexes"]
 		require.True(t, ok)
+		count := 0
 
-		if indexMap["name"] == "dump_columnstore_test" {
-			count = count + 1
-
-			require.Contains(t, indexMap, "columnstoreProjection")
-
-			key, ok := indexMap["key"].(map[string]interface{})
+		for _, index := range indexes.([]interface{}) {
+			indexMap, ok := index.(map[string]interface{})
 			require.True(t, ok)
-			require.Equal(t, key, map[string]interface{}{"$**": "columnstore"})
+
+			if indexMap["name"] == "dump_columnstore_test" {
+				count = count + 1
+
+				require.Contains(t, indexMap, "columnstoreProjection")
+
+				key, ok := indexMap["key"].(map[string]interface{})
+				require.True(t, ok)
+				require.Equal(t, key, map[string]interface{}{"$**": "columnstore"})
+			}
 		}
+		// Expect exactly one index with name "dump_columnstore_test"
+		require.Equal(t, count, 1)
 	}
-	// Expect exactly one index with name "dump_columnstore_test"
-	require.Equal(t, count, 1)
 }
