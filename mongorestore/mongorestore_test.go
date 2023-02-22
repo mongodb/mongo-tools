@@ -2063,6 +2063,8 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 type indexInfo struct {
 	name string
 	keys []string
+	// columnstoreProjection contains info about columnstoreProjection key in columnstore indexes.
+	columnstoreProjection map[string]int32
 }
 
 func TestRestoreClusteredIndex(t *testing.T) {
@@ -2344,4 +2346,229 @@ func runMongodump(t *testing.T, dir, db, collection string, args ...string) stri
 
 func uniqueDBName() string {
 	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
+}
+
+// TestRestoreColumnstoreIndex tests restoring Columnstore Indexes in restored collections.
+func TestRestoreColumnstoreIndex(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.3"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 6.3 or later and we have %s", fcv)
+	}
+
+	t.Run("restore from dump", func(t *testing.T) {
+		testRestoreColumnstoreIndexFromDump(t)
+	})
+
+	res := session.Database("admin").RunCommand(context.Background(), bson.M{"replSetGetStatus": 1})
+	if res.Err() != nil {
+		t.Skip("server is not part of a replicaset so we cannot test restore from oplog")
+	}
+	t.Run("restore from oplog", func(t *testing.T) {
+		testRestoreColumnstoreIndexFromOplog(t)
+	})
+}
+
+// testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
+func testRestoreColumnstoreIndexFromDump(t *testing.T) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	key := "$**"
+	columnstoreProjection := map[string]int32{"price": 1}
+	dataLen := createColumnstoreIndex(t, testDB, key, columnstoreProjection)
+
+	withMongodump(t, testDB.Name(), "stocks", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(dataLen, result.Successes, "mongorestore reports %d successes", dataLen)
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertColumnstoreIndex(t, testDB, key, columnstoreProjection)
+	})
+}
+
+// createColumnstoreIndex creates a collection with a Columnstore Index in testDB.
+// The created Columnstore Index has key and columnstoreProjection specified in the function argument.
+func createColumnstoreIndex(t *testing.T, testDB *mongo.Database, key string, columnstoreProjection map[string]int32) int {
+	require := require.New(t)
+
+	createCollCmd := bson.D{
+		{Key: "create", Value: "stocks"},
+	}
+	res := testDB.RunCommand(context.Background(), createCollCmd, nil)
+	require.NoError(res.Err(), "can create a collection")
+
+	fmt.Printf("creating index in %s db\n", testDB.Name())
+	indexOpts := bson.M{
+		"key":                   bson.D{{key, "columnstore"}},
+		"columnstoreProjection": columnstoreProjection,
+		"name":                  "columnstore_index_test",
+	}
+
+	createIndexCmd := bson.D{
+		{"createIndexes", "stocks"},
+		{"indexes", bson.A{
+			indexOpts,
+		}},
+	}
+	res = testDB.RunCommand(context.Background(), createIndexCmd, nil)
+	require.NoError(res.Err(), "can create a columnstore index")
+
+	var r interface{}
+	err := res.Decode(&r)
+	require.NoError(err)
+
+	stocks := testDB.Collection("stocks")
+	stockData := []interface{}{
+		bson.M{"ticker": "MDB", "price": 245.33},
+		bson.M{"ticker": "GOOG", "price": 2214.91},
+		bson.M{"ticker": "BLZE", "price": 6.23},
+	}
+	_, err = stocks.InsertMany(context.Background(), stockData)
+	require.NoError(err, "can insert documents into collection")
+
+	return len(stockData)
+}
+
+// assertColumnstoreIndex asserts the "stock" collection in testDB has a Columnstore Index with the expected key and the expected columnstoreProjection field.
+func assertColumnstoreIndex(t *testing.T, testDB *mongo.Database, expectedKey string, expectedColumnstoreProjection map[string]int32) {
+	require := require.New(t)
+
+	c, err := testDB.ListCollections(context.Background(), bson.M{})
+	require.NoError(err, "can get list of collections")
+
+	type collectionRes struct {
+		Name    string
+		Type    string
+		Options bson.M
+		Info    bson.D
+		IdIndex bson.D
+	}
+
+	var collections []collectionRes
+
+	for c.Next(context.Background()) {
+		var res collectionRes
+		err = c.Decode(&res)
+		require.NoError(err, "can decode collection result")
+		collections = append(collections, res)
+	}
+
+	require.Len(collections, 1, "database has one collection")
+	require.Equal("stocks", collections[0].Name, "collection is named stocks")
+	idx := columnstoreIndexInfo(t, testDB.Collection(collections[0].Name))
+	require.Equal(expectedKey, idx.keys[0], "columnstore index key is the expected key")
+	require.Equal(expectedColumnstoreProjection, idx.columnstoreProjection, "columnstoreProjection is expected")
+}
+
+// columnstoreIndexInfo collects info about the Columnstore Index from the test collection.
+// columnstoreIndexInfo returns non-empty indexInfo with the name, keys, and columnstoreProjection of a Columnstore Index if present in the collection.
+func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo {
+	c, err := collection.Indexes().List(context.Background())
+	require.NoError(t, err, "can list indexes")
+
+	type indexRes struct {
+		Name                  string
+		Key                   bson.D
+		ColumnstoreProjection bson.M
+	}
+
+	var columnstoreIndexInfo *indexInfo
+	for c.Next(context.Background()) {
+		isColumnstore := false
+		var res indexRes
+		err = c.Decode(&res)
+		require.NoError(t, err, "can decode index")
+		require.Equal(t, 1, len(res.Key), "has one index key")
+
+		// Find the key "columnstore".
+		for _, keyVal := range res.Key {
+			if keyVal.Value == "columnstore" {
+				isColumnstore = true
+			}
+		}
+
+		if isColumnstore {
+			var keyNames []string
+			for _, keyVal := range res.Key {
+				keyNames = append(keyNames, keyVal.Key)
+			}
+
+			columnstoreProjectionMap := map[string]int32{}
+			for key, val := range res.ColumnstoreProjection {
+				columnstoreProjectionMap[key] = val.(int32)
+			}
+
+			columnstoreIndexInfo = &indexInfo{
+				name:                  res.Name,
+				keys:                  keyNames,
+				columnstoreProjection: columnstoreProjectionMap,
+			}
+		}
+	}
+	require.NotNil(t, columnstoreIndexInfo, "found columnstore index info")
+	return *columnstoreIndexInfo
+}
+
+// testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from oplog replay.
+func testRestoreColumnstoreIndexFromOplog(t *testing.T) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	key := "$**"
+	columnstoreProjection := map[string]int32{"price": 1}
+	createColumnstoreIndex(t, testDB, key, columnstoreProjection)
+
+	withOplogMongoDump(t, dbName, "stocks", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			OplogReplayOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(0, result.Successes, "mongorestore reports 0 successes")
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+		assertColumnstoreIndex(t, testDB, key, columnstoreProjection)
+	})
 }
