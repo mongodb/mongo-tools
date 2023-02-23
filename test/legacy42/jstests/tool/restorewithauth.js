@@ -15,7 +15,7 @@
  */
 
 baseName = "jstests_restorewithauth";
-var conn = MongoRunner.runMongod({nojournal: "", bind_ip: "127.0.0.1"});
+var conn = MongoRunner.runMongod({bind_ip: "127.0.0.1"});
 
 // write to ns foo.bar
 var foo = conn.getDB("foo");
@@ -54,7 +54,7 @@ foo.dropDatabase();
 MongoRunner.stopMongod(conn);
 
 // start mongod with --auth
-conn = MongoRunner.runMongod({auth: "", nojournal: "", bind_ip: "127.0.0.1"});
+conn = MongoRunner.runMongod({auth: "", bind_ip: "127.0.0.1"});
 
 // admin user
 var admin = conn.getDB("admin");

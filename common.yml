@@ -49,7 +49,7 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        ./mongo --nodb jstests/tool/*.js
+        ./mongo --nodb lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
