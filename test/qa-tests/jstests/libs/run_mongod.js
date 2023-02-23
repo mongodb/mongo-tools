@@ -5,7 +5,7 @@
     MongoRunner.runMongod = function(opts) {
         print("MongoRunner.runMongod overriden in mongo-tools");
 
-        if (opts != undefined && opts.journal != undefined) {
+        if (opts !== undefined && opts.journal !== undefined) {
             delete opts.journal;
         }
 
