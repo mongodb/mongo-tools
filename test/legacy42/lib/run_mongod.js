@@ -7,7 +7,7 @@
  * MongoRunner.runMongod Starts a mongod instance.
  */
 (function () {
-    var oldRunMongod = MongoRunner.runMongod;
+    let oldRunMongod = MongoRunner.runMongod;
 
     MongoRunner.runMongod = function (opts) {
         print("MongoRunner.runMongod overriden in mongo-tools");
