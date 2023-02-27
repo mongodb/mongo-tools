@@ -49,7 +49,7 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        ./mongo --nodb jstests/tool/*.js
+        ./mongo --nodb lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
@@ -1093,6 +1093,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.0"
       - func: "start mongod"
         vars:
@@ -1181,6 +1182,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.1"
       - func: "start mongod"
         vars:
@@ -1269,6 +1271,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.2"
       - func: "start mongod"
         vars:
@@ -1357,6 +1360,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "5.3"
       - func: "start mongod"
         vars:
@@ -1445,7 +1449,97 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "6.0"
+      - func: "start mongod"
+        vars:
+          AWS_AUTH: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          AWS_AUTH: "true"
+      - func: "add-aws-auth-variables-to-file"
+      - func: "setup-aws-auth-test-with-assume-role-credentials"
+      - func: "run make target"
+        vars:
+          target: test:awsauth
+
+  - name: integration-6.3
+    tags: [ "6.3" ]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.3"
+      - func: "start mongod"
+        vars:
+          USE_TLS: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration test:srv -ssl=true
+
+  - name: integration-6.3-auth
+    tags: [ "6.3", "auth" ]
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args_tls"
+              concat: " --auth"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.3"
+      - func: "start mongod"
+        vars:
+          USE_TLS: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: "true"
+      - func: "create mongod users"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration test:srv -ssl=true -auth=true
+
+  - name: integration-6.3-cluster
+    tags: [ "6.3", "cluster" ]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.3"
+      - func: "create repl_set"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration test:srv -ssl=true -topology=replSet
+
+  - name: aws-auth-6.3
+    tags: [ "6.3", "aws-auth" ]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          edition: "enterprise"
+          mongo_version: "6.3"
       - func: "start mongod"
         vars:
           AWS_AUTH: "true"
@@ -1533,6 +1627,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "latest"
       - func: "start mongod"
         vars:
@@ -1553,6 +1648,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
+          edition: "enterprise"
           mongo_version: "4.4"
       - func: "start mongod"
         vars:
@@ -1689,6 +1785,22 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run legacy tests"
+        vars:
+          test_path: "test/legacy42"
+
+  - name: legacy-jstests-6.3 # The server jstests from the tools removal from server in 4.2
+    tags: ["6.3"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.3"
       - func: "run make target"
         vars:
           target: build
@@ -1843,6 +1955,23 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_tls}"
+          excludes: "requires_unstable,${excludes}"
+
+  - name: qa-tests-6.3
+    tags: ["6.3"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.3"
       - func: "run make target"
         vars:
           target: build
@@ -2102,6 +2231,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: amazon2
     display_name: Amazon Linux 64 v2
@@ -2133,6 +2263,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2140,6 +2271,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #     Debian x86_64 Buildvariants     #
@@ -2175,6 +2307,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: debian92
     display_name: Debian 9.2
@@ -2212,6 +2345,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: debian10
     display_name: Debian 10
@@ -2241,6 +2375,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2248,6 +2383,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: debian11
     display_name: Debian 11
@@ -2275,6 +2411,7 @@ buildvariants:
       - name: "unit"
       - name: ".5.0"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2282,6 +2419,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #           macOS Buildvariant        #
@@ -2307,9 +2445,9 @@ buildvariants:
       smoke_use_tls: --use-tls
       resmoke_use_tls: _tls
       USE_SSL: "true"
+    # We removed support for 3.4 on MacOS in TOOLS-3249
     tasks:
       - name: "unit"
-      - name: ".3.4"
       - name: ".3.6"
       - name: ".4.0"
       - name: ".4.2"
@@ -2317,6 +2455,7 @@ buildvariants:
       - name: ".5.0 !.aws-auth"
       - name: ".5.3 !.aws-auth"
       - name: ".6.0 !.aws-auth"
+      - name: ".6.3 !.aws-auth"
       - name: ".latest !.aws-auth"
       - name: ".kerberos"
       - name: "dist"
@@ -2324,6 +2463,7 @@ buildvariants:
         run_on: macos-1014-codesign
       - name: "push"
         run_on: rhel70-small
+        git_tag_only: true
 
   #######################################
   #     RHEL x86_64 Buildvariants       #
@@ -2363,6 +2503,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: rhel62-no-sasl-or-kerberos
     display_name: RHEL 6.2 w/o SASL or Kerberos
@@ -2425,6 +2566,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2432,6 +2574,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: rhel80
     display_name: RHEL 8.0
@@ -2463,6 +2606,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2470,6 +2614,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: rhel90
     display_name: RHEL 9.0
@@ -2495,6 +2640,7 @@ buildvariants:
     tasks:
       - name: "unit"
       #  - name: ".6.0"
+      #  - name: ".6.3"
       #  - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2502,6 +2648,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #     SUSE x86_64 Buildvariants       #
@@ -2540,12 +2687,14 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: "dist"
       - name: "sign"
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: suse15
     display_name: SUSE 15
@@ -2575,12 +2724,14 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: "dist"
       - name: "sign"
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #    Ubuntu x86_64 Buildvariants      #
@@ -2620,6 +2771,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: ubuntu1804
     display_name: Ubuntu 18.04
@@ -2651,6 +2803,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2658,6 +2811,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: ubuntu2004
     display_name: Ubuntu 20.04
@@ -2686,6 +2840,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2693,6 +2848,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: ubuntu2204
     display_name: Ubuntu 22.04
@@ -2718,6 +2874,7 @@ buildvariants:
     tasks:
       - name: "unit"
       #  - name: ".6.0"
+      #  - name: ".6.3"
       #  - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2725,6 +2882,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #        Windows Buildvariants        #
@@ -2766,6 +2924,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2773,6 +2932,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #        ARM Buildvariants            #
@@ -2815,6 +2975,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: ubuntu1804-arm64
     display_name: ZAP ARM64 Ubuntu 18.04
@@ -2847,6 +3008,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2854,6 +3016,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   # MongoDB 4.4+
   - name: ubuntu2004-arm64
@@ -2886,6 +3049,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2893,6 +3057,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: ubuntu2204-arm64
     display_name: ZAP ARM64 Ubuntu 22.04
@@ -2921,6 +3086,7 @@ buildvariants:
     tasks:
       - name: "unit"
       #  - name: ".6.0"
+      #  - name: ".6.3"
       #  - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2928,6 +3094,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: amazon2-aarch64
     display_name: Amazon Linux ARM v2
@@ -2960,6 +3127,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2967,6 +3135,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: rhel82-arm64
     display_name: RHEL 8.2 ARM
@@ -2998,6 +3167,7 @@ buildvariants:
       - name: ".5.0"
       - name: ".5.3"
       - name: ".6.0"
+      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -3005,6 +3175,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #        Power Buildvariants          #
@@ -3047,6 +3218,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: rhel81-ppc64le
     display_name: ZAP PPC64LE RHEL 8.1
@@ -3087,40 +3259,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-
-  # MongoDB 4.0
-  - name: ubuntu1604-ppc64le
-    display_name: ZAP PPC64LE Ubuntu 16.04
-    run_on:
-      - ubuntu1604-power8
-    stepback: false
-    expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
-      mongo_os: "ubuntu1604"
-      mongo_edition: "enterprise"
-      mongo_arch: "ppc64le"
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
-      resmoke_use_tls: _tls
-      resmoke_args: -j 4
-      excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-      edition: enterprise
-      run_kinit: true
-    tasks:
-      - name: "unit"
-      - name: ".4.0 !.mmap"
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel80-small
-      - name: "push"
-        run_on: rhel80-small
+        git_tag_only: true
 
   # MongoDB 4.2+
   - name: ubuntu1804-ppc64le
@@ -3157,6 +3296,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #     Z (s390x) Buildvariants         #
@@ -3201,6 +3341,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   - name: rhel83-s390x
     display_name: ZAP s390x RHEL 8.3
@@ -3237,6 +3378,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
+        git_tag_only: true
 
   #######################################
   #     Experimental Buildvariants      #

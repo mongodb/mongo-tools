@@ -318,6 +318,11 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 			if err = util.ValidateDBName(entry.Name()); err != nil {
 				return fmt.Errorf("invalid database name '%v': %v", entry.Name(), err)
 			}
+
+			// Don't restore anything into the admin DB if connected to atlas proxy.
+			if entry.Name() == "admin" && restore.isAtlasProxy {
+				continue
+			}
 			err = restore.CreateIntentsForDB(entry.Name(), entry)
 			if err != nil {
 				return err

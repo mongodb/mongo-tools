@@ -480,14 +480,6 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "ubuntu1604",
-		Arch:      ArchPpc64le,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "ubuntu1604",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
