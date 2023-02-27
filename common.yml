@@ -3252,7 +3252,6 @@ buildvariants:
       - name: ".5.0 !.aws-auth"
       - name: ".5.3 !.aws-auth"
       - name: ".6.0 !.aws-auth"
-      - name: ".6.3 !.aws-auth"
       - name: ".latest !.aws-auth"
       - name: ".kerberos"
       - name: "dist"
