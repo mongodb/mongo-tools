@@ -2,11 +2,11 @@
 
 ## 100.7.0
 
-_Released `[date]`_
+_Released 2023-03-01_
 
 We are pleased to announce version 100.7.0 of the MongoDB Database Tools.
 
-This release adds tests against MongoDB 6.3. Highlights include new tests for [Column Store Indexes](https://www.mongodb.com/products/column-store-indexes), updating Go version to 1.19, fixing a bug that caused the Tools to produce error about missing password after prompting for a password. Several build failures are also fixed in this version.
+This release adds tests against MongoDB 6.3. Highlights include new tests for [Column Store Indexes](https://www.mongodb.com/products/column-store-indexes), updating Go version to 1.19, fixing a bug that caused the Tools to produce error after prompting for a password. Several build failures are also fixed in this version.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
