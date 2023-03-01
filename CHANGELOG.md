@@ -1,5 +1,69 @@
 # Database Tools Changelog
 
+## 100.7.0
+
+_Released 2023-03-01_
+
+We are pleased to announce version 100.7.0 of the MongoDB Database Tools.
+
+This release adds tests against MongoDB 6.3. Highlights include new tests for [Column Store Indexes](https://www.mongodb.com/products/column-store-indexes), updating the minimum Go version to 1.19, fixing a bug that caused the Tools to ignore a password supplied via a prompt. Several build failures are also fixed in this version.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3243'>TOOLS-3243</a>] -         Tools produce error about missing password after prompting for a password
+</li>
+</ul>
+
+### Epic
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3235'>TOOLS-3235</a>] -         Tools 6.3 Support
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3169'>TOOLS-3169</a>] -         Upgrade Go to 1.19
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3202'>TOOLS-3202</a>] -         Fix legacy-jstests failure with latest Server (6.1)
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3208'>TOOLS-3208</a>] -         Investigate test failures in HEAD and make more tickets as needed
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3229'>TOOLS-3229</a>] -         Ignore admin database in dump/restore for atlasProxy
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3241'>TOOLS-3241</a>] -         Fix flaky TestFailDuringResharding test
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3247'>TOOLS-3247</a>] -         Remove mongo-tools support for ZAP PPC64LE Ubuntu 16.04 
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3248'>TOOLS-3248</a>] -         Fix TestRestoreTimeseriesCollections for server 6.3+
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3249'>TOOLS-3249</a>] -         Remove mongo-tools support for server version 3.4 on MacOS
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3250'>TOOLS-3250</a>] -         Fix aws-auth task failures
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3251'>TOOLS-3251</a>] -         Update common.yml to run tests with 6.3
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3252'>TOOLS-3252</a>] -         Test support for Columnstore Indexes
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3255'>TOOLS-3255</a>] -         Fix qa-tests-3.4
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3256'>TOOLS-3256</a>] -         Make the push tasks only run on git tags
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3257'>TOOLS-3257</a>] -         Override deprecated mongo shell functions to fix qa-tests-latest
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3259'>TOOLS-3259</a>] -         Remove 6.3 tests on `ZAP s390x RHEL 7.2` and `ZAP PPC64LE RHEL 8.1`
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3260'>TOOLS-3260</a>] -         Fix qa-tests on Debian 11
+</li>
+</ul>
+
 ## 100.6.1
 
 _Released 2022-11-03_
