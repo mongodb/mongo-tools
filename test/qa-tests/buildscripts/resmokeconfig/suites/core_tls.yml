@@ -20,6 +20,7 @@ executor:
   js_test:
     config:
       shell_options:
+        eval_prepend: "load('jstests/libs/run_mongod.js'); load('jstests/libs/assert_authenticate.js');"
         global_vars:
           TestData:
             useTLS: true
