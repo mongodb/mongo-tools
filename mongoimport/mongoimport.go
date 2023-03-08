@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	moptions "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/tomb.v2"
@@ -404,15 +405,34 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		}
 	}
 
+	// Before importing documents, create the target collection as TimeSeries.
+	// Fail if the collection already exists.
 	if imp.IngestOptions.TimeSeriesTimeField != "" {
+		if !imp.IngestOptions.Drop {
+			collectionFilter := bson.D{}
+			collectionFilter = append(collectionFilter, primitive.E{"name", imp.ToolOptions.Namespace.Collection})
+			cursor, err := session.Database(imp.ToolOptions.DB).ListCollections(context.TODO(), collectionFilter)
+
+			if err != nil {
+				return 0, 0, err
+			}
+
+			if cursor.Next(context.TODO()) {
+				cursor.Close(context.TODO())
+				return 0, 0, fmt.Errorf("error when inserting to a TimeSeries collection, the collection must not exist, or --drop must be provided")
+			}
+		}
+
 		log.Logvf(log.Always, "creating TimeSeries collection: %v.%v",
 			imp.ToolOptions.Namespace.DB,
 			imp.ToolOptions.Namespace.Collection)
 		timeseriesOptions := moptions.TimeSeries()
 		timeseriesOptions.SetTimeField(imp.IngestOptions.TimeSeriesTimeField)
+
 		if imp.IngestOptions.TimeSeriesMetaField != "" {
 			timeseriesOptions.SetMetaField(imp.IngestOptions.TimeSeriesMetaField)
 		}
+
 		if imp.IngestOptions.TimeSeriesGranularity != "" {
 			timeseriesOptions.SetGranularity(imp.IngestOptions.TimeSeriesGranularity)
 		}
