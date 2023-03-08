@@ -105,7 +105,13 @@ type IngestOptions struct {
 
 	// Creates the target collection as a TimeSeries collection using the value given
 	// as the TimeField.
-	TimeSeries string `long:"timeseries" value-name:"time-field" description:"Creates target collection as TimeSeries with this field as the timeField e.g. --timeseries='timestamp'"`
+	TimeSeriesTimeField string `long:"timeseries-timefield" value-name:"time-field" description:"Creates target collection as TimeSeries with this field as the timeField e.g. --timeseries-timefield='timestamp'"`
+
+	// Optional. Passed to the creation of a TimeSeries collection.
+	TimeSeriesMetaField string `long:"timeseries-metafield" value-name:"meta-field" description:"Sets the (optional) metaField of the target TimeSeries collection e.g. --timeseries-metafield='sensor_id'. Requires --timeseries-timefield."`
+
+	// Optional. Passed to the creation of a TimeSeries collection.
+	TimeSeriesGranularity string `long:"timeseries-granularity" value-name:"granularity" description:"Sets the (optional) granularity of time values on the target TimeSeries collection to optimize how TimeSeries data is stored internally. The type can be one of: seconds (default), minutes, hours. Requires --timeseries-timefield."`
 }
 
 // Name returns a description of the IngestOptions struct.

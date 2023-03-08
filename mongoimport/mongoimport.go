@@ -208,6 +208,22 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		imp.IngestOptions.Mode = modeUpsert
 	}
 
+	// Validate TimeSeries Options
+	if imp.IngestOptions.TimeSeriesTimeField == "" {
+		if (imp.IngestOptions.TimeSeriesMetaField != "" ||
+			imp.IngestOptions.TimeSeriesGranularity != "") {
+			return fmt.Errorf("can not use --timeseries-metafield nor --timeseries-granularity without --timeseries-timefield")
+		}
+	}
+
+	if imp.IngestOptions.TimeSeriesGranularity != "" {
+		if (imp.IngestOptions.TimeSeriesGranularity != "seconds" ||
+			imp.IngestOptions.TimeSeriesGranularity != "minutes" ||
+			imp.IngestOptions.TimeSeriesGranularity != "hours") {
+			return fmt.Errorf("--timeseries-granularity must be one of: seconds, minutes, hours")
+		}
+	}
+
 	// parse UpsertFields, may set default mode to modeUpsert
 	if imp.IngestOptions.UpsertFields != "" {
 		if imp.IngestOptions.Mode == "" {
@@ -388,12 +404,18 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		}
 	}
 
-	if imp.IngestOptions.TimeSeries != "" {
+	if imp.IngestOptions.TimeSeriesTimeField != "" {
 		log.Logvf(log.Always, "creating TimeSeries collection: %v.%v",
 			imp.ToolOptions.Namespace.DB,
 			imp.ToolOptions.Namespace.Collection)
 		timeseriesOptions := moptions.TimeSeries()
-		timeseriesOptions.SetTimeField(imp.IngestOptions.TimeSeries)
+		timeseriesOptions.SetTimeField(imp.IngestOptions.TimeSeriesTimeField)
+		if imp.IngestOptions.TimeSeriesMetaField != "" {
+			timeseriesOptions.SetMetaField(imp.IngestOptions.TimeSeriesMetaField)
+		}
+		if imp.IngestOptions.TimeSeriesGranularity != "" {
+			timeseriesOptions.SetGranularity(imp.IngestOptions.TimeSeriesGranularity)
+		}
 		collectionOptions := moptions.CreateCollection().SetTimeSeriesOptions(timeseriesOptions)
 		session.Database(imp.ToolOptions.DB).CreateCollection(context.TODO(), imp.ToolOptions.Namespace.Collection, collectionOptions)
 
