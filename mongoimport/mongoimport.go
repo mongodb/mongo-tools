@@ -15,8 +15,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	moptions "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/tomb.v2"
 
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -384,6 +386,17 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		if err := collection.Drop(nil); err != nil {
 			return 0, 0, err
 		}
+	}
+
+	if imp.IngestOptions.TimeSeries != "" {
+		log.Logvf(log.Always, "creating TimeSeries collection: %v.%v",
+			imp.ToolOptions.Namespace.DB,
+			imp.ToolOptions.Namespace.Collection)
+		timeseriesOptions := moptions.TimeSeries()
+		timeseriesOptions.SetTimeField(imp.IngestOptions.TimeSeries)
+		collectionOptions := moptions.CreateCollection().SetTimeSeriesOptions(timeseriesOptions)
+		session.Database(imp.ToolOptions.DB).CreateCollection(context.TODO(), imp.ToolOptions.Namespace.Collection, collectionOptions)
+
 	}
 
 	readDocs := make(chan bson.D, workerBufferSize)

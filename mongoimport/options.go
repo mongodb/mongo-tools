@@ -102,6 +102,10 @@ type IngestOptions struct {
 	NumDecodingWorkers int `long:"numDecodingWorkers" default:"0" hidden:"true"`
 
 	BulkBufferSize int `long:"batchSize" default:"1000" hidden:"true"`
+
+	// Creates the target collection as a TimeSeries collection using the value given
+	// as the TimeField.
+	TimeSeries string `long:"timeseries" value-name:"time-field" description:"Creates target collection as TimeSeries with this field as the timeField e.g. --timeseries='timestamp'"`
 }
 
 // Name returns a description of the IngestOptions struct.
