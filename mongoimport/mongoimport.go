@@ -213,7 +213,11 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	if imp.IngestOptions.TimeSeriesTimeField == "" {
 		if (imp.IngestOptions.TimeSeriesMetaField != "" ||
 			imp.IngestOptions.TimeSeriesGranularity != "") {
-			return fmt.Errorf("can not use --timeseries-metafield nor --timeseries-granularity without --timeseries-timefield")
+			return fmt.Errorf("cannot use --timeseries-metafield nor --timeseries-granularity without --timeseries-timefield")
+		}
+	} else {
+		if imp.InputOptions.Type == JSON {
+			return fmt.Errorf("cannot import time-series collections with JSON")
 		}
 	}
 
@@ -419,11 +423,11 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 
 			if cursor.Next(context.TODO()) {
 				cursor.Close(context.TODO())
-				return 0, 0, fmt.Errorf("error when inserting to a TimeSeries collection, the collection must not exist, or --drop must be provided")
+				return 0, 0, fmt.Errorf("error when inserting to a time-series collection, the collection must not exist, or --drop must be provided")
 			}
 		}
 
-		log.Logvf(log.Always, "creating TimeSeries collection: %v.%v",
+		log.Logvf(log.Always, "creating time-series collection: %v.%v",
 			imp.ToolOptions.Namespace.DB,
 			imp.ToolOptions.Namespace.Collection)
 		timeseriesOptions := moptions.TimeSeries()
