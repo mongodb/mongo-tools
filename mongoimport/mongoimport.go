@@ -213,8 +213,8 @@ func (imp *MongoImport) validateSettings(args []string) error {
 
 	// Validate TimeSeries Options
 	if imp.IngestOptions.TimeSeriesTimeField == "" {
-		if (imp.IngestOptions.TimeSeriesMetaField != "" ||
-			imp.IngestOptions.TimeSeriesGranularity != "") {
+		if imp.IngestOptions.TimeSeriesMetaField != "" ||
+			imp.IngestOptions.TimeSeriesGranularity != "" {
 			return fmt.Errorf("cannot use --timeseries-metafield nor --timeseries-granularity without --timeseries-timefield")
 		}
 	} else {
@@ -231,9 +231,9 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	}
 
 	if imp.IngestOptions.TimeSeriesGranularity != "" {
-		if (imp.IngestOptions.TimeSeriesGranularity != "seconds" &&
+		if imp.IngestOptions.TimeSeriesGranularity != "seconds" &&
 			imp.IngestOptions.TimeSeriesGranularity != "minutes" &&
-			imp.IngestOptions.TimeSeriesGranularity != "hours") {
+			imp.IngestOptions.TimeSeriesGranularity != "hours" {
 			return fmt.Errorf("--timeseries-granularity must be one of: seconds, minutes, hours")
 		}
 	}

@@ -146,8 +146,9 @@ func TestValidateFields(t *testing.T) {
 			optionsWithFields.metaField = "b"
 			optionsWithFields.timeField = "c"
 			So(validateFields([]string{"a", "aa"}, false, optionsWithFields), ShouldNotBeNil)
-			So(validateFields([]string{"a", "aa","b"}, false, optionsWithFields), ShouldNotBeNil)
-			So(validateFields([]string{"a", "aa","b","c"}, false, optionsWithFields), ShouldBeNil)
+			So(validateFields([]string{"a", "aa", "b"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "aa", "c"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "aa", "b", "c"}, false, optionsWithFields), ShouldBeNil)
 		})
 	})
 }
