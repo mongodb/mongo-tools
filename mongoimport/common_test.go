@@ -110,36 +110,44 @@ func convertBSONDToRaw(documents []bson.D) []bson.Raw {
 
 func TestValidateFields(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	var optionsWithFields ColumnsAsOptionFields
 
 	Convey("Given an import input, in validating the headers", t, func() {
 		Convey("if the fields contain '..', an error should be thrown", func() {
-			So(validateFields([]string{"a..a"}, false), ShouldNotBeNil)
+			So(validateFields([]string{"a..a"}, false, optionsWithFields), ShouldNotBeNil)
 		})
 		Convey("if the fields start/end in a '.', an error should be thrown", func() {
-			So(validateFields([]string{".a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a."}, false), ShouldNotBeNil)
+			So(validateFields([]string{".a"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a."}, false, optionsWithFields), ShouldNotBeNil)
 		})
 		Convey("if the fields start in a '$', an error should be thrown", func() {
-			So(validateFields([]string{"$.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"$"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"$a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a$a"}, false), ShouldBeNil)
+			So(validateFields([]string{"$.a"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"$"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"$a"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a$a"}, false, optionsWithFields), ShouldBeNil)
 		})
 		Convey("if the fields collide, an error should be thrown", func() {
-			So(validateFields([]string{"a", "a.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a", "a.ba", "b.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a", "a.ba", "b.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a", "a.b.c"}, false), ShouldNotBeNil)
+			So(validateFields([]string{"a", "a.a"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "a.ba", "b.a"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "a.ba", "b.a"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "a.b.c"}, false, optionsWithFields), ShouldNotBeNil)
 		})
 		Convey("if the fields don't collide, no error should be thrown", func() {
-			So(validateFields([]string{"a", "aa"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "aa", "b.a", "b.c"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "ba", "ab", "b.a"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "ba", "ab", "b.a", "b.c.d"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "ab.c"}, false), ShouldBeNil)
+			So(validateFields([]string{"a", "aa"}, false, optionsWithFields), ShouldBeNil)
+			So(validateFields([]string{"a", "aa", "b.a", "b.c"}, false, optionsWithFields), ShouldBeNil)
+			So(validateFields([]string{"a", "ba", "ab", "b.a"}, false, optionsWithFields), ShouldBeNil)
+			So(validateFields([]string{"a", "ba", "ab", "b.a", "b.c.d"}, false, optionsWithFields), ShouldBeNil)
+			So(validateFields([]string{"a", "ab.c"}, false, optionsWithFields), ShouldBeNil)
 		})
 		Convey("if the fields contain the same keys, an error should be thrown", func() {
-			So(validateFields([]string{"a", "ba", "a"}, false), ShouldNotBeNil)
+			So(validateFields([]string{"a", "ba", "a"}, false, optionsWithFields), ShouldNotBeNil)
+		})
+		Convey("time-series fields should validate", func() {
+			optionsWithFields.metaField = "b"
+			optionsWithFields.timeField = "c"
+			So(validateFields([]string{"a", "aa"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "aa","b"}, false, optionsWithFields), ShouldNotBeNil)
+			So(validateFields([]string{"a", "aa","b","c"}, false, optionsWithFields), ShouldBeNil)
 		})
 	})
 }
