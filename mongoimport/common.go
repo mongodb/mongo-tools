@@ -32,6 +32,13 @@ type FieldInfo struct {
 	parts    []string
 }
 
+// All options to mongoimport that need validation
+// against the column names provided by user data.
+type ColumnsAsOptionFields struct {
+	timeField string
+	metaField string
+}
+
 const (
 	pgAutoCast ParseGrace = iota
 	pgSkipField
@@ -554,7 +561,10 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 //     (6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
 //     (7). Array indexes are out of order (e.g. a.0,a.2,a.1)
 //     (8). An array is missing an index (e.g. a.0,a.2)
-func validateFields(inputFields []string, useArrayIndexFields bool) error {
+//
+// In the case that --timeseries-timefield and its optional pair --timeseries-metafield are set:
+//     (9). A field intended to refer to a column of provided data must match one.
+func validateFields(inputFields []string, useArrayIndexFields bool, fields ColumnsAsOptionFields) error {
 	for _, field := range inputFields {
 
 		// Here we check validity for case (1).
@@ -590,6 +600,33 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 			return err
 		}
 	}
+
+	if len(fields.timeField) > 0 {
+		var timeFieldExists bool
+		for _, field := range inputFields {
+			if field == fields.timeField {
+				timeFieldExists = true
+				break
+			}
+		}
+		if !timeFieldExists {
+			return fmt.Errorf("error --timeseries-timefield '%v' doesn't match any provided fields", fields.timeField)
+		}
+	}
+
+	if len(fields.metaField) > 0 {
+		var metaFieldExists bool
+		for _, field := range inputFields {
+			if field == fields.metaField {
+				metaFieldExists = true
+				break
+			}
+		}
+		if !metaFieldExists {
+			return fmt.Errorf("error --timeseries-metafield '%v' doesn't match any provided fields", fields.metaField)
+		}
+	}
+
 	return nil
 }
 
@@ -780,8 +817,8 @@ func indexError(field string) error {
 }
 
 // validateReaderFields is a helper to validate fields for input readers
-func validateReaderFields(fields []string, useArrayIndexFields bool) error {
-	if err := validateFields(fields, useArrayIndexFields); err != nil {
+func validateReaderFields(fields []string, useArrayIndexFields bool, optionsWithFields ColumnsAsOptionFields) error {
+	if err := validateFields(fields, useArrayIndexFields, optionsWithFields); err != nil {
 		return err
 	}
 	if len(fields) == 1 {

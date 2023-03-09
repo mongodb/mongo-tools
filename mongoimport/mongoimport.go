@@ -49,6 +49,8 @@ const (
 	progressBarLength = 24
 )
 
+var optionsWithFields ColumnsAsOptionFields
+
 // MongoImport is a container for the user-specified options and
 // internal state used for running mongoimport.
 type MongoImport struct {
@@ -93,12 +95,12 @@ type InputReader interface {
 	// ReadAndValidateHeader reads the header line from the InputReader and returns
 	// a non-nil error if the fields from the header line are invalid; returns
 	// nil otherwise. No-op for JSON input readers.
-	ReadAndValidateHeader() error
+	ReadAndValidateHeader(optionsWithFields ColumnsAsOptionFields) error
 
 	// ReadAndValidateTypedHeader is the same as ReadAndValidateHeader,
 	// except it also parses types from the fields of the header. Parse errors
 	// will be handled according parseGrace.
-	ReadAndValidateTypedHeader(parseGrace ParseGrace) error
+	ReadAndValidateTypedHeader(parseGrace ParseGrace, optionsWithFields ColumnsAsOptionFields) error
 
 	// embedded io.Reader that tracks number of bytes read, to allow feeding into progress bar.
 	sizeTracker
@@ -219,6 +221,9 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		if imp.InputOptions.Type == JSON {
 			return fmt.Errorf("cannot import time-series collections with JSON")
 		}
+
+		optionsWithFields.timeField = imp.IngestOptions.TimeSeriesTimeField
+		optionsWithFields.metaField = imp.IngestOptions.TimeSeriesMetaField
 	}
 
 	if imp.IngestOptions.TimeSeriesGranularity != "" {
@@ -237,7 +242,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			return fmt.Errorf("can not use --upsertFields with --mode=insert")
 		}
 		imp.upsertFields = strings.Split(imp.IngestOptions.UpsertFields, ",")
-		if err := validateFields(imp.upsertFields, imp.InputOptions.UseArrayIndexFields); err != nil {
+		if err := validateFields(imp.upsertFields, imp.InputOptions.UseArrayIndexFields, optionsWithFields); err != nil {
 			return fmt.Errorf("invalid --upsertFields argument: %v", err)
 		}
 	} else if imp.IngestOptions.Mode != modeInsert {
@@ -352,9 +357,9 @@ func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 
 	if imp.InputOptions.HeaderLine {
 		if imp.InputOptions.ColumnsHaveTypes {
-			err = inputReader.ReadAndValidateTypedHeader(ParsePG(imp.InputOptions.ParseGrace))
+			err = inputReader.ReadAndValidateTypedHeader(ParsePG(imp.InputOptions.ParseGrace), optionsWithFields)
 		} else {
-			err = inputReader.ReadAndValidateHeader()
+			err = inputReader.ReadAndValidateHeader(optionsWithFields)
 		}
 		if err != nil {
 			return 0, 0, err
@@ -629,7 +634,7 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	// header fields validation can only happen once we have an input reader
 	if !imp.InputOptions.HeaderLine {
-		if err = validateReaderFields(ColumnNames(colSpecs), imp.InputOptions.UseArrayIndexFields); err != nil {
+		if err = validateReaderFields(ColumnNames(colSpecs), imp.InputOptions.UseArrayIndexFields, optionsWithFields); err != nil {
 			return nil, err
 		}
 	}
