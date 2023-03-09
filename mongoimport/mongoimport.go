@@ -222,13 +222,17 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			return fmt.Errorf("cannot import time-series collections with JSON")
 		}
 
+		if imp.IngestOptions.TimeSeriesTimeField == imp.IngestOptions.TimeSeriesMetaField {
+			return fmt.Errorf("error the metafield and timefield for time-series collections must be different columns")
+		}
+
 		optionsWithFields.timeField = imp.IngestOptions.TimeSeriesTimeField
 		optionsWithFields.metaField = imp.IngestOptions.TimeSeriesMetaField
 	}
 
 	if imp.IngestOptions.TimeSeriesGranularity != "" {
-		if (imp.IngestOptions.TimeSeriesGranularity != "seconds" ||
-			imp.IngestOptions.TimeSeriesGranularity != "minutes" ||
+		if (imp.IngestOptions.TimeSeriesGranularity != "seconds" &&
+			imp.IngestOptions.TimeSeriesGranularity != "minutes" &&
 			imp.IngestOptions.TimeSeriesGranularity != "hours") {
 			return fmt.Errorf("--timeseries-granularity must be one of: seconds, minutes, hours")
 		}
