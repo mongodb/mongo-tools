@@ -111,7 +111,12 @@ type IngestOptions struct {
 	TimeSeriesMetaField string `long:"timeseries-metafield" value-name:"meta-field" description:"Sets the (optional) metaField of the target time-series collection e.g. --timeseries-metafield='sensor_id'. Requires --timeseries-timefield."`
 
 	// Optional. Passed to the creation of a time-series collection.
-	TimeSeriesGranularity string `long:"timeseries-granularity" value-name:"granularity" description:"Sets the (optional) granularity of time values on the target time-series collection to optimize how time-series data is stored internally. The type can be one of: seconds (default), minutes, hours. Requires --timeseries-timefield."`
+	TimeSeriesGranularity string `long:"timeseries-granularity" choice:"seconds" choice:"minutes" choice:"hours" description:"Sets the (optional) granularity of time values on the target time-series collection to optimize how time-series data is stored internally. Requires --timeseries-timefield. (default: seconds)"`
+
+	// If an existing time-series collection exists, allow mongoimport to write to it directly, without creating the collection.
+	// You must ensure that the target collection was created as a time-series collection, and that the timeField and/or MetaField was set correctly upon creation.
+	// Mongoimport is not currently able to fully validate what you are doing is correct.
+	TimeSeriesExists bool `long:"timeseries-exists" description:"Allow mongoimport to write to an existing time-series collection directly, without creating the collection nor validating the options to mongoimport. You must ensure that the target collection was created as a time-series collection, and that the timeField and/or MetaField was set correctly upon creation. Use this option with discretion."`
 }
 
 // Name returns a description of the IngestOptions struct.

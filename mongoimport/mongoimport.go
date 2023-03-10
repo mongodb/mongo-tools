@@ -230,14 +230,6 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		optionsWithFields.metaField = imp.IngestOptions.TimeSeriesMetaField
 	}
 
-	if imp.IngestOptions.TimeSeriesGranularity != "" {
-		if imp.IngestOptions.TimeSeriesGranularity != "seconds" &&
-			imp.IngestOptions.TimeSeriesGranularity != "minutes" &&
-			imp.IngestOptions.TimeSeriesGranularity != "hours" {
-			return fmt.Errorf("--timeseries-granularity must be one of: seconds, minutes, hours")
-		}
-	}
-
 	// parse UpsertFields, may set default mode to modeUpsert
 	if imp.IngestOptions.UpsertFields != "" {
 		if imp.IngestOptions.Mode == "" {
@@ -432,7 +424,9 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 
 			if cursor.Next(context.TODO()) {
 				cursor.Close(context.TODO())
-				return 0, 0, fmt.Errorf("error when inserting to a time-series collection, the collection must not exist, or --drop must be provided")
+				if !imp.IngestOptions.TimeSeriesExists {
+					return 0, 0, fmt.Errorf("error when inserting to a time-series collection, the collection must not exist, or --drop must be provided. Consider using --timeseries-exists if the time-series collection was already created.")
+				}
 			}
 		}
 
