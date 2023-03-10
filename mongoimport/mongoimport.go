@@ -238,7 +238,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			return fmt.Errorf("can not use --upsertFields with --mode=insert")
 		}
 		imp.upsertFields = strings.Split(imp.IngestOptions.UpsertFields, ",")
-		if err := validateFields(imp.upsertFields, imp.InputOptions.UseArrayIndexFields, optionsWithFields); err != nil {
+		if err := validateFields(imp.upsertFields, imp.InputOptions.UseArrayIndexFields); err != nil {
 			return fmt.Errorf("invalid --upsertFields argument: %v", err)
 		}
 	} else if imp.IngestOptions.Mode != modeInsert {
@@ -632,7 +632,11 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	// header fields validation can only happen once we have an input reader
 	if !imp.InputOptions.HeaderLine {
-		if err = validateReaderFields(ColumnNames(colSpecs), imp.InputOptions.UseArrayIndexFields, optionsWithFields); err != nil {
+		if err = ValidateOptionDependentFields(colSpecs, optionsWithFields); err != nil {
+			return nil, err
+		}
+
+		if err = validateReaderFields(ColumnNames(colSpecs), imp.InputOptions.UseArrayIndexFields); err != nil {
 			return nil, err
 		}
 	}

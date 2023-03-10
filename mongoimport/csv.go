@@ -84,7 +84,10 @@ func (r *CSVInputReader) ReadAndValidateHeader(optionsWithFields ColumnsAsOption
 		return err
 	}
 	r.colSpecs = ParseAutoHeaders(fields)
-	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields, optionsWithFields)
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
+		return err
+	}
+	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
 // ReadAndValidateHeader reads the header from the underlying reader and validates
@@ -98,7 +101,10 @@ func (r *CSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace, optio
 	if err != nil {
 		return err
 	}
-	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields, optionsWithFields)
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
+		return err
+	}
+	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
 // StreamDocument takes a boolean indicating if the documents should be streamed

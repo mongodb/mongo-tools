@@ -90,7 +90,10 @@ func (r *TSVInputReader) ReadAndValidateHeader(optionsWithFields ColumnsAsOption
 		headerFields = append(headerFields, strings.TrimRight(field, "\r\n"))
 	}
 	r.colSpecs = ParseAutoHeaders(headerFields)
-	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields, optionsWithFields)
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
+		return err
+	}
+	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
 // ReadAndValidateTypedHeader reads the header from the underlying reader and validates
@@ -108,7 +111,10 @@ func (r *TSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace, optio
 	if err != nil {
 		return err
 	}
-	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields, optionsWithFields)
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
+		return err
+	}
+	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
 // StreamDocument takes a boolean indicating if the documents should be streamed

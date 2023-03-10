@@ -134,6 +134,49 @@ func ParseAutoHeaders(headers []string) (fs []ColumnSpec) {
 	return
 }
 
+// Validate options that are dependent on existence of field names and/or types.
+// - Some options refer to field names.
+//   --timeseries-timefield=<time-field> must refer to a field from --headerline/--fields/--fieldFile
+//   --timeseries-metafield=<meta-field> must refer to a field from --headerline/--fields/--fieldFile
+// - Some options can require a field type.
+//   --timeseries-timefield: date
+func ValidateOptionDependentFields(headers []ColumnSpec, optionFields ColumnsAsOptionFields) (err error) {
+	// --timeseries-timefield must match a column name AND be of type date*
+	if len(optionFields.timeField) > 0 {
+		var timeFieldExists bool
+		for _, header := range headers {
+			if header.Name == optionFields.timeField {
+				if ! (header.TypeName == "date" || header.TypeName == "date_go" || header.TypeName == "date_ms" || header.TypeName == "date_oracle") {
+					return fmt.Errorf("error --timeseries-timefield '%v' must be a date type (date, date_go, date_ms, date_oracle)", optionFields.timeField)
+				}
+				timeFieldExists = true
+				break
+			}
+		}
+
+		if !timeFieldExists {
+			return fmt.Errorf("error --timeseries-timefield '%v' doesn't match any provided fields", optionFields.timeField)
+		}
+	}
+
+	// --timeseries-metafield must match a column name
+	if len(optionFields.metaField) > 0 {
+		var metaFieldExists bool
+		for _, header := range headers {
+			if header.Name == optionFields.metaField {
+				metaFieldExists = true
+				break
+			}
+		}
+
+		if !metaFieldExists {
+			return fmt.Errorf("error --timeseries-metafield '%v' doesn't match any provided fields", optionFields.metaField)
+		}
+	}
+
+	return nil
+}
+
 // FieldParser is the interface for any parser of a field item.
 type FieldParser interface {
 	Parse(in string) (interface{}, error)
