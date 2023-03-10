@@ -414,3 +414,33 @@ func TestFieldParsers(t *testing.T) {
 	})
 
 }
+
+func TestOptionDependentFieldValidation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("Using 'timestamp.date(),zip.string(),number.double(),foo.auto()'", t, func() {
+		colSpecs := []ColumnSpec{
+			{"timestamp", &FieldDateParser{"January 2, (2006)"}, pgAutoCast, "date", []string{"timestamp"}},
+			{"zip", new(FieldStringParser), pgAutoCast, "string", []string{"zip"}},
+			{"number", new(FieldDoubleParser), pgAutoCast, "double", []string{"number"}},
+			{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
+		}
+
+		emptyOptionFields := ColumnsAsOptionFields{}
+		So(ValidateOptionDependentFields(colSpecs, emptyOptionFields), ShouldBeNil)
+
+		bothNonExistentOptionFields := ColumnsAsOptionFields{"somefield", "otherfield"}
+		So(ValidateOptionDependentFields(colSpecs, bothNonExistentOptionFields), ShouldNotBeNil)
+
+		timeNonExistentOptionFields := ColumnsAsOptionFields{"somefield", "foo"}
+		So(ValidateOptionDependentFields(colSpecs, timeNonExistentOptionFields), ShouldNotBeNil)
+
+		metaNonExistentOptionFields := ColumnsAsOptionFields{"timestamp", "somefield"}
+		So(ValidateOptionDependentFields(colSpecs, metaNonExistentOptionFields), ShouldNotBeNil)
+
+		nonDateTimestamp := ColumnsAsOptionFields{"number", "zip"}
+		So(ValidateOptionDependentFields(colSpecs, nonDateTimestamp), ShouldNotBeNil)
+
+		optionFields := ColumnsAsOptionFields{"timestamp", "zip"}
+		So(ValidateOptionDependentFields(colSpecs, optionFields), ShouldBeNil)
+	})
+}
