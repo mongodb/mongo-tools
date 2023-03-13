@@ -26,7 +26,7 @@ cd mongo-tools
 
 Then run `./make build` to build all the tools, placing them in the `bin` directory inside the repository.
 
-You can also build a subset of the tools using the `-tools` option. For example, `./make build -tools=mongodump,mongorestore` builds only `mongodump` and `mongorestore`.
+You can also build a subset of the tools using the `-pkgs` option. For example, `./make build -pkgs=mongodump,mongorestore` builds only `mongodump` and `mongorestore`.
 
 To use the build/test scripts in this repository, you **_must_** set GOROOT to your Go root directory. This may depend on how you installed Go.
 

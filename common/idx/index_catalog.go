@@ -225,11 +225,11 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 				i.addIndex(database, collection, idIndexName, idIndex)
 			}
 			return nil
-		} else {
-			// Drop an index by name.
-			delete(collIndexes, indexToDrop)
-			return nil
 		}
+
+		// Drop an index by name.
+		delete(collIndexes, indexToDrop)
+		return nil
 	case bson.D:
 		var toDelete []string
 		// Drop an index by key pattern.

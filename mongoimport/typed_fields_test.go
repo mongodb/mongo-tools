@@ -27,7 +27,7 @@ func init() {
 func TestTypedHeaderParser(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Using 'zip.string(),number.double(),foo.auto()'", t, func() {
+	Convey("Using 'zip.string(),number.double(),foo.auto(),bar.date(January 2, (2006))'", t, func() {
 		var headers = []string{"zip.string()", "number.double()", "foo.auto()", `bar.date(January 2\, \(2006\))`}
 		var colSpecs []ColumnSpec
 		var err error

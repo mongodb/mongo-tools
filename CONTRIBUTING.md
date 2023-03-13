@@ -53,10 +53,18 @@ To run unit and integration tests:
 ```
 go test -v ./...
 ```
-If TOOLS_TESTING_UNIT is set to a true value in the environment, unit tests will run.
-If TOOLS_TESTING_INTEGRATION is set to a true value in the environment, integration tests will run.
+
+If `TOOLS_TESTING_UNIT` is set to a true value in the shell environment, unit tests will run.
+
+If `TOOLS_TESTING_INTEGRATION` is set to a true value in the shell environment, integration tests will run.
 
 Integration tests require a `mongod` (running on port 33333) while unit tests do not.
+
+Example of how to run a specific integration test:
+
+```
+TOOLS_TESTING_INTEGRATION=true go test -v ./... -run TestImportDocuments
+```
 
 To run the quality assurance tests, you need to have the latest stable version of the rebuilt tools, `mongod`, `mongos`, and `mongo` in your current working directory.
 

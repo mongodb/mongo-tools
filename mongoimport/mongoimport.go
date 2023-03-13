@@ -161,7 +161,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			}
 			if imp.InputOptions.FieldFile != nil &&
 				*imp.InputOptions.FieldFile == "" {
-				return fmt.Errorf("--fieldFile can not be empty string")
+				return fmt.Errorf("--fieldFile cannot be empty string")
 			}
 			if imp.InputOptions.Fields != nil &&
 				imp.InputOptions.FieldFile != nil {
@@ -185,19 +185,19 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	} else {
 		// input type is JSON
 		if imp.InputOptions.HeaderLine {
-			return fmt.Errorf("can not use --headerline when input type is JSON")
+			return fmt.Errorf("cannot use --headerline when input type is JSON")
 		}
 		if imp.InputOptions.Fields != nil {
-			return fmt.Errorf("can not use --fields when input type is JSON")
+			return fmt.Errorf("cannot use --fields when input type is JSON")
 		}
 		if imp.InputOptions.FieldFile != nil {
-			return fmt.Errorf("can not use --fieldFile when input type is JSON")
+			return fmt.Errorf("cannot use --fieldFile when input type is JSON")
 		}
 		if imp.IngestOptions.IgnoreBlanks {
-			return fmt.Errorf("can not use --ignoreBlanks when input type is JSON")
+			return fmt.Errorf("cannot use --ignoreBlanks when input type is JSON")
 		}
 		if imp.InputOptions.ColumnsHaveTypes {
-			return fmt.Errorf("can not use --columnsHaveTypes when input type is JSON")
+			return fmt.Errorf("cannot use --columnsHaveTypes when input type is JSON")
 		}
 	}
 
@@ -211,7 +211,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		if imp.IngestOptions.Mode == "" {
 			imp.IngestOptions.Mode = modeUpsert
 		} else if imp.IngestOptions.Mode == modeInsert {
-			return fmt.Errorf("can not use --upsertFields with --mode=insert")
+			return fmt.Errorf("cannot use --upsertFields with --mode=insert")
 		}
 		imp.upsertFields = strings.Split(imp.IngestOptions.UpsertFields, ",")
 		if err := validateFields(imp.upsertFields, imp.InputOptions.UseArrayIndexFields); err != nil {

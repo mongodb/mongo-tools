@@ -170,7 +170,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 	}
 
 	if mf.StorageOptions.GridFSPrefix == "" {
-		return fmt.Errorf("--prefix can not be blank")
+		return fmt.Errorf("--prefix cannot be blank")
 	}
 
 	mf.Command = args[0]
