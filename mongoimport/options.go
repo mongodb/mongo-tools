@@ -104,19 +104,20 @@ type IngestOptions struct {
 	BulkBufferSize int `long:"batchSize" default:"1000" hidden:"true"`
 
 	// Creates the target collection as a time-series collection using the value given
-	// as the TimeField.
-	TimeSeriesTimeField string `long:"timeseries-timefield" value-name:"time-field" description:"Creates target collection as time-series with this field as the timeField e.g. --timeseries-timefield='timestamp'"`
+	// as the TimeField. --columnsHaveTypes is required so mongoimport can validate
+	// that a date field exists, and because a date cannot be coerced from auto.
+	TimeSeriesTimeField string `long:"timeSeriesTimeField" value-name:"time-field" description:"Creates target collection as time-series with this field as the timeField e.g. --timeSeriesTimeField='timestamp'". Requires --columnsHaveTypes.`
 
 	// Optional. Passed to the creation of a time-series collection.
-	TimeSeriesMetaField string `long:"timeseries-metafield" value-name:"meta-field" description:"Sets the (optional) metaField of the target time-series collection e.g. --timeseries-metafield='sensor_id'. Requires --timeseries-timefield."`
+	TimeSeriesMetaField string `long:"timeSeriesMetaField" value-name:"meta-field" description:"Sets the (optional) metaField of the target time-series collection e.g. --timeSeriesMetaField='sensor_id'. Requires --timeSeriesTimeField."`
 
 	// Optional. Passed to the creation of a time-series collection.
-	TimeSeriesGranularity string `long:"timeseries-granularity" choice:"seconds" choice:"minutes" choice:"hours" description:"Sets the (optional) granularity of time values on the target time-series collection to optimize how time-series data is stored internally. Requires --timeseries-timefield. (default: seconds)"`
+	TimeSeriesGranularity string `long:"timeSeriesGranularity" choice:"seconds" choice:"minutes" choice:"hours" description:"Sets the (optional) granularity of time values on the target time-series collection to optimize how time-series data is stored internally. Requires --timeSeriesTimeField. (default: seconds)"`
 
 	// If an existing time-series collection exists, allow mongoimport to write to it directly, without creating the collection.
-	// You must ensure that the target collection was created as a time-series collection, and that the timeField and/or MetaField was set correctly upon creation.
+	// You must ensure that the target collection was created as a time-series collection, and that the TimeField and/or MetaField was set correctly upon creation.
 	// Mongoimport is not currently able to fully validate what you are doing is correct.
-	TimeSeriesExists bool `long:"timeseries-exists" description:"Allow mongoimport to write to an existing time-series collection directly, without creating the collection nor validating the options to mongoimport. You must ensure that the target collection was created as a time-series collection, and that the timeField and/or MetaField was set correctly upon creation. Use this option with discretion."`
+	TimeSeriesExists bool `long:"timeSeriesExists" description:"Allow mongoimport to write to an existing time-series collection directly, without creating the collection nor validating the options to mongoimport. You must ensure that the target collection was created as a time-series collection, and that the TimeField and/or MetaField was set correctly upon creation. Use this option with discretion."`
 }
 
 // Name returns a description of the IngestOptions struct.

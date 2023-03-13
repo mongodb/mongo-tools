@@ -215,7 +215,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	if imp.IngestOptions.TimeSeriesTimeField == "" {
 		if imp.IngestOptions.TimeSeriesMetaField != "" ||
 			imp.IngestOptions.TimeSeriesGranularity != "" {
-			return fmt.Errorf("cannot use --timeseries-metafield nor --timeseries-granularity without --timeseries-timefield")
+			return fmt.Errorf("cannot use --timeSeriesMetaField nor --timeSeriesGranularity without --timeSeriesTimeField")
 		}
 	} else {
 		if imp.InputOptions.Type == JSON {
@@ -223,7 +223,11 @@ func (imp *MongoImport) validateSettings(args []string) error {
 		}
 
 		if imp.IngestOptions.TimeSeriesTimeField == imp.IngestOptions.TimeSeriesMetaField {
-			return fmt.Errorf("error the metafield and timefield for time-series collections must be different columns")
+			return fmt.Errorf("error the MetaField and TimeField for time-series collections must be different columns")
+		}
+
+		if ! imp.InputOptions.ColumnsHaveTypes {
+			return fmt.Errorf("--timeSeriesTimeFields requires --columnsHaveTypes so mongoimport can validate the date field")
 		}
 
 		optionsWithFields.timeField = imp.IngestOptions.TimeSeriesTimeField
@@ -425,7 +429,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 			if cursor.Next(context.TODO()) {
 				cursor.Close(context.TODO())
 				if !imp.IngestOptions.TimeSeriesExists {
-					return 0, 0, fmt.Errorf("error when inserting to a time-series collection, the collection must not exist, or --drop must be provided. Consider using --timeseries-exists if the time-series collection was already created")
+					return 0, 0, fmt.Errorf("error when inserting to a time-series collection, the collection must not exist, or --drop must be provided. Consider using --timeSeriesExists if the time-series collection was already created")
 				}
 			}
 		}
