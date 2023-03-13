@@ -135,11 +135,11 @@ func ParseAutoHeaders(headers []string) (fs []ColumnSpec) {
 }
 
 // Validate options that are dependent on existence of field names and/or types.
-// - Some options refer to field names.
-//   --timeSeriesTimeField=<time-field> must refer to a field from --headerline/--fields/--fieldFile
-//   --timeSeriesMetaField=<meta-field> must refer to a field from --headerline/--fields/--fieldFile
-// - Some options can require a field type.
-//   --timeSeriesTimeField: date
+//   - Some options refer to field names.
+//     --timeSeriesTimeField=<time-field> must refer to a field from --headerline/--fields/--fieldFile
+//     --timeSeriesMetaField=<meta-field> must refer to a field from --headerline/--fields/--fieldFile
+//   - Some options can require a field type.
+//     --timeSeriesTimeField: date
 func ValidateOptionDependentFields(headers []ColumnSpec, optionFields ColumnsAsOptionFields) (err error) {
 	// --timeSeriesTimeField must match a column name AND be of type date*
 	if len(optionFields.timeField) > 0 {
@@ -148,7 +148,7 @@ func ValidateOptionDependentFields(headers []ColumnSpec, optionFields ColumnsAsO
 			// Check against NameParts[0] because the Name field will contain the "Name.Type"
 			if header.NameParts[0] == optionFields.timeField {
 				timeFieldExists = true
-				if ! (header.TypeName == "date" || header.TypeName == "date_go" || header.TypeName == "date_ms" || header.TypeName == "date_oracle") {
+				if !(header.TypeName == "date" || header.TypeName == "date_go" || header.TypeName == "date_ms" || header.TypeName == "date_oracle") {
 					return fmt.Errorf("error --timeSeriesTimeField '%v' must be a date type (date, date_go, date_ms, date_oracle), found type '%v'", optionFields.timeField, header.TypeName)
 				}
 				break

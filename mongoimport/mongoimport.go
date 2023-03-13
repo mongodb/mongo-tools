@@ -226,7 +226,7 @@ func (imp *MongoImport) validateSettings(args []string) error {
 			return fmt.Errorf("error the MetaField and TimeField for time-series collections must be different columns")
 		}
 
-		if ! imp.InputOptions.ColumnsHaveTypes {
+		if !imp.InputOptions.ColumnsHaveTypes {
 			return fmt.Errorf("--timeSeriesTimeFields requires --columnsHaveTypes so mongoimport can validate the date field")
 		}
 
