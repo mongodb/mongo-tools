@@ -106,7 +106,7 @@ type IngestOptions struct {
 	// Creates the target collection as a time-series collection using the value given
 	// as the TimeField. --columnsHaveTypes is required so mongoimport can validate
 	// that a date field exists, and because a date cannot be coerced from auto.
-	TimeSeriesTimeField string `long:"timeSeriesTimeField" value-name:"time-field" description:"Creates target collection as time-series with this field as the timeField e.g. --timeSeriesTimeField='timestamp'". Requires --columnsHaveTypes.`
+	TimeSeriesTimeField string `long:"timeSeriesTimeField" value-name:"time-field" description:"Creates target collection as time-series with this field as the timeField e.g. --timeSeriesTimeField='timestamp'. Requires --columnsHaveTypes."`
 
 	// Optional. Passed to the creation of a time-series collection.
 	TimeSeriesMetaField string `long:"timeSeriesMetaField" value-name:"meta-field" description:"Sets the (optional) metaField of the target time-series collection e.g. --timeSeriesMetaField='sensor_id'. Requires --timeSeriesTimeField."`
