@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	moptions "go.mongodb.org/mongo-driver/mongo/options"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/tomb.v2"
 
 	"context"
@@ -433,7 +433,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		log.Logvf(log.Always, "creating time-series collection: %v.%v",
 			imp.ToolOptions.Namespace.DB,
 			imp.ToolOptions.Namespace.Collection)
-		timeseriesOptions := moptions.TimeSeries()
+		timeseriesOptions := mopt.TimeSeries()
 		timeseriesOptions.SetTimeField(imp.IngestOptions.TimeSeriesTimeField)
 
 		if imp.IngestOptions.TimeSeriesMetaField != "" {
@@ -443,7 +443,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		if imp.IngestOptions.TimeSeriesGranularity != "" {
 			timeseriesOptions.SetGranularity(imp.IngestOptions.TimeSeriesGranularity)
 		}
-		collectionOptions := moptions.CreateCollection().SetTimeSeriesOptions(timeseriesOptions)
+		collectionOptions := mopt.CreateCollection().SetTimeSeriesOptions(timeseriesOptions)
 		session.Database(imp.ToolOptions.DB).CreateCollection(context.TODO(), imp.ToolOptions.Namespace.Collection, collectionOptions)
 
 	}
