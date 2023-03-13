@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -71,13 +73,52 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	return nil
 }
 
-func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
+func isTimeSeriesCollection(sessionProvider *db.SessionProvider, testCollectionName string) (bool, error) {
+	session, err := (*sessionProvider).GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	db := session.Database(testDb)
+	collInfo, err := db.ListCollectionSpecifications(context.TODO(), bson.D{{"name", testCollectionName}})
+	if err != nil {
+		return false, err
+	}
+
+	log.Logvf(log.Always, "listCollSpecs: %v num:[%d]", collInfo[0], len(collInfo))
+	opts := collInfo[0].Options
+	elems, err := collInfo[0].Options.Elements()
+	if err != nil {
+		return false, err
+	}
+
+	log.Logvf(log.Always, "num elems: %d", len(elems))
+	log.Logvf(log.Always, "num elems: %s", elems[0].DebugString())
+
+	var collSpecs bson.D
+	err = bson.Unmarshal(opts, &collSpecs)
+	if err != nil {
+		return false, err
+	}
+
+	for _, collSpec := range collSpecs {
+		log.Logvf(log.Always, " elem: %v", collSpec.Key)
+		if collSpec.Key == "timeseries" {
+			log.Logvf(log.Always, " found TS!")
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func countDocuments(sessionProvider *db.SessionProvider, testCollectionName string) (int, error) {
 	session, err := (*sessionProvider).GetSession()
 	if err != nil {
 		return 0, err
 	}
 
-	collection := session.Database(testDb).Collection(testCollection)
+	collection := session.Database(testDb).Collection(testCollectionName)
 	n, err := collection.CountDocuments(nil, bson.D{})
 	if err != nil {
 		return 0, err
@@ -982,7 +1023,7 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numProcessed, ShouldEqual, 1)
 			So(numFailed, ShouldEqual, 0)
-			n, err := countDocuments(imp.SessionProvider)
+			n, err := countDocuments(imp.SessionProvider, testCollection)
 			So(err, ShouldBeNil)
 			So(n, ShouldEqual, 1)
 
@@ -998,7 +1039,7 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numProcessed, ShouldEqual, 1)
 			So(numFailed, ShouldEqual, 0)
-			n, err = countDocuments(imp.SessionProvider)
+			n, err = countDocuments(imp.SessionProvider, testCollection)
 			So(err, ShouldBeNil)
 			So(n, ShouldEqual, 1)
 		})
@@ -1236,6 +1277,28 @@ func TestImportDocuments(t *testing.T) {
 				fmt.Errorf("fields 'a.a.a.a' and 'a.a' are incompatible"),
 			),
 		)
+		Convey("CSV import with --timeSeriesTimeField should succeed in creating a time-series collection and inserting documents", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.IngestOptions.Drop = true
+			imp.IngestOptions.Mode = modeInsert
+			imp.IngestOptions.TimeSeriesTimeField = "timestamp"
+			imp.InputOptions.ColumnsHaveTypes = true
+			imp.InputOptions.File = "testdata/test_timeseries.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.ToolOptions.Collection = "timeseries_coll"
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 5)
+			So(numFailed, ShouldEqual, 0)
+			isTimeSeries, err := isTimeSeriesCollection(imp.SessionProvider, imp.ToolOptions.Collection)
+			So(err, ShouldBeNil)
+			So(isTimeSeries, ShouldBeTrue)
+			n, err := countDocuments(imp.SessionProvider, imp.ToolOptions.Collection)
+			So(err, ShouldBeNil)
+			So(n, ShouldEqual, 5)
+		})
 	})
 }
 
