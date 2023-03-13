@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -80,32 +79,23 @@ func isTimeSeriesCollection(sessionProvider *db.SessionProvider, testCollectionN
 	}
 
 	db := session.Database(testDb)
-	collInfo, err := db.ListCollectionSpecifications(context.TODO(), bson.D{{"name", testCollectionName}})
+	collInfoSpecs, err := db.ListCollectionSpecifications(context.TODO(), bson.D{{"name", testCollectionName}})
 	if err != nil {
 		return false, err
 	}
 
-	log.Logvf(log.Always, "listCollSpecs: %v num:[%d]", collInfo[0], len(collInfo))
-	opts := collInfo[0].Options
-	elems, err := collInfo[0].Options.Elements()
-	if err != nil {
-		return false, err
-	}
+	for _, elem := range collInfoSpecs {
+		opts := elem.Options
+		var collSpecs bson.D
+		err = bson.Unmarshal(opts, &collSpecs)
+		if err != nil {
+			return false, err
+		}
 
-	log.Logvf(log.Always, "num elems: %d", len(elems))
-	log.Logvf(log.Always, "num elems: %s", elems[0].DebugString())
-
-	var collSpecs bson.D
-	err = bson.Unmarshal(opts, &collSpecs)
-	if err != nil {
-		return false, err
-	}
-
-	for _, collSpec := range collSpecs {
-		log.Logvf(log.Always, " elem: %v", collSpec.Key)
-		if collSpec.Key == "timeseries" {
-			log.Logvf(log.Always, " found TS!")
-			return true, nil
+		for _, collSpec := range collSpecs {
+			if collSpec.Key == "timeseries" {
+				return true, nil
+			}
 		}
 	}
 
