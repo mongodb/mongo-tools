@@ -570,6 +570,59 @@ func TestGetInputReader(t *testing.T) {
 	})
 }
 
+func TestTimeSeriesImport(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
+	Convey("With a mongoimport instance", t, func() {
+		Reset(func() {
+			sessionProvider, err := db.NewSessionProvider(*getBasicToolOptions())
+			if err != nil {
+				t.Fatalf("error getting session provider session: %v", err)
+			}
+			session, err := sessionProvider.GetSession()
+			if err != nil {
+				t.Fatalf("error getting session: %v", err)
+			}
+			_, err = session.Database(testDb).Collection("timeseries_coll").DeleteMany(nil, bson.D{})
+			if err != nil {
+				t.Fatalf("error dropping collection: %v", err)
+			}
+		})
+		Convey("CSV import with --timeSeriesTimeField should succeed in creating a time-series collection and inserting documents", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.IngestOptions.Drop = true
+			imp.IngestOptions.Mode = modeInsert
+			imp.IngestOptions.TimeSeriesTimeField = "timestamp"
+			imp.InputOptions.ColumnsHaveTypes = true
+			imp.InputOptions.File = "testdata/test_timeseries.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.ToolOptions.Collection = "timeseries_coll"
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 5)
+			So(numFailed, ShouldEqual, 0)
+			isTimeSeries, err := isTimeSeriesCollection(imp.SessionProvider, imp.ToolOptions.Collection)
+			So(err, ShouldBeNil)
+			So(isTimeSeries, ShouldBeTrue)
+			n, err := countDocuments(imp.SessionProvider, imp.ToolOptions.Collection)
+			So(err, ShouldBeNil)
+			So(n, ShouldEqual, 5)
+		})
+	})
+}
+
 func TestImportDocuments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	Convey("With a mongoimport instance", t, func() {
@@ -1267,28 +1320,6 @@ func TestImportDocuments(t *testing.T) {
 				fmt.Errorf("fields 'a.a.a.a' and 'a.a' are incompatible"),
 			),
 		)
-		Convey("CSV import with --timeSeriesTimeField should succeed in creating a time-series collection and inserting documents", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Drop = true
-			imp.IngestOptions.Mode = modeInsert
-			imp.IngestOptions.TimeSeriesTimeField = "timestamp"
-			imp.InputOptions.ColumnsHaveTypes = true
-			imp.InputOptions.File = "testdata/test_timeseries.csv"
-			imp.InputOptions.HeaderLine = true
-			imp.InputOptions.Type = CSV
-			imp.ToolOptions.Collection = "timeseries_coll"
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 5)
-			So(numFailed, ShouldEqual, 0)
-			isTimeSeries, err := isTimeSeriesCollection(imp.SessionProvider, imp.ToolOptions.Collection)
-			So(err, ShouldBeNil)
-			So(isTimeSeries, ShouldBeTrue)
-			n, err := countDocuments(imp.SessionProvider, imp.ToolOptions.Collection)
-			So(err, ShouldBeNil)
-			So(n, ShouldEqual, 5)
-		})
 	})
 }
 
