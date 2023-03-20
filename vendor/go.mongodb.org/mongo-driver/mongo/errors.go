@@ -112,6 +112,19 @@ func IsTimeout(err error) bool {
 		if err == driver.ErrDeadlineWouldBeExceeded {
 			return true
 		}
+		if err == topology.ErrServerSelectionTimeout {
+			return true
+		}
+		if _, ok := err.(topology.WaitQueueTimeoutError); ok {
+			return true
+		}
+		if ce, ok := err.(CommandError); ok && ce.IsMaxTimeMSExpiredError() {
+			return true
+		}
+		if we, ok := err.(WriteException); ok && we.WriteConcernError != nil &&
+			we.WriteConcernError.IsMaxTimeMSExpiredError() {
+			return true
+		}
 		if ne, ok := err.(net.Error); ok {
 			return ne.Timeout()
 		}
@@ -370,6 +383,11 @@ func (wce WriteConcernError) Error() string {
 	return wce.Message
 }
 
+// IsMaxTimeMSExpiredError returns true if the error is a MaxTimeMSExpired error.
+func (wce WriteConcernError) IsMaxTimeMSExpiredError() bool {
+	return wce.Code == 50
+}
+
 // WriteException is the error type returned by the InsertOne, DeleteOne, DeleteMany, UpdateOne, UpdateMany, and
 // ReplaceOne operations.
 type WriteException struct {
@@ -624,7 +642,8 @@ const batchErrorsTargetLength = 2000
 // to the end.
 //
 // Example format:
-//     "[message 1, message 2, +8 more errors...]"
+//
+//	"[message 1, message 2, +8 more errors...]"
 func joinBatchErrors(errs []error) string {
 	var buf bytes.Buffer
 	fmt.Fprint(&buf, "[")
