@@ -494,7 +494,7 @@ functions:
           fi
 
           if [ "${SUPPORTS_COLUMNSTORE}" = "true" ]; then
-            NODE_OPTIONS += ",setParameter: \\\"featureFlagColumnstoreIndexes=true\\\"
+            NODE_OPTIONS += ",setParameter: \\\"featureFlagColumnstoreIndexes=true\\\""
           fi
 
           PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
@@ -1482,6 +1482,7 @@ tasks:
           mongo_version: "6.3"
       - func: "start mongod"
         vars:
+          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1508,6 +1509,7 @@ tasks:
           mongo_version: "6.3"
       - func: "start mongod"
         vars:
+          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1532,6 +1534,7 @@ tasks:
           mongo_version: "6.3"
       - func: "create repl_set"
         vars:
+          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1571,6 +1574,7 @@ tasks:
           mongo_version: "latest"
       - func: "start mongod"
         vars:
+          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1597,6 +1601,7 @@ tasks:
           mongo_version: "latest"
       - func: "start mongod"
         vars:
+          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1621,6 +1626,7 @@ tasks:
           mongo_version: "latest"
       - func: "create repl_set"
         vars:
+          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
