@@ -160,7 +160,7 @@ functions:
         fi;
 
         if [ "${SUPPORTS_COLUMNSTORE}" = "true" ]; then
-          MONGOD_ARGS += " --setParameter featureFlagColumnstoreIndexes=true"
+          MONGOD_ARGS="${MONGOD_ARGS} --setParameter featureFlagColumnstoreIndexes=true"
         fi
 
         echo "Starting mongod..."
@@ -494,7 +494,7 @@ functions:
           fi
 
           if [ "${SUPPORTS_COLUMNSTORE}" = "true" ]; then
-            NODE_OPTIONS += ",setParameter: \\\"featureFlagColumnstoreIndexes=true\\\""
+            NODE_OPTIONS="${NODE_OPTIONS},setParameter: \\\"featureFlagColumnstoreIndexes=true\\\""
           fi
 
           PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
