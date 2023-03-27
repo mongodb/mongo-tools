@@ -169,7 +169,7 @@ functions:
         if [ "${STORAGE_ENGINE}" != '' ]; then
           storage_args='--storageEngine ${STORAGE_ENGINE}'
         fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS --dbpath mongodb/db_files --setParameter=enableTestCommands=1 ${additional_args} $storage_args
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $additional_args $storage_args
 
   "wait for mongod to be ready":
     command: shell.exec
