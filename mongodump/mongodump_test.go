@@ -2023,7 +2023,12 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 
 	// Create Columnstore indexes.
 	for _, colName := range testCollectionNames {
-		require.NoError(t, setUpColumnstoreIndex(testDB, colName))
+		err := setUpColumnstoreIndex(testDB, colName)
+		if strings.Contains(err.Error(), "NotImplemented") {
+			t.Skip("Not implemented on current version without feature flag.")
+		}
+
+		require.NoError(t, err)
 	}
 
 	md := simpleMongoDumpInstance()

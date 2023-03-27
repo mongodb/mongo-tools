@@ -14,15 +14,15 @@ variables:
   # Common mongodb arguments
   mongod_arguments:
     default: &mongod_default_startup_args
-      mongod_args: ""
+      mongod_args: "--setParameter featureFlagColumnstoreIndexes=true"
       mongod_port: 33333
     ssl: &mongod_ssl_startup_args
-      mongod_args: "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem"
-      replsettest_ssl_config: "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\", sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
+      mongod_args: "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile common/db/testdata/test-server.pem --setParameter featureFlagColumnstoreIndexes=true"
+      replsettest_ssl_config: "setParameter: \\\"featureFlagColumnstoreIndexes=true\\\",sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\", sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
     tls: &mongod_tls_startup_args
-      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem"
-      replsettest_tls_config: "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"common/db/testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
+      mongod_args_tls: "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --setParameter featureFlagColumnstoreIndexes=true"
+      replsettest_tls_config: "setParameter: \\\"featureFlagColumnstoreIndexes=true\\\",tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile: \\\"common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"common/db/testdata/ca-ia.pem\\\", tlsAllowInvalidHostnames: \\\"\\\""
       mongod_port: 33333
 
   mongo_arguments:
@@ -158,18 +158,12 @@ functions:
         elif [ "${AWS_AUTH}" = "true" ]; then
           MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
         fi;
-
-        additional_args=''
-        if [ "${SUPPORTS_COLUMNSTORE}" = "true" ]; then
-          additional_args='--setParameter featureFlagColumnstoreIndexes=true'
-        fi
-
         echo "Starting mongod..."
         storage_args=''
         if [ "${STORAGE_ENGINE}" != '' ]; then
           storage_args='--storageEngine ${STORAGE_ENGINE}'
         fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $additional_args $storage_args
+        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
 
   "wait for mongod to be ready":
     command: shell.exec
@@ -485,20 +479,21 @@ functions:
           set -e
           echo "starting repl set"
           MONGO_ARGS="${mongo_args}"
-          node_options=""
+          NODE_OPTIONS=""
           mkdir -p /data/db/
           if [ "${USE_TLS}" = "true" ]; then
-            node_options="${replsettest_tls_config}"
+            NODE_OPTIONS="${replsettest_tls_config}"
             MONGO_ARGS="${mongo_args_tls}"
           elif [ "${USE_SSL}" = "true" ]; then
-            node_options="${replsettest_ssl_config}"
+            NODE_OPTIONS="${replsettest_ssl_config}"
           fi
-
+          
           if [ "${SUPPORTS_COLUMNSTORE}" = "true" ]; then
-            node_options="${node_options},setParameter: \\\"featureFlagColumnstoreIndexes=true\\\""
+            NODE_OPTIONS+"${replsettest_tls_config}" "setParameter: \\\"featureFlagColumnstoreIndexes=true\\\"
           fi
+          
 
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$node_options"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
 
     - command: shell.exec
       params:
@@ -1483,7 +1478,6 @@ tasks:
           mongo_version: "6.3"
       - func: "start mongod"
         vars:
-          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1510,7 +1504,6 @@ tasks:
           mongo_version: "6.3"
       - func: "start mongod"
         vars:
-          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1535,7 +1528,6 @@ tasks:
           mongo_version: "6.3"
       - func: "create repl_set"
         vars:
-          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1575,7 +1567,6 @@ tasks:
           mongo_version: "latest"
       - func: "start mongod"
         vars:
-          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1602,7 +1593,6 @@ tasks:
           mongo_version: "latest"
       - func: "start mongod"
         vars:
-          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "wait for mongod to be ready"
         vars:
@@ -1627,7 +1617,6 @@ tasks:
           mongo_version: "latest"
       - func: "create repl_set"
         vars:
-          SUPPORTS_COLUMNSTORE: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
