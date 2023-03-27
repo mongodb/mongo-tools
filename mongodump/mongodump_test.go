@@ -2019,16 +2019,17 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 		t.Skip("Requires server with FCV 6.3 or later")
 	}
 
-	require.NoError(t, setUpMongoDumpTestData())
-
 	// Create Columnstore indexes.
 	for _, colName := range testCollectionNames {
 		err := setUpColumnstoreIndex(testDB, colName)
 		if strings.Contains(err.Error(), "(NotImplemented) columnstore indexes are under development and cannot be used without enabling the feature flag") {
 			t.Skip("Requires columnstore indexes to be implemented")
+			return
 		}
 		require.NoError(t, err)
 	}
+
+	require.NoError(t, setUpMongoDumpTestData())
 
 	md := simpleMongoDumpInstance()
 	md.ToolOptions.Namespace.DB = testDB
