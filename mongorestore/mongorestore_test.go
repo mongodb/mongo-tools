@@ -2437,8 +2437,8 @@ func createColumnstoreIndex(t *testing.T, testDB *mongo.Database, key string, co
 		}},
 	}
 	res = testDB.RunCommand(context.Background(), createIndexCmd, nil)
-	if strings.Contains(res.Err().Error(), "NotImplemented") {
-		t.Skip("Not implemented on current version without feature flag.")
+	if strings.Contains(res.Err().Error(), "(NotImplemented) columnstore indexes are under development and cannot be used without enabling the feature flag") {
+		t.Skip("Requires columnstore indexes to be implemented")
 	}
 
 	require.NoError(res.Err(), "can create a columnstore index")
