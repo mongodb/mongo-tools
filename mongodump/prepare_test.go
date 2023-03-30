@@ -9,6 +9,7 @@ package mongodump
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -134,8 +135,16 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		{
 			db:     "config",
 			coll:   "foo",
-			output: false,
+			output: true,
 		},
+	}
+
+	for _, collName := range dumprestore.ConfigCollectionsToKeep {
+		tests = append(tests, testTable{
+			db:     "config",
+			coll:   collName,
+			output: false,
+		})
 	}
 
 	for _, testVals := range tests {
