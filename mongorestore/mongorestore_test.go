@@ -99,7 +99,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 
 			restore, err := getRestoreWithArgs(args...)
 			if err != nil {
-				t.Errorf("Cannot bootstrap test harness: %v", err.Error())
+				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
 			}
 			defer restore.Close()
 
@@ -118,7 +118,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 
 			restore, err := getRestoreWithArgs(args...)
 			if err != nil {
-				t.Errorf("Cannot bootstrap test harness: %v", err.Error())
+				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
 			}
 			defer restore.Close()
 
