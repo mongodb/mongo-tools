@@ -641,6 +641,10 @@ func TestShouldIgnoreNamespacee(t *testing.T) {
 			output: true,
 		},
 		{
+			ns:     "config.system.sharding_ddl_coordinators",
+			output: true,
+		},
+		{
 			ns:     "config.image_collection",
 			output: true,
 		},

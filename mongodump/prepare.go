@@ -19,9 +19,12 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
+
+	"golang.org/x/exp/slices"
 )
 
 type NilPos struct{}
@@ -151,16 +154,7 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 			return true
 		}
 	case "config":
-		if collName == "transactions" ||
-			collName == "system.sessions" ||
-			collName == "transaction_coordinators" ||
-			collName == "system.indexBuilds" ||
-			collName == "image_collection" ||
-			collName == "mongos" ||
-			collName == "system.preimages" ||
-			strings.HasPrefix(collName, "cache.") {
-			return true
-		}
+		return !slices.Contains(dumprestore.ConfigCollectionsToKeep, collName)
 	default:
 		if collName == "system.js" {
 			return false
@@ -409,13 +403,18 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		if err != nil {
 			return fmt.Errorf("error decoding collection info: %v", err)
 		}
+
+		// This MUST precede the remaining checks since it avoids
+		// a mid-reshard backup.
+		if dbName == "config" && dump.OutputOptions.Oplog && isReshardingCollection(collInfo.Name) {
+			return fmt.Errorf("detected resharding in progress. Cannot dump with --oplog while resharding")
+		}
+
 		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
 			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
 			continue
 		}
-		if dbName == "config" && dump.OutputOptions.Oplog && isReshardingCollection(collInfo.Name) {
-			return fmt.Errorf("detected resharding in progress. Cannot dump with --oplog while resharding")
-		}
+
 		if dump.shouldSkipCollection(collInfo.Name) {
 			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)
 			continue
