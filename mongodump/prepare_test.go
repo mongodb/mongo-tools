@@ -129,6 +129,11 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		},
 		{
 			db:     "config",
+			coll:   "system.sharding_ddl_coordinators",
+			output: true,
+		},
+		{
+			db:     "config",
 			coll:   "cache.foo",
 			output: true,
 		},
