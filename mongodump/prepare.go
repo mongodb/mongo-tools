@@ -12,6 +12,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -391,6 +392,9 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 // and builds dump intents for each collection.
 func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	// we must ensure folders for empty databases are still created, for legacy purposes
+	if dbName == "fail" {
+		return errors.Errorf("ERROR fail!!!")
+	}
 
 	session, err := dump.SessionProvider.GetSession()
 	if err != nil {
