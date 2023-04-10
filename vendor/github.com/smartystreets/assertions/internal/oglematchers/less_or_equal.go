@@ -27,7 +27,7 @@ import (
 //
 // x must itself be an integer, floating point, or string type; otherwise,
 // LessOrEqual will panic.
-func LessOrEqual(x interface{}) Matcher {
+func LessOrEqual(x any) Matcher {
 	desc := fmt.Sprintf("less than or equal to %v", x)
 
 	// Special case: make it clear that strings are strings.

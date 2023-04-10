@@ -7,7 +7,7 @@ import (
 )
 
 // ShouldBeGreaterThan receives exactly two parameters and ensures that the first is greater than the second.
-func ShouldBeGreaterThan(actual interface{}, expected ...interface{}) string {
+func ShouldBeGreaterThan(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -19,7 +19,7 @@ func ShouldBeGreaterThan(actual interface{}, expected ...interface{}) string {
 }
 
 // ShouldBeGreaterThanOrEqualTo receives exactly two parameters and ensures that the first is greater than or equal to the second.
-func ShouldBeGreaterThanOrEqualTo(actual interface{}, expected ...interface{}) string {
+func ShouldBeGreaterThanOrEqualTo(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	} else if matchError := oglematchers.GreaterOrEqual(expected[0]).Matches(actual); matchError != nil {
@@ -29,7 +29,7 @@ func ShouldBeGreaterThanOrEqualTo(actual interface{}, expected ...interface{}) s
 }
 
 // ShouldBeLessThan receives exactly two parameters and ensures that the first is less than the second.
-func ShouldBeLessThan(actual interface{}, expected ...interface{}) string {
+func ShouldBeLessThan(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	} else if matchError := oglematchers.LessThan(expected[0]).Matches(actual); matchError != nil {
@@ -38,8 +38,8 @@ func ShouldBeLessThan(actual interface{}, expected ...interface{}) string {
 	return success
 }
 
-// ShouldBeLessThan receives exactly two parameters and ensures that the first is less than or equal to the second.
-func ShouldBeLessThanOrEqualTo(actual interface{}, expected ...interface{}) string {
+// ShouldBeLessThanOrEqualTo receives exactly two parameters and ensures that the first is less than or equal to the second.
+func ShouldBeLessThanOrEqualTo(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	} else if matchError := oglematchers.LessOrEqual(expected[0]).Matches(actual); matchError != nil {
@@ -50,7 +50,7 @@ func ShouldBeLessThanOrEqualTo(actual interface{}, expected ...interface{}) stri
 
 // ShouldBeBetween receives exactly three parameters: an actual value, a lower bound, and an upper bound.
 // It ensures that the actual value is between both bounds (but not equal to either of them).
-func ShouldBeBetween(actual interface{}, expected ...interface{}) string {
+func ShouldBeBetween(actual any, expected ...any) string {
 	if fail := need(2, expected); fail != success {
 		return fail
 	}
@@ -66,7 +66,7 @@ func ShouldBeBetween(actual interface{}, expected ...interface{}) string {
 
 // ShouldNotBeBetween receives exactly three parameters: an actual value, a lower bound, and an upper bound.
 // It ensures that the actual value is NOT between both bounds.
-func ShouldNotBeBetween(actual interface{}, expected ...interface{}) string {
+func ShouldNotBeBetween(actual any, expected ...any) string {
 	if fail := need(2, expected); fail != success {
 		return fail
 	}
@@ -79,7 +79,7 @@ func ShouldNotBeBetween(actual interface{}, expected ...interface{}) string {
 	}
 	return success
 }
-func deriveBounds(values []interface{}) (lower interface{}, upper interface{}, fail string) {
+func deriveBounds(values []any) (lower any, upper any, fail string) {
 	lower = values[0]
 	upper = values[1]
 
@@ -90,7 +90,7 @@ func deriveBounds(values []interface{}) (lower interface{}, upper interface{}, f
 	}
 	return lower, upper, success
 }
-func isBetween(value, lower, upper interface{}) bool {
+func isBetween(value, lower, upper any) bool {
 	if ShouldBeGreaterThan(value, lower) != success {
 		return false
 	} else if ShouldBeLessThan(value, upper) != success {
@@ -101,7 +101,7 @@ func isBetween(value, lower, upper interface{}) bool {
 
 // ShouldBeBetweenOrEqual receives exactly three parameters: an actual value, a lower bound, and an upper bound.
 // It ensures that the actual value is between both bounds or equal to one of them.
-func ShouldBeBetweenOrEqual(actual interface{}, expected ...interface{}) string {
+func ShouldBeBetweenOrEqual(actual any, expected ...any) string {
 	if fail := need(2, expected); fail != success {
 		return fail
 	}
@@ -117,7 +117,7 @@ func ShouldBeBetweenOrEqual(actual interface{}, expected ...interface{}) string 
 
 // ShouldNotBeBetweenOrEqual receives exactly three parameters: an actual value, a lower bound, and an upper bound.
 // It ensures that the actual value is nopt between the bounds nor equal to either of them.
-func ShouldNotBeBetweenOrEqual(actual interface{}, expected ...interface{}) string {
+func ShouldNotBeBetweenOrEqual(actual any, expected ...any) string {
 	if fail := need(2, expected); fail != success {
 		return fail
 	}
@@ -131,7 +131,7 @@ func ShouldNotBeBetweenOrEqual(actual interface{}, expected ...interface{}) stri
 	return success
 }
 
-func isBetweenOrEqual(value, lower, upper interface{}) bool {
+func isBetweenOrEqual(value, lower, upper any) bool {
 	if ShouldBeGreaterThanOrEqualTo(value, lower) != success {
 		return false
 	} else if ShouldBeLessThanOrEqualTo(value, upper) != success {

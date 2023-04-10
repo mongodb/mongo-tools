@@ -28,7 +28,7 @@ import (
 //
 // x must itself be an integer, floating point, or string type; otherwise,
 // LessThan will panic.
-func LessThan(x interface{}) Matcher {
+func LessThan(x any) Matcher {
 	v := reflect.ValueOf(x)
 	kind := v.Kind()
 
@@ -104,7 +104,7 @@ func getFloat(v reflect.Value) float64 {
 	panic(fmt.Sprintf("getFloat: %v", v))
 }
 
-func (m *lessThanMatcher) Matches(c interface{}) (err error) {
+func (m *lessThanMatcher) Matches(c any) (err error) {
 	v1 := reflect.ValueOf(c)
 	v2 := m.limit
 

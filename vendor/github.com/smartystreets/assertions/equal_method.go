@@ -3,8 +3,8 @@ package assertions
 import "reflect"
 
 type equalityMethodSpecification struct {
-	a interface{}
-	b interface{}
+	a any
+	b any
 
 	aType reflect.Type
 	bType reflect.Type
@@ -12,7 +12,7 @@ type equalityMethodSpecification struct {
 	equalMethod reflect.Value
 }
 
-func newEqualityMethodSpecification(a, b interface{}) *equalityMethodSpecification {
+func newEqualityMethodSpecification(a, b any) *equalityMethodSpecification {
 	return &equalityMethodSpecification{
 		a: a,
 		b: b,

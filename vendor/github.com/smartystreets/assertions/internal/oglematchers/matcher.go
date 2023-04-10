@@ -54,7 +54,7 @@ type Matcher interface {
 	//
 	// If you are implementing a new matcher, see also the documentation on
 	// FatalError.
-	Matches(candidate interface{}) error
+	Matches(candidate any) error
 
 	// Description returns a string describing the property that values matching
 	// this matcher have, as a verb phrase where the subject is the value. For

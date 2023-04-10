@@ -38,7 +38,7 @@ import (
 //
 // This is akin to a logical OR operation for matchers, with non-matchers x
 // being treated as Equals(x).
-func AnyOf(vals ...interface{}) Matcher {
+func AnyOf(vals ...any) Matcher {
 	// Get ahold of a type variable for the Matcher interface.
 	var dummy *Matcher
 	matcherType := reflect.TypeOf(dummy).Elem()
@@ -71,7 +71,7 @@ func (m *anyOfMatcher) Description() string {
 	return fmt.Sprintf("or(%s)", strings.Join(wrappedDescs, ", "))
 }
 
-func (m *anyOfMatcher) Matches(c interface{}) (err error) {
+func (m *anyOfMatcher) Matches(c any) (err error) {
 	err = errors.New("")
 
 	// Try each matcher in turn.

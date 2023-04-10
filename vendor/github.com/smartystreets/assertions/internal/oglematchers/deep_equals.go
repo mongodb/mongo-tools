@@ -27,12 +27,12 @@ var byteSliceType reflect.Type = reflect.TypeOf([]byte{})
 // DeepEquals returns a matcher that matches based on 'deep equality', as
 // defined by the reflect package. This matcher requires that values have
 // identical types to x.
-func DeepEquals(x interface{}) Matcher {
+func DeepEquals(x any) Matcher {
 	return &deepEqualsMatcher{x}
 }
 
 type deepEqualsMatcher struct {
-	x interface{}
+	x any
 }
 
 func (m *deepEqualsMatcher) Description() string {
@@ -49,7 +49,7 @@ func (m *deepEqualsMatcher) Description() string {
 	return fmt.Sprintf("deep equals: %s", xDesc)
 }
 
-func (m *deepEqualsMatcher) Matches(c interface{}) error {
+func (m *deepEqualsMatcher) Matches(c any) error {
 	// Make sure the types match.
 	ct := reflect.TypeOf(c)
 	xt := reflect.TypeOf(m.x)

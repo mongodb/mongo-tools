@@ -23,7 +23,7 @@ import (
 // Return a matcher that matches arrays slices with at least one element that
 // matches the supplied argument. If the argument x is not itself a Matcher,
 // this is equivalent to Contains(Equals(x)).
-func Contains(x interface{}) Matcher {
+func Contains(x any) Matcher {
 	var result containsMatcher
 	var ok bool
 
@@ -42,7 +42,7 @@ func (m *containsMatcher) Description() string {
 	return fmt.Sprintf("contains: %s", m.elementMatcher.Description())
 }
 
-func (m *containsMatcher) Matches(candidate interface{}) error {
+func (m *containsMatcher) Matches(candidate any) error {
 	// The candidate must be a slice or an array.
 	v := reflect.ValueOf(candidate)
 	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {

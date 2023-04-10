@@ -18,7 +18,7 @@ import (
 	"runtime"
 )
 
-// By default we use a no-op serializer. The actual Serializer provides a JSON
+// By default, we use a no-op serializer. The actual Serializer provides a JSON
 // representation of failure results on selected assertions so the goconvey
 // web UI can display a convenient diff.
 var serializer Serializer = new(noopSerializer)
@@ -38,7 +38,7 @@ func GoConveyMode(yes bool) {
 }
 
 type testingT interface {
-	Error(args ...interface{})
+	Error(args ...any)
 }
 
 type Assertion struct {
@@ -58,7 +58,7 @@ func (this *Assertion) Failed() bool {
 }
 
 // So calls the standalone So function and additionally, calls t.Error in failure scenarios.
-func (this *Assertion) So(actual interface{}, assert assertion, expected ...interface{}) bool {
+func (this *Assertion) So(actual any, assert SoFunc, expected ...any) bool {
 	ok, result := So(actual, assert, expected...)
 	if !ok {
 		this.failed = true
@@ -80,13 +80,13 @@ func (this *Assertion) So(actual interface{}, assert assertion, expected ...inte
 //
 // Example:
 //
-//   if ok, message := So(x, ShouldBeGreaterThan, y); !ok {
-//        log.Println(message)
-//   }
+//	if ok, message := So(x, ShouldBeGreaterThan, y); !ok {
+//	     log.Println(message)
+//	}
 //
 // For an alternative implementation of So (that provides more flexible return options)
 // see the `So` function in the package at github.com/smartystreets/assertions/assert.
-func So(actual interface{}, assert assertion, expected ...interface{}) (bool, string) {
+func So(actual any, assert SoFunc, expected ...any) (bool, string) {
 	if result := so(actual, assert, expected...); len(result) == 0 {
 		return true, result
 	} else {
@@ -96,14 +96,14 @@ func So(actual interface{}, assert assertion, expected ...interface{}) (bool, st
 
 // so is like So, except that it only returns the string message, which is blank if the
 // assertion passed. Used to facilitate testing.
-func so(actual interface{}, assert func(interface{}, ...interface{}) string, expected ...interface{}) string {
+func so(actual any, assert SoFunc, expected ...any) string {
 	return assert(actual, expected...)
 }
 
-// assertion is an alias for a function with a signature that the So()
+// SoFunc is an alias for a function with a signature that the So()
 // function can handle. Any future or custom assertions should conform to this
-// method signature. The return value should be an empty string if the assertion
+// method signature. The return value should be an empty string if the SoFunc
 // passes and a well-formed failure message if not.
-type assertion func(actual interface{}, expected ...interface{}) string
+type SoFunc func(actual any, expected ...any) string
 
 ////////////////////////////////////////////////////////////////////////////

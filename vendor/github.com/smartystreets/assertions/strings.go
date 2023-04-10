@@ -7,7 +7,7 @@ import (
 )
 
 // ShouldStartWith receives exactly 2 string parameters and ensures that the first starts with the second.
-func ShouldStartWith(actual interface{}, expected ...interface{}) string {
+func ShouldStartWith(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -33,7 +33,7 @@ func shouldStartWith(value, prefix string) string {
 }
 
 // ShouldNotStartWith receives exactly 2 string parameters and ensures that the first does not start with the second.
-func ShouldNotStartWith(actual interface{}, expected ...interface{}) string {
+func ShouldNotStartWith(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -61,7 +61,7 @@ func shouldNotStartWith(value, prefix string) string {
 }
 
 // ShouldEndWith receives exactly 2 string parameters and ensures that the first ends with the second.
-func ShouldEndWith(actual interface{}, expected ...interface{}) string {
+func ShouldEndWith(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -86,8 +86,8 @@ func shouldEndWith(value, suffix string) string {
 	return success
 }
 
-// ShouldEndWith receives exactly 2 string parameters and ensures that the first does not end with the second.
-func ShouldNotEndWith(actual interface{}, expected ...interface{}) string {
+// ShouldNotEndWith receives exactly 2 string parameters and ensures that the first does not end with the second.
+func ShouldNotEndWith(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -115,7 +115,7 @@ func shouldNotEndWith(value, suffix string) string {
 }
 
 // ShouldContainSubstring receives exactly 2 string parameters and ensures that the first contains the second as a substring.
-func ShouldContainSubstring(actual interface{}, expected ...interface{}) string {
+func ShouldContainSubstring(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -134,7 +134,7 @@ func ShouldContainSubstring(actual interface{}, expected ...interface{}) string 
 }
 
 // ShouldNotContainSubstring receives exactly 2 string parameters and ensures that the first does NOT contain the second as a substring.
-func ShouldNotContainSubstring(actual interface{}, expected ...interface{}) string {
+func ShouldNotContainSubstring(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -153,7 +153,7 @@ func ShouldNotContainSubstring(actual interface{}, expected ...interface{}) stri
 }
 
 // ShouldBeBlank receives exactly 1 string parameter and ensures that it is equal to "".
-func ShouldBeBlank(actual interface{}, expected ...interface{}) string {
+func ShouldBeBlank(actual any, expected ...any) string {
 	if fail := need(0, expected); fail != success {
 		return fail
 	}
@@ -167,8 +167,8 @@ func ShouldBeBlank(actual interface{}, expected ...interface{}) string {
 	return success
 }
 
-// ShouldNotBeBlank receives exactly 1 string parameter and ensures that it is equal to "".
-func ShouldNotBeBlank(actual interface{}, expected ...interface{}) string {
+// ShouldNotBeBlank receives exactly 1 string parameter and ensures that it is not equal to "".
+func ShouldNotBeBlank(actual any, expected ...any) string {
 	if fail := need(0, expected); fail != success {
 		return fail
 	}
@@ -184,7 +184,7 @@ func ShouldNotBeBlank(actual interface{}, expected ...interface{}) string {
 
 // ShouldEqualWithout receives exactly 3 string parameters and ensures that the first is equal to the second
 // after removing all instances of the third from the first using strings.Replace(first, third, "", -1).
-func ShouldEqualWithout(actual interface{}, expected ...interface{}) string {
+func ShouldEqualWithout(actual any, expected ...any) string {
 	if fail := need(2, expected); fail != success {
 		return fail
 	}
@@ -210,7 +210,7 @@ func ShouldEqualWithout(actual interface{}, expected ...interface{}) string {
 
 // ShouldEqualTrimSpace receives exactly 2 string parameters and ensures that the first is equal to the second
 // after removing all leading and trailing whitespace using strings.TrimSpace(first).
-func ShouldEqualTrimSpace(actual interface{}, expected ...interface{}) string {
+func ShouldEqualTrimSpace(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}

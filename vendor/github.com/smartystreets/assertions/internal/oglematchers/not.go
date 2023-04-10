@@ -31,7 +31,7 @@ type notMatcher struct {
 	wrapped Matcher
 }
 
-func (m *notMatcher) Matches(c interface{}) (err error) {
+func (m *notMatcher) Matches(c any) (err error) {
 	err = m.wrapped.Matches(c)
 
 	// Did the wrapped matcher say yes?

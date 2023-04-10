@@ -1,12 +1,13 @@
 package assertions
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
 
 // ShouldHaveSameTypeAs receives exactly two parameters and compares their underlying types for equality.
-func ShouldHaveSameTypeAs(actual interface{}, expected ...interface{}) string {
+func ShouldHaveSameTypeAs(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -22,7 +23,7 @@ func ShouldHaveSameTypeAs(actual interface{}, expected ...interface{}) string {
 }
 
 // ShouldNotHaveSameTypeAs receives exactly two parameters and compares their underlying types for inequality.
-func ShouldNotHaveSameTypeAs(actual interface{}, expected ...interface{}) string {
+func ShouldNotHaveSameTypeAs(actual any, expected ...any) string {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -38,7 +39,7 @@ func ShouldNotHaveSameTypeAs(actual interface{}, expected ...interface{}) string
 
 // ShouldImplement receives exactly two parameters and ensures
 // that the first implements the interface type of the second.
-func ShouldImplement(actual interface{}, expectedList ...interface{}) string {
+func ShouldImplement(actual any, expectedList ...any) string {
 	if fail := need(1, expectedList); fail != success {
 		return fail
 	}
@@ -74,7 +75,7 @@ func ShouldImplement(actual interface{}, expectedList ...interface{}) string {
 
 // ShouldNotImplement receives exactly two parameters and ensures
 // that the first does NOT implement the interface type of the second.
-func ShouldNotImplement(actual interface{}, expectedList ...interface{}) string {
+func ShouldNotImplement(actual any, expectedList ...any) string {
 	if fail := need(1, expectedList); fail != success {
 		return fail
 	}
@@ -111,7 +112,7 @@ func ShouldNotImplement(actual interface{}, expectedList ...interface{}) string 
 // ShouldBeError asserts that the first argument implements the error interface.
 // It also compares the first argument against the second argument if provided
 // (which must be an error message string or another error value).
-func ShouldBeError(actual interface{}, expected ...interface{}) string {
+func ShouldBeError(actual any, expected ...any) string {
 	if fail := atMost(1, expected); fail != success {
 		return fail
 	}
@@ -130,5 +131,24 @@ func ShouldBeError(actual interface{}, expected ...interface{}) string {
 	return ShouldEqual(fmt.Sprint(actual), fmt.Sprint(expected[0]))
 }
 
-func isString(value interface{}) bool { _, ok := value.(string); return ok }
-func isError(value interface{}) bool  { _, ok := value.(error); return ok }
+// ShouldWrap asserts that the first argument (which must be an error value)
+// 'wraps' the second/final argument (which must also be an error value).
+// It relies on errors.Is to make the determination (https://golang.org/pkg/errors/#Is).
+func ShouldWrap(actual any, expected ...any) string {
+	if fail := need(1, expected); fail != success {
+		return fail
+	}
+
+	if !isError(actual) || !isError(expected[0]) {
+		return fmt.Sprintf(shouldWrapInvalidTypes, reflect.TypeOf(actual), reflect.TypeOf(expected[0]))
+	}
+
+	if !errors.Is(actual.(error), expected[0].(error)) {
+		return fmt.Sprintf(`Expected error("%s") to wrap error("%s") but it didn't.`, actual, expected[0])
+	}
+
+	return success
+}
+
+func isString(value any) bool { _, ok := value.(string); return ok }
+func isError(value any) bool  { _, ok := value.(error); return ok }

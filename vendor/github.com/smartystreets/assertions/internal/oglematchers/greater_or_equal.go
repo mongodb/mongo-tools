@@ -27,7 +27,7 @@ import (
 //
 // x must itself be an integer, floating point, or string type; otherwise,
 // GreaterOrEqual will panic.
-func GreaterOrEqual(x interface{}) Matcher {
+func GreaterOrEqual(x any) Matcher {
 	desc := fmt.Sprintf("greater than or equal to %v", x)
 
 	// Special case: make it clear that strings are strings.

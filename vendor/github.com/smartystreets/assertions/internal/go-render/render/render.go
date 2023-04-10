@@ -48,7 +48,7 @@ var typeOfFloat = reflect.TypeOf(10.1)
 // Render converts a structure to a string representation. Unline the "%#v"
 // format string, this resolves pointer types' contents in structs, maps, and
 // slices/arrays and prints their field values.
-func Render(v interface{}) string {
+func Render(v any) string {
 	buf := bytes.Buffer{}
 	s := (*traverseState)(nil)
 	s.render(&buf, 0, reflect.ValueOf(v), false)
@@ -296,7 +296,7 @@ func writeType(buf *bytes.Buffer, ptrs int, t reflect.Type) {
 		if n := t.Name(); n != "" {
 			buf.WriteString(t.String())
 		} else {
-			buf.WriteString("interface{}")
+			buf.WriteString("any")
 		}
 
 	case reflect.Array:

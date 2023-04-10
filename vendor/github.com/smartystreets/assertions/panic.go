@@ -1,9 +1,12 @@
 package assertions
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // ShouldPanic receives a void, niladic function and expects to recover a panic.
-func ShouldPanic(actual interface{}, expected ...interface{}) (message string) {
+func ShouldPanic(actual any, expected ...any) (message string) {
 	if fail := need(0, expected); fail != success {
 		return fail
 	}
@@ -29,7 +32,7 @@ func ShouldPanic(actual interface{}, expected ...interface{}) (message string) {
 }
 
 // ShouldNotPanic receives a void, niladic function and expects to execute the function without any panic.
-func ShouldNotPanic(actual interface{}, expected ...interface{}) (message string) {
+func ShouldNotPanic(actual any, expected ...any) (message string) {
 	if fail := need(0, expected); fail != success {
 		return fail
 	}
@@ -55,7 +58,8 @@ func ShouldNotPanic(actual interface{}, expected ...interface{}) (message string
 }
 
 // ShouldPanicWith receives a void, niladic function and expects to recover a panic with the second argument as the content.
-func ShouldPanicWith(actual interface{}, expected ...interface{}) (message string) {
+// If the expected value is an error and the recovered value is an error, errors.Is will be used to compare them.
+func ShouldPanicWith(actual any, expected ...any) (message string) {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -72,7 +76,11 @@ func ShouldPanicWith(actual interface{}, expected ...interface{}) (message strin
 		if recovered == nil {
 			message = shouldHavePanicked
 		} else {
-			if equal := ShouldEqual(recovered, expected[0]); equal != success {
+			recoveredErr, errFound := recovered.(error)
+			expectedErr, expectedFound := expected[0].(error)
+			if errFound && expectedFound && errors.Is(recoveredErr, expectedErr) {
+				message = success
+			} else if equal := ShouldEqual(recovered, expected[0]); equal != success {
 				message = serializer.serialize(expected[0], recovered, fmt.Sprintf(shouldHavePanickedWith, expected[0], recovered))
 			} else {
 				message = success
@@ -85,7 +93,8 @@ func ShouldPanicWith(actual interface{}, expected ...interface{}) (message strin
 }
 
 // ShouldNotPanicWith receives a void, niladic function and expects to recover a panic whose content differs from the second argument.
-func ShouldNotPanicWith(actual interface{}, expected ...interface{}) (message string) {
+// If the expected value is an error and the recovered value is an error, errors.Is will be used to compare them.
+func ShouldNotPanicWith(actual any, expected ...any) (message string) {
 	if fail := need(1, expected); fail != success {
 		return fail
 	}
@@ -102,7 +111,11 @@ func ShouldNotPanicWith(actual interface{}, expected ...interface{}) (message st
 		if recovered == nil {
 			message = success
 		} else {
-			if equal := ShouldEqual(recovered, expected[0]); equal == success {
+			recoveredErr, errFound := recovered.(error)
+			expectedErr, expectedFound := expected[0].(error)
+			if errFound && expectedFound && errors.Is(recoveredErr, expectedErr) {
+				message = fmt.Sprintf(shouldNotHavePanickedWith, expected[0])
+			} else if equal := ShouldEqual(recovered, expected[0]); equal == success {
 				message = fmt.Sprintf(shouldNotHavePanickedWith, expected[0])
 			} else {
 				message = success

@@ -31,6 +31,6 @@ func (m *transformDescriptionMatcher) Description() string {
 	return m.desc
 }
 
-func (m *transformDescriptionMatcher) Matches(c interface{}) error {
+func (m *transformDescriptionMatcher) Matches(c any) error {
 	return m.wrappedMatcher.Matches(c)
 }
