@@ -3,6 +3,7 @@ package platform
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -13,22 +14,22 @@ type OS string
 
 const (
 	OSWindows OS = "windows"
-	OSLinux      = "linux"
-	OSMac        = "mac"
+	OSLinux   OS = "linux"
+	OSMac     OS = "mac"
 )
 
 type Pkg string
 
 const (
 	PkgDeb Pkg = "deb"
-	PkgRPM     = "rpm"
+	PkgRPM Pkg = "rpm"
 )
 
 type Repo string
 
 const (
 	RepoOrg        Repo = "org"
-	RepoEnterprise      = "enterprise"
+	RepoEnterprise Repo = "enterprise"
 )
 
 type Arch string
@@ -38,9 +39,9 @@ const (
 	// While arm64 and aarch64 are the same architecture, some Linux distros
 	// use arm64 (Debian and RHEL) and others use aarch64 (Amazon 2).
 	ArchAarch64 Arch = "aarch64"
-	ArchS390x        = "s390x"
-	ArchPpc64le      = "ppc64le"
-	ArchX86_64       = "x86_64"
+	ArchS390x   Arch = "s390x"
+	ArchPpc64le Arch = "ppc64le"
+	ArchX86_64  Arch = "x86_64"
 )
 
 // Platform represents a platform (a combination of OS, distro,
@@ -66,10 +67,8 @@ func (p Platform) Variant() string {
 	if p.VariantName != "" {
 		return p.VariantName
 	}
-	if p.Arch == ArchX86_64 {
-		return p.Name
-	}
-	return fmt.Sprintf("%s-%s", p.Name, p.Arch)
+
+	return createVariantName(p.Name, p.Arch)
 }
 
 const evgVariantVar = "EVG_VARIANT"
@@ -96,12 +95,21 @@ func GetFromEnv() (Platform, error) {
 
 // DetectLocal detects the platform for non-evergreen use cases.
 func DetectLocal() (Platform, error) {
-	cmd := exec.Command("uname", "-s")
+
+	cmd := exec.Command("uname", "-sm")
 	out, err := cmd.Output()
 	if err != nil {
 		return Platform{}, fmt.Errorf("failed to run uname: %w", err)
 	}
-	kernelName := strings.TrimSpace(string(out))
+
+	kernelNameAndArch := strings.TrimSpace(string(out))
+	pieces := regexp.MustCompile(`[ \t]+`).Split(kernelNameAndArch, -1)
+	if len(pieces) != 2 {
+		panic(fmt.Sprintf("Unexpected uname output (%d pieces): %q", len(pieces), string(out)))
+	}
+
+	kernelName := pieces[0]
+	archName := Arch(pieces[1])
 
 	if strings.HasPrefix(kernelName, "CYGWIN") {
 		pf, ok := GetByVariant("windows")
@@ -113,13 +121,13 @@ func DetectLocal() (Platform, error) {
 
 	switch kernelName {
 	case "Linux":
-		pf, ok := GetByVariant("ubuntu1804")
+		pf, ok := GetByOsAndArch("ubuntu1804", archName)
 		if !ok {
 			panic("ubuntu1804 platform name changed")
 		}
 		return pf, nil
 	case "Darwin":
-		pf, ok := GetByVariant("macos")
+		pf, ok := GetByOsAndArch("macos", archName)
 		if !ok {
 			panic("macos platform name changed")
 		}
@@ -133,11 +141,26 @@ func GetByVariant(variant string) (Platform, bool) {
 	if platformsByVariant == nil {
 		platformsByVariant = make(map[string]Platform)
 		for _, p := range platforms {
+			if _, exists := platformsByVariant[p.Variant()]; exists {
+				panic("Duplicate variant: " + p.Variant())
+			}
+
 			platformsByVariant[p.Variant()] = p
 		}
 	}
 	p, ok := platformsByVariant[variant]
 	return p, ok
+}
+
+func GetByOsAndArch(os string, arch Arch) (Platform, bool) {
+	return GetByVariant(createVariantName(os, arch))
+}
+
+func createVariantName(os string, arch Arch) string {
+	if arch == ArchX86_64 {
+		return os
+	}
+	return os + "-" + string(arch)
 }
 
 // CountForReleaseJSON returns the number of platforms that we expect to put into the release
@@ -361,6 +384,12 @@ var platforms = []Platform{
 		OS:        OSLinux,
 		Pkg:       PkgDeb,
 		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "macos",
+		Arch:      ArchArm64,
+		OS:        OSMac,
 		BuildTags: defaultBuildTags,
 	},
 	{

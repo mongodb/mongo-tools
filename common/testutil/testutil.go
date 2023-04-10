@@ -63,6 +63,7 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 			Auth:       &auth,
 			Verbosity:  &options.Verbosity{},
 			URI:        &options.URI{},
+			Namespace:  &options.Namespace{},
 		}
 	}
 	err := toolOptions.NormalizeOptionsAndURI()
