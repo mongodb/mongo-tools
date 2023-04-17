@@ -90,7 +90,7 @@ func ColumnNames(fs []ColumnSpec) (s []string) {
 }
 
 // ParseTypedHeader produces a ColumnSpec from a header item, extracting type
-// information from the it. The parseGrace is passed along to the new ColumnSpec.
+// information from it. The parseGrace is passed along to the new ColumnSpec.
 func ParseTypedHeader(header string, parseGrace ParseGrace) (f ColumnSpec, err error) {
 	match := columnTypeRE.FindStringSubmatch(header)
 	if len(match) != 4 {
