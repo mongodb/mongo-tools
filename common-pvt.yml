@@ -312,10 +312,10 @@ buildvariants:
   #        ARM Buildvariants            #
   #######################################
 
-  - name: ubuntu1604-arm64-ssl
-    display_name: ZAP ARM64 Ubuntu 16.04 SSL
+  - name: amazon2023-aarch64-ssl
+    display_name: Amazon Linux 2023 ARM SSL
     run_on:
-      - ubuntu1604-arm64-small
+      - amazon2023-arm64-small
     stepback: false
     batchtime: 10080 # weekly
     expansions:
@@ -326,6 +326,16 @@ buildvariants:
     display_name: ZAP ARM64 Ubuntu 18.04 SSL
     run_on:
       - ubuntu1804-arm64-small
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: "ssl"
+    tasks: *atlas_live_tasks
+
+  - name: ubuntu1604-arm64-ssl
+    display_name: ZAP ARM64 Ubuntu 16.04 SSL
+    run_on:
+      - ubuntu1604-arm64-small
     stepback: false
     batchtime: 10080 # weekly
     expansions:
