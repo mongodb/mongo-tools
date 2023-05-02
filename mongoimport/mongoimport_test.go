@@ -111,22 +111,18 @@ func getBasicToolOptions() *options.ToolOptions {
 	}
 }
 
+func newOptions() Options {
+	return Options{
+		ToolOptions: getBasicToolOptions(),
+		InputOptions: &InputOptions{
+			ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{},
+	}
+}
+
 func NewMongoImport() (*MongoImport, error) {
-	toolOptions := getBasicToolOptions()
-	inputOptions := &InputOptions{
-		ParseGrace: "stop",
-	}
-	ingestOptions := &IngestOptions{}
-	provider, err := db.NewSessionProvider(*toolOptions)
-	if err != nil {
-		return nil, err
-	}
-	return &MongoImport{
-		ToolOptions:     toolOptions,
-		InputOptions:    inputOptions,
-		IngestOptions:   ingestOptions,
-		SessionProvider: provider,
-	}, nil
+	return New(newOptions())
 }
 
 // NewMockMongoImport gets an instance of MongoImport with no underlying SessionProvider.
@@ -150,6 +146,13 @@ func getImportWithArgs(additionalArgs ...string) (*MongoImport, error) {
 	opts, err := ParseOptions(append(testutil.GetBareArgs(), additionalArgs...), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
+	}
+
+	// Some OSes take longer than others. The test will time itself
+	// out anyway, so we disable timeouts here.
+	if opts.ToolOptions.Timeout > 0 {
+		fmt.Printf("getImportWithArgs zeroing timeout (was %v)\n", opts.ToolOptions.Timeout)
+		opts.ToolOptions.Timeout = 0
 	}
 
 	imp, err := New(opts)
@@ -1340,7 +1343,7 @@ func TestImportMIOSOE(t *testing.T) {
 
 	client, err := testutil.GetBareSession()
 	if err != nil {
-		t.Fatalf("No server available")
+		t.Fatalf("No server available?? (%v)", err)
 	}
 	database := client.Database("miodb")
 	coll := database.Collection("mio")
