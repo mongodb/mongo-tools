@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -22,6 +23,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"golang.org/x/exp/slices"
 )
 
 // oplogMaxCommandSize sets the maximum size for multiple buffered ops in the
@@ -61,17 +64,14 @@ var errorTimestampBeforeLimit = fmt.Errorf("timestamp before limit")
 
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
-	if strings.HasPrefix(ns, "config.cache.") ||
-		ns == "config.transactions" ||
-		ns == "config.transaction_coordinators" ||
-		ns == "config.image_collection" ||
-		ns == "config.mongos" ||
-		ns == "config.system.sessions" ||
-		ns == "config.system.indexBuilds" ||
-		ns == "config.system.preimages" {
-		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
-		return true
+	if strings.HasPrefix(ns, "config.") {
+		collName := ns[7:]
+		if !slices.Contains(dumprestore.ConfigCollectionsToKeep, collName) {
+			log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
+			return true
+		}
 	}
+
 	return false
 }
 

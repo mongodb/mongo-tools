@@ -1002,11 +1002,11 @@ func TestOptionsParsingForSRV(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.SRVConnectionStringTestType)
 	atlasURI, ok := os.LookupEnv("ATLAS_URI")
 	if !ok {
-		t.Errorf("test requires ATLAS_URI to be set")
+		t.Fatalf("test requires ATLAS_URI to be set")
 	}
 	cs, err := connstring.Parse(atlasURI)
 	if err != nil {
-		t.Errorf("Error parsing ATLAS_URI: %s", err)
+		t.Fatalf("Failed to parse ATLAS_URI (%s): %s", atlasURI, err)
 	}
 
 	Convey("With a list of CLI options and URIs parsing should succeed or fail as expected", t, func() {

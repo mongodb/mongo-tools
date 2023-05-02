@@ -831,7 +831,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	}
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 4.4 or later")
+		t.Skipf("Requires server with FCV 4.4 or later; found %v", fcv)
 	}
 
 	log.SetWriter(ioutil.Discard)
@@ -1554,18 +1554,18 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
-		t.Errorf("could not get session: %v", err)
+		t.Fatalf("Failed to get session: %v", err)
 	}
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 5.0 or later")
+		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
 	}
 
 	colName := "timeseriesColl"
 	dbName := "timeseries_test_DB"
 	err = setUpTimeseries(dbName, colName)
 	if err != nil {
-		t.Errorf("could not setup timeseries collection: %v", err)
+		t.Fatalf("Failed to set up timeseries collection: %v", err)
 	}
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1886,7 +1886,7 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	err = dropDB(dbName)
 	if err != nil {
-		t.Errorf("could not setup timeseries collection: %v", err)
+		t.Logf("Failed to drop timeseries collection: %v", err)
 	}
 }
 
@@ -1895,23 +1895,23 @@ func TestFailDuringResharding(t *testing.T) {
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
-		t.Errorf("could not get session provider: %v", err)
+		t.Fatalf("Failed to get session provider: %v", err)
 	}
 
 	session, err := sessionProvider.GetSession()
 	if err != nil {
-		t.Errorf("could not get session: %v", err)
+		t.Fatalf("Failed to get session: %v", err)
 	}
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.9"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 4.9 or later")
+		t.Skipf("Requires server with FCV 4.9 or later; found %v", fcv)
 	}
 
 	ctx := context.Background()
 
 	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
-		t.SkipNow()
+		t.Skipf("Not for replica sets")
 	}
 
 	Convey("With a MongoDump instance", t, func() {
@@ -2012,11 +2012,11 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
-		t.Errorf("could not get session: %v", err)
+		t.Fatalf("Failed to get session: %v", err)
 	}
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "6.3"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 6.3 or later")
+		t.Skipf("Requires server with FCV 6.3 or later; found %v", fcv)
 	}
 
 	// Create Columnstore indexes.
