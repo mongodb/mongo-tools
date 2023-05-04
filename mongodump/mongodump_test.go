@@ -2024,7 +2024,6 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 		err := setUpColumnstoreIndex(testDB, colName)
 		if strings.Contains(err.Error(), "(NotImplemented) columnstore indexes are under development and cannot be used without enabling the feature flag") {
 			t.Skip("Requires columnstore indexes to be implemented")
-			return
 		}
 		require.NoError(t, err)
 	}

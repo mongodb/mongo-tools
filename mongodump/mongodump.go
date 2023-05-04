@@ -132,8 +132,6 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("numParallelCollections must be positive")
 	case dump.isAtlasProxy && (dump.OutputOptions.DumpDBUsersAndRoles || dump.ToolOptions.DB == "admin"):
 		return fmt.Errorf("can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster")
-	case dump.isAtlasProxy && dump.OutputOptions.Oplog:
-		return fmt.Errorf("can't dump with oplog option when connecting to a MongoDB Atlas free or shared cluster")
 	}
 	return nil
 }
