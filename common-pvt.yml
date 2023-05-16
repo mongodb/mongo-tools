@@ -225,13 +225,21 @@ buildvariants:
     tasks: *atlas_live_tasks
 
   #######################################
-  #           macOS Buildvariant        #
+  #         macOS Buildvariants         #
   #######################################
 
-  - name: macOS-1014-ssl
-    display_name: MacOS 10.14 SSL
+  - name: macOS-1100-x86_64-ssl
+    display_name: MacOS 11.00 x86_64 SSL
     run_on:
-      - macos-1014
+      - macos-1100
+    expansions:
+      build_tags: "ssl"
+    tasks: *atlas_live_tasks
+
+  - name: macOS-1100-arm-ssl
+    display_name: MacOS 11 ARM SSL
+    run_on:
+      - macos-1100-arm64
     expansions:
       build_tags: "ssl"
     tasks: *atlas_live_tasks

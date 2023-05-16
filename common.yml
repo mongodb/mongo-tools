@@ -36,6 +36,24 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
+  mac_buildvariant_arguments: &mac_buildvariant_arguments
+    expansions:
+      <<:
+        [
+          *mongod_ssl_startup_args,
+          *mongo_ssl_startup_args,
+          *mongod_tls_startup_args,
+          *mongo_tls_startup_args,
+        ]
+      mongo_os: "osx"
+      mongo_target: "osx-ssl"
+      excludes: requires_many_files
+      smoke_use_ssl: --use-ssl
+      resmoke_use_ssl: _ssl
+      smoke_use_tls: --use-tls
+      resmoke_use_tls: _tls
+      USE_SSL: "true"
+
 functions:
   "run legacy tests":
     command: shell.exec
@@ -2422,29 +2440,17 @@ buildvariants:
         git_tag_only: true
 
   #######################################
-  #           macOS Buildvariant        #
+  #      macOS x86_64 Buildvariant      #
   #######################################
 
   - name: macos
-    display_name: MacOS 10.14
+    display_name: MacOS 11.00 x86_64
     run_on:
-      - macos-1014
-    expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
-      mongo_os: "osx"
-      mongo_target: "osx-ssl"
-      excludes: requires_many_files
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
-      resmoke_use_tls: _tls
-      USE_SSL: "true"
+      - macos-1100
+    <<:
+      [
+        *mac_buildvariant_arguments,
+      ]
     # We removed support for 3.4 on MacOS in TOOLS-3249
     tasks:
       - name: "unit"
@@ -2454,6 +2460,32 @@ buildvariants:
       - name: ".4.4 !.aws-auth"
       - name: ".5.0 !.aws-auth"
       - name: ".5.3 !.aws-auth"
+      - name: ".6.0 !.aws-auth"
+      - name: ".6.3 !.aws-auth"
+      - name: ".latest !.aws-auth"
+      - name: ".kerberos"
+      - name: "dist"
+      - name: "sign"
+        run_on: macos-1014-codesign
+      - name: "push"
+        run_on: rhel70-small
+        git_tag_only: true
+
+  #######################################
+  #       macOS ARM Buildvariant        #
+  #######################################
+
+  - name: macos-arm64
+    display_name: MacOS 11 ARM
+    run_on:
+      - macos-1100-arm64
+    <<:
+      [
+        *mac_buildvariant_arguments,
+      ]
+    # We removed support for 3.4 on MacOS in TOOLS-3249
+    tasks:
+      - name: "unit"
       - name: ".6.0 !.aws-auth"
       - name: ".6.3 !.aws-auth"
       - name: ".latest !.aws-auth"
