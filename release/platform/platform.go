@@ -355,6 +355,14 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
+		Name:      "amazon2023",
+		Arch:      ArchAarch64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
 		Name:      "debian10",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
