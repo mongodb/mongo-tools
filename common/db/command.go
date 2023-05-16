@@ -144,6 +144,9 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 		if strings.Contains(result.Err().Error(), "CommandNotFound") {
 			return false, nil
 		}
+		if strings.Contains(result.Err().Error(), "Unknown admin command") {
+			return false, nil
+		}
 		// For server 3.4 and below.
 		if strings.Contains(result.Err().Error(), "no such cmd") || strings.Contains(result.Err().Error(), "no such command") {
 			return false, nil
