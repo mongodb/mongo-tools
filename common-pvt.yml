@@ -204,6 +204,14 @@ buildvariants:
       build_tags: "sasl gssapi ssl"
     tasks: *atlas_live_tasks
 
+  - name: amazon2023-enterprise
+    display_name: Amazon Linux 2023 Enterprise
+    run_on:
+      - amazon2023-small
+    expansions:
+      build_tags: "sasl gssapi ssl"
+    tasks: *atlas_live_tasks
+
   #######################################
   #     Debian x86_64 Buildvariants     #
   #######################################
