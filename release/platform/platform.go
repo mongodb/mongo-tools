@@ -485,6 +485,14 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel90",
+		Arch:      ArchArm64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel90",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,

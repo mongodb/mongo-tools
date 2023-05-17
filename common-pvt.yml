@@ -350,6 +350,16 @@ buildvariants:
       build_tags: "ssl"
     tasks: *atlas_live_tasks
 
+  - name: rhel9-arm64-ssl
+    display_name: RHEL 9 ARM SSL
+    run_on:
+      - rhel90-arm64-small
+    stepback: false
+    batchtime: 10080 # weekly
+    expansions:
+      build_tags: "ssl"
+    tasks: *atlas_live_tasks
+
   #######################################
   #        Power Buildvariants          #
   #######################################
