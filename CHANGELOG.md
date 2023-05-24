@@ -1,5 +1,48 @@
 # Database Tools Changelog
 
+## 100.7.1
+
+_Released 2023-05-24_
+
+We are pleased to announce version 100.7.1 of the MongoDB Database Tools.
+
+This release adds several new builds and fixes a few bugs.
+Downloads were compiled with Go 1.19.9.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2598'>TOOLS-2598</a>] -         Tools improperly parse multi-certs inside client certificate file
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3203'>TOOLS-3203</a>] -         mongodump fails because it can’t query system.sharding_ddl_coordinators collection
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3273'>TOOLS-3273</a>] -         Validation added in 100.7.0 prevents Atlas proxy from running &quot;mongodump&quot;
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3279'>TOOLS-3279</a>] -         Test suite segfaults in some failure cases
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2722'>TOOLS-2722</a>] -         Add MacOS 11.0 ARM to Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3052'>TOOLS-3052</a>] -         Add Amazon Linux 2023 ARM to Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3054'>TOOLS-3054</a>] -         Add RHEL9 ARM to Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3062'>TOOLS-3062</a>] -         Add Amazon Linux 2023 to Tools
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3276'>TOOLS-3276</a>] -         Skip columnstore indexes tests in mongodump and mongorestore if error is NotImplemented
+</li>
+</ul>
+
 ## 100.7.0
 
 _Released 2023-03-01_
