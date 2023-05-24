@@ -6,7 +6,10 @@ _Released 2023-05-24_
 
 We are pleased to announce version 100.7.1 of the MongoDB Database Tools.
 
-This release adds several new builds and fixes a few bugs.
+This release fixes a few bugs and adds downloads for macOS 11 on ARM
+as well as RedHat Enterprise Linux 9 (x86 and ARM) and Amazon Linux
+2023 (x86 and ARM).
+
 Downloads were compiled with Go 1.19.9.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
