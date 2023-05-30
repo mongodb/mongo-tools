@@ -36,8 +36,9 @@ type Arch string
 
 const (
 	ArchArm64 Arch = "arm64"
-	// While arm64 and aarch64 are the same architecture, some Linux distros
-	// use arm64 (Debian and RHEL) and others use aarch64 (Amazon 2).
+	// While arm64 and aarch64 are the same architecture, some Linux distros use arm64 and others use aarch64:
+	// - aarch64: RHEL/Amazon/SUSE
+	// - arm64: Debian/Ubuntu
 	ArchAarch64 Arch = "aarch64"
 	ArchS390x   Arch = "s390x"
 	ArchPpc64le Arch = "ppc64le"
@@ -477,7 +478,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel82",
-		Arch:      ArchArm64,
+		Arch:      ArchAarch64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoEnterprise, RepoOrg},
@@ -493,7 +494,7 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "rhel90",
-		Arch:      ArchArm64,
+		Arch:      ArchAarch64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoOrg, RepoEnterprise},
