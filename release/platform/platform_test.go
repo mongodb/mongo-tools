@@ -116,3 +116,18 @@ func TestPlatformsHaveNoDuplicates(t *testing.T) {
 		assert.Equal(t, 1, dupes, "platform %v only occurs once in platforms list", p1)
 	}
 }
+
+func TestPlatformCorrectArch(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	for _, p := range platforms {
+		name := p.Name
+		if p.Arch == ArchArm64 || p.Arch == ArchAarch64 {
+			if strings.Contains(name, "rhel") || strings.Contains(name, "amazon") || strings.Contains(name, "suse") {
+				assert.Equal(t, ArchAarch64, p.Arch, "platform %v need arch %s", p, ArchAarch64)
+			} else if strings.Contains(name, "debian") || strings.Contains(name, "ubuntu") {
+				assert.Equal(t, ArchArm64, p.Arch, "platform %v need arch %s", p, ArchArm64)
+			}
+		}
+	}
+}
