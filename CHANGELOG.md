@@ -1,5 +1,26 @@
 # Database Tools Changelog
 
+## 100.7.2
+
+_Released 2023-05-30_
+
+We are pleased to announce version 100.7.2 of the MongoDB Database Tools.
+
+This release fixes an issue with installing Database Tools on RHEL aarch64 architecture. 
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3309'>TOOLS-3309</a>] -         Fix release issue on RHEL ARM architecture
+</li>
+</ul>
+
 ## 100.7.1
 
 _Released 2023-05-24_
