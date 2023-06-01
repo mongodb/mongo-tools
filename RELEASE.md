@@ -88,7 +88,7 @@ Go to the [Download Center](https://www.mongodb.com/try/download/database-tools)
 Download the package for your OS and confirm that `mongodump --version` prints the correct version.
 
 #### Update Homebrew Tap
-In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew), updating the [download link and sha256 sum](https://github.com/mongodb/homebrew-brew/blob/4ae91b18eebd313960de85c28d5592a3fa32110a/Formula/mongodb-database-tools.rb#L7-L8).
+In order to make the latest release available via our Homebrew tap, submit a pull request to [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew/blob/bb5b57095a892daeb2700f1a9440550f8e87505b/Formula/mongodb-database-tools.rb#L7-L13) for both `x86` and `arm64`.
 You can get the sha256 sum locally using `shasum -a 256 <tools zip file>`.
 
 #### Update the changelog
