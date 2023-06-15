@@ -338,8 +338,10 @@ func (restore *MongoRestore) Restore() Result {
 				return Result{Err: err}
 			}
 			restore.archive = &archive.Reader{
-				In:      archiveReader,
-				Prelude: &archive.Prelude{},
+				In: archiveReader,
+				Prelude: &archive.Prelude{
+					IsAtlasProxy: restore.isAtlasProxy,
+				},
 			}
 			defer restore.archive.In.Close()
 		}
