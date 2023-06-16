@@ -1056,7 +1056,7 @@ func uploadRelease(v version.Version) {
 
 	signTasks := []evergreen.Task{}
 	for _, task := range tasks {
-		if task.IsPatch() || task.DisplayName != "sign" {
+		if task.DisplayName != "sign" {
 			continue
 		}
 
