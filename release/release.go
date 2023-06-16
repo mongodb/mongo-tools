@@ -1041,10 +1041,10 @@ func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS
 }
 
 func uploadRelease(v version.Version) {
-	if env.EvgIsPatch() {
-		log.Println("current build is a patch; not uploading a release")
-		return
-	}
+	//if env.EvgIsPatch() {
+	//	log.Println("current build is a patch; not uploading a release")
+	//	return
+	//}
 
 	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
@@ -1294,5 +1294,5 @@ func linuxRelease(v version.Version) {
 // version is a stable version and the current evg task was triggered
 // by a git tag.
 func canPerformStableRelease(v version.Version) bool {
-	return v.IsStable() && env.EvgIsTagTriggered()
+	return v.IsStable() && env.EvgIsTagTriggered() && !env.EvgIsPatch()
 }
