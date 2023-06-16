@@ -128,13 +128,13 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 	if colHeader.Collection == "" {
 		return newError("collection header is missing a Collection")
 	}
-	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 
 	if demux.IsAtlasProxy && colHeader.Database == "admin" {
 		log.Logvf(log.Info, "skipping consuming archive entry for %v", demux.currentNamespace)
 		return nil
 	}
 
+	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 	if _, ok := demux.outs[demux.currentNamespace]; !ok {
 		if demux.NamespaceStatus[demux.currentNamespace] != NamespaceUnopened {
 			return newError("namespace header for already opened namespace")
