@@ -402,10 +402,14 @@ func (restore *MongoRestore) Restore() Result {
 		}
 	}
 
+	log.Logv(log.Always, "ROHAN 1")
 	// Create the demux before intent creation, because muted archive intents need
 	// to register themselves with the demux directly
 	if restore.InputOptions.Archive != "" {
-		restore.archive.Demux = archive.CreateDemux(restore.archive.Prelude.NamespaceMetadatas, restore.archive.In)
+		log.Logvf(log.DebugHigh,
+			"Creating demux for non-empty archive %v", restore.InputOptions.Archive,
+		)
+		restore.archive.Demux = archive.CreateDemux(restore.archive.Prelude.NamespaceMetadatas, restore.archive.In, restore.isAtlasProxy)
 	}
 
 	switch {

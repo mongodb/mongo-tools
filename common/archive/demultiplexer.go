@@ -54,12 +54,14 @@ type Demultiplexer struct {
 	NamespaceErrorChan chan error
 
 	NamespaceStatus map[string]int
+	IsAtlasProxy    bool
 }
 
-func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader) *Demultiplexer {
+func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader, isAtlasProxy bool) *Demultiplexer {
 	demux := &Demultiplexer{
 		NamespaceStatus: make(map[string]int),
 		In:              in,
+		IsAtlasProxy:    isAtlasProxy,
 	}
 	for _, cm := range namespaceMetadatas {
 		var ns string
@@ -127,6 +129,12 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		return newError("collection header is missing a Collection")
 	}
 	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
+
+	if demux.IsAtlasProxy && colHeader.Database == "admin" {
+		log.Logvf(log.Info, "skipping consuming archive entry for %v", demux.currentNamespace)
+		return nil
+	}
+
 	if _, ok := demux.outs[demux.currentNamespace]; !ok {
 		if demux.NamespaceStatus[demux.currentNamespace] != NamespaceUnopened {
 			return newError("namespace header for already opened namespace")
