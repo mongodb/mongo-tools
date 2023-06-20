@@ -166,8 +166,6 @@ func (dump *MongoDump) Init() error {
 	}
 	if dump.isAtlasProxy {
 		log.Logv(log.DebugLow, "dumping from a MongoDB Atlas free or shared cluster")
-	} else {
-		log.Logv(log.DebugLow, "dumping from a non atlas proxy")
 	}
 
 	err = dump.ValidateOptions()
@@ -366,7 +364,7 @@ func (dump *MongoDump) Dump() (err error) {
 			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
 			serverVersion = "unknown"
 		}
-		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.OutputOptions.NumParallelCollections, serverVersion, dump.ToolOptions.VersionStr, dump.isAtlasProxy)
+		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.OutputOptions.NumParallelCollections, serverVersion, dump.ToolOptions.VersionStr)
 		if err != nil {
 			return fmt.Errorf("creating archive prelude: %v", err)
 		}

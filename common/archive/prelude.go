@@ -61,7 +61,6 @@ type Prelude struct {
 	DBS                    []string
 	NamespaceMetadatas     []*CollectionMetadata
 	NamespaceMetadatasByDB map[string][]*CollectionMetadata
-	IsAtlasProxy           bool
 }
 
 // Read consumes and checks the magic number at the beginning of the archive,
@@ -93,7 +92,7 @@ func (prelude *Prelude) Read(in io.Reader) error {
 }
 
 // NewPrelude generates a Prelude using the contents of an intent.Manager.
-func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, toolVersion string, isAtlasProxy bool) (*Prelude, error) {
+func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, toolVersion string) (*Prelude, error) {
 	prelude := Prelude{
 		Header: &Header{
 			FormatVersion:         archiveFormatVersion,
@@ -102,17 +101,9 @@ func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, to
 			ConcurrentCollections: int32(concurrentColls),
 		},
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),
-		IsAtlasProxy:           isAtlasProxy,
 	}
-	log.Logv(log.Info, "creating new prelude")
-
 	allIntents := manager.Intents()
 	for _, intent := range allIntents {
-		if isAtlasProxy && intent.DB == "admin" {
-			log.Logvf(log.Info, "skipping creating prelude for %s", intent.DataNamespace())
-			continue
-		}
-
 		if intent.MetadataFile != nil {
 			archiveMetadata, ok := intent.MetadataFile.(*MetadataFile)
 			if !ok {
@@ -144,11 +135,6 @@ func (prelude *Prelude) AddMetadata(cm *CollectionMetadata) {
 	_, ok := prelude.NamespaceMetadatasByDB[cm.Database]
 	if !ok {
 		prelude.DBS = append(prelude.DBS, cm.Database)
-	}
-
-	if prelude.IsAtlasProxy && cm.Database == "admin" {
-		log.Logvf(log.Info, "skipping archive prelude %v.%v", cm.Database, cm.Collection)
-		return
 	}
 	prelude.NamespaceMetadatasByDB[cm.Database] = append(prelude.NamespaceMetadatasByDB[cm.Database], cm)
 	log.Logvf(log.Info, "archive prelude %v.%v", cm.Database, cm.Collection)
