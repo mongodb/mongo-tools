@@ -106,6 +106,11 @@ func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, to
 	}
 	allIntents := manager.Intents()
 	for _, intent := range allIntents {
+		if isAtlasProxy && intent.DB == "admin" {
+			log.Logvf(log.Info, "skipping header processing for %v", intent)
+			continue
+		}
+
 		if intent.MetadataFile != nil {
 			archiveMetadata, ok := intent.MetadataFile.(*MetadataFile)
 			if !ok {
