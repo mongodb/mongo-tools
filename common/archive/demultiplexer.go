@@ -128,13 +128,13 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 	if colHeader.Collection == "" {
 		return newError("collection header is missing a Collection")
 	}
+	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 
 	if demux.IsAtlasProxy && colHeader.Database == "admin" {
-		log.Logvf(log.Info, "skipping consuming archive entry for %v", demux.currentNamespace)
+		log.Logvf(log.Info, "skipping header processing for %v", demux.currentNamespace)
 		return nil
 	}
 
-	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 	if _, ok := demux.outs[demux.currentNamespace]; !ok {
 		if demux.NamespaceStatus[demux.currentNamespace] != NamespaceUnopened {
 			return newError("namespace header for already opened namespace")
@@ -223,6 +223,11 @@ func (demux *Demultiplexer) End() error {
 func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 	if demux.currentNamespace == "" {
 		return newError("collection data without a collection header")
+	}
+
+	if strings.Contains(demux.currentNamespace, "admin") {
+		log.Logvf(log.Info, "skipping body processing for %v", demux.currentNamespace)
+		return nil
 	}
 
 	demux.lengths[demux.currentNamespace] += int64(len(buf))
