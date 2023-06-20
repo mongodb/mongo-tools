@@ -107,7 +107,7 @@ func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, to
 	allIntents := manager.Intents()
 	for _, intent := range allIntents {
 		if isAtlasProxy && intent.DB == "admin" {
-			log.Logvf(log.Info, "skipping header processing for %v", intent)
+			log.Logvf(log.Info, "skipping creating prelude for %s", intent.DataNamespace())
 			continue
 		}
 
