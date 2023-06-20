@@ -104,6 +104,8 @@ func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, to
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),
 		IsAtlasProxy:           isAtlasProxy,
 	}
+	log.Logv(log.Info, "creating new prelude")
+
 	allIntents := manager.Intents()
 	for _, intent := range allIntents {
 		if isAtlasProxy && intent.DB == "admin" {

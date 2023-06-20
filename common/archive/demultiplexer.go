@@ -64,6 +64,11 @@ func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader, isAtlas
 		IsAtlasProxy:    isAtlasProxy,
 	}
 	for _, cm := range namespaceMetadatas {
+		if isAtlasProxy && cm.Database == "admin" {
+			log.Logvf(log.Info, "skipping creating namespace status for %s.%s", cm.Database, cm.Collection)
+			continue
+		}
+
 		var ns string
 		if cm.Type == "timeseries" {
 			ns = cm.Database + ".system.buckets." + cm.Collection

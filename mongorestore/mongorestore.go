@@ -138,6 +138,8 @@ func New(opts Options) (*MongoRestore, error) {
 	}
 	if restore.isAtlasProxy {
 		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
+	} else {
+		log.Logv(log.DebugLow, "restoring to a non atlas proxy")
 	}
 
 	return restore, nil

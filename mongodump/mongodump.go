@@ -166,6 +166,8 @@ func (dump *MongoDump) Init() error {
 	}
 	if dump.isAtlasProxy {
 		log.Logv(log.DebugLow, "dumping from a MongoDB Atlas free or shared cluster")
+	} else {
+		log.Logv(log.DebugLow, "dumping from a non atlas proxy")
 	}
 
 	err = dump.ValidateOptions()
