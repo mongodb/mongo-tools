@@ -64,8 +64,8 @@ func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader, isAtlas
 		IsAtlasProxy:    isAtlasProxy,
 	}
 	for _, cm := range namespaceMetadatas {
+		// For atlas proxy archive restores, ignore collections from the admin DB.
 		if isAtlasProxy && cm.Database == "admin" {
-			log.Logvf(log.Info, "skipping creating namespace status for %s.%s", cm.Database, cm.Collection)
 			continue
 		}
 
@@ -135,9 +135,8 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 	}
 	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 
-	log.Logvf(log.Always, "isAtlasProxy inner %t", demux.IsAtlasProxy)
+	// For atlas proxy archive restores, ignore collections from the admin DB.
 	if demux.IsAtlasProxy && colHeader.Database == "admin" {
-		log.Logvf(log.Info, "skipping header processing for %v", demux.currentNamespace)
 		return nil
 	}
 
@@ -231,8 +230,8 @@ func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 		return newError("collection data without a collection header")
 	}
 
+	// For atlas proxy archive restores, ignore collections from the admin DB.
 	if demux.IsAtlasProxy && strings.Contains(demux.currentNamespace, "admin") {
-		log.Logvf(log.Info, "skipping body processing for %v", demux.currentNamespace)
 		return nil
 	}
 
