@@ -75,6 +75,8 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			}
 
 			result := restore.Restore()
+			log.Logvf(log.Always, "isAtlasProxy %t", restore.isAtlasProxy)
+
 			if i == fileSize {
 				So(result.Err, ShouldBeNil)
 			} else {

@@ -135,6 +135,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 	}
 	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
 
+	log.Logvf(log.Always, "isAtlasProxy inner %t", demux.IsAtlasProxy)
 	if demux.IsAtlasProxy && colHeader.Database == "admin" {
 		log.Logvf(log.Info, "skipping header processing for %v", demux.currentNamespace)
 		return nil
@@ -230,7 +231,7 @@ func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 		return newError("collection data without a collection header")
 	}
 
-	if strings.Contains(demux.currentNamespace, "admin") {
+	if demux.IsAtlasProxy && strings.Contains(demux.currentNamespace, "admin") {
 		log.Logvf(log.Info, "skipping body processing for %v", demux.currentNamespace)
 		return nil
 	}
