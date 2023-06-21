@@ -751,7 +751,7 @@ tasks:
       - func: "fetch source"
       - command: expansions.update
       - func: "upload release packages to s3"
-      #- func: "upload release packages to linux repos"
+      - func: "upload release packages to linux repos"
 
   - name: release-json
     tags: ["git_tag"]
@@ -2249,7 +2249,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   - name: amazon2
     display_name: Amazon Linux 64 v2
@@ -2289,7 +2289,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   #######################################
   #     Debian x86_64 Buildvariants     #
@@ -2606,7 +2606,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   - name: rhel80
     display_name: RHEL 8.0
@@ -2713,7 +2713,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   #######################################
   #     SUSE x86_64 Buildvariants       #
@@ -3200,7 +3200,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   - name: amazon2023-aarch64
     display_name: Amazon Linux 2023 ARM
@@ -3234,7 +3234,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   - name: rhel82-aarch64
     display_name: RHEL 8.2 ARM
@@ -3351,7 +3351,7 @@ buildvariants:
         run_on: rhel80-small
       - name: "push"
         run_on: rhel80-small
-        git_tag_only: false
+        git_tag_only: true
 
   - name: rhel81-ppc64le
     display_name: ZAP PPC64LE RHEL 8.1
