@@ -54,14 +54,21 @@ type Demultiplexer struct {
 	NamespaceErrorChan chan error
 
 	NamespaceStatus map[string]int
+	IsAtlasProxy    bool
 }
 
-func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader) *Demultiplexer {
+func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader, isAtlasProxy bool) *Demultiplexer {
 	demux := &Demultiplexer{
 		NamespaceStatus: make(map[string]int),
 		In:              in,
+		IsAtlasProxy:    isAtlasProxy,
 	}
 	for _, cm := range namespaceMetadatas {
+		// For atlas proxy archive restores, ignore collections from the admin DB.
+		if isAtlasProxy && cm.Database == "admin" {
+			continue
+		}
+
 		var ns string
 		if cm.Type == "timeseries" {
 			ns = cm.Database + ".system.buckets." + cm.Collection
@@ -127,6 +134,12 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		return newError("collection header is missing a Collection")
 	}
 	demux.currentNamespace = colHeader.Database + "." + colHeader.Collection
+
+	// For atlas proxy archive restores, ignore collections from the admin DB.
+	if demux.IsAtlasProxy && colHeader.Database == "admin" {
+		return nil
+	}
+
 	if _, ok := demux.outs[demux.currentNamespace]; !ok {
 		if demux.NamespaceStatus[demux.currentNamespace] != NamespaceUnopened {
 			return newError("namespace header for already opened namespace")
@@ -215,6 +228,11 @@ func (demux *Demultiplexer) End() error {
 func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 	if demux.currentNamespace == "" {
 		return newError("collection data without a collection header")
+	}
+
+	// For atlas proxy archive restores, ignore collections from the admin DB.
+	if demux.IsAtlasProxy && strings.Contains(demux.currentNamespace, "admin") {
+		return nil
 	}
 
 	demux.lengths[demux.currentNamespace] += int64(len(buf))
