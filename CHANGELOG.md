@@ -1,5 +1,33 @@
 # Database Tools Changelog
 
+## 100.7.3
+
+_Released 2023-06-26_
+
+We are pleased to announce version 100.7.3 of the MongoDB Database Tools.
+
+This release fixes an issue where specifying `mongodump --db=confg` will not dump the entire config collection.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3324'>TOOLS-3324</a>] -         Fix failure to dump needed sharded collections from config database
+</li>
+</ul>
+                
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3319'>TOOLS-3319</a>] -         Change mongorestore so that it works with atlas proxy backup tests 
+</li>
+</ul>
+
 ## 100.7.2
 
 _Released 2023-05-30_
