@@ -6,7 +6,7 @@ _Released 2023-06-26_
 
 We are pleased to announce version 100.7.3 of the MongoDB Database Tools.
 
-This release fixes an issue where specifying `mongodump --db=confg` will not dump the entire config collection.
+This release fixes an issue introduced in 100.7.1 where specifying `mongodump --db=confg` will not dump the entire config collection.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
