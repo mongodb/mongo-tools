@@ -145,7 +145,13 @@ func (f *stdoutFile) Close() error {
 // shouldSkipSystemNamespace returns true when a namespace (database +
 // collection name) match certain reserved system namespaces that must
 // not be dumped.
-func shouldSkipSystemNamespace(dbName, collName string) bool {
+// By default dumping the entire cluster will only dump config collections
+// in dumprestore.ConfigCollectionsToKeep. Every other config collection is ignoered.
+// If you set --db=config then everything is included.
+// If you set --db=config --collection=foo, then shouldSkipSystemNamespace() is
+// never hit since CreateCollectionIntent() is run directly. In this case
+// config.foo will be the olny collection dumped.
+func (dump *MongoDump) shouldSkipSystemNamespace(dbName, collName string) bool {
 	// ignore <db>.system.* except for admin; ignore other specific
 	// collections in config and admin databases used for 3.6 features.
 	switch dbName {
@@ -154,6 +160,9 @@ func shouldSkipSystemNamespace(dbName, collName string) bool {
 			return true
 		}
 	case "config":
+		if dump.ToolOptions.DB == "config" {
+			return false
+		}
 		return !slices.Contains(dumprestore.ConfigCollectionsToKeep, collName)
 	default:
 		if collName == "system.js" {
@@ -410,7 +419,7 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 			return fmt.Errorf("detected resharding in progress. Cannot dump with --oplog while resharding")
 		}
 
-		if shouldSkipSystemNamespace(dbName, collInfo.Name) {
+		if dump.shouldSkipSystemNamespace(dbName, collInfo.Name) {
 			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
 			continue
 		}
