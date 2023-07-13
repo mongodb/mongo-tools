@@ -150,14 +150,8 @@ func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession()
 	require.NoError(err, "can connect to server")
-
-	// TODO (Johnny) what is the correct FCV to use?
-	fcv := testutil.GetFCV(session)
-	if cmp, err := testutil.CompareFCV(fcv, "4.0"); err != nil || cmp < 0 {
-		t.Skipf("Requires server with FCV 4.0 or later and we have %s", fcv)
-	}
 
 	t.Run("restore from archive", func(t *testing.T) {
 		testRestoreAdminNamespaces(t)
