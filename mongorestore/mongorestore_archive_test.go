@@ -266,7 +266,7 @@ func requireCollectionHasNumDocuments(t *testing.T, collection *mongo.Collection
 	require := require.New(t)
 	count, err := collection.CountDocuments(context.Background(), bson.M{})
 	require.NoError(err, "can count documents")
-	require.EqualValues(0, count, "found %d document(s)", numDocuments)
+	require.EqualValues(numDocuments, count, "found %d document(s)", count)
 }
 
 func createCollectionWithTestDocument(t *testing.T, db *mongo.Database, collectionName string) *mongo.Collection {
