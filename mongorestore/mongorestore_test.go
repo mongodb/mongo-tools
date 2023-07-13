@@ -2315,7 +2315,8 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 
 func runBSONMongodump(t *testing.T, dir, db, collection string, args ...string) string {
 	require := require.New(t)
-	runMongodumpWithArgs(t,
+	runMongodumpWithArgs(
+		t,
 		"--out", dir,
 		"--db", db,
 		"--collection", collection,
@@ -2332,10 +2333,7 @@ func runMongodumpWithArgs(t *testing.T, args ...string) {
 	require := require.New(t)
 	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
 	cmd = append(cmd, testutil.GetBareArgs()...)
-	cmd = append(
-		cmd,
-		args...,
-	)
+	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
 	require.NoError(err, "can execute command %s with output: %s", cmdStr, out)

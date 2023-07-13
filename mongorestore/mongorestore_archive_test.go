@@ -159,13 +159,14 @@ func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 		t.Skipf("Requires server with FCV 4.0 or later and we have %s", fcv)
 	}
 
+	t.Run("restore from archive", func(t *testing.T) {
+		testRestoreAdminNamespaces(t)
+	})
+
 	t.Run("restore from archive as atlas proxy", func(t *testing.T) {
 		testRestoreAdminNamespacesAsAtlasProxy(t)
 	})
 
-	t.Run("restore from archive as non atlas proxy", func(t *testing.T) {
-		testRestoreAdminNamespaces(t)
-	})
 }
 
 func testRestoreAdminNamespaces(t *testing.T) {
@@ -210,9 +211,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 		for _, collection := range collections {
-			count, err := collection.CountDocuments(context.Background(), bson.M{})
-			require.NoError(err, "can count documents")
-			require.EqualValues(1, count, "found x documents")
+			requireCollectionHasNumDocuments(t, collection, 1)
 		}
 
 	})
@@ -262,23 +261,18 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 		require.NoError(result.Err, "can run mongorestore")
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-		count, err := testDBAdminCollection.CountDocuments(context.Background(), bson.M{})
-		require.NoError(err, "can count documents")
-		require.EqualValues(1, count, "found x documents")
-
-		count, err = adminDBAdminCollection.CountDocuments(context.Background(), bson.M{})
-		require.NoError(err, "can count documents")
-		require.EqualValues(0, count, "found x documents")
-
-		count, err = testDBCollection.CountDocuments(context.Background(), bson.M{})
-		require.NoError(err, "can count documents")
-		require.EqualValues(1, count, "found x documents")
-
-		count, err = adminDBCollection.CountDocuments(context.Background(), bson.M{})
-		require.NoError(err, "can count documents")
-		require.EqualValues(0, count, "found x documents")
-
+		requireCollectionHasNumDocuments(t, testDBAdminCollection, 1)
+		requireCollectionHasNumDocuments(t, adminDBAdminCollection, 0)
+		requireCollectionHasNumDocuments(t, testDBCollection, 1)
+		requireCollectionHasNumDocuments(t, adminDBCollection, 0)
 	})
+}
+
+func requireCollectionHasNumDocuments(t *testing.T, collection *mongo.Collection, numDocuments int64) {
+	require := require.New(t)
+	count, err := collection.CountDocuments(context.Background(), bson.M{})
+	require.NoError(err, "can count documents")
+	require.EqualValues(0, count, "found %d document(s)", numDocuments)
 }
 
 func createCollectionWithTestDocument(t *testing.T, db *mongo.Database, collectionName string) *mongo.Collection {
