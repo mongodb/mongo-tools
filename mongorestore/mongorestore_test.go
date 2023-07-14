@@ -2315,11 +2315,14 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 
 func runBSONMongodump(t *testing.T, dir, db, collection string, args ...string) string {
 	require := require.New(t)
-	runMongodumpWithArgs(
-		t,
+	baseArgs := []string{
 		"--out", dir,
 		"--db", db,
 		"--collection", collection,
+	}
+	runMongodumpWithArgs(
+		t,
+		append(baseArgs, args...)...,
 	)
 	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
 	_, err := os.Stat(bsonFile)

@@ -35,9 +35,14 @@ func init() {
 }
 
 var (
-	testArchive          = "testdata/test.bar.archive"
-	testArchiveWithOplog = "testdata/dump-w-oplog.archive"
-	testBadFormatArchive = "testdata/bad-format.archive"
+	testArchive                          = "testdata/test.bar.archive"
+	testArchiveWithOplog                 = "testdata/dump-w-oplog.archive"
+	testBadFormatArchive                 = "testdata/bad-format.archive"
+	adminPrefixedCollectionName          = "admins"
+	nonAdminCollectionName               = "test"
+	adminAndPeriodPrefixedCollectionName = "admin.test"
+	adminDBName                          = "admin"
+	adminSuffixedDBName                  = "testadmin"
 )
 
 func TestMongorestoreShortArchive(t *testing.T) {
@@ -175,28 +180,37 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	require.NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
+
 	testDB := session.Database(dbName)
-	adminDB := session.Database("admin")
+	adminDB := session.Database(adminDBName)
+	adminSuffixedDB := session.Database(adminSuffixedDBName)
+
 	defer func() {
 		err = testDB.Drop(nil)
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
+		err = adminSuffixedDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop admin suffixed database: %v", err)
+		}
 	}()
 
-	collections := []*mongo.Collection{
-		createCollectionWithTestDocument(t, testDB, "admincollection"),
-		createCollectionWithTestDocument(t, adminDB, "admincollection"),
-		createCollectionWithTestDocument(t, testDB, "collection"),
-		createCollectionWithTestDocument(t, adminDB, "collection"),
+	testCases := restoreNamespaceTestCases{
+		newRestoreNamespaceTestCase(t, testDB, adminPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminDB, adminPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminSuffixedDB, adminPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, testDB, adminAndPeriodPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminDB, adminAndPeriodPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminSuffixedDB, adminAndPeriodPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, testDB, nonAdminCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminDB, nonAdminCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminSuffixedDB, nonAdminCollectionName, true),
 	}
 
 	withArchiveMongodump(t, func(file string) {
 
-		for _, collection := range collections {
-			err := collection.Drop(context.Background())
-			require.NoError(err, "can drop collection")
-		}
+		testCases.init()
 
 		restore, err := getRestoreWithArgs(
 			DropOption,
@@ -209,9 +223,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 		require.NoError(result.Err, "can run mongorestore")
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-		for _, collection := range collections {
-			requireCollectionHasNumDocuments(t, collection, 1)
-		}
+		testCases.run()
 
 	})
 }
@@ -224,30 +236,34 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
-	adminDB := session.Database("admin")
+	adminDB := session.Database(adminDBName)
+	adminSuffixedDB := session.Database(adminSuffixedDBName)
 	defer func() {
 		err = testDB.Drop(nil)
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
+		err = adminSuffixedDB.Drop(nil)
+		if err != nil {
+			t.Fatalf("Failed to drop admin suffixed database: %v", err)
+		}
 	}()
 
-	testDBAdminCollection := createCollectionWithTestDocument(t, testDB, "admincollection")
-	adminDBAdminCollection := createCollectionWithTestDocument(t, adminDB, "admincollection")
-	testDBCollection := createCollectionWithTestDocument(t, testDB, "collection")
-	adminDBCollection := createCollectionWithTestDocument(t, adminDB, "collection")
+	testCases := restoreNamespaceTestCases{
+		newRestoreNamespaceTestCase(t, testDB, adminPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminDB, adminPrefixedCollectionName, false),
+		newRestoreNamespaceTestCase(t, adminSuffixedDB, adminPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, testDB, adminAndPeriodPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminDB, adminAndPeriodPrefixedCollectionName, false),
+		newRestoreNamespaceTestCase(t, adminSuffixedDB, adminAndPeriodPrefixedCollectionName, true),
+		newRestoreNamespaceTestCase(t, testDB, nonAdminCollectionName, true),
+		newRestoreNamespaceTestCase(t, adminDB, nonAdminCollectionName, false),
+		newRestoreNamespaceTestCase(t, adminSuffixedDB, nonAdminCollectionName, true),
+	}
 
 	withArchiveMongodump(t, func(file string) {
 
-		for _, collection := range []*mongo.Collection{
-			testDBAdminCollection,
-			adminDBAdminCollection,
-			testDBCollection,
-			adminDBCollection,
-		} {
-			err := collection.Drop(context.Background())
-			require.NoError(err, "can drop collection")
-		}
+		testCases.init()
 
 		restore, err := getAtlasProxyRestoreWithArgs(
 			DropOption,
@@ -260,11 +276,51 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 		require.NoError(result.Err, "can run mongorestore")
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-		requireCollectionHasNumDocuments(t, testDBAdminCollection, 1)
-		requireCollectionHasNumDocuments(t, adminDBAdminCollection, 0)
-		requireCollectionHasNumDocuments(t, testDBCollection, 1)
-		requireCollectionHasNumDocuments(t, adminDBCollection, 0)
+		testCases.run()
 	})
+}
+
+type restoreNamespaceTestCase struct {
+	t                *testing.T
+	db               *mongo.Database
+	collection       *mongo.Collection
+	shouldBeRestored bool
+}
+
+type restoreNamespaceTestCases []*restoreNamespaceTestCase
+
+func (testCases restoreNamespaceTestCases) init() {
+	for _, testCase := range testCases {
+		require := require.New(testCase.t)
+		err := testCase.collection.Drop(context.Background())
+		require.NoError(err, "can drop collection")
+	}
+}
+
+func (testCases restoreNamespaceTestCases) run() {
+	for _, testCase := range testCases {
+		t := testCase.t
+		collection := testCase.collection
+		if testCase.shouldBeRestored {
+			requireCollectionHasNumDocuments(t, collection, 1)
+		} else {
+			requireCollectionHasNumDocuments(t, collection, 0)
+		}
+	}
+}
+
+func newRestoreNamespaceTestCase(
+	t *testing.T,
+	db *mongo.Database,
+	collectionName string,
+	shouldBeRestored bool,
+) *restoreNamespaceTestCase {
+	return &restoreNamespaceTestCase{
+		t:                t,
+		db:               db,
+		collection:       createCollectionWithTestDocument(t, db, collectionName),
+		shouldBeRestored: shouldBeRestored,
+	}
 }
 
 func requireCollectionHasNumDocuments(t *testing.T, collection *mongo.Collection, numDocuments int64) {
