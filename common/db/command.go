@@ -140,18 +140,34 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 		context.Background(),
 		&bson.M{"atlasVersion": 1},
 	)
-	if result.Err() != nil {
-		if strings.Contains(result.Err().Error(), "CommandNotFound") {
+	err = result.Err()
+	if err != nil {
+		if isUnsupportedCommandError(err) {
 			return false, nil
 		}
-		// For server 3.4 and below.
-		if strings.Contains(result.Err().Error(), "no such cmd") || strings.Contains(result.Err().Error(), "no such command") {
-			return false, nil
-		}
-		return false, result.Err()
+		return false, err
 	}
-
 	return true, nil
+}
+
+// isUnsupportedCommandError determines if the given error indicates that the server does not support a command
+func isUnsupportedCommandError(err error) bool {
+	unsupportedCommandErrors := []string{
+		// Server > 3.4
+		"CommandNotFound",
+		"CommandNotSupported",
+		// Server <= 3.4
+		"no such cmd",
+		"no such command",
+		// AWS Document DB
+		"Unknown admin command",
+	}
+	for _, unsupportedCommandError := range unsupportedCommandErrors {
+		if strings.Contains(err.Error(), unsupportedCommandError) {
+			return true
+		}
+	}
+	return false
 }
 
 // GetNodeType checks if the connected SessionProvider is a mongos, standalone, or replset,
