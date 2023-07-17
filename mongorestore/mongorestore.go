@@ -132,10 +132,7 @@ func New(opts Options) (*MongoRestore, error) {
 	if restore.isMongos {
 		log.Logv(log.DebugLow, "restoring to a sharded system")
 	}
-	restore.isAtlasProxy, err = restore.SessionProvider.IsAtlasProxy()
-	if err != nil {
-		return nil, err
-	}
+	restore.isAtlasProxy = restore.SessionProvider.IsAtlasProxy()
 	if restore.isAtlasProxy {
 		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
 	}

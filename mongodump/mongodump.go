@@ -160,10 +160,7 @@ func (dump *MongoDump) Init() error {
 		return fmt.Errorf("error checking for Mongos: %v", err)
 	}
 
-	dump.isAtlasProxy, err = dump.SessionProvider.IsAtlasProxy()
-	if err != nil {
-		return fmt.Errorf("error checking for AtlasProxy: %v", err)
-	}
+	dump.isAtlasProxy = dump.SessionProvider.IsAtlasProxy()
 	if dump.isAtlasProxy {
 		log.Logv(log.DebugLow, "dumping from a MongoDB Atlas free or shared cluster")
 	}

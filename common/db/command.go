@@ -9,7 +9,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"go.mongodb.org/mongo-driver/bson"
@@ -129,10 +128,10 @@ func (sp *SessionProvider) DatabaseNames() ([]string, error) {
 // }
 
 // IsAtlasProxy checks if the connected SessionProvider is an atlas proxy.
-func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
+func (sp *SessionProvider) IsAtlasProxy() bool {
 	session, err := sp.GetSession()
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	// Only the atlas proxy will respond to this command without an error.
@@ -142,32 +141,9 @@ func (sp *SessionProvider) IsAtlasProxy() (bool, error) {
 	)
 	err = result.Err()
 	if err != nil {
-		if isUnsupportedCommandError(err) {
-			return false, nil
-		}
-		return false, err
+		fmt.Println("err is not nil", err.Error())
 	}
-	return true, nil
-}
-
-// isUnsupportedCommandError determines if the given error indicates that the server does not support a command
-func isUnsupportedCommandError(err error) bool {
-	unsupportedCommandErrors := []string{
-		// Server > 3.4
-		"CommandNotFound",
-		"CommandNotSupported",
-		// Server <= 3.4
-		"no such cmd",
-		"no such command",
-		// AWS Document DB
-		"Unknown admin command",
-	}
-	for _, unsupportedCommandError := range unsupportedCommandErrors {
-		if strings.Contains(err.Error(), unsupportedCommandError) {
-			return true
-		}
-	}
-	return false
+	return result.Err() == nil
 }
 
 // GetNodeType checks if the connected SessionProvider is a mongos, standalone, or replset,
