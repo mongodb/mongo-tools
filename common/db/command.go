@@ -139,10 +139,6 @@ func (sp *SessionProvider) IsAtlasProxy() bool {
 		context.Background(),
 		&bson.M{"atlasVersion": 1},
 	)
-	err = result.Err()
-	if err != nil {
-		fmt.Println("err is not nil", err.Error())
-	}
 	return result.Err() == nil
 }
 
