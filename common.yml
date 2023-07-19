@@ -2159,6 +2159,17 @@ tasks:
         vars:
           target: test:unit
 
+  - name: srv
+    commands:
+      - command: expansions.update
+      - func: "fetch source"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:srv
+
   - name: vet
     commands:
       - func: "fetch source"
@@ -2631,6 +2642,7 @@ buildvariants:
       resmoke_args: --jobs 4
     tasks:
       - name: "unit"
+      - name: "srv"
       - name: ".3.6"
       - name: ".4.0"
       - name: ".4.2"
