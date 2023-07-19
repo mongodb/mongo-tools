@@ -122,6 +122,13 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 			tasks:   `^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-.*`,
 		},
 		{
+			comment: "Run srv tests on one variant. We pick RHEL 8.0 because" +
+				" it's a relatively recent platform that supports a wide range of" +
+				" servers.",
+			variant: `rhel80`,
+			tasks:   `^srv*`,
+		},
+		{
 			comment: "RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.",
 			variant: `rhel70`,
 			tasks:   `^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$`,
