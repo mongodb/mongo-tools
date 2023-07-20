@@ -2116,7 +2116,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 
 	dataLen := createClusteredIndex(t, testDB, indexName)
 
-	withMongodump(t, testDB.Name(), "stocks", func(dir string) {
+	withBSONMongodump(t, testDB.Name(), "stocks", func(dir string) {
 		restore, err := getRestoreWithArgs(
 			DropOption,
 			dir,
@@ -2262,10 +2262,10 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	}
 }
 
-func withMongodump(t *testing.T, db string, collection string, testCase func(string)) {
+func withBSONMongodump(t *testing.T, db string, collection string, testCase func(string)) {
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
-	runMongodump(t, dir, db, collection)
+	runBSONMongodump(t, dir, db, collection)
 	testCase(dir)
 }
 
@@ -2288,7 +2288,7 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	require.NoError(err, "can marshal query to JSON")
 
 	// We dump just the documents matching the query using mongodump "normally".
-	bsonFile := runMongodump(t, dir, "local", "oplog.rs", "--query", string(q))
+	bsonFile := runBSONMongodump(t, dir, "local", "oplog.rs", "--query", string(q))
 
 	// Then we take the BSON dump file and rename it to "oplog.bson" and put
 	// it in the root of the dump directory.
@@ -2313,17 +2313,29 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	testCase(dir)
 }
 
-func runMongodump(t *testing.T, dir, db, collection string, args ...string) string {
+func runBSONMongodump(t *testing.T, dir, db, collection string, args ...string) string {
 	require := require.New(t)
-
-	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
-	cmd = append(cmd, testutil.GetBareArgs()...)
-	cmd = append(
-		cmd,
+	baseArgs := []string{
 		"--out", dir,
 		"--db", db,
 		"--collection", collection,
+	}
+	runMongodumpWithArgs(
+		t,
+		append(baseArgs, args...)...,
 	)
+	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
+	_, err := os.Stat(bsonFile)
+	require.NoError(err, "dump created BSON data file")
+	_, err = os.Stat(filepath.Join(dir, db, fmt.Sprintf("%s.metadata.json", collection)))
+	require.NoError(err, "dump created JSON metadata file")
+	return bsonFile
+}
+
+func runMongodumpWithArgs(t *testing.T, args ...string) {
+	require := require.New(t)
+	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
+	cmd = append(cmd, testutil.GetBareArgs()...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
@@ -2334,14 +2346,6 @@ func runMongodump(t *testing.T, dir, db, collection string, args ...string) stri
 		"running [%s] does not tell us the the namespace does not exist",
 		cmdStr,
 	)
-
-	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
-	_, err = os.Stat(bsonFile)
-	require.NoError(err, "dump created BSON data file")
-	_, err = os.Stat(filepath.Join(dir, db, fmt.Sprintf("%s.metadata.json", collection)))
-	require.NoError(err, "dump created JSON metadata file")
-
-	return bsonFile
 }
 
 func uniqueDBName() string {
@@ -2395,7 +2399,7 @@ func testRestoreColumnstoreIndexFromDump(t *testing.T) {
 	columnstoreProjection := map[string]int32{"price": 1}
 	dataLen := createColumnstoreIndex(t, testDB, key, columnstoreProjection)
 
-	withMongodump(t, testDB.Name(), "stocks", func(dir string) {
+	withBSONMongodump(t, testDB.Name(), "stocks", func(dir string) {
 		restore, err := getRestoreWithArgs(
 			DropOption,
 			dir,

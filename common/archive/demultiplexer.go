@@ -231,7 +231,7 @@ func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 	}
 
 	// For atlas proxy archive restores, ignore collections from the admin DB.
-	if demux.IsAtlasProxy && strings.Contains(demux.currentNamespace, "admin") {
+	if demux.IsAtlasProxy && strings.HasPrefix(demux.currentNamespace, "admin.") {
 		return nil
 	}
 
