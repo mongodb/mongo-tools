@@ -45,8 +45,6 @@ If you are releasing a patch or minor version but a ticket needs a major bump, s
 The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
 
-Close the release on JIRA, adding the current date (you may need to ask the TOOLS project manager to do this).
-
 #### Update the release ticket
 Mark the release ticket as "Docs Changes Needed".
 In "Docs Changes Summary", indicate that the release notes will be found in CHANGELOG.md after the release ticket is closed.
@@ -142,7 +140,8 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - Submit a PR with your changes under the release ticket number, and merge once approved.
 
 #### Close Release Ticket
-Move the JIRA ticket tracking this release to the "Closed" state.
+Close the [release on JIRA](https://jira.mongodb.org/projects/TOOLS/versions), adding the current date (you may need to ask the TOOLS project manager to do this).
+Once this is done, move the JIRA ticket tracking this release to the "Closed" state.
 
 #### Ensure Downstream Tickets Created
 Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects and linked to the release ticket.
