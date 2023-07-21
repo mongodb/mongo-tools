@@ -1,5 +1,36 @@
 # Database Tools Changelog
 
+## 100.7.4
+
+_Released 2023-07-21_
+
+We are pleased to announce version 100.7.4 of the MongoDB Database Tools.
+
+This release fixes issues with mongorestore that ommitted all namespaces containing "admin" when
+restoring to an Atlas Proxy Cluster. This release also fixes an issue with mongodump where the
+process failed against clusters using Atlas Online Archive.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3338'>TOOLS-3338</a>] -         Mongorestore to Atlas Proxy fails for any collection containing &quot;admin&quot;
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3343'>TOOLS-3343</a>] -         Mongodump does not work with DocumentDB
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3344'>TOOLS-3344</a>] -         Mongodump does not work with Atlas Data Federation.
+</li>
+</ul>
+
 ## 100.7.3
 
 _Released 2023-06-26_
