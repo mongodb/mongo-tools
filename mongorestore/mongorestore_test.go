@@ -2645,7 +2645,8 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 		t,
 		func(dir string) {
 
-			dropCollections(t, allCollections)
+			dropCollections(t, userDefinedCollections)
+			removeTestDocumentsFromCollections(t, collectionsToKeep)
 
 			restore, err := getRestoreWithArgs(
 				DropOption,
@@ -2697,7 +2698,8 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 		t,
 		func(dir string) {
 
-			dropCollections(t, allCollections)
+			dropCollections(t, userDefinedCollections)
+			removeTestDocumentsFromCollections(t, collectionsToKeep)
 
 			restore, err := getRestoreWithArgs(
 				DropOption,
