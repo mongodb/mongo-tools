@@ -335,7 +335,7 @@ func createCollectionWithTestDocument(t *testing.T, db *mongo.Database, collecti
 	collection := db.Collection(collectionName)
 	_, err := collection.InsertOne(
 		context.Background(),
-		bson.M{"key": "value"},
+		testDocument,
 	)
 	require.NoError(err, "can insert documents into collection")
 	return collection

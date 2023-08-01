@@ -50,6 +50,8 @@ const (
 	specialCharactersCollectionName = "cafés"
 )
 
+var testDocument = bson.M{"key": "value"}
+
 func init() {
 	// bump up the verbosity to make checking debug log output possible
 	log.SetVerbosity(&options.Verbosity{
@@ -2621,12 +2623,6 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 	require.NoError(err, "can connect to server")
 
 	configDB := session.Database("config")
-	defer func() {
-		err = configDB.Drop(nil)
-		if err != nil {
-			t.Fatalf("Failed to drop config database: %v", err)
-		}
-	}()
 
 	userDefinedCollections := []*mongo.Collection{
 		createCollectionWithTestDocument(t, configDB, "coll1"),
@@ -2643,15 +2639,13 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 	}
 
 	allCollections := append(collectionsToKeep, userDefinedCollections...)
+	defer removeTestDocumentsFromCollections(t, allCollections)
 
 	withBSONMongodump(
 		t,
 		func(dir string) {
 
-			for _, collection := range allCollections {
-				err := collection.Drop(context.Background())
-				require.NoError(err, "can drop collection")
-			}
+			dropCollections(t, allCollections)
 
 			restore, err := getRestoreWithArgs(
 				DropOption,
@@ -2665,14 +2659,13 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 			for _, collection := range allCollections {
-				r := collection.FindOne(context.Background(), bson.M{"key": "value"})
+				r := collection.FindOne(context.Background(), testDocument)
 				require.NoError(r.Err(), "expected document")
 			}
 
 		},
 		"--db", "config",
 	)
-
 }
 
 func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
@@ -2682,12 +2675,6 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 	require.NoError(err, "can connect to server")
 
 	configDB := session.Database("config")
-	defer func() {
-		err = configDB.Drop(nil)
-		if err != nil {
-			t.Fatalf("Failed to drop config database: %v", err)
-		}
-	}()
 
 	userDefinedCollections := []*mongo.Collection{
 		createCollectionWithTestDocument(t, configDB, "coll1"),
@@ -2703,14 +2690,14 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 		)
 	}
 
+	allCollections := append(collectionsToKeep, userDefinedCollections...)
+	defer removeTestDocumentsFromCollections(t, allCollections)
+
 	withBSONMongodump(
 		t,
 		func(dir string) {
 
-			for _, collection := range append(collectionsToKeep, userDefinedCollections...) {
-				err := collection.Drop(context.Background())
-				require.NoError(err, "can drop collection")
-			}
+			dropCollections(t, allCollections)
 
 			restore, err := getRestoreWithArgs(
 				DropOption,
@@ -2725,16 +2712,31 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 
 			for _, collectionName := range dumprestore.ConfigCollectionsToKeep {
 				collection := configDB.Collection(collectionName)
-				r := collection.FindOne(context.Background(), bson.M{"key": "value"})
+				r := collection.FindOne(context.Background(), testDocument)
 				require.NoError(r.Err(), "expected document")
 			}
 
 			for _, collection := range userDefinedCollections {
-				r := collection.FindOne(context.Background(), bson.M{"key": "value"})
+				r := collection.FindOne(context.Background(), testDocument)
 				require.Error(r.Err(), "expected no document")
 			}
 
 		},
 	)
+}
 
+func removeTestDocumentsFromCollections(t *testing.T, collections []*mongo.Collection) {
+	require := require.New(t)
+	for _, collection := range collections {
+		_, err := collection.DeleteMany(context.Background(), testDocument)
+		require.NoError(err, "can delete many")
+	}
+}
+
+func dropCollections(t *testing.T, collections []*mongo.Collection) {
+	require := require.New(t)
+	for _, collection := range collections {
+		err := collection.Drop(context.Background())
+		require.NoError(err, "can drop collection")
+	}
 }
