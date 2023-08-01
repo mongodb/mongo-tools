@@ -2648,10 +2648,7 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 			dropCollections(t, userDefinedCollections)
 			removeTestDocumentsFromCollections(t, collectionsToKeep)
 
-			restore, err := getRestoreWithArgs(
-				DropOption,
-				dir,
-			)
+			restore, err := getRestoreWithArgs(dir)
 			require.NoError(err)
 			defer restore.Close()
 
