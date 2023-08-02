@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -51,6 +50,22 @@ const (
 )
 
 var testDocument = bson.M{"key": "value"}
+
+var configCollectionNamesToKeep = []string{
+	"chunks",
+	"collections",
+	"databases",
+	"settings",
+	"shards",
+	"tags",
+	"version",
+}
+
+var userDefinedConfigCollectionNames = []string{
+	"coll1",
+	"coll2",
+	"coll3",
+}
 
 func init() {
 	// bump up the verbosity to make checking debug log output possible
@@ -2602,11 +2617,6 @@ func TestDumpAndRestoreConfigDB(t *testing.T) {
 	_, err := testutil.GetBareSession()
 	require.NoError(err, "can connect to server")
 
-	// fcv := testutil.GetFCV(session)
-	// if cmp, err := testutil.CompareFCV(fcv, "6.3"); err != nil || cmp < 0 {
-	// 	t.Skipf("Requires server with FCV 6.3 or later and we have %s", fcv)
-	// }
-
 	t.Run("test dump and restore only config db includes all config collections", func(t *testing.T) {
 		testDumpAndRestoreConfigDBIncludesAllCollections(t)
 	})
@@ -2624,29 +2634,18 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 
 	configDB := session.Database("config")
 
-	userDefinedCollections := []*mongo.Collection{
-		createCollectionWithTestDocument(t, configDB, "coll1"),
-		createCollectionWithTestDocument(t, configDB, "coll2"),
-		createCollectionWithTestDocument(t, configDB, "coll3"),
-	}
-
-	collectionsToKeep := []*mongo.Collection{}
-	for _, collectionName := range dumprestore.ConfigCollectionsToKeep {
-		collectionsToKeep = append(
-			collectionsToKeep,
-			createCollectionWithTestDocument(t, configDB, collectionName),
-		)
-	}
-
-	allCollections := append(collectionsToKeep, userDefinedCollections...)
-	defer removeTestDocumentsFromCollections(t, allCollections)
+	collections := createCollectionsWithTestDocuments(
+		t,
+		configDB,
+		append(configCollectionNamesToKeep, userDefinedConfigCollectionNames...),
+	)
+	defer clearDB(t, configDB)
 
 	withBSONMongodump(
 		t,
 		func(dir string) {
 
-			dropCollections(t, userDefinedCollections)
-			removeTestDocumentsFromCollections(t, collectionsToKeep)
+			clearDB(t, configDB)
 
 			restore, err := getRestoreWithArgs(dir)
 			require.NoError(err)
@@ -2656,7 +2655,7 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 			require.NoError(result.Err, "can run mongorestore")
 			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-			for _, collection := range allCollections {
+			for _, collection := range collections {
 				r := collection.FindOne(context.Background(), testDocument)
 				require.NoError(r.Err(), "expected document")
 			}
@@ -2674,29 +2673,15 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 
 	configDB := session.Database("config")
 
-	userDefinedCollections := []*mongo.Collection{
-		createCollectionWithTestDocument(t, configDB, "coll1"),
-		createCollectionWithTestDocument(t, configDB, "coll2"),
-		createCollectionWithTestDocument(t, configDB, "coll3"),
-	}
-
-	collectionsToKeep := []*mongo.Collection{}
-	for _, collectionName := range dumprestore.ConfigCollectionsToKeep {
-		collectionsToKeep = append(
-			collectionsToKeep,
-			createCollectionWithTestDocument(t, configDB, collectionName),
-		)
-	}
-
-	allCollections := append(collectionsToKeep, userDefinedCollections...)
-	defer removeTestDocumentsFromCollections(t, allCollections)
+	userDefinedCollections := createCollectionsWithTestDocuments(t, configDB, userDefinedConfigCollectionNames)
+	collectionsToKeep := createCollectionsWithTestDocuments(t, configDB, configCollectionNamesToKeep)
+	defer clearDB(t, configDB)
 
 	withBSONMongodump(
 		t,
 		func(dir string) {
 
-			dropCollections(t, userDefinedCollections)
-			removeTestDocumentsFromCollections(t, collectionsToKeep)
+			clearDB(t, configDB)
 
 			restore, err := getRestoreWithArgs(
 				DropOption,
@@ -2709,8 +2694,7 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 			require.NoError(result.Err, "can run mongorestore")
 			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-			for _, collectionName := range dumprestore.ConfigCollectionsToKeep {
-				collection := configDB.Collection(collectionName)
+			for _, collection := range collectionsToKeep {
 				r := collection.FindOne(context.Background(), testDocument)
 				require.NoError(r.Err(), "expected document")
 			}
@@ -2724,18 +2708,22 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 	)
 }
 
-func removeTestDocumentsFromCollections(t *testing.T, collections []*mongo.Collection) {
-	require := require.New(t)
-	for _, collection := range collections {
-		_, err := collection.DeleteMany(context.Background(), testDocument)
-		require.NoError(err, "can delete many")
+func createCollectionsWithTestDocuments(t *testing.T, db *mongo.Database, collectionNames []string) []*mongo.Collection {
+	collections := []*mongo.Collection{}
+	for _, collectionName := range collectionNames {
+		collection := createCollectionWithTestDocument(t, db, collectionName)
+		collections = append(collections, collection)
 	}
+	return collections
 }
 
-func dropCollections(t *testing.T, collections []*mongo.Collection) {
+func clearDB(t *testing.T, db *mongo.Database) {
 	require := require.New(t)
-	for _, collection := range collections {
-		err := collection.Drop(context.Background())
-		require.NoError(err, "can drop collection")
+	collectionNames, err := db.ListCollectionNames(context.Background(), bson.D{})
+	require.NoError(err, "can get collection names")
+	for _, collectionName := range collectionNames {
+		collection := db.Collection(collectionName)
+		_, err := collection.DeleteMany(context.Background(), bson.M{})
+		require.NoError(err, fmt.Sprintf("can delete many from collection %s", collectionName))
 	}
 }
