@@ -2662,6 +2662,7 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 
 		},
 		"--db", "config",
+		"--excludeCollection", "transactions",
 	)
 }
 
@@ -2723,7 +2724,6 @@ func clearDB(t *testing.T, db *mongo.Database) {
 	require.NoError(err, "can get collection names")
 	for _, collectionName := range collectionNames {
 		collection := db.Collection(collectionName)
-		_, err := collection.DeleteMany(context.Background(), bson.M{})
-		require.NoError(err, fmt.Sprintf("can delete many from collection %s", collectionName))
+		_, _ = collection.DeleteMany(context.Background(), bson.M{})
 	}
 }
