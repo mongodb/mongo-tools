@@ -49,6 +49,24 @@ const (
 	specialCharactersCollectionName = "cafés"
 )
 
+var testDocument = bson.M{"key": "value"}
+
+var configCollectionNamesToKeep = []string{
+	"chunks",
+	"collections",
+	"databases",
+	"settings",
+	"shards",
+	"tags",
+	"version",
+}
+
+var userDefinedConfigCollectionNames = []string{
+	"coll1",
+	"coll2",
+	"coll3",
+}
+
 func init() {
 	// bump up the verbosity to make checking debug log output possible
 	log.SetVerbosity(&options.Verbosity{
@@ -2116,7 +2134,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 
 	dataLen := createClusteredIndex(t, testDB, indexName)
 
-	withBSONMongodump(t, testDB.Name(), "stocks", func(dir string) {
+	withBSONMongodumpForCollection(t, testDB.Name(), "stocks", func(dir string) {
 		restore, err := getRestoreWithArgs(
 			DropOption,
 			dir,
@@ -2262,10 +2280,20 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	}
 }
 
-func withBSONMongodump(t *testing.T, db string, collection string, testCase func(string)) {
+func withBSONMongodump(t *testing.T, testCase func(string), args ...string) {
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
-	runBSONMongodump(t, dir, db, collection)
+	dirArgs := []string{
+		"--out", dir,
+	}
+	runMongodumpWithArgs(t, append(dirArgs, args...)...)
+	testCase(dir)
+}
+
+func withBSONMongodumpForCollection(t *testing.T, db string, collection string, testCase func(string)) {
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	runBSONMongodumpForCollection(t, dir, db, collection)
 	testCase(dir)
 }
 
@@ -2288,7 +2316,7 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	require.NoError(err, "can marshal query to JSON")
 
 	// We dump just the documents matching the query using mongodump "normally".
-	bsonFile := runBSONMongodump(t, dir, "local", "oplog.rs", "--query", string(q))
+	bsonFile := runBSONMongodumpForCollection(t, dir, "local", "oplog.rs", "--query", string(q))
 
 	// Then we take the BSON dump file and rename it to "oplog.bson" and put
 	// it in the root of the dump directory.
@@ -2313,7 +2341,7 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	testCase(dir)
 }
 
-func runBSONMongodump(t *testing.T, dir, db, collection string, args ...string) string {
+func runBSONMongodumpForCollection(t *testing.T, dir, db, collection string, args ...string) string {
 	require := require.New(t)
 	baseArgs := []string{
 		"--out", dir,
@@ -2399,7 +2427,7 @@ func testRestoreColumnstoreIndexFromDump(t *testing.T) {
 	columnstoreProjection := map[string]int32{"price": 1}
 	dataLen := createColumnstoreIndex(t, testDB, key, columnstoreProjection)
 
-	withBSONMongodump(t, testDB.Name(), "stocks", func(dir string) {
+	withBSONMongodumpForCollection(t, testDB.Name(), "stocks", func(dir string) {
 		restore, err := getRestoreWithArgs(
 			DropOption,
 			dir,
@@ -2579,4 +2607,123 @@ func testRestoreColumnstoreIndexFromOplog(t *testing.T) {
 
 		assertColumnstoreIndex(t, testDB, key, columnstoreProjection)
 	})
+}
+
+func TestDumpAndRestoreConfigDB(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	_, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	t.Run("test dump and restore only config db includes all config collections", func(t *testing.T) {
+		testDumpAndRestoreConfigDBIncludesAllCollections(t)
+	})
+
+	t.Run("test dump and restore all dbs includes only some config collections", func(t *testing.T) {
+		testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t)
+	})
+}
+
+func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	configDB := session.Database("config")
+
+	collections := createCollectionsWithTestDocuments(
+		t,
+		configDB,
+		append(configCollectionNamesToKeep, userDefinedConfigCollectionNames...),
+	)
+	defer clearDB(t, configDB)
+
+	withBSONMongodump(
+		t,
+		func(dir string) {
+
+			clearDB(t, configDB)
+
+			restore, err := getRestoreWithArgs(dir)
+			require.NoError(err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			require.NoError(result.Err, "can run mongorestore")
+			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+			for _, collection := range collections {
+				r := collection.FindOne(context.Background(), testDocument)
+				require.NoError(r.Err(), "expected document")
+			}
+
+		},
+		"--db", "config",
+		"--excludeCollection", "transactions",
+	)
+}
+
+func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	configDB := session.Database("config")
+
+	userDefinedCollections := createCollectionsWithTestDocuments(t, configDB, userDefinedConfigCollectionNames)
+	collectionsToKeep := createCollectionsWithTestDocuments(t, configDB, configCollectionNamesToKeep)
+	defer clearDB(t, configDB)
+
+	withBSONMongodump(
+		t,
+		func(dir string) {
+
+			clearDB(t, configDB)
+
+			restore, err := getRestoreWithArgs(
+				DropOption,
+				dir,
+			)
+			require.NoError(err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			require.NoError(result.Err, "can run mongorestore")
+			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+			for _, collection := range collectionsToKeep {
+				r := collection.FindOne(context.Background(), testDocument)
+				require.NoError(r.Err(), "expected document")
+			}
+
+			for _, collection := range userDefinedCollections {
+				r := collection.FindOne(context.Background(), testDocument)
+				require.Error(r.Err(), "expected no document")
+			}
+
+		},
+	)
+}
+
+func createCollectionsWithTestDocuments(t *testing.T, db *mongo.Database, collectionNames []string) []*mongo.Collection {
+	collections := []*mongo.Collection{}
+	for _, collectionName := range collectionNames {
+		collection := createCollectionWithTestDocument(t, db, collectionName)
+		collections = append(collections, collection)
+	}
+	return collections
+}
+
+func clearDB(t *testing.T, db *mongo.Database) {
+	require := require.New(t)
+	collectionNames, err := db.ListCollectionNames(context.Background(), bson.D{})
+	require.NoError(err, "can get collection names")
+	for _, collectionName := range collectionNames {
+		collection := db.Collection(collectionName)
+		_, _ = collection.DeleteMany(context.Background(), bson.M{})
+	}
 }
