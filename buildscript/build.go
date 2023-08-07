@@ -48,8 +48,8 @@ func checkMinimumGoVersion(ctx *task.Context) error {
 
 	goVersion := fmt.Sprintf("v%s", goVersionMatches[1])
 
-	if semver.Compare(fmt.Sprintf("v%s", goVersion), minimumGoVersion) < 0 {
-		return fmt.Errorf("Could not find minimum desired Go version. Found %s, Wanted at least \"%s\"", goVersionStr, minimumGoVersion)
+	if semver.Compare(goVersion, minimumGoVersion) < 0 {
+		return fmt.Errorf("Could not find minimum desired Go version. Found %s, Wanted at least \"%s\"", goVersion, minimumGoVersion)
 	}
 
 	_, _ = ctx.Write([]byte(fmt.Sprintf("Found Go version \"%s\"\n", goVersionStr)))
