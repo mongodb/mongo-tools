@@ -9,14 +9,14 @@ import (
 
 type conveyErr struct {
 	fmt    string
-	params []any
+	params []interface{}
 }
 
 func (e *conveyErr) Error() string {
 	return fmt.Sprintf(e.fmt, e.params...)
 }
 
-func conveyPanic(fmt string, params ...any) {
+func conveyPanic(fmt string, params ...interface{}) {
 	panic(&conveyErr{fmt, params})
 }
 
@@ -79,13 +79,12 @@ type context struct {
 
 	focus       bool
 	failureMode FailureMode
-	stackMode   StackMode
 }
 
 // rootConvey is the main entry point to a test suite. This is called when
 // there's no context in the stack already, and items must contain a `t` object,
 // or this panics.
-func rootConvey(items ...any) {
+func rootConvey(items ...interface{}) {
 	entry := discover(items)
 
 	if entry.Test == nil {
@@ -102,7 +101,6 @@ func rootConvey(items ...any) {
 
 		focus:       entry.Focus,
 		failureMode: defaultFailureMode.combine(entry.FailMode),
-		stackMode:   defaultStackMode.combine(entry.StackMode),
 	}
 	ctxMgr.SetValues(gls.Values{nodeKey: ctx}, func() {
 		ctx.reporter.BeginStory(reporting.NewStoryReport(entry.Test))
@@ -117,15 +115,15 @@ func rootConvey(items ...any) {
 
 //////////////////////////////////// Methods ////////////////////////////////////
 
-func (ctx *context) SkipConvey(items ...any) {
+func (ctx *context) SkipConvey(items ...interface{}) {
 	ctx.Convey(items, skipConvey)
 }
 
-func (ctx *context) FocusConvey(items ...any) {
+func (ctx *context) FocusConvey(items ...interface{}) {
 	ctx.Convey(items, focusConvey)
 }
 
-func (ctx *context) Convey(items ...any) {
+func (ctx *context) Convey(items ...interface{}) {
 	entry := discover(items)
 
 	// we're a branch, or leaf (on the wind)
@@ -156,7 +154,6 @@ func (ctx *context) Convey(items ...any) {
 
 			focus:       entry.Focus,
 			failureMode: ctx.failureMode.combine(entry.FailMode),
-			stackMode:   ctx.stackMode.combine(entry.StackMode),
 		}
 		ctx.children[entry.Situation] = inner_ctx
 	}
@@ -168,26 +165,15 @@ func (ctx *context) Convey(items ...any) {
 	}
 }
 
-func (ctx *context) SkipSo(stuff ...any) {
+func (ctx *context) SkipSo(stuff ...interface{}) {
 	ctx.assertionReport(reporting.NewSkipReport())
 }
 
-func (ctx *context) So(actual any, assert Assertion, expected ...any) {
+func (ctx *context) So(actual interface{}, assert assertion, expected ...interface{}) {
 	if result := assert(actual, expected...); result == assertionSuccess {
 		ctx.assertionReport(reporting.NewSuccessReport())
 	} else {
-		ctx.assertionReport(reporting.NewFailureReport(result, ctx.shouldShowStack()))
-	}
-}
-
-func (ctx *context) SoMsg(msg string, actual any, assert Assertion, expected ...any) {
-	if result := assert(actual, expected...); result == assertionSuccess {
-		ctx.assertionReport(reporting.NewSuccessReport())
-		return
-	} else {
-		ctx.reporter.Enter(reporting.NewScopeReport(msg))
-		defer ctx.reporter.Exit()
-		ctx.assertionReport(reporting.NewFailureReport(result, ctx.shouldShowStack()))
+		ctx.assertionReport(reporting.NewFailureReport(result))
 	}
 }
 
@@ -196,17 +182,17 @@ func (ctx *context) Reset(action func()) {
 	ctx.resets = append(ctx.resets, action)
 }
 
-func (ctx *context) Print(items ...any) (int, error) {
+func (ctx *context) Print(items ...interface{}) (int, error) {
 	fmt.Fprint(ctx.reporter, items...)
 	return fmt.Print(items...)
 }
 
-func (ctx *context) Println(items ...any) (int, error) {
+func (ctx *context) Println(items ...interface{}) (int, error) {
 	fmt.Fprintln(ctx.reporter, items...)
 	return fmt.Println(items...)
 }
 
-func (ctx *context) Printf(format string, items ...any) (int, error) {
+func (ctx *context) Printf(format string, items ...interface{}) (int, error) {
 	fmt.Fprintf(ctx.reporter, format, items...)
 	return fmt.Printf(format, items...)
 }
@@ -218,10 +204,6 @@ func (ctx *context) Printf(format string, items ...any) (int, error) {
 // we may not traverse it on a subsequent pass.
 func (c *context) shouldVisit() bool {
 	return !c.complete && *c.expectChildRun
-}
-
-func (c *context) shouldShowStack() bool {
-	return c.stackMode == StackFail
 }
 
 // conveyInner is the function which actually executes the user's anonymous test

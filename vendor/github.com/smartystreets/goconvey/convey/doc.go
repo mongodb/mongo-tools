@@ -19,19 +19,18 @@ import "github.com/smartystreets/goconvey/convey/reporting"
 // All methods in this context behave identically to the global functions of the
 // same name in this package.
 type C interface {
-	Convey(items ...any)
-	SkipConvey(items ...any)
-	FocusConvey(items ...any)
+	Convey(items ...interface{})
+	SkipConvey(items ...interface{})
+	FocusConvey(items ...interface{})
 
-	So(actual any, assert Assertion, expected ...any)
-	SoMsg(msg string, actual any, assert Assertion, expected ...any)
-	SkipSo(stuff ...any)
+	So(actual interface{}, assert assertion, expected ...interface{})
+	SkipSo(stuff ...interface{})
 
 	Reset(action func())
 
-	Println(items ...any) (int, error)
-	Print(items ...any) (int, error)
-	Printf(format string, items ...any) (int, error)
+	Println(items ...interface{}) (int, error)
+	Print(items ...interface{}) (int, error)
+	Printf(format string, items ...interface{}) (int, error)
 }
 
 // Convey is the method intended for use when declaring the scopes of
@@ -71,7 +70,7 @@ type C interface {
 //     Convey(description string, mode FailureMode, action func())
 //
 // See the examples package for, well, examples.
-func Convey(items ...any) {
+func Convey(items ...interface{}) {
 	if ctx := getCurrentContext(); ctx == nil {
 		rootConvey(items...)
 	} else {
@@ -82,7 +81,7 @@ func Convey(items ...any) {
 // SkipConvey is analogous to Convey except that the scope is not executed
 // (which means that child scopes defined within this scope are not run either).
 // The reporter will be notified that this step was skipped.
-func SkipConvey(items ...any) {
+func SkipConvey(items ...interface{}) {
 	Convey(append(items, skipConvey)...)
 }
 
@@ -93,7 +92,7 @@ func SkipConvey(items ...any) {
 // repeatedly as you can disable all but one of that function
 // without swaths of `SkipConvey` calls, just a targeted chain of calls
 // to FocusConvey.
-func FocusConvey(items ...any) {
+func FocusConvey(items ...interface{}) {
 	Convey(append(items, focusConvey)...)
 }
 
@@ -105,11 +104,11 @@ func Reset(action func()) {
 
 /////////////////////////////////// Assertions ///////////////////////////////////
 
-// Assertion is an alias for a function with a signature that the convey.So()
+// assertion is an alias for a function with a signature that the convey.So()
 // method can handle. Any future or custom assertions should conform to this
 // method signature. The return value should be an empty string if the assertion
 // passes and a well-formed failure message if not.
-type Assertion func(actual any, expected ...any) string
+type assertion func(actual interface{}, expected ...interface{}) string
 
 const assertionSuccess = ""
 
@@ -122,28 +121,19 @@ const assertionSuccess = ""
 // documentation on specific assertion methods. A failing assertion will
 // cause t.Fail() to be invoked--you should never call this method (or other
 // failure-inducing methods) in your test code. Leave that to GoConvey.
-func So(actual any, assert Assertion, expected ...any) {
+func So(actual interface{}, assert assertion, expected ...interface{}) {
 	mustGetCurrentContext().So(actual, assert, expected...)
-}
-
-// SoMsg is an extension of So that allows you to specify a message to report on error.
-func SoMsg(msg string, actual any, assert Assertion, expected ...any) {
-	mustGetCurrentContext().SoMsg(msg, actual, assert, expected...)
 }
 
 // SkipSo is analogous to So except that the assertion that would have been passed
 // to So is not executed and the reporter is notified that the assertion was skipped.
-func SkipSo(stuff ...any) {
+func SkipSo(stuff ...interface{}) {
 	mustGetCurrentContext().SkipSo()
 }
 
 // FailureMode is a type which determines how the So() blocks should fail
 // if their assertion fails. See constants further down for acceptable values
 type FailureMode string
-
-// StackMode is a type which determines whether the So() blocks should report
-// stack traces their assertion fails. See constants further down for acceptable values
-type StackMode string
 
 const (
 
@@ -161,19 +151,6 @@ const (
 	// default to the failure-mode of the parent block. You should never
 	// need to specify this mode in your tests..
 	FailureInherits FailureMode = "inherits"
-
-	// StackError is a stack mode which tells Convey to print stack traces
-	// only for errors and not for test failures
-	StackError StackMode = "error"
-
-	// StackFail is a stack mode which tells Convey to print stack traces
-	// for both errors and test failures
-	StackFail StackMode = "fail"
-
-	// StackInherits is the default setting for stack-mode, it will
-	// default to the stack-mode of the parent block. You should never
-	// need to specify this mode in your tests..
-	StackInherits StackMode = "inherits"
 )
 
 func (f FailureMode) combine(other FailureMode) FailureMode {
@@ -187,7 +164,7 @@ var defaultFailureMode FailureMode = FailureHalts
 
 // SetDefaultFailureMode allows you to specify the default failure mode
 // for all Convey blocks. It is meant to be used in an init function to
-// allow the default mode to be changed across all tests for an entire packgae
+// allow the default mode to be changdd across all tests for an entire packgae
 // but it can be used anywhere.
 func SetDefaultFailureMode(mode FailureMode) {
 	if mode == FailureContinues || mode == FailureHalts {
@@ -197,44 +174,23 @@ func SetDefaultFailureMode(mode FailureMode) {
 	}
 }
 
-func (s StackMode) combine(other StackMode) StackMode {
-	if other == StackInherits {
-		return s
-	}
-	return other
-}
-
-var defaultStackMode StackMode = StackError
-
-// SetDefaultStackMode allows you to specify the default stack mode
-// for all Convey blocks. It is meant to be used in an init function to
-// allow the default mode to be changed across all tests for an entire packgae
-// but it can be used anywhere.
-func SetDefaultStackMode(mode StackMode) {
-	if mode == StackError || mode == StackFail {
-		defaultStackMode = mode
-	} else {
-		panic("You may only use the constants named 'StackError' and 'StackFail' as default stack modes.")
-	}
-}
-
 //////////////////////////////////// Print functions ////////////////////////////////////
 
 // Print is analogous to fmt.Print (and it even calls fmt.Print). It ensures that
 // output is aligned with the corresponding scopes in the web UI.
-func Print(items ...any) (written int, err error) {
+func Print(items ...interface{}) (written int, err error) {
 	return mustGetCurrentContext().Print(items...)
 }
 
 // Print is analogous to fmt.Println (and it even calls fmt.Println). It ensures that
 // output is aligned with the corresponding scopes in the web UI.
-func Println(items ...any) (written int, err error) {
+func Println(items ...interface{}) (written int, err error) {
 	return mustGetCurrentContext().Println(items...)
 }
 
 // Print is analogous to fmt.Printf (and it even calls fmt.Printf). It ensures that
 // output is aligned with the corresponding scopes in the web UI.
-func Printf(format string, items ...any) (written int, err error) {
+func Printf(format string, items ...interface{}) (written int, err error) {
 	return mustGetCurrentContext().Printf(format, items...)
 }
 

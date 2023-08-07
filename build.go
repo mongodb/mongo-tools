@@ -14,6 +14,7 @@ var taskRegistry = task.NewRegistry(task.WithAutoNamespaces(true))
 func init() {
 	// Build
 	taskRegistry.Declare("build").Description("build the tools").OptionalArgs("pkgs").Do(buildscript.BuildTools)
+	taskRegistry.Declare("checkMinVersion").Description("check if the minimum required Go version exists").Do(buildscript.CheckMinimumGoVersion)
 
 	// Static Analysis
 	taskRegistry.Declare("sa:modtidy").Description("runs go mod tidy").Do(buildscript.SAModTidy)

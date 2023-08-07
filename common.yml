@@ -720,7 +720,9 @@ tasks:
     depends_on:
     commands:
       - func: "fetch source"
-      # bsondump
+      - func: "run make target"
+        vars:
+          target: checkMinVersion
       - func: "run make target"
         vars:
           target: build
@@ -2776,7 +2778,7 @@ buildvariants:
   - name: suse15
     display_name: SUSE 15
     run_on:
-      - suse15sp2-small
+      - suse15sp4-small
     expansions:
       <<:
         [
@@ -3406,43 +3408,6 @@ buildvariants:
         run_on: rhel80-small
         git_tag_only: true
 
-  # MongoDB 4.2+
-  - name: ubuntu1804-ppc64le
-    display_name: ZAP PPC64LE Ubuntu 18.04
-    run_on:
-      - ubuntu1804-power8
-    stepback: false
-    expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
-      mongo_os: "ubuntu1804"
-      mongo_edition: "enterprise"
-      mongo_arch: "ppc64le"
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
-      resmoke_use_tls: _tls
-      resmoke_args: -j 4
-      excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-      edition: enterprise
-      run_kinit: true
-    tasks:
-      - name: "unit"
-      - name: ".4.2"
-      - name: ".4.4"
-      - name: ".kerberos"
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel80-small
-      - name: "push"
-        run_on: rhel80-small
-        git_tag_only: true
-
   #######################################
   #     Z (s390x) Buildvariants         #
   #######################################
@@ -3589,7 +3554,7 @@ github_pr_aliases:
     task: "integration-3.6"
   # Run a subset of integration tests against the 4.2 version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel71-ppc64le|rhel81-ppc64le|ubuntu1604-arm64|ubuntu1804-ppc64le)$"
+  - variant: "^(rhel71-ppc64le|rhel81-ppc64le|ubuntu1604-arm64)$"
     task: "integration-4.2"
   # Run a subset of integration tests against the 4.4 version of MongoDB
   # Server on all variants where that is the most recent supported version.
