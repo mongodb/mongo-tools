@@ -7,7 +7,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"golang.org/x/mod/semver"
 
 	"github.com/craiggwilson/goke/pkg/git"
 	"github.com/craiggwilson/goke/pkg/sh"
@@ -27,7 +30,7 @@ var pkgNames = []string{
 	"release",
 }
 
-var minimumGoVersion = "1.19.12"
+var minimumGoVersion = "v1.19.12"
 
 func checkMinimumGoVersion(ctx *task.Context) error {
 	goVersionStr, err := runCmd(ctx, "go", "version")
@@ -35,10 +38,18 @@ func checkMinimumGoVersion(ctx *task.Context) error {
 		return fmt.Errorf("failed to get current go version: %w", err)
 	}
 
-	desiredVersion := fmt.Sprintf("go version go%s ", minimumGoVersion)
+	versionPattern := `go(\d+\.\d+\.*\d*)`
 
-	if !strings.HasPrefix(goVersionStr, desiredVersion) {
-		return fmt.Errorf("Could not find minimum desired Go version. Found %s, Wanted a version string starting with \"%s\"", goVersionStr, desiredVersion)
+	r := regexp.MustCompile(versionPattern)
+	goVersionMatches := r.FindStringSubmatch(goVersionStr)
+	if len(goVersionMatches) < 2 {
+		return fmt.Errorf("Could not find version string in the output of `go version`. Output: %s", goVersionStr)
+	}
+
+	goVersion := fmt.Sprintf("v%s", goVersionMatches[1])
+
+	if semver.Compare(fmt.Sprintf("v%s", goVersion), minimumGoVersion) < 0 {
+		return fmt.Errorf("Could not find minimum desired Go version. Found %s, Wanted at least \"%s\"", goVersionStr, minimumGoVersion)
 	}
 
 	_, _ = ctx.Write([]byte(fmt.Sprintf("Found Go version \"%s\"\n", goVersionStr)))
