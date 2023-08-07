@@ -14,14 +14,16 @@ type suite struct {
 	Focus     bool
 	Func      func(C) // nil means skipped
 	FailMode  FailureMode
+	StackMode StackMode
 }
 
-func newSuite(situation string, failureMode FailureMode, f func(C), test t, specifier actionSpecifier) *suite {
+func newSuite(situation string, failureMode FailureMode, stackMode StackMode, f func(C), test t, specifier actionSpecifier) *suite {
 	ret := &suite{
 		Situation: situation,
 		Test:      test,
 		Func:      f,
 		FailMode:  failureMode,
+		StackMode: stackMode,
 	}
 	switch specifier {
 	case skipConvey:
@@ -32,10 +34,11 @@ func newSuite(situation string, failureMode FailureMode, f func(C), test t, spec
 	return ret
 }
 
-func discover(items []interface{}) *suite {
+func discover(items []any) *suite {
 	name, items := parseName(items)
 	test, items := parseGoTest(items)
 	failure, items := parseFailureMode(items)
+	stack, items := parseStackMode(items)
 	action, items := parseAction(items)
 	specifier, items := parseSpecifier(items)
 
@@ -43,34 +46,40 @@ func discover(items []interface{}) *suite {
 		conveyPanic(parseError)
 	}
 
-	return newSuite(name, failure, action, test, specifier)
+	return newSuite(name, failure, stack, action, test, specifier)
 }
-func item(items []interface{}) interface{} {
+func item(items []any) any {
 	if len(items) == 0 {
 		conveyPanic(parseError)
 	}
 	return items[0]
 }
-func parseName(items []interface{}) (string, []interface{}) {
+func parseName(items []any) (string, []any) {
 	if name, parsed := item(items).(string); parsed {
 		return name, items[1:]
 	}
 	conveyPanic(parseError)
 	panic("never get here")
 }
-func parseGoTest(items []interface{}) (t, []interface{}) {
+func parseGoTest(items []any) (t, []any) {
 	if test, parsed := item(items).(t); parsed {
 		return test, items[1:]
 	}
 	return nil, items
 }
-func parseFailureMode(items []interface{}) (FailureMode, []interface{}) {
+func parseFailureMode(items []any) (FailureMode, []any) {
 	if mode, parsed := item(items).(FailureMode); parsed {
 		return mode, items[1:]
 	}
 	return FailureInherits, items
 }
-func parseAction(items []interface{}) (func(C), []interface{}) {
+func parseStackMode(items []any) (StackMode, []any) {
+	if mode, parsed := item(items).(StackMode); parsed {
+		return mode, items[1:]
+	}
+	return StackInherits, items
+}
+func parseAction(items []any) (func(C), []any) {
 	switch x := item(items).(type) {
 	case nil:
 		return nil, items[1:]
@@ -82,7 +91,7 @@ func parseAction(items []interface{}) (func(C), []interface{}) {
 	conveyPanic(parseError)
 	panic("never get here")
 }
-func parseSpecifier(items []interface{}) (actionSpecifier, []interface{}) {
+func parseSpecifier(items []any) (actionSpecifier, []any) {
 	if len(items) == 0 {
 		return noSpecifier, items
 	}
@@ -100,4 +109,4 @@ type t interface {
 	Fail()
 }
 
-const parseError = "You must provide a name (string), then a *testing.T (if in outermost scope), an optional FailureMode, and then an action (func())."
+const parseError = "You must provide a name (string), then a *testing.T (if in outermost scope), an optional FailureMode and / or StackMode, and then an action (func())."
