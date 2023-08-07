@@ -26,7 +26,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+require (
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
+	golang.org/x/mod v0.12.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -38,15 +41,12 @@ require (
 	github.com/montanaflynn/stats v0.6.6 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect
-	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/term v0.9.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
 )
