@@ -30,6 +30,7 @@ var pkgNames = []string{
 	"release",
 }
 
+// minimumGoVersion must be prefixed with v to be parsed by golang.org/x/mod/semver
 var minimumGoVersion = "v1.19.12"
 
 func CheckMinimumGoVersion(ctx *task.Context) error {
@@ -48,6 +49,7 @@ func CheckMinimumGoVersion(ctx *task.Context) error {
 		return fmt.Errorf("Could not find version string in the output of `go version`. Output: %s", goVersionStr)
 	}
 
+	// goVersion must be prefixed with v to be parsed by golang.org/x/mod/semver
 	goVersion := fmt.Sprintf("v%s", goVersionMatches[1])
 
 	if semver.Compare(goVersion, minimumGoVersion) < 0 {
