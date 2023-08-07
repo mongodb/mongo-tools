@@ -720,7 +720,9 @@ tasks:
     depends_on:
     commands:
       - func: "fetch source"
-      # bsondump
+      - func: "run make target"
+        vars:
+          target: checkMinVersion
       - func: "run make target"
         vars:
           target: build

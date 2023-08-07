@@ -32,7 +32,7 @@ var pkgNames = []string{
 
 var minimumGoVersion = "v1.19.12"
 
-func checkMinimumGoVersion(ctx *task.Context) error {
+func CheckMinimumGoVersion(ctx *task.Context) error {
 	goVersionStr, err := runCmd(ctx, "go", "version")
 	if err != nil {
 		return fmt.Errorf("failed to get current go version: %w", err)
@@ -59,10 +59,6 @@ func checkMinimumGoVersion(ctx *task.Context) error {
 
 // BuildTools is an Executor that builds the tools.
 func BuildTools(ctx *task.Context) error {
-	if err := checkMinimumGoVersion(ctx); err != nil {
-		return err
-	}
-
 	for _, pkg := range selectedPkgs(ctx) {
 		if pkg != "common" && pkg != "release" {
 			err := buildToolBinary(ctx, pkg, "bin")
