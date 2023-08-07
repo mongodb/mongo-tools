@@ -128,12 +128,13 @@ github.com/pmezard/go-difflib/difflib
 github.com/rivo/uniseg
 # github.com/smarty/assertions v1.15.0
 ## explicit; go 1.18
-github.com/smarty/assertions
-github.com/smarty/assertions/internal/go-diff/diffmatchpatch
-github.com/smarty/assertions/internal/go-render/render
-github.com/smarty/assertions/internal/oglematchers
-# github.com/smartystreets/goconvey v1.8.1
-## explicit; go 1.18
+# github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
+## explicit
+github.com/smartystreets/assertions
+github.com/smartystreets/assertions/internal/go-render/render
+github.com/smartystreets/assertions/internal/oglematchers
+# github.com/smartystreets/goconvey v1.6.4
+## explicit
 github.com/smartystreets/goconvey/convey
 github.com/smartystreets/goconvey/convey/gotest
 github.com/smartystreets/goconvey/convey/reporting
@@ -201,6 +202,8 @@ golang.org/x/crypto/ssh/terminal
 ## explicit; go 1.18
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
+# golang.org/x/mod v0.9.0
+## explicit; go 1.17
 # golang.org/x/net v0.10.0
 ## explicit; go 1.17
 golang.org/x/net/context
@@ -220,6 +223,8 @@ golang.org/x/term
 ## explicit; go 1.17
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
+# golang.org/x/tools v0.7.0
+## explicit; go 1.18
 # gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 ## explicit
 gopkg.in/tomb.v2

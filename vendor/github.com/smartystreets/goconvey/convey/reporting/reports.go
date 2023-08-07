@@ -76,7 +76,7 @@ func removePackagePath(name string) string {
 
 /////////////////// FailureView ////////////////////////
 
-// FailureView is also declared in github.com/smarty/assertions.
+// This struct is also declared in github.com/smartystreets/assertions.
 // The json struct tags should be equal in both declarations.
 type FailureView struct {
 	Message  string `json:"Message"`
@@ -92,17 +92,15 @@ type AssertionResult struct {
 	Expected   string
 	Actual     string
 	Failure    string
-	Error      any
+	Error      interface{}
 	StackTrace string
 	Skipped    bool
 }
 
-func NewFailureReport(failure string, showStack bool) *AssertionResult {
+func NewFailureReport(failure string) *AssertionResult {
 	report := new(AssertionResult)
 	report.File, report.Line = caller()
-	if showStack {
-		report.StackTrace = stackTrace()
-	}
+	report.StackTrace = stackTrace()
 	parseFailure(failure, report)
 	return report
 }
@@ -117,7 +115,7 @@ func parseFailure(failure string, report *AssertionResult) {
 		report.Failure = failure
 	}
 }
-func NewErrorReport(err any) *AssertionResult {
+func NewErrorReport(err interface{}) *AssertionResult {
 	report := new(AssertionResult)
 	report.File, report.Line = caller()
 	report.StackTrace = fullStackTrace()
