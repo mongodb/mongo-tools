@@ -392,16 +392,6 @@ buildvariants:
       build_tags: "ssl sasl gssapi"
     tasks: *atlas_live_tasks
 
-  - name: ubuntu1804-ppc64le-enterprise
-    display_name: ZAP PPC64LE Ubuntu 18.04 Enterprise
-    run_on:
-      - ubuntu1804-power8-test
-    stepback: false
-    batchtime: 10080 # weekly
-    expansions:
-      build_tags: "ssl sasl gssapi"
-    tasks: *atlas_live_tasks
-
   #######################################
   #     Z (s390x) Buildvariants         #
   #######################################

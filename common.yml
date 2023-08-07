@@ -3554,7 +3554,7 @@ github_pr_aliases:
     task: "integration-3.6"
   # Run a subset of integration tests against the 4.2 version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel71-ppc64le|rhel81-ppc64le|ubuntu1604-arm64|ubuntu1804-ppc64le)$"
+  - variant: "^(rhel71-ppc64le|rhel81-ppc64le|ubuntu1604-arm64)$"
     task: "integration-4.2"
   # Run a subset of integration tests against the 4.4 version of MongoDB
   # Server on all variants where that is the most recent supported version.
