@@ -27,8 +27,31 @@ var pkgNames = []string{
 	"release",
 }
 
+var minimumGoVersion = "1.19.12"
+
+func checkMinimumGoVersion(ctx *task.Context) error {
+	goVersionStr, err := runCmd(ctx, "go", "version")
+	if err != nil {
+		return fmt.Errorf("failed to get current go version: %w", err)
+	}
+
+	desiredVersion := fmt.Sprintf("go version go%s ", minimumGoVersion)
+
+	if !strings.HasPrefix(goVersionStr, desiredVersion) {
+		return fmt.Errorf("Could not find minimum desired Go version. Found %s, Wanted a version string starting with \"%s\"", goVersionStr, desiredVersion)
+	}
+
+	_, _ = ctx.Write([]byte(fmt.Sprintf("Found Go version \"%s\"\n", goVersionStr)))
+
+	return nil
+}
+
 // BuildTools is an Executor that builds the tools.
 func BuildTools(ctx *task.Context) error {
+	if err := checkMinimumGoVersion(ctx); err != nil {
+		return err
+	}
+
 	for _, pkg := range selectedPkgs(ctx) {
 		if pkg != "common" && pkg != "release" {
 			err := buildToolBinary(ctx, pkg, "bin")
