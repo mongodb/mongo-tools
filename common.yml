@@ -2776,7 +2776,7 @@ buildvariants:
   - name: suse15
     display_name: SUSE 15
     run_on:
-      - suse15-small
+      - suse15sp4-small
     expansions:
       <<:
         [
