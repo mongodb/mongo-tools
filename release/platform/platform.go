@@ -122,9 +122,9 @@ func DetectLocal() (Platform, error) {
 
 	switch kernelName {
 	case "Linux":
-		pf, ok := GetByOsAndArch("ubuntu1804", archName)
+		pf, ok := GetByOsAndArch("linux", archName)
 		if !ok {
-			panic("ubuntu1804 platform name changed")
+			panic("linux platform name changed")
 		}
 		return pf, nil
 	case "Darwin":
