@@ -72,11 +72,11 @@ Also ensure you are pushing the tag to the `mongodb/mongo-tools` repository and 
 If necessary, you may find the correct remote using `git remote -v` and specify it via `git push <remote> --tags`.
 
 Pushing the tag should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongo-tools).
-If it doesn't, you may have to ask the project manager to give you the right permissions to do so.
+If it doesn't, you may have to ask a project manager/lead to give you the right permissions to do so. The permissions needed are evergreen admin and github authorized user.
 
 ##### Set Evergreen Priorities
 Some evergreen variants (particularly zSeries and PowerPC variants) may have a long schedule queue.
-To speed up release tasks, you can set the task priority for any variant to 101 for release candidates and 200 for actual releases.
+To speed up release tasks, you can set the task priority for any variant to 70 for release candidates and 99 for actual releases.
 
 ### Post-Release Tasks
 Complete these tasks after the release builds have completed on evergreen.

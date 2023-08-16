@@ -1,5 +1,34 @@
 # Database Tools Changelog
 
+## 100.8.0
+
+_Released 2023-08-16_
+
+We are pleased to announce version 100.8.0 of the MongoDB Database Tools.
+
+This version uploads the MongoDB Database Tools to the MongoDB Linux v7.0 repos.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Release
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3369'>TOOLS-3369</a>] -         Release Database Tools 100.8.0
+</li>
+</ul>
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3368'>TOOLS-3368</a>] -         MongoDB 7 Linux repos are missing mongodb-database-tools
+</li>
+</ul>
+
+
 ## 100.7.5
 
 _Released 2023-08-07_
