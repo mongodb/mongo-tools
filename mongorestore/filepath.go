@@ -116,7 +116,7 @@ func (f *realBSONFile) Open() (err error) {
 		gzFile, err := gzip.NewReader(posFile)
 		posUncompressedFile := &posTrackingReader{0, gzFile}
 		if err != nil {
-			return fmt.Errorf("error decompressing compresed BSON file %v: %v", f.path, err)
+			return fmt.Errorf("error decompressing compressed BSON file %v: %v", f.path, err)
 		}
 		f.PosReader = &mixedPosTrackingReader{
 			readHolder: posUncompressedFile,
