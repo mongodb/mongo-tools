@@ -1484,14 +1484,14 @@ tasks:
         vars:
           target: test:awsauth
 
-  - name: integration-6.3
-    tags: [ "6.3" ]
+  - name: integration-7.0
+    tags: [ "7.0" ]
     commands:
       - func: "fetch source"
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "6.3"
+          mongo_version: "7.0"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1505,8 +1505,8 @@ tasks:
         vars:
           target: test:integration -ssl=true
 
-  - name: integration-6.3-auth
-    tags: [ "6.3", "auth" ]
+  - name: integration-7.0-auth
+    tags: [ "7.0", "auth" ]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1517,7 +1517,7 @@ tasks:
               concat: " --auth"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "6.3"
+          mongo_version: "7.0"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1534,14 +1534,14 @@ tasks:
         vars:
           target: test:integration -ssl=true -auth=true
 
-  - name: integration-6.3-cluster
-    tags: [ "6.3", "cluster" ]
+  - name: integration-7.0-cluster
+    tags: [ "7.0", "cluster" ]
     commands:
       - func: "fetch source"
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "6.3"
+          mongo_version: "7.0"
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
@@ -1552,15 +1552,15 @@ tasks:
         vars:
           target: test:integration -ssl=true -topology=replSet
 
-  - name: aws-auth-6.3
-    tags: [ "6.3", "aws-auth" ]
+  - name: aws-auth-7.0
+    tags: [ "7.0", "aws-auth" ]
     commands:
       - func: "fetch source"
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
-          mongo_version: "6.3"
+          mongo_version: "7.0"
       - func: "start mongod"
         vars:
           AWS_AUTH: "true"
@@ -1813,15 +1813,15 @@ tasks:
         vars:
           test_path: "test/legacy42"
 
-  - name: legacy-jstests-6.3 # The server jstests from the tools removal from server in 4.2
-    tags: ["6.3"]
+  - name: legacy-jstests-7.0 # The server jstests from the tools removal from server in 4.2
+    tags: ["7.0"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "6.3"
+          mongo_version: "7.0"
       - func: "run make target"
         vars:
           target: build
@@ -1984,15 +1984,15 @@ tasks:
           resmoke_suite: "core${resmoke_use_tls}"
           excludes: "requires_unstable,${excludes}"
 
-  - name: qa-tests-6.3
-    tags: ["6.3"]
+  - name: qa-tests-7.0
+    tags: ["7.0"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "6.3"
+          mongo_version: "7.0"
       - func: "run make target"
         vars:
           target: build
@@ -2425,6 +2425,7 @@ buildvariants:
       - name: ".4.4"
       - name: ".5.0"
       - name: ".6.0"
+      - name: ".7.0"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2576,6 +2577,7 @@ buildvariants:
       - name: ".4.4"
       - name: ".5.0"
       - name: ".6.0"
+      - name: ".7.0"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2784,6 +2786,7 @@ buildvariants:
       - name: ".4.4"
       - name: ".5.0"
       - name: ".6.0"
+      - name: ".7.0"
       - name: ".latest"
       - name: ".kerberos"
 
