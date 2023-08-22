@@ -2399,14 +2399,11 @@ buildvariants:
     tasks:
       - name: "unit"
       - name: "srv"
-      - name: ".3.6"
       - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
       - name: ".5.0"
-      - name: ".5.3"
       - name: ".6.0"
-      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2527,7 +2524,7 @@ buildvariants:
   #######################################
 
   - name: windows
-    display_name: Windows 64-bit
+    display_name: "# Windows 64-bit"
     run_on:
       - windows-vsCurrent-large
     expansions:
@@ -2557,9 +2554,7 @@ buildvariants:
       - name: ".4.2"
       - name: ".4.4"
       - name: ".5.0"
-      - name: ".5.3"
       - name: ".6.0"
-      - name: ".6.3"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2743,7 +2738,7 @@ buildvariants:
 
   - name: ubuntu-race
     stepback: false
-    display_name: ~ Race Detector Ubuntu 18.04
+    display_name: "# Race Detector Ubuntu 18.04"
     run_on:
       - ubuntu1804-small
     expansions:
