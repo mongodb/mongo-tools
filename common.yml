@@ -2352,11 +2352,32 @@ buildvariants:
         run_on: rhel80-small
         git_tag_only: true
 
+  # This build is specifically for Splunk
   - name: rhel62-no-sasl-or-kerberos
-    display_name: RHEL 6.2 w/o SASL or Kerberos
+    display_name: "# RHEL 6.2 w/o SASL or Kerberos"
+    expansions:
+      <<:
+        [
+          *mongod_ssl_startup_args,
+          *mongo_ssl_startup_args,
+          *mongod_tls_startup_args,
+          *mongo_tls_startup_args,
+        ]
+      mongo_os: "rhel62"
+      mongo_edition: "enterprise"
+      smoke_use_ssl: --use-ssl
+      resmoke_use_ssl: _ssl
+      smoke_use_tls: --use-tls
+      resmoke_use_tls: _tls
+      edition: enterprise
+      run_kinit: true
+      resmoke_args: --jobs 4
     run_on:
       - rhel62-small
     tasks:
+      - name: "unit"
+      - name: ".3.6"
+      - name: ".4.0"
       - name: "dist"
       - name: "sign"
         run_on: rhel80-small
@@ -2758,7 +2779,6 @@ buildvariants:
       USE_SSL: "true"
     tasks:
       - name: "unit"
-      - name: ".3.6"
       - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
