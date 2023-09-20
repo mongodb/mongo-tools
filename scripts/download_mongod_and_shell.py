@@ -322,7 +322,7 @@ def get_json_from_curl(url, headers=[]):
         command.append("-H {0}".format(h))
 
     command.append(url)
-    log(command)
+    log(" ".join(command))
 
     # Can't use subprocess.check_output because we need to support Python 2.6 on RHEL 6.2
     proc = subprocess.Popen(command, stdout=subprocess.PIPE)
