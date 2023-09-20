@@ -225,7 +225,7 @@ class UrlFinder:
         for version in spec["versions"]:
             if not self.is_correct_version(version):
                 continue
-            return version.githash
+            return version["githash"]
 
     def is_correct_version(self, version):
         # We'll return all the versions and then pick the first, which will always be the most
