@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 # This is a small wrapper around the python script to translate env vars into CLI args for the
 # python script.
@@ -19,10 +18,6 @@ fi
 if [ "$mongo_edition" = "enterprise" ]; then
     edition="enterprise"
 fi
-
-echo "EVG_USER" 
-echo $EVG_USER
-echo $EVG_KEY
 
 ./scripts/download_mongod_and_shell.py \
     --arch "$arch" \

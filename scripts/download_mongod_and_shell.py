@@ -282,11 +282,8 @@ class EvegreenAPI:
         ]
 
         log("Downloading evg resource at {0}".format(url))
-        filename = "evg_resource.json".format(resource)
-        local = os.path.join(self.dir, filename)
-        download_url_with_curl(url, local, headers)
-        file = open(local, "r")
-        contents = json.load(file)
+        
+        contents = get_json_from_curl(url, headers)
         return contents
     
 
@@ -317,6 +314,23 @@ def download_url_with_curl(url, local, headers=[]):
 
     command.append(url)
     subprocess.check_call(command)
+
+def get_json_from_curl(url, headers=[]):
+    command = ["curl", "--silent"]
+
+    for h in headers:
+        command.append("-H {0}".format(h))
+
+    command.append(url)
+
+    # Can't use subprocess.check_output because we need to support Python 2.6 on RHEL 6.2
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    proc.stdout.close()
+    out, err = proc.communicate()
+
+    log(out)
+
+    return json.loads(out)
 
 
 def log(msg):
