@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 # This is a small wrapper around the python script to translate env vars into CLI args for the
 # python script.
