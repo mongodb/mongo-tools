@@ -64,6 +64,15 @@ class Main:
         if self.wanted.is_latest() or version_is_greater_or_equal(
             self.wanted.version, "6.0"
         ):
+            log("Downloading jstestshell separately for version {0}".format(self.wanted.version))
+
+            evg = EvegreenAPI(self.dir)
+
+            res = evg.get_evg("/version/mongodb_mongo_v7.0_af9064d0a19f997fa1132e82afa2dba8c79e7ee4")
+
+            log(res)
+            
+            
             for version in ["5.3", "5.2", "5.1", "5.0"]:
                 finder.wanted.version = version
                 url = finder.url_for_wanted()
@@ -238,7 +247,31 @@ class UrlFinder:
         if entry is None:
             return None
         return entry["url"]
+    
+    
 
+class EvegreenAPI:
+
+    def __init__(self, dir):
+        self.dir = dir
+
+    def get_evg(self, resource):
+        EVG_API_BASE_URI    = "https://evergreen.mongodb.com/rest/v2"
+
+        url = EVG_API_BASE_URI + resource
+        headers = [
+            "Api-User:{0}".format(os.environ.get("EVG_USER")),
+            "Api-Key:{0}".format(os.environ.get("EVG_KEY"))
+        ]
+
+        log("Downloading evg resource at {0}".format(url))
+        filename = "evg_resource.json".format(resource)
+        local = os.path.join(self.dir, filename)
+        download_url_with_curl(url, local, headers)
+        file = open(local, "r")
+        contents = json.load(file)
+        return contents
+    
 
 def version_is_greater_or_equal(left, right):
     l = left.split(".")
@@ -251,13 +284,22 @@ def version_is_greater_or_equal(left, right):
     return True
 
 
+
+
+
 # We use curl instead of urllib or urllib2 because the Python 2.6 on our RHEL 6.2 machines does
 # not support modern SSL protocols. When we try to use it to download the release tarballs it
 # errors out like this:
 #
 # urllib2.URLError: <urlopen error [Errno 1] _ssl.c:492: error:140770FC:SSL routines:SSL23_GET_SERVER_HELLO:unknown protocol>
-def download_url_with_curl(url, local):
-    subprocess.check_call(["curl", "--silent", "--output", local, url])
+def download_url_with_curl(url, local, headers):
+    command = ["curl", "--silent", "--output", local]
+
+    for h in headers:
+        command.append("-H {0}".format(h))
+
+    command.append(url)
+    subprocess.check_call(command)
 
 
 def log(msg):

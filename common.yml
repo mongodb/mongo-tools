@@ -1202,6 +1202,20 @@ tasks:
         vars:
           target: test:integration -ssl=true
 
+  - name: dl-shell-7.0-test
+    tags: [ "7.0" ]
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args_tls"
+              concat: " --auth"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "7.0"
+
   - name: integration-7.0-auth
     tags: [ "7.0", "auth" ]
     commands:
