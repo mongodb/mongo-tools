@@ -98,6 +98,15 @@ functions:
         PATH=$PATH:$HOME
         go run build.go -v ${target}
 
+  "download mongod and shell2":
+    command: shell.exec
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      script:
+        ${_set_shell_env}
+        ${_maybe_enable_devtoolset_7}
+        ./scripts/download_mongod_and_shell.sh
+
   "download mongod and shell":
     command: subprocess.exec
     params:
@@ -1212,7 +1221,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
-      - func: "download mongod and shell"
+      - func: "download mongod and shell2"
         vars:
           mongo_version: "7.0"
 
