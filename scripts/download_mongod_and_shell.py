@@ -69,6 +69,7 @@ class Main:
             evg = EvegreenAPI(self.dir)
             
             githash = finder.githash_for_wanted()
+            log(githash)
 
             res = evg.get_evg("/versions/mongodb_mongo_v7.0_{0}".format(githash))
 
