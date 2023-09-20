@@ -282,7 +282,7 @@ class EvegreenAPI:
         ]
 
         log("Downloading evg resource at {0}".format(url))
-        
+
         contents = get_json_from_curl(url, headers)
         return contents
     
@@ -325,8 +325,9 @@ def get_json_from_curl(url, headers=[]):
 
     # Can't use subprocess.check_output because we need to support Python 2.6 on RHEL 6.2
     proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-    proc.stdout.close()
+    
     out, err = proc.communicate()
+    proc.stdout.close()
 
     log(out)
 
