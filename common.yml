@@ -106,6 +106,7 @@ functions:
         ${_set_shell_env}
         ${_maybe_enable_devtoolset_7}
         ./scripts/download_mongod_and_shell.sh
+      add_expansions_to_env: true
 
   "download mongod and shell":
     command: subprocess.exec
