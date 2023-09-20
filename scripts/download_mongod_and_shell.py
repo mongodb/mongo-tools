@@ -330,9 +330,9 @@ def get_json_from_curl(url, headers=[]):
     out, err = proc.communicate()
     proc.stdout.close()
 
-    log(out)
+    log(str(out))
 
-    return json.loads(out)
+    return json.loads(str(out))
 
 
 def log(msg):
