@@ -67,8 +67,10 @@ class Main:
             log("Downloading jstestshell separately for version {0}".format(self.wanted.version))
 
             evg = EvegreenAPI(self.dir)
+            
+            githash = finder.githash_for_wanted()
 
-            res = evg.get_evg("/version/mongodb_mongo_v7.0_af9064d0a19f997fa1132e82afa2dba8c79e7ee4")
+            res = evg.get_evg("/versions/mongodb_mongo_v7.0_{0}".format(githash))
 
             log(res)
             
@@ -176,6 +178,14 @@ class UrlFinder:
         url = self.find_url_in_spec(self.full_spec())
         if url:
             return url
+        
+    def githash_for_wanted(self):
+        githash = self.find_githash_in_spec(self.current_spec())
+        if githash:
+            return githash
+        githash = self.find_githash_in_spec(self.full_spec())
+        if githash:
+            return githash
 
     def current_spec(self):
         if self.downloaded["current"]:
@@ -210,6 +220,12 @@ class UrlFinder:
 
         if len(urls) > 0:
             return urls[0]
+        
+    def find_githash_in_spec(self, spec):
+        for version in spec["versions"]:
+            if not self.is_correct_version(version):
+                continue
+            return version.githash
 
     def is_correct_version(self, version):
         # We'll return all the versions and then pick the first, which will always be the most
