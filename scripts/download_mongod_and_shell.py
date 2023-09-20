@@ -292,7 +292,7 @@ def version_is_greater_or_equal(left, right):
 # errors out like this:
 #
 # urllib2.URLError: <urlopen error [Errno 1] _ssl.c:492: error:140770FC:SSL routines:SSL23_GET_SERVER_HELLO:unknown protocol>
-def download_url_with_curl(url, local, headers):
+def download_url_with_curl(url, local, headers=[]):
     command = ["curl", "--silent", "--output", local]
 
     for h in headers:
