@@ -19,6 +19,7 @@ if [ "$mongo_edition" = "enterprise" ]; then
     edition="enterprise"
 fi
 
+echo "EVG_USER" 
 echo $EVG_USER
 echo $EVG_KEY
 
