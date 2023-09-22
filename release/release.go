@@ -97,6 +97,8 @@ func main() {
 		generateFullReleaseJSON(v)
 	case "linux-release":
 		linuxRelease(v)
+	case "download-mongod-and-shell":
+		downloadMongodAndShell(v)
 	default:
 		log.Fatalf("unknown subcommand '%s'", cmd)
 	}
@@ -1296,4 +1298,42 @@ func linuxRelease(v version.Version) {
 // by a git tag.
 func canPerformStableRelease(v version.Version) bool {
 	return v.IsStable() && env.EvgIsTagTriggered()
+}
+
+func downloadMongodAndShell(v version.Version) {
+	err := os.Mkdir("bin", 0700)
+	if err != nil && !os.IsExist(err) {
+		check(err, "create bin dir")
+	}
+
+	downloadMongod(v)
+
+}
+
+func downloadMongod(v version.Version) {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	// tempDir, err := os.MkdirTemp("bin", "")
+	// check(err, "create temp dir")
+
+	feedURL := "http://downloads.mongodb.org/full.json"
+
+	var feed download.ServerJSONFeed
+
+	res, err := http.Get(feedURL)
+	check(err, "get the server JSON feed")
+
+	err = json.NewDecoder(res.Body).Decode(&feed)
+	check(err, "decode JSON feed")
+
+	url, err := feed.FindURL(v.String(), pf.Name, string(pf.Arch), "enterprise")
+	check(err, "get URL from JSON feed")
+
+	fmt.Print(url)
+
+}
+
+func downloadShell(v version.Version) {
+
 }
