@@ -30,6 +30,7 @@ import (
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
+	"golang.org/x/mod/semver"
 
 	"github.com/urfave/cli/v2"
 )
@@ -1380,7 +1381,10 @@ func downloadMongodAndShell(v string) {
 	fmt.Printf("Version: %v\n", serverVersion)
 
 	downloadBinaries(url)
-	downloadShell(serverVersion)
+	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") > -1 {
+		// serverVersion >= 6.0.0
+		downloadShell(serverVersion)
+	}
 }
 
 func downloadBinaries(url string) {

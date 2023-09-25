@@ -432,12 +432,13 @@ var platforms = []Platform{
 		Name: "rhel62",
 		// This needs to match the name of the buildvariant in the Evergreen
 		// config.
-		VariantName:     "rhel62-no-sasl-or-kerberos",
-		Arch:            ArchX86_64,
-		OS:              OSLinux,
-		Pkg:             PkgRPM,
-		BuildTags:       []string{"ssl", "failpoints"},
-		SkipForJSONFeed: true,
+		VariantName:       "rhel62-no-sasl-or-kerberos",
+		Arch:              ArchX86_64,
+		OS:                OSLinux,
+		Pkg:               PkgRPM,
+		BuildTags:         []string{"ssl", "failpoints"},
+		SkipForJSONFeed:   true,
+		ServerVariantName: "enterprise-rhel-62-64-bit",
 	},
 	{
 		Name:      "rhel70",
@@ -464,12 +465,13 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "rhel80",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
+		Name:              "rhel80",
+		Arch:              ArchX86_64,
+		OS:                OSLinux,
+		Pkg:               PkgRPM,
+		Repos:             []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:         defaultBuildTags,
+		ServerVariantName: "enterprise-rhel-80-64-bit",
 	},
 	{
 		Name:      "rhel81",
@@ -592,11 +594,12 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "windows",
-		Arch:      ArchX86_64,
-		OS:        OSWindows,
-		BuildTags: defaultBuildTags,
-		BinaryExt: ".exe",
+		Name:              "windows",
+		Arch:              ArchX86_64,
+		OS:                OSWindows,
+		BuildTags:         defaultBuildTags,
+		BinaryExt:         ".exe",
+		ServerVariantName: "enterprise-windows",
 	},
 }
 

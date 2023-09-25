@@ -426,7 +426,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
-          go run release/release.go download-mongod-and-shell ${mongo_version}
+          go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
 
   "upload release packages to s3":
     - command: shell.exec
