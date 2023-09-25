@@ -10,6 +10,12 @@ exec_timeout_secs: 10800
 # run the same task in the previous revision if the current task fails
 stepback: true
 
+modules:
+  - name: mongo-release
+    repo: git@github.com:10gen/mongo-release.git
+    prefix: ${workdir}/src
+    branch: master
+
 variables:
   # Common mongodb arguments
   mongod_arguments:

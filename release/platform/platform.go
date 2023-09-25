@@ -54,14 +54,15 @@ type Platform struct {
 	// This is used to override the variant name. It should only be used for
 	// special builds. In general, we want to use the OS name + arch for the
 	// variant name.
-	VariantName     string
-	Arch            Arch
-	OS              OS
-	Pkg             Pkg
-	Repos           []Repo
-	BuildTags       []string
-	BinaryExt       string
-	SkipForJSONFeed bool
+	VariantName       string
+	Arch              Arch
+	OS                OS
+	Pkg               Pkg
+	Repos             []Repo
+	BuildTags         []string
+	BinaryExt         string
+	SkipForJSONFeed   bool
+	ServerVariantName string
 }
 
 func (p Platform) Variant() string {
@@ -404,16 +405,18 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "macos",
-		Arch:      ArchArm64,
-		OS:        OSMac,
-		BuildTags: defaultBuildTags,
+		Name:              "macos",
+		Arch:              ArchArm64,
+		OS:                OSMac,
+		BuildTags:         defaultBuildTags,
+		ServerVariantName: "enterprise-macos-arm64",
 	},
 	{
-		Name:      "macos",
-		Arch:      ArchX86_64,
-		OS:        OSMac,
-		BuildTags: defaultBuildTags,
+		Name:              "macos",
+		Arch:              ArchX86_64,
+		OS:                OSMac,
+		BuildTags:         defaultBuildTags,
+		ServerVariantName: "enterprise-macos",
 	},
 	{
 		Name:      "rhel62",

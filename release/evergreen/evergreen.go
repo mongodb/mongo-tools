@@ -101,6 +101,43 @@ func GetArtifactsForTask(id string) ([]Artifact, error) {
 }
 
 // GetTasksForVersion gets all the evergreen tasks associated with a version.
+func GetBuildVariantForVersion(variant, version string) (string, error) {
+	res, err := get("/versions/" + version)
+	if err != nil {
+		return "", err
+	}
+
+	var evgVersion EvgVersion
+	bodyDecoder := json.NewDecoder(res.Body)
+	err = bodyDecoder.Decode(&evgVersion)
+	if err != nil {
+		return "", err
+	}
+
+	buildID := ""
+
+	for _, buildDetail := range evgVersion.BuildVariantStatus {
+		if buildDetail.BuildVariant == variant {
+			buildID = buildDetail.BuildID
+			break
+		}
+	}
+
+	tasks, err := GetTasksForBuild(buildID)
+	if err != nil {
+		return "", err
+	}
+
+	for _, t := range tasks {
+		if t.DisplayName == "package" {
+			return t.TaskID, nil
+		}
+	}
+
+	return "", nil
+}
+
+// GetTasksForVersion gets all the evergreen tasks associated with a version.
 func GetTasksForVersion(version string) ([]Task, error) {
 	res, err := get("/versions/" + version)
 	if err != nil {
