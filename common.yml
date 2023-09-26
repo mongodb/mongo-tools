@@ -10,12 +10,6 @@ exec_timeout_secs: 10800
 # run the same task in the previous revision if the current task fails
 stepback: true
 
-modules:
-  - name: mongo-release
-    repo: git@github.com:10gen/mongo-release.git
-    prefix: ${workdir}/src
-    branch: master
-
 variables:
   # Common mongodb arguments
   mongod_arguments:
@@ -104,24 +98,13 @@ functions:
         PATH=$PATH:$HOME
         go run build.go -v ${target}
 
-  "download mongod and shell2":
-    command: shell.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      script:
-        ${_set_shell_env}
-        ${_maybe_enable_devtoolset_7}
-        ./scripts/download_mongod_and_shell.sh
-      add_expansions_to_env: true
-
   "download mongod and shell":
-    command: subprocess.exec
-    params:
-      working_dir: src/github.com/mongodb/mongo-tools
-      binary: bash
-      args:
-        - "./scripts/download_mongod_and_shell.sh"
-      add_expansions_to_env: true
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
 
   "get buildnumber":
     command: keyval.inc
@@ -420,14 +403,6 @@ functions:
         permissions: public-read
         content_type: application/octet-stream
 
-  "get mongod and shell go":
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          ${_set_shell_env}
-          go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
-
   "upload release packages to s3":
     - command: shell.exec
       params:
@@ -487,8 +462,6 @@ functions:
     - command: git.get_project
       params:
         directory: src/github.com/mongodb/mongo-tools
-        revisions:
-          mongo-release: master
     - command: git.apply_patch
       params:
         directory: src/github.com/mongodb/mongo-tools
