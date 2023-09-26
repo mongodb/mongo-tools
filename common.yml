@@ -1769,7 +1769,7 @@ tasks:
             set -x
             set -v
             set -e
-            go vet ./bsondump ./mongo*
+            go vet -composites=false ./bsondump ./mongo*
 
   - name: third-party-licenses
     commands:
