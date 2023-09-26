@@ -331,14 +331,14 @@ func createCollectionCommand(intent *intents.Intent, options bson.D) bson.D {
 // This command must also be run on the primary.
 //
 // Example command:
-// {
-//    _mergeAuthzCollections: 1,
-//    db: "foo",
-//    tempUsersCollection: "myTempUsers"
-//    drop: true
-//    writeConcern: {w: "majority"}
-// }
 //
+//	{
+//	   _mergeAuthzCollections: 1,
+//	   db: "foo",
+//	   tempUsersCollection: "myTempUsers"
+//	   drop: true
+//	   writeConcern: {w: "majority"}
+//	}
 func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) error {
 
 	type loopArg struct {
