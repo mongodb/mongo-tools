@@ -98,6 +98,8 @@ functions:
         PATH=$PATH:$HOME
         gcc --version
         g++ --version
+        which gcc
+        echo $CC
         go run build.go -v ${target}
 
   "download mongod and shell":
@@ -110,6 +112,8 @@ functions:
           PATH=$PATH:$HOME
           gcc --version
           g++ --version
+          which gcc
+          echo $CC
           go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
 
   "get buildnumber":
