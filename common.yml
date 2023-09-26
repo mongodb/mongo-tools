@@ -1765,7 +1765,7 @@ tasks:
             set -x
             set -v
             set -e
-            go tool vet bsondump mongo*
+            go vet bsondump mongo*
 
   - name: third-party-licenses
     commands:

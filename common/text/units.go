@@ -24,7 +24,8 @@ var (
 
 // FormatByteAmount takes an int64 representing a size in bytes and
 // returns a formatted string of a minimum amount of significant figures.
-//  e.g. 12.4 GB, 0.0 B, 124.5 KB
+//
+//	e.g. 12.4 GB, 0.0 B, 124.5 KB
 func FormatByteAmount(size int64) string {
 	return formatUnitAmount(binary, size, 3, longByteUnits)
 }
