@@ -97,6 +97,7 @@ functions:
         ${_maybe_enable_devtoolset_7}
         PATH=$PATH:$HOME
         gcc --version
+        g++ --version
         go run build.go -v ${target}
 
   "download mongod and shell":
@@ -105,6 +106,10 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
+          ${_maybe_enable_devtoolset_7}
+          PATH=$PATH:$HOME
+          gcc --version
+          g++ --version
           go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
 
   "get buildnumber":
