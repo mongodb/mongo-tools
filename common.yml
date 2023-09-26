@@ -483,7 +483,7 @@ functions:
           set -x
           set -v
           set -e
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.47.3
+          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
 
   "create repl_set":
     - command: shell.exec
@@ -1761,6 +1761,7 @@ tasks:
         params:
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
+            ${_set_shell_env}
             set -x
             set -v
             set -e

@@ -212,7 +212,6 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 
 	// The h field was removed in 7.1.0-rc0 as part of SERVER-69062
 	if restore.serverVersion.GTE(db.Version{7, 0, 0}) {
-		fmt.Printf("filterHs\n")
 		op, err = restore.filterHs(op)
 		if err != nil {
 			return fmt.Errorf("error filtering h from oplog entries: %v", err)
