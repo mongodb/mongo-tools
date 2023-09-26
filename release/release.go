@@ -1033,7 +1033,7 @@ func uploadReleaseJSON(v version.Version) {
 		dl.Name = pf.Name
 		dl.Arch = pf.Arch.String()
 		for _, a := range artifacts {
-			ext := path.Ext(a.URL)
+			ext := filepath.Ext(a.URL)
 			if ext == ".sig" {
 				continue
 			}
@@ -1140,7 +1140,7 @@ func uploadRelease(v version.Version) {
 		}
 
 		for _, a := range artifacts {
-			ext := path.Ext(a.URL)
+			ext := filepath.Ext(a.URL)
 			if ext == ".sig" {
 				ext = a.URL[len(a.URL)-8:]
 			}
@@ -1391,8 +1391,8 @@ func downloadBinaries(url string) {
 	tempDir, err := os.MkdirTemp("bin", "")
 	check(err, "create temp dir")
 
-	filename := path.Base(url)
-	tempPath := path.Join(tempDir, filename)
+	filename := filepath.Base(url)
+	tempPath := filepath.Join(tempDir, filename)
 	packageFile, err := os.Create(tempPath)
 	check(err, "create the server package file")
 
@@ -1417,8 +1417,8 @@ func downloadBinaries(url string) {
 
 	for _, f := range binFiles {
 		if filepath.Ext(f) != ".pdb" {
-			fmt.Printf("Move %s to %s\n", f, path.Join("bin", path.Base(f)))
-			os.Rename(f, path.Join("bin", path.Base(f)))
+			fmt.Printf("Move %s to %s\n", f, filepath.Join("bin", filepath.Base(f)))
+			os.Rename(f, filepath.Join("bin", filepath.Base(f)))
 		}
 	}
 }
