@@ -22,7 +22,7 @@ type ApplyOpsResponse struct {
 type Oplog struct {
 	Timestamp  primitive.Timestamp `bson:"ts"`
 	Term       *int64              `bson:"t"`
-	Hash       *int64              `bson:"h"`
+	Hash       *int64              `bson:"h,omitempty"`
 	Version    int                 `bson:"v"`
 	Operation  string              `bson:"op"`
 	Namespace  string              `bson:"ns"`
