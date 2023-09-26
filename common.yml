@@ -100,7 +100,8 @@ functions:
         g++ --version
         which gcc
         echo $CC
-        CC=${which gcc} go run build.go -v ${target}
+        CC=$(which gcc)
+        CC=$(which gcc) go run build.go -v ${target}
 
   "download mongod and shell":
     - command: shell.exec
