@@ -487,6 +487,8 @@ functions:
     - command: git.get_project
       params:
         directory: src/github.com/mongodb/mongo-tools
+        revisions:
+          mongo-release: master
     - command: git.apply_patch
       params:
         directory: src/github.com/mongodb/mongo-tools
