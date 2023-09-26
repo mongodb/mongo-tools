@@ -1779,9 +1779,9 @@ buildvariants:
   - name: static
     display_name: "! Static Analysis"
     run_on:
-      - rhel62-small
+      - rhel80-small
     expansions:
-      _platform: rhel62
+      _platform: rhel80
     tasks:
       - name: format-go
       - name: lint-go
