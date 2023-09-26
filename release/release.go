@@ -1426,6 +1426,8 @@ func unzip(src, dst string) {
 	defer reader.Close()
 
 	for _, f := range reader.File {
+		fmt.Printf("extracting %v\n", f.Name)
+
 		path := filepath.Join(dst, f.Name)
 
 		if f.FileInfo().IsDir() {
@@ -1494,7 +1496,7 @@ func downloadShell(v string) {
 
 	fmt.Printf("Version: %s\n", v)
 
-	grepArg := fmt.Sprintf("--grep=%s", v)
+	grepArg := fmt.Sprintf("--grep=%s$", v)
 	fmt.Printf("grepArg: %s\n", grepArg)
 
 	pwd, err := run("pwd")
