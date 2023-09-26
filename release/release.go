@@ -1500,10 +1500,10 @@ func downloadShell(v string) {
 	pwd, err := run("pwd")
 	fmt.Printf("pwd: %s\n", pwd)
 
-	lsout, err := run("ls", "../../..")
-	fmt.Printf("lsout: %s\n", lsout)
+	_, err = run("git", "clone", "git@github.com:10gen/mongo-release.git")
+	check(err, "git clone")
 
-	githash, err := run("git", "-C", "../../../mongo-release", "log", "--pretty=format:%H", grepArg)
+	githash, err := run("git", "-C", "mongo-release", "log", "--pretty=format:%H", grepArg)
 
 	check(err, "get git hash")
 	fmt.Printf("Git hash: %s\n", githash)
