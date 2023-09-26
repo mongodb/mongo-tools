@@ -1416,7 +1416,10 @@ func downloadBinaries(url string) {
 	binFiles, err := filepath.Glob(path.Join(tempDir, "mongodb-*", "bin", "*"))
 
 	for _, f := range binFiles {
-		os.Rename(f, path.Join("bin", path.Base(f)))
+		if filepath.Ext(f) != ".pdb" {
+			fmt.Printf("Move %s to %s\n", f, path.Join("bin", path.Base(f)))
+			os.Rename(f, path.Join("bin", path.Base(f)))
+		}
 	}
 }
 
