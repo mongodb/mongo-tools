@@ -1499,7 +1499,7 @@ func downloadShell(v string) {
 
 	pwd, err := run("pwd")
 	fmt.Printf("pwd: %s\n", pwd)
-	githash, err := run("git", "-C", "src/mongo-release", "log", "--pretty=format:%H", grepArg)
+	githash, err := run("git", "-C", "../../../mongo-release", "log", "--pretty=format:%H", grepArg)
 
 	check(err, "get git hash")
 	fmt.Printf("Git hash: %s\n", githash)
