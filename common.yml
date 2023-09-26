@@ -106,10 +106,6 @@ functions:
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
-          # gcc --version
-          # g++ --version
-          # which gcc
-          # echo $CC
           go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
 
   "get buildnumber":
