@@ -1927,6 +1927,8 @@ buildvariants:
 
   - name: rhel62
     display_name: RHEL 6.2
+    expansions:
+      mongo_os: "rhel62"
     run_on:
       - rhel62-small
     tasks:
