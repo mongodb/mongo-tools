@@ -80,7 +80,7 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					v, err := version.GetCurrent()
 					if err != nil {
-						log.Fatalf("Failed to get current version: %v", err)
+						return fmt.Errorf("Failed to get current version: %v", err)
 					}
 					fmt.Println(v)
 					return nil
@@ -98,7 +98,7 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					v, err := version.GetCurrent()
 					if err != nil {
-						log.Fatalf("Failed to get current version: %v", err)
+						return fmt.Errorf("Failed to get current version: %v", err)
 					}
 					uploadRelease(v)
 					return nil
@@ -109,7 +109,7 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					v, err := version.GetCurrent()
 					if err != nil {
-						log.Fatalf("Failed to get current version: %v", err)
+						return fmt.Errorf("Failed to get current version: %v", err)
 					}
 					uploadReleaseJSON(v)
 					return nil
@@ -120,7 +120,7 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					v, err := version.GetCurrent()
 					if err != nil {
-						log.Fatalf("Failed to get current version: %v", err)
+						return fmt.Errorf("Failed to get current version: %v", err)
 					}
 					generateFullReleaseJSON(v)
 					return nil
@@ -131,7 +131,7 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					v, err := version.GetCurrent()
 					if err != nil {
-						log.Fatalf("Failed to get current version: %v", err)
+						return fmt.Errorf("Failed to get current version: %v", err)
 					}
 					linuxRelease(v)
 					return nil
@@ -1418,7 +1418,8 @@ func downloadBinaries(url string) {
 	for _, f := range binFiles {
 		if filepath.Ext(f) != ".pdb" {
 			fmt.Printf("Move %s to %s\n", f, filepath.Join("bin", filepath.Base(f)))
-			os.Rename(f, filepath.Join("bin", filepath.Base(f)))
+			err = os.Rename(f, filepath.Join("bin", filepath.Base(f)))
+			check(err, "move binaries to bin")
 		}
 	}
 }
@@ -1515,7 +1516,7 @@ func downloadShell(v string) {
 
 	evgVersion := fmt.Sprintf("mongo_release_%s", githash)
 	fmt.Printf("Version: %v\n", evgVersion)
-	buildID, err := evergreen.GetBuildVariantForVersion(pf.ServerVariantName, evgVersion)
+	buildID, err := evergreen.GetPackageTaskForVersion(pf.ServerVariantName, evgVersion)
 	check(err, "get tasks for version")
 
 	artifacts, err := evergreen.GetArtifactsForTask(buildID)

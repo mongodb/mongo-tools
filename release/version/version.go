@@ -36,9 +36,9 @@ func Parse(desc string) (Version, error) {
 		return Version{}, fmt.Errorf("failed to parse major version %q", parts[0])
 	}
 
-	min := 0
+	minor := 0
 	if len(parts) > 1 {
-		min, err = strconv.Atoi(parts[1])
+		minor, err = strconv.Atoi(parts[1])
 		if err != nil {
 			return Version{}, fmt.Errorf("failed to parse minor version %q", parts[1])
 		}
@@ -54,7 +54,7 @@ func Parse(desc string) (Version, error) {
 
 	return Version{
 		Major: maj,
-		Minor: min,
+		Minor: minor,
 		Patch: pat,
 		Pre:   pre,
 	}, nil
