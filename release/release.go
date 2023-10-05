@@ -1381,7 +1381,7 @@ func downloadMongodAndShell(v string) {
 	fmt.Printf("Version: %v\n", serverVersion)
 
 	downloadBinaries(url)
-	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") > -1 {
+	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
 		// serverVersion >= 6.0.0
 		downloadShell(serverVersion)
 	}
@@ -1411,6 +1411,8 @@ func downloadBinaries(url string) {
 	case ".tgz":
 		fmt.Printf("extracting to: %v\n", tempDir)
 		untargz(tempPath, tempDir)
+	default:
+		log.Fatalf("Expected artifact filename to end in .zip or .tgz, instead got %s", filename)
 	}
 
 	binFiles, err := filepath.Glob(path.Join(tempDir, "mongodb-*", "bin", "*"))
