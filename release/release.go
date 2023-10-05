@@ -30,6 +30,9 @@ import (
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
+	"golang.org/x/mod/semver"
+
+	"github.com/urfave/cli/v2"
 )
 
 // These are the binaries that are part of mongo-tools, relative
@@ -55,51 +58,104 @@ func main() {
 	// don't prefix log messages with anything
 	log.SetFlags(0)
 
-	var cmd string
-	var v version.Version
-	var err error
-
-	switch len(os.Args) {
-	case 1:
-		log.Fatal("please provide a subcommand")
-	case 2:
-		cmd = os.Args[1]
-		v, err = version.GetCurrent()
-		if err != nil {
-			log.Fatalf("failed to get version: %v", err)
-		}
-
-	case 3:
-		cmd = os.Args[1]
-		v, err = version.GetFromRev(os.Args[2])
-		if err != nil {
-			log.Fatalf("failed to get version: %v", err)
-		}
-	default:
-		log.Fatalf("expected one or two arguments, got %d", len(os.Args))
+	app := &cli.App{
+		Commands: []*cli.Command{
+			{
+				Name: "build-archive",
+				Action: func(cCtx *cli.Context) error {
+					buildArchive()
+					return nil
+				},
+			},
+			{
+				Name: "build-packages",
+				Action: func(cCtx *cli.Context) error {
+					buildMSI()
+					buildLinuxPackages()
+					return nil
+				},
+			},
+			{
+				Name: "get-version",
+				Action: func(cCtx *cli.Context) error {
+					v, err := version.GetCurrent()
+					if err != nil {
+						return fmt.Errorf("Failed to get current version: %v", err)
+					}
+					fmt.Println(v)
+					return nil
+				},
+			},
+			{
+				Name: "list-deps",
+				Action: func(cCtx *cli.Context) error {
+					listLinuxDeps()
+					return nil
+				},
+			},
+			{
+				Name: "upload-release",
+				Action: func(cCtx *cli.Context) error {
+					v, err := version.GetCurrent()
+					if err != nil {
+						return fmt.Errorf("Failed to get current version: %v", err)
+					}
+					uploadRelease(v)
+					return nil
+				},
+			},
+			{
+				Name: "upload-json",
+				Action: func(cCtx *cli.Context) error {
+					v, err := version.GetCurrent()
+					if err != nil {
+						return fmt.Errorf("Failed to get current version: %v", err)
+					}
+					uploadReleaseJSON(v)
+					return nil
+				},
+			},
+			{
+				Name: "generate-full-json",
+				Action: func(cCtx *cli.Context) error {
+					v, err := version.GetCurrent()
+					if err != nil {
+						return fmt.Errorf("Failed to get current version: %v", err)
+					}
+					generateFullReleaseJSON(v)
+					return nil
+				},
+			},
+			{
+				Name: "linux-release",
+				Action: func(cCtx *cli.Context) error {
+					v, err := version.GetCurrent()
+					if err != nil {
+						return fmt.Errorf("Failed to get current version: %v", err)
+					}
+					linuxRelease(v)
+					return nil
+				},
+			},
+			{
+				Name: "download-mongod-and-shell",
+				Action: func(cCtx *cli.Context) error {
+					downloadMongodAndShell(cCtx.String("server-version"))
+					return nil
+				},
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name: "server-version",
+					},
+				},
+			},
+		},
 	}
 
-	switch cmd {
-	case "build-archive":
-		buildArchive()
-	case "build-packages":
-		buildMSI()
-		buildLinuxPackages()
-	case "get-version":
-		fmt.Println(v)
-	case "list-deps":
-		listLinuxDeps()
-	case "upload-release":
-		uploadRelease(v)
-	case "upload-json":
-		uploadReleaseJSON(v)
-	case "generate-full-json":
-		generateFullReleaseJSON(v)
-	case "linux-release":
-		linuxRelease(v)
-	default:
-		log.Fatalf("unknown subcommand '%s'", cmd)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
+
 }
 
 func check(err error, format ...interface{}) {
@@ -977,7 +1033,7 @@ func uploadReleaseJSON(v version.Version) {
 		dl.Name = pf.Name
 		dl.Arch = pf.Arch.String()
 		for _, a := range artifacts {
-			ext := path.Ext(a.URL)
+			ext := filepath.Ext(a.URL)
 			if ext == ".sig" {
 				continue
 			}
@@ -1084,7 +1140,7 @@ func uploadRelease(v version.Version) {
 		}
 
 		for _, a := range artifacts {
-			ext := path.Ext(a.URL)
+			ext := filepath.Ext(a.URL)
 			if ext == ".sig" {
 				ext = a.URL[len(a.URL)-8:]
 			}
@@ -1296,4 +1352,184 @@ func linuxRelease(v version.Version) {
 // by a git tag.
 func canPerformStableRelease(v version.Version) bool {
 	return v.IsStable() && env.EvgIsTagTriggered()
+}
+
+func downloadMongodAndShell(v string) {
+	err := os.Mkdir("bin", 0700)
+	if err != nil && !os.IsExist(err) {
+		check(err, "create bin dir")
+	}
+
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	feedURL := "http://downloads.mongodb.org/full.json"
+
+	var feed download.ServerJSONFeed
+
+	res, err := http.Get(feedURL)
+	check(err, "get the server JSON feed")
+
+	err = json.NewDecoder(res.Body).Decode(&feed)
+	check(err, "decode JSON feed")
+
+	url, githash, serverVersion, err := feed.FindURLHashAndVersion(v, pf.Name, string(pf.Arch), "enterprise")
+	check(err, "get URL from JSON feed")
+
+	fmt.Printf("URL: %v\n", url)
+	fmt.Printf("GitHash: %v\n", githash)
+	fmt.Printf("Version: %v\n", serverVersion)
+
+	downloadBinaries(url)
+	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
+		// serverVersion >= 6.0.0
+		downloadShell(serverVersion)
+	}
+}
+
+func downloadBinaries(url string) {
+	tempDir, err := os.MkdirTemp("bin", "")
+	check(err, "create temp dir")
+
+	filename := filepath.Base(url)
+	tempPath := filepath.Join(tempDir, filename)
+	packageFile, err := os.Create(tempPath)
+	check(err, "create the server package file")
+
+	res, err := http.Get(url)
+	check(err, "get the server package")
+
+	_, err = io.Copy(packageFile, res.Body)
+	check(err, "write server package file")
+
+	fmt.Printf("extension: %v\n", filepath.Ext(filename))
+
+	switch filepath.Ext(filename) {
+	case ".zip":
+		fmt.Printf("extracting to: %v\n", tempDir)
+		unzip(tempPath, tempDir)
+	case ".tgz":
+		fmt.Printf("extracting to: %v\n", tempDir)
+		untargz(tempPath, tempDir)
+	default:
+		log.Fatalf("Expected artifact filename to end in .zip or .tgz, instead got %s", filename)
+	}
+
+	binFiles, err := filepath.Glob(path.Join(tempDir, "mongodb-*", "bin", "*"))
+
+	for _, f := range binFiles {
+		if filepath.Ext(f) != ".pdb" {
+			fmt.Printf("Move %s to %s\n", f, filepath.Join("bin", filepath.Base(f)))
+			err = os.Rename(f, filepath.Join("bin", filepath.Base(f)))
+			check(err, "move binaries to bin")
+		}
+	}
+}
+
+func unzip(src, dst string) {
+	reader, err := zip.OpenReader(src)
+	check(err, "open zip file")
+	defer reader.Close()
+
+	for _, f := range reader.File {
+		fmt.Printf("extracting %v\n", f.Name)
+
+		path := filepath.Join(dst, f.Name)
+
+		if f.FileInfo().IsDir() {
+			err = os.MkdirAll(path, os.ModePerm)
+			check(err, "create directory for extracting zip")
+			continue
+		}
+
+		err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
+		check(err, "create directory for extracting zip")
+
+		destinationFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		check(err, "open file for extracting zip")
+
+		archiveFile, err := f.Open()
+		check(err, "open file in archive")
+
+		_, err = io.Copy(destinationFile, archiveFile)
+		check(err, "write archive file to the destination file")
+
+		destinationFile.Close()
+		archiveFile.Close()
+	}
+}
+
+func untargz(src, dst string) {
+	reader, err := os.Open(src)
+	check(err, "open tgz file")
+
+	gzReader, err := gzip.NewReader(reader)
+	check(err, "open gzip reader for tgz file")
+
+	tarReader := tar.NewReader(gzReader)
+
+	for header, err := tarReader.Next(); err != io.EOF; header, err = tarReader.Next() {
+		fmt.Printf("extracting %v\n", header.Name)
+
+		check(err, "read from tar file")
+
+		path := filepath.Join(dst, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			err = os.MkdirAll(path, os.ModePerm)
+			check(err, "create directory for extracting tar")
+		case tar.TypeReg:
+			err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
+			check(err, "create directory for extracting zip")
+
+			destinationFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, header.FileInfo().Mode())
+			check(err, "open file for extracting zip")
+
+			_, err = io.Copy(destinationFile, tarReader)
+			check(err, "write archive file to the destination file")
+
+			destinationFile.Close()
+		}
+	}
+
+	gzReader.Close()
+}
+
+func downloadShell(v string) {
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+
+	fmt.Printf("Version: %s\n", v)
+
+	grepArg := fmt.Sprintf("--grep=%s$", v)
+	fmt.Printf("grepArg: %s\n", grepArg)
+
+	pwd, err := run("pwd")
+	fmt.Printf("pwd: %s\n", pwd)
+
+	_, err = run("git", "clone", "git@github.com:10gen/mongo-release.git")
+	check(err, "git clone")
+
+	githash, err := run("git", "-C", "mongo-release", "log", "--pretty=format:%H", grepArg)
+
+	check(err, "get git hash")
+	fmt.Printf("Git hash: %s\n", githash)
+
+	evgVersion := fmt.Sprintf("mongo_release_%s", githash)
+	fmt.Printf("Version: %v\n", evgVersion)
+	buildID, err := evergreen.GetPackageTaskForVersion(pf.ServerVariantName, evgVersion)
+	check(err, "get tasks for version")
+
+	artifacts, err := evergreen.GetArtifactsForTask(buildID)
+	check(err, "get artifacts")
+
+	fmt.Printf("buildID: %v\n", buildID)
+
+	for _, a := range artifacts {
+		if a.Name == "Jstestshell" {
+			downloadBinaries(a.URL)
+		}
+	}
+
 }

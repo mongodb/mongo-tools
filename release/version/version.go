@@ -17,10 +17,6 @@ type Version struct {
 }
 
 func Parse(desc string) (Version, error) {
-	if len(desc) < 5 {
-		return Version{}, fmt.Errorf("description too short to parse: %q", desc)
-	}
-
 	if desc[0] == 'r' || desc[0] == 'v' {
 		desc = desc[1:]
 	}
@@ -34,28 +30,31 @@ func Parse(desc string) (Version, error) {
 	}
 
 	parts = strings.Split(num, ".")
-	if len(parts) != 3 {
-		return Version{}, fmt.Errorf("expected three parts in version number, got %s", num)
-	}
 
 	maj, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return Version{}, fmt.Errorf("failed to parse major version %q", parts[0])
 	}
 
-	min, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return Version{}, fmt.Errorf("failed to parse minor version %q", parts[1])
+	minor := 0
+	if len(parts) > 1 {
+		minor, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return Version{}, fmt.Errorf("failed to parse minor version %q", parts[1])
+		}
 	}
 
-	pat, err := strconv.Atoi(parts[2])
-	if err != nil {
-		return Version{}, fmt.Errorf("failed to parse patch version %q", parts[2])
+	pat := 0
+	if len(parts) > 2 {
+		pat, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return Version{}, fmt.Errorf("failed to parse patch version %q", parts[2])
+		}
 	}
 
 	return Version{
 		Major: maj,
-		Minor: min,
+		Minor: minor,
 		Patch: pat,
 		Pre:   pre,
 	}, nil

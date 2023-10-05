@@ -82,8 +82,10 @@ func (pb *Bar) validate() {
 
 // Stop kills the Bar goroutine, stopping it from writing.
 // Generally called as
-//  myBar.Start()
-//  defer myBar.Stop()
+//
+//	myBar.Start()
+//	defer myBar.Stop()
+//
 // to stop leakage
 // Stop() needs to be synchronous in order that when pb.Stop() is called
 // all of the rendering has completed
@@ -165,9 +167,10 @@ func (pb *Bar) start() {
 
 // drawBar returns a drawn progress bar of a given width and percentage
 // as a string. Examples:
-//  [........................]
-//  [###########.............]
-//  [########################]
+//
+//	[........................]
+//	[###########.............]
+//	[########################]
 func drawBar(spaces int, percent float64) string {
 	if spaces <= 0 {
 		return ""

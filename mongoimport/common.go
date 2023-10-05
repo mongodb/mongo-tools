@@ -264,31 +264,31 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 // recursive with setNestedArrayValue. The two functions work together to set elements
 // nested in documents and arrays. This is the strategy of setNestedDocumentValue/setNestedArrayValue:
 //
-// 1. setNestedDocumentValue is called first. The first part of the field is treated as
-//    a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
-//    interpreted as a document key (which would only happen at the top level of a
-//    BSON document being imported).
+//  1. setNestedDocumentValue is called first. The first part of the field is treated as
+//     a document key, even if it is numeric. For a case such as 0.a.b, 0 would be
+//     interpreted as a document key (which would only happen at the top level of a
+//     BSON document being imported).
 //
 // 2. If there is only one field part, the value will be set for the field in the document.
 //
-// 3. setNestedDocumentValue will call setNestedArrayValue if the next part of the
-//    field is a natural number (which implies the value is an element of an array).
-//    Otherwise, it will call itself. If a document or array already exists for the field,
-//    a reference to that document or array will be passed to setNestedDocumentValue or
-//    setNestedArrayValue respectively. If no value exists, a new document or array is
-//    created, added to the document, and a reference is passed to those functions.
+//  3. setNestedDocumentValue will call setNestedArrayValue if the next part of the
+//     field is a natural number (which implies the value is an element of an array).
+//     Otherwise, it will call itself. If a document or array already exists for the field,
+//     a reference to that document or array will be passed to setNestedDocumentValue or
+//     setNestedArrayValue respectively. If no value exists, a new document or array is
+//     created, added to the document, and a reference is passed to those functions.
 //
-// 4. If setNestedArrayValue has been called, the first part of the field is an array index.
-//    If there is only one field part, setNestedArrayValue will append the provided value to the
-//    provided array. This is only if the size of the array is equal to the index (meaning
-//    elements of the array must be added sequentially: 0, 1, 2,...).
+//  4. If setNestedArrayValue has been called, the first part of the field is an array index.
+//     If there is only one field part, setNestedArrayValue will append the provided value to the
+//     provided array. This is only if the size of the array is equal to the index (meaning
+//     elements of the array must be added sequentially: 0, 1, 2,...).
 //
-// 5. setNestedArrayValue will call setNestedDocumentValue if the next part of the field is not a
-//    natural number (which implies the value is a document). setNestedArrayValue will call
-//    itself if the next part of the field is a natural number. If a document or array already
-//    exists at that index in the array, a reference to that document or array will be passed
-//    to setNestedDocumentValue or setNestedArrayValue respectively. If no value exists, a new document
-//    or array is created, added to the array, and a reference is passed to those functions.
+//  5. setNestedArrayValue will call setNestedDocumentValue if the next part of the field is not a
+//     natural number (which implies the value is a document). setNestedArrayValue will call
+//     itself if the next part of the field is a natural number. If a document or array already
+//     exists at that index in the array, a reference to that document or array will be passed
+//     to setNestedDocumentValue or setNestedArrayValue respectively. If no value exists, a new document
+//     or array is created, added to the array, and a reference is passed to those functions.
 func setNestedDocumentValue(fieldParts []string, value interface{}, document *bson.D, useArrayIndexFields bool) (err error) {
 	if len(fieldParts) == 1 {
 		*document = append(*document, bson.E{Key: fieldParts[0], Value: value})
@@ -542,18 +542,18 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 // validateFields takes a slice of fields and returns an error if the fields
 // are invalid, returns nil otherwise. Fields are invalid in the following cases:
 //
-//     (1). A field contains an invalid series of characters
-//     (2). Two fields are the same (e.g. a,a)
-//     (3). One field implies there is a value, another implies there is a document (e.g. a,a.b)
+//	(1). A field contains an invalid series of characters
+//	(2). Two fields are the same (e.g. a,a)
+//	(3). One field implies there is a value, another implies there is a document (e.g. a,a.b)
 //
 // In the case that --useArrayIndexFields is set, fields are also invalid in the following cases:
 //
-//     (4). One field implies there is a value, another implies there is an array (e.g. a,a.0).
-//     (5). One field implies that there is a document, another implies there is an array.
-//          (e.g. a.b,a.0 or a.b.c,a.0.c)
-//     (6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
-//     (7). Array indexes are out of order (e.g. a.0,a.2,a.1)
-//     (8). An array is missing an index (e.g. a.0,a.2)
+//	(4). One field implies there is a value, another implies there is an array (e.g. a,a.0).
+//	(5). One field implies that there is a document, another implies there is an array.
+//	     (e.g. a.b,a.0 or a.b.c,a.0.c)
+//	(6). The indexes for an array don't start from 0 (e.g. a.1,a.2)
+//	(7). Array indexes are out of order (e.g. a.0,a.2,a.1)
+//	(8). An array is missing an index (e.g. a.0,a.2)
 func validateFields(inputFields []string, useArrayIndexFields bool) error {
 	for _, field := range inputFields {
 

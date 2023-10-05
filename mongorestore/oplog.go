@@ -210,6 +210,14 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
 	}
 
+	// The h field was removed in 7.1.0-rc0 as part of SERVER-69062
+	if restore.serverVersion.GTE(db.Version{7, 0, 0}) {
+		op, err = restore.filterHs(op)
+		if err != nil {
+			return fmt.Errorf("error filtering h from oplog entries: %v", err)
+		}
+	}
+
 	if op.Operation == "c" {
 		if len(op.Object) == 0 {
 			return fmt.Errorf("Empty object value for op: %v", op)
@@ -486,6 +494,37 @@ func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 			return db.Oplog{}, err
 		}
 		op.Object = filtered
+	}
+
+	return op, nil
+}
+
+// filterHs removes 'h' entries from ops, including nested applyOps ops.
+func (restore *MongoRestore) filterHs(op db.Oplog) (db.Oplog, error) {
+	// Remove h from oplog entries
+	op.Hash = nil
+
+	// Check for and filter nested applyOps ops
+	if op.Operation == "c" && isApplyOpsCmd(op.Object) {
+		ops, err := unwrapNestedApplyOps(op.Object)
+		if err != nil {
+			return db.Oplog{}, err
+		}
+
+		filtered := make([]db.Oplog, len(ops))
+		for i, v := range ops {
+			filtered[i], err = restore.filterUUIDs(v)
+			if err != nil {
+				return db.Oplog{}, err
+			}
+		}
+
+		doc, err := wrapNestedApplyOps(filtered)
+		if err != nil {
+			return db.Oplog{}, err
+		}
+
+		op.Object = doc
 	}
 
 	return op, nil

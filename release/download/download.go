@@ -10,32 +10,33 @@ import (
 // JSONFeed represents the structure of the JSON
 // document consumed by the MongoDB downloads center.
 // An abbreviated version of the document might look like:
-// {
-//   "versions": [
-//     {
-//       "version": "4.3.2",
-//       "downloads": [
-//         {
-//           "name": "amazon",
-//           "arch": "x86_64",
-//           "archive": {
-//             "url": "fastdl.mongodb.org/tools/db/...tgz",
-//             "md5": "4ec7...",
-//             "sha1": "3269...",
-//             "sha256": "0b679..."
-//           },
-//           "package": {
-//             "url": "fastdl.mongodb.org/tools/db/...rpm",
-//             "md5": "5b35...",
-//             "sha1": "b07c...",
-//             "sha256": "f6e7..."
-//           }
-//         },
-//         ...
-//       ]
-//     }
-//   ]
-// }
+//
+//	{
+//	  "versions": [
+//	    {
+//	      "version": "4.3.2",
+//	      "downloads": [
+//	        {
+//	          "name": "amazon",
+//	          "arch": "x86_64",
+//	          "archive": {
+//	            "url": "fastdl.mongodb.org/tools/db/...tgz",
+//	            "md5": "4ec7...",
+//	            "sha1": "3269...",
+//	            "sha256": "0b679..."
+//	          },
+//	          "package": {
+//	            "url": "fastdl.mongodb.org/tools/db/...rpm",
+//	            "md5": "5b35...",
+//	            "sha1": "b07c...",
+//	            "sha256": "f6e7..."
+//	          }
+//	        },
+//	        ...
+//	      ]
+//	    }
+//	  ]
+//	}
 type JSONFeed struct {
 	Versions []*ToolsVersion `json:"versions"`
 }

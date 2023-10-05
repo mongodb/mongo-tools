@@ -126,6 +126,7 @@ func (s BySize) Less(i, j int) bool { return s[i].Size > s[j].Size }
 // multiDatabaseLTF is designed to properly schedule intents with two constraints:
 //  1. it is optimized to run in a multi-processor environment
 //  2. it is optimized for parallelism against 2.6's db-level write lock
+//
 // These goals result in a design that attempts to have as many different
 // database's intents being restored as possible and attempts to restore the
 // largest collections first.
@@ -133,8 +134,10 @@ func (s BySize) Less(i, j int) bool { return s[i].Size > s[j].Size }
 // If we can have a minimum number of collections in flight for a given db,
 // we avoid lock contention in an optimal way on 2.6 systems. That is,
 // it is better to have two restore jobs where
-//  job1 = "test.mycollection"
-//  job2 = "mydb2.othercollection"
+//
+//	job1 = "test.mycollection"
+//	job2 = "mydb2.othercollection"
+//
 // so that these collections do not compete for the db-level write lock.
 //
 // We also schedule the largest jobs first, in a greedy fashion, in order
