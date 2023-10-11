@@ -36,24 +36,6 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
-  mac_buildvariant_arguments: &mac_buildvariant_arguments
-    expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
-      mongo_os: "osx"
-      mongo_target: "osx-ssl"
-      excludes: requires_many_files
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
-      resmoke_use_tls: _tls
-      USE_SSL: "true"
-
 functions:
   "run legacy tests":
     command: shell.exec
@@ -1895,6 +1877,8 @@ buildvariants:
 
   - name: macos
     display_name: MacOS 11.00 x86_64
+    expansions:
+      mongo_os: "osx"
     run_on:
       - macos-1100
     tasks:
@@ -1911,6 +1895,8 @@ buildvariants:
 
   - name: macos-arm64
     display_name: MacOS 11 ARM
+    expansions:
+      mongo_os: "osx"
     run_on:
       - macos-1100-arm64
     tasks:
