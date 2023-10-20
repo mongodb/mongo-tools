@@ -1,5 +1,26 @@
 # Database Tools Changelog
 
+## 100.9.0
+
+_Released 2023-10-20_
+
+We are pleased to announce version 100.9.0 of the MongoDB Database Tools.
+
+This version adds support for MongoDB Server 7.0. It also updates the Go version used to build the tools to Go 1.20.10.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Epic
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3278'>TOOLS-3278</a>] -         Tools 7.0 Support
+</li>
+</ul>
+
 ## 100.8.0
 
 _Released 2023-08-16_
