@@ -274,7 +274,7 @@ functions:
         extract_to: src/github.com/mongodb/mongo-tools/
         bucket: mciuploads
 
-  "sign msi installer":
+  "sign msi installer and zip file for windows":
     - command: shell.exec
       type: system
       params:
@@ -289,9 +289,10 @@ functions:
       params:
         working_dir: src/github.com/mongodb/mongo-tools/
         script: |
-          if [ "${mongo_os}" = "osx" ]; then
+          if [ "${mongo_os}" -ne "windows-64" ]; then
               exit 0
           fi
+
           /usr/local/bin/notary-client.py \
               --key-name "server-Tools" \
               --auth-token-file ./signing_auth_token \
@@ -301,6 +302,16 @@ functions:
               --outputs "sig" \
               --package-file-suffix "" \
               release.msi
+
+          /usr/local/bin/notary-client.py \
+              --key-name "server-Tools" \
+              --auth-token-file ./signing_auth_token \
+              --comment "Evergreen Automatic Signing (mongo-tools)" \
+              --notary-url http://notary-service.build.10gen.cc:5000 \
+              --skip-missing \
+              --outputs "sig" \
+              --package-file-suffix "" \
+              release.zip
 
   "sign macos zip":
     command: subprocess.exec
@@ -360,6 +371,12 @@ functions:
           if [ "${mongo_os}" = "osx" ]; then
               exit 0
           fi
+
+          # Windows .zip files are signed separately.
+          if [ "${mongo_os}" = "windows-64" ]; then
+              exit 0
+          fi
+
           /usr/local/bin/notary-client.py \
               --key-name "server-Tools" \
               --auth-token-file ./signing_auth_token \
@@ -725,7 +742,7 @@ tasks:
     commands:
       - func: "fetch source"
       - func: "fetch dist release artifacts"
-      - func: "sign msi installer"
+      - func: "sign msi installer and zip file for windows"
       - func: "sign macos zip"
       - func: "sign linux packages"
       - func: "sign archives"
