@@ -201,12 +201,13 @@ func TestTSVStreamDocument(t *testing.T) {
 
 func TestTSVReadAndValidateHeader(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	var optionsWithFields ColumnsAsOptionFields
 	Convey("With a TSV input reader", t, func() {
 		Convey("setting the header should read the first line of the TSV", func() {
 			contents := "extraHeader1\textraHeader2\textraHeader3\n"
 			colSpecs := []ColumnSpec{}
 			r := NewTSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 		})
 	})

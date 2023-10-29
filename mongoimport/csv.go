@@ -78,24 +78,30 @@ func NewCSVInputReader(colSpecs []ColumnSpec, in io.Reader, rejects io.Writer, n
 
 // ReadAndValidateHeader reads the header from the underlying reader and validates
 // the header fields. It sets err if the read/validation fails.
-func (r *CSVInputReader) ReadAndValidateHeader() (err error) {
+func (r *CSVInputReader) ReadAndValidateHeader(optionsWithFields ColumnsAsOptionFields) (err error) {
 	fields, err := r.csvReader.Read()
 	if err != nil {
 		return err
 	}
 	r.colSpecs = ParseAutoHeaders(fields)
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
+		return err
+	}
 	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
 // ReadAndValidateHeader reads the header from the underlying reader and validates
 // the header fields. It sets err if the read/validation fails.
-func (r *CSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err error) {
+func (r *CSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace, optionsWithFields ColumnsAsOptionFields) (err error) {
 	fields, err := r.csvReader.Read()
 	if err != nil {
 		return err
 	}
 	r.colSpecs, err = ParseTypedHeaders(fields, parseGrace)
 	if err != nil {
+		return err
+	}
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
 		return err
 	}
 	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)

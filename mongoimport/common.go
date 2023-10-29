@@ -32,6 +32,13 @@ type FieldInfo struct {
 	parts    []string
 }
 
+// All options to mongoimport that need validation
+// against the column names provided by user data.
+type ColumnsAsOptionFields struct {
+	timeField string
+	metaField string
+}
+
 const (
 	pgAutoCast ParseGrace = iota
 	pgSkipField
@@ -590,6 +597,7 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
