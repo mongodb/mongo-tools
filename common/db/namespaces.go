@@ -21,7 +21,7 @@ import (
 type CollectionInfo struct {
 	Name    string `bson:"name"`
 	Type    string `bson:"type"`
-	Options bson.M `bson:"options"`
+	Options bson.D `bson:"options"`
 	Info    bson.M `bson:"info"`
 }
 
