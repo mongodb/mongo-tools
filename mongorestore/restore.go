@@ -195,13 +195,14 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 				return fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
 			}
 			if metadata != nil {
-				intent.Options = metadata.Options.Map()
+				intent.Options = metadata.Options
 
 				for _, indexDefinition := range metadata.Indexes {
 					restore.indexCatalog.AddIndex(intent.DB, intent.C, indexDefinition)
 				}
 
-				if _, ok := intent.Options["timeseries"]; ok {
+				_, err := bsonutil.FindValueByKey("timeseries", &intent.Options)
+				if err == nil {
 					intent.Type = "timeseries"
 				}
 
@@ -323,13 +324,14 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 
 	// first create the collection with options from the metadata file
 	uuid := intent.UUID
-	options := bsonutil.MtoD(intent.Options)
+	options := intent.Options
 	if len(options) == 0 {
 		logMessageSuffix = "with no metadata"
 	}
 
 	var isClustered bool
-	if v := intent.Options["clusteredIndex"]; v != nil {
+	clusteredIndex, err := bsonutil.FindValueByKey("clusteredIndex", &options)
+	if err == nil && clusteredIndex != nil {
 		isClustered = true
 	}
 
