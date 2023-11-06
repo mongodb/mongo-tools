@@ -21,8 +21,8 @@ import (
 type CollectionInfo struct {
 	Name    string `bson:"name"`
 	Type    string `bson:"type"`
-	Options bson.D `bson:"options"`
-	Info    bson.M `bson:"info"` // TODO (Johnny) does this need to be ordered?
+	Options bson.M `bson:"options"`
+	Info    bson.M `bson:"info"`
 }
 
 func (ci *CollectionInfo) IsView() bool {

@@ -28,7 +28,7 @@ type Metadata struct {
 
 // IndexDocumentFromDB is used internally to preserve key ordering.
 type IndexDocumentFromDB struct {
-	Options bson.M `bson:",inline"` // TODO (Johnny) does this need to be ordered
+	Options bson.M `bson:",inline"`
 	Key     bson.D `bson:"key"`
 }
 
