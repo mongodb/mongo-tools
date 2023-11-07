@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -588,11 +589,11 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		if intent.IsTimeseries() {
 			timeseriesOptions, err := bsonutil.FindSubdocumentByKey("timeseries", &intent.Options)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "could not find timeseries options for %s", intent.Namespace())
 			}
 			metaKey, err := bsonutil.FindStringValueByKey("metaField", &timeseriesOptions)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "could not determine the metaField for %s", intent.Namespace())
 			}
 			for i, predicate := range dump.query {
 				splitPredicateKey := strings.SplitN(predicate.Key, ".", 2)

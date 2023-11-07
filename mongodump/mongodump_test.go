@@ -12,7 +12,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"github.com/stretchr/testify/require"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -21,6 +21,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -107,6 +110,16 @@ func countNonIndexBSONFiles(dir string) (int, error) {
 		return 0, err
 	}
 	return len(files), nil
+}
+
+func assertBSONEqual(t *testing.T, expected, actual any) {
+	expectedJSON, err := bson.MarshalExtJSONIndent(expected, false, false, "", "    ")
+	require.NoError(t, err)
+
+	actualJSON, err := bson.MarshalExtJSONIndent(actual, false, false, "", "    ")
+	require.NoError(t, err)
+
+	assert.Equal(t, string(expectedJSON), string(actualJSON))
 }
 
 func listNonIndexBSONFiles(dir string) ([]string, error) {
@@ -2090,4 +2103,87 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 		// Expect exactly one index with name "dump_columnstore_test"
 		require.Equal(t, count, 1)
 	}
+}
+
+func TestOptionsOrderIsPreserved(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+
+	collName := "students"
+	viewName := "studentsView"
+
+	pipeline := bson.A{
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: bson.D{
+				{Key: "year", Value: "$year"},
+				{Key: "name", Value: "$name"},
+			}},
+			{Key: "highest", Value: bson.D{
+				{Key: "$max", Value: "$score"},
+			}},
+		}}},
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+		}}},
+		bson.D{{Key: "$sort", Value: bson.D{
+			{Key: "year", Value: 1},
+			{Key: "sID", Value: -1},
+			{Key: "name", Value: 1},
+			{Key: "score", Value: 1},
+		}}},
+	}
+
+	createViewCmd := bson.D{
+		{"create", viewName},
+		{"viewOn", collName},
+		{"pipeline", pipeline},
+	}
+
+	var result bson.D
+	err = sessionProvider.Run(createViewCmd, &result, testDB)
+	require.NoError(t, err)
+
+	md := simpleMongoDumpInstance()
+
+	md.ToolOptions.Namespace.DB = testDB
+	md.OutputOptions.Out = "dump"
+
+	require.NoError(t, md.Init())
+	require.NoError(t, md.Dump())
+
+	defer tearDownMongoDumpTestData()
+
+	path, err := os.Getwd()
+	require.NoError(t, err)
+
+	dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	require.True(t, fileDirExists(dumpDir))
+	require.True(t, fileDirExists(dumpDBDir))
+
+	defer os.RemoveAll(dumpDir)
+
+	metaFiles, err := getMatchingFiles(dumpDBDir, "studentsView\\.metadata\\.json")
+	require.NoError(t, err)
+	require.Equal(t, len(metaFiles), 1)
+
+	metaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
+	defer metaFile.Close()
+
+	require.NoError(t, err)
+	contents, err := io.ReadAll(metaFile)
+
+	var bsonResult bson.D
+	err = bson.UnmarshalExtJSON(contents, true, &bsonResult)
+	require.NoError(t, err)
+	options, err := bsonutil.FindSubdocumentByKey("options", &bsonResult)
+	require.NoError(t, err)
+
+	assertBSONEqual(t, options, bson.D{
+		{Key: "viewOn", Value: collName},
+		{Key: "pipeline", Value: pipeline},
+	})
 }

@@ -170,7 +170,6 @@ func (it *Intent) HasSimpleCollation() bool {
 	if it == nil || it.Options == nil {
 		return true
 	}
-
 	collation, err := bsonutil.FindSubdocumentByKey("collation", &it.Options)
 	if err != nil {
 		return true
