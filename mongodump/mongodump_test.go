@@ -2146,6 +2146,16 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 	err = sessionProvider.Run(createViewCmd, &result, testDB)
 	require.NoError(t, err)
 
+	// The check should be run a few times due to the probablistic nature
+	// of TOOLS-3411
+	for i := 0; i < 10; i++ {
+		dumpAndCheckPipelineOrder(t, collName, pipeline)
+	}
+
+	tearDownMongoDumpTestData()
+}
+
+func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 	md := simpleMongoDumpInstance()
 
 	md.ToolOptions.Namespace.DB = testDB
@@ -2153,8 +2163,6 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 
 	require.NoError(t, md.Init())
 	require.NoError(t, md.Dump())
-
-	defer tearDownMongoDumpTestData()
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -2164,14 +2172,11 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 	require.True(t, fileDirExists(dumpDir))
 	require.True(t, fileDirExists(dumpDBDir))
 
-	defer os.RemoveAll(dumpDir)
-
 	metaFiles, err := getMatchingFiles(dumpDBDir, "studentsView\\.metadata\\.json")
 	require.NoError(t, err)
 	require.Equal(t, len(metaFiles), 1)
 
 	metaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
-	defer metaFile.Close()
 
 	require.NoError(t, err)
 	contents, err := io.ReadAll(metaFile)
@@ -2186,4 +2191,7 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 		{Key: "viewOn", Value: collName},
 		{Key: "pipeline", Value: pipeline},
 	})
+
+	os.RemoveAll(dumpDir)
+	metaFile.Close()
 }
