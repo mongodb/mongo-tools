@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/archive"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -354,8 +355,8 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && ci.IsView() {
-			delete(intent.Options, "viewOn")
-			delete(intent.Options, "pipeline")
+			bsonutil.RemoveKey("viewOn", &intent.Options)
+			bsonutil.RemoveKey("pipeline", &intent.Options)
 		}
 		//Set the MetadataFile path.
 		if dump.OutputOptions.Archive != "" {

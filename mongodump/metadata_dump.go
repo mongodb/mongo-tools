@@ -19,7 +19,7 @@ import (
 
 // Metadata holds information about a collection's options and indexes.
 type Metadata struct {
-	Options        bson.M   `bson:"options,omitempty"`
+	Options        bson.D   `bson:"options,omitempty"`
 	Indexes        []bson.D `bson:"indexes"`
 	UUID           string   `bson:"uuid,omitempty"`
 	CollectionName string   `bson:"collectionName"`

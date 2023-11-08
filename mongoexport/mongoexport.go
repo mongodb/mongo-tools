@@ -353,8 +353,8 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		!exp.collInfo.IsView() && !exp.collInfo.IsSystemCollection() {
 
 		// Don't hint autoIndexId:false collections
-		autoIndexId, found := exp.collInfo.Options["autoIndexId"]
-		if !found || autoIndexId == true {
+		autoIndexId, err := bsonutil.FindValueByKey("autoIndexId", &exp.collInfo.Options)
+		if err != nil || autoIndexId == true {
 			findOpts.SetHint(bson.D{{"_id", 1}})
 		}
 	}

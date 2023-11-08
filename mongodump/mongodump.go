@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -20,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -585,9 +587,13 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	switch {
 	case len(dump.query) > 0:
 		if intent.IsTimeseries() {
-			metaKey, ok := intent.Options["timeseries"].(bson.M)["metaField"].(string)
-			if !ok {
-				return fmt.Errorf("could not determine the metaField for %s", intent.Namespace())
+			timeseriesOptions, err := bsonutil.FindSubdocumentByKey("timeseries", &intent.Options)
+			if err != nil {
+				return errors.Wrapf(err, "could not find timeseries options for %s", intent.Namespace())
+			}
+			metaKey, err := bsonutil.FindStringValueByKey("metaField", &timeseriesOptions)
+			if err != nil {
+				return errors.Wrapf(err, "could not determine the metaField for %s", intent.Namespace())
 			}
 			for i, predicate := range dump.query {
 				splitPredicateKey := strings.SplitN(predicate.Key, ".", 2)
@@ -608,8 +614,8 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	// special collection, the oplog, and the user is not asking to force table scans.
 	case dump.storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
 		!isView && !intent.IsSpecialCollection() && !intent.IsOplog():
-		autoIndexId, found := intent.Options["autoIndexId"]
-		if !found || autoIndexId == true {
+		autoIndexId, err := bsonutil.FindValueByKey("autoIndexId", &intent.Options)
+		if err != nil || autoIndexId == true {
 			findQuery.Hint = bson.D{{"_id", 1}}
 		}
 	}

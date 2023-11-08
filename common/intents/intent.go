@@ -59,7 +59,7 @@ type Intent struct {
 	MetadataLocation string
 
 	// Collection options
-	Options bson.M
+	Options bson.D
 
 	// UUID (for MongoDB 3.6+) as a big-endian hex string
 	UUID string
@@ -170,8 +170,8 @@ func (it *Intent) HasSimpleCollation() bool {
 	if it == nil || it.Options == nil {
 		return true
 	}
-	collation, ok := it.Options["collation"].(bson.D)
-	if !ok {
+	collation, err := bsonutil.FindSubdocumentByKey("collation", &it.Options)
+	if err != nil {
 		return true
 	}
 	localeValue, _ := bsonutil.FindValueByKey("locale", &collation)
