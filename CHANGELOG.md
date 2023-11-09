@@ -1,5 +1,30 @@
 # Database Tools Changelog
 
+## 100.9.1
+
+_Released 2023-11-09_
+
+We are pleased to announce version 100.9.1 of the MongoDB Database Tools.
+
+This version updates external dependencies and fixes an issue where mongodump could change the ordering of fields in a view definition.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3367'>TOOLS-3367</a>] -         Building fails: failed to detect local platform from kernel name
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3388'>TOOLS-3388</a>] -         mongodb/mongo-tools master :go.mod - Denial of Service  DoS  in golang.org/x/net
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3411'>TOOLS-3411</a>] -         MongoDump does not maintain field-order for sort and match in Views
+</li>
+</ul>
+
 ## 100.9.0
 
 _Released 2023-10-20_
