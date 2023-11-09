@@ -2,7 +2,7 @@
 
 ## 100.9.1
 
-_Released 2023-11-08_
+_Released 2023-11-09_
 
 We are pleased to announce version 100.9.1 of the MongoDB Database Tools.
 
