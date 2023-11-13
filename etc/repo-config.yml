@@ -461,6 +461,17 @@ repos:
     repos:
       - apt/debian/dists/bullseye/mongodb-enterprise
 
+  - name: debian12
+    type: deb
+    edition: enterprise
+    code_name: "bookworm"
+    bucket: repo.mongodb.com
+    component: main
+    architectures:
+      - amd64
+    repos:
+      - apt/debian/dists/bullseye/mongodb-enterprise
+
   - name: debian92
     type: deb
     edition: enterprise
