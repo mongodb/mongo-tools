@@ -1874,7 +1874,7 @@ buildvariants:
   - name: debian12
     display_name: Debian 12
     run_on:
-      - debian12
+      - debian12-small
     tasks:
       - name: "dist"
       - name: "sign"
