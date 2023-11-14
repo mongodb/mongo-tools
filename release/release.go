@@ -1374,6 +1374,14 @@ func downloadMongodAndShell(v string) {
 	check(err, "decode JSON feed")
 
 	url, githash, serverVersion, err := feed.FindURLHashAndVersion(v, pf.Name, string(pf.Arch), "enterprise")
+	if err == download.ServerURLMissingError {
+		// If a server version is not found from JSON feed, handle this by downloading the artifacts from evergreen.
+		fmt.Printf("warning: download a version not found in JSON feed\n")
+		fmt.Printf("warning: using a guessed version (%s)\n", serverVersion)
+		downloadArtifacts(serverVersion, []string{"Jstestshell", "Dist Tarball"})
+		return
+	}
+
 	check(err, "get URL from JSON feed")
 
 	fmt.Printf("URL: %v\n", url)
@@ -1381,9 +1389,10 @@ func downloadMongodAndShell(v string) {
 	fmt.Printf("Version: %v\n", serverVersion)
 
 	downloadBinaries(url)
+
 	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
-		// serverVersion >= 6.0.0
-		downloadShell(serverVersion)
+		// serverVersion >= 6.0.0, download mongo shell.
+		downloadArtifacts(serverVersion, []string{"Jstestshell"})
 	}
 }
 
@@ -1496,9 +1505,14 @@ func untargz(src, dst string) {
 	gzReader.Close()
 }
 
-func downloadShell(v string) {
+func downloadArtifacts(v string, artifactNames []string) {
+	if v == "" {
+		log.Fatalf("invalid empty version string")
+	}
+
 	pf, err := platform.GetFromEnv()
 	check(err, "get platform")
+	fmt.Printf("platform: %v\n", pf)
 
 	fmt.Printf("Version: %s\n", v)
 
@@ -1518,18 +1532,30 @@ func downloadShell(v string) {
 
 	evgVersion := fmt.Sprintf("mongo_release_%s", githash)
 	fmt.Printf("Version: %v\n", evgVersion)
+
+	if pf.ServerVariantName == "" {
+		log.Fatalf("ServerVariantName is not set")
+	}
+
 	buildID, err := evergreen.GetPackageTaskForVersion(pf.ServerVariantName, evgVersion)
 	check(err, "get tasks for version")
+	fmt.Printf("buildID: %v\n", buildID)
 
 	artifacts, err := evergreen.GetArtifactsForTask(buildID)
 	check(err, "get artifacts")
 
-	fmt.Printf("buildID: %v\n", buildID)
-
+	numArtifactsDownloaded := 0
 	for _, a := range artifacts {
-		if a.Name == "Jstestshell" {
-			downloadBinaries(a.URL)
+		for _, n := range artifactNames {
+			if a.Name == n {
+				fmt.Printf("Downloading %s\n", a.Name)
+				downloadBinaries(a.URL)
+				numArtifactsDownloaded++
+			}
 		}
 	}
 
+	if numArtifactsDownloaded != len(artifactNames) {
+		log.Fatalf("expect to download %d artifacts %s, only downloaded %d", len(artifactNames), artifactNames, numArtifactsDownloaded)
+	}
 }
