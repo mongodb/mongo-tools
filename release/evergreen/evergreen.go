@@ -118,6 +118,8 @@ func GetPackageTaskForVersion(variant, version string) (string, error) {
 
 	buildID := ""
 
+	fmt.Printf("all builds: %s\n", evgVersion.BuildVariantStatus)
+
 	for _, buildDetail := range evgVersion.BuildVariantStatus {
 		if buildDetail.BuildVariant == variant {
 			buildID = buildDetail.BuildID

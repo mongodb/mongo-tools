@@ -29,6 +29,10 @@ type ServerArchive struct {
 	URL string `json:"url"`
 }
 
+var (
+	ServerURLMissingError = fmt.Errorf("Unable to find download URL for the server in the json feed")
+)
+
 func (f *ServerJSONFeed) FindURLHashAndVersion(serverVersion string, target string, arch string, edition string) (string, string, string, error) {
 	fmt.Printf("Finding %v, %v, %v, %v\n", serverVersion, target, arch, edition)
 
@@ -42,6 +46,10 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(serverVersion string, target stri
 		fmt.Printf("sv: %+v\n", sv)
 	}
 
+	// Return a version string that matches the specified major and minor number even if it cannot find an exact feed
+	// satisfying all conditions.
+	// This is useful to find a server release that is not in the feed.
+	versionGuess := ""
 	for _, v := range f.Versions {
 		feedVersion, err := version.Parse(v.Version)
 		if err != nil {
@@ -50,6 +58,9 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(serverVersion string, target stri
 		fmt.Printf("feedVersion: %+v\n", feedVersion)
 
 		if serverVersion == "latest" || (feedVersion.Major == sv.Major && feedVersion.Minor == sv.Minor) {
+			if versionGuess == "" {
+				versionGuess = feedVersion.String()
+			}
 			for _, dl := range v.Downloads {
 				if dl.Target == target && dl.Arch == arch && dl.Edition == edition {
 					return dl.Archive.URL, v.GitHash, v.Version, nil
@@ -58,5 +69,5 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(serverVersion string, target stri
 		}
 	}
 
-	return "", "", "", fmt.Errorf("Unable to find download URL for the server in the json feed")
+	return "", "", versionGuess, ServerURLMissingError
 }

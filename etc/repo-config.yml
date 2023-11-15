@@ -223,6 +223,17 @@ repos:
     repos:
       - apt/debian/dists/bullseye/mongodb-org
 
+  - name: debian12
+    type: deb
+    code_name: "bookworm"
+    bucket: repo.mongodb.org
+    edition: org
+    component: main
+    architectures:
+      - amd64
+    repos:
+      - apt/debian/dists/bullseye/mongodb-org
+
   - name: debian71
     type: deb
     code_name: "wheezy"
@@ -454,6 +465,17 @@ repos:
     type: deb
     edition: enterprise
     code_name: "bullseye"
+    bucket: repo.mongodb.com
+    component: main
+    architectures:
+      - amd64
+    repos:
+      - apt/debian/dists/bullseye/mongodb-enterprise
+
+  - name: debian12
+    type: deb
+    edition: enterprise
+    code_name: "bookworm"
     bucket: repo.mongodb.com
     component: main
     architectures:
