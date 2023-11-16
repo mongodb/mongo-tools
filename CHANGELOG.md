@@ -1,6 +1,6 @@
 # Database Tools Changelog
 
-## X.Y.Z
+## 100.9.2
 
 _Released 2023-11-16_
 
