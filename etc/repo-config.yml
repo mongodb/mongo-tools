@@ -232,7 +232,7 @@ repos:
     architectures:
       - amd64
     repos:
-      - apt/debian/dists/bullseye/mongodb-org
+      - apt/debian/dists/bookworm/mongodb-org
 
   - name: debian71
     type: deb
@@ -481,7 +481,7 @@ repos:
     architectures:
       - amd64
     repos:
-      - apt/debian/dists/bullseye/mongodb-enterprise
+      - apt/debian/dists/bookworm/mongodb-enterprise
 
   - name: debian92
     type: deb
