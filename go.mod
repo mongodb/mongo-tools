@@ -29,7 +29,7 @@ require (
 require (
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
-	golang.org/x/mod v0.14.0
+	golang.org/x/mod v0.15.0
 )
 
 require (
