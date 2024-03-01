@@ -274,100 +274,22 @@ functions:
         extract_to: src/github.com/mongodb/mongo-tools/
         bucket: mciuploads
 
-  "sign msi installer":
-    - command: shell.exec
-      type: system
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        silent: true
-        script: |
-          echo "${signing_auth_token}" > ./signing_auth_token
-    - command: shell.exec
-      # If the notary service is failing, it should be a system failure to alert the evg team.
-      # We overwrite the existing release.msi with a signed version via --package-file-suffix ""
-      type: system
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        script: |
-          if [ "${mongo_os}" = "osx" ]; then
-              exit 0
-          fi
-          /usr/local/bin/notary-client.py \
-              --key-name "server-Tools" \
-              --auth-token-file ./signing_auth_token \
-              --comment "Evergreen Automatic Signing (mongo-tools)" \
-              --notary-url http://notary-service.build.10gen.cc:5000 \
-              --skip-missing \
-              --outputs "sig" \
-              --package-file-suffix "" \
-              release.msi
-
-  "sign macos zip":
+  "sign artifacts":
     command: subprocess.exec
     params:
       binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
+      env:
+          MONGO_OS: ${mongo_os}
+          MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
+          MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
+          ARTIFACTORY_PASSWORD: ${artifactory_password}
+          ARTIFACTORY_USERNAME: ${artifactory_username}
+          GARASIGN_PASSWORD: ${garasign_password}
+          GARASIGN_USERNAME: ${garasign_username}
+          TASK_ID: ${task_id}
       args:
-        - "./scripts/sign_macos_zip.sh"
-      add_expansions_to_env: true
-
-  "sign linux packages":
-    - command: shell.exec
-      type: system
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        silent: true
-        script: |
-          if [ "${mongo_os}" = "osx" ]; then
-              exit 0
-          fi
-          echo "${signing_auth_token_server_4_4}" > ./signing_auth_token
-    - command: shell.exec
-      type: system
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        silent: false
-        script: |
-          if [ "${mongo_os}" = "osx" ]; then
-              exit 0
-          fi
-          set -o errexit
-          if [ -e *.rpm ]; then
-             /usr/local/bin/notary-client.py \
-                --key-name "server-4.4" \
-                --auth-token-file ./signing_auth_token \
-                --comment "Evergreen Automatic Signing (mongo-tools)" \
-                --notary-url http://notary-service.build.10gen.cc:5000 \
-                --skip-missing \
-                --package-file-suffix "" \
-                --outputs "sig" \
-                *.rpm
-          fi
-
-  "sign archives":
-    - command: shell.exec
-      type: system
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        silent: true
-        script: |
-          echo "${signing_auth_token}" > ./signing_auth_token
-    - command: shell.exec
-      type: system
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools/
-        script: |
-          if [ "${mongo_os}" = "osx" ]; then
-              exit 0
-          fi
-          /usr/local/bin/notary-client.py \
-              --key-name "server-Tools" \
-              --auth-token-file ./signing_auth_token \
-              --comment "Evergreen Automatic Signing (mongo-tools)" \
-              --notary-url http://notary-service.build.10gen.cc:5000 \
-              --skip-missing \
-              --outputs "sig" \
-              *.zip *.tgz
+        - "./scripts/sign_artifacts.sh"
 
   "upload signed release artifacts":
     # temporary workaround for TOOLS-2606
@@ -725,10 +647,7 @@ tasks:
     commands:
       - func: "fetch source"
       - func: "fetch dist release artifacts"
-      - func: "sign msi installer"
-      - func: "sign macos zip"
-      - func: "sign linux packages"
-      - func: "sign archives"
+      - func: "sign artifacts"
       - func: "upload signed release artifacts"
 
   - name: push
@@ -1802,7 +1721,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1814,7 +1733,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1830,7 +1749,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1842,7 +1761,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1854,7 +1773,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1866,7 +1785,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1878,7 +1797,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1932,7 +1851,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -1965,7 +1884,7 @@ buildvariants:
       - name: ".4.0"
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
     # We intentionally do not invoke the push task. We want to upload these
     # binaries to S3, but we do not add them to the release feed or RPM repos.
 
@@ -1976,7 +1895,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2015,7 +1934,7 @@ buildvariants:
       - name: ".kerberos"
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2027,7 +1946,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2039,7 +1958,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2057,7 +1976,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2069,7 +1988,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2085,7 +2004,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2097,7 +2016,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2109,7 +2028,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2121,7 +2040,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2167,7 +2086,7 @@ buildvariants:
       - name: ".kerberos"
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2184,7 +2103,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2197,7 +2116,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2210,7 +2129,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2223,7 +2142,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2236,7 +2155,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2249,7 +2168,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2262,7 +2181,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2275,7 +2194,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2292,7 +2211,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2305,7 +2224,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2322,7 +2241,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
@@ -2335,7 +2254,7 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: rhel80-small
+        run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
