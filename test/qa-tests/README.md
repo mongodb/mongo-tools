@@ -1,6 +1,6 @@
 # How to run resmoke tests
 
-* Build all tools first; use the 'failpoints' tag and optionally ssl/sasl tags
+* Build all tools first; use the 'failpoints' tag.
 
 * From this directory, run `prep-for-resmoke.sh` to copy binaries to this directory.
   Optional arguments are (1) directory to find tools binaries (defaults to `bin`

@@ -644,7 +644,6 @@ func buildMSI() {
 	msiStaticFilesPath := ".."
 	// Note that the file functions do not allow for drive letters on Windows, absolute paths
 	// must be specified with a leading os.PathSeparator.
-	saslDLLsPath := string(os.PathSeparator) + filepath.Join("sasl", "bin")
 	msiFilesPath := filepath.Join("..", "installer", "msi")
 
 	// These are the meta-text files that are part of mongo-tools, relative
@@ -653,10 +652,6 @@ func buildMSI() {
 	var msiStaticFiles = []string{
 		"README.md",
 		"THIRD-PARTY-NOTICES",
-	}
-
-	var saslDLLs = []string{
-		"libsasl.dll",
 	}
 
 	// location of the necessary data files to build the msi.
@@ -681,16 +676,6 @@ func buildMSI() {
 	cdBack := useWorkingDir(msiBuildDir)
 	// we'll want to go back to the original directory, just in case.
 	defer cdBack()
-
-	// Copy sasldlls. They need to be in this directory for Wix. Linking will
-	// not work as the dlls are on a different file system.
-	for _, name := range saslDLLs {
-		err := copyFile(
-			filepath.Join(saslDLLsPath, name),
-			name,
-		)
-		check(err, "copy sasl dlls into "+msiBuildDir)
-	}
 
 	// make links to all the staticFiles. They need to be in this
 	// directory for Wix.

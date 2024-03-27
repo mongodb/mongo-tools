@@ -33,10 +33,7 @@ import (
 
 // XXX Force these true as the Go driver supports them always.  Once the
 // conditionals that depend on them are removed, these can be removed.
-var (
-	BuiltWithSSL    = true
-	BuiltWithGSSAPI = true
-)
+var BuiltWithGSSAPI = true
 
 const IncompatibleArgsErrorFormat = "illegal argument combination: cannot specify %s and --uri"
 
@@ -972,14 +969,6 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 	opts.Direct = cs.DirectConnection || (cs.Connect == connstring.SingleConnect)
 	if opts.Direct && opts.ConnString.LoadBalanced {
 		return fmt.Errorf("loadBalanced cannot be set to true if the direct connection option is specified")
-	}
-
-	if (cs.SSL || opts.UseSSL) && !BuiltWithSSL {
-		if strings.HasPrefix(cs.Original, "mongodb+srv") {
-			return fmt.Errorf("SSL enabled by default when using SRV but tool not built with SSL: " +
-				"SSL must be explicitly disabled with ssl=false in the connection string")
-		}
-		return fmt.Errorf("cannot use ssl: tool not built with SSL support")
 	}
 
 	if cs.RetryWritesSet {

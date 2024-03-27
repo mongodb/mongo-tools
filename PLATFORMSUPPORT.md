@@ -20,7 +20,7 @@ In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
     mongo_os: "ubuntu2004"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
-    build_tags: "failpoints ssl"
+    build_tags: "failpoints"
     resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2

@@ -193,7 +193,7 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: amazon2-enterprise
@@ -201,7 +201,7 @@ buildvariants:
     run_on:
       - amazon2-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: amazon2023-enterprise
@@ -209,7 +209,7 @@ buildvariants:
     run_on:
       - amazon2023-small
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   #######################################
@@ -221,7 +221,7 @@ buildvariants:
     run_on:
       - debian81-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: debian92-enterprise
@@ -229,27 +229,23 @@ buildvariants:
     run_on:
       - debian92-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   #######################################
   #         macOS Buildvariants         #
   #######################################
 
-  - name: macOS-1100-x86_64-ssl
-    display_name: MacOS 11.00 x86_64 SSL
+  - name: macOS-1100-x86_64
+    display_name: MacOS 11.00 x86_64
     run_on:
       - macos-1100
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
-  - name: macOS-1100-arm-ssl
-    display_name: MacOS 11 ARM SSL
+  - name: macOS-1100-arm
+    display_name: MacOS 11 ARM
     run_on:
       - macos-1100-arm64
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
   #######################################
@@ -261,7 +257,7 @@ buildvariants:
     run_on:
       - rhel62-small
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: rhel70-enterprise
@@ -269,7 +265,7 @@ buildvariants:
     run_on:
       - rhel70-small
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   #######################################
@@ -281,7 +277,7 @@ buildvariants:
     run_on:
       - suse12-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   #######################################
@@ -293,7 +289,7 @@ buildvariants:
     run_on:
       - ubuntu1404-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: ubuntu1604-enterprise
@@ -301,7 +297,7 @@ buildvariants:
     run_on:
       - ubuntu1604-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: ubuntu1804-enterprise
@@ -309,63 +305,53 @@ buildvariants:
     run_on:
       - ubuntu1804-test
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   #######################################
   #        Windows Buildvariants        #
   #######################################
 
-  - name: windows-64-ssl
-    display_name: Windows 64-bit SSL
+  - name: windows-64
+    display_name: Windows 64-bit
     run_on:
       - windows-64-vs2017-test
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
   #######################################
   #        ARM Buildvariants            #
   #######################################
 
-  - name: amazon2023-aarch64-ssl
-    display_name: Amazon Linux 2023 ARM SSL
+  - name: amazon2023-aarch64
+    display_name: Amazon Linux 2023 ARM
     run_on:
       - amazon2023-arm64-small
     stepback: false
     batchtime: 10080 # weekly
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
-  - name: ubuntu1804-arm64-ssl
-    display_name: ZAP ARM64 Ubuntu 18.04 SSL
+  - name: ubuntu1804-arm64
+    display_name: ZAP ARM64 Ubuntu 18.04
     run_on:
       - ubuntu1804-arm64-small
     stepback: false
     batchtime: 10080 # weekly
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
-  - name: ubuntu1604-arm64-ssl
-    display_name: ZAP ARM64 Ubuntu 16.04 SSL
+  - name: ubuntu1604-arm64
+    display_name: ZAP ARM64 Ubuntu 16.04
     run_on:
       - ubuntu1604-arm64-small
     stepback: false
     batchtime: 10080 # weekly
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
-  - name: rhel9-arm64-ssl
-    display_name: RHEL 9 ARM SSL
+  - name: rhel9-arm64
+    display_name: RHEL 9 ARM
     run_on:
       - rhel90-arm64-small
     stepback: false
     batchtime: 10080 # weekly
-    expansions:
-      build_tags: "ssl"
     tasks: *atlas_live_tasks
 
   #######################################
@@ -379,7 +365,7 @@ buildvariants:
     stepback: false
     batchtime: 10080 # weekly
     expansions:
-      build_tags: "ssl sasl gssapi"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: ubuntu1604-ppc64le-enterprise
@@ -389,7 +375,7 @@ buildvariants:
     stepback: false
     batchtime: 10080 # weekly
     expansions:
-      build_tags: "ssl sasl gssapi"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   #######################################
@@ -403,7 +389,7 @@ buildvariants:
     stepback: false
     batchtime: 10080 # weekly
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: rhel72-s390x-enterprise
@@ -413,7 +399,7 @@ buildvariants:
     stepback: false
     batchtime: 10080 # weekly
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: rhel83-s390x-enterprise
@@ -423,7 +409,7 @@ buildvariants:
     stepback: false
     batchtime: 10080 # weekly
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks
 
   - name: ubuntu1604-s390x-enterprise
@@ -433,5 +419,5 @@ buildvariants:
     stepback: false
     batchtime: 10080 # weekly
     expansions:
-      build_tags: "sasl gssapi ssl"
+      build_tags: "gssapi"
     tasks: *atlas_live_tasks

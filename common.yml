@@ -1856,8 +1856,8 @@ buildvariants:
         run_on: rhel80-small
         git_tag_only: true
 
-  # This build is specifically for Splunk
-  - name: rhel62-no-sasl-or-kerberos
+ # This build is specifically for Splunk
+  - name: rhel62-no-kerberos
     display_name: "# RHEL 6.2 w/o SASL or Kerberos"
     expansions:
       <<:
@@ -2296,7 +2296,7 @@ github_pr_aliases:
     task: "integration-4.2"
   # Run a subset of integration tests against the 4.4 version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^rhel62-no-sasl-or-kerberos$"
+  - variant: "^rhel62-no-kerberos$"
     task: "integration-4.4"
   # Run a subset of integration tests against the 5.0 version of MongoDB
   # Server on all variants where that is the most recent supported version.

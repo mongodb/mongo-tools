@@ -31,9 +31,6 @@
        <Component Guid="{A234055C-9F7D-4738-B1A3-FAF3B85D3302}" Id="mongotop" Win64="yes">
             <File DiskId="1" Id="mongotop.exe"  Name="mongotop.exe" Source="mongotop.exe" />
        </Component>
-	   <Component Guid="{50EE4D70-D68B-4D02-A55C-DDA8F7AAFB25}" Id="libsasl" SharedDllRefCount="yes" Win64="yes">
-            <File DiskId="1" Id="libsasl.dll"  Name="libsasl.dll" Source="libsasl.dll" />
-       </Component>
       </DirectoryRef>
       <ComponentGroup Id="base">
           <ComponentRef Id="RegKeys" />
@@ -45,7 +42,6 @@
           <ComponentRef Id="mongorestore" />
           <ComponentRef Id="mongostat" />
           <ComponentRef Id="mongotop" />
-          <ComponentRef Id="libsasl" />
        </ComponentGroup>
   </Fragment>
 </Wix>
