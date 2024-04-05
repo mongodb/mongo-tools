@@ -1858,7 +1858,7 @@ buildvariants:
 
  # This build is specifically for Splunk
   - name: rhel62-no-kerberos
-    display_name: "# RHEL 6.2 w/o SASL or Kerberos"
+    display_name: "# RHEL 6.2 w/o Kerberos"
     expansions:
       <<:
         [
