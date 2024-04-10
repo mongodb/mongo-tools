@@ -32,6 +32,20 @@ function testGridFS(name) {
     var numChunks = d.fs.chunks.find({files_id: fileObj._id}).itcount();
     // var numChunks = d.fs.chunks.count({files_id: fileObj._id}) // this is broken for now
     assert.eq(numChunks, res.numChunks);
+
+    var dlFilename = filename + ".dl";
+    var exitCode = MongoRunner.runMongoTool("mongofiles",
+                                            {
+                                                port: mongos.port,
+                                                db: name,
+                                            },
+                                            "get",
+                                            filename,
+                                            "--local",
+                                            dlFilename);
+    assert.eq(0, exitCode, "mongofiles failed to download '" + filename);
+
+    assert.eq(md5sumFile(filename), md5sumFile(dlFilename), "the downloaded file has same content as the original");
 }
 
 print('\n\n\t**** unsharded ****\n\n');
