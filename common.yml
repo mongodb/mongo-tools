@@ -2282,27 +2282,11 @@ github_pr_aliases:
   # RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.
   - variant: "rhel70"
     task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$"
-  # Run a subset of integration tests against the 3.4 version of MongoDB
-  # Server on all variants where that is the most recent supported version.
-  - variant: "^(amazon|debian81|rhel62|ubuntu1604)$"
-    task: "integration-3.4"
   # Run a subset of integration tests against the 3.6 version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^macos$"
-    task: "integration-3.6"
-  # Run a subset of integration tests against the 4.2 version of MongoDB
-  # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel71-ppc64le|rhel81-ppc64le|ubuntu1604-arm64)$"
-    task: "integration-4.2"
-  # Run a subset of integration tests against the 4.4 version of MongoDB
-  # Server on all variants where that is the most recent supported version.
   - variant: "^rhel62-no-sasl-or-kerberos$"
-    task: "integration-4.4"
-  # Run a subset of integration tests against the 5.0 version of MongoDB
-  # Server on all variants where that is the most recent supported version.
-  - variant: "^rhel83-s390x$"
-    task: "integration-5.0"
+    task: "integration-3.6"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(amazon2|amazon2-aarch64|debian10|debian11|debian12|debian92|rhel70|rhel72-s390x|rhel80|rhel82-aarch64|suse12|suse15|ubuntu1804|ubuntu1804-arm64|ubuntu2004|ubuntu2004-arm64|windows)$"
+  - variant: "^(rhel80|windows)$"
     task: "integration-latest"
