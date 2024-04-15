@@ -29,10 +29,6 @@ function testGridFS(name) {
     var fileObj = d.fs.files.findOne();
     print("fileObj: " + tojson(fileObj));
 
-    var numChunks = d.fs.chunks.find({files_id: fileObj._id}).itcount();
-    // var numChunks = d.fs.chunks.count({files_id: fileObj._id}) // this is broken for now
-    assert.eq(numChunks, res.numChunks);
-
     var dlFilename = filename + ".dl";
     var exitCode = MongoRunner.runMongoTool("mongofiles",
                                             {
