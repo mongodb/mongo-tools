@@ -119,7 +119,7 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 				" it's a relatively recent platform that supports a wide range of" +
 				" servers.",
 			variant: `rhel80`,
-			tasks:   `^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-.*`,
+			tasks:   `^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*`,
 		},
 		{
 			comment: "Run srv tests on one variant. We pick RHEL 8.0 because" +
