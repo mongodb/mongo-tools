@@ -44,7 +44,7 @@ def isVersionGreaterOrEqual(left, right):
   return True
 
 if opts.version == "latest" or isVersionGreaterOrEqual(opts.version,"4.1.0"):
-  if opts.target in ('osx-ssl', 'osx'):
+  if opts.target in ('osx'):
     opts.target = 'macos'
   if opts.target in ('windows_x86_64-2008plus-ssl', 'windows_x86_64-2008plus'):
     opts.target = 'windows_x86_64-2012plus'
