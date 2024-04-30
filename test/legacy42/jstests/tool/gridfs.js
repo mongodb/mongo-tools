@@ -16,9 +16,6 @@ function testGridFS(name) {
     assert.eq(d.name.files.count(), 0);
     assert.eq(d.fs.chunks.count(), 0);
 
-    var rawmd5 = md5sumFile(filename);
-
-    // upload file (currently calls filemd5 internally)
     var exitCode = MongoRunner.runMongoTool("mongofiles",
                                             {
                                                 port: mongos.port,
@@ -32,15 +29,19 @@ function testGridFS(name) {
     var fileObj = d.fs.files.findOne();
     print("fileObj: " + tojson(fileObj));
 
-    // Call filemd5 ourself and check results.
-    var res = d.runCommand({filemd5: fileObj._id});
-    print("filemd5 output: " + tojson(res));
-    assert(res.ok);
-    assert.eq(rawmd5, res.md5);
+    var dlFilename = filename + ".dl";
+    var exitCode = MongoRunner.runMongoTool("mongofiles",
+                                            {
+                                                port: mongos.port,
+                                                db: name,
+                                            },
+                                            "get",
+                                            filename,
+                                            "--local",
+                                            dlFilename);
+    assert.eq(0, exitCode, "mongofiles failed to download '" + filename);
 
-    var numChunks = d.fs.chunks.find({files_id: fileObj._id}).itcount();
-    // var numChunks = d.fs.chunks.count({files_id: fileObj._id}) // this is broken for now
-    assert.eq(numChunks, res.numChunks);
+    assert.eq(md5sumFile(filename), md5sumFile(dlFilename), "the downloaded file has same content as the original");
 }
 
 print('\n\n\t**** unsharded ****\n\n');
