@@ -154,7 +154,6 @@ type uriTester struct {
 	CS                       connstring.ConnString
 	OptsIn                   *ToolOptions
 	OptsExpected             *ToolOptions
-	WithSSL                  bool
 	WithGSSAPI               bool
 	ShouldError              bool
 	AuthShouldAskForPassword bool
@@ -169,36 +168,12 @@ func TestParseAndSetOptions(t *testing.T) {
 		enabledURIOnly := EnabledOptions{false, false, false, true}
 		testCases := []uriTester{
 			{
-				Name: "not built with ssl",
-				CS: connstring.ConnString{
-					SSL:    true,
-					SSLSet: true,
-				},
-				WithSSL:      false,
-				OptsIn:       New("", "", "", "", true, enabledURIOnly),
-				OptsExpected: New("", "", "", "", true, enabledURIOnly),
-				ShouldError:  true,
-			},
-			{
-				Name: "not built with ssl using SRV",
-				CS: connstring.ConnString{
-					SSL:      true,
-					SSLSet:   true,
-					Original: "mongodb+srv://example.com/",
-				},
-				WithSSL:      false,
-				OptsIn:       New("", "", "", "", true, enabledURIOnly),
-				OptsExpected: New("", "", "", "", true, enabledURIOnly),
-				ShouldError:  true,
-			},
-			{
 				Name: "built with ssl",
 				CS: connstring.ConnString{
 					SSL:    true,
 					SSLSet: true,
 				},
-				WithSSL: true,
-				OptsIn:  New("", "", "", "", true, enabledURIOnly),
+				OptsIn: New("", "", "", "", true, enabledURIOnly),
 				OptsExpected: &ToolOptions{
 					General:    &General{},
 					Verbosity:  &Verbosity{},
@@ -221,8 +196,7 @@ func TestParseAndSetOptions(t *testing.T) {
 					SSLSet:   true,
 					Original: "mongodb+srv://example.com/",
 				},
-				WithSSL: true,
-				OptsIn:  New("", "", "", "", true, enabledURIOnly),
+				OptsIn: New("", "", "", "", true, enabledURIOnly),
 				OptsExpected: &ToolOptions{
 					General:    &General{},
 					Verbosity:  &Verbosity{},
@@ -612,10 +586,8 @@ func TestParseAndSetOptions(t *testing.T) {
 				testCase.OptsIn.URI.ConnectionString = "mongodb://dummy"
 				testCase.OptsExpected.URI.ConnectionString = "mongodb://dummy"
 
-				BuiltWithSSL = testCase.WithSSL
 				BuiltWithGSSAPI = testCase.WithGSSAPI
 				defer func() {
-					BuiltWithSSL = true
 					BuiltWithGSSAPI = true
 				}()
 
