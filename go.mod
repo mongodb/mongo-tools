@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	github.com/3rf/mongo-lint v0.0.0-20140604191638-3550fdcf1f43
-	github.com/aws/aws-sdk-go v1.44.317
-	github.com/craiggwilson/goke v0.0.0-20220110201909-adb8bfb05d58
+	github.com/aws/aws-sdk-go v1.52.5
+	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943
 	github.com/google/go-cmp v0.6.0
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jessevdk/go-flags v1.5.0
@@ -20,7 +20,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.mongodb.org/mongo-driver v1.10.3
 	golang.org/x/crypto v0.22.0
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -39,7 +39,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/montanaflynn/stats v0.6.6 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
