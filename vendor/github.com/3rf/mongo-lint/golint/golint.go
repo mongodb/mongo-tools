@@ -19,6 +19,7 @@ import (
 )
 
 var minConfidence = flag.Float64("min_confidence", 0.8, "minimum confidence of a problem to print it")
+var gitBlame = flag.Bool("blame", false, "print perpetrator's name and email")
 
 func main() {
 	flag.Parse()
@@ -52,7 +53,12 @@ func lintFile(filename string) {
 	}
 	for _, p := range ps {
 		if p.Confidence >= *minConfidence {
-			fmt.Printf("%s:%v: %s\n", filename, p.Position, p.Text)
+			if *gitBlame {
+				fmt.Printf("%s:%v: %s | %s\n",
+					filename, p.Position, p.Text, lint.GitBlameFileAtLine(filename, p.Position.Line))
+			} else {
+				fmt.Printf("%s:%v: %s\n", filename, p.Position, p.Text)
+			}
 		}
 	}
 }
