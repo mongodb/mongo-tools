@@ -9,20 +9,26 @@ import (
 	"github.com/craiggwilson/goke/task"
 )
 
-// Branch returns the current branch of the git repository in the current working directory.
-func Branch(ctx *task.Context) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
+func runGitCmd(ctx *task.Context, name string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, name, args...)
 	ctx.Logf("exec: '%s %s'\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
 	output, err := cmd.CombinedOutput()
 	return string(bytes.TrimSpace(output)), err
 }
 
+// Branch returns the current branch of the git repository in the current working directory.
+func Branch(ctx *task.Context) (string, error) {
+	return runGitCmd(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
+}
+
 // SHA1 returns the current sha1 for the HEAD commit of the git repository in the current working directory.
 func SHA1(ctx *task.Context) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "HEAD")
-	ctx.Logf("exec: '%s %s'\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
-	output, err := cmd.CombinedOutput()
-	return string(bytes.TrimSpace(output)), err
+	return runGitCmd(ctx, "git", "rev-parse", "HEAD")
+}
+
+// HEADMessage returns the commit message of the commit referenced by current HEAD.
+func HEADMessage(ctx *task.Context) (string, error) {
+	return runGitCmd(ctx, "git", "log", "-1", "--pretty=format:%B")
 }
 
 // TagAndCommitsSince returns the latest tag on the current branch and the number of commits since the tag
