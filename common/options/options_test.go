@@ -792,16 +792,18 @@ func runOptionsTestCases(t *testing.T, testCases []optionsTester) {
 	}
 
 	for _, c := range testCases {
-		toolOptions := New("test", "", "", "", true, enabled)
 		argString := fmt.Sprintf("%s --uri %s", c.options, c.uri)
-		t.Logf("Test Case: %s\n", argString)
-		args := strings.Split(argString, " ")
-		_, err := toolOptions.ParseArgs(args)
-		if c.outcome == ShouldFail {
-			require.Error(t, err)
-		} else {
-			require.NoError(t, err)
-		}
+		t.Run(argString, func(t *testing.T) {
+			t.Log(argString)
+			toolOptions := New("test", "", "", "", true, enabled)
+			args := strings.Split(argString, " ")
+			_, err := toolOptions.ParseArgs(args)
+			if c.outcome == ShouldFail {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }
 
