@@ -1448,9 +1448,9 @@ tasks:
             set -x
             set -v
             set -e
-            PATH="/opt/node/bin:$PATH"
-            /opt/node/bin/npm install eslint@3.2
-            /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
+            PATH="/opt/nodejs/node-v16.17.0-linux-x64/bin:$PATH"
+            npm install eslint@3.2
+            node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
   - name: qa-tests-5.0
     tags: ["5.0"]
