@@ -94,12 +94,12 @@ func NewJSONInputReader(isArray bool, legacyExtJSON bool, in io.Reader, numDecod
 }
 
 // ReadAndValidateHeader is a no-op for JSON imports; always returns nil.
-func (r *JSONInputReader) ReadAndValidateHeader() error {
+func (r *JSONInputReader) ReadAndValidateHeader(optionsWithFields ColumnsAsOptionFields) error {
 	return nil
 }
 
 // ReadAndValidateTypedHeader is a no-op for JSON imports; always returns nil.
-func (r *JSONInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) error {
+func (r *JSONInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace, optionsWithFields ColumnsAsOptionFields) error {
 	return nil
 }
 

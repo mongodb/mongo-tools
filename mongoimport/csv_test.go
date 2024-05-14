@@ -210,12 +210,13 @@ func TestCSVStreamDocument(t *testing.T) {
 func TestCSVReadAndValidateHeader(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	var err error
+	var optionsWithFields ColumnsAsOptionFields
 	Convey("With a CSV input reader", t, func() {
 		Convey("setting the header should read the first line of the CSV", func() {
 			contents := "extraHeader1, extraHeader2, extraHeader3"
 			colSpecs := []ColumnSpec{}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 		})
 
@@ -223,24 +224,24 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			contents := "a, b, c"
 			colSpecs := []ColumnSpec{}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 			contents = "a.b.c, a.b.d, c"
 			colSpecs = []ColumnSpec{}
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 
 			contents = "a.b, ab, a.c"
 			colSpecs = []ColumnSpec{}
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 
 			contents = "a, ab, ac, dd"
 			colSpecs = []ColumnSpec{}
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 4)
 		})
 
@@ -248,47 +249,47 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			contents := "a, a.b, c"
 			colSpecs := []ColumnSpec{}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 
 			contents = "a.b.c, a.b.d.c, a.b.d"
 			colSpecs = []ColumnSpec{}
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 
 			contents = "a, a, a"
 			colSpecs = []ColumnSpec{}
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 		})
 
 		Convey("setting the header that ends in a dot should error", func() {
 			contents := "c, a., b"
 			colSpecs := []ColumnSpec{}
 			So(err, ShouldBeNil)
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 		})
 
 		Convey("setting the header that starts in a dot should error", func() {
 			contents := "c, .a, b"
 			colSpecs := []ColumnSpec{}
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 		})
 
 		Convey("setting the header that contains multiple consecutive dots should error", func() {
 			contents := "c, a..a, b"
 			colSpecs := []ColumnSpec{}
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 
 			contents = "c, a.a, b.b...b"
 			colSpecs = []ColumnSpec{}
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(optionsWithFields), ShouldNotBeNil)
 		})
 
 		Convey("setting the header using an empty file should return EOF", func() {
 			contents := ""
 			colSpecs := []ColumnSpec{}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldEqual, io.EOF)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldEqual, io.EOF)
 			So(len(r.colSpecs), ShouldEqual, 0)
 		})
 		Convey("setting the header with column specs already set should replace "+
@@ -300,7 +301,7 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
 			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			So(r.ReadAndValidateHeader(optionsWithFields), ShouldBeNil)
 			// if ReadAndValidateHeader() is called with column specs already passed
 			// in, the header should be replaced with the read header line
 			So(len(r.colSpecs), ShouldEqual, 3)
