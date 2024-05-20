@@ -1,0 +1,28 @@
+# We could run this via golangci-lint but we want to exclude more directories
+# for gosec than we do for other linting. There doesn't seem to be a way to
+# configure these excludes when running gosec as part of golangci-lint.
+[commands.gosec]
+type = "lint"
+include = "**/*.go"
+exclude = [
+    "buildscript/**/*.go",
+    "common/testutil/**/*.go",
+    "release/**/*.go",
+    "vendor/**/*.go",
+]
+invoke.per-dir-or-once = 7
+working-dir = "root"
+path-args = "dir"
+# This wrapper lets us control the output with an env var so we can generate a
+# SARIF report in Evergreen but use the default format for linting.
+cmd = [
+    "$PRECIOUS_ROOT/etc/gosec-wrapper.sh",
+    # This rule complains about reading or writing to paths based on user input,
+    # but most of the tools exist for the purpose of reading and writing from/to
+    # user-provided paths.
+    "-exclude", "G304",
+    "-severity", "high",
+    "-terse",
+]
+ok_exit_codes = [0]
+lint_failure_exit_codes = [1]
