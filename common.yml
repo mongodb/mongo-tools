@@ -528,6 +528,20 @@ functions:
           ./etc/generate-notices.pl > ./THIRD-PARTY-NOTICES
           git diff --exit-code
 
+  "generate gosec SARIF report":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          set -x
+          set -v
+          set -e
+          go run build.go sa:installdevtools
+          GOSEC_SARIF_REPORT=1 ./dev-bin/precious lint --all --command gosec
+          cat SARIF.json
+
 pre:
   - command: shell.exec
     params:
@@ -659,6 +673,16 @@ tasks:
       - command: expansions.update
       - func: "upload release packages to s3"
       - func: "upload release packages to linux repos"
+
+  - name: gosec-SARIF-report
+    tags: ["git_tag"]
+    depends_on:
+      - name: push
+        variant: "*"
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "generate gosec SARIF report"
 
   - name: release-json
     tags: ["git_tag"]
@@ -1707,6 +1731,7 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
+      - name: gosec-SARIF-report
       - name: release-json
       - name: generate-full-json
 

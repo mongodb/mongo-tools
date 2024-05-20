@@ -70,5 +70,7 @@ set_goenv() {
         return 1
     fi
 
+    export PATH="$PATH:$GOPATH/bin"
+
     return
 }
