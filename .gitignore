@@ -12,6 +12,8 @@
 *.temp
 *.zip
 
+/purls.txt
+
 test/**/*.json
 
 !**/testdata/**
