@@ -1,7 +1,6 @@
 *.bson
 *.dump
 *.exe
-*.json
 *.log
 *.out
 *.pcap
@@ -12,6 +11,8 @@
 *.tape
 *.temp
 *.zip
+
+test/**/*.json
 
 !**/testdata/**
 
