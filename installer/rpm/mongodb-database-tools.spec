@@ -57,7 +57,6 @@ rm -rf %{buildroot}
 %attr(0755,root,root) /usr/bin/mongotop
 %attr(0644,root,root) /usr/share/doc/mongodb-database-tools/LICENSE.md
 %attr(0644,root,root) /usr/share/doc/mongodb-database-tools/README.md
-%attr(0644,root,root) /usr/share/doc/mongodb-database-tools/THIRD-PARTY-NOTICES
 
 %pre
 # On install
