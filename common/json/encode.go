@@ -241,6 +241,9 @@ func (e *MarshalerError) Error() string {
 
 var hex = "0123456789abcdef"
 
+// Any write on the encodeState cannot fail because we're writing to a
+// `bytes.Buffer`, which never fails.
+//
 // An encodeState encodes JSON into a bytes.Buffer.
 type encodeState struct {
 	bytes.Buffer // accumulated output
