@@ -316,6 +316,7 @@ func (muxIn *MuxIn) Write(buf []byte) (int, error) {
 			return 0, io.ErrShortWrite
 		}
 	}
+	// Writes to the hash never return an error.
 	muxIn.hash.Write(buf)
 	return len(buf), nil
 }

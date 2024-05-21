@@ -445,7 +445,10 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 
 func (dump *MongoDump) GetValidDbs() ([]string, error) {
 	var validDbs []string
-	dump.SessionProvider.GetSession()
+	_, err := dump.SessionProvider.GetSession()
+	if err != nil {
+		return nil, fmt.Errorf("error getting session: %v", err)
+	}
 	dbs, err := dump.SessionProvider.DatabaseNames()
 	if err != nil {
 		return nil, fmt.Errorf("error getting database names: %v", err)

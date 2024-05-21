@@ -189,7 +189,9 @@ func (r *Reader) readRune() (rune, error) {
 		r1, _, err = r.r.ReadRune()
 		if err == nil {
 			if r1 != '\n' {
-				r.r.UnreadRune()
+				if err = r.r.UnreadRune(); err != nil {
+					return r1, err
+				}
 				r1 = '\r'
 			}
 		}
@@ -231,7 +233,9 @@ func (r *Reader) parseRecord() (fields []string, err error) {
 	if r.Comment != 0 && r1 == r.Comment {
 		return nil, r.skip('\n')
 	}
-	r.r.UnreadRune()
+	if err := r.r.UnreadRune(); err != nil {
+		return nil, err
+	}
 
 	// At this point we have at least one field.
 	for {

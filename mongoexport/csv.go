@@ -96,7 +96,9 @@ func (csvExporter *CSVExportOutput) ExportDocument(document bson.D) error {
 			rowOut = append(rowOut, fmt.Sprintf("%v", fieldVal))
 		}
 	}
-	csvExporter.csvWriter.Write(rowOut)
+	if err = csvExporter.csvWriter.Write(rowOut); err != nil {
+		return err
+	}
 	csvExporter.NumExported++
 	return csvExporter.csvWriter.Error()
 }

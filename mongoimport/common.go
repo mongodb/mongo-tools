@@ -127,7 +127,10 @@ func (bd *bomDiscardingReader) Read(p []byte) (int, error) {
 	if !bd.didRead {
 		bom, err := bd.buf.Peek(3)
 		if err == nil && bytes.Equal(bom, UTF8_BOM) {
-			bd.buf.Read(make([]byte, 3)) // discard BOM
+			_, err = bd.buf.Read(make([]byte, 3)) // discard BOM
+			if err != nil {
+				return 0, err
+			}
 		}
 		bd.didRead = true
 	}
