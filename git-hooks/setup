@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+set -x
+
+DIR=$(dirname "$0")
+ln -sf "../../$DIR/pre-commit" "$DIR/../.git/hooks/pre-commit"
