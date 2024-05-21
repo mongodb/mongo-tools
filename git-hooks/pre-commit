@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -e
+
+go run build.go sa:installdevtools
+./dev-bin/precious lint --staged
