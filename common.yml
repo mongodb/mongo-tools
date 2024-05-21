@@ -1460,6 +1460,7 @@ tasks:
             ${_set_shell_env}
             retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
             if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
+            go run build.go sa:lint
 
   - name: lint-js
     commands:
