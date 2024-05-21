@@ -9,6 +9,8 @@ package mongodump
 import (
 	"bytes"
 	"context"
+
+	// #nosec G505 -- we do not use this digest algorithm in a security-sensitive way.
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
@@ -223,6 +225,7 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 	escapedColName := util.EscapeCollectionName(colName)
 	if len(escapedColName) > 238 {
 		colNameTruncated := escapedColName[:208]
+		// #nosec G401 -- we do not use this digest algorithm in a security-sensitive way.
 		colNameHashBytes := sha1.Sum([]byte(colName))
 		colNameHashBase64 := base64.RawURLEncoding.EncodeToString(colNameHashBytes[:])
 
