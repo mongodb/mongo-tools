@@ -450,7 +450,9 @@ func (cache *SpecialCollectionCache) Pos() int64 {
 }
 
 func (cache *SpecialCollectionCache) Write(b []byte) (int, error) {
-	cache.hash.Write(b)
+	if _, err := cache.hash.Write(b); err != nil {
+		return 0, err
+	}
 	return cache.buf.Write(b)
 }
 
@@ -526,7 +528,9 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 		prioritizer.NamespaceErrorChan <- fmt.Errorf("no intent for namespace %v", namespace)
 	} else {
 		if intent.BSONFile != nil {
-			intent.BSONFile.Open()
+			if err := intent.BSONFile.Open(); err != nil {
+				prioritizer.NamespaceErrorChan <- fmt.Errorf("error opening BSON file for %s: %v", intent.Namespace(), err)
+			}
 		}
 		if intent.IsOplog() {
 			// once we see the oplog we

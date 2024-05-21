@@ -493,13 +493,13 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 		result, err = inserter.Insert(document)
 	} else if imp.IngestOptions.Mode == modeUpsert {
 		if selector == nil {
-			imp.fallbackToInsert(inserter, document)
+			result, err = imp.fallbackToInsert(inserter, document)
 		} else {
 			result, err = inserter.Replace(selector, document)
 		}
 	} else if imp.IngestOptions.Mode == modeMerge {
 		if selector == nil {
-			imp.fallbackToInsert(inserter, document)
+			result, err = imp.fallbackToInsert(inserter, document)
 		} else {
 			updateDoc := bson.D{{"$set", document}}
 			result, err = inserter.Update(selector, updateDoc)

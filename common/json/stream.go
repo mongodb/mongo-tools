@@ -216,7 +216,9 @@ func (enc *Encoder) Encode(v interface{}) error {
 	// is required if the encoded value was a number,
 	// so that the reader knows there aren't more
 	// digits coming.
-	e.WriteByte('\n')
+	if err = e.WriteByte('\n'); err != nil {
+		return err
+	}
 
 	if _, err = enc.w.Write(e.Bytes()); err != nil {
 		enc.err = err

@@ -75,8 +75,9 @@ func (mux *Multiplexer) Run() {
 		if index == 0 { //Control index
 			if EOF {
 				log.Logvf(log.DebugLow, "Mux finish")
-				mux.Out.Close()
-				if completionErr != nil {
+				if err := mux.Out.Close(); err != nil {
+					mux.Completed <- err
+				} else if completionErr != nil {
 					mux.Completed <- completionErr
 				} else if len(mux.selectCases) != 1 {
 					mux.Completed <- fmt.Errorf("Mux ending but selectCases still open %v",
@@ -316,6 +317,8 @@ func (muxIn *MuxIn) Write(buf []byte) (int, error) {
 			return 0, io.ErrShortWrite
 		}
 	}
-	muxIn.hash.Write(buf)
+	if _, err := muxIn.hash.Write(buf); err != nil {
+		return 0, err
+	}
 	return len(buf), nil
 }

@@ -273,7 +273,9 @@ func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, 
 	}
 
 	res := bson.M{}
-	singleRes.Decode(&res)
+	if err := singleRes.Decode(&res); err != nil {
+		return fmt.Errorf("error decoding result of create command: %v", err)
+	}
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("create command: %v", res["errmsg"])
 	}
@@ -469,7 +471,9 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		return fmt.Errorf("error running merge command: %v", err)
 	}
 	res := bson.M{}
-	resSingle.Decode(&res)
+	if err = resSingle.Decode(&res); err != nil {
+		return fmt.Errorf("error decoding result of merge command: %v", err)
+	}
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("_mergeAuthzCollections command: %v", res["errmsg"])
 	}

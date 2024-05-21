@@ -336,7 +336,9 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 				discover <- shardHost
 			}
 		}
-		shardCursor.Close(nil)
+		if closeErr := shardCursor.Close(nil); closeErr != nil {
+			return nil, fmt.Errorf("error closing shard discovery cursor: %v", err)
+		}
 	}
 
 	return stat, nil

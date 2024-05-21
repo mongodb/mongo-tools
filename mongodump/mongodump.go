@@ -272,7 +272,6 @@ func (dump *MongoDump) Dump() (err error) {
 			// The Mux runs until its Control is closed
 			close(dump.archive.Mux.Control)
 			muxErr := <-dump.archive.Mux.Completed
-			archiveOut.Close()
 			if muxErr != nil {
 				if err != nil {
 					err = fmt.Errorf("archive writer: %v / %v", err, muxErr)
@@ -280,6 +279,7 @@ func (dump *MongoDump) Dump() (err error) {
 					err = fmt.Errorf("archive writer: %v", muxErr)
 				}
 				log.Logvf(log.DebugLow, "%v", err)
+				err = archiveOut.Close()
 			} else {
 				log.Logvf(log.DebugLow, "mux completed successfully")
 			}
