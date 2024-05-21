@@ -466,7 +466,9 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	if err != nil {
 		return docsCount, err
 	}
-	exportOutput.Flush()
+	if err = exportOutput.Flush(); err != nil {
+		return docsCount, err
+	}
 	return docsCount, nil
 }
 

@@ -153,12 +153,14 @@ func (c CSVConverter) Convert() (b bson.D, err error) {
 		c.useArrayIndexFields,
 	)
 	if _, ok := err.(coercionError); ok {
-		c.Print()
+		if err = c.Print(); err != nil {
+			return
+		}
 		err = nil
 	}
 	return
 }
 
-func (c CSVConverter) Print() {
-	c.rejectWriter.Write(c.data)
+func (c CSVConverter) Print() error {
+	return c.rejectWriter.Write(c.data)
 }

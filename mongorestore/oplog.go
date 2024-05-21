@@ -312,7 +312,9 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
-			restore.indexCatalog.DeleteIndexes(dbName, collName, op.Object)
+			if err := restore.indexCatalog.DeleteIndexes(dbName, collName, op.Object); err != nil {
+				return fmt.Errorf("error deleting indexes: %v", err)
+			}
 			return nil
 		case "collMod":
 			if restore.serverVersion.GTE(db.Version{4, 1, 11}) {
@@ -412,7 +414,9 @@ func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface
 		return fmt.Errorf("applyOps: %v", err)
 	}
 	res := bson.M{}
-	singleRes.Decode(&res)
+	if err := singleRes.Decode(&res); err != nil {
+		return fmt.Errorf("applyOps decoding result: %v", err)
+	}
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("applyOps command: %v", res["errmsg"])
 	}
