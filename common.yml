@@ -663,9 +663,6 @@ tasks:
 
   - name: check-snyk-results
     tags: ["git_tag"]
-    depends_on:
-      - name: push
-        variant: "*"
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -682,6 +679,8 @@ tasks:
   - name: release-json
     tags: ["git_tag"]
     depends_on:
+      - name: check-snyk-results
+        variant: "*"
       - name: push
         variant: "*"
     commands:
@@ -690,6 +689,9 @@ tasks:
       - func: "upload release json feed to s3"
 
   - name: generate-full-json
+    depends_on:
+      - name: check-snyk-results
+        variant: "*"
     commands:
       - func: "fetch source"
       - command: expansions.update
