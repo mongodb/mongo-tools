@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"regexp"
 	"runtime"
@@ -19,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 
 	"testing"
 	"time"
@@ -960,10 +962,44 @@ func TestParsePositionalArgsAsURI(t *testing.T) {
 func TestOptionsParsingForSRV(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.SRVConnectionStringTestType)
-	atlasURI, ok := os.LookupEnv("ATLAS_URI")
-	if !ok {
-		t.Fatalf("test requires ATLAS_URI to be set")
+
+	currentDefault := dns.DefaultResolver
+	defer func() {
+		dns.DefaultResolver = currentDefault
+	}()
+
+	mockedHost := "cluster0.2yfpvyw.example.com"
+	dns.DefaultResolver = &dns.Resolver{
+		LookupSRV: func(srvName, protocol, host string) (string, []*net.SRV, error) {
+			if srvName == "mongodb" && protocol == "tcp" && host == mockedHost {
+				return "unused",
+					[]*net.SRV{
+						{
+							Target: "ac-1evngnn-shard-00-00.2yfpvyw.example.com.",
+							Port:   27017,
+						},
+						{
+							Target: "ac-1evngnn-shard-00-01.2yfpvyw.example.com.",
+							Port:   27017,
+						},
+						{
+							Target: "ac-1evngnn-shard-00-02.2yfpvyw.example.com.",
+							Port:   27017,
+						},
+					},
+					nil
+			}
+			return "", nil, fmt.Errorf("unexpected SRV lookup for %q during options parsing", host)
+		},
+		LookupTXT: func(name string) ([]string, error) {
+			if name == mockedHost {
+				return []string{"authSource=admin&replicaSet=atlas-fzt5wz-shard-0"}, nil
+			}
+			return nil, fmt.Errorf("unexpected TXT lookup for %q during options parsing", name)
+		},
 	}
+
+	atlasURI := fmt.Sprintf("mongodb+srv://%s/", mockedHost)
 	cs, err := connstring.Parse(atlasURI)
 	if err != nil {
 		t.Fatalf("Failed to parse ATLAS_URI (%s): %s", atlasURI, err)
