@@ -567,7 +567,6 @@ pre:
           export TOOLS_TESTING_AUTH_USERNAME='${auth_username}'
           export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
-          export ATLAS_URI='${atlas_srv_uri}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
           set -o xtrace
           set -o verbose
@@ -1647,17 +1646,6 @@ tasks:
         vars:
           target: test:unit
 
-  - name: srv
-    commands:
-      - command: expansions.update
-      - func: "fetch source"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run make target"
-        vars:
-          target: test:srv
-
   - name: vet
     commands:
       - func: "fetch source"
@@ -1923,7 +1911,6 @@ buildvariants:
       resmoke_args: --jobs 4
     tasks:
       - name: "unit"
-      - name: "srv"
       - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
@@ -2275,10 +2262,6 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "rhel80"
     task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
-  # Run srv tests on one variant. We pick RHEL 8.0 because it's a relatively
-  # recent platform that supports a wide range of servers.
-  - variant: "rhel80"
-    task: "^srv*"
   # RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.
   - variant: "rhel70"
     task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$"

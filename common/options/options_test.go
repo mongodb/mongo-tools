@@ -960,8 +960,7 @@ func TestParsePositionalArgsAsURI(t *testing.T) {
 }
 
 func TestOptionsParsingForSRV(t *testing.T) {
-
-	testtype.SkipUnlessTestType(t, testtype.SRVConnectionStringTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	currentDefault := dns.DefaultResolver
 	defer func() {
