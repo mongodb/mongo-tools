@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# This set of piped commands generates a file that contains each dependency as
+# a purl (https://github.com/package-url/purl-spec), one per line. This is
+# used as input for the `silkbomb` tool to generate an SBOM.
 go list -json -mod=mod all |
 	jq -r '.Module // empty | "pkg:golang/" + .Path + "@" + .Version // empty' |
 	sort -u >purls.txt
