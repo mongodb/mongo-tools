@@ -87,6 +87,12 @@ func (b *Builder) Hide() *Builder {
 	return b
 }
 
+// Defer declares other tasks that should run after this one.
+func (b *Builder) Defer(names ...string) *Builder {
+	b.task.deferredTasks = names
+	return b
+}
+
 type declaredTask struct {
 	declaredArgs    []DeclaredTaskArg
 	dependencies    []string
@@ -95,6 +101,7 @@ type declaredTask struct {
 	executor        Executor
 	continueOnError bool
 	hidden          bool
+	deferredTasks   []string
 }
 
 func (t *declaredTask) ContinueOnError() bool {
@@ -117,4 +124,7 @@ func (t *declaredTask) Executor() Executor {
 }
 func (t *declaredTask) Name() string {
 	return t.name
+}
+func (t *declaredTask) DeferredTasks() []string {
+	return t.deferredTasks
 }

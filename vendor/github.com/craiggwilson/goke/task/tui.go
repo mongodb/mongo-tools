@@ -59,3 +59,12 @@ func (ui *TUI) Success(msg string) string {
 
 	return ansi.Color(msg, "green+b")
 }
+
+// Warning colors the msg as warning.
+func (ui *TUI) Warning(msg string) string {
+	if ui == nil {
+		return msg
+	}
+
+	return ansi.Color(msg, "yellow+b")
+}

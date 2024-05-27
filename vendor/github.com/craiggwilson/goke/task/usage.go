@@ -70,6 +70,9 @@ func usageTemp(ui *TUI, fs *flag.FlagSet, registry *Registry, longestLine int, o
 		if t.Description() != "" {
 			fmt.Fprintln(out, "       ", t.Description())
 		}
+		if len(t.DeferredTasks()) > 0 {
+			fmt.Fprintln(out, "       ", ui.Highlight("deferred"), "->", t.DeferredTasks())
+		}
 	}
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "OPTIONS:")

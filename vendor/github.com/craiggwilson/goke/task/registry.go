@@ -24,6 +24,13 @@ func WithNamespaceSeparator(s string) RegistryOption {
 	}
 }
 
+// WithShouldErrorOnUnusedArgs sets whether we should return an error when unused args are detected.
+func WithShouldErrorOnUnusedArgs(v bool) RegistryOption {
+	return func(r *Registry) {
+		r.shouldErrorOnUnusedArgs = v
+	}
+}
+
 // NewRegistry creates a new registry.
 func NewRegistry(opts ...RegistryOption) *Registry {
 	r := &Registry{
@@ -39,9 +46,10 @@ func NewRegistry(opts ...RegistryOption) *Registry {
 
 // Registry holds all the tasks able to be run.
 type Registry struct {
-	tree        taskTree
-	nsSeparator string
-	autoNS      bool
+	tree                    taskTree
+	nsSeparator             string
+	autoNS                  bool
+	shouldErrorOnUnusedArgs bool
 }
 
 // Tasks returns all the tasks and pseudo-tasks.

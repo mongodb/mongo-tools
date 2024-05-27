@@ -569,6 +569,7 @@ pre:
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
           export ATLAS_URI='${atlas_srv_uri}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
+          export SNYK_TOKEN='${snyk_token}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -660,9 +661,26 @@ tasks:
       - func: "upload release packages to s3"
       - func: "upload release packages to linux repos"
 
+  - name: check-snyk-results
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - command: shell.exec
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            set -e
+            curl -o ./snyk https://static.snyk.io/cli/latest/snyk-linux
+            chmod 0755 ./snyk
+            ./snyk test --org="${snyk_organization_id}"
+
   - name: release-json
     tags: ["git_tag"]
     depends_on:
+      - name: check-snyk-results
+        variant: "*"
       - name: push
         variant: "*"
     commands:
@@ -671,6 +689,9 @@ tasks:
       - func: "upload release json feed to s3"
 
   - name: generate-full-json
+    depends_on:
+      - name: check-snyk-results
+        variant: "*"
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1707,6 +1728,7 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
+      - name: check-snyk-results
       - name: release-json
       - name: generate-full-json
 
