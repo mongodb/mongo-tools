@@ -16,6 +16,9 @@ func init() {
 	taskRegistry.Declare("build").Description("build the tools").OptionalArgs("pkgs").Do(buildscript.BuildTools)
 	taskRegistry.Declare("checkMinVersion").Description("check if the minimum required Go version exists").Do(buildscript.CheckMinimumGoVersion)
 
+	// SSDLC
+	taskRegistry.Declare("sbom:write").Description("create an SBOM Lite file using the Silkbomb tool").Do(buildscript.WriteSBOMLite)
+
 	// Static Analysis
 	taskRegistry.Declare("sa:modtidy").Description("runs go mod tidy").Do(buildscript.SAModTidy)
 	taskRegistry.Declare("sa:evgvalidate").Description("runs evergreen validate").Do(buildscript.SAEvergreenValidate)

@@ -517,16 +517,14 @@ functions:
 
           echo -n "$MONGOD_URI" > MONGOD_URI
 
-  "check third-party notices":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -e
-          set -x
-          ./etc/generate-notices.pl > ./THIRD-PARTY-NOTICES
-          git diff --exit-code
+  "check sbom lite":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      script: |
+        ${_set_shell_env}
+        ./scripts/regenerate-and-diff-sbom.sh
 
 pre:
   - command: shell.exec
@@ -1693,10 +1691,10 @@ tasks:
             set -e
             go vet -composites=false ./bsondump ./mongo*
 
-  - name: third-party-licenses
+  - name: check-sbom-lite
     commands:
       - func: "fetch source"
-      - func: "check third-party notices"
+      - func: "check sbom lite"
 
 buildvariants:
   #######################################
@@ -1716,7 +1714,7 @@ buildvariants:
       - name: mod-tidy
       - name: evergreen-validate
       - name: vet
-      - name: third-party-licenses
+      - name: check-sbom-lite
 
   #######################################
   #     Release Manager Buildvariant    #

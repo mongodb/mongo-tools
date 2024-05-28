@@ -51,7 +51,6 @@ var binaries = []string{
 var staticFiles = []string{
 	"LICENSE.md",
 	"README.md",
-	"THIRD-PARTY-NOTICES",
 }
 
 func main() {
@@ -651,7 +650,6 @@ func buildMSI() {
 	// license, so we do not include the static files.
 	var msiStaticFiles = []string{
 		"README.md",
-		"THIRD-PARTY-NOTICES",
 	}
 
 	// location of the necessary data files to build the msi.
