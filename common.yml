@@ -517,6 +517,17 @@ functions:
 
           echo -n "$MONGOD_URI" > MONGOD_URI
 
+  "check third-party notices":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -e
+          set -x
+          ./etc/generate-notices.pl > ./THIRD-PARTY-NOTICES
+          git diff --exit-code
+
   "check sbom lite":
     command: shell.exec
     type: test
@@ -1691,10 +1702,15 @@ tasks:
             set -e
             go vet -composites=false ./bsondump ./mongo*
 
+  - name: check-third-party-notices
+    commands:
+      - func: "fetch source"
+      - func: "check third-party notices"
+
   - name: check-sbom-lite
     commands:
       - func: "fetch source"
-      - func: "check sbom lite"
+      - func: "check third-party notices"
 
 buildvariants:
   #######################################
@@ -1714,6 +1730,7 @@ buildvariants:
       - name: mod-tidy
       - name: evergreen-validate
       - name: vet
+      - name: check-third-party-notices
       - name: check-sbom-lite
 
   #######################################
