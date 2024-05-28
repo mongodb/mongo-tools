@@ -1,4 +1,5 @@
 *.bson
+*.deb
 *.dump
 *.exe
 *.log
@@ -6,13 +7,16 @@
 *.pcap
 *.playback
 *.pyc
+*.rpm
 *.swp
 *.swp
 *.tape
 *.temp
 *.zip
 
+/deb_build
 /purls.txt
+/release.tgz
 
 test/**/*.json
 
