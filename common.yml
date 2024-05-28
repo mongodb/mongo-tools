@@ -36,6 +36,14 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
+parameters:
+  - key: fake_tag_for_release_testing
+    description: |
+      This can be set to test tasks that require a tag without actually
+      triggering all of the release automation. Setting it will cause the
+      `EVG_TRIGGERED_BY_TAG` environment variable to be populated with this
+      parameter's value.
+
 functions:
   "run legacy tests":
     command: shell.exec
@@ -545,6 +553,9 @@ pre:
           GOROOT=""; set_goenv || exit
           export EVG_IS_PATCH='${is_patch}'
           export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
+          if [ -n "${fake_tag_for_release_testing}" ]; then
+            export EVG_TRIGGERED_BY_TAG="${fake_tag_for_release_testing}"
+          fi
           export EVG_BUILD_ID='${build_id}'
           export EVG_VERSION='${version_id}'
           export EVG_VARIANT='${build_variant}'
@@ -684,8 +695,9 @@ tasks:
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
             ${_set_shell_env}
-            if [ ! -f "ssdlc/SBOM.${EVG_TRIGGERED_BY_TAG}.json" ]; then
-                echo "You must create an augmented SBOM file for this release (${EVG_TRIGGERED_BY_TAG})"
+            TAG="$EVG_TRIGGERED_BY_TAG"
+            if [ ! -f "ssdlc/SBOM.$TAG.json" ]; then
+                echo "You must create an augmented SBOM file for this release ($TAG)"
                 exit 1
             fi
 
