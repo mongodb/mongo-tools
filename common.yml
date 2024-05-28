@@ -674,6 +674,21 @@ tasks:
             chmod 0755 ./snyk
             ./snyk test --org="${snyk_organization_id}"
 
+  - name: require-augmented-sbom
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - command: shell.exec
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            if [ ! -f "ssdlc/SBOM.${EVG_TRIGGERED_BY_TAG}.json" ]; then
+                echo "You must create an augmented SBOM file for this release (${EVG_TRIGGERED_BY_TAG})"
+                exit 1
+            fi
+
   - name: release-json
     tags: ["git_tag"]
     depends_on:
@@ -1727,6 +1742,7 @@ buildvariants:
       - amazon1-2018-test
     tasks:
       - name: check-snyk-results
+      - name: require-augmented-sbom
       - name: release-json
       - name: generate-full-json
 
