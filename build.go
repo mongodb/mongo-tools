@@ -16,6 +16,9 @@ func init() {
 	taskRegistry.Declare("build").Description("build the tools").OptionalArgs("pkgs").Do(buildscript.BuildTools)
 	taskRegistry.Declare("checkMinVersion").Description("check if the minimum required Go version exists").Do(buildscript.CheckMinimumGoVersion)
 
+	// SSDLC
+	taskRegistry.Declare("sbom:write").Description("create an SBOM Lite file using the Silkbomb tool").Do(buildscript.WriteSBOMLite)
+
 	// Static Analysis
 	taskRegistry.Declare("sa:installdevtools").Description("installs dev tools").Do(buildscript.SAInstallDevTools)
 	taskRegistry.Declare("sa:lint").Description("runs precious linting").DependsOn("sa:installdevtools").Do(buildscript.SAPreciousLint)
@@ -26,7 +29,6 @@ func init() {
 	taskRegistry.Declare("test:unit").Description("runs all unit tests").OptionalArgs("pkgs").Do(buildscript.TestUnit)
 	taskRegistry.Declare("test:integration").Description("runs all integration tests").OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestIntegration)
 	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").Do(buildscript.TestKerberos)
-	taskRegistry.Declare("test:srv").Description("runs all srv tests").Do(buildscript.TestSRV)
 	taskRegistry.Declare("test:awsauth").Description("runs all aws auth tests").Do(buildscript.TestAWSAuth)
 }
 
