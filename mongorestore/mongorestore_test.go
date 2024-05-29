@@ -1753,7 +1753,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(err, ShouldBeNil)
 			// In the 8.0 release, this no longer leads to an error, so
 			// there's nothing to test here.
-			if restore.serverVersion.LT(db.Version{8, 0, 0}) {
+			if restore.serverVersion.GTE(db.Version{8, 0, 0}) {
 				return
 			}
 
