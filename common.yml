@@ -1710,7 +1710,7 @@ tasks:
   - name: check-sbom-lite
     commands:
       - func: "fetch source"
-      - func: "check third-party notices"
+      - func: "check sbom lite"
 
 buildvariants:
   #######################################
