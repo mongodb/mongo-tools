@@ -85,7 +85,7 @@ func findRepoRoot(ctx context.Context) (string, error) {
 }
 
 func executableExistsWithVersion(ctx *task.Context, exe, exeVersion string) (bool, error) {
-	exists, err := pathExists(exe)
+	exists, err := fileExists(exe)
 	if err != nil {
 		return false, err
 	}
@@ -103,9 +103,9 @@ func executableExistsWithVersion(ctx *task.Context, exe, exeVersion string) (boo
 	return false, nil
 }
 
-func pathExists(p string) (bool, error) {
-	_, err := os.Stat(p)
-	if err == nil {
+func fileExists(p string) (bool, error) {
+	info, err := os.Stat(p)
+	if err == nil && info.Mode().IsRegular() {
 		return true, nil
 	}
 	if errors.Is(err, os.ErrNotExist) {
