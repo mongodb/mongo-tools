@@ -149,6 +149,13 @@ func main() {
 					},
 				},
 			},
+			{
+				Name: "rename-release-files-for-papertrail",
+				Action: func(cCtx *cli.Context) error {
+					renameReleaseFilesForPapetrail()
+					return nil
+				},
+			},
 		},
 	}
 
@@ -251,7 +258,9 @@ func getDebFileName() string {
 	check(err, "get version")
 
 	vStr := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
-	if v.Pre != "" {
+	if v.Commit != "" {
+		vStr += "~" + v.Commit[:8]
+	} else if v.Pre != "" {
 		vStr += "~latest"
 	}
 
@@ -269,7 +278,9 @@ func getRPMFileName() string {
 	check(err, "get version")
 
 	vStr := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
-	if v.Pre != "" {
+	if v.Commit != "" {
+		vStr += "." + v.Commit[:8]
+	} else if v.Pre != "" {
 		vStr += ".latest"
 	}
 
@@ -1135,10 +1146,7 @@ func uploadRelease(v version.Version) {
 				pf.Name, pf.Arch, ext,
 			)
 
-			stableFile := fmt.Sprintf(
-				"mongodb-database-tools-%s-%s-%s%s",
-				pf.Name, pf.Arch, v, ext,
-			)
+			stableFile := basenameForPlatformAndVersion(pf, v) + ext
 
 			latestStableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-latest-stable%s",
@@ -1543,4 +1551,48 @@ func downloadArtifacts(v string, artifactNames []string) {
 	if numArtifactsDownloaded != len(artifactNames) {
 		log.Fatalf("expect to download %d artifacts %s, only downloaded %d", len(artifactNames), artifactNames, numArtifactsDownloaded)
 	}
+}
+
+// We want the filenames we record in Papertrail to be unique, but the name of
+// the non-deb/RPM files are things like `release.zip` or `release.msi`. This
+// code will rename these files to something that matches the names that
+// _would_ be used if we were to upload them as official releases.
+//
+// This doesn't _guarantee_ uniqueness since we could run the exact same
+// commit in Evergreen twice, which would generate the same names, but it's
+// close enough. Papertrail will still record the information we give even if
+// we use the same filenames for two different CI runs.
+func renameReleaseFilesForPapetrail() {
+	pf, err := platform.GetFromEnv()
+	if err != nil {
+		log.Fatalf("could not find platform: %v", err)
+	}
+
+	v, err := version.GetCurrent()
+	if err != nil {
+		log.Fatalf("could not get version: %v", err)
+	}
+
+	glob := "release.*"
+	releaseFiles, err := filepath.Glob(glob)
+	if err != nil {
+		log.Fatalf("could not get files matching %q: %v", glob, err)
+	}
+
+	baseName := basenameForPlatformAndVersion(pf, v)
+	for _, file := range releaseFiles {
+		ext := filepath.Ext(file)
+		newName := baseName + ext
+		if err := os.Rename(file, newName); err != nil {
+			log.Fatalf("could not rename %q to %q: %v", file, newName, err)
+		}
+		log.Printf("renamed %q to %q", file, newName)
+	}
+}
+
+func basenameForPlatformAndVersion(pf platform.Platform, v version.Version) string {
+	return fmt.Sprintf(
+		"mongodb-database-tools-%s-%s-%s",
+		pf.Name, pf.Arch, v,
+	)
 }

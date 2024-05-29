@@ -704,6 +704,39 @@ tasks:
       - command: expansions.update
       - func: "generate gosec SARIF report"
 
+  - name: record-in-papertrail
+    tags: ["git_tag"]
+    depends_on:
+      - name: sign
+    commands:
+      - func: "fetch source"
+      - func: "fetch dist release artifacts"
+      - command: subprocess.exec
+        params:
+          binary: bash
+          working_dir: src/github.com/mongodb/mongo-tools
+          args:
+            - "./scripts/set-expansions-for-papertrail.sh"
+      - command: expansions.update
+        params:
+          file: src/github.com/mongodb/mongo-tools/expansions.yml
+      - command: shell.exec
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            ${_maybe_enable_devtoolset_7}
+            PATH=$PATH:$HOME
+            go run release/release.go rename-release-files-for-papertrail
+      - command: papertrail.trace
+        params:
+          key_id: ${papertrail_key_id}
+          secret_key: ${papertrail_secret_key}
+          product: ${product_name}
+          version: ${release_tag}
+          filenames:
+            - "./src/github.com/mongodb/mongo-tools/mongodb-database-tools*"
+
   - name: check-snyk-results
     tags: ["git_tag"]
     commands:
@@ -1801,9 +1834,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: amazon2
     display_name: Amazon Linux 64 v2
@@ -1813,9 +1848,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #     Debian x86_64 Buildvariants     #
@@ -1829,9 +1866,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: debian92
     display_name: Debian 9.2
@@ -1841,9 +1880,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: debian10
     display_name: Debian 10
@@ -1853,9 +1894,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: debian11
     display_name: Debian 11
@@ -1865,9 +1908,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: debian12
     display_name: Debian 12
@@ -1877,9 +1922,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #      macOS x86_64 Buildvariant      #
@@ -1895,6 +1942,7 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: macos-1014-codesign
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel70-small
         git_tag_only: true
@@ -1913,6 +1961,7 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: macos-1014-codesign
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel70-small
         git_tag_only: true
@@ -1931,9 +1980,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
  # This build is specifically for Splunk
   - name: rhel62-no-kerberos
@@ -1964,6 +2015,7 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
     # We intentionally do not invoke the push task. We want to upload these
     # binaries to S3, but we do not add them to the release feed or RPM repos.
 
@@ -1975,9 +2027,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: rhel80
     display_name: "# RHEL 8.0"
@@ -2013,9 +2067,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: rhel90
     display_name: RHEL 9.0
@@ -2025,9 +2081,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: amazon2023
     display_name: Amazon Linux 2023
@@ -2037,9 +2095,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #     SUSE x86_64 Buildvariants       #
@@ -2055,9 +2115,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: suse15
     display_name: SUSE 15
@@ -2067,9 +2129,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #    Ubuntu x86_64 Buildvariants      #
@@ -2083,9 +2147,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: ubuntu1804
     display_name: Ubuntu 18.04
@@ -2095,9 +2161,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: ubuntu2004
     display_name: Ubuntu 20.04
@@ -2107,9 +2175,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: ubuntu2204
     display_name: Ubuntu 22.04
@@ -2119,9 +2189,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #        Windows Buildvariants        #
@@ -2165,9 +2237,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #        ARM Buildvariants            #
@@ -2182,9 +2256,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: ubuntu1804-arm64
     display_name: ZAP ARM64 Ubuntu 18.04
@@ -2195,9 +2271,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: ubuntu2004-arm64
     display_name: ZAP ARM64 Ubuntu 20.04
@@ -2208,9 +2286,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: ubuntu2204-arm64
     display_name: ZAP ARM64 Ubuntu 22.04
@@ -2221,9 +2301,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: amazon2-aarch64
     display_name: Amazon Linux ARM v2
@@ -2234,9 +2316,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: amazon2023-aarch64
     display_name: Amazon Linux 2023 ARM
@@ -2247,9 +2331,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: rhel82-aarch64
     display_name: RHEL 8.2 ARM
@@ -2260,9 +2346,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: rhel90-aarch64
     display_name: RHEL 9.0 ARM
@@ -2273,9 +2361,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #        Power Buildvariants          #
@@ -2290,9 +2380,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: rhel81-ppc64le
     display_name: ZAP PPC64LE RHEL 8.1
@@ -2303,9 +2395,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   #######################################
   #     Z (s390x) Buildvariants         #
@@ -2320,9 +2414,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
   - name: rhel83-s390x
     display_name: ZAP s390x RHEL 8.3
@@ -2333,9 +2429,11 @@ buildvariants:
       - name: "dist"
       - name: "sign"
         run_on: rhel87-small
+      - name: "record-in-papertrail"
       - name: "push"
         run_on: rhel80-small
         git_tag_only: true
+
 
 # These aliases are generated by running `go run ./evergreen/generator` from
 # the repo root. Do not edit them directly!
@@ -2346,6 +2444,9 @@ github_pr_aliases:
   # Run unit for every platform.
   - variant: ".*"
     task: "^unit$"
+  # Run all static analysis tasks.
+  - variant: ".*"
+    task: "^record-in-papertrail$"
   # Run tests with the race detector enabled.
   - variant: "ubuntu-race"
     task: "^.*$"
