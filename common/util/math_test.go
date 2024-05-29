@@ -44,7 +44,9 @@ func TestNumberConverter(t *testing.T) {
 			So(out, ShouldEqual, 21.0)
 			out, err = floatConverter(float64(27.52))
 			So(err, ShouldEqual, nil)
-			So(out, ShouldEqual, 27.52)
+			// There may be some floating point rounding errors so we cannot
+			// compare the values exactly.
+			So(out, ShouldAlmostEqual, 27.52, 0.000001)
 		})
 
 		Convey("non-numeric values should fail", func() {
