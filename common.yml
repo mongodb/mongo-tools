@@ -565,7 +565,6 @@ pre:
           export TOOLS_TESTING_AUTH_USERNAME='${auth_username}'
           export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
-          export ATLAS_URI='${atlas_srv_uri}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
           export SNYK_TOKEN='${snyk_token}'
           set -o xtrace
@@ -1467,9 +1466,9 @@ tasks:
             set -x
             set -v
             set -e
-            PATH="/opt/node/bin:$PATH"
-            /opt/node/bin/npm install eslint@3.2
-            /opt/node/bin/node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
+            PATH="/opt/nodejs/node-v16.17.0-linux-x64/bin:$PATH"
+            npm install eslint@3.2
+            node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
 
   - name: qa-tests-5.0
     tags: ["5.0"]
@@ -1665,17 +1664,6 @@ tasks:
       - func: "run make target"
         vars:
           target: test:unit
-
-  - name: srv
-    commands:
-      - command: expansions.update
-      - func: "fetch source"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run make target"
-        vars:
-          target: test:srv
 
   - name: vet
     commands:
@@ -1943,7 +1931,6 @@ buildvariants:
       resmoke_args: --jobs 4
     tasks:
       - name: "unit"
-      - name: "srv"
       - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
@@ -2295,10 +2282,6 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "rhel80"
     task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
-  # Run srv tests on one variant. We pick RHEL 8.0 because it's a relatively
-  # recent platform that supports a wide range of servers.
-  - variant: "rhel80"
-    task: "^srv*"
   # RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.
   - variant: "rhel70"
     task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$"
