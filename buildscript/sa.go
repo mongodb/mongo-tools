@@ -134,7 +134,7 @@ func installBinaryTool(ctx *task.Context, exeName, toolVersion, githubProject, d
 		return err
 	}
 
-	exists, err := executableExistsWithVersion(ctx, devBinExe, preciousVersion)
+	exists, err := executableExistsWithVersion(ctx, devBinExe, toolVersion)
 	if err != nil {
 		return err
 	}
