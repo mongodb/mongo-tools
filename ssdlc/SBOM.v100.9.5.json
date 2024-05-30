@@ -1,0 +1,1135 @@
+{
+  "components": [
+    {
+      "bom-ref": "pkg:golang/github.com/aws/aws-sdk-go@v1.52.5",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/aws/aws-sdk-go"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/aws/aws-sdk-go@v1.52.5"
+        }
+      ],
+      "group": "github.com/aws",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "aws-sdk-go",
+      "purl": "pkg:golang/github.com/aws/aws-sdk-go@v1.52.5",
+      "type": "library",
+      "version": "v1.52.5"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/cpuguy83/go-md2man/v2@v2.0.4",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/cpuguy83/go-md2man"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/cpuguy83/go-md2man/v2@v2.0.4"
+        }
+      ],
+      "group": "github.com/cpuguy83/go-md2man",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "v2",
+      "purl": "pkg:golang/github.com/cpuguy83/go-md2man/v2@v2.0.4",
+      "type": "library",
+      "version": "v2.0.4"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/craiggwilson/goke@v0.0.0-20240206162536-b1c58122d943",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/craiggwilson/goke"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/craiggwilson/goke@v0.0.0-20240206162536-b1c58122d943"
+        }
+      ],
+      "group": "github.com/craiggwilson",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "goke",
+      "purl": "pkg:golang/github.com/craiggwilson/goke@v0.0.0-20240206162536-b1c58122d943",
+      "type": "library",
+      "version": "v0.0.0-20240206162536-b1c58122d943"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/davecgh/go-spew"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/davecgh/go-spew@v1.1.1"
+        }
+      ],
+      "group": "github.com/davecgh",
+      "licenses": [
+        {
+          "license": {
+            "name": "ISC"
+          }
+        }
+      ],
+      "name": "go-spew",
+      "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
+      "type": "library",
+      "version": "v1.1.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/golang/snappy@v0.0.4",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/golang/snappy"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/golang/snappy@v0.0.4"
+        }
+      ],
+      "group": "github.com/golang",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "snappy",
+      "purl": "pkg:golang/github.com/golang/snappy@v0.0.4",
+      "type": "library",
+      "version": "v0.0.4"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/google/go-cmp@v0.6.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/go-cmp"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/google/go-cmp@v0.6.0"
+        }
+      ],
+      "group": "github.com/google",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "go-cmp",
+      "purl": "pkg:golang/github.com/google/go-cmp@v0.6.0",
+      "type": "library",
+      "version": "v0.6.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jessevdk/go-flags@v1.5.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/jessevdk/go-flags"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/jessevdk/go-flags@v1.5.0"
+        }
+      ],
+      "group": "github.com/jessevdk",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "go-flags",
+      "purl": "pkg:golang/github.com/jessevdk/go-flags@v1.5.0",
+      "type": "library",
+      "version": "v1.5.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/jmespath/go-jmespath"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/jmespath/go-jmespath@v0.4.0"
+        }
+      ],
+      "group": "github.com/jmespath",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "go-jmespath",
+      "purl": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0",
+      "type": "library",
+      "version": "v0.4.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jtolds/gls@v4.20.0%2Bincompatible",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/jtolds/gls"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/jtolds/gls@v4.20.0+incompatible"
+        }
+      ],
+      "group": "github.com/jtolds",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "gls",
+      "purl": "pkg:golang/github.com/jtolds/gls@v4.20.0%2Bincompatible",
+      "type": "library",
+      "version": "v4.20.0+incompatible"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.13.6",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/klauspost/compress"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/klauspost/compress@v1.13.6"
+        }
+      ],
+      "group": "github.com/klauspost",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        },
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "compress",
+      "purl": "pkg:golang/github.com/klauspost/compress@v1.13.6",
+      "type": "library",
+      "version": "v1.13.6"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-colorable@v0.1.13",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mattn/go-colorable"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/mattn/go-colorable@v0.1.13"
+        }
+      ],
+      "group": "github.com/mattn",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "go-colorable",
+      "purl": "pkg:golang/github.com/mattn/go-colorable@v0.1.13",
+      "type": "library",
+      "version": "v0.1.13"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-isatty@v0.0.20",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mattn/go-isatty"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/mattn/go-isatty@v0.0.20"
+        }
+      ],
+      "group": "github.com/mattn",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "go-isatty",
+      "purl": "pkg:golang/github.com/mattn/go-isatty@v0.0.20",
+      "type": "library",
+      "version": "v0.0.20"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.14",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mattn/go-runewidth"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/mattn/go-runewidth@v0.0.14"
+        }
+      ],
+      "group": "github.com/mattn",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "go-runewidth",
+      "purl": "pkg:golang/github.com/mattn/go-runewidth@v0.0.14",
+      "type": "library",
+      "version": "v0.0.14"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mgutz/ansi@v0.0.0-20200706080929-d51e80ef957d",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mgutz/ansi"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/mgutz/ansi@v0.0.0-20200706080929-d51e80ef957d"
+        }
+      ],
+      "group": "github.com/mgutz",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "ansi",
+      "purl": "pkg:golang/github.com/mgutz/ansi@v0.0.0-20200706080929-d51e80ef957d",
+      "type": "library",
+      "version": "v0.0.0-20200706080929-d51e80ef957d"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mitchellh/go-wordwrap@v1.0.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mitchellh/go-wordwrap"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/mitchellh/go-wordwrap@v1.0.1"
+        }
+      ],
+      "group": "github.com/mitchellh",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "go-wordwrap",
+      "purl": "pkg:golang/github.com/mitchellh/go-wordwrap@v1.0.1",
+      "type": "library",
+      "version": "v1.0.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mongodb/mongo-tools",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/mongodb/mongo-tools"
+        }
+      ],
+      "group": "github.com/mongodb",
+      "name": "mongo-tools",
+      "purl": "pkg:golang/github.com/mongodb/mongo-tools",
+      "type": "library"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/montanaflynn/stats@v0.6.6",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/montanaflynn/stats"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/montanaflynn/stats@v0.6.6"
+        }
+      ],
+      "group": "github.com/montanaflynn",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "stats",
+      "purl": "pkg:golang/github.com/montanaflynn/stats@v0.6.6",
+      "type": "library",
+      "version": "v0.6.6"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/nsf/termbox-go@v1.1.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/nsf/termbox-go"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/nsf/termbox-go@v1.1.1"
+        }
+      ],
+      "group": "github.com/nsf",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "termbox-go",
+      "purl": "pkg:golang/github.com/nsf/termbox-go@v1.1.1",
+      "type": "library",
+      "version": "v1.1.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/pkg/errors@v0.9.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/pkg/errors"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/pkg/errors@v0.9.1"
+        }
+      ],
+      "group": "github.com/pkg",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-2-Clause"
+          }
+        }
+      ],
+      "name": "errors",
+      "purl": "pkg:golang/github.com/pkg/errors@v0.9.1",
+      "type": "library",
+      "version": "v0.9.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/pmezard/go-difflib"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/pmezard/go-difflib@v1.0.0"
+        }
+      ],
+      "group": "github.com/pmezard",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "go-difflib",
+      "purl": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0",
+      "type": "library",
+      "version": "v1.0.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/rivo/uniseg@v0.2.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/rivo/uniseg"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/rivo/uniseg@v0.2.0"
+        }
+      ],
+      "group": "github.com/rivo",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "uniseg",
+      "purl": "pkg:golang/github.com/rivo/uniseg@v0.2.0",
+      "type": "library",
+      "version": "v0.2.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/russross/blackfriday"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/russross/blackfriday/v2@v2.1.0"
+        }
+      ],
+      "group": "github.com/russross/blackfriday",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-2-Clause"
+          }
+        }
+      ],
+      "name": "v2",
+      "purl": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0",
+      "type": "library",
+      "version": "v2.1.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/smartystreets/assertions@v0.0.0-20180927180507-b2de0cb4f26d",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/smartystreets/assertions"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/smartystreets/assertions@v0.0.0-20180927180507-b2de0cb4f26d"
+        }
+      ],
+      "group": "github.com/smartystreets",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "assertions",
+      "purl": "pkg:golang/github.com/smartystreets/assertions@v0.0.0-20180927180507-b2de0cb4f26d",
+      "type": "library",
+      "version": "v0.0.0-20180927180507-b2de0cb4f26d"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/smartystreets/goconvey@v1.6.4",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/smartystreets/goconvey"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/smartystreets/goconvey@v1.6.4"
+        }
+      ],
+      "group": "github.com/smartystreets",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "goconvey",
+      "purl": "pkg:golang/github.com/smartystreets/goconvey@v1.6.4",
+      "type": "library",
+      "version": "v1.6.4"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/stretchr/testify@v1.9.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/stretchr/testify"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/stretchr/testify@v1.9.0"
+        }
+      ],
+      "group": "github.com/stretchr",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "testify",
+      "purl": "pkg:golang/github.com/stretchr/testify@v1.9.0",
+      "type": "library",
+      "version": "v1.9.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/urfave/cli/v2@v2.27.2",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/urfave/cli"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/urfave/cli/v2@v2.27.2"
+        }
+      ],
+      "group": "github.com/urfave/cli",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "v2",
+      "purl": "pkg:golang/github.com/urfave/cli/v2@v2.27.2",
+      "type": "library",
+      "version": "v2.27.2"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/xdg-go/pbkdf2"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/xdg-go/pbkdf2@v1.0.0"
+        }
+      ],
+      "group": "github.com/xdg-go",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "pbkdf2",
+      "purl": "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0",
+      "type": "library",
+      "version": "v1.0.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/xdg-go/scram@v1.1.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/xdg-go/scram"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/xdg-go/scram@v1.1.1"
+        }
+      ],
+      "group": "github.com/xdg-go",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "scram",
+      "purl": "pkg:golang/github.com/xdg-go/scram@v1.1.1",
+      "type": "library",
+      "version": "v1.1.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/xdg-go/stringprep@v1.0.3",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/xdg-go/stringprep"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/xdg-go/stringprep@v1.0.3"
+        }
+      ],
+      "group": "github.com/xdg-go",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "stringprep",
+      "purl": "pkg:golang/github.com/xdg-go/stringprep@v1.0.3",
+      "type": "library",
+      "version": "v1.0.3"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/xrash/smetrics@v0.0.0-20240312152122-5f08fbb34913",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/xrash/smetrics"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/xrash/smetrics@v0.0.0-20240312152122-5f08fbb34913"
+        }
+      ],
+      "group": "github.com/xrash",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "smetrics",
+      "purl": "pkg:golang/github.com/xrash/smetrics@v0.0.0-20240312152122-5f08fbb34913",
+      "type": "library",
+      "version": "v0.0.0-20240312152122-5f08fbb34913"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20201027041543-1326539a0a0a",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/youmark/pkcs8"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/youmark/pkcs8@v0.0.0-20201027041543-1326539a0a0a"
+        }
+      ],
+      "group": "github.com/youmark",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "pkcs8",
+      "purl": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20201027041543-1326539a0a0a",
+      "type": "library",
+      "version": "v0.0.0-20201027041543-1326539a0a0a"
+    },
+    {
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.10.3",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mongodb/mongo-go-driver"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.10.3"
+        }
+      ],
+      "group": "go.mongodb.org",
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "mongo-driver",
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver@v1.10.3",
+      "type": "library",
+      "version": "v1.10.3"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.22.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.22.0"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "crypto",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.22.0",
+      "type": "library",
+      "version": "v0.22.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/exp@v0.0.0-20230321023759-10a507213a29",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/exp@v0.0.0-20230321023759-10a507213a29"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "exp",
+      "purl": "pkg:golang/golang.org/x/exp@v0.0.0-20230321023759-10a507213a29",
+      "type": "library",
+      "version": "v0.0.0-20230321023759-10a507213a29"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/mod@v0.17.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/mod@v0.17.0"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "mod",
+      "purl": "pkg:golang/golang.org/x/mod@v0.17.0",
+      "type": "library",
+      "version": "v0.17.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/sync@v0.1.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/sync@v0.1.0"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "sync",
+      "purl": "pkg:golang/golang.org/x/sync@v0.1.0",
+      "type": "library",
+      "version": "v0.1.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/sys@v0.20.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/sys@v0.20.0"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "sys",
+      "purl": "pkg:golang/golang.org/x/sys@v0.20.0",
+      "type": "library",
+      "version": "v0.20.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/term@v0.19.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/term@v0.19.0"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "term",
+      "purl": "pkg:golang/golang.org/x/term@v0.19.0",
+      "type": "library",
+      "version": "v0.19.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/text@v0.14.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/golang.org/x/text@v0.14.0"
+        }
+      ],
+      "group": "golang.org/x",
+      "name": "text",
+      "purl": "pkg:golang/golang.org/x/text@v0.14.0",
+      "type": "library",
+      "version": "v0.14.0"
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637"
+        }
+      ],
+      "group": "gopkg.in",
+      "name": "tomb.v2",
+      "purl": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637",
+      "type": "library",
+      "version": "v2.0.0-20161208151619-d5d1b5820637"
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/gopkg.in/yaml.v2@v2.4.0"
+        }
+      ],
+      "group": "gopkg.in",
+      "name": "yaml.v2",
+      "purl": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
+      "type": "library",
+      "version": "v2.4.0"
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/gopkg.in/yaml.v3@v3.0.1"
+        }
+      ],
+      "group": "gopkg.in",
+      "name": "yaml.v3",
+      "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "type": "library",
+      "version": "v3.0.1"
+    },
+    {
+      "bom-ref": "pkg:golang/std@go1.21.10",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/None/std@go1.21.10"
+        }
+      ],
+      "name": "std",
+      "purl": "pkg:golang/std@go1.21.10",
+      "type": "library",
+      "version": "go1.21.10"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:golang/github.com/aws/aws-sdk-go@v1.52.5"
+    },
+    {
+      "ref": "pkg:golang/github.com/cpuguy83/go-md2man/v2@v2.0.4"
+    },
+    {
+      "ref": "pkg:golang/github.com/craiggwilson/goke@v0.0.0-20240206162536-b1c58122d943"
+    },
+    {
+      "ref": "pkg:golang/github.com/davecgh/go-spew@v1.1.1"
+    },
+    {
+      "ref": "pkg:golang/github.com/golang/snappy@v0.0.4"
+    },
+    {
+      "ref": "pkg:golang/github.com/google/go-cmp@v0.6.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/jessevdk/go-flags@v1.5.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/jmespath/go-jmespath@v0.4.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/jtolds/gls@v4.20.0%2Bincompatible"
+    },
+    {
+      "ref": "pkg:golang/github.com/klauspost/compress@v1.13.6"
+    },
+    {
+      "ref": "pkg:golang/github.com/mattn/go-colorable@v0.1.13"
+    },
+    {
+      "ref": "pkg:golang/github.com/mattn/go-isatty@v0.0.20"
+    },
+    {
+      "ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.14"
+    },
+    {
+      "ref": "pkg:golang/github.com/mgutz/ansi@v0.0.0-20200706080929-d51e80ef957d"
+    },
+    {
+      "ref": "pkg:golang/github.com/mitchellh/go-wordwrap@v1.0.1"
+    },
+    {
+      "ref": "pkg:golang/github.com/mongodb/mongo-tools"
+    },
+    {
+      "ref": "pkg:golang/github.com/montanaflynn/stats@v0.6.6"
+    },
+    {
+      "ref": "pkg:golang/github.com/nsf/termbox-go@v1.1.1"
+    },
+    {
+      "ref": "pkg:golang/github.com/pkg/errors@v0.9.1"
+    },
+    {
+      "ref": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/rivo/uniseg@v0.2.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/smartystreets/assertions@v0.0.0-20180927180507-b2de0cb4f26d"
+    },
+    {
+      "ref": "pkg:golang/github.com/smartystreets/goconvey@v1.6.4"
+    },
+    {
+      "ref": "pkg:golang/github.com/stretchr/testify@v1.9.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/urfave/cli/v2@v2.27.2"
+    },
+    {
+      "ref": "pkg:golang/github.com/xdg-go/pbkdf2@v1.0.0"
+    },
+    {
+      "ref": "pkg:golang/github.com/xdg-go/scram@v1.1.1"
+    },
+    {
+      "ref": "pkg:golang/github.com/xdg-go/stringprep@v1.0.3"
+    },
+    {
+      "ref": "pkg:golang/github.com/xrash/smetrics@v0.0.0-20240312152122-5f08fbb34913"
+    },
+    {
+      "ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20201027041543-1326539a0a0a"
+    },
+    {
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.10.3"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/crypto@v0.22.0"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/exp@v0.0.0-20230321023759-10a507213a29"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/mod@v0.17.0"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/sync@v0.1.0"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/sys@v0.20.0"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/term@v0.19.0"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/text@v0.14.0"
+    },
+    {
+      "ref": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637"
+    },
+    {
+      "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
+    },
+    {
+      "ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
+    },
+    {
+      "ref": "pkg:golang/std@go1.21.10"
+    }
+  ],
+  "metadata": {
+    "timestamp": "2024-05-28T03:42:27.175034+00:00",
+    "tools": [
+      {
+        "externalReferences": [
+          {
+            "type": "build-system",
+            "url": "https://github.com/CycloneDX/cyclonedx-python-lib/actions"
+          },
+          {
+            "type": "distribution",
+            "url": "https://pypi.org/project/cyclonedx-python-lib/"
+          },
+          {
+            "type": "documentation",
+            "url": "https://cyclonedx-python-library.readthedocs.io/"
+          },
+          {
+            "type": "issue-tracker",
+            "url": "https://github.com/CycloneDX/cyclonedx-python-lib/issues"
+          },
+          {
+            "type": "license",
+            "url": "https://github.com/CycloneDX/cyclonedx-python-lib/blob/main/LICENSE"
+          },
+          {
+            "type": "release-notes",
+            "url": "https://github.com/CycloneDX/cyclonedx-python-lib/blob/main/CHANGELOG.md"
+          },
+          {
+            "type": "vcs",
+            "url": "https://github.com/CycloneDX/cyclonedx-python-lib"
+          },
+          {
+            "type": "website",
+            "url": "https://github.com/CycloneDX/cyclonedx-python-lib/#readme"
+          }
+        ],
+        "name": "cyclonedx-python-lib",
+        "vendor": "CycloneDX",
+        "version": "6.4.4"
+      }
+    ]
+  },
+  "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
+  "version": 1,
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5"
+}

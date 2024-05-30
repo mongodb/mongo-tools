@@ -36,6 +36,14 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
+parameters:
+  - key: fake_tag_for_release_testing
+    description: |
+      This can be set to test tasks that require a tag without actually
+      triggering all of the release automation. Setting it will cause the
+      `EVG_TRIGGERED_BY_TAG` environment variable to be populated with this
+      parameter's value.
+
 functions:
   "run legacy tests":
     command: shell.exec
@@ -570,6 +578,9 @@ pre:
           GOROOT=""; set_goenv || exit
           export EVG_IS_PATCH='${is_patch}'
           export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
+          if [ -n "${fake_tag_for_release_testing}" ]; then
+            export EVG_TRIGGERED_BY_TAG="${fake_tag_for_release_testing}"
+          fi
           export EVG_BUILD_ID='${build_id}'
           export EVG_VERSION='${version_id}'
           export EVG_VARIANT='${build_variant}'
@@ -704,9 +715,25 @@ tasks:
           script: |
             ${_set_shell_env}
             set -e
-            curl -o ./snyk https://static.snyk.io/cli/latest/snyk-linux
+            curl -sSL -o ./snyk https://static.snyk.io/cli/latest/snyk-linux
             chmod 0755 ./snyk
             ./snyk test --org="${snyk_organization_id}"
+
+  - name: require-augmented-sbom
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - command: shell.exec
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            TAG="$EVG_TRIGGERED_BY_TAG"
+            if [ ! -f "ssdlc/SBOM.$TAG.json" ]; then
+                echo "You must create an augmented SBOM file for this release ($TAG)"
+                exit 1
+            fi
 
   - name: release-json
     tags: ["git_tag"]
@@ -1758,6 +1785,7 @@ buildvariants:
     tasks:
       - name: gosec-SARIF-report
       - name: check-snyk-results
+      - name: require-augmented-sbom
       - name: release-json
       - name: generate-full-json
 

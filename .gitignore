@@ -13,6 +13,7 @@
 *.zip
 
 /purls.txt
+/silkbomb.env
 
 test/**/*.json
 
