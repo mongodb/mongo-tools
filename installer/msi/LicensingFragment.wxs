@@ -9,6 +9,12 @@
               Source="$(var.SourceDir)\LICENSE.rtf"
               DiskId ="1"/>
       </Component>
+      <Component Id="c_Thirdparty" Guid="d176d2d7-d601-45ac-8f94-f60c3f3a2ecf">
+        <File Id="f_Thirdparty"
+              Name="THIRD-PARTY-NOTICES"
+              Source="$(var.SourceDir)\THIRD-PARTY-NOTICES"
+              DiskId ="1"/>
+      </Component>
       <Component Id="c_Readme" Guid="b1773010-44e7-462a-b586-0fe5056fb087">
         <File Id="f_Readme"
               Name="README"
