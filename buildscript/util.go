@@ -8,8 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/craiggwilson/goke/pkg/sh"
@@ -119,7 +119,9 @@ func versionMatches(ctx *task.Context, exe, wantVersion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return strings.Contains(out, wantVersion), nil
+	re := regexp.MustCompile(`\b\Q` + wantVersion + `\E\b`)
+
+	return re.MatchString(out), nil
 }
 
 func httpGetWithRetries(url string, n int) (*http.Response, error) {
