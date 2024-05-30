@@ -1754,6 +1754,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			// In the 8.0 release, this no longer leads to an error, so
 			// there's nothing to test here.
 			if restore.serverVersion.GTE(db.Version{8, 0, 0}) {
+				SkipSo()
 				return
 			}
 
