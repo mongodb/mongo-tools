@@ -452,6 +452,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			return nil, fmt.Errorf("CRL files are not supported on this platform")
 		}
 
+		// #nosec G402 -- we intentionally allow old TLS versions for backwards compatibility
 		tlsConfig := &tls.Config{}
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
 			tlsConfig.InsecureSkipVerify = true

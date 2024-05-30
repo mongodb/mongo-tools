@@ -537,6 +537,20 @@ functions:
         ${_set_shell_env}
         ./scripts/regenerate-and-diff-sbom.sh
 
+  "generate gosec SARIF report":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          set -x
+          set -v
+          set -e
+          go run build.go sa:installdevtools
+          GOSEC_SARIF_REPORT=1 ./dev-bin/precious lint --all --command gosec
+          cat SARIF.json
+
 pre:
   - command: shell.exec
     params:
@@ -668,6 +682,16 @@ tasks:
       - command: expansions.update
       - func: "upload release packages to s3"
       - func: "upload release packages to linux repos"
+
+  - name: gosec-SARIF-report
+    tags: ["git_tag"]
+    depends_on:
+      - name: push
+        variant: "*"
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "generate gosec SARIF report"
 
   - name: check-snyk-results
     tags: ["git_tag"]
@@ -1465,6 +1489,7 @@ tasks:
             ${_set_shell_env}
             retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
             if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
+            go run build.go sa:lint
 
   - name: lint-js
     commands:
@@ -1731,6 +1756,7 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
+      - name: gosec-SARIF-report
       - name: check-snyk-results
       - name: release-json
       - name: generate-full-json

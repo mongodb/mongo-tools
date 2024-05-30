@@ -17,6 +17,7 @@
 test/**/*.json
 
 !**/testdata/**
+/dev-bin
 
 /mongorestore/testdata/txntest/oplog.bson
 

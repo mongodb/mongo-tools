@@ -20,6 +20,8 @@ func init() {
 	taskRegistry.Declare("sbom:write").Description("create an SBOM Lite file using the Silkbomb tool").Do(buildscript.WriteSBOMLite)
 
 	// Static Analysis
+	taskRegistry.Declare("sa:installdevtools").Description("installs dev tools").Do(buildscript.SAInstallDevTools)
+	taskRegistry.Declare("sa:lint").Description("runs precious linting").DependsOn("sa:installdevtools").Do(buildscript.SAPreciousLint)
 	taskRegistry.Declare("sa:modtidy").Description("runs go mod tidy").Do(buildscript.SAModTidy)
 	taskRegistry.Declare("sa:evgvalidate").Description("runs evergreen validate").Do(buildscript.SAEvergreenValidate)
 
