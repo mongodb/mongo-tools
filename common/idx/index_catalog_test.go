@@ -3,12 +3,15 @@ package idx
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestDeleteIndexes(t *testing.T) {
 	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	t.Run("drop one index by name", func(t *testing.T) {
 		i := newTestIndexCatalog(t)
