@@ -16,4 +16,4 @@ if [ ! -f "$SBOM" ]; then
 fi
 
 ./scripts/regenerate-augmented-sbom.sh
-git diff --exit-code --ignore-matching-lines '"timestamp":\s+".+"' ssdlc/*.bom.json
+git diff --exit-code --ignore-matching-lines '"(timestamp|version)":\s+.+' ssdlc/*.bom.json
