@@ -717,7 +717,7 @@ tasks:
             set -e
             curl -sSL -o ./snyk https://static.snyk.io/cli/latest/snyk-linux
             chmod 0755 ./snyk
-            ./snyk test --org="${snyk_organization_id}"
+            ./snyk test --org="${snyk_organization_id}" --file=./go.mod
 
   - name: require-augmented-sbom
     tags: ["git_tag"]
