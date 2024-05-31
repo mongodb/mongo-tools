@@ -246,7 +246,10 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	var index int
 	var err error
 
-	defer c.Close(ctx)
+	// Defer a call to Close to try to clean up the cursor server-side when all
+	// documents have not been exhausted. Use context.Background() to ensure Close
+	// completes even if the context passed to All has errored.
+	defer c.Close(context.Background())
 
 	batch := c.batch // exhaust the current batch before iterating the batch cursor
 	for {
@@ -306,9 +309,17 @@ func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, bat
 }
 
 func (c *Cursor) closeImplicitSession() {
-	if c.clientSession != nil && c.clientSession.SessionType == session.Implicit {
+	if c.clientSession != nil && c.clientSession.IsImplicit {
 		c.clientSession.EndSession()
 	}
+}
+
+// SetBatchSize sets the number of documents to fetch from the database with
+// each iteration of the cursor's "Next" method. Note that some operations set
+// an initial cursor batch size, so this setting only affects subsequent
+// document batches fetched from the database.
+func (c *Cursor) SetBatchSize(batchSize int32) {
+	c.bc.SetBatchSize(batchSize)
 }
 
 // BatchCursorFromCursor returns a driver.BatchCursor for the given Cursor. If there is no underlying

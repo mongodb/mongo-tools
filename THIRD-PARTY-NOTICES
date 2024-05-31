@@ -1565,7 +1565,7 @@ License notice for github.com/montanaflynn/stats (LICENSE)
 
 The MIT License (MIT)
 
-Copyright (c) 2014-2020 Montana Flynn (https://montanaflynn.com)
+Copyright (c) 2014-2023 Montana Flynn (https://montanaflynn.com)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1730,10 +1730,12 @@ Blackfriday is distributed under the Simplified BSD License:
 > POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/assertions (LICENSE.md)
+License notice for github.com/smarty/assertions (LICENSE.md)
 ----------------------------------------------------------------------
 
-Copyright (c) 2016 SmartyStreets, LLC
+MIT License
+
+Copyright (c) 2023 Smarty
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1758,7 +1760,32 @@ requirements and restrictions.  Use of those components is subject to the terms
 and conditions outlined the respective license of each component.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/assertions/internal/go-render (LICENSE)
+License notice for github.com/smarty/assertions/internal/go-diff (LICENSE)
+----------------------------------------------------------------------
+
+Copyright (c) 2012-2016 The go-diff Authors. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+
+----------------------------------------------------------------------
+License notice for github.com/smarty/assertions/internal/go-render (LICENSE)
 ----------------------------------------------------------------------
 
 // Copyright (c) 2015 The Chromium Authors. All rights reserved.
@@ -1790,7 +1817,7 @@ License notice for github.com/smartystreets/assertions/internal/go-render (LICEN
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------
-License notice for github.com/smartystreets/assertions/internal/oglematchers (LICENSE)
+License notice for github.com/smarty/assertions/internal/oglematchers (LICENSE)
 ----------------------------------------------------------------------
 
 
@@ -2000,7 +2027,9 @@ License notice for github.com/smartystreets/assertions/internal/oglematchers (LI
 License notice for github.com/smartystreets/goconvey (LICENSE.md)
 ----------------------------------------------------------------------
 
-Copyright (c) 2016 SmartyStreets, LLC
+MIT License
+
+Copyright (c) 2022 Smarty
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
