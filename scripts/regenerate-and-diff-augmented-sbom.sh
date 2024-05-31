@@ -16,4 +16,4 @@ if [ ! -f "$SBOM" ]; then
 fi
 
 ./scripts/regenerate-augmented-sbom.sh --no-update-timestamp --no-update-sbom-version
-./scripts/diff-sbom.sh ssdlc/*.bom.json
+./scripts/diff-sbom.sh "$SBOM"
