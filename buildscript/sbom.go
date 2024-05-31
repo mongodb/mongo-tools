@@ -6,5 +6,5 @@ import (
 )
 
 func WriteSBOMLite(ctx *task.Context) error {
-	return sh.Run(ctx, "scripts/regenerate-sbom.sh")
+	return sh.Run(ctx, "scripts/regenerate-sbom-lite.sh")
 }

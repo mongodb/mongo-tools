@@ -543,7 +543,7 @@ functions:
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
         ${_set_shell_env}
-        ./scripts/regenerate-and-diff-sbom.sh
+        ./scripts/regenerate-and-diff-sbom-lite.sh
 
   "generate gosec SARIF report":
     - command: shell.exec
