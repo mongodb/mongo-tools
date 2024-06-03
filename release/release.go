@@ -30,6 +30,7 @@ import (
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
+	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
 
 	"github.com/urfave/cli/v2"
@@ -152,8 +153,7 @@ func main() {
 			{
 				Name: "rename-release-files-for-papertrail",
 				Action: func(cCtx *cli.Context) error {
-					renameReleaseFilesForPapetrail()
-					return nil
+					return renameReleaseFilesForPapetrail()
 				},
 			},
 		},
@@ -1562,21 +1562,21 @@ func downloadArtifacts(v string, artifactNames []string) {
 // commit in Evergreen twice, which would generate the same names, but it's
 // close enough. Papertrail will still record the information we give even if
 // we use the same filenames for two different CI runs.
-func renameReleaseFilesForPapetrail() {
+func renameReleaseFilesForPapetrail() error {
 	pf, err := platform.GetFromEnv()
 	if err != nil {
-		log.Fatalf("could not find platform: %v", err)
+		return errors.Wrap(err, "could not find platform")
 	}
 
 	v, err := version.GetCurrent()
 	if err != nil {
-		log.Fatalf("could not get version: %v", err)
+		return errors.Wrap(err, "could not get version")
 	}
 
 	glob := "release.*"
 	releaseFiles, err := filepath.Glob(glob)
 	if err != nil {
-		log.Fatalf("could not get files matching %q: %v", glob, err)
+		return errors.Wrapf(err, "could not get files matching %q", glob)
 	}
 
 	baseName := basenameForPlatformAndVersion(pf, v)
@@ -1584,10 +1584,12 @@ func renameReleaseFilesForPapetrail() {
 		ext := filepath.Ext(file)
 		newName := baseName + ext
 		if err := os.Rename(file, newName); err != nil {
-			log.Fatalf("could not rename %q to %q: %v", file, newName, err)
+			return errors.Wrapf(err, "could not rename %q to %q", file, newName)
 		}
 		log.Printf("renamed %q to %q", file, newName)
 	}
+
+	return nil
 }
 
 func basenameForPlatformAndVersion(pf platform.Platform, v version.Version) string {
