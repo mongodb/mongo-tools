@@ -580,6 +580,7 @@ pre:
           export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
           if [ -n "${fake_tag_for_release_testing}" ]; then
             export EVG_TRIGGERED_BY_TAG="${fake_tag_for_release_testing}"
+            export IS_FAKE_TAG=1
           fi
           export EVG_BUILD_ID='${build_id}'
           export EVG_VERSION='${version_id}'
