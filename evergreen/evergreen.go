@@ -110,9 +110,9 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 			tasks:   `^unit$`,
 		},
 		{
-			comment: "Run all static analysis tasks.",
+			comment: "Run push and record this PR run in Papertrail.",
 			variant: `.*`,
-			tasks:   `^record-in-papertrail$`,
+			tasks:   `^push$`,
 		},
 		{
 			comment: "Run tests with the race detector enabled.",
