@@ -1562,7 +1562,7 @@ func downloadArtifacts(v string, artifactNames []string) {
 // commit in Evergreen twice, which would generate the same names, but it's
 // close enough. Papertrail will still record the information we give even if
 // we use the same filenames for two different CI runs.
-func renameReleaseFilesForPapetrail() error {
+func renameReleaseFilesForPapertrail() error {
 	pf, err := platform.GetFromEnv()
 	if err != nil {
 		return errors.Wrap(err, "could not find platform")
