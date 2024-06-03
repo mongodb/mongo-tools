@@ -153,7 +153,7 @@ func main() {
 			{
 				Name: "rename-release-files-for-papertrail",
 				Action: func(cCtx *cli.Context) error {
-					return renameReleaseFilesForPapetrail()
+					return renameReleaseFilesForPapertrail()
 				},
 			},
 		},
