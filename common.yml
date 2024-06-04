@@ -609,7 +609,7 @@ pre:
           set -o verbose
           set -o errexit
         _maybe_enable_devtoolset_7: |
-          if [ '${mongo_os}' == 'rhel62' ]; then
+          if [ -f /opt/rh/devtoolset-7/enable ]; then
             source /opt/rh/devtoolset-7/enable
           fi
         EOT
