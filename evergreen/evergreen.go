@@ -110,6 +110,11 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 			tasks:   `^unit$`,
 		},
 		{
+			comment: "Run push and record this PR run in Papertrail.",
+			variant: `.*`,
+			tasks:   `^push$`,
+		},
+		{
 			comment: "Run tests with the race detector enabled.",
 			variant: `ubuntu-race`,
 			tasks:   `^.*$`,
