@@ -543,7 +543,7 @@ functions:
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
         ${_set_shell_env}
-        ./scripts/regenerate-and-diff-sbom.sh
+        ./scripts/regenerate-and-diff-sbom-lite.sh
 
   "generate gosec SARIF report":
     - command: shell.exec
@@ -603,6 +603,8 @@ pre:
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
           export SNYK_TOKEN='${snyk_token}'
+          export SILK_CLIENT_ID='${silk_client_id}'
+          export SILK_CLIENT_SECRET='${silk_client_secret}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -745,7 +747,7 @@ tasks:
             chmod 0755 ./snyk
             ./snyk test --org="${snyk_organization_id}" --file=./go.mod
 
-  - name: require-augmented-sbom
+  - name: check-augmented-sbom
     tags: ["git_tag"]
     commands:
       - func: "fetch source"
@@ -755,11 +757,7 @@ tasks:
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
             ${_set_shell_env}
-            TAG="$EVG_TRIGGERED_BY_TAG"
-            if [ ! -f "ssdlc/SBOM.$TAG.json" ]; then
-                echo "You must create an augmented SBOM file for this release ($TAG)"
-                exit 1
-            fi
+            ./scripts/regenerate-and-diff-augmented-sbom.sh
 
   - name: release-json
     tags: ["git_tag"]
@@ -1811,7 +1809,9 @@ buildvariants:
     tasks:
       - name: gosec-SARIF-report
       - name: check-snyk-results
-      - name: require-augmented-sbom
+      - name: check-augmented-sbom
+        # podman is not available on the amazon distro.
+        run_on: rhel87-small
       - name: release-json
       - name: generate-full-json
 
