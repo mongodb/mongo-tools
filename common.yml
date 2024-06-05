@@ -2371,9 +2371,6 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "rhel80"
     task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
-  # RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.
-  - variant: "rhel70"
-    task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$"
   # Run a subset of integration tests against the 3.6 version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^rhel62-no-kerberos$"
