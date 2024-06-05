@@ -1344,7 +1344,7 @@ func linuxRelease(v version.Version) {
 // version is a stable version and the current evg task was triggered
 // by a git tag.
 func canPerformStableRelease(v version.Version) bool {
-	return v.IsStable() && env.EvgIsTagTriggered()
+	return v.IsStable() && env.EvgIsTagTriggered() && !env.IsFakeTag()
 }
 
 func downloadMongodAndShell(v string) {
