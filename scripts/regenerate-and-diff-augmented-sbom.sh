@@ -6,7 +6,7 @@ set -x
 TAG="$EVG_TRIGGERED_BY_TAG"
 if [ -z "$TAG" ]; then
     echo "Cannot regenerate the Augmented SBOM file without a tag"
-    exit 1
+    exit 0
 fi
 
 SBOM="ssdlc/$TAG.bom.json"
