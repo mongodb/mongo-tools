@@ -1848,18 +1848,6 @@ buildvariants:
   #     Debian x86_64 Buildvariants     #
   #######################################
 
-  - name: debian81
-    display_name: Debian 8.1
-    run_on:
-      - debian81-test
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-
   - name: debian92
     display_name: Debian 9.2
     run_on:

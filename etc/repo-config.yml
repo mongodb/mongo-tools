@@ -178,18 +178,6 @@ repos:
     repos:
       - zypper/suse/15/mongodb-org
 
-  - name: debian81
-    type: deb
-    code_name: "jessie"
-    bucket: repo.mongodb.org
-    edition: org
-    component: main
-    architectures:
-      - amd64
-      - i386
-    repos:
-      - apt/debian/dists/jessie/mongodb-org
-
   - name: debian92
     type: deb
     code_name: "stretch"
@@ -233,18 +221,6 @@ repos:
       - amd64
     repos:
       - apt/debian/dists/bookworm/mongodb-org
-
-  - name: debian71
-    type: deb
-    code_name: "wheezy"
-    bucket: repo.mongodb.org
-    edition: org
-    component: main
-    architectures:
-      - amd64
-      - i386
-    repos:
-      - apt/debian/dists/wheezy/mongodb-org
 
   - name: ubuntu1204
     type: deb
@@ -493,34 +469,6 @@ repos:
       - amd64
     repos:
       - apt/debian/dists/stretch/mongodb-enterprise
-
-  - name: debian81
-    type: deb
-    edition: enterprise
-    code_name: "jessie"
-    bucket: repo.mongodb.com
-    component: main
-    architectures:
-      - amd64
-      - ppc64el
-      - s390x
-      - i386
-    repos:
-      - apt/debian/dists/jessie/mongodb-enterprise
-
-  - name: debian71
-    type: deb
-    code_name: "wheezy"
-    edition: enterprise
-    bucket: repo.mongodb.com
-    component: main
-    architectures:
-      - amd64
-      - ppc64el
-      - s390x
-      - i386
-    repos:
-      - apt/debian/dists/wheezy/mongodb-enterprise
 
   - name: ubuntu1204
     type: deb

@@ -398,14 +398,6 @@ var platforms = []Platform{
 		ServerVariantName: "enterprise-debian12-64",
 	},
 	{
-		Name:      "debian81",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
-	},
-	{
 		Name:      "debian92",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
