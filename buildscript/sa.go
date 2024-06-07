@@ -17,10 +17,12 @@ import (
 )
 
 const (
-	gosecPkg = "github.com/securego/gosec/v2/cmd/gosec@v2.20.0"
+	gosecVersion = "v2.20.0"
+	gosecPkg     = "github.com/securego/gosec/v2/cmd/gosec@" + gosecVersion
 
 	preciousVersion = "0.7.2"
 	ubiVersion      = "0.0.18"
+	prettierVersion = "3.3.1"
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
@@ -28,6 +30,9 @@ func SAInstallDevTools(ctx *task.Context) error {
 		return err
 	}
 	if err := installUBI(ctx); err != nil {
+		return err
+	}
+	if err := installPrettier(ctx); err != nil {
 		return err
 	}
 	return installBinaryTool(
@@ -109,6 +114,14 @@ func installUBI(ctx *task.Context) error {
 
 // Install gosec.
 func installGosec(ctx *task.Context) error {
+	exists, err := executableExistsWithVersion(ctx, "gosec", gosecVersion)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
 	return goInstall(ctx, gosecPkg)
 }
 
@@ -173,6 +186,37 @@ func installBinaryTool(ctx *task.Context, exeName, toolVersion, githubProject, d
 			return sh.Run(ctx, cmd[0], cmd[1:]...)
 		},
 	)
+}
+
+func installPrettier(ctx *task.Context) error {
+	prettier, err := prettierPath()
+	if err != nil {
+		return err
+	}
+
+	exists, err := executableExistsWithVersion(ctx, prettier, prettierVersion)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
+	return sh.Run(
+		ctx,
+		"npm", "install",
+		"--no-save",
+		fmt.Sprintf("prettier@%s", prettierVersion),
+	)
+}
+
+func prettierPath() (string, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, "node_modules", ".bin", "prettier"), nil
 }
 
 func SAPreciousLint(ctx *task.Context) error {

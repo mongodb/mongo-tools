@@ -8,11 +8,15 @@ We are pleased to announce version 100.9.4 of the MongoDB Database Tools.
 
 This version bumps the minimum go version to 1.20.12.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Release
 
@@ -27,13 +31,18 @@ _Released 2023-11-17_
 
 We are pleased to announce version 100.9.3 of the MongoDB Database Tools.
 
-This version addresses an issue that led to installation failures of MongoDB Database Tools on Debian 12 and also resolves incompatibility with Debian 11.
+This version addresses an issue that led to installation failures of MongoDB Database Tools on
+Debian 12 and also resolves incompatibility with Debian 11.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -50,11 +59,15 @@ We are pleased to announce version 100.9.2 of the MongoDB Database Tools.
 
 This version adds support for Debian 12.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Task
 
@@ -69,13 +82,18 @@ _Released 2023-11-09_
 
 We are pleased to announce version 100.9.1 of the MongoDB Database Tools.
 
-This version updates external dependencies and fixes an issue where mongodump could change the ordering of fields in a view definition.
+This version updates external dependencies and fixes an issue where mongodump could change the
+ordering of fields in a view definition.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -94,13 +112,18 @@ _Released 2023-10-20_
 
 We are pleased to announce version 100.9.0 of the MongoDB Database Tools.
 
-This version adds support for MongoDB Server 7.0. It also updates the Go version used to build the tools to Go 1.20.10.
+This version adds support for MongoDB Server 7.0. It also updates the Go version used to build the
+tools to Go 1.20.10.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Epic
 
@@ -117,11 +140,15 @@ We are pleased to announce version 100.8.0 of the MongoDB Database Tools.
 
 This version uploads the MongoDB Database Tools to the MongoDB Linux v7.0 repos.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Release
 
@@ -137,22 +164,27 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </li>
 </ul>
 
-
 ## 100.7.5
 
 _Released 2023-08-07_
 
 We are pleased to announce version 100.7.5 of the MongoDB Database Tools.
 
-This version updates Go to [1.19.12](https://groups.google.com/g/golang-announce/c/X0b6CsSAaYI/m/Efv5DbZ9AwAJ). This release of Go includes a security fix to the crypto/tls package.
+This version updates Go to
+[1.19.12](https://groups.google.com/g/golang-announce/c/X0b6CsSAaYI/m/Efv5DbZ9AwAJ). This release of
+Go includes a security fix to the crypto/tls package.
 
 This version no longer supports the PowerPC Ubuntu 18.04 platform.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Task
 
@@ -162,7 +194,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3365'>TOOLS-3365</a>] -         Release Database Tools 100.7.5 with golang 1.19.12
 </li>
 </ul>
-                          
 
 ## 100.7.4
 
@@ -174,11 +205,15 @@ This release fixes issues with mongorestore that ommitted all namespaces contain
 restoring to an Atlas Proxy Cluster. This release also fixes an issue with mongodump where the
 process failed against clusters using Atlas Online Archive.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -195,13 +230,18 @@ _Released 2023-06-26_
 
 We are pleased to announce version 100.7.3 of the MongoDB Database Tools.
 
-This release fixes an issue introduced in 100.7.1 where specifying `mongodump --db=confg` will not dump the entire config collection.
+This release fixes an issue introduced in 100.7.1 where specifying `mongodump --db=confg` will not
+dump the entire config collection.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -223,13 +263,17 @@ _Released 2023-05-30_
 
 We are pleased to announce version 100.7.2 of the MongoDB Database Tools.
 
-This release fixes an issue with installing Database Tools on RHEL aarch64 architecture. 
+This release fixes an issue with installing Database Tools on RHEL aarch64 architecture.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -244,17 +288,20 @@ _Released 2023-05-24_
 
 We are pleased to announce version 100.7.1 of the MongoDB Database Tools.
 
-This release fixes a few bugs and adds downloads for macOS 11 on ARM
-as well as RedHat Enterprise Linux 9 (x86 and ARM) and Amazon Linux
-2023 (x86 and ARM).
+This release fixes a few bugs and adds downloads for macOS 11 on ARM as well as RedHat Enterprise
+Linux 9 (x86 and ARM) and Amazon Linux 2023 (x86 and ARM).
 
 Downloads were compiled with Go 1.19.9.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -290,13 +337,20 @@ _Released 2023-03-01_
 
 We are pleased to announce version 100.7.0 of the MongoDB Database Tools.
 
-This release adds tests against MongoDB 6.3. Highlights include new tests for [Column Store Indexes](https://www.mongodb.com/products/column-store-indexes), updating the minimum Go version to 1.19, fixing a bug that caused the Tools to ignore a password supplied via a prompt. Several build failures are also fixed in this version.
+This release adds tests against MongoDB 6.3. Highlights include new tests for
+[Column Store Indexes](https://www.mongodb.com/products/column-store-indexes), updating the minimum
+Go version to 1.19, fixing a bug that caused the Tools to ignore a password supplied via a prompt.
+Several build failures are also fixed in this version.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -306,6 +360,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </ul>
 
 ### Epic
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3235'>TOOLS-3235</a>] -         Tools 6.3 Support
 </li>
@@ -354,13 +409,20 @@ _Released 2022-11-03_
 
 We are pleased to announce version 100.6.1 of the MongoDB Database Tools.
 
-This release fixes an issue where users without permissions to read `config.system.preimages` could not run mongodump. This release also fixes issues with installing the Database Tools on Amazon Linux 2 aarch64 and RHEL 8.3 s390x. The Database Tools are now available on RHEL 9.0 x86. We also made several improvements to our testing and release infrastructure.
+This release fixes an issue where users without permissions to read `config.system.preimages` could
+not run mongodump. This release also fixes issues with installing the Database Tools on Amazon Linux
+2 aarch64 and RHEL 8.3 s390x. The Database Tools are now available on RHEL 9.0 x86. We also made
+several improvements to our testing and release infrastructure.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
@@ -369,6 +431,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - [TOOLS-3204 - Tools should not be packaged as arm64 on aarch64 platforms](https://jira.mongodb.org/browse/TOOLS-3176)
 
 ### Task
+
 - [TOOLS-2956 - Use the new notary service to notarize MacOS builds](https://jira.mongodb.org/browse/TOOLS-2956)
 - [TOOLS-3056 - Add RHEL9 x86 to Tools](https://jira.mongodb.org/browse/TOOLS-3056)
 - [TOOLS-3185 - Fix TestMongorestoreTxns failure on all platforms when run against latest Server](https://jira.mongodb.org/browse/TOOLS-3185)
@@ -380,13 +443,18 @@ _Released 2022-08-19_
 
 We are pleased to announce version 100.6.0 of the MongoDB Database Tools.
 
-This release introduces a security enhancement. The tools will interactively prompt for a SSL key password if the corresponding SSL key is encrypted and no password is provided on the command line.
+This release introduces a security enhancement. The tools will interactively prompt for a SSL key
+password if the corresponding SSL key is encrypted and no password is provided on the command line.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### New Feature
 
@@ -398,13 +466,19 @@ _Released 2022-07-19_
 
 We are pleased to announce version 100.5.4 of the MongoDB Database Tools.
 
-This release mostly consists of build failure fixes, support for new platforms, and tests against server version 6.0. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL 8.3 on s390x. The version of Go driver used by the tools has been updated to 1.10.0.
+This release mostly consists of build failure fixes, support for new platforms, and tests against
+server version 6.0. The new platforms are Debian 11 on x86, Ubuntu 22.04 on x86 and ARM, and RHEL
+8.3 on s390x. The version of Go driver used by the tools has been updated to 1.10.0.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Build Failure
 
@@ -431,49 +505,53 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - [TOOLS-3155 - Repo config for RHEL 8.3 on s390x is incorrect](https://jira.mongodb.org/browse/TOOLS-3155)
 - [TOOLS-2939 - Add Enterprise RHEL 8 zSeries](https://jira.mongodb.org/browse/TOOLS-2939)
 
-
 ## 100.5.3
 
 _Released 2022-06-14_
 
 We are pleased to announce version 100.5.3 of the MongoDB Database Tools.
 
-This release contains a number of bug fixes and changes. Highlights include support for clustered collections in mongorestore, updating our Go version from 1.16.7 to 1.17.8 to address CVEs, and supported platform updates.
+This release contains a number of bug fixes and changes. Highlights include support for clustered
+collections in mongorestore, updating our Go version from 1.16.7 to 1.17.8 to address CVEs, and
+supported platform updates.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
-
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Build Failure
 
-* [TOOLS-3119 - All builds are failing on RHEL6.2](https://jira.mongodb.org/browse/TOOLS-3119)
-* [TOOLS-3126 - The unit tests for options processing segfault on macOS](https://jira.mongodb.org/browse/TOOLS-3126)
-* [TOOLS-3127 - The dist CI task is failing on Windows](https://jira.mongodb.org/browse/TOOLS-3127)
+- [TOOLS-3119 - All builds are failing on RHEL6.2](https://jira.mongodb.org/browse/TOOLS-3119)
+- [TOOLS-3126 - The unit tests for options processing segfault on macOS](https://jira.mongodb.org/browse/TOOLS-3126)
+- [TOOLS-3127 - The dist CI task is failing on Windows](https://jira.mongodb.org/browse/TOOLS-3127)
 
 ### Bug
 
-* [TOOLS-2958 - An index deletion or collMod in the oplog can be applied to the wrong index](https://jira.mongodb.org/browse/TOOLS-2958)
-* [TOOLS-2961 - The RHEL82 ARM release does not use the correct architecture](https://jira.mongodb.org/browse/TOOLS-2961)
-* [TOOLS-2963 - Tools are not prompting for a password in many cases where they should](https://jira.mongodb.org/browse/TOOLS-2963)
-* [TOOLS-3044 - The zip file for tools on Windows contains invalid paths](https://jira.mongodb.org/browse/TOOLS-3044)
-* [TOOLS-3071 - Tools installed by RPM packages to /usr/bin are owned by mongod:mongod instead of root:root](https://jira.mongodb.org/browse/TOOLS-3071)
+- [TOOLS-2958 - An index deletion or collMod in the oplog can be applied to the wrong index](https://jira.mongodb.org/browse/TOOLS-2958)
+- [TOOLS-2961 - The RHEL82 ARM release does not use the correct architecture](https://jira.mongodb.org/browse/TOOLS-2961)
+- [TOOLS-2963 - Tools are not prompting for a password in many cases where they should](https://jira.mongodb.org/browse/TOOLS-2963)
+- [TOOLS-3044 - The zip file for tools on Windows contains invalid paths](https://jira.mongodb.org/browse/TOOLS-3044)
+- [TOOLS-3071 - Tools installed by RPM packages to /usr/bin are owned by mongod:mongod instead of root:root](https://jira.mongodb.org/browse/TOOLS-3071)
 
 ### Task
 
-* [TOOLS-2906 - Update Evergreen config to use new merge key format](https://jira.mongodb.org/browse/TOOLS-2906)
-* [TOOLS-3001 - bsondump should allow documents up to the internal max bson size (16mb + 16kb)](https://jira.mongodb.org/browse/TOOLS-3001)
-* [TOOLS-3028 - Remove evergreen batchtimes from ZAP](https://jira.mongodb.org/browse/TOOLS-3028)
-* [TOOLS-3049 - Update the Go version used to build mongo-tools to address several critical and high CVEs](https://jira.mongodb.org/browse/TOOLS-3049)
-* [TOOLS-3050 - Add Debian 11 to platforms we publish tools packages for](https://jira.mongodb.org/browse/TOOLS-3050)
-* [TOOLS-3095 - Remove Ubuntu 14.04 from CI and release platforms](https://jira.mongodb.org/browse/TOOLS-3095)
-* [TOOLS-3104 - Add tests for 5.3 to evergreen](https://jira.mongodb.org/browse/TOOLS-3104)
-* [TOOLS-3105 - Pin Go driver to version 1.9.1](https://jira.mongodb.org/browse/TOOLS-3105)
-* [TOOLS-3106 - Remove tests for 5.1 and 5.2 for most platforms](https://jira.mongodb.org/browse/TOOLS-3106)
-* [TOOLS-3108 - Update mongorestore to support clustered indexes](https://jira.mongodb.org/browse/TOOLS-3108)
-* [TOOLS-3116 - Change Windows build to run on windows-vsCurrent-large](https://jira.mongodb.org/browse/TOOLS-3116)
+- [TOOLS-2906 - Update Evergreen config to use new merge key format](https://jira.mongodb.org/browse/TOOLS-2906)
+- [TOOLS-3001 - bsondump should allow documents up to the internal max bson size (16mb + 16kb)](https://jira.mongodb.org/browse/TOOLS-3001)
+- [TOOLS-3028 - Remove evergreen batchtimes from ZAP](https://jira.mongodb.org/browse/TOOLS-3028)
+- [TOOLS-3049 - Update the Go version used to build mongo-tools to address several critical and high CVEs](https://jira.mongodb.org/browse/TOOLS-3049)
+- [TOOLS-3050 - Add Debian 11 to platforms we publish tools packages for](https://jira.mongodb.org/browse/TOOLS-3050)
+- [TOOLS-3095 - Remove Ubuntu 14.04 from CI and release platforms](https://jira.mongodb.org/browse/TOOLS-3095)
+- [TOOLS-3104 - Add tests for 5.3 to evergreen](https://jira.mongodb.org/browse/TOOLS-3104)
+- [TOOLS-3105 - Pin Go driver to version 1.9.1](https://jira.mongodb.org/browse/TOOLS-3105)
+- [TOOLS-3106 - Remove tests for 5.1 and 5.2 for most platforms](https://jira.mongodb.org/browse/TOOLS-3106)
+- [TOOLS-3108 - Update mongorestore to support clustered indexes](https://jira.mongodb.org/browse/TOOLS-3108)
+- [TOOLS-3116 - Change Windows build to run on windows-vsCurrent-large](https://jira.mongodb.org/browse/TOOLS-3116)
 
 ## 100.5.2
 
@@ -481,15 +559,23 @@ _Released 2022-02-01_
 
 We are pleased to announce version 100.5.2 of the MongoDB Database Tools.
 
-This release fixes an issue where inserting large documents with mongorestore or mongoimport could cause extremely high memory usage (<a href='https://jira.mongodb.org/browse/TOOLS-2875'>TOOLS-2875</a>). It also fixes a few minor bugs.
+This release fixes an issue where inserting large documents with mongorestore or mongoimport could
+cause extremely high memory usage
+(<a href='https://jira.mongodb.org/browse/TOOLS-2875'>TOOLS-2875</a>). It also fixes a few minor
+bugs.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2745'>TOOLS-2745</a>] -         Tools don't support setting retryWrites=false in URI parameter
 </li>
@@ -498,6 +584,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </ul>
 
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2875'>TOOLS-2875</a>] -         Limit the BufferedBulkInserter's batch size by bytes
 </li>
@@ -509,15 +596,22 @@ _Released 2021-10-12_
 
 We are pleased to announce version 100.5.1 of the MongoDB Database Tools.
 
-This release fixes an issue where certain config collections which should generally be ignored were included by mongodump/mongorestore. This release also ensures that any operations on these collections will not be applied during the oplog replay phase of mongorestore. 
+This release fixes an issue where certain config collections which should generally be ignored were
+included by mongodump/mongorestore. This release also ensures that any operations on these
+collections will not be applied during the oplog replay phase of mongorestore.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2952'>TOOLS-2952</a>] -         Filter config collections in dump/restore
 </li>
@@ -529,15 +623,21 @@ _Released 2021-08-10_
 
 We are pleased to announce version 100.5.0 of the MongoDB Database Tools.
 
-This release includes support for the loadbalanced URI option, which provides compatibility with [MongoDB Atlas Serverless](https://www.mongodb.com/developer/how-to/atlas-serverless-quick-start/). 
+This release includes support for the loadbalanced URI option, which provides compatibility with
+[MongoDB Atlas Serverless](https://www.mongodb.com/developer/how-to/atlas-serverless-quick-start/).
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Build Failure
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2938'>TOOLS-2938</a>] -         Re-add Ubuntu 16.04 PowerPC platform
 </li>
@@ -550,6 +650,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </ul>
 
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2863'>TOOLS-2863</a>] -         cs.AuthMechanismProperties is not initialized when mechanism set by --authenticationMechanism
 </li>
@@ -573,15 +674,25 @@ _Released 2021-07-23_
 
 We are pleased to announce version 100.4.1 of the MongoDB Database Tools.
 
-This patch fixes a bug ([TOOLS-2931](https://jira.mongodb.org/browse/TOOLS-2931)) that was introduced in version 100.4.0 which causes mongodump to skip any document that contains an empty field name (e.g. `{ "": "foo" }`). Documents with empty field names were not skipped by default if the `--query` or `--queryFile` options were specified. No tools other than mongodump were affected. It is highly recommended to upgrade to 100.4.1 if it is possible that your database contains documents with empty field names.
+This patch fixes a bug ([TOOLS-2931](https://jira.mongodb.org/browse/TOOLS-2931)) that was
+introduced in version 100.4.0 which causes mongodump to skip any document that contains an empty
+field name (e.g. `{ "": "foo" }`). Documents with empty field names were not skipped by default if
+the `--query` or `--queryFile` options were specified. No tools other than mongodump were affected.
+It is highly recommended to upgrade to 100.4.1 if it is possible that your database contains
+documents with empty field names.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Build Failure
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2927'>TOOLS-2927</a>] -         Clean up the platforms list inside platform.go
 </li>
@@ -611,13 +722,17 @@ _Released 2021-07-19_
 
 We are pleased to announce version 100.4.0 of the MongoDB Database Tools.
 
-This release includes server 5.0 support, including dump/restoring timeseries collections.  
+This release includes server 5.0 support, including dump/restoring timeseries collections.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Build Failure
 </h3>
@@ -696,14 +811,19 @@ _Released 2021-03-17_
 
 We are pleased to announce version 100.3.1 of the MongoDB Database Tools.
 
-This release includes various bug fixes.
-Particularly notable is TOOLS-2783, where we reverted a change from 100.2.1 (TOOLS-1856: use a memory pool in mongorestore) after discovering that it was causing memory usage issues.
+This release includes various bug fixes. Particularly notable is TOOLS-2783, where we reverted a
+change from 100.2.1 (TOOLS-1856: use a memory pool in mongorestore) after discovering that it was
+causing memory usage issues.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Build Failure
 </h3>
@@ -748,7 +868,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2808'>TOOLS-2808</a>] -         Migrate mongo-tools-common IAM auth tests to mongo-tools
 </li>
 </ul>
-                                                
 
 ## 100.3.0
 
@@ -756,14 +875,18 @@ _Released 2021-02-04_
 
 We are pleased to announce version 100.3.0 of the MongoDB Database Tools.
 
-This release includes support for PKCS8-encrypted client private keys, support for providing secrets in a config file instead of on the command line, and a few small bug fixes.
+This release includes support for PKCS8-encrypted client private keys, support for providing secrets
+in a config file instead of on the command line, and a few small bug fixes.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
-
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Build Failure
 </h3>
@@ -818,7 +941,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2798'>TOOLS-2798</a>] -         Add Amazon Linux 2 Arm64 to Tools
 </li>
 </ul>
-                                                
 
 ## 100.2.1
 
@@ -826,14 +948,19 @@ _Released 2020-11-13_
 
 We are pleased to announce version 100.2.1 of the MongoDB Database Tools.
 
-This release includes a `mongorestore` performance improvement, a fix for a bug affecting highly parallel `mongorestore`s, and an observability improvement to `mongodump` and `mongoexport`, in addition to a number of internal build/release changes.
+This release includes a `mongorestore` performance improvement, a fix for a bug affecting highly
+parallel `mongorestore`s, and an observability improvement to `mongodump` and `mongoexport`, in
+addition to a number of internal build/release changes.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
-
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Build Failure
 </h3>
@@ -879,7 +1006,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2758'>TOOLS-2758</a>] -         Bump Go driver to 1.4.2
 </li>
 </ul>
-                                            
 
 ## 100.2.0
 
@@ -887,15 +1013,23 @@ _Released 2020-10-15_
 
 We are pleased to announce version 100.2.0 of the MongoDB Database Tools.
 
-This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files matching a regex pattern. The 100.2.0 release also contains fixes for several bugs. It fixes a bug introduced in version 100.1.0 that made it impossible to connect to clusters with an SRV connection string (<a href='https://jira.mongodb.org/browse/TOOLS-2711'>TOOLS-2711</a>).
+This release deprecates the `--sslAllowInvalidHostnames` and `--sslAllowInvalidCertificates` flags
+in favor of a new `--tlsInsecure` flag. The `mongofiles put` and `mongofiles get` commands can now
+accept a list of file names. There is a new `mongofiles get_regex` command to retrieve all files
+matching a regex pattern. The 100.2.0 release also contains fixes for several bugs. It fixes a bug
+introduced in version 100.1.0 that made it impossible to connect to clusters with an SRV connection
+string (<a href='https://jira.mongodb.org/browse/TOOLS-2711'>TOOLS-2711</a>).
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
-                                                
 <h3>        Build Failure
 </h3>
 <ul>
@@ -952,7 +1086,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2701'>TOOLS-2701</a>] -         Log target linux repo in push task
 </li>
 </ul>
-                                           
 
 ## 100.1.1
 
@@ -960,13 +1093,18 @@ _Released 2020-07-31_
 
 We are pleased to announce version 100.1.1 of the MongoDB Database Tools.
 
-This release fixes contains a fix for a linux packaging bug and a mongorestore bug related to the convertLegacyIndexes flag.
+This release fixes contains a fix for a linux packaging bug and a mongorestore bug related to the
+convertLegacyIndexes flag.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Release
 </h3>
@@ -990,14 +1128,18 @@ _Released 2020-07-24_
 
 We are pleased to announce version 100.1.0 of the MongoDB Database Tools.
 
-This release officially adds support for MongoDB 4.4.
-In addition to various bug fixes, it adds support for MongoDB 4.4's new MONGODB-AWS authentication mechanism.
+This release officially adds support for MongoDB 4.4. In addition to various bug fixes, it adds
+support for MongoDB 4.4's new MONGODB-AWS authentication mechanism.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Build Failure
 </h3>
@@ -1084,11 +1226,21 @@ _Released 2020-06-04_
 
 We are pleased to announce version 100.0.2 of the MongoDB Database Tools.
 
-This release contains several bugfixes. It also adds support for dumping and restoring collections with long names since the 120 byte name limit will be raised to 255 bytes in MongoDB version 4.4.
+This release contains several bugfixes. It also adds support for dumping and restoring collections
+with long names since the 120 byte name limit will be raised to 255 bytes in MongoDB version 4.4.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
-                                                             
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-1785'>TOOLS-1785</a>] -         Typo in mongodump help
 </li>
@@ -1125,7 +1277,6 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2605'>TOOLS-2605</a>] -         Cut 100.0.2 release
 </li>
 </ul>
-                                            
 
 ## 100.0.1
 
@@ -1135,9 +1286,18 @@ We are pleased to announce version 100.0.1 of the MongoDB Database Tools.
 
 This release was a test of our new release infrastructure and contains no changes from 100.0.0.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
-                                                                                        
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2493'>TOOLS-2493</a>] -         Cut tools 100.0.0 and 100.0.1 GA releases
 </li>
@@ -1149,18 +1309,41 @@ _Released 2020-04-28_
 
 We are pleased to announce version 100.0.0 of the MongoDB Database Tools.
 
-This is the first separate release of the Database Tools from the Server. We decided to move to a separate release so we can ship new features and bugfixes more frequently. The new separate release version starts from 100.0.0 to make it clear the versioning is separate from the Server. You can read more about this on the [MongoDB blog](alendar.google.com/calendar/render?tab=mc#main_7).
+This is the first separate release of the Database Tools from the Server. We decided to move to a
+separate release so we can ship new features and bugfixes more frequently. The new separate release
+version starts from 100.0.0 to make it clear the versioning is separate from the Server. You can
+read more about this on the [MongoDB blog](alendar.google.com/calendar/render?tab=mc#main_7).
 
-This release contains bugfixes, some new command-line options, and quality of life improvements. A full list can be found below, but here are some highlights: 
+This release contains bugfixes, some new command-line options, and quality of life improvements. A
+full list can be found below, but here are some highlights:
 
-- There are no longer restrictions on using `--uri` with other connection options such as `--port` and `--password` as long as the URI and the explicit option don't provide conflicting information. Connection strings can now be specified as a positional argument without the `--uri` option.
-- The new [`--useArrayIndexFields`](https://docs.mongodb.com/database-tools/mongoimport/#cmdoption-mongoimport-usearrayindexfields) flag for mongoimport interprets natural numbers in fields as array indexes when importing csv or tsv files.
-- The new [`--convertLegacyIndexes`](https://docs.mongodb.com/database-tools/mongorestore/#cmdoption-mongorestore-convertlegacyindexes) flag for mongorestore removes any invalid index options specified in the corresponding mongodump output, and rewrites any legacy index key values to use valid values.
-- A new [`delete` mode](https://docs.mongodb.com/database-tools/mongoimport/#ex-mongoimport-delete) for mongoimport. With `--mode delete`, mongoimport deletes existing documents in the database that match a document in the import file.
+- There are no longer restrictions on using `--uri` with other connection options such as `--port`
+  and `--password` as long as the URI and the explicit option don't provide conflicting information.
+  Connection strings can now be specified as a positional argument without the `--uri` option.
+- The new
+  [`--useArrayIndexFields`](https://docs.mongodb.com/database-tools/mongoimport/#cmdoption-mongoimport-usearrayindexfields)
+  flag for mongoimport interprets natural numbers in fields as array indexes when importing csv or
+  tsv files.
+- The new
+  [`--convertLegacyIndexes`](https://docs.mongodb.com/database-tools/mongorestore/#cmdoption-mongorestore-convertlegacyindexes)
+  flag for mongorestore removes any invalid index options specified in the corresponding mongodump
+  output, and rewrites any legacy index key values to use valid values.
+- A new [`delete` mode](https://docs.mongodb.com/database-tools/mongoimport/#ex-mongoimport-delete)
+  for mongoimport. With `--mode delete`, mongoimport deletes existing documents in the database that
+  match a document in the import file.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools). Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
-                                                
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
 ### Build Failure
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2489'>TOOLS-2489</a>] -         format-go task failing on master
 </li>
@@ -1291,4 +1474,3 @@ The Database Tools are available on the [MongoDB Download Center](https://www.mo
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2551'>TOOLS-2551</a>] -         Split release uploading into per-distro tasks
 </li>
 </ul>
-                                                                            

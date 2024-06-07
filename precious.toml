@@ -26,3 +26,37 @@ cmd = [
 ]
 ok_exit_codes = [0]
 lint_failure_exit_codes = [1]
+
+[commands.prettier-yaml]
+type = "both"
+invoke = "once"
+working-dir = "root"
+path-args = "file"
+include = [ "**/*.yml", "**/*.yaml" ]
+cmd = "$PRECIOUS_ROOT/node_modules/.bin/prettier"
+lint-flags = "--check"
+tidy-flags = "--write"
+ok-exit-codes = [0]
+lint-failure-exit-codes = [1]
+ignore-stderr = ".*"
+
+[commands.prettier-md]
+type = "both"
+invoke = "once"
+working-dir = "root"
+path-args = "file"
+include = [ "*.md" ]
+cmd = [
+    "$PRECIOUS_ROOT/node_modules/.bin/prettier",
+    "--print-width", "100",
+    "--prose-wrap", "always",
+]
+lint-flags = "--check"
+tidy-flags = "--write"
+ok-exit-codes = [0]
+lint-failure-exit-codes = [1]
+ignore-stderr = ".*"
+
+# It'd be nice to use prettier to tidy the JS code too, but it seems to make
+# changes that cause it to fail to parse with the verisons of the Mongo shell
+# we use.

@@ -1,10 +1,16 @@
 # Add New Platform support
+
 In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
 
-1. check if the distro ubuntu2004-arm64-small exists in https://evergreen.mongodb.com/distros. If not please file ticket like https://jira.mongodb.org/browse/BUILD-9123 and ask build team to add the distro.
- Also be aware the distro with alias name might be created as well, for example ubuntu2004-arm64-test in this case. However that's not done automatically by the build team for now. You can try with the other if one is not available.
+1. check if the distro ubuntu2004-arm64-small exists in https://evergreen.mongodb.com/distros. If
+   not please file ticket like https://jira.mongodb.org/browse/BUILD-9123 and ask build team to add
+   the distro. Also be aware the distro with alias name might be created as well, for example
+   ubuntu2004-arm64-test in this case. However that's not done automatically by the build team for
+   now. You can try with the other if one is not available.
 
-2. Since this is an ARM platform, add the following config in the `ARM Buildvariants` section in `common.yml`
+2. Since this is an ARM platform, add the following config in the `ARM Buildvariants` section in
+   `common.yml`
+
 ```
 - name: ubuntu2004-arm64
   display_name: ZAP ARM64 Ubuntu 20.04
@@ -30,12 +36,14 @@ In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
 ```
 
 To set up enterprise version testing, add the extra fields to `expansions`
+
 ```
     mongo_edition: "enterprise"
     edition: enterprise
 ```
 
 3. Add following in `release/platform.go` to support release script
+
 ```
 	{
 		Name:  "ubuntu2004",
@@ -47,6 +55,7 @@ To set up enterprise version testing, add the extra fields to `expansions`
 ```
 
 4. Add support in `etc/repo-config.yml`
+
 ```
   - name: ubuntu2004
     type: deb
@@ -59,7 +68,9 @@ To set up enterprise version testing, add the extra fields to `expansions`
     repos:
       - apt/ubuntu/dists/bionic/mongodb-org
 ```
-If enterprise version release is needed, add an enterprise version config in `Enterprise Repos:` section as well.
 
-After all done, create an evergreen patch build to run through all the tasks on the new platform to make sure all the toolkits are available.
+If enterprise version release is needed, add an enterprise version config in `Enterprise Repos:`
+section as well.
 
+After all done, create an evergreen patch build to run through all the tasks on the new platform to
+make sure all the toolkits are available.
