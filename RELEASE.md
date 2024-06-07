@@ -67,12 +67,12 @@ The only uncompleted ticket in the release should be the release ticket. If ther
 tickets that will not be included in this release, remove the fixVersion and assign them a new one
 if appropriate.
 
-#### Update the release ticket
+#### Update the Release Ticket
 
 Mark the release ticket as "Docs Changes Needed". In "Docs Changes Summary", indicate that the
 release notes will be found in CHANGELOG.md after the release ticket is closed.
 
-### Releasing
+### Triggering the Release
 
 #### Major Release
 
@@ -83,12 +83,12 @@ instructions.
 
 #### Minor/Patch Release
 
-##### Ensure master up to date
+##### Ensure `master` Is Up to Date
 
 Ensure you have the `master` branch checked out, and that you have pulled the latest commit from
 `mongodb/mongo-tools`.
 
-##### Create the tag and push
+##### Create the Tag and Push
 
 Create an annotated tag and push it:
 
