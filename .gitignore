@@ -18,6 +18,7 @@
 /purls.txt
 /silkbomb.env
 /release.*
+!/RELEASE.md
 /mongodb-database-tools-*
 
 test/**/*.json

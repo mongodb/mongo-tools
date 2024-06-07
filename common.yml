@@ -288,14 +288,14 @@ functions:
       binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
       env:
-          MONGO_OS: ${mongo_os}
-          MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
-          MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
-          ARTIFACTORY_PASSWORD: ${artifactory_password}
-          ARTIFACTORY_USERNAME: ${artifactory_username}
-          GARASIGN_PASSWORD: ${garasign_password}
-          GARASIGN_USERNAME: ${garasign_username}
-          TASK_ID: ${task_id}
+        MONGO_OS: ${mongo_os}
+        MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
+        MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
+        ARTIFACTORY_PASSWORD: ${artifactory_password}
+        ARTIFACTORY_USERNAME: ${artifactory_username}
+        GARASIGN_PASSWORD: ${garasign_password}
+        GARASIGN_USERNAME: ${garasign_username}
+        TASK_ID: ${task_id}
       args:
         - "./scripts/sign_artifacts.sh"
 
@@ -1191,7 +1191,7 @@ tasks:
           target: test:awsauth
 
   - name: integration-7.0
-    tags: [ "7.0" ]
+    tags: ["7.0"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1212,7 +1212,7 @@ tasks:
           target: test:integration -ssl=true
 
   - name: integration-7.0-auth
-    tags: [ "7.0", "auth" ]
+    tags: ["7.0", "auth"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1241,7 +1241,7 @@ tasks:
           target: test:integration -ssl=true -auth=true
 
   - name: integration-7.0-cluster
-    tags: [ "7.0", "cluster" ]
+    tags: ["7.0", "cluster"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1259,7 +1259,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet
 
   - name: aws-auth-7.0
-    tags: [ "7.0", "aws-auth" ]
+    tags: ["7.0", "aws-auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1831,7 +1831,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: amazon2
     display_name: Amazon Linux 64 v2
     run_on:
@@ -1842,7 +1841,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #     Debian x86_64 Buildvariants     #
@@ -1859,7 +1857,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: debian10
     display_name: Debian 10
     run_on:
@@ -1870,7 +1867,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   - name: debian11
     display_name: Debian 11
@@ -1883,7 +1879,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: debian12
     display_name: Debian 12
     run_on:
@@ -1894,7 +1889,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #      macOS x86_64 Buildvariant      #
@@ -1949,8 +1943,7 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
- # This build is specifically for Splunk
+  # This build is specifically for Splunk
   - name: rhel62-no-kerberos
     display_name: "# RHEL 6.2 w/o Kerberos"
     expansions:
@@ -1993,7 +1986,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: rhel80
     display_name: "# RHEL 8.0"
     run_on:
@@ -2031,7 +2023,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: rhel90
     display_name: RHEL 9.0
     run_on:
@@ -2043,7 +2034,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: amazon2023
     display_name: Amazon Linux 2023
     run_on:
@@ -2054,7 +2044,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #     SUSE x86_64 Buildvariants       #
@@ -2073,7 +2062,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: suse15
     display_name: SUSE 15
     run_on:
@@ -2084,7 +2072,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #    Ubuntu x86_64 Buildvariants      #
@@ -2101,7 +2088,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: ubuntu1804
     display_name: Ubuntu 18.04
     run_on:
@@ -2112,7 +2098,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   - name: ubuntu2004
     display_name: Ubuntu 20.04
@@ -2125,7 +2110,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: ubuntu2204
     display_name: Ubuntu 22.04
     run_on:
@@ -2136,7 +2120,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #        Windows Buildvariants        #
@@ -2183,7 +2166,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   #######################################
   #        ARM Buildvariants            #
   #######################################
@@ -2200,7 +2182,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: ubuntu1804-arm64
     display_name: ZAP ARM64 Ubuntu 18.04
     run_on:
@@ -2212,7 +2193,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   - name: ubuntu2004-arm64
     display_name: ZAP ARM64 Ubuntu 20.04
@@ -2226,7 +2206,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: ubuntu2204-arm64
     display_name: ZAP ARM64 Ubuntu 22.04
     run_on:
@@ -2238,7 +2217,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   - name: amazon2-aarch64
     display_name: Amazon Linux ARM v2
@@ -2252,7 +2230,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: amazon2023-aarch64
     display_name: Amazon Linux 2023 ARM
     run_on:
@@ -2264,7 +2241,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   - name: rhel82-aarch64
     display_name: RHEL 8.2 ARM
@@ -2278,7 +2254,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: rhel90-aarch64
     display_name: RHEL 9.0 ARM
     run_on:
@@ -2290,7 +2265,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #        Power Buildvariants          #
@@ -2308,7 +2282,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: rhel81-ppc64le
     display_name: ZAP PPC64LE RHEL 8.1
     run_on:
@@ -2320,7 +2293,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
   #######################################
   #     Z (s390x) Buildvariants         #
@@ -2338,7 +2310,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-
   - name: rhel83-s390x
     display_name: ZAP s390x RHEL 8.3
     run_on:
@@ -2350,7 +2321,6 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
-
 
 # These aliases are generated by running `go run ./evergreen/generator` from
 # the repo root. Do not edit them directly!

@@ -113,7 +113,7 @@ rules:
   no-undef: 0
   no-undef-init: 0
   no-undefined: 0
-  no-unused-vars: ["error", {"varsIgnorePattern": "testName"}]
+  no-unused-vars: ["error", { "varsIgnorePattern": "testName" }]
   no-use-before-define: 2
   #
   # Style
@@ -121,7 +121,7 @@ rules:
   block-spacing: ["error", "always"]
   brace-style: ["error", "1tbs"]
   camelcase: 0
-  comma-spacing: ["error", {"before": false, "after": true}]
+  comma-spacing: ["error", { "before": false, "after": true }]
   comma-style: ["error", "last"]
   computed-property-spacing: ["error", "never"]
   consistent-this: 0
@@ -134,7 +134,7 @@ rules:
   indent: ["error", 2]
   jsx-quotes: 0
   key-spacing: 2
-  keyword-spacing: ["error", {"before": true, "after": true}]
+  keyword-spacing: ["error", { "before": true, "after": true }]
   linebreak-style: 2
   lines-around-comment: 0
   max-depth: 0
