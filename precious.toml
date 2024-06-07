@@ -46,10 +46,6 @@ invoke = "once"
 working-dir = "root"
 path-args = "file"
 include = [ "*.md" ]
-exclude = [
-    ".github/pull_request_template.md",
-    ".github/top-comment-content.md",
-]
 cmd = [
     "$PRECIOUS_ROOT/node_modules/.bin/prettier",
     "--print-width", "100",
