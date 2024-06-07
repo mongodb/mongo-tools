@@ -126,11 +126,6 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 			variant: `rhel80`,
 			tasks:   `^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*`,
 		},
-		{
-			comment: "RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.",
-			variant: `rhel70`,
-			tasks:   `^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$`,
-		},
 	}
 
 	// This finds the most recent version of the server supported by each

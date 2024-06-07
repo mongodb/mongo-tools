@@ -1848,18 +1848,6 @@ buildvariants:
   #     Debian x86_64 Buildvariants     #
   #######################################
 
-  - name: debian81
-    display_name: Debian 8.1
-    run_on:
-      - debian81-test
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-
   - name: debian92
     display_name: Debian 9.2
     run_on:
@@ -2383,9 +2371,6 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "rhel80"
     task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
-  # RHEL 8.0 doesn't run against server 3.4, so we do that with RHEL 7.0.
-  - variant: "rhel70"
-    task: "^(aws-auth|integration|native-cert-ssl|qa-dump-restore|qa-tests)-3.4$"
   # Run a subset of integration tests against the 3.6 version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^rhel62-no-kerberos$"
