@@ -78,8 +78,6 @@ func (p Platform) Variant() string {
 	return createVariantName(p.Name, p.Arch)
 }
 
-const evgVariantVar = "EVG_VARIANT"
-
 // GetFromEnv returns the Platform for this host, based on the value
 // of EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set
 // to an unknown value.

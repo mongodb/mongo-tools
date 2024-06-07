@@ -44,7 +44,6 @@ type Demultiplexer struct {
 	outs             map[string]DemuxOut
 	lengths          map[string]int64
 	currentNamespace string
-	buf              [db.MaxBSONSize]byte
 
 	// NamespaceChan is used to send a namespace to a consumer of namespaces.
 	NamespaceChan chan string
@@ -166,7 +165,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		}
 		demux.outs[demux.currentNamespace].End()
 		demux.NamespaceStatus[demux.currentNamespace] = NamespaceClosed
-		length := int64(demux.lengths[demux.currentNamespace])
+		length := demux.lengths[demux.currentNamespace]
 		crcUInt64, ok := demux.outs[demux.currentNamespace].Sum64()
 		if ok {
 			crc := int64(crcUInt64)
@@ -188,7 +187,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		delete(demux.outs, demux.currentNamespace)
 		delete(demux.lengths, demux.currentNamespace)
 		// in case we get a BSONBody with this block,
-		// we want to ensure that that causes an error
+		// we want to ensure that this causes an error
 		demux.currentNamespace = ""
 	}
 	return nil

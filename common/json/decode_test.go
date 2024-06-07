@@ -39,7 +39,7 @@ type V struct {
 }
 
 // ifaceNumAsFloat64/ifaceNumAsNumber are used to test unmarshaling with and
-// without UseNumber
+// without UseNumber.
 var ifaceNumAsFloat64 = map[string]interface{}{
 	"k1": float64(1),
 	"k2": "s",
@@ -47,7 +47,7 @@ var ifaceNumAsFloat64 = map[string]interface{}{
 	"k4": map[string]interface{}{"kk1": "s", "kk2": float64(2)},
 }
 
-// ifaceNumAsMixedTypes is used to test unmarshalling with extended JSON
+// ifaceNumAsMixedTypes is used to test unmarshalling with extended JSON.
 var ifaceNumAsMixedTypes = map[string]interface{}{
 	"k1": int32(1),
 	"k2": "s",
@@ -63,6 +63,7 @@ var ifaceNumAsNumber = map[string]interface{}{
 }
 
 type tx struct {
+	//nolint:unused
 	x int
 }
 
@@ -756,7 +757,8 @@ type All struct {
 	Float32 float32
 	Float64 float64
 
-	Foo  string `json:"bar"`
+	Foo string `json:"bar"`
+	//nolint:staticcheck
 	Foo2 string `json:"bar2,dummyopt"`
 
 	IntStr int64 `json:",string"`
@@ -805,6 +807,7 @@ type All struct {
 	Interface  interface{}
 	PInterface *interface{}
 
+	//nolint:unused
 	unexported int
 }
 
@@ -1294,8 +1297,10 @@ func TestUnmarshalSyntax(t *testing.T) {
 // Issue 4660
 type unexportedFields struct {
 	Name string
-	m    map[string]interface{}
-	m2   map[string]interface{}
+	//nolint:unused
+	m map[string]interface{}
+	//nolint:unused
+	m2 map[string]interface{}
 }
 
 func TestUnmarshalUnexported(t *testing.T) {

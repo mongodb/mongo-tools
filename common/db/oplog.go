@@ -45,8 +45,6 @@ type OplogTailTime struct {
 	Restart OpTime
 }
 
-var zeroTimestamp = primitive.Timestamp{}
-
 // GetOpTimeFromRawOplogEntry looks up the ts (timestamp), t (term), and
 // h (hash) fields in a raw oplog entry, and assigns them to an OpTime.
 // If the Timestamp can't be found or is an invalid format, it throws an error.
@@ -144,6 +142,8 @@ func GetLatestVisibleOplogOpTime(client *mongo.Client) (OpTime, error) {
 	}
 	// Do a forward scan starting at the last op fetched to ensure that
 	// all operations with earlier oplog times have been storage-committed.
+	//
+	//nolint:staticcheck
 	opts := mopts.FindOne().SetOplogReplay(true)
 	coll := client.Database("local").Collection("oplog.rs")
 	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).DecodeBytes()

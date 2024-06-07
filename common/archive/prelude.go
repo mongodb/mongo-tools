@@ -71,12 +71,10 @@ func (prelude *Prelude) Read(in io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("I/O failure reading beginning of archive: %v", err)
 	}
-	readMagicNumber := uint32(
-		(uint32(readMagicNumberBuf[0]) << 0) |
-			(uint32(readMagicNumberBuf[1]) << 8) |
-			(uint32(readMagicNumberBuf[2]) << 16) |
-			(uint32(readMagicNumberBuf[3]) << 24),
-	)
+	readMagicNumber := (uint32(readMagicNumberBuf[0]) << 0) |
+		(uint32(readMagicNumberBuf[1]) << 8) |
+		(uint32(readMagicNumberBuf[2]) << 16) |
+		(uint32(readMagicNumberBuf[3]) << 24)
 
 	if readMagicNumber != MagicNumber {
 		return fmt.Errorf("stream or file does not appear to be a mongodump archive")
@@ -144,7 +142,7 @@ func (prelude *Prelude) AddMetadata(cm *CollectionMetadata) {
 func (prelude *Prelude) Write(out io.Writer) error {
 	magicNumberBytes := make([]byte, 4)
 	for i := range magicNumberBytes {
-		magicNumberBytes[i] = byte(uint32(MagicNumber) >> uint(i*8))
+		magicNumberBytes[i] = byte(MagicNumber >> uint(i*8))
 	}
 	_, err := out.Write(magicNumberBytes)
 	if err != nil {

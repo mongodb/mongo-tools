@@ -8,7 +8,7 @@ package mongorestore
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"time"
 
@@ -187,7 +187,7 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 			defer intent.MetadataFile.Close()
 
 			log.Logvf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
-			metadataJSON, err := ioutil.ReadAll(intent.MetadataFile)
+			metadataJSON, err := io.ReadAll(intent.MetadataFile)
 			if err != nil {
 				return fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
 			}

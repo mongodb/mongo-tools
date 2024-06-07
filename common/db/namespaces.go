@@ -70,7 +70,7 @@ func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error
 		filter = append(filter, primitive.E{"name", name})
 	}
 
-	cursor, err := database.ListCollections(nil, filter)
+	cursor, err := database.ListCollections(context.Background(), filter)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func GetCollectionInfo(coll *mongo.Collection) (*CollectionInfo, error) {
 	comparisonName := coll.Name()
 
 	var foundCollInfo *CollectionInfo
-	for iter.Next(nil) {
+	for iter.Next(context.Background()) {
 		collInfo := &CollectionInfo{}
 		err = iter.Decode(collInfo)
 		if err != nil {

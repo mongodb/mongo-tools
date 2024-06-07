@@ -35,11 +35,12 @@ func HandleWithInterrupt(finalizer func()) chan struct{} {
 func handleSignals(finalizer func(), finishedChan chan struct{}) {
 	// explicitly ignore SIGPIPE; the tools should deal with write errors
 	noopChan := make(chan os.Signal)
+	//nolint:staticcheck
 	signal.Notify(noopChan, syscall.SIGPIPE)
 
 	log.Logv(log.DebugLow, "will listen for SIGTERM, SIGINT, and SIGKILL")
 	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	defer signal.Stop(sigChan)
 	if finalizer != nil {
 		select {

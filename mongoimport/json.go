@@ -44,11 +44,6 @@ type JSONInputReader struct {
 	// JSON array imports
 	bytesFromReader []byte
 
-	// separatorReader is used for JSON arrays to look for a valid array
-	// separator. It is a reader consisting of the decoder's buffer and the
-	// underlying reader
-	separatorReader io.Reader
-
 	// embedded sizeTracker exposes the Size() method to check the number of bytes read so far
 	sizeTracker
 
@@ -151,7 +146,7 @@ func (r *JSONInputReader) StreamDocument(ordered bool, readChan chan bson.D) (re
 		jsonErrChan <- streamDocuments(ordered, r.numDecoders, rawChan, readChan)
 	}()
 
-	return channelQuorumError(jsonErrChan, 2)
+	return channelQuorumError(jsonErrChan)
 }
 
 // Convert implements the Converter interface for JSON input. It converts a

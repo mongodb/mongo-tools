@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -69,7 +69,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 
 	i := 0
 	for item, id := range testFiles {
-		stream, err := bucket.OpenUploadStreamWithID(id, string(item))
+		stream, err := bucket.OpenUploadStreamWithID(id, item)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 			return nil, err
 		}
 
-		bytesExpected[item] = int(n)
+		bytesExpected[item] = n
 
 		if err = stream.Close(); err != nil {
 			return nil, err
@@ -191,11 +191,11 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 		return false, nil
 	}
 
-	file1ContentsBytes, err := ioutil.ReadAll(file1)
+	file1ContentsBytes, err := io.ReadAll(file1)
 	if err != nil {
 		return false, err
 	}
-	file2ContentsBytes, err := ioutil.ReadAll(file2)
+	file2ContentsBytes, err := io.ReadAll(file2)
 	if err != nil {
 		return false, err
 	}
@@ -228,6 +228,7 @@ func getFilesAndBytesFromLines(lines []string) map[string]int {
 	results := make(map[string]int)
 
 	for _, line := range lines {
+		//nolint:errcheck
 		fmt.Sscanf(line, "%s\t%d", &fileName, &byteCount)
 		results[fileName] = byteCount
 	}
@@ -414,7 +415,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				defer testFile.Close()
 
 				// pretty small file; so read all
-				testFile1Bytes, err := ioutil.ReadAll(testFile)
+				testFile1Bytes, err := io.ReadAll(testFile)
 				So(err, ShouldBeNil)
 				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
@@ -464,7 +465,7 @@ func TestMongoFilesCommands(t *testing.T) {
 					So(err, ShouldBeNil)
 					defer testFile.Close()
 
-					bytesGotten, err := ioutil.ReadAll(testFile)
+					bytesGotten, err := io.ReadAll(testFile)
 					So(err, ShouldBeNil)
 					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
 				}
@@ -489,13 +490,11 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1")
-			id := idOfFile("testfile1")
-
+			_, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
 			So(err, ShouldBeNil)
-			idString := id
 
-			mf, err = simpleMongoFilesInstanceWithID("get_id", idString)
+			id := idOfFile("testfile1")
+			mf, err := simpleMongoFilesInstanceWithID("get_id", id)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -514,7 +513,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				defer testFile.Close()
 
 				// pretty small file; so read all
-				testFile1Bytes, err := ioutil.ReadAll(testFile)
+				testFile1Bytes, err := io.ReadAll(testFile)
 				So(err, ShouldBeNil)
 				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
@@ -710,9 +709,10 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'delete_id' command with a file that is in GridFS should", func() {
 			// hack to grab an _id
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile2")
-			idString := idOfFile("testfile2")
+			_, err := simpleMongoFilesInstanceWithFilename("get", "testfile2")
+			So(err, ShouldBeNil)
 
+			idString := idOfFile("testfile2")
 			mf, err := simpleMongoFilesInstanceWithID("delete_id", idString)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)

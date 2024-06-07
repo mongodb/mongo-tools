@@ -98,13 +98,11 @@ var (
 	minKeyType      = reflect.TypeOf(MinKey{})
 	numberIntType   = reflect.TypeOf(NumberInt(0))
 	numberLongType  = reflect.TypeOf(NumberLong(0))
-	numberFloatType = reflect.TypeOf(NumberFloat(0))
 	objectIdType    = reflect.TypeOf(ObjectId(""))
 	regexpType      = reflect.TypeOf(RegExp{})
 	timestampType   = reflect.TypeOf(Timestamp{})
 	undefinedType   = reflect.TypeOf(Undefined{})
 	orderedBSONType = reflect.TypeOf(bson.D{})
-	interfaceType   = reflect.TypeOf((*interface{})(nil))
 )
 
 func (d Date) isFormatable() bool {

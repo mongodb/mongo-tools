@@ -27,9 +27,9 @@ type NodeType string
 
 const (
 	Mongos     NodeType = "mongos"
-	Standalone          = "standalone"
-	ReplSet             = "replset"
-	Unknown             = "unknown"
+	Standalone NodeType = "standalone"
+	ReplSet    NodeType = "replset"
+	Unknown    NodeType = "unknown"
 )
 
 // CommandRunner exposes functions that can be run against a server
@@ -115,7 +115,7 @@ func (sp *SessionProvider) ServerVersionArray() (Version, error) {
 // DatabaseNames returns a slice containing the names of all the databases on the
 // connected server.
 func (sp *SessionProvider) DatabaseNames() ([]string, error) {
-	return sp.client.ListDatabaseNames(nil, bson.D{})
+	return sp.client.ListDatabaseNames(context.TODO(), bson.D{})
 }
 
 // CollectionNames returns the names of all the collections in the dbName database.
@@ -230,7 +230,7 @@ func (sp *SessionProvider) FindOne(db, collection string, skip int, query interf
 	opts := mopt.FindOne().SetSort(sort).SetSkip(int64(skip))
 	ApplyFlags(opts, flags)
 
-	res := session.Database(db).Collection(collection).FindOne(nil, query, opts)
+	res := session.Database(db).Collection(collection).FindOne(context.TODO(), query, opts)
 	err = res.Decode(into)
 	return err
 }
@@ -241,6 +241,7 @@ func ApplyFlags(opts *mopt.FindOneOptions, flags int) {
 		opts.SetHint(bson.D{{"_id", 1}})
 	}
 	if flags&LogReplay > 0 {
+		//nolint:staticcheck
 		opts.SetOplogReplay(true)
 	}
 }

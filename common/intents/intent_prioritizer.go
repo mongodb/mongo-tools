@@ -190,6 +190,7 @@ func (mdb *multiDatabaseLTFPrioritizer) Get() *Intent {
 		// we're out of things to return
 		return nil
 	}
+	//nolint:errcheck // the heap only contains *dbCounter values
 	optimalDB := heap.Pop(mdb.dbHeap).(*dbCounter)
 	optimalDB.active++
 	nextIntent := optimalDB.PopIntent()

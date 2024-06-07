@@ -11,7 +11,6 @@ package options
 import (
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"runtime"
@@ -137,7 +136,6 @@ func (v Verbosity) IsQuiet() bool {
 type URI struct {
 	ConnectionString string `long:"uri" value-name:"mongodb-uri" description:"mongodb uri connection string"`
 
-	knownURIParameters   []string
 	extraOptionsRegistry []ExtraOptions
 	ConnString           *connstring.ConnString
 }
@@ -185,11 +183,6 @@ type WriteConcern struct {
 	// Specifies the write concern for each write operation that mongofiles writes to the target database.
 	// By default, mongofiles waits for a majority of members from the replica set to respond before returning.
 	WriteConcern string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
-
-	w        int
-	wtimeout int
-	fsync    bool
-	journal  bool
 }
 
 type OptionRegistrationFunction func(*ToolOptions) error
@@ -393,7 +386,7 @@ func (ssl *SSL) ShouldAskForPassword() (bool, error) {
 }
 
 func (ssl *SSL) pemKeyFileHasEncryptedKey() (bool, error) {
-	b, err := ioutil.ReadFile(ssl.SSLPEMKeyFile)
+	b, err := os.ReadFile(ssl.SSLPEMKeyFile)
 	if err != nil {
 		return false, err
 	}
@@ -593,7 +586,7 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	}
 
 	// --config option specifies a file path.
-	configBytes, err := ioutil.ReadFile(opts.General.ConfigPath)
+	configBytes, err := os.ReadFile(opts.General.ConfigPath)
 	if err != nil {
 		return errors.Wrapf(err, "error opening file with --config")
 	}
@@ -1114,39 +1107,4 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 	opts.ConnString = cs
 
 	return nil
-}
-
-// getIntArg returns 3 args: the parsed int value, a bool set to true if a value
-// was consumed from the incoming args array during parsing, and an error
-// value if parsing failed
-func getIntArg(arg flags.SplitArgument, args []string) (int, bool, error) {
-	var rawVal string
-	consumeValue := false
-	rawVal, hasVal := arg.Value()
-	if !hasVal {
-		if len(args) == 0 {
-			return 0, false, fmt.Errorf("no value specified")
-		}
-		rawVal = args[0]
-		consumeValue = true
-	}
-	val, err := strconv.Atoi(rawVal)
-	if err != nil {
-		return val, consumeValue, fmt.Errorf("expected an integer value but got '%v'", rawVal)
-	}
-	return val, consumeValue, nil
-}
-
-// getStringArg returns 3 args: the parsed string value, a bool set to true if a value
-// was consumed from the incoming args array during parsing, and an error
-// value if parsing failed
-func getStringArg(arg flags.SplitArgument, args []string) (string, bool, error) {
-	value, hasVal := arg.Value()
-	if hasVal {
-		return value, false, nil
-	}
-	if len(args) == 0 {
-		return "", false, fmt.Errorf("no value specified")
-	}
-	return args[0], true, nil
 }

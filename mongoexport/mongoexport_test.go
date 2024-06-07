@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -93,7 +93,8 @@ func TestExtendedJSON(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		jsonEncoder := json.NewEncoder(os.Stdout)
-		jsonEncoder.Encode(out)
+		err = jsonEncoder.Encode(out)
+		So(err, ShouldBeNil)
 	})
 }
 
@@ -111,7 +112,7 @@ func TestFieldSelect(t *testing.T) {
 // this is only allowed on the 'local' database.
 func TestMongoExportTOOLS2174(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
+	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -122,7 +123,10 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	dbName := "local"
 
 	var r1 bson.M
-	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	if err != nil {
+		t.Fatalf("Could not drop %s.%s", dbName, collName)
+	}
 
 	createCmd := bson.D{
 		{"create", collName},
@@ -152,7 +156,7 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 // this is not a wired tiger collection.
 func TestMongoExportTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
+	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -171,7 +175,10 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	dbStruct := session.Database(dbName)
 
 	var r1 bson.M
-	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	if err != nil {
+		t.Fatalf("Could not drop %s.%s", dbName, collName)
+	}
 
 	createCmd := bson.D{
 		{"create", collName},

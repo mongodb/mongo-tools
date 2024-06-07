@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -289,11 +288,11 @@ func SAModTidy(ctx *task.Context) error {
 	// Save original contents in case they get modified. When
 	// https://github.com/golang/go/issues/27005 is done, we
 	// shouldn't need this anymore.
-	origGoMod, err := ioutil.ReadFile("go.mod")
+	origGoMod, err := os.ReadFile("go.mod")
 	if err != nil {
 		return fmt.Errorf("error reading go.mod: %w", err)
 	}
-	origGoSum, err := ioutil.ReadFile("go.sum")
+	origGoSum, err := os.ReadFile("go.sum")
 	if err != nil {
 		return fmt.Errorf("error reading go.sum: %w", err)
 	}
@@ -303,19 +302,19 @@ func SAModTidy(ctx *task.Context) error {
 		return err
 	}
 
-	newGoMod, err := ioutil.ReadFile("go.mod")
+	newGoMod, err := os.ReadFile("go.mod")
 	if err != nil {
 		return fmt.Errorf("error reading go.mod: %w", err)
 	}
-	newGoSum, err := ioutil.ReadFile("go.sum")
+	newGoSum, err := os.ReadFile("go.sum")
 	if err != nil {
 		return fmt.Errorf("error reading go.sum: %w", err)
 	}
 
 	if !bytes.Equal(origGoMod, newGoMod) || !bytes.Equal(origGoSum, newGoSum) {
 		// Restore originals, ignoring errors since they need tidying anyway.
-		_ = ioutil.WriteFile("go.mod", origGoMod, 0600)
-		_ = ioutil.WriteFile("go.sum", origGoSum, 0600)
+		_ = os.WriteFile("go.mod", origGoMod, 0600)
+		_ = os.WriteFile("go.sum", origGoSum, 0600)
 		return errors.New("go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes")
 	}
 

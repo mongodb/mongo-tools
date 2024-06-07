@@ -8,6 +8,15 @@
 package mongoimport
 
 import (
+	"context"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"sync/atomic"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -16,14 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/tomb.v2"
-
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-	"sync/atomic"
 )
 
 // Input format types accepted by mongoimport.
@@ -109,7 +110,7 @@ func New(opts Options) (*MongoImport, error) {
 		InputOptions:  opts.InputOptions,
 		IngestOptions: opts.IngestOptions,
 	}
-	if err := mi.validateSettings(opts.ParsedArgs); err != nil {
+	if err := mi.validateSettings(); err != nil {
 		return nil, fmt.Errorf("error validating settings: %v", err)
 	}
 
@@ -129,7 +130,7 @@ func (imp *MongoImport) Close() {
 
 // validateSettings ensures that the tool specific options supplied for
 // MongoImport are valid.
-func (imp *MongoImport) validateSettings(args []string) error {
+func (imp *MongoImport) validateSettings() error {
 	// namespace must have a valid database; if none is specified, use 'test'
 	if imp.ToolOptions.DB == "" {
 		imp.ToolOptions.DB = "test"
@@ -292,7 +293,7 @@ func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 			return nil, -1, err
 		}
 		log.Logvf(log.Info, "filesize: %v bytes", fileStat.Size())
-		return file, int64(fileStat.Size()), err
+		return file, fileStat.Size(), err
 	}
 
 	log.Logvf(log.Info, "reading from stdin")
@@ -381,7 +382,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 			imp.ToolOptions.Collection)
 		collection := session.Database(imp.ToolOptions.DB).
 			Collection(imp.ToolOptions.Collection)
-		if err := collection.Drop(nil); err != nil {
+		if err := collection.Drop(context.TODO()); err != nil {
 			return 0, 0, err
 		}
 	}
@@ -400,7 +401,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		processingErrChan <- imp.ingestDocuments(readDocs)
 	}()
 
-	e1 := channelQuorumError(processingErrChan, 2)
+	e1 := channelQuorumError(processingErrChan)
 	processedCount := atomic.LoadUint64(&imp.processedCount)
 	failureCount := atomic.LoadUint64(&imp.failureCount)
 	return processedCount, failureCount, e1

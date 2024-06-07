@@ -22,16 +22,11 @@ import (
 // args: command line args
 // expectSuccess: whether or not the error from ParseOptions should be nil
 // ingestWc: the correct value for opts.IngestOptions.WriteConcern
-// toolsWc: the correct value for opts.ToolsOptions.WriteConcern
-func validateParseOptions(args []string, expectSuccess bool, ingestWc string, toolsWc *writeconcern.WriteConcern) func() {
+// toolsWc: the correct value for opts.ToolsOptions.WriteConcern.
+func validateParseOptions(args []string, ingestWc string, toolsWc *writeconcern.WriteConcern) func() {
 	return func() {
 		opts, err := ParseOptions(args, "", "")
-		if expectSuccess {
-			So(err, ShouldBeNil)
-		} else {
-			So(err, ShouldNotBeNil)
-			return
-		}
+		So(err, ShouldBeNil)
 
 		So(opts.IngestOptions.WriteConcern, ShouldEqual, ingestWc)
 		So(opts.ToolOptions.WriteConcern, ShouldResemble, toolsWc)
@@ -43,28 +38,28 @@ func TestWriteConcernWithURIParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With an IngestOptions and ToolsOptions", t, func() {
 		Convey("Parsing with no value should set a majority write concern",
-			validateParseOptions([]string{}, true, "", writeconcern.New(writeconcern.WMajority())))
+			validateParseOptions([]string{}, "", writeconcern.New(writeconcern.WMajority())))
 
 		Convey("Parsing with no writeconcern in URI should set a majority write concern",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test",
-			}, true, "", writeconcern.New(writeconcern.WMajority())))
+			}, "", writeconcern.New(writeconcern.WMajority())))
 
 		Convey("Parsing with writeconcern only in URI should set it correctly",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
-			}, true, "", writeconcern.New(writeconcern.W(2))))
+			}, "", writeconcern.New(writeconcern.W(2))))
 
 		Convey("Parsing with writeconcern only in command line should set it correctly",
 			validateParseOptions([]string{
 				"--writeConcern", "{w: 2}",
-			}, true, "{w: 2}", writeconcern.New(writeconcern.W(2))))
+			}, "{w: 2}", writeconcern.New(writeconcern.W(2))))
 
 		Convey("Parsing with writeconcern in URI and command line should set to command line",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
 				"--writeConcern", "{w: 3}",
-			}, true, "{w: 3}", writeconcern.New(writeconcern.W(3))))
+			}, "{w: 3}", writeconcern.New(writeconcern.W(3))))
 	})
 }
 

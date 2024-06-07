@@ -172,13 +172,17 @@ func TestMongorestore(t *testing.T) {
 		})
 
 		c1 := db.Collection("c1") // 100 documents
-		c1.Drop(nil)
+		err = c1.Drop(context.Background())
+		So(err, ShouldBeNil)
 		c2 := db.Collection("c2") // 0 documents
-		c2.Drop(nil)
+		err = c2.Drop(context.Background())
+		So(err, ShouldBeNil)
 		c3 := db.Collection("c3") // 0 documents
-		c3.Drop(nil)
+		err = c3.Drop(context.Background())
+		So(err, ShouldBeNil)
 		c4 := db.Collection("c4") // 10 documents
-		c4.Drop(nil)
+		err = c4.Drop(context.Background())
+		So(err, ShouldBeNil)
 
 		Convey("and an explicit target restores from that dump directory", func() {
 			restore.TargetDirectory = "testdata/testdirs"
@@ -188,11 +192,11 @@ func TestMongorestore(t *testing.T) {
 			So(result.Successes, ShouldEqual, 110)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := c1.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 
-			count, err = c4.CountDocuments(nil, bson.M{})
+			count, err = c4.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -208,7 +212,7 @@ func TestMongorestore(t *testing.T) {
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
@@ -223,11 +227,11 @@ func TestMongorestore(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := c1.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = c4.CountDocuments(nil, bson.M{})
+			count, err = c4.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -242,11 +246,11 @@ func TestMongorestore(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := c1.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = c4.CountDocuments(nil, bson.M{})
+			count, err = c4.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -260,18 +264,19 @@ func TestMongorestore(t *testing.T) {
 			restore.NSOptions.NSTo[0] = "db1.c1renamed"
 
 			c1renamed := db.Collection("c1renamed")
-			c1renamed.Drop(nil)
+			err = c1renamed.Drop(context.Background())
+			So(err, ShouldBeNil)
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 110)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := c1renamed.CountDocuments(nil, bson.M{})
+			count, err := c1renamed.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 
-			count, err = c4.CountDocuments(nil, bson.M{})
+			count, err = c4.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -299,7 +304,8 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 		db := session.Database("db1")
 
 		specialCharacterCollection := db.Collection(specialCharactersCollectionName)
-		specialCharacterCollection.Drop(nil)
+		err = specialCharacterCollection.Drop(context.Background())
+		So(err, ShouldBeNil)
 
 		Convey("and --nsInclude a collection name with special characters", func() {
 			restore.TargetDirectory = "testdata/specialcharacter"
@@ -311,7 +317,7 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := specialCharacterCollection.CountDocuments(nil, bson.M{})
+			count, err := specialCharacterCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -325,7 +331,7 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := specialCharacterCollection.CountDocuments(nil, bson.M{})
+			count, err := specialCharacterCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -339,14 +345,15 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 			restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithoutSpecialCharacters"
 
 			standardCharactersCollection := db.Collection("aCollectionNameWithoutSpecialCharacters")
-			standardCharactersCollection.Drop(nil)
+			err = standardCharactersCollection.Drop(context.Background())
+			So(err, ShouldBeNil)
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := standardCharactersCollection.CountDocuments(nil, bson.M{})
+			count, err := standardCharactersCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -360,14 +367,15 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 			restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithSpećiálCharacters"
 
 			standardCharactersCollection := db.Collection("aCollectionNameWithSpećiálCharacters")
-			standardCharactersCollection.Drop(nil)
+			err = standardCharactersCollection.Drop(context.Background())
+			So(err, ShouldBeNil)
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := standardCharactersCollection.CountDocuments(nil, bson.M{})
+			count, err := standardCharactersCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -405,7 +413,8 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 		})
 
 		longCollection := db.Collection(longCollectionName)
-		longCollection.Drop(nil)
+		err = longCollection.Drop(context.Background())
+		So(err, ShouldBeNil)
 
 		Convey("and an explicit target restores truncated files from that dump directory", func() {
 			restore.TargetDirectory = "testdata/longcollectionname"
@@ -415,7 +424,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := longCollection.CountDocuments(nil, bson.M{})
+			count, err := longCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -431,7 +440,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			count, err := longCollection.CountDocuments(nil, bson.M{})
+			count, err := longCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -446,7 +455,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := longCollection.CountDocuments(nil, bson.M{})
+			count, err := longCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -461,7 +470,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := longCollection.CountDocuments(nil, bson.M{})
+			count, err := longCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -474,14 +483,15 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			restore.NSOptions.NSTo[0] = "db1.aMuchShorterCollectionName"
 
 			shortCollection := db.Collection("aMuchShorterCollectionName")
-			shortCollection.Drop(nil)
+			err = shortCollection.Drop(context.Background())
+			So(err, ShouldBeNil)
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 			So(result.Successes, ShouldEqual, 1)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := shortCollection.CountDocuments(nil, bson.M{})
+			count, err := shortCollection.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1)
 		})
@@ -504,7 +514,8 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 
 	Convey("With a test MongoRestore", t, func() {
 		c1 := session.Database("db1").Collection("c1")
-		c1.Drop(nil)
+		err = c1.Drop(context.Background())
+		So(err, ShouldBeNil)
 
 		Convey("normal restore gives new UUID", func() {
 			args := []string{
@@ -518,7 +529,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 5)
 			info, err := db.GetCollectionInfo(c1)
@@ -556,7 +567,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(nil, bson.M{})
+			count, err := c1.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 5)
 			info, err := db.GetCollectionInfo(c1)
@@ -665,7 +676,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		So(result.Successes, ShouldEqual, 20000)
 		So(result.Failures, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 20000)
 	})
@@ -686,7 +697,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		So(result.Successes, ShouldEqual, 10000)
 		So(result.Failures, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10000)
 	})
@@ -707,12 +718,15 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		So(result.Successes, ShouldAlmostEqual, 10000, restore.OutputOptions.BulkBufferSize)
 		So(result.Failures, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldAlmostEqual, 10000, restore.OutputOptions.BulkBufferSize)
 	})
 
-	_ = database.Drop(nil)
+	err = database.Drop(context.Background())
+	if err != nil {
+		t.Fatalf("Could not drop database")
+	}
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
@@ -735,9 +749,11 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 		db := session.Database("indextest")
 
 		coll := db.Collection("test_collection")
-		coll.Drop(nil)
+		err = coll.Drop(context.Background())
+		So(err, ShouldBeNil)
 		defer func() {
-			coll.Drop(nil)
+			dropErr := coll.Drop(context.Background())
+			So(dropErr, ShouldBeNil)
 		}()
 		Convey("Creating index with invalid option should throw error", func() {
 			restore.TargetDirectory = "testdata/indextestdump"
@@ -747,12 +763,13 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 
 			So(result.Successes, ShouldEqual, 100)
 			So(result.Failures, ShouldEqual, 0)
-			count, err := coll.CountDocuments(nil, bson.M{})
+			count, err := coll.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
 
-		coll.Drop(nil)
+		err = coll.Drop(context.Background())
+		So(err, ShouldBeNil)
 
 		args = []string{
 			NumParallelCollectionsOption, "1",
@@ -771,7 +788,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 
 			So(result.Successes, ShouldEqual, 100)
 			So(result.Failures, ShouldEqual, 0)
-			count, err := coll.CountDocuments(nil, bson.M{})
+			count, err := coll.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
@@ -811,7 +828,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 
 			testDB := session.Database("indextest")
 			defer func() {
-				err = testDB.Drop(nil)
+				err = testDB.Drop(context.Background())
 				if err != nil {
 					t.Fatalf("Failed to drop test database testdata")
 				}
@@ -902,9 +919,11 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 
 		// 4.4 removes the 'ns' field nested under the 'index' field in metadata.json
 		coll := db.Collection("test_coll_no_index_ns")
-		coll.Drop(nil)
+		err = coll.Drop(context.Background())
+		So(err, ShouldBeNil)
 		defer func() {
-			coll.Drop(nil)
+			dropErr := coll.Drop(context.Background())
+			So(dropErr, ShouldBeNil)
 		}()
 
 		args = []string{
@@ -924,7 +943,7 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 
 			So(result.Successes, ShouldEqual, 100)
 			So(result.Failures, ShouldEqual, 0)
-			count, err := coll.CountDocuments(nil, bson.M{})
+			count, err := coll.CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
@@ -948,9 +967,11 @@ func TestLongIndexName(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		coll := session.Database("longindextest").Collection("test_collection")
-		coll.Drop(nil)
+		err = coll.Drop(context.Background())
+		So(err, ShouldBeNil)
 		defer func() {
-			coll.Drop(nil)
+			dropErr := coll.Drop(context.Background())
+			So(dropErr, ShouldBeNil)
 		}()
 
 		if restore.serverVersion.LT(db.Version{4, 2, 0}) {
@@ -1045,7 +1066,8 @@ func TestKnownCollections(t *testing.T) {
 		session, _ = restore.SessionProvider.GetSession()
 		db := session.Database("test")
 		defer func() {
-			db.Collection("foo").Drop(nil)
+			dropErr := db.Collection("foo").Drop(context.Background())
+			So(dropErr, ShouldBeNil)
 		}()
 
 		Convey("Once collection foo has been restored, it should exist in restore.knownCollections", func() {
@@ -1089,7 +1111,8 @@ func TestFixHashedIndexes(t *testing.T) {
 		db := session.Database("testdata")
 
 		defer func() {
-			db.Collection("hashedIndexes").Drop(nil)
+			dropErr := db.Collection("hashedIndexes").Drop(context.Background())
+			So(dropErr, ShouldBeNil)
 		}()
 
 		Convey("The index for a.b should be changed from 'hashed' to 1, since it is dotted", func() {
@@ -1130,7 +1153,8 @@ func TestFixHashedIndexes(t *testing.T) {
 		db := session.Database("testdata")
 
 		defer func() {
-			db.Collection("hashedIndexes").Drop(nil)
+			dropErr := db.Collection("hashedIndexes").Drop(context.Background())
+			So(dropErr, ShouldBeNil)
 		}()
 
 		Convey("All indexes should be unchanged", func() {
@@ -1175,9 +1199,11 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 		dbName := session.Database("local")
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer dbName.Collection("test_auto_idx").Drop(ctx)
 
-		opts, err := ParseOptions(append(testutil.GetBareArgs()), "", "")
+		opts, err := ParseOptions(testutil.GetBareArgs(), "", "")
 		So(err, ShouldBeNil)
 
 		// Set retryWrites to false since it is unsupported on `local` db.
@@ -1225,6 +1251,8 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 			dbName := session.Database("testdata")
 
 			// Drop the collection to clean up resources
+			//
+			//nolint:errcheck
 			defer dbName.Collection("test_auto_idx").Drop(ctx)
 
 			var args []string
@@ -1264,6 +1292,8 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 		dbName := session.Database("testdata")
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer dbName.Collection("test_auto_idx").Drop(ctx)
 
 		args := []string{
@@ -1330,12 +1360,17 @@ func TestSkipSystemCollections(t *testing.T) {
 		t.SkipNow()
 	}
 
-	sessionProvider.GetNodeType()
+	_, err = sessionProvider.GetNodeType()
+	if err != nil {
+		t.Fatalf("Could not get node type")
+	}
 
 	Convey("With a test MongoRestore instance", t, func() {
 		db3 := session.Database("db3")
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer db3.Collection("c1").Drop(ctx)
 
 		args := []string{
@@ -1367,7 +1402,7 @@ func TestSkipSystemCollections(t *testing.T) {
 				},
 			}
 
-			cursor, err := session.Database("local").Collection("oplog.rs").Find(nil, queryObj, nil)
+			cursor, err := session.Database("local").Collection("oplog.rs").Find(context.Background(), queryObj, nil)
 			So(err, ShouldBeNil)
 
 			flag := cursor.Next(ctx)
@@ -1403,6 +1438,8 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 		testdb := session.Database("test")
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer testdb.Collection("skip_index_entries").Drop(ctx)
 
 		// oplog.bson only has startIndexBuild and abortIndexBuild entries
@@ -1465,12 +1502,17 @@ func TestCommitIndexBuild(t *testing.T) {
 		t.Skip("Requires server with FCV at least 4.4")
 	}
 
-	sessionProvider.GetNodeType()
+	_, err = sessionProvider.GetNodeType()
+	if err != nil {
+		t.Fatalf("Could not get node type")
+	}
 
 	Convey("With a test MongoRestore instance", t, func() {
 		testdb := session.Database(testDB)
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer testdb.Collection(testDB).Drop(ctx)
 
 		args := []string{
@@ -1542,12 +1584,17 @@ func TestCreateIndexes(t *testing.T) {
 		t.Fatalf("No client available")
 	}
 
-	sessionProvider.GetNodeType()
+	_, err = sessionProvider.GetNodeType()
+	if err != nil {
+		t.Fatalf("Could not get node type")
+	}
 
 	Convey("With a test MongoRestore instance", t, func() {
 		testdb := session.Database(testDB)
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer testdb.Collection(testDB).Drop(ctx)
 
 		args := []string{
@@ -1558,6 +1605,7 @@ func TestCreateIndexes(t *testing.T) {
 
 		restore, err := getRestoreWithArgs(args...)
 		So(err, ShouldBeNil)
+
 		defer restore.Close()
 
 		// Run mongorestore
@@ -1628,6 +1676,8 @@ func TestGeoHaystackIndexes(t *testing.T) {
 		testdb := session.Database(dbName)
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer testdb.Collection("foo").Drop(ctx)
 
 		args := []string{
@@ -1842,6 +1892,8 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		testdb := session.Database(dbName)
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer testdb.Drop(ctx)
 
 		args := []string{}
@@ -1878,11 +1930,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		So(result.Successes, ShouldEqual, 10)
 		So(result.Failures, ShouldEqual, 0)
 
-		count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+		count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 1000)
 
-		count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+		count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10)
 	})
@@ -1891,6 +1943,8 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		testdb := session.Database(dbName)
 
 		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
 		defer testdb.Drop(ctx)
 
 		args := []string{}
@@ -1935,11 +1989,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 2164)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -1956,11 +2010,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -1986,11 +2040,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 5)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -2006,11 +2060,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 5)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -2026,11 +2080,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -2046,11 +2100,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("bar_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("bar_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.bar_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.bar_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -2076,11 +2130,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -2096,11 +2150,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -2116,11 +2170,11 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 0)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -2136,15 +2190,16 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 
 			indexes, err := testdb.Collection("foo_ts").Indexes().List(ctx)
+			//nolint:staticcheck
 			defer indexes.Close(ctx)
 			So(err, ShouldBeNil)
 
@@ -2190,19 +2245,19 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("foo_rename_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("foo_rename_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.foo_rename_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_rename_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 		})
@@ -2218,19 +2273,19 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			So(result.Successes, ShouldEqual, 10)
 			So(result.Failures, ShouldEqual, 0)
 
-			count, err := testdb.Collection("foo_ts").CountDocuments(nil, bson.M{})
+			count, err := testdb.Collection("foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 1000)
 
-			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 10)
 
-			count, err = testdb.Collection("foo_rename_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("foo_rename_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = testdb.Collection("system.buckets.foo_rename_ts").CountDocuments(nil, bson.M{})
+			count, err = testdb.Collection("system.buckets.foo_rename_ts").CountDocuments(context.Background(), bson.M{})
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 		})
@@ -2291,7 +2346,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
 	defer func() {
-		err = testDB.Drop(nil)
+		err = testDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
@@ -2325,7 +2380,7 @@ func testRestoreClusteredIndexFromOplog(t *testing.T, indexName string) {
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
 	defer func() {
-		err = testDB.Drop(nil)
+		err = testDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
@@ -2424,6 +2479,7 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	require.True(t, found, "options has key named 'clusteredIndex'")
 	require.IsType(t, bson.M{}, idx, "idx value is a bson.M")
 
+	//nolint:errcheck
 	idxM := idx.(bson.M)
 	name, found := idxM["name"]
 	require.True(t, found, "index has a key named 'name'")
@@ -2433,6 +2489,7 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	require.True(t, found, "index has a key named 'key'")
 	require.IsType(t, bson.M{}, keys, "key value is a bson.M")
 
+	//nolint:errcheck
 	keysM := keys.(bson.M)
 	var keyNames []string
 	for k := range keysM {
@@ -2536,7 +2593,7 @@ func runMongodumpWithArgs(t *testing.T, args ...string) {
 	require.NotContains(
 		string(out),
 		"does not exist",
-		"running [%s] does not tell us the the namespace does not exist",
+		"running [%s] does not tell us the namespace does not exist",
 		cmdStr,
 	)
 }
@@ -2582,7 +2639,7 @@ func testRestoreColumnstoreIndexFromDump(t *testing.T) {
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
 	defer func() {
-		err = testDB.Drop(nil)
+		err = testDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
@@ -2722,6 +2779,7 @@ func columnstoreIndexInfo(t *testing.T, collection *mongo.Collection) indexInfo 
 
 			columnstoreProjectionMap := map[string]int32{}
 			for key, val := range res.ColumnstoreProjection {
+				//nolint:errcheck
 				columnstoreProjectionMap[key] = val.(int32)
 			}
 
@@ -2746,7 +2804,7 @@ func testRestoreColumnstoreIndexFromOplog(t *testing.T) {
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
 	defer func() {
-		err = testDB.Drop(nil)
+		err = testDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}

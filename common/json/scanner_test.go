@@ -233,6 +233,7 @@ func BenchmarkSkipValue(b *testing.B) {
 
 	initBig()
 	for i := 0; i < b.N; i++ {
+		//nolint:errcheck
 		nextValue(jsonBig, &benchScan)
 	}
 	b.SetBytes(int64(len(jsonBig)))

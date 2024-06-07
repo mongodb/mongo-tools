@@ -52,14 +52,16 @@ func NewCSVExportOutput(fields []string, noHeaderLine bool, out io.Writer) *CSVE
 // WriteHeader writes a comma-delimited list of fields as the output header row.
 func (csvExporter *CSVExportOutput) WriteHeader() error {
 	if !csvExporter.NoHeaderLine {
-		csvExporter.csvWriter.Write(csvExporter.Fields)
+		if err := csvExporter.csvWriter.Write(csvExporter.Fields); err != nil {
+			return err
+		}
 		return csvExporter.csvWriter.Error()
 	}
 	return nil
 }
 
 // WriteFooter is a no-op for CSV export formats.
-func (csvExporter *CSVExportOutput) WriteFooter() error {
+func (_ *CSVExportOutput) WriteFooter() error {
 	// no CSV footer
 	return nil
 }

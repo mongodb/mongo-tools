@@ -9,7 +9,6 @@ package bsondump
 import (
 	"bytes"
 	"crypto/rand"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
@@ -52,7 +51,9 @@ func testFromStdinToStdout(t *testing.T) {
 
 	// Attach a file to stdin of the command.
 	inFile, err := os.Open("testdata/sample.bson")
-	defer inFile.Close()
+	defer func() {
+		require.NoError(inFile.Close())
+	}()
 
 	require.NoError(err)
 	cmd.Stdin = inFile
@@ -66,11 +67,14 @@ func testFromStdinToStdout(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
-	defer outReference.Close()
+	defer func() {
+		require.NoError(outReference.Close())
+	}()
 
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
-	bufRef.ReadFrom(outReference)
+	_, err = bufRef.ReadFrom(outReference)
+	require.NoError(err)
 	bufRefStr := bufRef.String()
 
 	bufDumpStr := cmdOutput.String()
@@ -88,7 +92,9 @@ func testFromStdinToFile(t *testing.T) {
 
 	// Attach a file to stdin of the command.
 	inFile, err := os.Open("testdata/sample.bson")
-	defer inFile.Close()
+	defer func() {
+		require.NoError(inFile.Close())
+	}()
 
 	require.NoError(err)
 	cmd.Stdin = inFile
@@ -98,20 +104,26 @@ func testFromStdinToFile(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
-	defer outReference.Close()
+	defer func() {
+		require.NoError(outReference.Close())
+	}()
 
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
-	bufRef.ReadFrom(outReference)
+	_, err = bufRef.ReadFrom(outReference)
+	require.NoError(err)
 	bufRefStr := bufRef.String()
 
 	// Get the output from a file.
 	outDump, err := os.Open(outFile)
-	defer outDump.Close()
+	defer func() {
+		require.NoError(outDump.Close())
+	}()
 
 	require.NoError(err)
 	bufDump := new(bytes.Buffer)
-	bufDump.ReadFrom(outDump)
+	_, err = bufDump.ReadFrom(outDump)
+	require.NoError(err)
 	bufDumpStr := bufDump.String()
 
 	require.Equal(bufRefStr, bufDumpStr)
@@ -130,11 +142,14 @@ func testFromFileWithNamedArgumentToStdout(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
-	defer outReference.Close()
+	defer func() {
+		require.NoError(outReference.Close())
+	}()
 
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
-	bufRef.ReadFrom(outReference)
+	_, err = bufRef.ReadFrom(outReference)
+	require.NoError(err)
 	bufRefStr := bufRef.String()
 
 	bufDumpStr := cmdOutput.String()
@@ -154,11 +169,14 @@ func testFromFileWithPositionalArgumentToStdout(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
-	defer outReference.Close()
+	defer func() {
+		require.NoError(outReference.Close())
+	}()
 
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
-	bufRef.ReadFrom(outReference)
+	_, err = bufRef.ReadFrom(outReference)
+	require.NoError(err)
 	bufRefStr := bufRef.String()
 
 	bufDumpStr := cmdOutput.String()
@@ -179,20 +197,26 @@ func testFromFileWithNamedArgumentToFile(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
-	defer outReference.Close()
+	defer func() {
+		require.NoError(outReference.Close())
+	}()
 
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
-	bufRef.ReadFrom(outReference)
+	_, err = bufRef.ReadFrom(outReference)
+	require.NoError(err)
 	bufRefStr := bufRef.String()
 
 	// Get the output from a file.
 	outDump, err := os.Open(outFile)
-	defer outDump.Close()
+	defer func() {
+		require.NoError(outDump.Close())
+	}()
 
 	require.NoError(err)
 	bufDump := new(bytes.Buffer)
-	bufDump.ReadFrom(outDump)
+	_, err = bufDump.ReadFrom(outDump)
+	require.NoError(err)
 	bufDumpStr := bufDump.String()
 
 	require.Equal(bufRefStr, bufDumpStr)
@@ -212,20 +236,26 @@ func testFromFileWithPositionalArgumentToFile(t *testing.T) {
 
 	// Get the correct bsondump result from a file to use as a reference.
 	outReference, err := os.Open("testdata/sample.json")
-	defer outReference.Close()
+	defer func() {
+		require.NoError(outReference.Close())
+	}()
 
 	require.NoError(err)
 	bufRef := new(bytes.Buffer)
-	bufRef.ReadFrom(outReference)
+	_, err = bufRef.ReadFrom(outReference)
+	require.NoError(err)
 	bufRefStr := bufRef.String()
 
 	// Get the output from a file.
 	outDump, err := os.Open(outFile)
-	defer outDump.Close()
+	defer func() {
+		require.NoError(outDump.Close())
+	}()
 
 	require.NoError(err)
 	bufDump := new(bytes.Buffer)
-	bufDump.ReadFrom(outDump)
+	_, err = bufDump.ReadFrom(outDump)
+	require.NoError(err)
 	bufDumpStr := bufDump.String()
 
 	require.Equal(bufRefStr, bufDumpStr)
@@ -246,17 +276,17 @@ func TestBsondumpMaxBSONSize(t *testing.T) {
 	maxSize := int(16*math.Pow(1024, 2)) + sixteenKB
 
 	t.Run("bsondump with file at exactly max size of 16mb + 16kb", func(t *testing.T) {
-		_, err := runBsondumpWithLargeFile(t, maxSize, true)
+		_, err := runBsondumpWithLargeFile(t, maxSize)
 		require.NoError(t, err, "no error executing bsondump with large file")
 	})
 	t.Run("bsondump with file at max size + 1", func(t *testing.T) {
-		out, err := runBsondumpWithLargeFile(t, maxSize+1, false)
+		out, err := runBsondumpWithLargeFile(t, maxSize+1)
 		require.Error(t, err, "got error executing bsondump with large file")
 		require.Regexp(t, "is larger than maximum of 16793600 bytes", out, "bsondump prints error about file size")
 	})
 }
 
-func runBsondumpWithLargeFile(t *testing.T, size int, expectPass bool) (string, error) {
+func runBsondumpWithLargeFile(t *testing.T, size int) (string, error) {
 	require := require.New(t)
 
 	// We need to take the max size and subtract a bunch of things to figure
@@ -269,7 +299,7 @@ func runBsondumpWithLargeFile(t *testing.T, size int, expectPass bool) (string, 
 	//
 	// Subtract 1 byte for the document's trailing NULL.
 	//
-	// Subtract 2 bytes, one for for each byte that specifies the type of our
+	// Subtract 2 bytes, one for each byte that specifies the type of our
 	// two fields.
 	//
 	// Subtract 1 byte for the binary field subtype specifier.
@@ -308,13 +338,13 @@ func runBsondumpWithLargeFile(t *testing.T, size int, expectPass bool) (string, 
 	bsonFile := filepath.Join(dir, "in.bson")
 	outFile := filepath.Join(dir, "out.json")
 
-	err = ioutil.WriteFile(bsonFile, marshalled, 0644)
+	err = os.WriteFile(bsonFile, marshalled, 0644)
 	require.NoError(err, "no error writing BSON to %s", bsonFile)
 
-	return runBsondump(expectPass, "--bsonFile", bsonFile, "--outFile", outFile)
+	return runBsondump("--bsonFile", bsonFile, "--outFile", outFile)
 }
 
-func runBsondump(expectPass bool, args ...string) (string, error) {
+func runBsondump(args ...string) (string, error) {
 	cmd := []string{"go", "run", filepath.Join("..", "bsondump", "main")}
 	cmd = append(cmd, args...)
 

@@ -126,7 +126,7 @@ func (a *AWS) GenerateFullReleaseFeedFromObjects() (*download.JSONFeed, error) {
 		for _, obj := range page.Contents {
 			fmt.Printf("\nWorking on object: %v\n", *obj.Key)
 
-			artifactMetadata := extractArtifactMetadata(feed, obj)
+			artifactMetadata := extractArtifactMetadata(obj)
 			if artifactMetadata == nil {
 				fmt.Printf("Could not match regex for filename, skipping...\n")
 				continue
@@ -195,7 +195,7 @@ type ArtifactMetadata struct {
 	Ext      string
 }
 
-func extractArtifactMetadata(feed *download.JSONFeed, obj *s3.Object) *ArtifactMetadata {
+func extractArtifactMetadata(obj *s3.Object) *ArtifactMetadata {
 	name := *obj.Key
 
 	artifactParts := regexp.MustCompile(`^tools\/db\/mongodb-database-tools-(.*)-(.*)-([0-9]+\.[0-9]+\.[0-9]+-?.*)\.(zip|tgz|deb|rpm|msi)$`)

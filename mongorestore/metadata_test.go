@@ -7,8 +7,9 @@
 package mongorestore
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -39,9 +40,10 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 		InputOptions:    &InputOptions{RestoreDBUsersAndRoles: false},
 	}
 	session, err := restore.SessionProvider.GetSession()
+	require.NoError(t, err)
 
 	// This case shouldn't error and should instead not return that it will try to restore users and roles.
-	_, err = session.Database("admin").Collection("testcol").InsertOne(nil, bson.M{})
+	_, err = session.Database("admin").Collection("testcol").InsertOne(context.Background(), bson.M{})
 	require.NoError(t, err)
 	require.False(t, restore.ShouldRestoreUsersAndRoles())
 
@@ -52,7 +54,8 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 	err = restore.ParseAndValidateOptions()
 	require.Error(t, err, "cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster")
 
-	session.Database("admin").Collection("testcol").Drop(nil)
+	err = session.Database("admin").Collection("testcol").Drop(context.Background())
+	require.NoError(t, err)
 }
 
 func TestCollectionExists(t *testing.T) {
@@ -74,11 +77,11 @@ func TestCollectionExists(t *testing.T) {
 		Convey("and some test data in a server", func() {
 			session, err := restore.SessionProvider.GetSession()
 			So(err, ShouldBeNil)
-			_, insertErr := session.Database(ExistsDB).Collection("one").InsertOne(nil, bson.M{})
+			_, insertErr := session.Database(ExistsDB).Collection("one").InsertOne(context.Background(), bson.M{})
 			So(insertErr, ShouldBeNil)
-			_, insertErr = session.Database(ExistsDB).Collection("two").InsertOne(nil, bson.M{})
+			_, insertErr = session.Database(ExistsDB).Collection("two").InsertOne(context.Background(), bson.M{})
 			So(insertErr, ShouldBeNil)
-			_, insertErr = session.Database(ExistsDB).Collection("three").InsertOne(nil, bson.M{})
+			_, insertErr = session.Database(ExistsDB).Collection("three").InsertOne(context.Background(), bson.M{})
 			So(insertErr, ShouldBeNil)
 
 			Convey("collections that exist should return true", func() {
@@ -100,7 +103,8 @@ func TestCollectionExists(t *testing.T) {
 			})
 
 			Reset(func() {
-				session.Database(ExistsDB).Drop(nil)
+				err = session.Database(ExistsDB).Drop(context.Background())
+				So(err, ShouldBeNil)
 			})
 		})
 
@@ -255,7 +259,7 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 }
 
 func readCollationTestData(filename string) (bson.D, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't load %s: %v", filename, err)
 	}

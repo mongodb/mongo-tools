@@ -292,7 +292,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				return nil, errors.New("expected $timestamp to have 'i' field")
 			}
 			// see BSON spec for details on the bit fiddling here
-			return primitive.Timestamp{T: uint32(ts.Seconds), I: uint32(ts.Increment)}, nil
+			return primitive.Timestamp{T: ts.Seconds, I: ts.Increment}, nil
 		}
 
 		if jsonValue, ok := doc["$numberDecimal"]; ok {

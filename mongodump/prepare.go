@@ -33,29 +33,12 @@ func (NilPos) Pos() int64 {
 	return -1
 }
 
-// writeFlusher wraps an io.Writer and adds a Flush function.
-type writeFlusher interface {
-	Flush() error
-	io.Writer
-}
-
-// writeFlushCloser is a writeFlusher implementation which exposes
-// a Close function which is implemented by calling Flush.
-type writeFlushCloser struct {
-	writeFlusher
-}
-
 // errorReader implements io.Reader.
 type errorReader struct{}
 
 // Read on an errorReader already returns an error.
 func (errorReader) Read([]byte) (int, error) {
 	return 0, os.ErrInvalid
-}
-
-// Close calls Flush.
-func (bwc writeFlushCloser) Close() error {
-	return bwc.Flush()
 }
 
 // realBSONFile implements the intents.file interface. It lets intents write to real BSON files
@@ -387,7 +370,7 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 	if err != nil {
 		return nil, fmt.Errorf("error counting %v: %v", intent.Namespace(), err)
 	}
-	intent.Size = int64(count)
+	intent.Size = count
 	return intent, nil
 }
 
@@ -407,7 +390,7 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 	}
 	defer colsIter.Close(context.Background())
 
-	for colsIter.Next(nil) {
+	for colsIter.Next(context.TODO()) {
 		collInfo := &db.CollectionInfo{}
 		err = colsIter.Decode(collInfo)
 		if err != nil {

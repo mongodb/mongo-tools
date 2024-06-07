@@ -2,7 +2,7 @@ package evergreen
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -30,7 +30,7 @@ type Task struct {
 
 func Load() (*Config, error) {
 	_, pkgPath, _, _ := runtime.Caller(0)
-	common, err := ioutil.ReadFile(filepath.Join(filepath.Dir(pkgPath), "..", "common.yml"))
+	common, err := os.ReadFile(filepath.Join(filepath.Dir(pkgPath), "..", "common.yml"))
 	if err != nil {
 		return nil, err
 	}

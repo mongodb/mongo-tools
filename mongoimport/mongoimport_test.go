@@ -8,9 +8,9 @@ package mongoimport
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime"
@@ -42,13 +42,13 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	cursor, err := collection.Find(nil, bson.D{}, mopt.Find().SetSort(bson.D{{"_id", 1}}))
+	cursor, err := collection.Find(context.Background(), bson.D{}, mopt.Find().SetSort(bson.D{{"_id", 1}}))
 	if err != nil {
 		return err
 	}
 
 	var docs []bson.M
-	for cursor.Next(nil) {
+	for cursor.Next(context.Background()) {
 		var doc bson.M
 		if err = cursor.Decode(&doc); err != nil {
 			return err
@@ -78,7 +78,7 @@ func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	n, err := collection.CountDocuments(nil, bson.D{})
+	n, err := collection.CountDocuments(context.Background(), bson.D{})
 	if err != nil {
 		return 0, err
 	}
@@ -196,20 +196,20 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp := NewMockMongoImport()
 			imp.ToolOptions.Namespace.DB = ""
 			imp.ToolOptions.Namespace.Collection = ""
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if an invalid type is given", func() {
 			imp := NewMockMongoImport()
 			imp.InputOptions.Type = "invalid"
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if neither --headerline is supplied "+
 			"nor --fields/--fieldFile", func() {
 			imp := NewMockMongoImport()
 			imp.InputOptions.Type = CSV
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("no error should be thrown if --headerline is not supplied "+
@@ -218,60 +218,60 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fields := "a,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.InputOptions.Type = CSV
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("no error should be thrown if no input type is supplied", func() {
 			imp := NewMockMongoImport()
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("no error should be thrown if there's just one positional argument", func() {
 			imp := NewMockMongoImport()
-			So(imp.validateSettings([]string{"a"}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("no error should be thrown if --file is used with one positional argument", func() {
 			imp := NewMockMongoImport()
 			imp.InputOptions.File = "abc"
-			So(imp.validateSettings([]string{"a"}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("no error should be thrown if there's more than one positional argument", func() {
 			imp := NewMockMongoImport()
-			So(imp.validateSettings([]string{"a", "b"}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("an error should be thrown if --headerline is used with JSON input", func() {
 			imp := NewMockMongoImport()
 			imp.InputOptions.HeaderLine = true
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if --fields is used with JSON input", func() {
 			imp := NewMockMongoImport()
 			fields := ""
 			imp.InputOptions.Fields = &fields
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 			fields = "a,b,c"
 			imp.InputOptions.Fields = &fields
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if --fieldFile is used with JSON input", func() {
 			imp := NewMockMongoImport()
 			fieldFile := ""
 			imp.InputOptions.FieldFile = &fieldFile
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 			fieldFile = "test.csv"
 			imp.InputOptions.FieldFile = &fieldFile
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if --ignoreBlanks is used with JSON input", func() {
 			imp := NewMockMongoImport()
 			imp.IngestOptions.IgnoreBlanks = true
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("no error should be thrown if --headerline is not supplied "+
@@ -280,13 +280,13 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fieldFile := "test.csv"
 			imp.InputOptions.FieldFile = &fieldFile
 			imp.InputOptions.Type = CSV
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("an error should be thrown if --mode is incorrect", func() {
 			imp := NewMockMongoImport()
 			imp.IngestOptions.Mode = "wrong"
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if a field in the --upsertFields "+
@@ -296,9 +296,9 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.Type = CSV
 			imp.IngestOptions.Mode = modeUpsert
 			imp.IngestOptions.UpsertFields = "a,$b,c"
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 			imp.IngestOptions.UpsertFields = "a,.b,c"
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("no error should be thrown if --upsertFields is supplied without "+
@@ -307,7 +307,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.HeaderLine = true
 			imp.InputOptions.Type = CSV
 			imp.IngestOptions.UpsertFields = "a,b,c"
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.IngestOptions.Mode, ShouldEqual, modeUpsert)
 		})
 
@@ -318,7 +318,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.Type = CSV
 			imp.IngestOptions.Mode = modeInsert
 			imp.IngestOptions.UpsertFields = "a"
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("if --mode=upsert is used without --upsertFields, _id should be set as "+
@@ -328,7 +328,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.Type = CSV
 			imp.IngestOptions.Mode = modeUpsert
 			imp.IngestOptions.UpsertFields = ""
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.upsertFields, ShouldResemble, []string{"_id"})
 		})
 
@@ -339,7 +339,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.Type = CSV
 			imp.IngestOptions.Mode = modeDelete
 			imp.IngestOptions.UpsertFields = ""
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.upsertFields, ShouldResemble, []string{"_id"})
 		})
 
@@ -350,7 +350,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.Type = CSV
 			imp.IngestOptions.Mode = modeUpsert
 			imp.IngestOptions.UpsertFields = "a,b,c"
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("no error should be thrown if --fields is supplied with CSV import", func() {
@@ -358,7 +358,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fields := "a,b,c"
 			imp.InputOptions.Fields = &fields
 			imp.InputOptions.Type = CSV
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("an error should be thrown if an empty --fields is supplied with CSV import", func() {
@@ -366,7 +366,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fields := ""
 			imp.InputOptions.Fields = &fields
 			imp.InputOptions.Type = CSV
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("no error should be thrown if --fieldFile is supplied with CSV import", func() {
@@ -374,7 +374,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fieldFile := "test.csv"
 			imp.InputOptions.FieldFile = &fieldFile
 			imp.InputOptions.Type = CSV
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 		})
 
 		Convey("an error should be thrown if no collection and no file is supplied", func() {
@@ -383,7 +383,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.FieldFile = &fieldFile
 			imp.InputOptions.Type = CSV
 			imp.ToolOptions.Namespace.Collection = ""
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey("no error should be thrown if --file is used (without -c) supplied "+
@@ -393,7 +393,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.HeaderLine = true
 			imp.InputOptions.Type = CSV
 			imp.ToolOptions.Namespace.Collection = ""
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.ToolOptions.Namespace.Collection, ShouldEqual,
 				imp.InputOptions.File)
 		})
@@ -405,7 +405,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.HeaderLine = true
 			imp.InputOptions.Type = CSV
 			imp.ToolOptions.Namespace.Collection = ""
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.ToolOptions.Namespace.Collection, ShouldEqual, "input")
 		})
 
@@ -415,7 +415,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fieldFile := "test.csv"
 			imp.InputOptions.FieldFile = &fieldFile
 			imp.InputOptions.Legacy = true
-			So(imp.validateSettings([]string{}), ShouldNotBeNil)
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 	})
 }
@@ -554,7 +554,7 @@ func TestImportDocuments(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error getting session: %v", err)
 			}
-			_, err = session.Database(testDb).Collection(testCollection).DeleteMany(nil, bson.D{})
+			_, err = session.Database(testDb).Collection(testCollection).DeleteMany(context.Background(), bson.D{})
 			if err != nil {
 				t.Fatalf("error dropping collection: %v", err)
 			}
@@ -741,7 +741,7 @@ func TestImportDocuments(t *testing.T) {
 			So(numFailed, ShouldEqual, 0)
 		})
 		Convey("EOF should be thrown for CSV import with --headerLine if file is empty", func() {
-			csvFile, err := ioutil.TempFile("", "mongoimport_")
+			csvFile, err := os.CreateTemp("", "mongoimport_")
 			So(err, ShouldBeNil)
 			csvFile.Close()
 
@@ -1244,7 +1244,7 @@ func TestImportDocuments(t *testing.T) {
 
 func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr error) func() {
 	return func() {
-		err := ioutil.WriteFile(util.ToUniversalPath("./temp_test_data.csv"), []byte(data), 0644)
+		err := os.WriteFile(util.ToUniversalPath("./temp_test_data.csv"), []byte(data), 0644)
 		So(err, ShouldBeNil)
 		defer func() {
 			err = os.Remove(util.ToUniversalPath("./temp_test_data.csv"))
@@ -1286,7 +1286,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 
 			// collection cannot be empty in validate
 			imp.ToolOptions.Collection = "col"
-			So(imp.validateSettings([]string{}), ShouldBeNil)
+			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.IngestOptions.NumDecodingWorkers, ShouldEqual, runtime.NumCPU())
 			So(imp.IngestOptions.BulkBufferSize, ShouldEqual, 1000)
 		})
@@ -1362,7 +1362,7 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nSuccess, ShouldEqual, 20000)
 		So(nFailure, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 20000)
 	})
@@ -1384,7 +1384,7 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nFailure, ShouldEqual, 1)
 		So(err, ShouldNotBeNil)
 
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10000)
 	})
@@ -1404,10 +1404,10 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nSuccess, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
 		So(nFailure, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
 	})
 
-	_ = database.Drop(nil)
+	_ = database.Drop(context.Background())
 }

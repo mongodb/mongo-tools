@@ -108,7 +108,7 @@ func (mux *Multiplexer) Run() {
 				// the close on the MuxIn chan
 				mux.ins[index].writeCloseFinishedChan <- struct{}{}
 
-				err = mux.formatEOF(index, mux.ins[index])
+				err = mux.formatEOF(mux.ins[index])
 				if err != nil {
 					mux.shutdownInputs.Notify()
 					mux.Out = &nopCloseNopWriter{}
@@ -184,7 +184,7 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 }
 
 // formatEOF writes the EOF header in to the archive
-func (mux *Multiplexer) formatEOF(index int, in *MuxIn) error {
+func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 	var err error
 	if mux.currentNamespace != "" {
 		l, err := mux.Out.Write(terminatorBytes)

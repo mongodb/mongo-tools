@@ -16,7 +16,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -141,7 +141,7 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 // addClientCertFromFile adds a client certificate to the configuration given a path to the
 // containing file and returns the certificate's subject name.
 func addClientCertFromFile(cfg *tls.Config, clientFile, keyPassword string) (string, error) {
-	data, err := ioutil.ReadFile(clientFile)
+	data, err := os.ReadFile(clientFile)
 	if err != nil {
 		return "", err
 	}
@@ -150,11 +150,11 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPassword string) (str
 }
 
 func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
-	keyData, err := ioutil.ReadFile(keyFile)
+	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
 		return "", err
 	}
-	certData, err := ioutil.ReadFile(certFile)
+	certData, err := os.ReadFile(certFile)
 	if err != nil {
 		return "", err
 	}
@@ -189,6 +189,7 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 				certDecodedBlock = currentBlock.Bytes
 			}
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
+			//nolint:staticcheck
 			isEncrypted := x509.IsEncryptedPEMBlock(currentBlock) || strings.Contains(currentBlock.Type, "ENCRYPTED PRIVATE KEY")
 			if isEncrypted {
 				if keyPasswd == "" {
@@ -198,6 +199,8 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 				var keyBytes []byte
 				var err error
 				// Process the X.509-encrypted or PKCS-encrypted PEM block.
+				//
+				//nolint:staticcheck
 				if x509.IsEncryptedPEMBlock(currentBlock) {
 					// Only covers encrypted PEM data with a DEK-Info header.
 					keyBytes, err = x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
@@ -217,7 +220,9 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 				}
 
 				var encoded bytes.Buffer
-				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes})
+				if err := pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: keyBytes}); err != nil {
+					return "", err
+				}
 				keyBlock := encoded.Bytes()
 				keyBlocks = append(keyBlocks, keyBlock)
 				start = len(data) - len(remaining)
@@ -267,7 +272,7 @@ func extractX509UsernameFromSubject(subject string) string {
 // addCACertsFromFile adds root CA certificate and all the intermediate certificates in the same file to the configuration given a path
 // to the containing file.
 func addCACertsFromFile(cfg *tls.Config, file string) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
@@ -289,7 +294,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		// be created in options parsing, but tests still manually construct
 		// options and generally don't construct a URI, so we invoke the URI
 		// normalization routine here to correct for that.
-		opts.NormalizeOptionsAndURI()
+		if err := opts.NormalizeOptionsAndURI(); err != nil {
+			return nil, err
+		}
 	}
 
 	clientopt := mopt.Client()
@@ -314,6 +321,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
 		t := true
+		//nolint:staticcheck
 		clientopt.AuthenticateToAnything = &t
 	}
 

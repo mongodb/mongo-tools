@@ -169,6 +169,7 @@ func (d *decodeState) unmarshalMap() (out map[string]interface{}, err error) {
 			if _, ok := r.(runtime.Error); ok {
 				panic(r)
 			}
+			//nolint:errcheck // this will always be an error
 			err = r.(error)
 		}
 	}()
@@ -186,6 +187,7 @@ func (d *decodeState) unmarshalBsonD() (out bson.D, err error) {
 			if _, ok := r.(runtime.Error); ok {
 				panic(r)
 			}
+			//nolint:errcheck // this will always be an error
 			err = r.(error)
 		}
 	}()
@@ -203,6 +205,7 @@ func (d *decodeState) unmarshal(v interface{}) (err error) {
 			if _, ok := r.(runtime.Error); ok {
 				panic(r)
 			}
+			//nolint:errcheck // this will always be an error
 			err = r.(error)
 		}
 	}()
@@ -756,7 +759,7 @@ func (d *decodeState) convertNumber(s string) (interface{}, error) {
 	if parsedInteger <= math.MaxInt32 && parsedInteger >= math.MinInt32 {
 		return int32(parsedInteger), nil
 	}
-	return int64(parsedInteger), nil
+	return parsedInteger, nil
 
 }
 

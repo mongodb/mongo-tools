@@ -10,7 +10,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -286,7 +285,7 @@ func (restore *MongoRestore) getCollectionNameFromMetadata(metadataFullPath stri
 	defer metadataFile.Close()
 
 	// Read the metadata file into raw JSON, and then parse the JSON into a Metadata struct.
-	metadataJSON, err := ioutil.ReadAll(metadataFile)
+	metadataJSON, err := io.ReadAll(metadataFile)
 	if err != nil {
 		return "", fmt.Errorf("error reading metadata from %s: %v", metadataFullPath, err)
 	}
@@ -738,15 +737,19 @@ func (ap actualPath) Parent() archive.DirLike {
 }
 
 func (ap actualPath) ReadDir() ([]archive.DirLike, error) {
-	entries, err := ioutil.ReadDir(ap.Path())
+	entries, err := os.ReadDir(ap.Path())
 	if err != nil {
 		return nil, err
 	}
 	var returnFileInfo = make([]archive.DirLike, 0, len(entries))
 	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
 		returnFileInfo = append(returnFileInfo,
 			actualPath{
-				FileInfo: entry,
+				FileInfo: info,
 				path:     ap.Path(),
 				parent:   &ap,
 			})

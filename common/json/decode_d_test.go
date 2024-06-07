@@ -72,10 +72,13 @@ func TestDecodeBsonD(t *testing.T) {
 			}{}
 			err := Unmarshal([]byte(data), &out)
 			So(err, ShouldBeNil)
+			//nolint:errcheck // this will always be a map[string]interface{}
 			aMap := out.A.(map[string]interface{})
 			So(len(aMap), ShouldEqual, 1)
+			//nolint:errcheck // this will always be a map[string]interface{}
 			aMapSub := aMap["a"].(map[string]interface{})
 			So(len(aMapSub), ShouldEqual, 1)
+			//nolint:errcheck // this will always be a map[string]interface{}
 			aMapSubSub := aMapSub["b"].(map[string]interface{})
 			So(aMapSubSub["c"], ShouldEqual, 9)
 			So(len(out.B), ShouldEqual, 1)
@@ -93,11 +96,13 @@ func TestDecodeBsonD(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(out), ShouldEqual, 1)
 			So(out[0].Value, ShouldHaveSameTypeAs, []interface{}{})
+			//nolint:errcheck // this will always be a []interface{}
 			innerArray := out[0].Value.([]interface{})
 			So(len(innerArray), ShouldEqual, 3)
 			So(innerArray[0], ShouldEqual, 1)
 			So(innerArray[1], ShouldEqual, 2)
 			So(innerArray[2], ShouldHaveSameTypeAs, bson.D{})
+			//nolint:errcheck // this will always be a bson.D
 			innerD := innerArray[2].(bson.D)
 			So(len(innerD), ShouldEqual, 1)
 			So(innerD[0].Key, ShouldEqual, "b")

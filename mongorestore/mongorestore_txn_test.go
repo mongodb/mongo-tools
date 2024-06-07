@@ -9,7 +9,7 @@ package mongorestore
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -90,7 +90,8 @@ func TestMongorestoreTxns(t *testing.T) {
 		So(result.Err, ShouldBeNil)
 
 		for k, v := range data {
-			Println("postImageCheck for", k)
+			_, err = Println("postImageCheck for", k)
+			So(err, ShouldBeNil)
 			So(postImageCheck(client, v), ShouldBeNil)
 		}
 	})
@@ -122,7 +123,7 @@ func createTxnTestDataDir(t *testing.T, data txnTestDataMap) string {
 }
 
 func readTxnTestData(filename string) (txnTestDataMap, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't load %s: %v", filename, err)
 	}

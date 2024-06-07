@@ -45,8 +45,6 @@ const (
 	storageEngineModern  = 2
 )
 
-const defaultPermissions = 0755
-
 // MongoDump is a container for the user-specified options and
 // internal state used for running mongodump.
 type MongoDump struct {
@@ -732,13 +730,6 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 		err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), err)
 	}
 	return
-}
-
-// dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
-// a counter, and dumps the iterator's contents to the writer.
-func (dump *MongoDump) dumpIterToWriter(
-	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable) error {
-	return dump.dumpValidatedIterToWriter(iter, writer, progressCount, nil)
 }
 
 // dumpValidatedIterToWriter takes a cursor, a writer, an Updateable object, and a documentValidator and validates and

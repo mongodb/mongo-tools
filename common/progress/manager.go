@@ -130,6 +130,8 @@ func (manager *BarWriter) renderAllBars() {
 	if len(manager.bars) > 1 {
 		// we just write an empty array here, since a write call of any
 		// length to our log.Writer will trigger a new logline.
+		//
+		//nolint:errcheck
 		manager.writer.Write([]byte{})
 	}
 }

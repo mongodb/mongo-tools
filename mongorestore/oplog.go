@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,12 +27,6 @@ import (
 
 	"golang.org/x/exp/slices"
 )
-
-// oplogMaxCommandSize sets the maximum size for multiple buffered ops in the
-// applyOps command. This is to prevent pathological cases where the array overhead
-// of many small operations can overflow the maximum command size.
-// Note that ops > 8MB will still be buffered, just as single elements.
-const oplogMaxCommandSize = 1024 * 1024 * 8
 
 type oplogContext struct {
 	progressor *progress.CountProgressor
@@ -112,6 +107,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 		txnBuffer:  txn.NewBuffer(),
 		session:    session,
 	}
+	//nolint:errcheck
 	defer oplogCtx.txnBuffer.Stop()
 
 	if restore.ProgressManager != nil {
@@ -409,7 +405,7 @@ Loop:
 // ApplyOps is a wrapper for the applyOps database command, we pass in
 // a session to avoid opening a new connection for a few inserts at a time.
 func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface{}) error {
-	singleRes := session.Database("admin").RunCommand(nil, bson.D{{"applyOps", entries}})
+	singleRes := session.Database("admin").RunCommand(context.TODO(), bson.D{{"applyOps", entries}})
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}
@@ -568,21 +564,26 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 	collectionName := ""
 	for _, elem := range op.Object {
 		if elem.Key == "commitIndexBuild" {
+			//nolint:errcheck
 			collectionName = elem.Value.(string)
 		}
 	}
 	// We need second iteration to split the indexes into single createIndex command
 	for _, elem := range op.Object {
 		if elem.Key == "indexes" {
+			//nolint:errcheck
 			indexes := elem.Value.(bson.A)
 			indexDocuments := make([]*idx.IndexDocument, len(indexes))
 			for i, index := range indexes {
 				var indexSpec idx.IndexDocument
 				indexSpec.Options = bson.M{}
+				//nolint:errcheck
 				for _, elem := range index.(bson.D) {
 					if elem.Key == "key" {
+						//nolint:errcheck
 						indexSpec.Key = elem.Value.(bson.D)
 					} else if elem.Key == "partialFilterExpression" {
+						//nolint:errcheck
 						indexSpec.PartialFilterExpression = elem.Value.(bson.D)
 					} else {
 						indexSpec.Options[elem.Key] = elem.Value
@@ -605,10 +606,13 @@ func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocum
 	indexDocument := &idx.IndexDocument{Options: bson.M{}}
 	for _, elem := range op.Object {
 		if elem.Key == "createIndexes" {
+			//nolint:errcheck
 			collectionName = elem.Value.(string)
 		} else if elem.Key == "key" {
+			//nolint:errcheck
 			indexDocument.Key = elem.Value.(bson.D)
 		} else if elem.Key == "partialFilterExpression" {
+			//nolint:errcheck
 			indexDocument.PartialFilterExpression = elem.Value.(bson.D)
 		} else {
 			indexDocument.Options[elem.Key] = elem.Value

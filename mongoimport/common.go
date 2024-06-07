@@ -25,13 +25,6 @@ import (
 
 type ParseGrace int
 
-// FieldInfo contains information about field names. It is used in validateFields.
-type FieldInfo struct {
-	position int
-	field    string
-	parts    []string
-}
-
 const (
 	pgAutoCast ParseGrace = iota
 	pgSkipField
@@ -141,11 +134,13 @@ func newBomDiscardingReader(r io.Reader) *bomDiscardingReader {
 	return &bomDiscardingReader{buf: bufio.NewReader(r)}
 }
 
+const quorum = 2
+
 // channelQuorumError takes a channel and a quorum - which specifies how many
 // messages to receive on that channel before returning. It either returns the
 // first non-nil error received on the channel or nil if up to `quorum` nil
-// errors are received
-func channelQuorumError(ch <-chan error, quorum int) (err error) {
+// errors are received.
+func channelQuorumError(ch <-chan error) (err error) {
 	for i := 0; i < quorum; i++ {
 		if err = <-ch; err != nil {
 			return
@@ -232,9 +227,11 @@ func getUpsertValue(field string, document bson.D) interface{} {
 	}
 	switch subDoc.(type) {
 	case bson.D:
+		//nolint:errcheck
 		subDocD := subDoc.(bson.D)
 		return getUpsertValue(field[index+1:], subDocD)
 	case *bson.D:
+		//nolint:errcheck
 		subDocD := subDoc.(*bson.D)
 		return getUpsertValue(field[index+1:], *subDocD)
 	default:

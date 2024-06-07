@@ -166,6 +166,7 @@ func (gw *GridWriter) FlushRows(w io.Writer) {
 	gw.Flush(gridBuff)
 	lineScanner := bufio.NewScanner(gridBuff)
 	for lineScanner.Scan() {
+		//nolint:errcheck
 		w.Write(lineScanner.Bytes())
 	}
 }

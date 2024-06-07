@@ -178,6 +178,7 @@ func (ilf *InteractiveLineFormatter) handleEvent(ev termbox.Event) {
 			cell.selected = !currSelected
 		}
 	case ev.Ch == 'r':
+		//nolint:errcheck
 		termbox.Sync()
 	case ev.Ch == '?':
 		ilf.showHelp = !ilf.showHelp
@@ -210,6 +211,7 @@ func writeString(x, y int, text string, fg, bg termbox.Attribute) {
 func (ilf *InteractiveLineFormatter) update() {
 	ilf.Lock()
 	defer ilf.Unlock()
+	//nolint:errcheck
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	x := 0
 	for i, column := range ilf.table {

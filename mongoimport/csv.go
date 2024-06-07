@@ -139,7 +139,7 @@ func (r *CSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (ret
 		csvErrChan <- streamDocuments(ordered, r.numDecoders, csvRecordChan, readDocs)
 	}()
 
-	return channelQuorumError(csvErrChan, 2)
+	return channelQuorumError(csvErrChan)
 }
 
 // Convert implements the Converter interface for CSV input. It converts a

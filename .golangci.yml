@@ -1,70 +1,29 @@
 linters:
   disable-all: true
   enable:
-    - cyclop
-    - depguard
     - dupword
     - errcheck
-    - errname
-    - errorlint
-    - exhaustruct
-    - funlen
     - gci
     - gocheckcompilerdirectives
-    - gocognit
-    - gocyclo
     - godot
     - goimports
-    - govet
-    - importas
     - ineffassign
-    - maintidx
     - misspell
-    - nestif
     - nolintlint
-    - predeclared
-    - revive
     - staticcheck
-    - testifylint
     - unconvert
     - unparam
     - unused
   fast: false
 
 linters-settings:
-  # Complexity metrics. These are overly permissive but will at least
-  # prevent further degradation.
-  # cyclop:
-  #   max-complexity: 50
-  # funlen:
-  #   lines: 700
-  #   statements: 140
-  # gocognit:
-  #   min-complexity: 101
-  # gocyclo:
-  #   min-complexity: 10000 # hack to "disable" this redundant linter
-  # maintidx:
-  #   under: 9
-  # nestif:
-  #   min-complexity: 25
-
   errcheck:
     check-type-assertions: true
-
-  exhaustruct:
-    include:
-      - "mscontext\\.C"
 
   gci:
     sections:
       - standard
       - default
-
-  govet:
-    shadow: true
-
-  importas:
-    no-extra-aliases: true
 
   misspell:
     locale: US
@@ -78,46 +37,7 @@ linters-settings:
       - typo: "cancelled"
         correction: "canceled"
 
-  revive:
-    enable-all-rules: false
-    rules:
-      - name: argument-limit
-        arguments: [5]
-      - name: function-result-limit
-        arguments: [3]
-      - name: import-shadowing
-      - name: unused-parameter
-      - name: unused-receiver
-
-  testifylint:
-    enable:
-      - bool-compare
-      - compares
-      - empty
-      - error-is-as
-      - error-nil
-      - expected-actual
-      - float-compare
-      - len
-      - suite-extra-assert-call
-    disable:
-      # This checks for use of `require` assertions in goroutines outside the
-      # main routine. We really _should_ fix this but it's a lot to deal with
-      # at the moment.
-      - go-require
-      # This insists on require not only for "no error" checks but also for
-      # "error is X" checks, which is weird. See
-      # https://github.com/Antonboom/testifylint/issues/21.
-      - require-error
-      # Even though we'd like to follow this rule, it's commented out for now
-      # because so much existing code breaks it. At some point we should
-      # enable it.
-      #
-      - suite-dont-use-pkg
-    suite-extra-assert-call:
-      mode: require
-
 issues:
   max-same-issues: 0
   exclude:
-    - "composites: .+(primitive.(Binary|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
+    - "composites: .+(primitive.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"

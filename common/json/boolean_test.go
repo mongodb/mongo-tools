@@ -50,6 +50,7 @@ func TestBooleanValue(t *testing.T) {
 		Convey("works for a struct of a specific type", func() {
 			type TestStruct struct {
 				A bool
+				//nolint:unused
 				b int
 			}
 			var jsonStruct TestStruct

@@ -150,7 +150,7 @@ func (r *TSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (ret
 		tsvErrChan <- streamDocuments(ordered, r.numDecoders, tsvRecordChan, readDocs)
 	}()
 
-	return channelQuorumError(tsvErrChan, 2)
+	return channelQuorumError(tsvErrChan)
 }
 
 // Convert implements the Converter interface for TSV input. It converts a

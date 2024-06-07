@@ -186,7 +186,6 @@ func nonSpace(b []byte) bool {
 // An Encoder writes JSON objects to an output stream.
 type Encoder struct {
 	w   io.Writer
-	e   encodeState
 	err error
 }
 

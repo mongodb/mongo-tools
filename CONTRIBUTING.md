@@ -36,14 +36,6 @@ platforms on which the issue is present and clear steps to reproduce.
 For improvements or feature requests, be sure to explain the goal or use case, and the approach your
 solution will take.
 
-## Style Guide
-
-All commits to the MongoDB Tools repository must pass golint:
-
-`go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson* common/*`
-
-_We use a modified version of [golint](https://github.com/golang/lint)_
-
 ## Adding or Updating Dependencies
 
 There's some "paperwork" that needs to be done for all dependency changes. To simplify this there
