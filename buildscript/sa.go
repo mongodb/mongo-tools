@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	gosecPkg = "github.com/securego/gosec/v2/cmd/gosec@v2.20.0"
+	gosecVersion = "v2.20.0"
+	gosecPkg     = "github.com/securego/gosec/v2/cmd/gosec@" + gosecVersion
 
 	preciousVersion = "0.7.2"
 	ubiVersion      = "0.0.18"
@@ -109,6 +110,14 @@ func installUBI(ctx *task.Context) error {
 
 // Install gosec.
 func installGosec(ctx *task.Context) error {
+	exists, err := executableExistsWithVersion(ctx, "gosec", gosecVersion)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
 	return goInstall(ctx, gosecPkg)
 }
 
