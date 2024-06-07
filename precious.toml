@@ -112,3 +112,14 @@ labels = [ "default", "fast-tidy" ]
 # It'd be nice to use prettier to tidy the JS code too, but it seems to make
 # changes that cause it to fail to parse with the versions of the Mongo shell
 # we use.
+
+[commands.eslint]
+type = "both"
+invoke = "once"
+working-dir = "root"
+path-args = "file"
+include = "test/qa-tests/jstests/**/*.js"
+cmd = "$PRECIOUS_ROOT/node_modules/.bin/eslint"
+tidy-flags = "--fix"
+ok-exit-codes = [0]
+lint-failure-exit-codes = [1]

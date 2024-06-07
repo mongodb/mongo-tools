@@ -50,11 +50,11 @@
   rs.reconfig(conf);
 
   runMongoProgram('mongodump', '-vvvv', '--host', "replset/"+primary.host,
-      '--readPreference={mode:"nearest", tagSets:[{use:"secondary1"}]}',
-      '--ssl',
-      '--sslPEMKeyFile=jstests/libs/client.pem',
-      '--sslCAFile=jstests/libs/ca.pem',
-      '--sslAllowInvalidHostnames');
+    '--readPreference={mode:"nearest", tagSets:[{use:"secondary1"}]}',
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames');
 
   var primaryCount = 0;
   var secondaryCount = 0;

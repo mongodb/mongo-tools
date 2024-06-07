@@ -35,16 +35,16 @@ if (typeof getToolTest === 'undefined') {
     var shellArgs = ['sleep(1000); ' +
     (toolTest.authCommand || '') +
     'db.getSiblingDB(\'admin\').shutdownServer({ force: true });',
-      undefined,
-      undefined,
-      '--tls',
-      '--tlsCertificateKeyFile=jstests/libs/client.pem',
-      '--tlsCAFile=jstests/libs/ca.pem',
-      '--tlsAllowInvalidHostnames'];
+    undefined,
+    undefined,
+    '--tls',
+    '--tlsCertificateKeyFile=jstests/libs/client.pem',
+    '--tlsCAFile=jstests/libs/ca.pem',
+    '--tlsAllowInvalidHostnames'];
     koShell = startParallelShell.apply(null, shellArgs);
   } else {
     koShell = startParallelShell(
-        'sleep(1000); ' +
+      'sleep(1000); ' +
         (toolTest.authCommand || '') +
         'db.getSiblingDB(\'admin\').shutdownServer({ force: true });');
   }

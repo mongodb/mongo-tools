@@ -7,7 +7,7 @@ var checkLog;
   "use strict";
 
   if (checkLog) {
-    return;  // Protect against this file being double-loaded.
+    return; // Protect against this file being double-loaded.
   }
 
   checkLog = (function() {
@@ -60,32 +60,32 @@ var checkLog;
      * 'expectedCount'. Early returns when at least 'expectedCount' entries are found.
      */
     let containsWithCount = function(
-        conn, msg, expectedCount, timeout = 5 * 60 * 1000, exact = true) {
+      conn, msg, expectedCount, timeout = 5 * 60 * 1000, exact = true) {
       let expectedStr = exact ? 'exactly ' : 'at least ';
       assert.soon(
-          function() {
-            let count = 0;
-            let logMessages = getGlobalLog(conn);
-            if (logMessages === null) {
-              return false;
+        function() {
+          let count = 0;
+          let logMessages = getGlobalLog(conn);
+          if (logMessages === null) {
+            return false;
+          }
+          for (let i = 0; i < logMessages.length; i++) {
+            if (logMessages[i].indexOf(msg) !== -1) {
+              count++;
             }
-            for (let i = 0; i < logMessages.length; i++) {
-              if (logMessages[i].indexOf(msg) !== -1) {
-                count++;
-              }
-              if (!exact && count >= expectedCount) {
-                print("checkLog found at least " + expectedCount +
+            if (!exact && count >= expectedCount) {
+              print("checkLog found at least " + expectedCount +
                     " log entries containing the following message: " + msg);
-                return true;
-              }
+              return true;
             }
+          }
 
-            return exact ? expectedCount === count : expectedCount <= count;
-          },
-          'Did not find ' + expectedStr + expectedCount + ' log entries containing the ' +
+          return exact ? expectedCount === count : expectedCount <= count;
+        },
+        'Did not find ' + expectedStr + expectedCount + ' log entries containing the ' +
           'following message: ' + msg,
-          timeout,
-          300);
+        timeout,
+        300);
     };
 
     /*
@@ -124,7 +124,7 @@ var checkLog;
         }
       }
       return (Array.isArray(value) ? `[ ${serialized.join(', ')} ]`
-          : `{ ${serialized.join(', ')} }`);
+        : `{ ${serialized.join(', ')} }`);
     };
 
     return {

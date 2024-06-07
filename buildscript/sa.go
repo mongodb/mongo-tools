@@ -19,6 +19,16 @@ const (
 	goimportsVersion = "v0.22.0"
 	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
+	// For JS tools like eslint and prettier, these versions need to match the ones in the
+	// `package.json` file. To update to a new version, run a command like this:
+	//
+	//    npm install --save-dev --save-exact prettier@3.3.1
+	//
+	// Then update the version in this file as well.
+
+	// This is the latest version to support a YAML config file. Updating to
+	// the new config file syntax did not seem trivial.
+	eslintVersion       = "8.57.0"
 	golangCILintVersion = "1.59.1"
 	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
@@ -46,7 +56,7 @@ func SAInstallDevTools(ctx *task.Context) error {
 	if err := installPrecious(ctx); err != nil {
 		return err
 	}
-	return installPrettier(ctx)
+	return installJSTools(ctx)
 }
 
 // Install goimports.
@@ -251,13 +261,29 @@ func installBinaryTool(
 	)
 }
 
-func installPrettier(ctx *task.Context) error {
+// We have to install all the JS tools at once. If we run `npm install <tool>` multiple times, each
+// execution wipes the entire `node_modules` directory, so we only end up with one tool (the last
+// one) installed.
+func installJSTools(ctx *task.Context) error {
+	eslint, err := eslintPath()
+	if err != nil {
+		return err
+	}
+
+	exists, err := executableExistsWithVersion(ctx, eslint, eslintVersion)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return runNPMInstall(ctx)
+	}
+
 	prettier, err := prettierPath()
 	if err != nil {
 		return err
 	}
 
-	exists, err := executableExistsWithVersion(ctx, prettier, prettierVersion)
+	exists, err = executableExistsWithVersion(ctx, prettier, prettierVersion)
 	if err != nil {
 		return err
 	}
@@ -265,12 +291,23 @@ func installPrettier(ctx *task.Context) error {
 		return nil
 	}
 
+	return runNPMInstall(ctx)
+}
+
+func runNPMInstall(ctx *task.Context) error {
 	return sh.Run(
 		ctx,
 		"npm", "install",
-		"--no-save",
-		fmt.Sprintf("prettier@%s", prettierVersion),
 	)
+}
+
+func eslintPath() (string, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, "node_modules", ".bin", "eslint"), nil
 }
 
 func prettierPath() (string, error) {
