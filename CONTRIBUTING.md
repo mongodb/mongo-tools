@@ -54,8 +54,14 @@ go run build.go updateDep -pkg=github.com/some/package@v1.2.3
 go run build.go updateAllDeps
 ```
 
-This will update our `go.{mod,sum}` files, vendor the dependency, and update the SBOM Lite and
-`THIRD-PARTY-NOTICES` repo.
+Note that to run this command you will need to have
+[Podman installed](https://podman.io/docs/installation).
+
+This will update our `go.{mod,sum}` files, vendor the dependency, update the SBOM Lite file
+(`cyclonedx.sbom.json`), and update the `THIRD-PARTY-NOTICES` file.
+
+Note that you _cannot_ just use `go get` to add or update dependencies, because it doesn't update
+all of these other files that need to be updated when dependencies change.
 
 ## Testing
 
@@ -213,3 +219,136 @@ delete the directory, which is useful when investigating test failures.
 
 For an example of all of this, see the `TestRestoreClusteredIndex` func in
 `mongorestore/mongorestore_test.go`.
+
+### Static Analysis with `gosec`
+
+We use the `gosec` tool for static analysis of this codebase. You can run this as part of our
+linting checks by running the following command:
+
+`go run build.go sa:lint`
+
+If `gosec` reports a vulnerability, you have two options:
+
+1. Fix the issue so that `gosec` stops reporting it.
+2. Mark the issue as a false positive using a `#nosec` comment.
+
+If you mark it as a false positive, you _must_ include a justification with the comment:
+
+```
+// #nosec G1234 -- the text here explains why we consider this a false positive
+```
+
+The justification text will end up in [the SARIF report](https://sarifweb.azurewebsites.net/) we
+generate as part of the release process.
+
+**We do not merge PRs which contain unaddressed high- or critical-severity vulnerabilities.**
+
+### Third-Party Dependency Vulnerability Handling
+
+**Note that this will only work for MongoDB employees with access to Snyk.**
+
+We use [Snyk](https://snyk.io/) to check our dependencies for known security issues.
+
+We run these checks in CI, so it's not strictly necessary to do so manually when you add or upgrade
+a dependency, but you can save some time by checking this locally first.
+
+In order to do this, you will need to first
+[install the `snyk` CLI tool](https://docs.snyk.io/snyk-cli/install-or-update-the-snyk-cli).
+
+Then you can run the following commands:
+
+```
+snyk auth
+snyk test --org="$org_id" --file=./go.mod
+```
+
+You can get the right organization ID from the Snyk web UI. Go to the "Settings" page and copy the
+Organization ID from there. **Make sure you are in the `dev-prod` organization!**
+
+If the dependency you just added has any known vulnerabilities this command will report them.
+
+**We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies. All
+vulnerabilities found in the `master` branch must be resolved before a release.**
+
+We can address them in one of the following ways:
+
+1. Upgrade to a new version of the dependency which contains a fix.
+2. **MongoDB employees only** - Use [the Silk UI](https://us1.app.silk.security/) to create a new
+   ticket in the `VULN` project and transition the ticket to "Rejected". You will need to select a
+   "State" describing why this ticket was rejected, which can be one of "not affected", or "false
+   positive". You will also supply a "Justification", which will end up in the Augmented SBOM.
+
+### Software Security Development Lifecycle (SSDLC) Notes
+
+As part of MongoDB's SSDLC initiative, we've made a number of changes to our development practices.
+Several of these have already been covered, notably our use of static analysis, the SBOM file, and
+third-party vulnerability management.
+
+### Glossary
+
+#### SSDLC: Software Security Development Lifecycle
+
+The practices that we are adopting, including producing an SBOM for all releases, doing various
+types of vulnerability scanning, signing releases, and documentation of all these things.
+
+#### SARIF: The Static Analysis Results Interchange Format
+
+This is a file format that static analysis tools can output. Silk accepts reports in this format.
+See https://sarifweb.azurewebsites.net/ for more information.
+
+#### SBOM: Software Bill of Materials
+
+A machine-readable file containing information about dependencies, including things like the package
+name, license, etc. This includes a recursive list of all third-party dependencies.
+
+#### [Silk](https://www.silk.security/)
+
+[Silk](https://www.silk.security/) is a third-party SaaS tool that MongoDB as a whole will use for
+managing all SSDLC-related info for our projects. Silk will be integrated with our Jira instance so
+that it can do things like create tickets for vulnerabilities in a project’s dependencies.
+
+#### [Snyk](https://snyk.io/)
+
+[Snyk](https://snyk.io/) is a company that provides a variety of code scanning tools, including
+tools that do vulnerability checking for third-party dependencies and static code analysis for
+various languages.
+
+#### Static Analysis
+
+A static analysis tool analyzes code without running it, looking for various issues. For this
+particular project, we’re interested in tools that look for security vulnerabilities. For example,
+the `gosec` tool attempts to detect when code creates files with insecure permission.
+
+See the "Static Analysis with `gosec`" section above for more details on how to run this tool.
+
+### SBOM Files
+
+We actually have _two_ SBOM files. The first, called the **SBOM Lite** file, lives permanently in
+this repo's root as the `cyclonedx.sbom.json` file. This file contains a manifest of all of our
+dependencies, including transitive dependencies. It includes information on those package's names,
+versions, licenses, and other metadata. However, it does _not_ contain information about
+vulnerabilities. It must be updated whenever our dependencies change, and we enforce this via CI.
+See the section on "Adding or Updating Dependencies" for more details on how to do this.
+
+Vulnerability information lives in our **Augmented SBOM** files. These files live in the `ssdlc`
+directory, and we create a new one for each release. These files act as a record of our
+dependencies, including known vulnerabilities, for each release. The releases include the tag name
+of the release, for example `ssdlc/100.9.5.bom.json`. This file must be created for each release,
+and we enforce this via CI.
+
+#### Generating the Augmented SBOM File
+
+Generating this file can only be done by MongoDB employees, as it requires access to
+[Silk](https://www.silk.security/). See our [release documentation](./RELEASE.md) for more details.
+
+### Papertrail Integration
+
+All releases are recorded using a MongoDB-internal application called Papertrail. This records
+various pieces of information about releases, including the date and time of the release, who
+triggered the release (by pushing to Evergreen), and a checksum of each release file.
+
+This is done automatically as part of the release.
+
+### Release Artifact Signing
+
+All releases are signed automatically as part of the release process.
