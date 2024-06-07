@@ -397,17 +397,6 @@ functions:
           set -e
           mkdir -p bin
 
-  "fetch golangci-lint":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
-
   "create repl_set":
     - command: shell.exec
       params:
@@ -551,7 +540,6 @@ functions:
           set -x
           set -v
           set -e
-          go run build.go sa:installdevtools
           GOSEC_SARIF_REPORT=1 ./dev-bin/precious lint --all --command gosec
           cat SARIF.json
 
@@ -1619,7 +1607,6 @@ tasks:
   - name: format-go
     commands:
       - func: "fetch source"
-      - func: "fetch golangci-lint"
       - command: shell.exec
         type: test
         params:
@@ -1641,6 +1628,23 @@ tasks:
             retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
             if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
             go run build.go sa:lint
+
+  - name: lint
+    commands:
+      - func: "fetch source"
+      - func: "run make target"
+        vars:
+          target: sa:installdevtools
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            set -x
+            set -v
+            set -e
+            ./dev-bin/precious lint --all
 
   - name: lint-js
     commands:
@@ -1916,6 +1920,7 @@ buildvariants:
       _platform: rhel80
     tasks:
       - name: format-go
+      - name: lint
       - name: lint-go
       - name: lint-js
       - name: mod-tidy
