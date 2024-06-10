@@ -128,6 +128,22 @@ func (v Version) IsStable() bool {
 	return v.Pre == ""
 }
 
+func (v Version) GreaterThan(other Version) bool {
+	if v.Major > other.Major {
+		return true
+	} else if v.Major < other.Major {
+		return false
+	}
+
+	if v.Minor > other.Minor {
+		return true
+	} else if v.Minor < other.Minor {
+		return false
+	}
+
+	return v.Patch > other.Patch
+}
+
 func git(args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	out, err := cmd.Output()
