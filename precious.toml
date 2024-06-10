@@ -1,3 +1,5 @@
+exclude = "vendor/**/*"
+
 # We could run this via golangci-lint but we want to exclude more directories
 # for gosec than we do for other linting. There doesn't seem to be a way to
 # configure these excludes when running gosec as part of golangci-lint.
