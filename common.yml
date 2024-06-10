@@ -723,9 +723,6 @@ tasks:
 
   - name: gosec-SARIF-report
     tags: ["git_tag"]
-    depends_on:
-      - name: push
-        variant: "*"
     commands:
       - func: "fetch source"
       - command: expansions.update
