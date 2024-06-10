@@ -386,19 +386,20 @@ func buildRPM() {
 	defer cdBack()
 
 	// The goal here is to set up  directory with the following structure:
+	//
 	// rpmbuild/
-	// |----- SOURCES/
-	// |         |----- mongodb-database-tools.tar.gz:
-	//                       |
-	//                      mongodb-database-tools/
-	//                               |------ usr/
-	//                               |-- bin/
-	//                               |    |--- bsondump
-	//                               |    |--- mongo*
-	//                               |-- share/
-	//                                      |---- doc/
-	//                                             |----- mongodb-database-tools/
-	//                                                              |--- staticFiles
+	// |-- SOURCES/
+	// |   |-- mongodb-database-tools.tar.gz:
+	//         |
+	//         mongodb-database-tools/
+	//         |-- usr/
+	//             |-- bin/
+	//             |   |-- bsondump
+	//             |   |--- mongo*
+	//             |-- share/
+	//                 |-- doc/
+	//                     |-- mongodb-database-tools/
+	//                         |-- staticFiles
 
 	// create tar file
 	log.Printf("tarring necessary files\n")
@@ -492,19 +493,19 @@ func buildDeb() {
 
 	// The goal here is to set up  directory with the following structure:
 	// releaseName/
-	// |----- DEBIAN/
-	// |        |----- control
-	// |        |----- postinst
-	// |        |----- prerm
-	// |        |----- md5sums
-	// |------ usr/
-	//          |-- bin/
-	//          |    |--- bsondump
-	//          |    |--- mongo*
-	//          |-- share/
-	//                 |---- doc/
-	//                        |----- mongodb-database-tools/
-	//                                         |--- staticFiles
+	// |-- DEBIAN/
+	// |   |-- control
+	// |   |-- postinst
+	// |   |-- prerm
+	// |   |-- md5sums
+	// |--- usr/
+	//      |-- bin/
+	//      |    |-- bsondump
+	//      |    |-- mongo*
+	//      |-- share/
+	//           |-- doc/
+	//               |-- mongodb-database-tools/
+	//                   |-- staticFiles
 
 	log.Printf("create deb directory tree\n")
 
