@@ -9,8 +9,6 @@ package mongodump
 import (
 	"bytes"
 	"context"
-
-	// #nosec G505 -- we do not use this digest algorithm in a security-sensitive way.
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
