@@ -39,10 +39,13 @@ setup_garasign_authentication() {
 macos_notarize_and_sign() {
   set -o verbose
 
+  tarball=$(ls mongodb-database-tools-*.tgz)
+
   # untar the release package and get the package name
-  tar xvzf release.tgz
-  pkgname=$(ls | grep mongodb-database-tools)
-  rm release.tgz
+  tar xvzf "$tarball"
+  rm "$tarball"
+
+  pkgname=$(basename -s .tgz "$tarball")
 
   # turn the untarred package into a zip
   zip -r unsigned.zip "$pkgname"
@@ -62,7 +65,7 @@ macos_notarize_and_sign() {
       --mode notarizeAndSign \
       --url https://dev.macos-notary.build.10gen.cc/api \
       --bundleId com.mongodb.mongotools \
-      --out-path "$PWD/release.zip"
+      --out-path "$PWD/$pkgname.zip"
 }
 
 case $MONGO_OS in
@@ -72,13 +75,16 @@ case $MONGO_OS in
 
   "windows-64")
     setup_garasign_authentication
-    authenticode_sign "release.msi"
-    pgp_sign "release.zip" "release.zip.sig"
+    msifile=$(ls mongodb-database-tools-*.msi)
+    authenticode_sign "$msifile"
+    zipfile=$(ls mongodb-database-tools-*.zip)
+    pgp_sign "$zipfile" "$zipfile.sig"
     ;;
 
   *)
     setup_garasign_authentication
-    pgp_sign "release.tgz" "release.tgz.sig"
+    tarball=$(ls mongodb-database-tools-*.tgz)
+    pgp_sign "$tarball" "$tarball.sig"
     ;;
 esac
 

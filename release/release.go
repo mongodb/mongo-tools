@@ -30,7 +30,6 @@ import (
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
-	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
 
 	"github.com/urfave/cli/v2"
@@ -150,12 +149,6 @@ func main() {
 					},
 				},
 			},
-			{
-				Name: "rename-release-files-for-papertrail",
-				Action: func(cCtx *cli.Context) error {
-					return renameReleaseFilesForPapertrail()
-				},
-			},
 		},
 	}
 
@@ -270,23 +263,12 @@ func getDebFileName() string {
 	)
 }
 
-func getRPMFileName() string {
-	p, err := platform.GetFromEnv()
-	check(err, "get platform")
-
-	v, err := version.GetCurrent()
-	check(err, "get version")
-
-	vStr := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
-	if v.Commit != "" {
-		vStr += "." + v.Commit[:8]
-	} else if v.Pre != "" {
-		vStr += ".latest"
-	}
-
+func getRPMFileName(p platform.Platform, v version.Version) string {
 	return fmt.Sprintf(
-		"mongodb-database-tools-%s.%s.rpm",
-		vStr, p.RPMArch(),
+		"mongodb-database-tools-%s-%s.%s.rpm",
+		v.StringWithoutPre(),
+		v.RPMRelease(),
+		p.RPMArch(),
 	)
 }
 
@@ -385,6 +367,17 @@ func buildRPM() {
 	// we'll want to go back to the original directory, just in case.
 	defer cdBack()
 
+	pf, err := platform.GetFromEnv()
+	check(err, "get platform")
+	specFile := mdt + ".spec"
+
+	v, err := version.GetCurrent()
+	check(err, "get version")
+
+	rpmVersion := v.StringWithoutPre()
+	rpmRelease := v.RPMRelease()
+	rpmFilename := getRPMFileName(pf, v)
+
 	// The goal here is to set up  directory with the following structure:
 	//
 	// rpmbuild/
@@ -475,7 +468,7 @@ func buildRPM() {
 	// Copy to top level directory so we can upload it.
 	check(copyFile(
 		outputPath,
-		filepath.Join("..", getRPMFileName()),
+		filepath.Join("..", getRPMFileName(pf, v)),
 	), "linking output for s3 upload")
 }
 
@@ -769,7 +762,7 @@ func buildMSI() {
 
 	check(err, "run candle.exe\n"+out)
 
-	output := "release.msi"
+	output := getReleaseName() + ".msi"
 	light := filepath.Join(wixPath, "light.exe")
 	out, err = run(light,
 		"-wx",
@@ -873,7 +866,8 @@ func addToTarball(tw *tar.Writer, dst, src string) {
 func buildTarball() {
 	log.Printf("building tarball archive\n")
 
-	archiveFile, err := os.Create("release.tgz")
+	releaseName := getReleaseName()
+	archiveFile, err := os.Create(releaseName + ".tgz")
 	check(err, "create archive file")
 	defer archiveFile.Close()
 
@@ -882,8 +876,6 @@ func buildTarball() {
 
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
-
-	releaseName := getReleaseName()
 
 	for _, name := range staticFiles {
 		log.Printf("adding %s to tarball\n", name)
@@ -923,14 +915,13 @@ func addToZip(zw *zip.Writer, dst, src string) {
 func buildZip() {
 	log.Printf("building zip archive\n")
 
-	archiveFile, err := os.Create("release.zip")
+	releaseName := getReleaseName()
+	archiveFile, err := os.Create(releaseName + ".zip")
 	check(err, "create archive file")
 	defer archiveFile.Close()
 
 	zw := zip.NewWriter(archiveFile)
 	defer zw.Close()
-
-	releaseName := getReleaseName()
 
 	for _, name := range staticFiles {
 		log.Printf("adding %s to zip\n", name)
@@ -1142,12 +1133,11 @@ func uploadRelease(v version.Version) {
 				ext = a.URL[len(a.URL)-8:]
 			}
 
+			stableFile := getReleaseName() + ext
 			unstableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-unstable%s",
 				pf.Name, pf.Arch, ext,
 			)
-
-			stableFile := basenameForPlatformAndVersion(pf, v) + ext
 
 			latestStableFile := fmt.Sprintf(
 				"mongodb-database-tools-%s-%s-latest-stable%s",
@@ -1156,14 +1146,14 @@ func uploadRelease(v version.Version) {
 
 			log.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
-			if canPerformStableRelease(v) {
-				copyFile(unstableFile, stableFile)
-				copyFile(unstableFile, latestStableFile)
-			}
 
 			log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
 			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
+
 			if canPerformStableRelease(v) {
+				copyFile(unstableFile, stableFile)
+				copyFile(unstableFile, latestStableFile)
+
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
 				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
@@ -1552,50 +1542,4 @@ func downloadArtifacts(v string, artifactNames []string) {
 	if numArtifactsDownloaded != len(artifactNames) {
 		log.Fatalf("expect to download %d artifacts %s, only downloaded %d", len(artifactNames), artifactNames, numArtifactsDownloaded)
 	}
-}
-
-// We want the filenames we record in Papertrail to be unique, but the name of
-// the non-deb/RPM files are things like `release.zip` or `release.msi`. This
-// code will rename these files to something that matches the names that
-// _would_ be used if we were to upload them as official releases.
-//
-// This doesn't _guarantee_ uniqueness since we could run the exact same
-// commit in Evergreen twice, which would generate the same names, but it's
-// close enough. Papertrail will still record the information we give even if
-// we use the same filenames for two different CI runs.
-func renameReleaseFilesForPapertrail() error {
-	pf, err := platform.GetFromEnv()
-	if err != nil {
-		return errors.Wrap(err, "could not find platform")
-	}
-
-	v, err := version.GetCurrent()
-	if err != nil {
-		return errors.Wrap(err, "could not get version")
-	}
-
-	glob := "release.*"
-	releaseFiles, err := filepath.Glob(glob)
-	if err != nil {
-		return errors.Wrapf(err, "could not get files matching %q", glob)
-	}
-
-	baseName := basenameForPlatformAndVersion(pf, v)
-	for _, file := range releaseFiles {
-		ext := filepath.Ext(file)
-		newName := baseName + ext
-		if err := os.Rename(file, newName); err != nil {
-			return errors.Wrapf(err, "could not rename %q to %q", file, newName)
-		}
-		log.Printf("renamed %q to %q", file, newName)
-	}
-
-	return nil
-}
-
-func basenameForPlatformAndVersion(pf platform.Platform, v version.Version) string {
-	return fmt.Sprintf(
-		"mongodb-database-tools-%s-%s-%s",
-		pf.Name, pf.Arch, v,
-	)
 }
