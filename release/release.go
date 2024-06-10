@@ -660,7 +660,7 @@ func buildMSI() {
 
 	// These are the meta-text files that are part of mongo-tools, relative
 	// to the location of this go file. We have to use an rtf verison of the
-	// license, so we do not include the static files.
+	// license, so we do not include it in the static files.
 	var msiStaticFiles = []string{
 		"README.md",
 		"THIRD-PARTY-NOTICES",
