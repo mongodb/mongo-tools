@@ -1903,8 +1903,7 @@ buildvariants:
       - name: "sign"
         run_on: macos-1014-codesign
       - name: "push"
-        run_on: rhel70-small
-        git_tag_only: true
+        run_on: rhel80-small
 
   #######################################
   #       macOS ARM Buildvariant        #
@@ -1921,8 +1920,7 @@ buildvariants:
       - name: "sign"
         run_on: macos-1014-codesign
       - name: "push"
-        run_on: rhel70-small
-        git_tag_only: true
+        run_on: rhel80-small
 
   #######################################
   #     RHEL x86_64 Buildvariants       #
