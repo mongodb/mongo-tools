@@ -15,6 +15,7 @@
 *.zip
 
 /deb_build
+/rpm_build
 /purls.txt
 /silkbomb.env
 /release.*

@@ -21,12 +21,19 @@
               Source="$(var.SourceDir)\README.md"
               DiskId ="1"/>
       </Component>
+      <Component Id="c_AugmentedSBOM" Guid="88fbc184-900f-4074-9fbf-5b5bfd2da5a7">
+        <File Id="f_AugmentedSBOM"
+              Name="$(var.AugmentedSBOMFilename)"
+              Source="$(var.SourceDir)\$(var.AugmentedSBOMFilename)"
+              DiskId ="1"/>
+      </Component>
     </DirectoryRef>
 
     <ComponentGroup Id="cg_License">
       <ComponentRef Id="c_Thirdparty"/>
       <ComponentRef Id="c_Readme"/>
       <ComponentRef Id="c_License"/>
+      <ComponentRef Id="c_AugmentedSBOM"/>
     </ComponentGroup>
 
     <WixVariable Id="WixUILicenseRtf" Value="$(var.ResourceDir)\LICENSE.rtf" />

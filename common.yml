@@ -243,9 +243,11 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-          - src/github.com/mongodb/mongo-tools/release.*
-          - src/github.com/mongodb/mongo-tools/*.deb
-          - src/github.com/mongodb/mongo-tools/*.rpm
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.deb
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.msi
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.rpm
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.tgz
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.zip
         remote_file: mongo-tools/pkgs/${build_id}/
         content_type: application/octet-stream
         bucket: mciuploads
@@ -259,9 +261,11 @@ functions:
         target: src/github.com/mongodb/mongo-tools/upload.tgz
         source_dir: src/github.com/mongodb/mongo-tools
         include:
-          - "./release.*"
-          - "*.deb"
-          - "*.rpm"
+          - mongodb-database-tools*.deb
+          - mongodb-database-tools*.msi
+          - mongodb-database-tools*.rpm
+          - mongodb-database-tools*.tgz
+          - mongodb-database-tools*.zip
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -311,9 +315,11 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
-          - src/github.com/mongodb/mongo-tools/release.*
-          - src/github.com/mongodb/mongo-tools/*.deb
-          - src/github.com/mongodb/mongo-tools/*.rpm
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.deb
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.msi
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.rpm
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.tgz
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.zip
         remote_file: mongo-tools/task/sign/${build_id}/
         bucket: mciuploads
         permissions: public-read
@@ -706,14 +712,6 @@ tasks:
         params:
           file: src/github.com/mongodb/mongo-tools/expansions.yml
       - func: "fetch dist release artifacts"
-      - command: shell.exec
-        params:
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            ${_set_shell_env}
-            ${_maybe_enable_devtoolset_7}
-            PATH=$PATH:$HOME
-            go run release/release.go rename-release-files-for-papertrail
       - command: papertrail.trace
         params:
           key_id: ${papertrail_key_id}
@@ -1905,8 +1903,7 @@ buildvariants:
       - name: "sign"
         run_on: macos-1014-codesign
       - name: "push"
-        run_on: rhel70-small
-        git_tag_only: true
+        run_on: rhel80-small
 
   #######################################
   #       macOS ARM Buildvariant        #
@@ -1923,8 +1920,7 @@ buildvariants:
       - name: "sign"
         run_on: macos-1014-codesign
       - name: "push"
-        run_on: rhel70-small
-        git_tag_only: true
+        run_on: rhel80-small
 
   #######################################
   #     RHEL x86_64 Buildvariants       #

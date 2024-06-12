@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Version struct {
@@ -116,11 +117,31 @@ func (v Version) RPMRelease() string {
 	if v.Pre == "" {
 		return "1"
 	}
-	return strings.Split(v.Pre, "-")[0]
+	pre := v.Pre
+	if v.Commit != "" {
+		pre = time.Now().Format("20060102") + "." + v.Commit[:8]
+	}
+	return pre
 }
 
 func (v Version) IsStable() bool {
 	return v.Pre == ""
+}
+
+func (v Version) GreaterThan(other Version) bool {
+	if v.Major > other.Major {
+		return true
+	} else if v.Major < other.Major {
+		return false
+	}
+
+	if v.Minor > other.Minor {
+		return true
+	} else if v.Minor < other.Minor {
+		return false
+	}
+
+	return v.Patch > other.Patch
 }
 
 func git(args ...string) (string, error) {
