@@ -57,7 +57,7 @@ func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
 type OutputOptions struct {
 	Out                        string   `long:"out" value-name:"<directory-path>" short:"o" description:"output directory, or '-' for stdout (default: 'dump')"`
 	Gzip                       bool     `long:"gzip" description:"compress archive or collection output with Gzip"`
-	Oplog                      bool     `long:"oplog" description:"use oplog for taking a point-in-time snapshot"`
+	Oplog                      bool     `long:"oplog" description:"for taking a point-in-time snapshot on a replica set that is not part of a sharded cluster."`
 	Archive                    string   `long:"archive" value-name:"<file-path>" optional:"true" optional-value:"-" description:"dump as an archive to the specified path. If flag is specified without a value, archive is written to stdout"`
 	DumpDBUsersAndRoles        bool     `long:"dumpDbUsersAndRoles" description:"dump user and role definitions for the specified database"`
 	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"collection to exclude from the dump (may be specified multiple times to exclude additional collections)"`

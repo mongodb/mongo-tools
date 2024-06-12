@@ -51,7 +51,7 @@ const (
 // InputOptions defines the set of options to use in configuring the restore process.
 type InputOptions struct {
 	Objcheck               bool   `long:"objcheck" description:"validate all objects before inserting"`
-	OplogReplay            bool   `long:"oplogReplay" description:"replay oplog for point-in-time restore"`
+	OplogReplay            bool   `long:"oplogReplay" description:"for recovering a point-in-time snapshot on a replica set that is not part of a sharded cluster."`
 	OplogLimit             string `long:"oplogLimit" value-name:"<seconds>[:ordinal]" description:"only include oplog entries before the provided Timestamp"`
 	OplogFile              string `long:"oplogFile" value-name:"<filename>" description:"oplog file to use for replay of oplog"`
 	Archive                string `long:"archive" value-name:"<filename>" optional:"true" optional-value:"-" description:"restore dump from the specified archive file.  If flag is specified without a value, archive is read from stdin"`
