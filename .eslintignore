@@ -1,0 +1,2 @@
+# eslint fails to parse this file for some reason
+test/qa-tests/jstests/ssl/ssl_with_system_ca.js
