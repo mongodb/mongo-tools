@@ -10,13 +10,12 @@ import (
 	"regexp"
 	"strings"
 
-	"golang.org/x/mod/semver"
-
 	"github.com/craiggwilson/goke/pkg/git"
 	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/release/platform"
+	"golang.org/x/mod/semver"
 )
 
 // pkgNames is a list of the names of all the packages to test or build.

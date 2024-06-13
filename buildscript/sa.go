@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	gosecVersion = "v2.20.0"
-	gosecPkg     = "github.com/securego/gosec/v2/cmd/gosec@" + gosecVersion
+	golangCILintVersion = "v1.59.1"
+	golangCILintPkg     = "github.com/golangci/golangci-lint/cmd/golangci-lint@" + golangCILintVersion
+	gosecVersion        = "v2.20.0"
+	gosecPkg            = "github.com/securego/gosec/v2/cmd/gosec@" + gosecVersion
 
 	preciousVersion = "0.7.2"
 	ubiVersion      = "0.0.18"
@@ -26,6 +28,9 @@ const (
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
+	if err := installGolangCILint(ctx); err != nil {
+		return err
+	}
 	if err := installGosec(ctx); err != nil {
 		return err
 	}
@@ -110,6 +115,19 @@ func installUBI(ctx *task.Context) error {
 		c.Env = []string{"TARGET=" + devBin, "TAG=v" + ubiVersion}
 		return sh.RunCmd(ctx, c)
 	})
+}
+
+// Install golangci-lint.
+func installGolangCILint(ctx *task.Context) error {
+	exists, err := executableExistsWithVersion(ctx, "golangci-lint", golangCILintVersion)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
+	return goInstall(ctx, golangCILintPkg)
 }
 
 // Install gosec.
