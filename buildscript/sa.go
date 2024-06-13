@@ -145,6 +145,14 @@ func installGosec(ctx *task.Context) error {
 
 // Install a Golang package as an executable with "go install".
 func goInstall(ctx *task.Context, link string) error {
+	root, err := repoRoot()
+	if err != nil {
+		return err
+	}
+	if err = os.Setenv("GOBIN", filepath.Join(root, "dev-bin")); err != nil {
+		return err
+	}
+
 	return withRetries(
 		5,
 		fmt.Sprintf("go install %s", link),
