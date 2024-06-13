@@ -1,8 +1,10 @@
 /deb_build
 /dev-bin
+/mongo-release
 /mongodb-database-tools-*
 /purls.txt
 /release.*
+/report.json
 /rpm_build
 /silkbomb.env
 /temp*
@@ -34,3 +36,7 @@ testing_output/
 vendor/pkg
 !**/testdata/**
 test/**/*.json
+test/qa-tests/[0-9]*
+test/qa-tests/install_compass
+test/qa-tests/mongo*
+test/qa-tests/venv
