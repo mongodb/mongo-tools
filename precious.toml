@@ -66,5 +66,5 @@ lint-failure-exit-codes = [1]
 ignore-stderr = ".*"
 
 # It'd be nice to use prettier to tidy the JS code too, but it seems to make
-# changes that cause it to fail to parse with the verisons of the Mongo shell
+# changes that cause it to fail to parse with the versions of the Mongo shell
 # we use.
