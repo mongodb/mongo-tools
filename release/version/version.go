@@ -86,26 +86,6 @@ func GetCurrent() (Version, error) {
 	return v, nil
 }
 
-func GetFromRev(rev string) (Version, error) {
-	commit, err := git("rev-parse", rev)
-	if err != nil {
-		return Version{}, fmt.Errorf("git rev-parse %s failed: %w", rev, err)
-	}
-
-	desc, err := git("describe", commit)
-	if err != nil {
-		return Version{}, fmt.Errorf("git describe %s failed: %w", commit, err)
-	}
-
-	v, err := Parse(desc)
-	if err != nil {
-		return Version{}, fmt.Errorf("failed to parse version from describe: %w", err)
-	}
-
-	v.Commit = commit
-	return v, nil
-}
-
 func (v Version) String() string {
 	vStr := v.StringWithoutPre()
 	if v.Pre != "" {
