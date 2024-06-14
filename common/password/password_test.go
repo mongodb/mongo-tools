@@ -2,9 +2,10 @@ package password
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 const (

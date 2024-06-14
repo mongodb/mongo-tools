@@ -7,8 +7,9 @@
 package util
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"reflect"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // IsTruthy returns true for values the server will interpret as "true".

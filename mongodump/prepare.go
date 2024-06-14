@@ -24,7 +24,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
-
 	"golang.org/x/exp/slices"
 )
 

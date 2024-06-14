@@ -7,10 +7,11 @@
 package testutil
 
 import (
-	commonOpts "github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"runtime"
 	"strings"
+
+	commonOpts "github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 func GetSSLArgs() []string {

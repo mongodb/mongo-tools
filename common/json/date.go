@@ -8,8 +8,9 @@ package json
 
 import (
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/util"
 	"reflect"
+
+	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // Transition functions for recognizing Date.
