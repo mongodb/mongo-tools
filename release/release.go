@@ -1211,7 +1211,7 @@ func linuxRelease(v version.Version) {
 	check(err, "get platform")
 
 	if pf.OS != platform.OSLinux {
-		log.Printf("cannot release linux packages for non-linux platform")
+		log.Printf("cannot release linux packages for non-linux platform; platform is %s", pf.Name)
 		return
 	}
 
