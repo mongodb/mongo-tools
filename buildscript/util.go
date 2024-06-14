@@ -119,7 +119,7 @@ func versionMatches(ctx *task.Context, exe, wantVersion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	re := regexp.MustCompile(`\b\Q` + wantVersion + `\E\b`)
+	re := regexp.MustCompile(`\bv?\Q` + wantVersion + `\E\b`)
 
 	return re.MatchString(out), nil
 }
