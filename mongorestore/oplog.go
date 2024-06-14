@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-
 	"golang.org/x/exp/slices"
 )
 
@@ -559,7 +558,7 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 }
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
-// returns collection name and index specs
+// returns collection name and index specs.
 func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.IndexDocument) {
 	collectionName := ""
 	for _, elem := range op.Object {
@@ -600,7 +599,7 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 }
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
-// returns collection name and index spec
+// returns collection name and index spec.
 func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocument) {
 	collectionName := ""
 	indexDocument := &idx.IndexDocument{Options: bson.M{}}
@@ -656,7 +655,7 @@ func (restore *MongoRestore) newFilteredApplyOps(cmd bson.D) (bson.D, error) {
 	return doc, nil
 }
 
-// nestedApplyOps models an applyOps command document
+// nestedApplyOps models an applyOps command document.
 type nestedApplyOps struct {
 	ApplyOps []db.Oplog `bson:"applyOps"`
 }

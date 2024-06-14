@@ -102,7 +102,7 @@ func (m Meta) IsAbort() bool {
 	return m.abort
 }
 
-// IsData is true if the oplog entry contains transaction data
+// IsData is true if the oplog entry contains transaction data.
 func (m Meta) IsData() bool {
 	return !m.commit && !m.abort
 }

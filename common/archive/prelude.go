@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// MetadataFile implements intents.file
+// MetadataFile implements intents.file.
 type MetadataFile struct {
 	pos int64 // updated atomically, aligned at the beginning of the struct
 	*bytes.Buffer
@@ -351,7 +351,7 @@ func (pe *PreludeExplorer) Parent() DirLike {
 	}
 }
 
-// MetadataPreludeFile is part of the intents.file. It allows the metadata contained in the prelude to be opened and read
+// MetadataPreludeFile is part of the intents.file. It allows the metadata contained in the prelude to be opened and read.
 type MetadataPreludeFile struct {
 	pos     int64 // updated atomically, aligned at the beginning of the struct
 	Intent  *intents.Intent

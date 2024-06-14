@@ -34,7 +34,7 @@ const (
 )
 
 // checkOnlyHasDocuments returns an error if the documents in the test
-// collection don't exactly match those that are passed in
+// collection don't exactly match those that are passed in.
 func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocuments []bson.M) error {
 	session, err := sessionProvider.GetSession()
 	if err != nil {
@@ -87,7 +87,7 @@ func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
 }
 
 // getBasicToolOptions returns a test helper to instantiate the session provider
-// for calls to StreamDocument
+// for calls to StreamDocument.
 func getBasicToolOptions() *options.ToolOptions {
 	general := &options.General{}
 	ssl := testutil.GetSSLOptions()
@@ -126,7 +126,7 @@ func NewMongoImport() (*MongoImport, error) {
 }
 
 // NewMockMongoImport gets an instance of MongoImport with no underlying SessionProvider.
-// Use this for tests that don't communicate with the server (e.g. options parsing tests)
+// Use this for tests that don't communicate with the server (e.g. options parsing tests).
 func NewMockMongoImport() *MongoImport {
 	toolOptions := getBasicToolOptions()
 	inputOptions := &InputOptions{
@@ -1274,7 +1274,7 @@ func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr
 	}
 }
 
-// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115
+// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115.
 func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a new mongoimport with empty options", t, func() {
@@ -1293,7 +1293,7 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 	})
 }
 
-// generateTestData creates the files used in TestImportMIOSOE
+// generateTestData creates the files used in TestImportMIOSOE.
 func generateTestData() error {
 	// If file exists already, don't both regenerating it.
 	if _, err := os.Stat(mioSoeFile); err == nil {
@@ -1333,7 +1333,7 @@ func generateTestData() error {
 	return nil
 }
 
-// test --maintainInsertionOrder and --stopOnError behavior
+// test --maintainInsertionOrder and --stopOnError behavior.
 func TestImportMIOSOE(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 

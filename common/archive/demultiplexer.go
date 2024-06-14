@@ -79,7 +79,7 @@ func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader, isAtlas
 	return demux
 }
 
-// Run creates and runs a parser with the Demultiplexer as a consumer
+// Run creates and runs a parser with the Demultiplexer as a consumer.
 func (demux *Demultiplexer) Run() error {
 	parser := Parser{In: demux.In}
 	err := parser.ReadAllBlocks(demux)
@@ -105,14 +105,14 @@ func (pe *demuxError) Error() string {
 	return err
 }
 
-// newError creates a demuxError with just a message
+// newError creates a demuxError with just a message.
 func newError(msg string) error {
 	return &demuxError{
 		Msg: msg,
 	}
 }
 
-// newWrappedError creates a demuxError with a message as well as an underlying cause error
+// newWrappedError creates a demuxError with a message as well as an underlying cause error.
 func newWrappedError(msg string, err error) error {
 	return &demuxError{
 		Err: err,
@@ -244,7 +244,7 @@ func (demux *Demultiplexer) BodyBSON(buf []byte) error {
 	return err
 }
 
-// Open installs the DemuxOut as the handler for data for the namespace ns
+// Open installs the DemuxOut as the handler for data for the namespace ns.
 func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 	// In the current implementation where this is either called before the demultiplexing is running
 	// or while the demutiplexer is inside of the NamespaceChan NamespaceErrorChan conversation
@@ -280,7 +280,7 @@ func (receiver *RegularCollectionReceiver) Sum64() (uint64, bool) {
 	return receiver.hash.Sum64(), true
 }
 
-// Read() runs in the restoring goroutine
+// Read() runs in the restoring goroutine.
 func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 	if receiver.partialReadBuf != nil && len(receiver.partialReadBuf) > 0 {
 		wLen := len(receiver.partialReadBuf)
@@ -332,7 +332,7 @@ func (receiver *RegularCollectionReceiver) Pos() int64 {
 
 // Open is part of the intents.file interface.  It creates the chan's in the
 // RegularCollectionReceiver and adds the RegularCollectionReceiver to the set of
-// RegularCollectionReceivers in the demultiplexer
+// RegularCollectionReceivers in the demultiplexer.
 func (receiver *RegularCollectionReceiver) Open() error {
 	// TODO move this implementation to some non intents.file method, to be called from prioritizer.Get
 	// So that we don't have to enable this double open stuff.
@@ -385,7 +385,7 @@ func (receiver *RegularCollectionReceiver) Write(buf []byte) (int, error) {
 
 // Close is part of the DemuxOut as well as the intents.file interface. It only closes the readLenChan, as that is what will
 // cause the RegularCollectionReceiver.Read() to receive EOF
-// Close will get called twice, once in the demultiplexer, and again when the restore goroutine is done with its intent.file
+// Close will get called twice, once in the demultiplexer, and again when the restore goroutine is done with its intent.file.
 func (receiver *RegularCollectionReceiver) Close() error {
 	// Close must be idempotent and repeat channel closes panic; only do once.
 	receiver.closeOnce.Do(func() {
@@ -405,7 +405,7 @@ func (receiver *RegularCollectionReceiver) End() {
 	<-receiver.readBufChan
 }
 
-// SpecialCollectionCache implements both DemuxOut as well as intents.file
+// SpecialCollectionCache implements both DemuxOut as well as intents.file.
 type SpecialCollectionCache struct {
 	pos    int64 // updated atomically, aligned at the beginning of the struct
 	Intent *intents.Intent
@@ -422,12 +422,12 @@ func NewSpecialCollectionCache(intent *intents.Intent, demux *Demultiplexer) *Sp
 	}
 }
 
-// Open is part of the both interfaces, and it does nothing
+// Open is part of the both interfaces, and it does nothing.
 func (cache *SpecialCollectionCache) Open() error {
 	return nil
 }
 
-// Close is part of the intents.file interface, and does nothing
+// Close is part of the intents.file interface, and does nothing.
 func (cache *SpecialCollectionCache) Close() error {
 	return nil
 }
@@ -459,24 +459,24 @@ func (cache *SpecialCollectionCache) Sum64() (uint64, bool) {
 }
 
 // MutedCollection implements both DemuxOut as well as intents.file. It serves as a way to
-// let the demutiplexer ignore certain embedded streams
+// let the demutiplexer ignore certain embedded streams.
 type MutedCollection struct {
 	Intent *intents.Intent
 	Demux  *Demultiplexer
 }
 
-// Read is part of the intents.file interface, and does nothing
+// Read is part of the intents.file interface, and does nothing.
 func (*MutedCollection) Read([]byte) (int, error) {
 	// Read is part of the intents.file interface, and does nothing
 	return 0, io.EOF
 }
 
-// Write is part of the intents.file interface, and does nothing
+// Write is part of the intents.file interface, and does nothing.
 func (*MutedCollection) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// Close is part of the intents.file interface, and does nothing
+// Close is part of the intents.file interface, and does nothing.
 func (*MutedCollection) Close() error {
 	return nil
 }
@@ -484,19 +484,19 @@ func (*MutedCollection) Close() error {
 // End is part of the DemuxOut interface and does nothing.
 func (*MutedCollection) End() {}
 
-// Open is part of the intents.file interface, and does nothing
+// Open is part of the intents.file interface, and does nothing.
 func (*MutedCollection) Open() error {
 	return nil
 }
 
-// Sum64 is part of the DemuxOut interface
+// Sum64 is part of the DemuxOut interface.
 func (*MutedCollection) Sum64() (uint64, bool) {
 	return 0, false
 }
 
 //===== Archive Manager Prioritizer =====
 
-// NewPrioritizer creates a new Prioritizer and hooks up its Namespace channels to the ones in demux
+// NewPrioritizer creates a new Prioritizer and hooks up its Namespace channels to the ones in demux.
 func (demux *Demultiplexer) NewPrioritizer(mgr *intents.Manager) *Prioritizer {
 	return &Prioritizer{
 		NamespaceChan:      demux.NamespaceChan,
@@ -506,14 +506,14 @@ func (demux *Demultiplexer) NewPrioritizer(mgr *intents.Manager) *Prioritizer {
 }
 
 // Prioritizer is a completely reactive prioritizer
-// Intents are handed out as they arrive in the archive
+// Intents are handed out as they arrive in the archive.
 type Prioritizer struct {
 	NamespaceChan      <-chan string
 	NamespaceErrorChan chan<- error
 	mgr                *intents.Manager
 }
 
-// Get waits for a new namespace from the NamespaceChan, and returns a Intent found for it
+// Get waits for a new namespace from the NamespaceChan, and returns a Intent found for it.
 func (prioritizer *Prioritizer) Get() *intents.Intent {
 	namespace, ok := <-prioritizer.NamespaceChan
 	if !ok {
@@ -542,7 +542,7 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 	return intent
 }
 
-// Finish is part of the IntentPrioritizer interface, and does nothing
+// Finish is part of the IntentPrioritizer interface, and does nothing.
 func (prioritizer *Prioritizer) Finish(*intents.Intent) {
 	// no-op
 	return

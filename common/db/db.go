@@ -49,7 +49,7 @@ const (
 	MaxBSONSize = 16 * 1024 * 1024 // 16MB - maximum BSON document size
 )
 
-// Default port for integration tests
+// Default port for integration tests.
 const (
 	DefaultTestPort = "33333"
 )
@@ -59,7 +59,7 @@ const (
 	ErrNoReachableServers = "no reachable servers"
 	ErrNsNotFound         = "ns not found"
 	// replication errors list the replset name if we are talking to a mongos,
-	// so we can only check for this universal prefix
+	// so we can only check for this universal prefix.
 	ErrReplTimeoutPrefix            = "waiting for replication timed out"
 	ErrCouldNotContactPrimaryPrefix = "could not contact primary for replica set"
 	ErrWriteResultsUnavailable      = "write results unavailable from"
@@ -68,7 +68,7 @@ const (
 	ErrNotMaster                    = "not master"
 	ErrConnectionRefusedSuffix      = "Connection refused"
 
-	// ignorable errors
+	// ignorable errors.
 	ErrDuplicateKeyCode         = 11000
 	ErrFailedDocumentValidation = 121
 	ErrUnacknowledgedWrite      = "unacknowledged write"
@@ -83,7 +83,7 @@ const (
 	continueThroughErrorFormat = "continuing through error: %v"
 )
 
-// Used to manage database sessions
+// Used to manage database sessions.
 type SessionProvider struct {
 	sync.Mutex
 
@@ -104,7 +104,7 @@ func (sp *SessionProvider) GetSession() (*mongo.Client, error) {
 	return sp.client, nil
 }
 
-// Close closes the master session in the connection pool
+// Close closes the master session in the connection pool.
 func (sp *SessionProvider) Close() {
 	sp.Lock()
 	defer sp.Unlock()
@@ -114,7 +114,7 @@ func (sp *SessionProvider) Close() {
 	}
 }
 
-// DB provides a database with the default read preference
+// DB provides a database with the default read preference.
 func (sp *SessionProvider) DB(name string) *mongo.Database {
 	return sp.client.Database(name)
 }

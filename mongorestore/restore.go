@@ -21,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -35,7 +34,7 @@ type Result struct {
 	Err       error
 }
 
-// log pretty-prints the result, associated with restoring the given namespace
+// log pretty-prints the result, associated with restoring the given namespace.
 func (result *Result) log(ns string) {
 	log.Logvf(log.Always, "finished restoring %v (%v %v, %v %v)",
 		ns, result.Successes, util.Pluralize(int(result.Successes), "document", "documents"),
@@ -50,7 +49,7 @@ func (result *Result) combineWith(other Result) {
 	result.Err = other.Err
 }
 
-// withErr returns a copy of the current result with the provided error
+// withErr returns a copy of the current result with the provided error.
 func (result Result) withErr(err error) Result {
 	result.Err = err
 	return result

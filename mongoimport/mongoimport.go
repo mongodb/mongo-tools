@@ -315,7 +315,7 @@ func (fsp *fileSizeProgressor) Progress() (int64, int64) {
 
 // ImportDocuments is used to write input data to the database. It returns the
 // number of documents successfully imported to the appropriate namespace,
-// the number of failures, and any error encountered in doing this
+// the number of failures, and any error encountered in doing this.
 func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 	source, fileSize, err := imp.getSourceReader()
 	if err != nil {
@@ -355,7 +355,7 @@ func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 // work by taking data from the inputReader source and writing it to the
 // appropriate namespace. It returns the number of documents successfully
 // imported to the appropriate namespace, the number of failures, and any error
-// encountered in doing this
+// encountered in doing this.
 func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64, error) {
 	session, err := imp.SessionProvider.GetSession()
 	if err != nil {
@@ -442,7 +442,7 @@ func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
 }
 
 // runInsertionWorker is a helper to InsertDocuments - it reads document off
-// the read channel and prepares then in batches for insertion into the database
+// the read channel and prepares then in batches for insertion into the database.
 func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	session, err := imp.SessionProvider.GetSession()
 	if err != nil {
@@ -547,7 +547,7 @@ func splitInlineHeader(header string) (headers []string) {
 	return
 }
 
-// getInputReader returns an implementation of InputReader based on the input type
+// getInputReader returns an implementation of InputReader based on the input type.
 func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 	var colSpecs []ColumnSpec
 	var headers []string

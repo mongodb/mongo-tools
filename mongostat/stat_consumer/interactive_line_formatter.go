@@ -19,7 +19,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// InteractiveLineFormatter produces ncurses-style output
+// InteractiveLineFormatter produces ncurses-style output.
 type InteractiveLineFormatter struct {
 	*limitableFormatter
 
@@ -70,7 +70,7 @@ func (ilf *InteractiveLineFormatter) Finish() {
 	termbox.Close()
 }
 
-// FormatLines formats the StatLines as a table in the terminal ui
+// FormatLines formats the StatLines as a table in the terminal ui.
 func (ilf *InteractiveLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
 	defer ilf.update() // so that it runs after the unlock, because update locks again
 	ilf.Lock()

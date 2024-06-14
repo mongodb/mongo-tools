@@ -85,7 +85,7 @@ func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) er
 	return nil
 }
 
-// DownloadFile downloads filename from bucket and
+// DownloadFile downloads filename from bucket and.
 func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
 	downloader := s3manager.NewDownloader(a.session)
 
@@ -105,7 +105,7 @@ func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
 }
 
 // GenerateFullReleaseFeedFromObjects will download all release artifacts from
-// the tools s3 bucket, caluclate their md5, sha1, and sha256 digests, and create
+// the tools s3 bucket, calculate their md5, sha1, and sha256 digests, and create
 // a download.JSONFeed object representing every artifact for every tools version.
 func (a *AWS) GenerateFullReleaseFeedFromObjects() (*download.JSONFeed, error) {
 	svc := s3.New(a.session)
@@ -214,7 +214,7 @@ func extractArtifactMetadata(obj *s3.Object) *ArtifactMetadata {
 	}
 }
 
-// downloadAndGenerateHashes will exit if the download fails
+// downloadAndGenerateHashes will exit if the download fails.
 func downloadAndGenerateHashes(downloader *s3manager.Downloader, name string) HashWriterAt {
 	input := &s3.GetObjectInput{
 		Bucket: aws.String("downloads.mongodb.org"),

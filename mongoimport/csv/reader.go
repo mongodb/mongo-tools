@@ -75,7 +75,7 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("line %d, column %d: %s", e.Line, e.Column, e.Err)
 }
 
-// These are the errors that can be returned in ParseError.Error
+// These are the errors that can be returned in ParseError.Error.
 var (
 	ErrTrailingComma = errors.New("extra delimiter at end of line") // no longer used
 	ErrBareQuote     = errors.New("bare \" in non-quoted-field")

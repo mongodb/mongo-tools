@@ -90,7 +90,7 @@ func GetOpTimeFromRawOplogEntry(rawOplogEntry bson.Raw) (OpTime, error) {
 	return opTime, nil
 }
 
-// GetOplogTailTime constructs an OplogTailTime
+// GetOplogTailTime constructs an OplogTailTime.
 func GetOplogTailTime(client *mongo.Client) (OplogTailTime, error) {
 	// Check oldest active first to be sure it is less-than-or-equal to the
 	// latest visible.
@@ -110,7 +110,7 @@ func GetOplogTailTime(client *mongo.Client) (OplogTailTime, error) {
 }
 
 // GetOldestActiveTransactionOpTime returns the oldest active transaction
-// optime from the config.transactions table or else a zero-value db.OpTime{}
+// optime from the config.transactions table or else a zero-value db.OpTime{}.
 func GetOldestActiveTransactionOpTime(client *mongo.Client) (OpTime, error) {
 	coll := client.Database("config").Collection("transactions", mopts.Collection().SetReadConcern(readconcern.Local()))
 	filter := bson.D{{"state", bson.D{{"$in", bson.A{"prepared", "inProgress"}}}}}

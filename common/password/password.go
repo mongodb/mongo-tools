@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 )
 
-// key constants
+// key constants.
 const (
 	backspaceKey      = 8
 	deleteKey         = 127
@@ -48,7 +48,7 @@ func Prompt(what string) (string, error) {
 }
 
 // readPassNonInteractively pipes in a password from stdin if
-// we aren't using a terminal for standard input
+// we aren't using a terminal for standard input.
 func readPassNonInteractively(reader io.Reader) (string, error) {
 	pass := []byte{}
 	for {

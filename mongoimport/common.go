@@ -63,7 +63,7 @@ type Converter interface {
 }
 
 // An importWorker reads Converter from the unprocessedDataChan channel and
-// sends processed BSON documents on the processedDocumentChan channel
+// sends processed BSON documents on the processedDocumentChan channel.
 type importWorker struct {
 	// unprocessedDataChan is used to stream the input data for a worker to process
 	unprocessedDataChan chan Converter
@@ -71,7 +71,7 @@ type importWorker struct {
 	// used to stream the processed document back to the caller
 	processedDocumentChan chan bson.D
 
-	// used to synchronise all worker goroutines
+	// used to synchronize all worker goroutines
 	tomb *tomb.Tomb
 }
 
@@ -110,7 +110,7 @@ var (
 	UTF8_BOM = []byte{0xEF, 0xBB, 0xBF}
 )
 
-// bomDiscardingReader implements and wraps io.Reader, discarding the UTF-8 BOM, if applicable
+// bomDiscardingReader implements and wraps io.Reader, discarding the UTF-8 BOM, if applicable.
 type bomDiscardingReader struct {
 	buf     *bufio.Reader
 	didRead bool
@@ -149,7 +149,7 @@ func channelQuorumError(ch <-chan error) (err error) {
 	return
 }
 
-// constructUpsertDocument constructs a BSON document to use for upserts
+// constructUpsertDocument constructs a BSON document to use for upserts.
 func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 	upsertDocument := bson.D{}
 	var hasDocumentKey bool
@@ -169,7 +169,7 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 // doSequentialStreaming takes a slice of workers, a readDocs (input) channel and
 // an outputChan (output) channel. It sequentially writes unprocessed data read from
 // the input channel to each worker and then sequentially reads the processed data
-// from each worker before passing it on to the output channel
+// from each worker before passing it on to the output channel.
 func doSequentialStreaming(workers []*importWorker, readDocs chan Converter, outputChan chan bson.D) {
 	numWorkers := len(workers)
 
@@ -210,7 +210,7 @@ func doSequentialStreaming(workers []*importWorker, readDocs chan Converter, out
 // field's associated value in the document. The field is specified using dot
 // notation for nested fields. e.g. "person.age" would return 34 would return
 // 34 in the document: bson.M{"person": bson.M{"age": 34}} whereas,
-// "person.name" would return nil
+// "person.name" would return nil.
 func getUpsertValue(field string, document bson.D) interface{} {
 	index := strings.Index(field, ".")
 	if index == -1 {
@@ -241,7 +241,7 @@ func getUpsertValue(field string, document bson.D) interface{} {
 }
 
 // removeBlankFields takes document and returns a new copy in which
-// fields with empty/blank values are removed
+// fields with empty/blank values are removed.
 func removeBlankFields(document bson.D) (newDocument bson.D) {
 	for _, keyVal := range document {
 		if val, ok := keyVal.Value.(*bson.D); ok {
@@ -422,7 +422,7 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 
 // isNatNum returns a number and true if the string can be parsed as a natural number (including 0)
 // The first byte of the string must be a number from 1-9. So "001" would not be parsed.
-// Neither would phone numbers such as "+15558675309"
+// Neither would phone numbers such as "+15558675309".
 func isNatNum(s string) (int, bool) {
 	if len(s) > 1 && s[0] == byte('0') { // don't allow 0 prefixes
 		return 0, false
@@ -438,7 +438,7 @@ func isNatNum(s string) (int, bool) {
 // streamDocuments concurrently processes data gotten from the inputChan
 // channel in parallel and then sends over the processed data to the outputChan
 // channel - either in sequence or concurrently (depending on the value of
-// ordered) - in which the data was received
+// ordered) - in which the data was received.
 func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, outputChan chan bson.D) (retErr error) {
 	if numDecoders == 0 {
 		numDecoders = 1
@@ -483,7 +483,7 @@ func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, out
 }
 
 // coercionError should only be used as a specific error type to check
-// whether tokensToBSON wants the row to print
+// whether tokensToBSON wants the row to print.
 type coercionError struct{}
 
 func (coercionError) Error() string { return "coercionError" }
@@ -595,7 +595,7 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 
 // addFieldToTree is a recursive function that builds up a tree of fields. It is used to check
 // that fields are compatible with each other. When useArrayIndexFields is set, it is mutually recursive
-// with addFieldToArray(). It closely mimics the behaviour of setNestedDocumentValue(). See validateFields()
+// with addFieldToArray(). It closely mimics the behavior of setNestedDocumentValue(). See validateFields()
 // for more information on the validity checks that are made when constructing a tree of fields.
 func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, tree map[string]interface{}, useArrayIndexFields bool) (map[string]interface{}, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
@@ -779,7 +779,7 @@ func indexError(field string) error {
 	return fmt.Errorf("array index error with field '%v': array indexes in fields must start from 0 and increase sequentially", field)
 }
 
-// validateReaderFields is a helper to validate fields for input readers
+// validateReaderFields is a helper to validate fields for input readers.
 func validateReaderFields(fields []string, useArrayIndexFields bool) error {
 	if err := validateFields(fields, useArrayIndexFields); err != nil {
 		return err
@@ -795,7 +795,7 @@ func validateReaderFields(fields []string, useArrayIndexFields bool) error {
 // processDocuments reads from the Converter channel and for each record, converts it
 // to a bson.D document before sending it on the processedDocumentChan channel. Once the
 // input channel is closed the processed channel is also closed if the worker streams its
-// reads in order
+// reads in order.
 func (iw *importWorker) processDocuments(ordered bool) error {
 	if ordered {
 		defer close(iw.processedDocumentChan)

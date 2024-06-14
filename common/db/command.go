@@ -16,7 +16,7 @@ import (
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Query flags
+// Query flags.
 const (
 	Snapshot = 1 << iota
 	LogReplay
@@ -215,7 +215,7 @@ func (sp *SessionProvider) IsMongos() (bool, error) {
 // 	return (masterDoc.Ok == 1 && masterDoc.MaxWire >= 2), nil
 // }
 
-// FindOne retuns the first document in the collection and database that matches
+// FindOne returns the first document in the collection and database that matches
 // the query after skip, sort and query flags are applied.
 func (sp *SessionProvider) FindOne(db, collection string, skip int, query interface{}, sort interface{}, into interface{}, flags int) error {
 	session, err := sp.GetSession()

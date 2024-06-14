@@ -83,7 +83,7 @@ type TopField struct {
 	Count int `bson:"count" json:"count"`
 }
 
-// struct to enable sorting of namespaces by lock time with the sort package
+// struct to enable sorting of namespaces by lock time with the sort package.
 type sortableTotal struct {
 	Name  string
 	Total int64

@@ -8,7 +8,7 @@ import (
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// DeferredQuery represents a deferred query
+// DeferredQuery represents a deferred query.
 type DeferredQuery struct {
 	Coll      *mongo.Collection
 	Filter    interface{}

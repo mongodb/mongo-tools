@@ -8,8 +8,16 @@
 package mongodump
 
 import (
+	"bufio"
+	"compress/gzip"
 	"context"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
@@ -26,15 +34,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-
-	"bufio"
-	"compress/gzip"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 type storageEngineType int
@@ -835,7 +834,7 @@ func (dump *MongoDump) DumpUsersAndRolesForDB(name string) error {
 }
 
 // DumpUsersAndRoles dumps all of the users and roles and versions
-// TODO: This and DumpUsersAndRolesForDB should be merged, correctly
+// TODO: This and DumpUsersAndRolesForDB should be merged, correctly.
 func (dump *MongoDump) DumpUsersAndRoles() error {
 	var err error
 	buffer := dump.getResettableOutputBuffer()
@@ -862,7 +861,7 @@ func (dump *MongoDump) DumpUsersAndRoles() error {
 }
 
 // DumpMetadata dumps the metadata for each intent in the manager
-// that has metadata
+// that has metadata.
 func (dump *MongoDump) DumpMetadata() error {
 	allIntents := dump.manager.Intents()
 	buffer := dump.getResettableOutputBuffer()
@@ -877,12 +876,12 @@ func (dump *MongoDump) DumpMetadata() error {
 	return nil
 }
 
-// nopCloseWriter implements io.WriteCloser. It wraps up a io.Writer, and adds a no-op Close
+// nopCloseWriter implements io.WriteCloser. It wraps up a io.Writer, and adds a no-op Close.
 type nopCloseWriter struct {
 	io.Writer
 }
 
-// Close does nothing on nopCloseWriters
+// Close does nothing on nopCloseWriters.
 func (*nopCloseWriter) Close() error {
 	return nil
 }

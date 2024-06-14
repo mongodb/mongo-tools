@@ -594,7 +594,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 	})
 }
 
-// generateTestData creates the files used in TestMongorestoreMIOSOE
+// generateTestData creates the files used in TestMongorestoreMIOSOE.
 func generateTestData() error {
 	// If file exists already, don't both regenerating it.
 	if _, err := os.Stat(mioSoeFile); err == nil {
@@ -647,7 +647,7 @@ func generateTestData() error {
 	return nil
 }
 
-// test --maintainInsertionOrder and --stopOnError behavior
+// test --maintainInsertionOrder and --stopOnError behavior.
 func TestMongorestoreMIOSOE(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -796,7 +796,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 // TestFixDuplicatedLegacyIndexes restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}
-// Only one index {foo: 1} should be created
+// Only one index {foo: 1} should be created.
 func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -1480,7 +1480,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 	})
 }
 
-// TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands
+// TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands.
 func TestCommitIndexBuild(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
@@ -1567,7 +1567,7 @@ func TestCommitIndexBuild(t *testing.T) {
 	})
 }
 
-// CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4
+// CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4.
 func TestCreateIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()

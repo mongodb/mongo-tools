@@ -205,7 +205,7 @@ type ExtraInfo struct {
 	PageFaults *int64 `bson:"page_faults"`
 }
 
-// NodeError pairs an error with a hostname
+// NodeError pairs an error with a hostname.
 type NodeError struct {
 	Host string
 	err  error

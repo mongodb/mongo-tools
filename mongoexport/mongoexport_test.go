@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"testing"
@@ -23,10 +24,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
-	// database with test data
+	// database with test data.
 	testDB             = "mongoexport_test_db"
 	testCollectionName = "coll1"
 )
@@ -125,7 +127,10 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	var r1 bson.M
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
-		t.Fatalf("Could not drop %s.%s", dbName, collName)
+		var commandErr mongo.CommandError
+		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+			t.Fatalf("Failed to run drop: %v", err)
+		}
 	}
 
 	createCmd := bson.D{
@@ -177,7 +182,10 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	var r1 bson.M
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
-		t.Fatalf("Could not drop %s.%s", dbName, collName)
+		var commandErr mongo.CommandError
+		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+			t.Fatalf("Failed to run drop: %v", err)
+		}
 	}
 
 	createCmd := bson.D{

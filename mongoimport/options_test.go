@@ -9,13 +9,11 @@ package mongoimport
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 // validateParseOptions is a helper function to call ParseOptions and verify the results.
@@ -33,7 +31,7 @@ func validateParseOptions(args []string, ingestWc string, toolsWc *writeconcern.
 	}
 }
 
-// Regression test for TOOLS-1741
+// Regression test for TOOLS-1741.
 func TestWriteConcernWithURIParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With an IngestOptions and ToolsOptions", t, func() {
@@ -63,7 +61,7 @@ func TestWriteConcernWithURIParsing(t *testing.T) {
 	})
 }
 
-// Test parsing for the --legacy flag
+// Test parsing for the --legacy flag.
 func TestLegacyOptionParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 

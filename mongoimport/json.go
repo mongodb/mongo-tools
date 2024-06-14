@@ -100,7 +100,7 @@ func (r *JSONInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) erro
 
 // StreamDocument takes a boolean indicating if the documents should be streamed
 // in read order and a channel on which to stream the documents processed from
-// the underlying reader. Returns a non-nil error if encountered
+// the underlying reader. Returns a non-nil error if encountered.
 func (r *JSONInputReader) StreamDocument(ordered bool, readChan chan bson.D) (retErr error) {
 	rawChan := make(chan Converter, r.numDecoders)
 	jsonErrChan := make(chan error)
@@ -189,7 +189,7 @@ func (c JSONConverter) convertLegacyExtJSON() (bson.D, error) {
 // It will also return immediately if it finds any error (including EOF). If it
 // reads a JSON_ARRAY_END byte, as a validity check it will continue to scan the
 // input source until it hits an error (including EOF) to ensure the entire
-// input source content is a valid JSON array
+// input source content is a valid JSON array.
 func (r *JSONInputReader) readJSONArraySeparator() error {
 	r.expectedByte = json.ArraySep
 	if r.numProcessed == 0 {

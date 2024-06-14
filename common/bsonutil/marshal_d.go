@@ -48,7 +48,7 @@ func (md MarshalD) MarshalJSON() ([]byte, error) {
 // MakeSortString takes a bson.D object and converts it to a slice of strings
 // that can be used as the input args to mgo's .Sort(...) function.
 // For example:
-// {a:1, b:-1} -> ["+a", "-b"]
+// {a:1, b:-1} -> ["+a", "-b"].
 func MakeSortString(sortObj bson.D) ([]string, error) {
 	sortStrs := make([]string, 0, len(sortObj))
 	for _, docElem := range sortObj {

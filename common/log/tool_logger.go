@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// Tool Logger verbosity constants
+// Tool Logger verbosity constants.
 const (
 	Always = iota
 	Info
@@ -115,7 +115,7 @@ func (tlw *toolLogWriter) Write(message []byte) (int, error) {
 }
 
 // Writer returns an io.Writer that writes to the logger with
-// the given verbosity
+// the given verbosity.
 func (tl *ToolLogger) Writer(minVerb int) io.Writer {
 	return &toolLogWriter{tl, minVerb}
 }

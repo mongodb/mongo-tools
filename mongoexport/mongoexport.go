@@ -40,9 +40,9 @@ const (
 type JSONFormat string
 
 const (
-	// Canonical indicates canonical json format
+	// Canonical indicates canonical json format.
 	Canonical JSONFormat = "canonical"
-	// Relaxed indicates relaxed json format
+	// Relaxed indicates relaxed json format.
 	Relaxed JSONFormat = "relaxed"
 )
 
@@ -258,7 +258,7 @@ func makeFieldSelector(fields string) bson.M {
 // limits will less then the total possible.
 // If there is a query and no limit then it returns 0, because it's too expensive to count the query.
 // If the collection is a view then it returns 0, because it is too expensive to count the view.
-// Otherwise it returns the count minus the skip
+// Otherwise it returns the count minus the skip.
 func (exp *MongoExport) getCount() (int64, error) {
 	session, err := exp.SessionProvider.GetSession()
 	if err != nil {

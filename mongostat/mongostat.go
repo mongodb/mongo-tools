@@ -171,7 +171,7 @@ func (cluster *AsyncClusterMonitor) updateHostInfo(stat *line.StatLine) {
 }
 
 // printSnapshot formats and dumps the current state of all the stats collected.
-// returns whether the program should now exit
+// returns whether the program should now exit.
 func (cluster *AsyncClusterMonitor) printSnapshot() bool {
 	cluster.mapLock.RLock()
 	defer cluster.mapLock.RUnlock()
@@ -405,7 +405,7 @@ func (mstat *MongoStat) AddNewNode(fullhost string) error {
 }
 
 // Run is the top-level function that starts the monitoring
-// and discovery goroutines
+// and discovery goroutines.
 func (mstat *MongoStat) Run() error {
 	if mstat.Discovered != nil {
 		go func() {

@@ -38,15 +38,6 @@ type V struct {
 	F3 Number
 }
 
-// ifaceNumAsFloat64/ifaceNumAsNumber are used to test unmarshaling with and
-// without UseNumber.
-var ifaceNumAsFloat64 = map[string]interface{}{
-	"k1": float64(1),
-	"k2": "s",
-	"k3": []interface{}{float64(1), float64(2.0), float64(3e-3)},
-	"k4": map[string]interface{}{"kk1": "s", "kk2": float64(2)},
-}
-
 // ifaceNumAsMixedTypes is used to test unmarshalling with extended JSON.
 var ifaceNumAsMixedTypes = map[string]interface{}{
 	"k1": int32(1),
@@ -86,7 +77,7 @@ type unmarshalerText struct {
 	T bool
 }
 
-// needed for re-marshaling tests
+// needed for re-marshaling tests.
 func (u *unmarshalerText) MarshalText() ([]byte, error) {
 	return []byte(""), nil
 }
@@ -616,7 +607,7 @@ var numberTests = []struct {
 	{in: "1e1000", intErr: "strconv.ParseInt: parsing \"1e1000\": invalid syntax", floatErr: "strconv.ParseFloat: parsing \"1e1000\": value out of range"},
 }
 
-// Independent of Decode, basic coverage of the accessors in Number
+// Independent of Decode, basic coverage of the accessors in Number.
 func TestNumberAccessors(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -1086,7 +1077,7 @@ func TestRefUnmarshal(t *testing.T) {
 }
 
 // Test that the empty string doesn't panic decoding when ,string is specified
-// Issue 3450
+// Issue 3450.
 func TestEmptyString(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -1107,7 +1098,7 @@ func TestEmptyString(t *testing.T) {
 }
 
 // Test that the returned error is non-nil when trying to unmarshal null string into int, for successive ,string option
-// Issue 7046
+// Issue 7046.
 func TestNullString(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -1172,7 +1163,7 @@ func TestInterfaceSet(t *testing.T) {
 }
 
 // JSON null values should be ignored for primitives and string values instead of resulting in an error.
-// Issue 2540
+// Issue 2540.
 func TestUnmarshalNulls(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -1232,7 +1223,7 @@ func TestStringKind(t *testing.T) {
 
 	data, err := Marshal(m1)
 	if err != nil {
-		t.Errorf("Unexpected error marshalling: %v", err)
+		t.Errorf("Unexpected error marshaling: %v", err)
 	}
 
 	err = Unmarshal(data, &m2)
@@ -1294,7 +1285,7 @@ func TestUnmarshalSyntax(t *testing.T) {
 }
 
 // Test handling of unexported fields that should be ignored.
-// Issue 4660
+// Issue 4660.
 type unexportedFields struct {
 	Name string
 	//nolint:unused
@@ -1350,7 +1341,7 @@ func TestUnmarshalJSONLiteralError(t *testing.T) {
 
 // Test that extra object elements in an array do not result in a
 // "data changing underfoot" error.
-// Issue 3717
+// Issue 3717.
 func TestSkipArrayObjects(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 

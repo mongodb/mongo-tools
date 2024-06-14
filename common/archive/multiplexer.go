@@ -20,11 +20,11 @@ import (
 )
 
 // bufferSize enables or disables the MuxIn buffering
-// TODO: remove this constant and the non-buffered MuxIn implementations
+// TODO: remove this constant and the non-buffered MuxIn implementations.
 const bufferWrites = true
 const bufferSize = db.MaxBSONSize
 
-// Multiplexer is what one uses to create interleaved intents in an archive
+// Multiplexer is what one uses to create interleaved intents in an archive.
 type Multiplexer struct {
 	Out       io.WriteCloser
 	Control   chan *MuxIn
@@ -183,7 +183,7 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 	return nil
 }
 
-// formatEOF writes the EOF header in to the archive
+// formatEOF writes the EOF header in to the archive.
 func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 	var err error
 	if mux.currentNamespace != "" {
@@ -224,7 +224,7 @@ func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 // MuxIn is an implementation of the intents.file interface.
 // They live in the intents, and are potentially owned by different threads than
 // the thread owning the Multiplexer.
-// They are out the intents write data to the multiplexer
+// They are out the intents write data to the multiplexer.
 type MuxIn struct {
 	writeChan              chan []byte
 	writeLenChan           chan int
@@ -235,7 +235,7 @@ type MuxIn struct {
 	Mux                    *Multiplexer
 }
 
-// Read does nothing for MuxIns
+// Read does nothing for MuxIns.
 func (muxIn *MuxIn) Read([]byte) (int, error) {
 	return 0, nil
 }

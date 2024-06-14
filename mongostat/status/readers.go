@@ -149,7 +149,7 @@ func getStorageEngine(stat *ServerStatus) string {
 	return val
 }
 
-// mongosProcessRE matches mongos not followed by any slashes before next whitespace
+// mongosProcessRE matches mongos not followed by any slashes before next whitespace.
 var mongosProcessRE = regexp.MustCompile(`^.*\bmongos\b[^\\\/]*(\s.*)?$`)
 
 func IsMongos(stat *ServerStatus) bool {

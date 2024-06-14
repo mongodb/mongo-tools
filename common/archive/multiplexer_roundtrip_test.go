@@ -157,10 +157,20 @@ func TestParallelMux(t *testing.T) {
 		makeIns(testIntents, mux, inChecksum, muxIns, inLengths, writeErrChan)
 		makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, readErrChan)
 
+		var (
+			wg       sync.WaitGroup
+			demuxErr error
+		)
+		wg.Add(1)
 		go func() {
-			So(demux.Run(), ShouldBeNil)
+			demuxErr = demux.Run()
+			wg.Done()
 		}()
-		go mux.Run()
+		wg.Add(1)
+		go func() {
+			mux.Run()
+			wg.Done()
+		}()
 
 		for range testIntents {
 			err := <-writeErrChan
@@ -179,6 +189,9 @@ func TestParallelMux(t *testing.T) {
 			outSum := outChecksum[ns].Sum([]byte{})
 			So(inSum, ShouldResemble, outSum)
 		}
+
+		wg.Wait()
+		So(demuxErr, ShouldBeNil)
 	})
 	return
 }
@@ -206,7 +219,10 @@ func makeIns(testIntents []*intents.Intent, mux *Multiplexer, inChecksum map[str
 				bsonBuf := staticBSONBuf[:len(bsonBytes)]
 				copy(bsonBuf, bsonBytes)
 				_, err := muxIn.Write(bsonBuf)
-				So(err, ShouldBeNil)
+				if err != nil {
+					errCh <- err
+					return
+				}
 				sum.Write(bsonBuf)
 				inLength += len(bsonBuf)
 			}

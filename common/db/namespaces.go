@@ -63,7 +63,7 @@ func GetIndexes(coll *mongo.Collection) (*mongo.Cursor, error) {
 }
 
 // Assumes that mongo.Database will normalize legacy names to omit database
-// name as required by the Enumerate Collections spec
+// name as required by the Enumerate Collections spec.
 func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error) {
 	filter := bson.D{}
 	if len(name) > 0 {

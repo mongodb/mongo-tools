@@ -48,7 +48,7 @@ var (
 	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID(), "testfile4": primitive.NewObjectID()}
 )
 
-// put in some test data into GridFS
+// put in some test data into GridFS.
 func setUpGridFSTestData() (map[string]int, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -91,7 +91,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 	return bytesExpected, nil
 }
 
-// remove test data from GridFS
+// remove test data from GridFS.
 func tearDownGridFSTestData() error {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -147,7 +147,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 }
 
 // simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
-// Use this for tests that don't communicate with the server (e.g. options parsing tests)
+// Use this for tests that don't communicate with the server (e.g. options parsing tests).
 func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
 	return &MongoFiles{
 		ToolOptions:    toolOptions,
@@ -205,12 +205,12 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 
 }
 
-// get an id of an existing file, for _id access
+// get an id of an existing file, for _id access.
 func idOfFile(filename string) string {
 	return fmt.Sprintf(`{"$oid":"%s"}`, testFiles[filename].Hex())
 }
 
-// test output needs some cleaning
+// test output needs some cleaning.
 func cleanAndTokenizeTestOutput(str string) []string {
 	// remove last \r\n in str to avoid unnecessary line on split
 	if str != "" {
@@ -220,7 +220,7 @@ func cleanAndTokenizeTestOutput(str string) []string {
 	return strings.Split(strings.Trim(str, "\r\n"), "\n")
 }
 
-// return slices of files and bytes in each file represented by each line
+// return slices of files and bytes in each file represented by each line.
 func getFilesAndBytesFromLines(lines []string) map[string]int {
 	var fileName string
 	var byteCount int
@@ -251,7 +251,7 @@ func getFilesAndBytesListFromGridFS() (map[string]int, error) {
 	return results, nil
 }
 
-// check if file exists
+// check if file exists.
 func fileExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {
@@ -262,7 +262,7 @@ func fileExists(name string) bool {
 }
 
 // Test that it works whenever valid arguments are passed in and that
-// it barfs whenever invalid ones are passed
+// it barfs whenever invalid ones are passed.
 func TestValidArguments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -336,7 +336,7 @@ func TestValidArguments(t *testing.T) {
 	})
 }
 
-// Test that the output from mongofiles is actually correct
+// Test that the output from mongofiles is actually correct.
 func TestMongoFilesCommands(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 

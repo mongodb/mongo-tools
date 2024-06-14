@@ -329,8 +329,8 @@ func runBsondumpWithLargeFile(t *testing.T, size int) (string, error) {
 		buf,
 	}
 
-	marshalled, err := bson.Marshal(doc)
-	require.NoError(err, "no error marshalling to BSON")
+	marshaled, err := bson.Marshal(doc)
+	require.NoError(err, "no error marshaling to BSON")
 
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
@@ -338,7 +338,7 @@ func runBsondumpWithLargeFile(t *testing.T, size int) (string, error) {
 	bsonFile := filepath.Join(dir, "in.bson")
 	outFile := filepath.Join(dir, "out.json")
 
-	err = os.WriteFile(bsonFile, marshalled, 0644)
+	err = os.WriteFile(bsonFile, marshaled, 0644)
 	require.NoError(err, "no error writing BSON to %s", bsonFile)
 
 	return runBsondump("--bsonFile", bsonFile, "--outFile", outFile)

@@ -11,15 +11,14 @@ import (
 	"os"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
-// var block and functions copied from testutil to avoid import cycle
+// var block and functions copied from testutil to avoid import cycle.
 var (
 	UserAdmin              = "uAdmin"
 	UserAdminPassword      = "password"

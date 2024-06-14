@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// test each type of transaction individually and serially
+// test each type of transaction individually and serially.
 func TestSingleTxnBuffer(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 

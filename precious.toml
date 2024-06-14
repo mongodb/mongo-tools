@@ -1,7 +1,7 @@
 exclude = "vendor/**/*"
 
 [commands.golangci-lint]
-type = "lint"
+type = "both"
 include = "**/*.go"
 # Based on my local testing, this seemed like a reasonable value for this option.
 invoke.per-dir-or-once = 7
@@ -16,6 +16,7 @@ cmd = [
     "--sort-results",
     "--timeout", "5m",
 ]
+tidy-flags = "--fix"
 env = { "FAIL_ON_WARNINGS" = "1" }
 ok-exit-codes = [0]
 lint-failure-exit-codes = [1]

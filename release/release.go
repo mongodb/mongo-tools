@@ -30,9 +30,8 @@ import (
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
-	"golang.org/x/mod/semver"
-
 	"github.com/urfave/cli/v2"
+	"golang.org/x/mod/semver"
 )
 
 // These are the binaries that are part of mongo-tools, relative
@@ -635,7 +634,7 @@ func buildMSI() {
 	msiFilesPath := filepath.Join("..", "installer", "msi")
 
 	// These are the meta-text files that are part of mongo-tools, relative
-	// to the location of this go file. We have to use an rtf verison of the
+	// to the location of this go file. We have to use an rtf version of the
 	// license, so we do not include it in the static files.
 	var msiStaticFiles = []string{
 		"README.md",
@@ -1145,8 +1144,10 @@ func uploadRelease(v version.Version) {
 			log.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
 			if canPerformStableRelease(v) {
-				copyFile(unstableFile, stableFile)
-				copyFile(unstableFile, latestStableFile)
+				err = copyFile(unstableFile, stableFile)
+				check(err, "copying %s to %s", unstableFile, stableFile)
+				err = copyFile(unstableFile, latestStableFile)
+				check(err, "copying %s to %s", unstableFile, latestStableFile)
 
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
 				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
@@ -1179,7 +1180,7 @@ var linuxRepoVersionsUnstable = []LinuxRepo{
 
 // findArgIndex is the helper function to locate index of provided arg value from an array of arg list
 // The arg list array is assumed to be in such format: ["arg1_name", "arg1_value", "arg2_name", "arg2_value"...]
-// It returns the index of the arg value from the list. If not found or index output bound, it returns -1
+// It returns the index of the arg value from the list. If not found or index output bound, it returns -1.
 func findArgIndex(args []string, name string) int {
 	for i, v := range args {
 		if i%2 == 1 {
@@ -1586,7 +1587,8 @@ func maybeCopyAugmentedSBOMToRoot(repoRoot, releaseFilename string) string {
 	} else {
 		sourceFile = mostRecentAugmentedSBOM(repoRoot)
 	}
-	copyFile(sourceFile, targetFile)
+	err := copyFile(sourceFile, targetFile)
+	check(err, "copying %s to %s", sourceFile, targetFile)
 
 	return prefixRE.ReplaceAllString(targetFile, "")
 }

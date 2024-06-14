@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// type for reflect code
+// type for reflect code.
 var marshalDType = reflect.TypeOf(bsonutil.MarshalD{})
 
 // CSVExportOutput is an implementation of ExportOutput that writes documents to the output in CSV format.

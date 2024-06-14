@@ -28,7 +28,7 @@ const (
 	Roles = "roles"
 )
 
-// struct for working with auth versions
+// struct for working with auth versions.
 type authVersionPair struct {
 	// Dump is the auth version of the users/roles collection files in the target dump directory
 	Dump int

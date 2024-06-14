@@ -42,7 +42,7 @@ func (errorReader) Read([]byte) (int, error) {
 }
 
 // realBSONFile implements the intents.file interface. It lets intents write to real BSON files
-// ok disk via an embedded bufio.Writer
+// ok disk via an embedded bufio.Writer.
 type realBSONFile struct {
 	io.WriteCloser
 	path string
@@ -54,7 +54,7 @@ type realBSONFile struct {
 }
 
 // Open is part of the intents.file interface. realBSONFiles need to have Open called before
-// Read can be called
+// Read can be called.
 func (f *realBSONFile) Open() (err error) {
 	if f.path == "" {
 		// This should not occur normally. All realBSONFile's should have a path
@@ -75,7 +75,7 @@ func (f *realBSONFile) Open() (err error) {
 	return nil
 }
 
-// realMetadataFile implements intent.file, and corresponds to a Metadata file on disk
+// realMetadataFile implements intent.file, and corresponds to a Metadata file on disk.
 type realMetadataFile struct {
 	io.WriteCloser
 	path string
@@ -105,7 +105,7 @@ func (f *realMetadataFile) Open() (err error) {
 }
 
 // stdoutFile implements the intents.file interface. stdoutFiles are used when single collections
-// are written directly (non-archive-mode) to standard out, via "--dir -"
+// are written directly (non-archive-mode) to standard out, via "--dir -".
 type stdoutFile struct {
 	io.Writer
 	errorReader
@@ -216,7 +216,7 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 	return filepath.Join(root, dbName, escapedColName)
 }
 
-// CreateOplogIntents creates an intents.Intent for the oplog and adds it to the manager
+// CreateOplogIntents creates an intents.Intent for the oplog and adds it to the manager.
 func (dump *MongoDump) CreateOplogIntents() error {
 	err := dump.determineOplogCollectionName()
 	if err != nil {
@@ -237,7 +237,7 @@ func (dump *MongoDump) CreateOplogIntents() error {
 
 // CreateUsersRolesVersionIntentsForDB create intents to be written in to the specific
 // database folder, for the users, roles and version admin database collections
-// And then it adds the intents in to the manager
+// And then it adds the intents in to the manager.
 func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 
 	outDir := dump.outputPath(db, "")

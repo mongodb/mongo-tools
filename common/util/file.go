@@ -18,7 +18,7 @@ import (
 )
 
 // GetFieldsFromFile fetches the first line from the contents of the file
-// at "path"
+// at "path".
 func GetFieldsFromFile(path string) ([]string, error) {
 	fieldFileReader, err := os.Open(path)
 	if err != nil {
@@ -39,7 +39,7 @@ func GetFieldsFromFile(path string) ([]string, error) {
 
 // ToUniversalPath returns the result of replacing each slash ('/') character
 // in "path" with an OS-sepcific separator character. Multiple slashes are
-// replaced by multiple separators
+// replaced by multiple separators.
 func ToUniversalPath(path string) string {
 	return filepath.FromSlash(path)
 }
@@ -100,7 +100,7 @@ func (dc *DeferredCloser) CloseWithErrorCapture(deferredErr *error) {
 	}
 }
 
-// Wrapper around Cursor to implement Closer
+// Wrapper around Cursor to implement Closer.
 type CloserCursor struct {
 	*mongo.Cursor
 }

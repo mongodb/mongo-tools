@@ -13,7 +13,7 @@ import (
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 )
 
-// JSONLineFormatter converts the StatLines to JSON
+// JSONLineFormatter converts the StatLines to JSON.
 type JSONLineFormatter struct {
 	*limitableFormatter
 }
@@ -30,7 +30,7 @@ func init() {
 func (glf *JSONLineFormatter) Finish() {
 }
 
-// FormatLines formats the StatLines as JSON
+// FormatLines formats the StatLines as JSON.
 func (jlf *JSONLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
 	// middle ground b/t the StatLines and the JSON string to be returned
 	jsonFormat := map[string]interface{}{}

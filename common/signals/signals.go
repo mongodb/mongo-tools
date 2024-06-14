@@ -7,12 +7,12 @@
 package signals
 
 import (
-	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/util"
-
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // Handle is like HandleWithInterrupt but it doesn't take a finalizer and will

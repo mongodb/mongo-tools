@@ -14,15 +14,14 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
-
-	"testing"
-	"time"
 )
 
 const (
@@ -1018,7 +1017,7 @@ func TestOptionsParsingForSRV(t *testing.T) {
 	runOptionsTestCases(t, testCases)
 }
 
-// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115
+// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115.
 func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 

@@ -23,14 +23,14 @@ var errInterrupted = errors.New("archive reading interrupted")
 //   zero or more body BSON documents
 //   a four byte terminator (0xFFFFFFFF)
 
-// ParserConsumer is the interface that one needs to implement to consume data from the Parser
+// ParserConsumer is the interface that one needs to implement to consume data from the Parser.
 type ParserConsumer interface {
 	HeaderBSON([]byte) error
 	BodyBSON([]byte) error
 	End() error
 }
 
-// Parser encapsulates the small amount of state that the parser needs to keep
+// Parser encapsulates the small amount of state that the parser needs to keep.
 type Parser struct {
 	In     io.Reader
 	buf    [db.MaxBSONSize]byte
@@ -51,14 +51,14 @@ func (pe *parserError) Error() string {
 	return err
 }
 
-// newParserError creates a parserError with just a message
+// newParserError creates a parserError with just a message.
 func newParserError(msg string) error {
 	return &parserError{
 		Msg: msg,
 	}
 }
 
-// newParserWrappedError creates a parserError with a message as well as an underlying cause error
+// newParserWrappedError creates a parserError with a message as well as an underlying cause error.
 func newParserWrappedError(msg string, err error) error {
 	// If parsing was terminated intentionally, pass through that error
 	// instead of a parser error.
@@ -113,7 +113,7 @@ func (parse *Parser) readBSONOrTerminator() (isTerminator bool, err error) {
 }
 
 // ReadAllBlocks calls ReadBlock() until it returns an error.
-// If the error is EOF, then nil is returned, otherwise it returns the error
+// If the error is EOF, then nil is returned, otherwise it returns the error.
 func (parse *Parser) ReadAllBlocks(consumer ParserConsumer) (err error) {
 	for err == nil {
 		err = parse.ReadBlock(consumer)
