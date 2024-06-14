@@ -17,17 +17,20 @@ import (
 )
 
 const (
-	golangCILintVersion = "v1.59.1"
-	golangCILintPkg     = "github.com/golangci/golangci-lint/cmd/golangci-lint@" + golangCILintVersion
-	gosecVersion        = "v2.20.0"
-	gosecPkg            = "github.com/securego/gosec/v2/cmd/gosec@" + gosecVersion
+	goimportsVersion = "v0.22.0"
+	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
-	preciousVersion = "0.7.2"
-	ubiVersion      = "0.0.18"
-	prettierVersion = "3.3.1"
+	golangCILintVersion = "1.59.1"
+	gosecVersion        = "2.20.0"
+	preciousVersion     = "0.7.2"
+	ubiVersion          = "0.0.18"
+	prettierVersion     = "3.3.1"
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
+	if err := installGoimports(ctx); err != nil {
+		return err
+	}
 	if err := installGolangCILint(ctx); err != nil {
 		return err
 	}
@@ -37,19 +40,15 @@ func SAInstallDevTools(ctx *task.Context) error {
 	if err := installUBI(ctx); err != nil {
 		return err
 	}
-	if err := installPrettier(ctx); err != nil {
+	if err := installPrecious(ctx); err != nil {
 		return err
 	}
-	return installBinaryTool(
-		ctx,
-		"precious",
-		preciousVersion,
-		"houseabsolute/precious",
-		fmt.Sprintf(
-			"https://github.com/houseabsolute/precious/releases/download/v%s/precious-Linux-x86_64-musl.tar.gz",
-			preciousVersion,
-		),
-	)
+	return installPrettier(ctx)
+}
+
+// Install goimports.
+func installGoimports(ctx *task.Context) error {
+	return goInstall(ctx, goimportsPkg)
 }
 
 // Install UBI.
@@ -119,28 +118,45 @@ func installUBI(ctx *task.Context) error {
 
 // Install golangci-lint.
 func installGolangCILint(ctx *task.Context) error {
-	exists, err := executableExistsWithVersion(ctx, "golangci-lint", golangCILintVersion)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-
-	return goInstall(ctx, golangCILintPkg)
+	return installBinaryTool(
+		ctx,
+		"golangci-lint",
+		golangCILintVersion,
+		"golangci/golangci-lint",
+		fmt.Sprintf(
+			"https://github.com/golangci/golangci-lint/releases/download/v%s/golangci-lint-%s-linux-amd64.tar.gz",
+			golangCILintVersion,
+			golangCILintVersion,
+		),
+	)
 }
 
 // Install gosec.
 func installGosec(ctx *task.Context) error {
-	exists, err := executableExistsWithVersion(ctx, "gosec", gosecVersion)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
+	return installBinaryTool(
+		ctx,
+		"gosec",
+		gosecVersion,
+		"securego/gosec",
+		fmt.Sprintf(
+			"https://github.com/securego/gosec/releases/download/v%s/gosec_%s_linux_amd64.tar.gz",
+			gosecVersion,
+			gosecVersion,
+		),
+	)
+}
 
-	return goInstall(ctx, gosecPkg)
+func installPrecious(ctx *task.Context) error {
+	return installBinaryTool(
+		ctx,
+		"precious",
+		preciousVersion,
+		"houseabsolute/precious",
+		fmt.Sprintf(
+			"https://github.com/houseabsolute/precious/releases/download/v%s/precious-Linux-x86_64-musl.tar.gz",
+			preciousVersion,
+		),
+	)
 }
 
 // Install a Golang package as an executable with "go install".
