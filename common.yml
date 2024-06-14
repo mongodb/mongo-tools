@@ -565,6 +565,18 @@ functions:
           GOSEC_SARIF_REPORT=1 ./dev-bin/precious lint --all --command gosec
           cat SARIF.json
 
+  "create evergreen config file":
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          set -x
+          set -v
+          set -e
+          ./scripts/write-evergreen-config-file.sh
+
 pre:
   - command: shell.exec
     params:
@@ -1511,6 +1523,7 @@ tasks:
   - name: evergreen-validate
     commands:
       - func: "fetch source"
+      - func: "create evergreen config file"
       - func: "run make target"
         vars:
           target: sa:evgvalidate
