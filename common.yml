@@ -315,6 +315,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_files_include_filter:
+          - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.sig
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.deb
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.msi
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.rpm
