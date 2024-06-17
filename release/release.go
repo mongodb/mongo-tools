@@ -1121,9 +1121,17 @@ func uploadRelease(v version.Version) {
 		check(err, "getting artifacts list")
 
 		if len(artifacts) != len(pf.ArtifactExtensions()) {
+			var artifactNames []string
+			for _, a := range artifacts {
+				artifactNames = append(artifactNames, a.Name)
+			}
 			log.Fatalf(
-				"expected %d artifacts but found %d for %s",
-				len(pf.ArtifactExtensions()), len(artifacts), task.Variant,
+				"expected %d artifacts but found %d for %s; artifact names are [%s]; expected extensions to include [%s]",
+				len(pf.ArtifactExtensions()),
+				len(artifacts),
+				task.Variant,
+				strings.Join(artifactNames, " "),
+				strings.Join(pf.ArtifactExtensions(), " "),
 			)
 		}
 
@@ -1211,7 +1219,7 @@ func linuxRelease(v version.Version) {
 	check(err, "get platform")
 
 	if pf.OS != platform.OSLinux {
-		log.Printf("cannot release linux packages for non-linux platform")
+		log.Printf("cannot release linux packages for non-linux platform; platform is %s", pf.Name)
 		return
 	}
 

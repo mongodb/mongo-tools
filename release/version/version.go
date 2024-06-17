@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -61,6 +62,8 @@ func Parse(desc string) (Version, error) {
 	}, nil
 }
 
+var tagRE = regexp.MustCompile(`^\d+\.\d+\.d+$`)
+
 func GetCurrent() (Version, error) {
 	commit, err := git("rev-parse", "HEAD")
 	if err != nil {
@@ -77,27 +80,9 @@ func GetCurrent() (Version, error) {
 		return Version{}, fmt.Errorf("failed to parse version from describe: %w", err)
 	}
 
-	v.Commit = commit
-	return v, nil
-}
-
-func GetFromRev(rev string) (Version, error) {
-	commit, err := git("rev-parse", rev)
-	if err != nil {
-		return Version{}, fmt.Errorf("git rev-parse %s failed: %w", rev, err)
+	if !tagRE.MatchString(desc) {
+		v.Commit = commit
 	}
-
-	desc, err := git("describe", commit)
-	if err != nil {
-		return Version{}, fmt.Errorf("git describe %s failed: %w", commit, err)
-	}
-
-	v, err := Parse(desc)
-	if err != nil {
-		return Version{}, fmt.Errorf("failed to parse version from describe: %w", err)
-	}
-
-	v.Commit = commit
 	return v, nil
 }
 

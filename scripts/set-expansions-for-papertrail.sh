@@ -9,7 +9,7 @@ tag=$(git describe --tags --always --dirty)
 # our real product name for actual tagged releases.
 product_name="database-tools-dev"
 if [[ "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    product_name = "database-tools"
+    product_name="database-tools"
 fi
 
 cat <<EOT > expansions.yml
