@@ -1,5 +1,77 @@
 # Database Tools Changelog
 
+## 100.9.5
+
+_Released 2024-06-17_
+
+We are pleased to announce version 100.9.5 of the MongoDB Database Tools.
+
+For this release we have updated many of our third-party dependencies, as well adding third-party
+dependency vulnerability scanning, static analysis, and other tooling to comply with MongoDB's
+Software Security Development Lifecycle initiative. Notably, all releases now ship with a Software
+Bill of Materials (SBOM). Look for a file ending with `.cdx.json` in the archive. For OS packages,
+this file should be installed in an appropriate location for each package, like `/usr/share/docs`
+for deb packages.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+<h3>        Investigation
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3486'>TOOLS-3486</a>] -         Investigate changes in SERVER-81378: Change classic behavior: equality to null should not match undefined
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3498'>TOOLS-3498</a>] -         Investigate changes in SERVER-86928: Local Privilege Escalation via Untrusted Directory | mongodbldap.exe
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3500'>TOOLS-3500</a>] -         Investigate changes in SERVER-88071: Deprecate filemd5 with the intent of eventual removal
+</li>
+</ul>
+
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3519'>TOOLS-3519</a>] -         mongodump/mongoreplay docs don&#39;t include a disclaimer against using --oplog/--oplogReplay in sharded clusters
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3554'>TOOLS-3554</a>] -         Security Vulnerability in mongodb db tools packages
+</li>
+</ul>
+
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3499'>TOOLS-3499</a>] -         Clean up release code to remove unused tags and remove libsasl.dll from MSI
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3526'>TOOLS-3526</a>] -         Artifact: Authorized publication on distribution channels for DB Tools 7.0.x*
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3527'>TOOLS-3527</a>] -         Artifact: Third Party Dependencies Report for DB Tools 7.0.x*
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3528'>TOOLS-3528</a>] -         Prep for Silk Onboarding: Add DB Tools to Silk Inventory
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3532'>TOOLS-3532</a>] -         Onboard DB Tools to Papertrail Service for SSDLC Compliance
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3534'>TOOLS-3534</a>] -         Integrate this project with Snyk for third-party vulnerability scanning
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3535'>TOOLS-3535</a>] -         Add gosec as a linter and add minimal precious config
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3550'>TOOLS-3550</a>] -         Create augmented SBOM file and add it to the release artifacts
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3551'>TOOLS-3551</a>] -         Fix integration test failures with MongoDB 8.0 RC release
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3555'>TOOLS-3555</a>] -         Remove support for Debian 8
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3559'>TOOLS-3559</a>] -         Include the Augmented SBOM in all release artifacts
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3565'>TOOLS-3565</a>] -         Artifact: Static Code Analysis Report for DB Tools 7.0.x*
+</li>
+</ul>
+
 ## 100.9.4
 
 _Released 2023-12-7_
