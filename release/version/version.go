@@ -13,42 +13,32 @@ type Version struct {
 	Major int
 	Minor int
 	Patch int
-	Pre   string
 
 	Commit string
 }
 
 func Parse(desc string) (Version, error) {
-	if desc[0] == 'r' || desc[0] == 'v' {
-		desc = desc[1:]
+	// This throws out the part after the dash, but if this was called from
+	// `GetCurrent`, then we'll capture the commit in the `Commit` field in
+	// that func.
+	parts := strings.Split(strings.Split(desc, "-")[0], ".")
+	if len(parts) < 2 || len(parts) > 3 {
+		return Version{}, fmt.Errorf("could not find a two- or three-part dotted version in %q", desc)
 	}
-
-	parts := strings.SplitN(desc, "-", 2)
-
-	num := parts[0]
-	pre := ""
-	if len(parts) > 1 {
-		pre = parts[1]
-	}
-
-	parts = strings.Split(num, ".")
 
 	maj, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return Version{}, fmt.Errorf("failed to parse major version %q", parts[0])
 	}
 
-	minor := 0
-	if len(parts) > 1 {
-		minor, err = strconv.Atoi(parts[1])
-		if err != nil {
-			return Version{}, fmt.Errorf("failed to parse minor version %q", parts[1])
-		}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return Version{}, fmt.Errorf("failed to parse minor version %q", parts[1])
 	}
 
-	pat := 0
+	var patch int
 	if len(parts) > 2 {
-		pat, err = strconv.Atoi(parts[2])
+		patch, err = strconv.Atoi(parts[2])
 		if err != nil {
 			return Version{}, fmt.Errorf("failed to parse patch version %q", parts[2])
 		}
@@ -57,12 +47,11 @@ func Parse(desc string) (Version, error) {
 	return Version{
 		Major: maj,
 		Minor: minor,
-		Patch: pat,
-		Pre:   pre,
+		Patch: patch,
 	}, nil
 }
 
-var tagRE = regexp.MustCompile(`^\d+\.\d+\.d+$`)
+var tagRE = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 func GetCurrent() (Version, error) {
 	commit, err := git("rev-parse", "HEAD")
@@ -70,9 +59,9 @@ func GetCurrent() (Version, error) {
 		return Version{}, fmt.Errorf("git rev-parse HEAD failed: %w", err)
 	}
 
-	desc, err := git("describe", "--dirty")
+	desc, err := git("describe")
 	if err != nil {
-		return Version{}, fmt.Errorf("git describe --dirty failed: %w", err)
+		return Version{}, fmt.Errorf("git describe failed: %w", err)
 	}
 
 	v, err := Parse(desc)
@@ -83,34 +72,43 @@ func GetCurrent() (Version, error) {
 	if !tagRE.MatchString(desc) {
 		v.Commit = commit
 	}
+
 	return v, nil
 }
 
 func (v Version) String() string {
-	vStr := v.StringWithoutPre()
-	if v.Pre != "" {
-		vStr = fmt.Sprintf("%s-%s", vStr, v.Pre)
-	}
-	return vStr
-}
-
-func (v Version) StringWithoutPre() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
+func (v Version) StringWithCommit() string {
+	if v.Commit == "" {
+		return v.String()
+	}
+	return fmt.Sprintf("%s-g%s", v.String(), v.Commit[:8])
+}
+
+// This is a function so we can replace this in test code.
+var getDate = func() string {
+	return time.Now().Format("20060102")
+}
+
+func (v Version) DebVersion() string {
+	if v.Commit == "" {
+		return v.String()
+	}
+
+	return fmt.Sprintf("%s+%s.%s", v.String(), getDate(), v.Commit[:8])
+}
+
 func (v Version) RPMRelease() string {
-	if v.Pre == "" {
-		return "1"
-	}
-	pre := v.Pre
 	if v.Commit != "" {
-		pre = time.Now().Format("20060102") + "." + v.Commit[:8]
+		return fmt.Sprintf("%s.%s", getDate(), v.Commit[:8])
 	}
-	return pre
+	return "1"
 }
 
 func (v Version) IsStable() bool {
-	return v.Pre == ""
+	return v.Commit == ""
 }
 
 func (v Version) GreaterThan(other Version) bool {
@@ -129,7 +127,16 @@ func (v Version) GreaterThan(other Version) bool {
 	return v.Patch > other.Patch
 }
 
+// This exists to make it possible to test code which calls `git`.
+var fakeGitOutput []string
+
 func git(args ...string) (string, error) {
+	if len(fakeGitOutput) > 0 {
+		output := fakeGitOutput[0]
+		fakeGitOutput = fakeGitOutput[1:]
+		return output, nil
+	}
+
 	cmd := exec.Command("git", args...)
 	out, err := cmd.Output()
 	if err != nil {

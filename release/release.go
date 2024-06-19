@@ -83,7 +83,7 @@ func main() {
 					if err != nil {
 						return fmt.Errorf("Failed to get current version: %v", err)
 					}
-					fmt.Println(v)
+					fmt.Println(v.StringWithCommit())
 					return nil
 				},
 			},
@@ -240,7 +240,7 @@ func getReleaseName() string {
 
 	return fmt.Sprintf(
 		"mongodb-database-tools-%s-%s-%s",
-		p.Name, p.Arch, v,
+		p.Name, p.Arch, v.StringWithCommit(),
 	)
 }
 
@@ -251,23 +251,16 @@ func getDebFileName() string {
 	v, err := version.GetCurrent()
 	check(err, "get version")
 
-	vStr := fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
-	if v.Commit != "" {
-		vStr += "~" + v.Commit[:8]
-	} else if v.Pre != "" {
-		vStr += "~latest"
-	}
-
 	return fmt.Sprintf(
 		"mongodb-database-tools_%s_%s.deb",
-		vStr, p.DebianArch(),
+		v.DebVersion(), p.DebianArch(),
 	)
 }
 
 func getRPMFileName(p platform.Platform, v version.Version) string {
 	return fmt.Sprintf(
 		"mongodb-database-tools-%s-%s.%s.rpm",
-		v.StringWithoutPre(),
+		v.String(),
 		v.RPMRelease(),
 		p.RPMArch(),
 	)
@@ -375,7 +368,7 @@ func buildRPM() {
 	v, err := version.GetCurrent()
 	check(err, "get version")
 
-	rpmVersion := v.StringWithoutPre()
+	rpmVersion := v.String()
 	rpmRelease := v.RPMRelease()
 	rpmFilename := getRPMFileName(pf, v)
 
@@ -471,7 +464,7 @@ func buildDeb() {
 
 	mdt := "mongodb-database-tools"
 	releaseName := getReleaseName()
-	debFilename := releaseName + ".deb"
+	debFilename := getDebFileName()
 
 	// set up build working directory.
 	cdBack := useWorkingDir("deb_build")
@@ -1062,12 +1055,12 @@ func uploadReleaseJSON(v version.Version) {
 	check(err, "unmarshal full.json into download.JSONFeed")
 
 	// Append the new version to full.json and upload
-	fullFeed.Versions = append(fullFeed.Versions, &download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+	fullFeed.Versions = append(fullFeed.Versions, &download.ToolsVersion{Version: v.String(), Downloads: dls})
 	uploadFeedFile("full.json", &fullFeed, awsClient)
 
 	// Upload only the most recent version to release.json
 	var feed download.JSONFeed
-	feed.Versions = append(feed.Versions, &download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+	feed.Versions = append(feed.Versions, &download.ToolsVersion{Version: v.String(), Downloads: dls})
 
 	uploadFeedFile("release.json", &feed, awsClient)
 }
