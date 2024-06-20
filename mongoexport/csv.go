@@ -9,13 +9,14 @@ package mongoexport
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/json"
-	"go.mongodb.org/mongo-driver/bson"
 	"io"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/json"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // type for reflect code

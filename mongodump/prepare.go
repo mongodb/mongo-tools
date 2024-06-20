@@ -9,8 +9,6 @@ package mongodump
 import (
 	"bytes"
 	"context"
-
-	// #nosec G505 -- we do not use this digest algorithm in a security-sensitive way.
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
@@ -26,7 +24,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
-
 	"golang.org/x/exp/slices"
 )
 
