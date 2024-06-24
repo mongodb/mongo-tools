@@ -37,7 +37,7 @@ func Parse(desc string) (Version, error) {
 	}
 
 	var patch int
-	if len(parts) > 2 {
+	if len(parts) == 3 {
 		patch, err = strconv.Atoi(parts[2])
 		if err != nil {
 			return Version{}, fmt.Errorf("failed to parse patch version %q", parts[2])
