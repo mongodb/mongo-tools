@@ -1904,6 +1904,7 @@ buildvariants:
       - name: vet
       - name: check-third-party-notices
       - name: check-sbom-lite
+      - name: gosec-SARIF-report
 
   #######################################
   #     Release Manager Buildvariant    #
@@ -1915,7 +1916,6 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
-      - name: gosec-SARIF-report
       - name: check-snyk-results
       - name: check-augmented-sbom
         # podman is not available on the amazon distro.
