@@ -99,7 +99,7 @@ func (v Version) DebVersion() string {
 		return v.String()
 	}
 
-	return fmt.Sprintf("%s+%s.%s", v.String(), getDate(), v.Commit[:8])
+	return fmt.Sprintf("%s~%s.%s", v.String(), getDate(), v.Commit[:8])
 }
 
 func (v Version) RPMRelease() string {

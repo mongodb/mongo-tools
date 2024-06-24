@@ -39,7 +39,7 @@ func TestGetCurrent(t *testing.T) {
 		r.Equal(patch, v.Patch)
 		r.Equal(commit, v.Commit)
 		r.Equal(vStr, v.String())
-		r.Equal(fmt.Sprintf("%s+%s.%s", vStr, fakeDate, commit[:8]), v.DebVersion())
+		r.Equal(fmt.Sprintf("%s~%s.%s", vStr, fakeDate, commit[:8]), v.DebVersion())
 		r.Equal(fmt.Sprintf("%s.%s", fakeDate, commit[:8]), v.RPMRelease())
 	})
 
