@@ -84,6 +84,8 @@ func (v Version) StringWithCommit() string {
 	if v.Commit == "" {
 		return v.String()
 	}
+	// The "g" before the commit is to imitate the output of "git describe",
+	// which gives us something like "100.9.5-4-gab7ebc58".
 	return fmt.Sprintf("%s-g%s", v.String(), v.Commit[:8])
 }
 
