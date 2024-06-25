@@ -27,6 +27,18 @@ include = "**/*.go"
 cmd = [ "$PRECIOUS_ROOT/dev-bin/goimports", "-w" ]
 ok-exit-codes = [0]
 
+[commands.golines]
+type = "both"
+include = "**/*.go"
+invoke  = "once"
+working-dir = "root"
+path-args = "file"
+# This wrapper will tidy or lint based on the presence of the "--lint" flag.
+cmd = "$PRECIOUS_ROOT/etc/golines-wrapper.sh"
+lint-flags = "--lint"
+ok-exit-codes = [0]
+lint-failure-exit-codes = [1]
+
 # We could run this via golangci-lint but we want to exclude more directories
 # for gosec than we do for other linting. There doesn't seem to be a way to
 # configure these excludes when running gosec as part of golangci-lint.

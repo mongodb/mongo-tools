@@ -79,14 +79,21 @@ func main() {
 	// verify uri options and log them
 	opts.URI.LogUnsupportedOptions()
 
-	if opts.Auth.Username != "" && opts.GetAuthenticationDatabase() == "" && !opts.Auth.RequiresExternalDB() {
+	if opts.Auth.Username != "" && opts.GetAuthenticationDatabase() == "" &&
+		!opts.Auth.RequiresExternalDB() {
 		// add logic to have different error if using uri
 		if opts.URI != nil && opts.URI.ConnectionString != "" {
-			log.Logvf(log.Always, "authSource is required when authenticating against a non $external database")
+			log.Logvf(
+				log.Always,
+				"authSource is required when authenticating against a non $external database",
+			)
 			os.Exit(util.ExitFailure)
 		}
 
-		log.Logvf(log.Always, "--authenticationDatabase is required when authenticating against a non $external database")
+		log.Logvf(
+			log.Always,
+			"--authenticationDatabase is required when authenticating against a non $external database",
+		)
 		os.Exit(util.ExitFailure)
 	}
 
@@ -96,7 +103,10 @@ func main() {
 	}
 
 	if opts.Deprecated && !opts.Json {
-		log.Logvf(log.Always, "--useDeprecatedJsonKeys can only be used when --json is also specified")
+		log.Logvf(
+			log.Always,
+			"--useDeprecatedJsonKeys can only be used when --json is also specified",
+		)
 		os.Exit(util.ExitFailure)
 	}
 

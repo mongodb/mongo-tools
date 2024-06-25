@@ -75,7 +75,12 @@ var (
 
 // NewJSONInputReader creates a new JSONInputReader in array mode if specified,
 // configured to read data to the given io.Reader.
-func NewJSONInputReader(isArray bool, legacyExtJSON bool, in io.Reader, numDecoders int) *JSONInputReader {
+func NewJSONInputReader(
+	isArray bool,
+	legacyExtJSON bool,
+	in io.Reader,
+	numDecoders int,
+) *JSONInputReader {
 	szCount := newSizeTrackingReader(newBomDiscardingReader(in))
 	return &JSONInputReader{
 		isArray:            isArray,

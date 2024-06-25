@@ -38,11 +38,14 @@ func TestNewMongoWriteConcern(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(writeConcern.GetW(), ShouldEqual, "tagset")
 			})
-			Convey("with a w value of 0, without j set, an unack'd write concern should be returned", func() {
-				writeConcern, err := NewMongoWriteConcern(`{w:0}`, nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, 0)
-			})
+			Convey(
+				"with a w value of 0, without j set, an unack'd write concern should be returned",
+				func() {
+					writeConcern, err := NewMongoWriteConcern(`{w:0}`, nil)
+					So(err, ShouldBeNil)
+					So(writeConcern.GetW(), ShouldEqual, 0)
+				},
+			)
 			Convey("with a negative w value, an error should be returned", func() {
 				writeConcern, err := NewMongoWriteConcern(`{w:-1}`, nil)
 				So(writeConcern, ShouldBeNil)
@@ -51,12 +54,15 @@ func TestNewMongoWriteConcern(t *testing.T) {
 				So(writeConcern, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 			})
-			Convey("with a w value of 0, with j set, a non-nil write concern should be returned", func() {
-				writeConcern, err := NewMongoWriteConcern(`{w:0, j:true}`, nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, 0)
-				So(writeConcern.GetJ(), ShouldBeTrue)
-			})
+			Convey(
+				"with a w value of 0, with j set, a non-nil write concern should be returned",
+				func() {
+					writeConcern, err := NewMongoWriteConcern(`{w:0, j:true}`, nil)
+					So(err, ShouldBeNil)
+					So(writeConcern.GetW(), ShouldEqual, 0)
+					So(writeConcern.GetJ(), ShouldBeTrue)
+				},
+			)
 			// Regression test for TOOLS-1741
 			Convey("When passing an empty writeConcern and empty URI"+
 				"then write concern should default to being majority", func() {
@@ -66,20 +72,35 @@ func TestNewMongoWriteConcern(t *testing.T) {
 			})
 		})
 		Convey("and given a connection string", func() {
-			Convey("with a w value of 0, without j set, an unack'd write concern should be returned", func() {
-				writeConcern, err := NewMongoWriteConcern(``, &connstring.ConnString{WNumber: 0, WNumberSet: true})
-				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, 0)
-			})
+			Convey(
+				"with a w value of 0, without j set, an unack'd write concern should be returned",
+				func() {
+					writeConcern, err := NewMongoWriteConcern(
+						``,
+						&connstring.ConnString{WNumber: 0, WNumberSet: true},
+					)
+					So(err, ShouldBeNil)
+					So(writeConcern.GetW(), ShouldEqual, 0)
+				},
+			)
 			Convey("with a negative w value, an error should be returned", func() {
-				_, err := NewMongoWriteConcern(``, &connstring.ConnString{WNumber: -1, WNumberSet: true})
+				_, err := NewMongoWriteConcern(
+					``,
+					&connstring.ConnString{WNumber: -1, WNumberSet: true},
+				)
 				So(err, ShouldNotBeNil)
-				_, err = NewMongoWriteConcern(``, &connstring.ConnString{WNumber: -2, WNumberSet: true})
+				_, err = NewMongoWriteConcern(
+					``,
+					&connstring.ConnString{WNumber: -2, WNumberSet: true},
+				)
 				So(err, ShouldNotBeNil)
 			})
 		})
 		Convey("and given both, should prefer commandline", func() {
-			writeConcern, err := NewMongoWriteConcern(`{w: 4}`, &connstring.ConnString{WNumber: 0, WNumberSet: true})
+			writeConcern, err := NewMongoWriteConcern(
+				`{w: 4}`,
+				&connstring.ConnString{WNumber: 0, WNumberSet: true},
+			)
 			So(err, ShouldBeNil)
 			So(writeConcern.GetW(), ShouldEqual, 4)
 		})

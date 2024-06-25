@@ -94,45 +94,48 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 100)
 			So(bufBulk, ShouldNotBeNil)
 
-			Convey("inserting 1,000,000 documents into the BufferedBulkInserter and flushing", func() {
+			Convey(
+				"inserting 1,000,000 documents into the BufferedBulkInserter and flushing",
+				func() {
 
-				errCnt := 0
-				for i := 0; i < 1000000; i++ {
-					result, err := bufBulk.Insert(bson.M{"_id": i})
-					if err != nil {
-						errCnt++
+					errCnt := 0
+					for i := 0; i < 1000000; i++ {
+						result, err := bufBulk.Insert(bson.M{"_id": i})
+						if err != nil {
+							errCnt++
+						}
+						if (i+1)%10000 == 0 {
+							So(result, ShouldNotBeNil)
+							So(result.InsertedCount, ShouldEqual, 100)
+						}
 					}
-					if (i+1)%10000 == 0 {
-						So(result, ShouldNotBeNil)
-						So(result.InsertedCount, ShouldEqual, 100)
-					}
-				}
-				So(errCnt, ShouldEqual, 0)
-				_, err := bufBulk.Flush()
-				So(err, ShouldBeNil)
+					So(errCnt, ShouldEqual, 0)
+					_, err := bufBulk.Flush()
+					So(err, ShouldBeNil)
 
-				Convey("should have inserted all of the documents", func() {
-					count, err := testCol.CountDocuments(context.Background(), bson.M{})
-					So(err, ShouldBeNil)
-					So(count, ShouldEqual, 1000000)
+					Convey("should have inserted all of the documents", func() {
+						count, err := testCol.CountDocuments(context.Background(), bson.M{})
+						So(err, ShouldBeNil)
+						So(count, ShouldEqual, 1000000)
 
-					// test values
-					testDoc := bson.M{}
-					result := testCol.FindOne(context.Background(), bson.M{"_id": 477232})
-					err = result.Decode(&testDoc)
-					So(err, ShouldBeNil)
-					So(testDoc["_id"], ShouldEqual, 477232)
-					result = testCol.FindOne(context.Background(), bson.M{"_id": 999999})
-					err = result.Decode(&testDoc)
-					So(err, ShouldBeNil)
-					So(testDoc["_id"], ShouldEqual, 999999)
-					result = testCol.FindOne(context.Background(), bson.M{"_id": 1})
-					err = result.Decode(&testDoc)
-					So(err, ShouldBeNil)
-					So(testDoc["_id"], ShouldEqual, 1)
+						// test values
+						testDoc := bson.M{}
+						result := testCol.FindOne(context.Background(), bson.M{"_id": 477232})
+						err = result.Decode(&testDoc)
+						So(err, ShouldBeNil)
+						So(testDoc["_id"], ShouldEqual, 477232)
+						result = testCol.FindOne(context.Background(), bson.M{"_id": 999999})
+						err = result.Decode(&testDoc)
+						So(err, ShouldBeNil)
+						So(testDoc["_id"], ShouldEqual, 999999)
+						result = testCol.FindOne(context.Background(), bson.M{"_id": 1})
+						err = result.Decode(&testDoc)
+						So(err, ShouldBeNil)
+						So(testDoc["_id"], ShouldEqual, 1)
 
-				})
-			})
+					})
+				},
+			)
 		})
 
 		Convey("using a test collection and a byte limit of 1", func() {

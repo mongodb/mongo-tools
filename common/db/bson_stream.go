@@ -120,7 +120,11 @@ func (bs *BSONSource) LoadNext() []byte {
 	}
 
 	if bsonSize > bs.MaxBSONSize {
-		bs.err = fmt.Errorf("invalid BSONSize: %v bytes is larger than maximum of %d bytes", bsonSize, bs.MaxBSONSize)
+		bs.err = fmt.Errorf(
+			"invalid BSONSize: %v bytes is larger than maximum of %d bytes",
+			bsonSize,
+			bs.MaxBSONSize,
+		)
 		return nil
 	}
 

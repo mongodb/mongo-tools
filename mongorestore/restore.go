@@ -71,7 +71,11 @@ func NewResultFromBulkResult(result *mongo.BulkWriteResult, err error) Result {
 }
 
 func (restore *MongoRestore) RestoreIndexes() error {
-	log.Logvf(log.DebugLow, "building indexes up to %v collections in parallel", restore.OutputOptions.NumParallelCollections)
+	log.Logvf(
+		log.DebugLow,
+		"building indexes up to %v collections in parallel",
+		restore.OutputOptions.NumParallelCollections,
+	)
 
 	namespaceQueue := restore.indexCatalog.Queue()
 
@@ -85,7 +89,11 @@ func (restore *MongoRestore) RestoreIndexes() error {
 				for {
 					namespace := namespaceQueue.Pop()
 					if namespace == nil {
-						log.Logvf(log.DebugHigh, "ending index build routine with id=%v, no more work to do", id)
+						log.Logvf(
+							log.DebugHigh,
+							"ending index build routine with id=%v, no more work to do",
+							id,
+						)
 						errChan <- nil // done
 						return
 					}
@@ -154,7 +162,12 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 		}
 		err = restore.CreateIndexes(namespace.DB, namespace.Collection, indexes)
 		if err != nil {
-			return fmt.Errorf("%s: error creating indexes for %s: %v", namespaceString, namespaceString, err)
+			return fmt.Errorf(
+				"%s: error creating indexes for %s: %v",
+				namespaceString,
+				namespaceString,
+				err,
+			)
 		}
 	} else {
 		log.Logvf(log.Always, "no indexes to restore for collection %v", namespaceString)
@@ -221,7 +234,11 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 
 // RestoreIntents iterates through all of the intents stored in the IntentManager, and restores them.
 func (restore *MongoRestore) RestoreIntents() Result {
-	log.Logvf(log.DebugLow, "restoring up to %v collections in parallel", restore.OutputOptions.NumParallelCollections)
+	log.Logvf(
+		log.DebugLow,
+		"restoring up to %v collections in parallel",
+		restore.OutputOptions.NumParallelCollections,
+	)
 
 	if restore.OutputOptions.NumParallelCollections > 0 {
 		resultChan := make(chan Result)
@@ -235,7 +252,11 @@ func (restore *MongoRestore) RestoreIntents() Result {
 				for {
 					intent := restore.manager.Pop()
 					if intent == nil {
-						log.Logvf(log.DebugHigh, "ending restore routine with id=%v, no more work to do", id)
+						log.Logvf(
+							log.DebugHigh,
+							"ending restore routine with id=%v, no more work to do",
+							id,
+						)
 						resultChan <- workerResult // done
 						return
 					}
@@ -299,13 +320,21 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	if !restore.OutputOptions.Drop && collectionExists {
-		log.Logvf(log.Always, "restoring to existing collection %v without dropping", intent.Namespace())
+		log.Logvf(
+			log.Always,
+			"restoring to existing collection %v without dropping",
+			intent.Namespace(),
+		)
 	}
 
 	if restore.OutputOptions.Drop {
 		if collectionExists {
 			if strings.HasPrefix(intent.C, "system.") {
-				log.Logvf(log.Always, "cannot drop system collection %v, skipping", intent.Namespace())
+				log.Logvf(
+					log.Always,
+					"cannot drop system collection %v, skipping",
+					intent.Namespace(),
+				)
 			} else {
 				log.Logvf(log.Always, "dropping collection %v before restoring", intent.Namespace())
 				err = restore.DropCollection(intent)
@@ -370,7 +399,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
 		if err != nil {
-			return Result{Err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)}
+			return Result{
+				Err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err),
+			}
 		}
 		restore.addToKnownCollections(intent)
 	} else {
@@ -390,7 +421,14 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
 		defer bsonSource.Close()
 
-		result = restore.RestoreCollectionToDB(intent.DB, intent.DataCollection(), bsonSource, intent.BSONFile, intent.Size, intent.Type)
+		result = restore.RestoreCollectionToDB(
+			intent.DB,
+			intent.DataCollection(),
+			bsonSource,
+			intent.BSONFile,
+			intent.Size,
+			intent.Type,
+		)
 		if result.Err != nil {
 			result.Err = fmt.Errorf("error restoring from %v: %v", intent.Location, result.Err)
 			return result
@@ -400,7 +438,10 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(indexes []*idx.IndexDocument, ns string) []*idx.IndexDocument {
+func (restore *MongoRestore) convertLegacyIndexes(
+	indexes []*idx.IndexDocument,
+	ns string,
+) []*idx.IndexDocument {
 	var indexKeys []bson.D
 	var indexesConverted []*idx.IndexDocument
 	for _, index := range indexes {
@@ -415,7 +456,11 @@ func (restore *MongoRestore) convertLegacyIndexes(indexes []*idx.IndexDocument, 
 		}
 
 		if foundIdenticalIndex {
-			log.Logvf(log.Always, "index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...", index.Options["name"])
+			log.Logvf(
+				log.Always,
+				"index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...",
+				index.Options["name"],
+			)
 			continue
 		}
 
@@ -454,8 +499,13 @@ func fixDottedHashedIndex(index *idx.IndexDocument) {
 
 // RestoreCollectionToDB pipes the given BSON data into the database.
 // Returns the number of documents restored and any errors that occurred.
-func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
-	bsonSource *db.DecodedBSONSource, file PosReader, fileSize int64, collectionType string) Result {
+func (restore *MongoRestore) RestoreCollectionToDB(
+	dbName, colName string,
+	bsonSource *db.DecodedBSONSource,
+	file PosReader,
+	fileSize int64,
+	collectionType string,
+) Result {
 
 	var termErr error
 	session, err := restore.SessionProvider.GetSession()

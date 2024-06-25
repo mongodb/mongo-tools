@@ -253,7 +253,16 @@ func (p Platform) asGolangString() string {
 		binaryExt = indentGolangField("BinaryExt", fmt.Sprintf(`"%s"`, p.BinaryExt))
 	}
 
-	return fmt.Sprintf(tmpl, p.Name, p.Arch.ConstName(), p.OS.ConstName(), pkg, repos, buildTags, binaryExt)
+	return fmt.Sprintf(
+		tmpl,
+		p.Name,
+		p.Arch.ConstName(),
+		p.OS.ConstName(),
+		pkg,
+		repos,
+		buildTags,
+		binaryExt,
+	)
 }
 
 func indentGolangField(name, value string) string {

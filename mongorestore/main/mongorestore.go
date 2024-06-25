@@ -55,7 +55,12 @@ func main() {
 	}
 
 	if restore.ToolOptions.WriteConcern.Acknowledged() {
-		log.Logvf(log.Always, "%v document(s) restored successfully. %v document(s) failed to restore.", result.Successes, result.Failures)
+		log.Logvf(
+			log.Always,
+			"%v document(s) restored successfully. %v document(s) failed to restore.",
+			result.Successes,
+			result.Failures,
+		)
 	} else {
 		log.Logvf(log.Always, "done")
 	}

@@ -37,7 +37,14 @@ const (
 type CommandRunner interface {
 	Run(command interface{}, out interface{}, database string) error
 	RunString(commandName string, out interface{}, database string) error
-	FindOne(db, collection string, skip int, query interface{}, sort []string, into interface{}, opts int) error
+	FindOne(
+		db, collection string,
+		skip int,
+		query interface{},
+		sort []string,
+		into interface{},
+		opts int,
+	) error
 	Remove(db, collection string, query interface{}) error
 	DatabaseNames() ([]string, error)
 	CollectionNames(db string) ([]string, error)
@@ -217,7 +224,14 @@ func (sp *SessionProvider) IsMongos() (bool, error) {
 
 // FindOne returns the first document in the collection and database that matches
 // the query after skip, sort and query flags are applied.
-func (sp *SessionProvider) FindOne(db, collection string, skip int, query interface{}, sort interface{}, into interface{}, flags int) error {
+func (sp *SessionProvider) FindOne(
+	db, collection string,
+	skip int,
+	query interface{},
+	sort interface{},
+	into interface{},
+	flags int,
+) error {
 	session, err := sp.GetSession()
 	if err != nil {
 		return err
@@ -249,7 +263,12 @@ func ApplyFlags(opts *mopt.FindOneOptions, flags int) {
 // RunApplyOpsCreateIndex will create index using applyOps.
 // For versions that support collection UUIDs (<3.6) it uses an insert to system indexes.
 // Later versions use the createIndexes command.
-func (sp *SessionProvider) RunApplyOpsCreateIndex(C, DB string, index bson.D, UUID *primitive.Binary, result *interface{}) error {
+func (sp *SessionProvider) RunApplyOpsCreateIndex(
+	C, DB string,
+	index bson.D,
+	UUID *primitive.Binary,
+	result *interface{},
+) error {
 	var op Oplog
 
 	// Add an index version if it is missing. An index version could be missing because

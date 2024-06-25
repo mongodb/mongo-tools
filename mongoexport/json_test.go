@@ -72,7 +72,13 @@ func TestJSONArray(t *testing.T) {
 
 			// Export a few docs of various types
 
-			testObjs := []interface{}{primitive.NewObjectID(), "asd", 12345, 3.14159, bson.D{{"A", 1}}}
+			testObjs := []interface{}{
+				primitive.NewObjectID(),
+				"asd",
+				12345,
+				3.14159,
+				bson.D{{"A", 1}},
+			}
 			for _, obj := range testObjs {
 				err = jsonExporter.ExportDocument(bson.D{{"_id", obj}})
 				So(err, ShouldBeNil)

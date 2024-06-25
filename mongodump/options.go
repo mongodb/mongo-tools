@@ -78,7 +78,14 @@ type Options struct {
 }
 
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
-	opts := options.New("mongodump", versionStr, gitCommit, Usage, true, options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})
+	opts := options.New(
+		"mongodump",
+		versionStr,
+		gitCommit,
+		Usage,
+		true,
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true},
+	)
 
 	inputOpts := &InputOptions{}
 	opts.AddOptions(inputOpts)

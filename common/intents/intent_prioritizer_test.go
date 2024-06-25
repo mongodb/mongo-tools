@@ -137,14 +137,17 @@ func TestBySizeAndView(t *testing.T) {
 			},
 		}
 		prioritizer = newLongestTaskFirstPrioritizer(intents)
-		Convey("getting the sorted intents should produce views first, followed by largest to smallest", func() {
+		Convey(
+			"getting the sorted intents should produce views first, followed by largest to smallest",
+			func() {
 
-			So(prioritizer.Get().C, ShouldEqual, "view")
-			So(prioritizer.Get().C, ShouldEqual, "view")
-			So(prioritizer.Get().C, ShouldEqual, "non-view1")
-			So(prioritizer.Get().C, ShouldEqual, "non-view2")
-			So(prioritizer.Get().C, ShouldEqual, "non-view3")
-		})
+				So(prioritizer.Get().C, ShouldEqual, "view")
+				So(prioritizer.Get().C, ShouldEqual, "view")
+				So(prioritizer.Get().C, ShouldEqual, "non-view1")
+				So(prioritizer.Get().C, ShouldEqual, "non-view2")
+				So(prioritizer.Get().C, ShouldEqual, "non-view3")
+			},
+		)
 
 	})
 

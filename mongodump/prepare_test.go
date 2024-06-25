@@ -206,7 +206,12 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		md.ToolOptions.DB = testVals.dbOption
 
 		if md.shouldSkipSystemNamespace(testVals.db, testVals.coll) != testVals.output {
-			t.Errorf("%s.%s should have been %v but failed\n", testVals.db, testVals.coll, testVals.output)
+			t.Errorf(
+				"%s.%s should have been %v but failed\n",
+				testVals.db,
+				testVals.coll,
+				testVals.output,
+			)
 		}
 	}
 }

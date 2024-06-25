@@ -25,7 +25,12 @@ func TestParseOptions(t *testing.T) {
 		slaveOkCmdLine := []string{"--slaveOk"}
 		rpSlaveOkCmdLine := []string{"--slaveOk", "--readPreference", "secondary"}
 		secondaryURI := []string{"--uri", "mongodb://localhost:27017/db?readPreference=secondary"}
-		cmdLineAndURI := []string{"--uri", "mongodb://localhost:27017/db?readPreference=secondary", "--readPreference", "nearest"}
+		cmdLineAndURI := []string{
+			"--uri",
+			"mongodb://localhost:27017/db?readPreference=secondary",
+			"--readPreference",
+			"nearest",
+		}
 
 		testCases := []struct {
 			name          string
@@ -37,7 +42,13 @@ func TestParseOptions(t *testing.T) {
 			{"No values defaults to primary", []string{}, true, "", readpref.Primary()},
 			{"Only command line", secondaryCmdLine, true, "secondary", readpref.Secondary()},
 			{"Only URI", secondaryURI, true, "", readpref.Secondary()},
-			{"Both URI and command line defaults to command line", cmdLineAndURI, true, "nearest", readpref.Nearest()},
+			{
+				"Both URI and command line defaults to command line",
+				cmdLineAndURI,
+				true,
+				"nearest",
+				readpref.Nearest(),
+			},
 			{"slaveOk becomes nearest", slaveOkCmdLine, true, "nearest", readpref.Nearest()},
 			{"slaveOk and read pref errors", rpSlaveOkCmdLine, false, "", nil},
 		}
@@ -57,13 +68,19 @@ func TestParseOptions(t *testing.T) {
 				}
 
 				if opts.InputOptions.ReadPreference != tc.inputRp {
-					t.Fatalf("read preference mismatch on InputOptions; expected %v, got %v", tc.inputRp,
-						opts.InputOptions.ReadPreference)
+					t.Fatalf(
+						"read preference mismatch on InputOptions; expected %v, got %v",
+						tc.inputRp,
+						opts.InputOptions.ReadPreference,
+					)
 				}
 
 				if tc.toolOptionsRp == nil {
 					if opts.ToolOptions.ReadPreference != nil {
-						t.Fatalf("expected read preference to be nil, got %v", opts.ToolOptions.ReadPreference)
+						t.Fatalf(
+							"expected read preference to be nil, got %v",
+							opts.ToolOptions.ReadPreference,
+						)
 					}
 					return
 				}
@@ -71,7 +88,11 @@ func TestParseOptions(t *testing.T) {
 				expectedMode := tc.toolOptionsRp.Mode()
 				gotMode := opts.ToolOptions.ReadPreference.Mode()
 				if expectedMode != gotMode {
-					t.Fatalf("read preference mode mismatch; expected %v, got %v", expectedMode, gotMode)
+					t.Fatalf(
+						"read preference mode mismatch; expected %v, got %v",
+						expectedMode,
+						gotMode,
+					)
 				}
 			})
 		}
@@ -99,14 +120,22 @@ func TestParseOptions(t *testing.T) {
 				opts, err := ParseOptions(args, "", "")
 				success := err == nil
 				if success != tc.expectSuccess {
-					t.Fatalf("expected err to be nil: %v; error was nil: %v", tc.expectSuccess, success)
+					t.Fatalf(
+						"expected err to be nil: %v; error was nil: %v",
+						tc.expectSuccess,
+						success,
+					)
 				}
 				if !tc.expectSuccess {
 					return
 				}
 
 				if opts.JSONFormat != tc.expectedFormat {
-					t.Fatalf("JSON format mismatch; expected %v, got %v", tc.expectedFormat, opts.JSONFormat)
+					t.Fatalf(
+						"JSON format mismatch; expected %v, got %v",
+						tc.expectedFormat,
+						opts.JSONFormat,
+					)
 				}
 			})
 		}
@@ -135,13 +164,17 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
-				InputArgs: []string{"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token"},
+				InputArgs: []string{
+					"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+				},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
 							ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
 							ConnString: connstring.ConnString{
-								AuthMechanismProperties: map[string]string{"AWS_SESSION_TOKEN": "token"},
+								AuthMechanismProperties: map[string]string{
+									"AWS_SESSION_TOKEN": "token",
+								},
 							},
 						},
 						Auth: &options.Auth{
@@ -155,7 +188,9 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				AuthType: "aws",
 			},
 			{
-				InputArgs: []string{"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm"},
+				InputArgs: []string{
+					"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
+				},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
@@ -217,7 +252,11 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				So(opts.Auth.Password, ShouldEqual, tc.ExpectedOpts.Auth.Password)
 				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
 				So(opts.Auth.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.Auth.AWSSessionToken)
-				So(opts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"])
+				So(
+					opts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
+					ShouldEqual,
+					tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
+				)
 			} else if tc.AuthType == "kerberos" {
 				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
 				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)

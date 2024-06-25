@@ -170,7 +170,11 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 // an outputChan (output) channel. It sequentially writes unprocessed data read from
 // the input channel to each worker and then sequentially reads the processed data
 // from each worker before passing it on to the output channel.
-func doSequentialStreaming(workers []*importWorker, readDocs chan Converter, outputChan chan bson.D) {
+func doSequentialStreaming(
+	workers []*importWorker,
+	readDocs chan Converter,
+	outputChan chan bson.D,
+) {
 	numWorkers := len(workers)
 
 	// feed in the data to be processed and do round-robin
@@ -289,7 +293,12 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 //     exists at that index in the array, a reference to that document or array will be passed
 //     to setNestedDocumentValue or setNestedArrayValue respectively. If no value exists, a new document
 //     or array is created, added to the array, and a reference is passed to those functions.
-func setNestedDocumentValue(fieldParts []string, value interface{}, document *bson.D, useArrayIndexFields bool) (err error) {
+func setNestedDocumentValue(
+	fieldParts []string,
+	value interface{},
+	document *bson.D,
+	useArrayIndexFields bool,
+) (err error) {
 	if len(fieldParts) == 1 {
 		*document = append(*document, bson.E{Key: fieldParts[0], Value: value})
 		return nil
@@ -357,13 +366,20 @@ func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) 
 	// The first part of the field should be an index of an array
 	idx, ok := isNatNum(fieldParts[0])
 	if !ok {
-		return fmt.Errorf("setNestedArrayValue expected an integer field, but instead received %s", fieldParts[0])
+		return fmt.Errorf(
+			"setNestedArrayValue expected an integer field, but instead received %s",
+			fieldParts[0],
+		)
 	}
 
 	if len(fieldParts) == 1 {
 		if idx != len(*array) {
-			return fmt.Errorf("Trying to add value to array at index %d, but array is %d elements long. "+
-				"Array indices in fields must start from 0 and increase sequentially", idx, len(*array))
+			return fmt.Errorf(
+				"Trying to add value to array at index %d, but array is %d elements long. "+
+					"Array indices in fields must start from 0 and increase sequentially",
+				idx,
+				len(*array),
+			)
 		}
 
 		*array = append(*array, value)
@@ -439,7 +455,12 @@ func isNatNum(s string) (int, bool) {
 // channel in parallel and then sends over the processed data to the outputChan
 // channel - either in sequence or concurrently (depending on the value of
 // ordered) - in which the data was received.
-func streamDocuments(ordered bool, numDecoders int, readDocs chan Converter, outputChan chan bson.D) (retErr error) {
+func streamDocuments(
+	ordered bool,
+	numDecoders int,
+	readDocs chan Converter,
+	outputChan chan bson.D,
+) (retErr error) {
 	if numDecoders == 0 {
 		numDecoders = 1
 	}
@@ -490,7 +511,13 @@ func (coercionError) Error() string { return "coercionError" }
 
 // tokensToBSON reads in slice of records - along with ordered column names -
 // and returns a BSON document for the record.
-func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, ignoreBlanks bool, useArrayIndexFields bool) (bson.D, error) {
+func tokensToBSON(
+	colSpecs []ColumnSpec,
+	tokens []string,
+	numProcessed uint64,
+	ignoreBlanks bool,
+	useArrayIndexFields bool,
+) (bson.D, error) {
 	log.Logvf(log.DebugHigh, "got line: %v", tokens)
 	var parsedValue interface{}
 	document := bson.D{}
@@ -513,15 +540,29 @@ func tokensToBSON(colSpecs []ColumnSpec, tokens []string, numProcessed uint64, i
 					log.Logvf(log.Always, "skipping row #%d: %v", numProcessed, tokens)
 					return nil, coercionError{}
 				case pgStop:
-					return nil, fmt.Errorf("type coercion failure in document #%d for column '%s', "+
-						"could not parse token '%s' to type %s",
-						numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
+					return nil, fmt.Errorf(
+						"type coercion failure in document #%d for column '%s', "+
+							"could not parse token '%s' to type %s",
+						numProcessed,
+						colSpecs[index].Name,
+						token,
+						colSpecs[index].TypeName,
+					)
 				}
 			}
 			if len(colSpecs[index].NameParts) > 1 {
-				err = setNestedDocumentValue(colSpecs[index].NameParts, parsedValue, &document, useArrayIndexFields)
+				err = setNestedDocumentValue(
+					colSpecs[index].NameParts,
+					parsedValue,
+					&document,
+					useArrayIndexFields,
+				)
 				if err != nil {
-					return nil, fmt.Errorf("can't set value for key %s: %s", colSpecs[index].Name, err)
+					return nil, fmt.Errorf(
+						"can't set value for key %s: %s",
+						colSpecs[index].Name,
+						err,
+					)
 				}
 			} else {
 				document = append(document, bson.E{Key: colSpecs[index].Name, Value: parsedValue})
@@ -597,7 +638,13 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 // that fields are compatible with each other. When useArrayIndexFields is set, it is mutually recursive
 // with addFieldToArray(). It closely mimics the behavior of setNestedDocumentValue(). See validateFields()
 // for more information on the validity checks that are made when constructing a tree of fields.
-func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, tree map[string]interface{}, useArrayIndexFields bool) (map[string]interface{}, error) {
+func addFieldToTree(
+	fieldParts []string,
+	fullField string,
+	fieldPrefix string,
+	tree map[string]interface{},
+	useArrayIndexFields bool,
+) (map[string]interface{}, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
 	if fieldPrefix == "" {
 		fieldPrefix = head
@@ -664,7 +711,12 @@ func addFieldToTree(fieldParts []string, fullField string, fieldPrefix string, t
 }
 
 // addFieldToArray is used with addFieldToTree() to build a valid tree of fields.
-func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, array []interface{}) ([]interface{}, error) {
+func addFieldToArray(
+	fieldParts []string,
+	fullField string,
+	fieldPrefix string,
+	array []interface{},
+) ([]interface{}, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
 	fieldPrefix += "." + head
 
@@ -672,7 +724,12 @@ func addFieldToArray(fieldParts []string, fullField string, fieldPrefix string, 
 	headIndex, ok := isNatNum(head)
 	if !ok {
 		// We shouldn't ever get here
-		panic(fmt.Sprintf("addFieldToArray expected a natural number field, but instead received %s", fieldParts[0]))
+		panic(
+			fmt.Sprintf(
+				"addFieldToArray expected a natural number field, but instead received %s",
+				fieldParts[0],
+			),
+		)
 	}
 
 	if len(tail) == 0 {
@@ -776,7 +833,10 @@ func identicalError(field string) error {
 }
 
 func indexError(field string) error {
-	return fmt.Errorf("array index error with field '%v': array indexes in fields must start from 0 and increase sequentially", field)
+	return fmt.Errorf(
+		"array index error with field '%v': array indexes in fields must start from 0 and increase sequentially",
+		field,
+	)
 }
 
 // validateReaderFields is a helper to validate fields for input readers.

@@ -30,7 +30,14 @@ type StatConsumer struct {
 }
 
 // NewStatConsumer creates a new StatConsumer with no previous records.
-func NewStatConsumer(flags int, customHeaders []string, keyNames map[string]string, readerConfig *status.ReaderConfig, formatter LineFormatter, writer io.Writer) (sc *StatConsumer) {
+func NewStatConsumer(
+	flags int,
+	customHeaders []string,
+	keyNames map[string]string,
+	readerConfig *status.ReaderConfig,
+	formatter LineFormatter,
+	writer io.Writer,
+) (sc *StatConsumer) {
 	sc = &StatConsumer{
 		formatter:     formatter,
 		readerConfig:  readerConfig,

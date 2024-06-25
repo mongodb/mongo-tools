@@ -50,7 +50,11 @@ func (glf *GridLineFormatter) Finish() {
 }
 
 // FormatLines formats the StatLines as a grid.
-func (glf *GridLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
+func (glf *GridLineFormatter) FormatLines(
+	lines []*line.StatLine,
+	headerKeys []string,
+	keyNames map[string]string,
+) string {
 	buf := &bytes.Buffer{}
 
 	// Sort the stat lines by hostname, so that we see the output

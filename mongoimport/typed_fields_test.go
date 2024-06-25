@@ -26,32 +26,48 @@ func init() {
 func TestTypedHeaderParser(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Using 'zip.string(),number.double(),foo.auto(),bar.date(January 2, (2006))'", t, func() {
-		var headers = []string{"zip.string()", "number.double()", "foo.auto()", `bar.date(January 2\, \(2006\))`}
-		var colSpecs []ColumnSpec
-		var err error
+	Convey(
+		"Using 'zip.string(),number.double(),foo.auto(),bar.date(January 2, (2006))'",
+		t,
+		func() {
+			var headers = []string{"zip.string()", "number.double()", "foo.auto()", `bar.date(January 2\, \(2006\))`}
+			var colSpecs []ColumnSpec
+			var err error
 
-		Convey("with parse grace: auto", func() {
-			colSpecs, err = ParseTypedHeaders(headers, pgAutoCast)
-			So(colSpecs, ShouldResemble, []ColumnSpec{
-				{"zip", new(FieldStringParser), pgAutoCast, "string", []string{"zip"}},
-				{"number", new(FieldDoubleParser), pgAutoCast, "double", []string{"number"}},
-				{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
-				{"bar", &FieldDateParser{"January 2, (2006)"}, pgAutoCast, "date", []string{"bar"}},
+			Convey("with parse grace: auto", func() {
+				colSpecs, err = ParseTypedHeaders(headers, pgAutoCast)
+				So(colSpecs, ShouldResemble, []ColumnSpec{
+					{"zip", new(FieldStringParser), pgAutoCast, "string", []string{"zip"}},
+					{"number", new(FieldDoubleParser), pgAutoCast, "double", []string{"number"}},
+					{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
+					{
+						"bar",
+						&FieldDateParser{"January 2, (2006)"},
+						pgAutoCast,
+						"date",
+						[]string{"bar"},
+					},
+				})
+				So(err, ShouldBeNil)
 			})
-			So(err, ShouldBeNil)
-		})
-		Convey("with parse grace: skipRow", func() {
-			colSpecs, err = ParseTypedHeaders(headers, pgSkipRow)
-			So(colSpecs, ShouldResemble, []ColumnSpec{
-				{"zip", new(FieldStringParser), pgSkipRow, "string", []string{"zip"}},
-				{"number", new(FieldDoubleParser), pgSkipRow, "double", []string{"number"}},
-				{"foo", new(FieldAutoParser), pgSkipRow, "auto", []string{"foo"}},
-				{"bar", &FieldDateParser{"January 2, (2006)"}, pgSkipRow, "date", []string{"bar"}},
+			Convey("with parse grace: skipRow", func() {
+				colSpecs, err = ParseTypedHeaders(headers, pgSkipRow)
+				So(colSpecs, ShouldResemble, []ColumnSpec{
+					{"zip", new(FieldStringParser), pgSkipRow, "string", []string{"zip"}},
+					{"number", new(FieldDoubleParser), pgSkipRow, "double", []string{"number"}},
+					{"foo", new(FieldAutoParser), pgSkipRow, "auto", []string{"foo"}},
+					{
+						"bar",
+						&FieldDateParser{"January 2, (2006)"},
+						pgSkipRow,
+						"date",
+						[]string{"bar"},
+					},
+				})
+				So(err, ShouldBeNil)
 			})
-			So(err, ShouldBeNil)
-		})
-	})
+		},
+	)
 
 	Convey("Using various bad headers", t, func() {
 		var err error
@@ -233,7 +249,11 @@ func TestFieldParsers(t *testing.T) {
 			var p, _ = NewFieldParser(ctDateGo, "01/02/2006 3:04:05pm MST")
 			Convey("parses valid timestamps correctly", func() {
 				value, err = p.Parse("01/04/2000 5:38:10pm UTC")
-				So(value.(time.Time), ShouldResemble, time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC))
+				So(
+					value.(time.Time),
+					ShouldResemble,
+					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+				)
 				So(err, ShouldBeNil)
 			})
 			Convey("does not parse invalid dates", func() {
@@ -249,7 +269,11 @@ func TestFieldParsers(t *testing.T) {
 			var p, _ = NewFieldParser(ctDateMS, "MM/dd/yyyy h:mm:sstt")
 			Convey("parses valid timestamps correctly", func() {
 				value, err = p.Parse("01/04/2000 5:38:10PM")
-				So(value.(time.Time), ShouldResemble, time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC))
+				So(
+					value.(time.Time),
+					ShouldResemble,
+					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+				)
 				So(err, ShouldBeNil)
 			})
 			Convey("does not parse invalid dates", func() {
@@ -267,7 +291,11 @@ func TestFieldParsers(t *testing.T) {
 			var p, _ = NewFieldParser(ctDateOracle, "mm/Dd/yYYy hh:MI:SsAm")
 			Convey("parses valid timestamps correctly", func() {
 				value, err = p.Parse("01/04/2000 05:38:10PM")
-				So(value.(time.Time), ShouldResemble, time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC))
+				So(
+					value.(time.Time),
+					ShouldResemble,
+					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+				)
 				So(err, ShouldBeNil)
 			})
 			Convey("does not parse invalid dates", func() {

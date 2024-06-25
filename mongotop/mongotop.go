@@ -127,7 +127,11 @@ func (mt *MongoTop) Run() error {
 		// if this is the first time and the connection is successful, print
 		// the connection message
 		if !hasData && !mt.OutputOptions.Json {
-			log.Logvf(log.Always, "connected to: %v\n", util.SanitizeURI(mt.Options.URI.ConnectionString))
+			log.Logvf(
+				log.Always,
+				"connected to: %v\n",
+				util.SanitizeURI(mt.Options.URI.ConnectionString),
+			)
 		}
 
 		hasData = true

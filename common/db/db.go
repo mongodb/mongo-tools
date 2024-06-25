@@ -61,7 +61,10 @@ const (
 	ErrUnacknowledgedWrite      = "unacknowledged write"
 )
 
-var ignorableWriteErrorCodes = map[int]bool{ErrDuplicateKeyCode: true, ErrFailedDocumentValidation: true}
+var ignorableWriteErrorCodes = map[int]bool{
+	ErrDuplicateKeyCode:         true,
+	ErrFailedDocumentValidation: true,
+}
 
 const (
 	continueThroughErrorFormat = "continuing through error: %v"
@@ -133,7 +136,10 @@ func addClientCertFromFile(cfg *tls.Config, clientFile, keyPassword string) (str
 	return addClientCertFromBytes(cfg, data, keyPassword)
 }
 
-func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassword string) (string, error) {
+func addClientCertFromSeparateFiles(
+	cfg *tls.Config,
+	keyFile, certFile, keyPassword string,
+) (string, error) {
 	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
 		return "", err
@@ -225,7 +231,10 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		return "", fmt.Errorf("failed to find PRIVATE KEY")
 	}
 
-	cert, err := tls.X509KeyPair(bytes.Join(certBlocks, []byte("\n")), bytes.Join(keyBlocks, []byte("\n")))
+	cert, err := tls.X509KeyPair(
+		bytes.Join(certBlocks, []byte("\n")),
+		bytes.Join(keyBlocks, []byte("\n")),
+	)
 	if err != nil {
 		return "", err
 	}
@@ -266,7 +275,10 @@ func addCACertsFromFile(cfg *tls.Config, file string) error {
 	}
 
 	if cfg.RootCAs.AppendCertsFromPEM(data) == false {
-		return fmt.Errorf("SSL trusted server certificates file does not contain any valid certificates. File: `%v`", file)
+		return fmt.Errorf(
+			"SSL trusted server certificates file does not contain any valid certificates. File: `%v`",
+			file,
+		)
 	}
 	return nil
 }
@@ -295,7 +307,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
 	clientopt.SetSocketTimeout(time.Duration(opts.SocketTimeout) * time.Second)
 	if opts.Connection.ServerSelectionTimeout > 0 {
-		clientopt.SetServerSelectionTimeout(time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second)
+		clientopt.SetServerSelectionTimeout(
+			time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second,
+		)
 	}
 	if opts.ReplicaSetName != "" {
 		clientopt.SetReplicaSet(opts.ReplicaSetName)
@@ -460,12 +474,19 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			keyPasswd = cs.SSLClientCertificateKeyPassword()
 		}
 		if cs.SSLClientCertificateKeyFileSet {
-			x509Subject, err = addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
+			x509Subject, err = addClientCertFromFile(
+				tlsConfig,
+				cs.SSLClientCertificateKeyFile,
+				keyPasswd,
+			)
 		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
 			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, cs.SSLCertificateFile, cs.SSLPrivateKeyFile, keyPasswd)
 		}
 		if err != nil {
-			return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
+			return nil, fmt.Errorf(
+				"error configuring client, can't load client certificate: %v",
+				err,
+			)
 		}
 		if opts.SSLCAFile != "" {
 			if err := addCACertsFromFile(tlsConfig, opts.SSLCAFile); err != nil {
@@ -474,7 +495,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		}
 
 		// If a username wasn't specified for x509, add one from the certificate.
-		if clientopt.Auth != nil && strings.ToLower(clientopt.Auth.AuthMechanism) == "mongodb-x509" && clientopt.Auth.Username == "" {
+		if clientopt.Auth != nil &&
+			strings.ToLower(clientopt.Auth.AuthMechanism) == "mongodb-x509" &&
+			clientopt.Auth.Username == "" {
 			// The Go x509 package gives the subject with the pairs in reverse order that we want.
 			clientopt.Auth.Username = extractX509UsernameFromSubject(x509Subject)
 		}

@@ -30,10 +30,17 @@ type ServerArchive struct {
 }
 
 var (
-	ServerURLMissingError = fmt.Errorf("Unable to find download URL for the server in the json feed")
+	ServerURLMissingError = fmt.Errorf(
+		"Unable to find download URL for the server in the json feed",
+	)
 )
 
-func (f *ServerJSONFeed) FindURLHashAndVersion(serverVersion string, target string, arch string, edition string) (string, string, string, error) {
+func (f *ServerJSONFeed) FindURLHashAndVersion(
+	serverVersion string,
+	target string,
+	arch string,
+	edition string,
+) (string, string, string, error) {
 	fmt.Printf("Finding %v, %v, %v, %v\n", serverVersion, target, arch, edition)
 
 	var sv version.Version
@@ -57,7 +64,8 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(serverVersion string, target stri
 		}
 		fmt.Printf("feedVersion: %+v\n", feedVersion)
 
-		if serverVersion == "latest" || (feedVersion.Major == sv.Major && feedVersion.Minor == sv.Minor) {
+		if serverVersion == "latest" ||
+			(feedVersion.Major == sv.Major && feedVersion.Minor == sv.Minor) {
 			if versionGuess == "" {
 				versionGuess = feedVersion.String()
 			}

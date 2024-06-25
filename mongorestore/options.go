@@ -196,7 +196,9 @@ func getTargetDirFromArgs(extraArgs []string, dirFlag string) (string, error) {
 	case dirFlag != "" && len(extraArgs) > 0:
 		// error when positional arguments and --dir are used
 		return "", fmt.Errorf(
-			"cannot use both %v and a positional argument to set the target directory", DirectoryOption)
+			"cannot use both %v and a positional argument to set the target directory",
+			DirectoryOption,
+		)
 
 	case len(extraArgs) == 1:
 		// a nice, simple case where one argument is given, so we use it

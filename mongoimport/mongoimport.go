@@ -158,7 +158,9 @@ func (imp *MongoImport) validateSettings() error {
 		if !imp.InputOptions.HeaderLine {
 			if imp.InputOptions.Fields == nil &&
 				imp.InputOptions.FieldFile == nil {
-				return fmt.Errorf("must specify --fields, --fieldFile or --headerline to import this file type")
+				return fmt.Errorf(
+					"must specify --fields, --fieldFile or --headerline to import this file type",
+				)
 			}
 			if imp.InputOptions.FieldFile != nil &&
 				*imp.InputOptions.FieldFile == "" {
@@ -362,7 +364,11 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		return 0, 0, err
 	}
 
-	log.Logvf(log.Always, "connected to: %v", util.SanitizeURI(imp.ToolOptions.URI.ConnectionString))
+	log.Logvf(
+		log.Always,
+		"connected to: %v",
+		util.SanitizeURI(imp.ToolOptions.URI.ConnectionString),
+	)
 
 	log.Logvf(log.Info, "ns: %v.%v",
 		imp.ToolOptions.Namespace.DB,
@@ -477,7 +483,18 @@ readLoop:
 
 func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {
 	if result != nil {
-		atomic.AddUint64(&imp.processedCount, uint64(result.InsertedCount)+uint64(result.ModifiedCount)+uint64(result.UpsertedCount)+uint64(result.DeletedCount))
+		atomic.AddUint64(
+			&imp.processedCount,
+			uint64(
+				result.InsertedCount,
+			)+uint64(
+				result.ModifiedCount,
+			)+uint64(
+				result.UpsertedCount,
+			)+uint64(
+				result.DeletedCount,
+			),
+		)
 	}
 	if bwe, ok := err.(mongo.BulkWriteException); ok {
 		atomic.AddUint64(&imp.failureCount, uint64(len(bwe.WriteErrors)))
@@ -521,8 +538,15 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 	return err
 }
 
-func (imp *MongoImport) fallbackToInsert(inserter *db.BufferedBulkInserter, document bson.D) (result *mongo.BulkWriteResult, err error) {
-	log.Logvf(log.Info, "Could not construct selector from %v, falling back to insert mode", imp.upsertFields)
+func (imp *MongoImport) fallbackToInsert(
+	inserter *db.BufferedBulkInserter,
+	document bson.D,
+) (result *mongo.BulkWriteResult, err error) {
+	log.Logvf(
+		log.Info,
+		"Could not construct selector from %v, falling back to insert mode",
+		imp.upsertFields,
+	)
 	result, err = inserter.Insert(document)
 	return
 }
@@ -580,9 +604,21 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
 	if imp.InputOptions.Type == CSV {
-		return NewCSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks, imp.InputOptions.UseArrayIndexFields), nil
+		return NewCSVInputReader(
+			colSpecs,
+			in,
+			out,
+			imp.IngestOptions.NumDecodingWorkers,
+			ignoreBlanks,
+			imp.InputOptions.UseArrayIndexFields,
+		), nil
 	} else if imp.InputOptions.Type == TSV {
 		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks, imp.InputOptions.UseArrayIndexFields), nil
 	}
-	return NewJSONInputReader(imp.InputOptions.JSONArray, imp.InputOptions.Legacy, in, imp.IngestOptions.NumDecodingWorkers), nil
+	return NewJSONInputReader(
+		imp.InputOptions.JSONArray,
+		imp.InputOptions.Legacy,
+		in,
+		imp.IngestOptions.NumDecodingWorkers,
+	), nil
 }

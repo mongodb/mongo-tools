@@ -49,7 +49,10 @@ func TestReplacer(t *testing.T) {
 
 	Convey("with replacements", t, func() {
 		Convey(`'$db$.user$$' -> 'test.user$$_$db$', 'pr\*d\.*' -> 'st\*g\\ing.*'`, func() {
-			r, err := NewRenamer([]string{"$db$.user$$", `pr\*d\\.*`}, []string{"test.user$$_$db$", `st\*g\\ing.*`})
+			r, err := NewRenamer(
+				[]string{"$db$.user$$", `pr\*d\\.*`},
+				[]string{"test.user$$_$db$", `st\*g\\ing.*`},
+			)
 			So(r, ShouldNotBeNil)
 			So(err, ShouldBeNil)
 			So(r.Get("stuff.user"), ShouldEqual, "test.user_stuff")
@@ -59,7 +62,10 @@ func TestReplacer(t *testing.T) {
 			So(r.Get(`st*g\ing.turbo.encabulators`), ShouldEqual, `st*g\ing.turbo.encabulators`)
 		})
 		Convey(`'$:)*$.us(?:2)er$?$' -> 'test.us(?:2)er$?$_$:)*$'`, func() {
-			r, err := NewRenamer([]string{"$:)*$.us(?:2)er$?$"}, []string{"test.us(?:2)er$?$_$:)*$"})
+			r, err := NewRenamer(
+				[]string{"$:)*$.us(?:2)er$?$"},
+				[]string{"test.us(?:2)er$?$_$:)*$"},
+			)
 			So(r, ShouldNotBeNil)
 			So(err, ShouldBeNil)
 			So(r.Get("stuff.us(?:2)er"), ShouldEqual, "test.us(?:2)er_stuff")

@@ -68,7 +68,12 @@ func TestMongorestoreShortArchive(t *testing.T) {
 		fileSize := fi.Size()
 
 		for i := fileSize; i >= 0; i -= fileSize / 10 {
-			log.Logvf(log.Always, "Restoring from the first %v bytes of a archive of size %v", i, fileSize)
+			log.Logvf(
+				log.Always,
+				"Restoring from the first %v bytes of a archive of size %v",
+				i,
+				fileSize,
+			)
 
 			_, err = file.Seek(0, 0)
 			So(err, ShouldBeNil)
@@ -133,11 +138,14 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 		defer restore.Close()
 
 		result := restore.Restore()
-		Convey("A mongorestore on an archive with a bad format should error out instead of hang", func() {
-			So(result.Err, ShouldNotBeNil)
-			So(result.Failures, ShouldEqual, 0)
-			So(result.Successes, ShouldEqual, 0)
-		})
+		Convey(
+			"A mongorestore on an archive with a bad format should error out instead of hang",
+			func() {
+				So(result.Err, ShouldNotBeNil)
+				So(result.Failures, ShouldEqual, 0)
+				So(result.Successes, ShouldEqual, 0)
+			},
+		)
 	})
 }
 
@@ -320,14 +328,22 @@ func newRestoreNamespaceTestCase(
 	}
 }
 
-func requireCollectionHasNumDocuments(t *testing.T, collection *mongo.Collection, numDocuments int64) {
+func requireCollectionHasNumDocuments(
+	t *testing.T,
+	collection *mongo.Collection,
+	numDocuments int64,
+) {
 	require := require.New(t)
 	count, err := collection.CountDocuments(context.Background(), bson.M{})
 	require.NoError(err, "can count documents")
 	require.EqualValues(numDocuments, count, "found %d document(s)", count)
 }
 
-func createCollectionWithTestDocument(t *testing.T, db *mongo.Database, collectionName string) *mongo.Collection {
+func createCollectionWithTestDocument(
+	t *testing.T,
+	db *mongo.Database,
+	collectionName string,
+) *mongo.Collection {
 	require := require.New(t)
 	collection := db.Collection(collectionName)
 	_, err := collection.InsertOne(

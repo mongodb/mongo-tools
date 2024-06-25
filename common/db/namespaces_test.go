@@ -39,19 +39,26 @@ func TestStripDBFromNamespace(t *testing.T) {
 				inputDBName:    "database",
 
 				outputNamespace: "",
-				outputError:     fmt.Errorf("namespace 'database2.col' format is invalid - expected to start with 'database.'"),
+				outputError: fmt.Errorf(
+					"namespace 'database2.col' format is invalid - expected to start with 'database.'",
+				),
 			},
 			{
 				inputNamespace: "database.col",
 				inputDBName:    "notAPrefix",
 
 				outputNamespace: "",
-				outputError:     fmt.Errorf("namespace 'database.col' format is invalid - expected to start with 'notAPrefix.'"),
+				outputError: fmt.Errorf(
+					"namespace 'database.col' format is invalid - expected to start with 'notAPrefix.'",
+				),
 			},
 		}
 		Convey("cases should match expected", func() {
 			for _, tc := range testCases {
-				resultNamespace, resultError := StripDBFromNamespace(tc.inputNamespace, tc.inputDBName)
+				resultNamespace, resultError := StripDBFromNamespace(
+					tc.inputNamespace,
+					tc.inputDBName,
+				)
 				So(resultError, ShouldResemble, tc.outputError)
 				So(resultNamespace, ShouldEqual, tc.outputNamespace)
 			}

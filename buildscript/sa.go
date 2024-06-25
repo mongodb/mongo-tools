@@ -20,6 +20,7 @@ const (
 	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
 	golangCILintVersion = "1.59.1"
+	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
 	preciousVersion     = "0.7.2"
 	ubiVersion          = "0.0.18"
@@ -27,16 +28,19 @@ const (
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
+	if err := installUBI(ctx); err != nil {
+		return err
+	}
 	if err := installGoimports(ctx); err != nil {
 		return err
 	}
 	if err := installGolangCILint(ctx); err != nil {
 		return err
 	}
-	if err := installGosec(ctx); err != nil {
+	if err := installGolines(ctx); err != nil {
 		return err
 	}
-	if err := installUBI(ctx); err != nil {
+	if err := installGosec(ctx); err != nil {
 		return err
 	}
 	if err := installPrecious(ctx); err != nil {
@@ -130,6 +134,21 @@ func installGolangCILint(ctx *task.Context) error {
 	)
 }
 
+// Install golines.
+func installGolines(ctx *task.Context) error {
+	return installBinaryTool(
+		ctx,
+		"golines",
+		golinesVersion,
+		"segmentio/golines",
+		fmt.Sprintf(
+			"https://github.com/segmentio/golines/releases/download/v%s/golines_%s_linux_amd64.tar.gz",
+			golinesVersion,
+			golinesVersion,
+		),
+	)
+}
+
 // Install gosec.
 func installGosec(ctx *task.Context) error {
 	return installBinaryTool(
@@ -177,7 +196,10 @@ func goInstall(ctx *task.Context, link string) error {
 	)
 }
 
-func installBinaryTool(ctx *task.Context, exeName, toolVersion, githubProject, downloadURLForCI string) error {
+func installBinaryTool(
+	ctx *task.Context,
+	exeName, toolVersion, githubProject, downloadURLForCI string,
+) error {
 	devBin, err := devBinDir()
 	if err != nil {
 		return err
@@ -315,7 +337,9 @@ func SAModTidy(ctx *task.Context) error {
 		// Restore originals, ignoring errors since they need tidying anyway.
 		_ = os.WriteFile("go.mod", origGoMod, 0600)
 		_ = os.WriteFile("go.sum", origGoSum, 0600)
-		return errors.New("go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes")
+		return errors.New(
+			"go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes",
+		)
 	}
 
 	return nil
@@ -323,7 +347,15 @@ func SAModTidy(ctx *task.Context) error {
 
 // SAEvergreenValidate runs `evergreen validate` on common.yml and ensures the file is valid.
 func SAEvergreenValidate(ctx *task.Context) error {
-	output, err := sh.RunOutput(ctx, "evergreen", "validate", "--file", "common.yml", "-p", "mongo-tools")
+	output, err := sh.RunOutput(
+		ctx,
+		"evergreen",
+		"validate",
+		"--file",
+		"common.yml",
+		"-p",
+		"mongo-tools",
+	)
 	if err != nil {
 		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
 	}

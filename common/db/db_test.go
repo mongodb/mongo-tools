@@ -128,7 +128,9 @@ func TestConfigureClientForSRV(t *testing.T) {
 		toolOptions := options.New("test", "", "", "", true, enabled)
 		// AuthSource without a username is invalid, we want to check the URI does not get
 		// validated as part of client configuration
-		_, err := toolOptions.ParseArgs([]string{"--uri", "mongodb://foo/?authSource=admin", "--username", "bar"})
+		_, err := toolOptions.ParseArgs(
+			[]string{"--uri", "mongodb://foo/?authSource=admin", "--username", "bar"},
+		)
 		So(err, ShouldBeNil)
 
 		_, err = configureClient(*toolOptions)
@@ -316,26 +318,29 @@ func TestServerCertificateVerification(t *testing.T) {
 	auth := DBGetAuthOptions()
 	sslOrigin := DBGetSSLOptions()
 	Convey("When initializing a session provider", t, func() {
-		Convey("connection shall succeed if provided with intermediate certificate only as well", func() {
-			ssl := sslOrigin
-			ssl.SSLCAFile = "../db/testdata/ia.pem"
-			opts := options.ToolOptions{
-				Connection: &options.Connection{
-					Port:    DefaultTestPort,
-					Timeout: 10,
-				},
-				URI:  DBGetConnString(),
-				SSL:  &ssl,
-				Auth: &auth,
-			}
-			opts.URI.ConnString.SSLCaFile = "../db/testdata/ia.pem"
-			provider, err := NewSessionProvider(opts)
-			So(err, ShouldBeNil)
-			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
-			Convey("and should be closeable", func() {
-				provider.Close()
-			})
-		})
+		Convey(
+			"connection shall succeed if provided with intermediate certificate only as well",
+			func() {
+				ssl := sslOrigin
+				ssl.SSLCAFile = "../db/testdata/ia.pem"
+				opts := options.ToolOptions{
+					Connection: &options.Connection{
+						Port:    DefaultTestPort,
+						Timeout: 10,
+					},
+					URI:  DBGetConnString(),
+					SSL:  &ssl,
+					Auth: &auth,
+				}
+				opts.URI.ConnString.SSLCaFile = "../db/testdata/ia.pem"
+				provider, err := NewSessionProvider(opts)
+				So(err, ShouldBeNil)
+				So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
+				Convey("and should be closeable", func() {
+					provider.Close()
+				})
+			},
+		)
 	})
 }
 
@@ -394,7 +399,8 @@ func TestServerPKCS8Verification(t *testing.T) {
 }
 
 func TestAuthConnection(t *testing.T) {
-	if !testtype.HasTestType(testtype.AWSAuthTestType) && !testtype.HasTestType(testtype.KerberosTestType) {
+	if !testtype.HasTestType(testtype.AWSAuthTestType) &&
+		!testtype.HasTestType(testtype.KerberosTestType) {
 		t.SkipNow()
 	}
 	Convey("With an AWS or Keberos auth URI", t, func() {
@@ -437,7 +443,9 @@ func TestConfigureClientMultipleHosts(t *testing.T) {
 		}
 
 		toolOptions := options.New("test", "", "", "", true, enabled)
-		_, err := toolOptions.ParseArgs([]string{"--uri", "mongodb://localhost:27017,localhost:27018/test"})
+		_, err := toolOptions.ParseArgs(
+			[]string{"--uri", "mongodb://localhost:27017,localhost:27018/test"},
+		)
 		So(err, ShouldBeNil)
 
 		_, err = configureClient(*toolOptions)

@@ -201,7 +201,12 @@ func streamOutput(prefix string, reader io.Reader) {
 	}
 }
 
-func runAndStreamStderr(logPrefix string, name string, envOverrides map[string]string, args ...string) error {
+func runAndStreamStderr(
+	logPrefix string,
+	name string,
+	envOverrides map[string]string,
+	args ...string,
+) error {
 	cmd := exec.Command(name, args...)
 
 	cmd.Env = os.Environ()
@@ -721,7 +726,10 @@ func buildMSI() {
 
 	currentVersionLabel := "100"
 	if versionLabel != currentVersionLabel {
-		check(fmt.Errorf("msiUpgradeCode in release.go must be updated"), "msiUpgradeCode should be updated")
+		check(
+			fmt.Errorf("msiUpgradeCode in release.go must be updated"),
+			"msiUpgradeCode should be updated",
+		)
 	}
 
 	candle := filepath.Join(wixPath, "candle.exe")
@@ -941,7 +949,9 @@ func generateFullReleaseJSON(v version.Version) {
 	}
 
 	if !canPerformStableRelease(v) {
-		log.Println("current build is not a stable release task; not generating and uploading full JSON feed")
+		log.Println(
+			"current build is not a stable release task; not generating and uploading full JSON feed",
+		)
 		return
 	}
 
@@ -1038,7 +1048,12 @@ func uploadReleaseJSON(v version.Version) {
 			// We assume there's at most one archive artifact and one package artifact
 			// for a given download entry.
 			if ext == ".tgz" || ext == ".zip" {
-				dl.Archive = download.ToolsArchive{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
+				dl.Archive = download.ToolsArchive{
+					URL:    artifactURL,
+					Md5:    md5sum,
+					Sha1:   sha1sum,
+					Sha256: sha256sum,
+				}
 			} else {
 				dl.Package = &download.ToolsPackage{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
 			}
@@ -1057,12 +1072,18 @@ func uploadReleaseJSON(v version.Version) {
 	check(err, "unmarshal full.json into download.JSONFeed")
 
 	// Append the new version to full.json and upload
-	fullFeed.Versions = append(fullFeed.Versions, &download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+	fullFeed.Versions = append(
+		fullFeed.Versions,
+		&download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls},
+	)
 	uploadFeedFile("full.json", &fullFeed, awsClient)
 
 	// Upload only the most recent version to release.json
 	var feed download.JSONFeed
-	feed.Versions = append(feed.Versions, &download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls})
+	feed.Versions = append(
+		feed.Versions,
+		&download.ToolsVersion{Version: v.StringWithoutPre(), Downloads: dls},
+	)
 
 	uploadFeedFile("release.json", &feed, awsClient)
 }
@@ -1075,7 +1096,10 @@ func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS
 	err := jsonEncoder.Encode(*feed)
 	check(err, "encode json feed")
 
-	log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", filename)
+	log.Printf(
+		"uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
+		filename,
+	)
 	err = awsClient.UploadBytes("downloads.mongodb.org", "/tools/db", filename, &feedBuffer)
 	check(err, "upload json feed")
 }
@@ -1156,10 +1180,16 @@ func uploadRelease(v version.Version) {
 				err = copyFile(unstableFile, latestStableFile)
 				check(err, "copying %s to %s", unstableFile, latestStableFile)
 
-				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
+				log.Printf(
+					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
+					stableFile,
+				)
 				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
 				check(err, "uploading %q file to S3", stableFile)
-				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
+				log.Printf(
+					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
+					latestStableFile,
+				)
 				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
 				check(err, "uploading %q file to S3", latestStableFile)
 			}
@@ -1175,15 +1205,45 @@ type LinuxRepo struct {
 }
 
 var linuxRepoVersionsStable = []LinuxRepo{
-	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")}, // any 4.4 stable release version will send the package to the "4.4" repo
-	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")}, // any 5.0 stable release version will send the package to the "5.0" repo
-	{"6.0", "6.0.0", "server-6.0", os.Getenv("NOTARY_TOKEN_6_0")}, // any 6.0 stable release version will send the package to the "6.0" repo
-	{"7.0", "7.0.0", "server-7.0", os.Getenv("NOTARY_TOKEN_7_0")}, // any 7.0 stable release version will send the package to the "7.0" repo
+	{
+		"4.4",
+		"4.4.0",
+		"server-4.4",
+		os.Getenv("NOTARY_TOKEN_4_4"),
+	}, // any 4.4 stable release version will send the package to the "4.4" repo
+	{
+		"5.0",
+		"5.0.0",
+		"server-5.0",
+		os.Getenv("NOTARY_TOKEN_5_0"),
+	}, // any 5.0 stable release version will send the package to the "5.0" repo
+	{
+		"6.0",
+		"6.0.0",
+		"server-6.0",
+		os.Getenv("NOTARY_TOKEN_6_0"),
+	}, // any 6.0 stable release version will send the package to the "6.0" repo
+	{
+		"7.0",
+		"7.0.0",
+		"server-7.0",
+		os.Getenv("NOTARY_TOKEN_7_0"),
+	}, // any 7.0 stable release version will send the package to the "7.0" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
-	{"development", "4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
-	{"testing", "4.0.0-rc0", "", ""},              // any rc version will send the package to the "testing" repo
+	{
+		"development",
+		"4.0.0-15-gabcde123",
+		"",
+		"",
+	}, // any non-rc pre-release version will send the package to the "development" repo
+	{
+		"testing",
+		"4.0.0-rc0",
+		"",
+		"",
+	}, // any rc version will send the package to the "testing" repo
 }
 
 // findArgIndex is the helper function to locate index of provided arg value from an array of arg list
@@ -1309,7 +1369,12 @@ func linuxRelease(v version.Version) {
 						}
 
 						envOverridesLog["NOTARY_TOKEN"] = "[REDACTED]"
-						log.Printf("[%s] curatorArgs: %v, envOverrides: %v\n", prefix, curatorArgsLog, envOverridesLog)
+						log.Printf(
+							"[%s] curatorArgs: %v, envOverrides: %v\n",
+							prefix,
+							curatorArgsLog,
+							envOverridesLog,
+						)
 
 						err = runAndStreamStderr(prefix, "./curator", envOverrides, curatorArgs...)
 
@@ -1361,7 +1426,12 @@ func downloadMongodAndShell(v string) {
 	err = json.NewDecoder(res.Body).Decode(&feed)
 	check(err, "decode JSON feed")
 
-	url, githash, serverVersion, err := feed.FindURLHashAndVersion(v, pf.Name, string(pf.Arch), "enterprise")
+	url, githash, serverVersion, err := feed.FindURLHashAndVersion(
+		v,
+		pf.Name,
+		string(pf.Arch),
+		"enterprise",
+	)
 	if err == download.ServerURLMissingError {
 		// If a server version is not found from JSON feed, handle this by downloading the artifacts from evergreen.
 		fmt.Printf("warning: download a version not found in JSON feed\n")
@@ -1481,7 +1551,11 @@ func untargz(src, dst string) {
 			err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
 			check(err, "create directory for extracting zip")
 
-			destinationFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, header.FileInfo().Mode())
+			destinationFile, err := os.OpenFile(
+				path,
+				os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+				header.FileInfo().Mode(),
+			)
 			check(err, "open file for extracting zip")
 
 			_, err = io.Copy(destinationFile, tarReader)
@@ -1546,7 +1620,12 @@ func downloadArtifacts(v string, artifactNames []string) {
 	}
 
 	if numArtifactsDownloaded != len(artifactNames) {
-		log.Fatalf("expect to download %d artifacts %s, only downloaded %d", len(artifactNames), artifactNames, numArtifactsDownloaded)
+		log.Fatalf(
+			"expect to download %d artifacts %s, only downloaded %d",
+			len(artifactNames),
+			artifactNames,
+			numArtifactsDownloaded,
+		)
 	}
 }
 

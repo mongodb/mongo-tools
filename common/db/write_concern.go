@@ -29,7 +29,10 @@ const (
 // NewMongoWriteConcern takes a string (from the command line writeConcern option) and a ConnString object
 // (from the command line uri option) and returns a WriteConcern. If both are provided, preference is given to
 // the command line writeConcern option. If neither is provided, the default 'majority' write concern is constructed.
-func NewMongoWriteConcern(writeConcern string, cs *connstring.ConnString) (wc *writeconcern.WriteConcern, err error) {
+func NewMongoWriteConcern(
+	writeConcern string,
+	cs *connstring.ConnString,
+) (wc *writeconcern.WriteConcern, err error) {
 
 	// Log whatever write concern was generated
 	defer func() {
@@ -103,7 +106,9 @@ func constructWCFromString(writeConcern string) (*writeconcern.WriteConcern, err
 }
 
 // parseJSONWriteConcern converts a JSON map representing a write concern object into a WriteConcern.
-func parseJSONWriteConcern(jsonWriteConcern map[string]interface{}) (*writeconcern.WriteConcern, error) {
+func parseJSONWriteConcern(
+	jsonWriteConcern map[string]interface{},
+) (*writeconcern.WriteConcern, error) {
 	var opts []writeconcern.Option
 
 	// Construct new options from 'w', if it exists; otherwise default to 'majority'

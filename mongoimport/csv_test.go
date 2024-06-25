@@ -36,7 +36,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
 		})
@@ -47,7 +54,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 		})
@@ -63,7 +77,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b", int32(2)},
 				{"c", `foo" "bar`},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -80,7 +101,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b", int32(2)},
 				{"c", " 3e"},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -98,7 +126,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", " 3e"},
 				{"field3", " may"},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
@@ -117,7 +152,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"c", " 3e"},
 				{"field3", " may"},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 4)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 
@@ -135,7 +177,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
 		})
@@ -146,7 +195,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b.c", new(FieldAutoParser), pgAutoCast, "auto", []string{"b", "c"}},
 				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 1)
 			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
 		})
@@ -168,7 +224,14 @@ func TestCSVStreamDocument(t *testing.T) {
 				{"b", int32(5)},
 				{"c", int32(6)},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			docChan := make(chan bson.D, 2)
 			So(r.StreamDocument(true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedReadOne)
@@ -214,7 +277,14 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 		Convey("setting the header should read the first line of the CSV", func() {
 			contents := "extraHeader1, extraHeader2, extraHeader3"
 			colSpecs := []ColumnSpec{}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 		})
@@ -222,24 +292,52 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 		Convey("setting non-colliding nested CSV headers should not raise an error", func() {
 			contents := "a, b, c"
 			colSpecs := []ColumnSpec{}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 			contents = "a.b.c, a.b.d, c"
 			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r = NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 
 			contents = "a.b, ab, a.c"
 			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r = NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 3)
 
 			contents = "a, ab, ac, dd"
 			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r = NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			So(len(r.colSpecs), ShouldEqual, 4)
 		})
@@ -247,18 +345,39 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 		Convey("setting colliding nested CSV headers should raise an error", func() {
 			contents := "a, a.b, c"
 			colSpecs := []ColumnSpec{}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
 
 			contents = "a.b.c, a.b.d.c, a.b.d"
 			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r = NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
 
 			//nolint:dupword
 			contents = "a, a, a"
 			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r = NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
 		})
 
@@ -266,29 +385,76 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			contents := "c, a., b"
 			colSpecs := []ColumnSpec{}
 			So(err, ShouldBeNil)
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(
+				NewCSVInputReader(
+					colSpecs,
+					bytes.NewReader([]byte(contents)),
+					os.Stdout,
+					1,
+					false,
+					false,
+				).ReadAndValidateHeader(),
+				ShouldNotBeNil,
+			)
 		})
 
 		Convey("setting the header that starts in a dot should error", func() {
 			contents := "c, .a, b"
 			colSpecs := []ColumnSpec{}
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(
+				NewCSVInputReader(
+					colSpecs,
+					bytes.NewReader([]byte(contents)),
+					os.Stdout,
+					1,
+					false,
+					false,
+				).ReadAndValidateHeader(),
+				ShouldNotBeNil,
+			)
 		})
 
 		Convey("setting the header that contains multiple consecutive dots should error", func() {
 			contents := "c, a..a, b"
 			colSpecs := []ColumnSpec{}
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(
+				NewCSVInputReader(
+					colSpecs,
+					bytes.NewReader([]byte(contents)),
+					os.Stdout,
+					1,
+					false,
+					false,
+				).ReadAndValidateHeader(),
+				ShouldNotBeNil,
+			)
 
 			contents = "c, a.a, b.b...b"
 			colSpecs = []ColumnSpec{}
-			So(NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false).ReadAndValidateHeader(), ShouldNotBeNil)
+			So(
+				NewCSVInputReader(
+					colSpecs,
+					bytes.NewReader([]byte(contents)),
+					os.Stdout,
+					1,
+					false,
+					false,
+				).ReadAndValidateHeader(),
+				ShouldNotBeNil,
+			)
 		})
 
 		Convey("setting the header using an empty file should return EOF", func() {
 			contents := ""
 			colSpecs := []ColumnSpec{}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldEqual, io.EOF)
 			So(len(r.colSpecs), ShouldEqual, 0)
 		})
@@ -300,7 +466,14 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
 			}
-			r := NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
+			r := NewCSVInputReader(
+				colSpecs,
+				bytes.NewReader([]byte(contents)),
+				os.Stdout,
+				1,
+				false,
+				false,
+			)
 			So(r.ReadAndValidateHeader(), ShouldBeNil)
 			// if ReadAndValidateHeader() is called with column specs already passed
 			// in, the header should be replaced with the read header line
@@ -338,24 +511,27 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 func TestCSVConvert(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a CSV input reader", t, func() {
-		Convey("calling convert on a CSVConverter should return the expected BSON document", func() {
-			csvConverter := CSVConverter{
-				colSpecs: []ColumnSpec{
-					{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
-					{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
-					{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
-				},
-				data:  []string{"a", "b", "c"},
-				index: uint64(0),
-			}
-			expectedDocument := bson.D{
-				{"field1", "a"},
-				{"field2", "b"},
-				{"field3", "c"},
-			}
-			document, err := csvConverter.Convert()
-			So(err, ShouldBeNil)
-			So(document, ShouldResemble, expectedDocument)
-		})
+		Convey(
+			"calling convert on a CSVConverter should return the expected BSON document",
+			func() {
+				csvConverter := CSVConverter{
+					colSpecs: []ColumnSpec{
+						{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+						{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+						{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
+					},
+					data:  []string{"a", "b", "c"},
+					index: uint64(0),
+				}
+				expectedDocument := bson.D{
+					{"field1", "a"},
+					{"field2", "b"},
+					{"field3", "c"},
+				}
+				document, err := csvConverter.Convert()
+				So(err, ShouldBeNil)
+				So(document, ShouldResemble, expectedDocument)
+			},
+		)
 	})
 }

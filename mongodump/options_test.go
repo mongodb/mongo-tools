@@ -37,13 +37,17 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				},
 			},
 			{
-				InputArgs: []string{"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token"},
+				InputArgs: []string{
+					"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+				},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
 							ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
 							ConnString: connstring.ConnString{
-								AuthMechanismProperties: map[string]string{"AWS_SESSION_TOKEN": "token"},
+								AuthMechanismProperties: map[string]string{
+									"AWS_SESSION_TOKEN": "token",
+								},
 							},
 						},
 						Auth: &options.Auth{
@@ -57,7 +61,9 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				AuthType: "aws",
 			},
 			{
-				InputArgs: []string{"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm"},
+				InputArgs: []string{
+					"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
+				},
 				ExpectedOpts: Options{
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{

@@ -34,7 +34,11 @@ type BufferedBulkInserter struct {
 	upsert        bool
 }
 
-func newBufferedBulkInserter(collection *mongo.Collection, docLimit int, ordered bool) *BufferedBulkInserter {
+func newBufferedBulkInserter(
+	collection *mongo.Collection,
+	docLimit int,
+	ordered bool,
+) *BufferedBulkInserter {
 	bb := &BufferedBulkInserter{
 		collection:    collection,
 		bulkWriteOpts: options.BulkWrite().SetOrdered(ordered),
@@ -49,12 +53,18 @@ func newBufferedBulkInserter(collection *mongo.Collection, docLimit int, ordered
 }
 
 // NewOrderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing ordered bulk writes.
-func NewOrderedBufferedBulkInserter(collection *mongo.Collection, docLimit int) *BufferedBulkInserter {
+func NewOrderedBufferedBulkInserter(
+	collection *mongo.Collection,
+	docLimit int,
+) *BufferedBulkInserter {
 	return newBufferedBulkInserter(collection, docLimit, true)
 }
 
 // NewOrderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing unordered bulk writes.
-func NewUnorderedBufferedBulkInserter(collection *mongo.Collection, docLimit int) *BufferedBulkInserter {
+func NewUnorderedBufferedBulkInserter(
+	collection *mongo.Collection,
+	docLimit int,
+) *BufferedBulkInserter {
 	return newBufferedBulkInserter(collection, docLimit, false)
 }
 
@@ -100,19 +110,28 @@ func (bb *BufferedBulkInserter) Update(selector, update bson.D) (*mongo.BulkWrit
 	}
 	bb.byteCount += len(rawBytes)
 
-	return bb.addModel(mongo.NewUpdateOneModel().SetFilter(selector).SetUpdate(rawBytes).SetUpsert(bb.upsert))
+	return bb.addModel(
+		mongo.NewUpdateOneModel().SetFilter(selector).SetUpdate(rawBytes).SetUpsert(bb.upsert),
+	)
 }
 
 // Replace adds a document to the buffer for bulk replacement. If the buffer becomes full, the bulk write is performed, returning
 // any error that occurs.
-func (bb *BufferedBulkInserter) Replace(selector, replacement bson.D) (*mongo.BulkWriteResult, error) {
+func (bb *BufferedBulkInserter) Replace(
+	selector, replacement bson.D,
+) (*mongo.BulkWriteResult, error) {
 	rawBytes, err := bson.Marshal(replacement)
 	if err != nil {
 		return nil, err
 	}
 	bb.byteCount += len(rawBytes)
 
-	return bb.addModel(mongo.NewReplaceOneModel().SetFilter(selector).SetReplacement(rawBytes).SetUpsert(bb.upsert))
+	return bb.addModel(
+		mongo.NewReplaceOneModel().
+			SetFilter(selector).
+			SetReplacement(rawBytes).
+			SetUpsert(bb.upsert),
+	)
 }
 
 // InsertRaw adds a document, represented as raw bson bytes, to the buffer for bulk insertion. If the buffer becomes full,
@@ -125,7 +144,9 @@ func (bb *BufferedBulkInserter) InsertRaw(rawBytes []byte) (*mongo.BulkWriteResu
 
 // Delete adds a document to the buffer for bulk removal. If the buffer becomes full, the bulk delete is performed, returning
 // any error that occurs.
-func (bb *BufferedBulkInserter) Delete(selector, replacement bson.D) (*mongo.BulkWriteResult, error) {
+func (bb *BufferedBulkInserter) Delete(
+	selector, replacement bson.D,
+) (*mongo.BulkWriteResult, error) {
 	return bb.addModel(mongo.NewDeleteOneModel().SetFilter(selector))
 }
 

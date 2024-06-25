@@ -37,7 +37,14 @@ See http://docs.mongodb.com/database-tools/mongofiles/ for more information.`
 // ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	// initialize command-line opts
-	opts := options.New("mongofiles", versionStr, gitCommit, Usage, true, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
+	opts := options.New(
+		"mongofiles",
+		versionStr,
+		gitCommit,
+		Usage,
+		true,
+		options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true},
+	)
 
 	storageOpts := &StorageOptions{}
 	inputOpts := &InputOptions{}
@@ -66,7 +73,10 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.WriteConcern = wc
 
 	// set ReadPreference
-	opts.ReadPreference, err = db.NewReadPreference(inputOpts.ReadPreference, opts.URI.ParsedConnString())
+	opts.ReadPreference, err = db.NewReadPreference(
+		inputOpts.ReadPreference,
+		opts.URI.ParsedConnString(),
+	)
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
 	}

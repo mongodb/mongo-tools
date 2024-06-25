@@ -31,7 +31,11 @@ func (glf *JSONLineFormatter) Finish() {
 }
 
 // FormatLines formats the StatLines as JSON.
-func (jlf *JSONLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
+func (jlf *JSONLineFormatter) FormatLines(
+	lines []*line.StatLine,
+	headerKeys []string,
+	keyNames map[string]string,
+) string {
 	// middle ground b/t the StatLines and the JSON string to be returned
 	jsonFormat := map[string]interface{}{}
 

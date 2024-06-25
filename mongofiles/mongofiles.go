@@ -113,7 +113,9 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 	switch args[0] {
 	case List:
 		if len(args) > 2 {
-			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
+			return fmt.Errorf(
+				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			)
 		}
 		if len(args) == 1 {
 			mf.FileName = ""
@@ -140,7 +142,9 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		mf.FileNameRegex = args[1]
 	case Search, Delete:
 		if len(args) > 2 {
-			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
+			return fmt.Errorf(
+				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			)
 		}
 		// also make sure the supporting argument isn't literally an
 		// empty string for example, mongofiles get ""
@@ -150,7 +154,9 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		mf.FileName = args[1]
 	case GetID, DeleteID:
 		if len(args) > 2 {
-			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
+			return fmt.Errorf(
+				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			)
 		}
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("'%v' argument missing", args[0])
@@ -158,7 +164,9 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		mf.Id = args[1]
 	case PutID:
 		if len(args) > 3 {
-			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
+			return fmt.Errorf(
+				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			)
 		}
 		if len(args) < 3 || args[1] == "" || args[2] == "" {
 			return fmt.Errorf("'%v' argument(s) missing", args[0])
@@ -166,7 +174,10 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		mf.FileName = args[1]
 		mf.Id = args[2]
 	default:
-		return fmt.Errorf("'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)", args[0])
+		return fmt.Errorf(
+			"'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			args[0],
+		)
 	}
 
 	if mf.StorageOptions.GridFSPrefix == "" {
@@ -483,13 +494,20 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	}
 
 	database := client.Database(mf.StorageOptions.DB)
-	mf.bucket, err = gridfs.NewBucket(database, &driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix})
+	mf.bucket, err = gridfs.NewBucket(
+		database,
+		&driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix},
+	)
 	if err != nil {
 		return "", fmt.Errorf("error getting GridFS bucket: %v", err)
 	}
 
 	if displayHost {
-		log.Logvf(log.Always, "connected to: %v", util.SanitizeURI(mf.ToolOptions.URI.ConnectionString))
+		log.Logvf(
+			log.Always,
+			"connected to: %v",
+			util.SanitizeURI(mf.ToolOptions.URI.ConnectionString),
+		)
 	}
 
 	// first validate the namespaces we'll be using: <db>.<prefix>.files and <db>.<prefix>.chunks

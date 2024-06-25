@@ -275,7 +275,10 @@ func (node *NodeMonitor) Disconnect() {
 
 // Report collects the stat info for a single node and sends found hostnames on
 // the "discover" channel if checkShards is true.
-func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.ServerStatus, error) {
+func (node *NodeMonitor) Poll(
+	discover chan string,
+	checkShards bool,
+) (*status.ServerStatus, error) {
 	stat := &status.ServerStatus{}
 	log.Logvf(log.DebugHigh, "getting session on server: %v", node.host)
 	session, err := node.sessionProvider.GetSession()
@@ -285,7 +288,8 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	}
 	log.Logvf(log.DebugHigh, "got session on server: %v", node.host)
 
-	result := session.Database("admin").RunCommand(context.TODO(), bson.D{{"serverStatus", 1}, {"recordStats", 0}})
+	result := session.Database("admin").
+		RunCommand(context.TODO(), bson.D{{"serverStatus", 1}, {"recordStats", 0}})
 	err = result.Err()
 	if err != nil {
 		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
@@ -324,7 +328,9 @@ func (node *NodeMonitor) Poll(discover chan string, checkShards bool) (*status.S
 	stat.Host = node.host
 	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
 		log.Logvf(log.DebugLow, "checking config database to discover shards")
-		shardCursor, err := session.Database("config").Collection("shards").Find(context.TODO(), bson.M{}, nil)
+		shardCursor, err := session.Database("config").
+			Collection("shards").
+			Find(context.TODO(), bson.M{}, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error discovering shards: %v", err)
 		}

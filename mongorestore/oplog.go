@@ -232,7 +232,11 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			// indexes, we need to convert the command to "createIndexes" command for each single index and apply
 			collectionName, indexes := extractIndexDocumentFromCommitIndexBuilds(op)
 			if indexes == nil {
-				return fmt.Errorf("failed to parse IndexDocument from commitIndexBuild in %s, %v", collectionName, op)
+				return fmt.Errorf(
+					"failed to parse IndexDocument from commitIndexBuild in %s, %v",
+					collectionName,
+					op,
+				)
 			}
 
 			if restore.OutputOptions.ConvertLegacyIndexes {
@@ -251,7 +255,11 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			// server > 4.4 no longer supports applying createIndexes oplog, we need to convert the oplog to createIndexes command and execute it
 			collectionName, index := extractIndexDocumentFromCreateIndexes(op)
 			if index.Key == nil {
-				return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
+				return fmt.Errorf(
+					"failed to parse IndexDocument from createIndexes in %s, %v",
+					collectionName,
+					op,
+				)
 			}
 
 			indexes := []*idx.IndexDocument{index}
@@ -450,7 +458,10 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 		if len(timestampFields[1]) > 0 {
 			increment, err = strconv.Atoi(timestampFields[1])
 			if err != nil {
-				return primitive.Timestamp{}, fmt.Errorf("error parsing timestamp increment: %v", err)
+				return primitive.Timestamp{}, fmt.Errorf(
+					"error parsing timestamp increment: %v",
+					err,
+				)
 			}
 		} else {
 			// handle the case where the user writes "<time_t>:" with no ordinal
@@ -481,7 +492,8 @@ func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 
 		// The createIndexes oplog command requires 'ui' for some server versions, so
 		// in that case we fall back to an old-style system.indexes insert.
-		if op.Operation == "c" && op.Object[0].Key == "createIndexes" && restore.needsCreateIndexWorkaround() {
+		if op.Operation == "c" && op.Object[0].Key == "createIndexes" &&
+			restore.needsCreateIndexWorkaround() {
 			return convertCreateIndexToIndexInsert(op)
 		}
 	}

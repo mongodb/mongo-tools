@@ -6,7 +6,7 @@ golines_flags="--max-len 100 --no-reformat-tags"
 
 if [ "$1" == "--lint" ]; then
     # shellcheck disable=SC2086
-    OUTPUT=$(golines \
+    OUTPUT=$(./dev-bin/golines \
         $golines_flags \
         --dry-run \
         "${@:2}")
@@ -16,7 +16,7 @@ if [ "$1" == "--lint" ]; then
     fi
 else
     # shellcheck disable=SC2086
-    golines \
+    ./dev-bin/golines \
         $golines_flags \
         --write-output \
         "${@:1}"
