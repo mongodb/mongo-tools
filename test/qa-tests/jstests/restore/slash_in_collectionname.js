@@ -35,8 +35,8 @@
 
   // dump the data
   var ret = toolTest.runTool.apply(toolTest, ['dump']
-      .concat(getDumpTarget(dumpTarget))
-      .concat(commonToolArgs));
+    .concat(getDumpTarget(dumpTarget))
+    .concat(commonToolArgs));
   assert.eq(0, ret);
 
   sourceDB[sourceCollName].drop();

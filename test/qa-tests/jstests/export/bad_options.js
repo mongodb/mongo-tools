@@ -25,38 +25,38 @@
 
   // run mongoexport with bad json as the --query
   ret = toolTest.runTool.apply(null, ['export', '--db', 'test',
-      '--collection', 'data', '--query', '{ hello }'].concat(sslOptions));
+    '--collection', 'data', '--query', '{ hello }'].concat(sslOptions));
   assert.neq(0, ret);
 
   // run mongoexport with a bad argument to --skip
   ret = toolTest.runTool.apply(null, ['export',
-      '--db', 'test', '--collection', 'data', '--sort', '{a: 1}',
-      '--skip', 'jamesearljones'].concat(sslOptions));
+    '--db', 'test', '--collection', 'data', '--sort', '{a: 1}',
+    '--skip', 'jamesearljones'].concat(sslOptions));
   assert.neq(0, ret);
 
   // run mongoexport with a bad argument to --sort
   ret = toolTest.runTool.apply(null, ['export',
-      '--db', 'test', '--collection', 'data', '--sort', '{ hello }']
-      .concat(sslOptions));
+    '--db', 'test', '--collection', 'data', '--sort', '{ hello }']
+    .concat(sslOptions));
   assert.neq(0, ret);
 
   // run mongoexport with a bad argument to --limit
   ret = toolTest.runTool.apply(null, ['export', '--db', 'test',
-      '--collection', 'data', '--sort', '{a: 1}', '--limit', 'jamesearljones']
-      .concat(sslOptions));
+    '--collection', 'data', '--sort', '{a: 1}', '--limit', 'jamesearljones']
+    .concat(sslOptions));
   assert.neq(0, ret);
 
   // run mongoexport with --query and --queryFile
   ret = toolTest.runTool.apply(null, ['export', '--db', 'test',
-      '--collection', 'data',
-      '--query', '{"a":1}',
-      '--queryFile', 'jstests/export/testdata/query.json'].concat(sslOptions));
+    '--collection', 'data',
+    '--query', '{"a":1}',
+    '--queryFile', 'jstests/export/testdata/query.json'].concat(sslOptions));
   assert.neq(0, ret);
 
   // run mongoexport with a --queryFile that doesn't exist
   ret = toolTest.runTool.apply(null, ['export', '--db', 'test',
-      '--collection', 'data',
-      '--queryFile', 'jstests/nope'].concat(sslOptions));
+    '--collection', 'data',
+    '--queryFile', 'jstests/nope'].concat(sslOptions));
   assert.neq(0, ret);
 
   // success

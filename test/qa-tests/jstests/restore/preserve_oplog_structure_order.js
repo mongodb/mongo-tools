@@ -29,11 +29,11 @@
   // With several executions the chances of all false positives diminishes.
   for (var i=0; i<10; i++) {
     var ret = toolTest.runTool('restore', '--oplogReplay',
-        'jstests/restore/testdata/dump_with_complex_id_oplog',
-        '--ssl',
-        '--sslPEMKeyFile=jstests/libs/client.pem',
-        '--sslCAFile=jstests/libs/ca.pem',
-        '--sslAllowInvalidHostnames');
+      'jstests/restore/testdata/dump_with_complex_id_oplog',
+      '--ssl',
+      '--sslPEMKeyFile=jstests/libs/client.pem',
+      '--sslCAFile=jstests/libs/ca.pem',
+      '--sslAllowInvalidHostnames');
     assert.eq(0, ret);
   }
 

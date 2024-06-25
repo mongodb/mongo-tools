@@ -19,6 +19,9 @@ const (
 	goimportsVersion = "v0.22.0"
 	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
+	// This is the latest version to support a YAML config file. Updating to
+	// the new config file syntax did not seem trivial.
+	eslintVersion       = "8.57.0"
 	golangCILintVersion = "1.59.1"
 	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
@@ -44,6 +47,9 @@ func SAInstallDevTools(ctx *task.Context) error {
 		return err
 	}
 	if err := installPrecious(ctx); err != nil {
+		return err
+	}
+	if err := installEslint(ctx); err != nil {
 		return err
 	}
 	return installPrettier(ctx)
@@ -249,6 +255,37 @@ func installBinaryTool(
 			return sh.Run(ctx, cmd[0], cmd[1:]...)
 		},
 	)
+}
+
+func installEslint(ctx *task.Context) error {
+	eslint, err := eslintPath()
+	if err != nil {
+		return err
+	}
+
+	exists, err := executableExistsWithVersion(ctx, eslint, eslintVersion)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
+	return sh.Run(
+		ctx,
+		"npm", "install",
+		"--no-save",
+		fmt.Sprintf("eslint@%s", eslintVersion),
+	)
+}
+
+func eslintPath() (string, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, "node_modules", ".bin", "eslint"), nil
 }
 
 func installPrettier(ctx *task.Context) error {

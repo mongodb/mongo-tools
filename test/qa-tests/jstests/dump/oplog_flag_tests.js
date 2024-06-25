@@ -31,12 +31,12 @@
     'for (var i = 1001; i < 10000; ++i) { ' +
     '  db.getSiblingDB(\'foo\').bar.insert({ x: i }); ' +
     '}',
-    undefined,
-    undefined,
-    '--tls',
-    '--tlsCertificateKeyFile=jstests/libs/client.pem',
-    '--tlsCAFile=jstests/libs/ca.pem',
-    '--tlsAllowInvalidHostnames'];
+  undefined,
+  undefined,
+  '--tls',
+  '--tlsCertificateKeyFile=jstests/libs/client.pem',
+  '--tlsCAFile=jstests/libs/ca.pem',
+  '--tlsAllowInvalidHostnames'];
   var insertsShell = startParallelShell.apply(null, shellArgs);
 
   assert.lt.soon(1000, db.bar.count.bind(db.bar), 'should have more documents');

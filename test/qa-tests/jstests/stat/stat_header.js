@@ -18,12 +18,12 @@
 
   clearRawMongoProgramOutput();
   x = runMongoProgram.apply(this, ["mongostat", "--port", toolTest.port, "--rowcount", 1]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.soon(outputIncludesHeader, "normally a header appears");
 
   clearRawMongoProgramOutput();
   x = runMongoProgram.apply(this, ["mongostat", "--port", toolTest.port, "--rowcount", 1, "--noheaders"]
-      .concat(commonToolArgs));
+    .concat(commonToolArgs));
   assert.eq.soon(false, outputIncludesHeader, "--noheaders suppresses the header");
 
   toolTest.stop();

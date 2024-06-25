@@ -69,7 +69,7 @@ var isFinished = function(mongo, name) {
  */
 var setResult = function(mongo, name, result, err) {
   mongo.getCollection("config.testResult")
-      .update({_id: name}, {_id: name, result: result, err: err}, true);
+    .update({_id: name}, {_id: name, result: result, err: err}, true);
 };
 
 /**
@@ -118,7 +118,7 @@ var RandomFunctionContext = function(context) {
   };
 
   Random.randShardKey = function() {
-    var numFields = 2;  // Random.randInt(1, 3)
+    var numFields = 2; // Random.randInt(1, 3)
 
     var key = {};
     for (var i = 0; i < numFields; i++) {
@@ -141,8 +141,8 @@ var RandomFunctionContext = function(context) {
   };
 
   Random.randCluster = function() {
-    var numShards = 2;  // Random.randInt( 1, 10 )
-    var rs = false;     // Random.randBool()
+    var numShards = 2; // Random.randInt( 1, 10 )
+    var rs = false; // Random.randBool()
     var st = new ShardingTest({shards: numShards, mongos: 4, other: {rs: rs}});
 
     return st;
@@ -152,8 +152,8 @@ var RandomFunctionContext = function(context) {
 startParallelOps = function(mongo, proc, args, context) {
   var procName = proc.name + "-" + new ObjectId();
   var seed = new ObjectId(new ObjectId().valueOf().split("").reverse().join(""))
-      .getTimestamp()
-      .getTime();
+    .getTimestamp()
+    .getTime();
 
   // Make sure we aren't finished before we start
   setFinished(mongo, procName, false);

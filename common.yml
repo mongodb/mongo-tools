@@ -1533,21 +1533,6 @@ tasks:
             set -e
             ./dev-bin/precious lint --all
 
-  - name: lint-js
-    commands:
-      - func: "fetch source"
-      - command: shell.exec
-        type: test
-        params:
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            set -x
-            set -v
-            set -e
-            PATH="/opt/nodejs/node-v16.17.0-linux-x64/bin:$PATH"
-            npm install eslint@3.2
-            node node_modules/eslint/bin/eslint.js test/qa-tests/jstests/**/*.js
-
   - name: qa-tests-5.0
     tags: ["5.0"]
     commands:
@@ -1780,7 +1765,6 @@ buildvariants:
       _platform: rhel80
     tasks:
       - name: lint
-      - name: lint-js
       - name: mod-tidy
       - name: evergreen-validate
       - name: vet

@@ -45,11 +45,11 @@
 
   clearRawMongoProgramOutput();
   pid = startMongoProgramNoConnect("mongostat",
-      "--host", st._mongos[0].host,
-      "--discover",
-      '--ssl',
-      '--sslPEMKeyFile=jstests/libs/client.pem',
-      '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames');
+    "--host", st._mongos[0].host,
+    "--discover",
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames');
   assert.soon(hasOnlyPorts(shardPorts), "--discover against a mongos sees all shards");
 
   st.stop();

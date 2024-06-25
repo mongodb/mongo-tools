@@ -2,6 +2,8 @@
 /dev-bin
 /mongo-release
 /mongodb-database-tools-*
+/package-lock.json
+/package.json
 /purls.txt
 /release.*
 /report.json
