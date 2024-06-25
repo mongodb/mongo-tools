@@ -55,19 +55,6 @@ const (
 )
 
 const (
-	ErrLostConnection     = "lost connection to server"
-	ErrNoReachableServers = "no reachable servers"
-	ErrNsNotFound         = "ns not found"
-	// replication errors list the replset name if we are talking to a mongos,
-	// so we can only check for this universal prefix.
-	ErrReplTimeoutPrefix            = "waiting for replication timed out"
-	ErrCouldNotContactPrimaryPrefix = "could not contact primary for replica set"
-	ErrWriteResultsUnavailable      = "write results unavailable from"
-	ErrCouldNotFindPrimaryPrefix    = `could not find host matching read preference { mode: "primary"`
-	ErrUnableToTargetPrefix         = "unable to target"
-	ErrNotMaster                    = "not master"
-	ErrConnectionRefusedSuffix      = "Connection refused"
-
 	// ignorable errors.
 	ErrDuplicateKeyCode         = 11000
 	ErrFailedDocumentValidation = 121
