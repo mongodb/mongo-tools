@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 )
 
-// GridLineFormatter uses a text.GridWriter to format the StatLines as a grid
+// GridLineFormatter uses a text.GridWriter to format the StatLines as a grid.
 type GridLineFormatter struct {
 	*limitableFormatter
 	*text.GridWriter
@@ -43,13 +43,13 @@ func init() {
 	FormatterConstructors[""] = NewGridLineFormatter
 }
 
-// headerInterval is the number of chunks before the header is re-printed in GridLineFormatter
+// headerInterval is the number of chunks before the header is re-printed in GridLineFormatter.
 const headerInterval = 10
 
 func (glf *GridLineFormatter) Finish() {
 }
 
-// FormatLines formats the StatLines as a grid
+// FormatLines formats the StatLines as a grid.
 func (glf *GridLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
 	buf := &bytes.Buffer{}
 

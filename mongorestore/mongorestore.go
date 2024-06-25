@@ -11,7 +11,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,12 +60,11 @@ type MongoRestore struct {
 	// other internal state
 	manager *intents.Manager
 
-	objCheck         bool
-	oplogLimit       primitive.Timestamp
-	isMongos         bool
-	isAtlasProxy     bool
-	useWriteCommands bool
-	authVersions     authVersionPair
+	objCheck     bool
+	oplogLimit   primitive.Timestamp
+	isMongos     bool
+	isAtlasProxy bool
+	authVersions authVersionPair
 
 	// a map of database names to a list of collection names
 	knownCollections      map[string][]string
@@ -658,7 +656,7 @@ func (restore *MongoRestore) preFlightChecks() error {
 
 func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 	if restore.InputOptions.Archive == "-" {
-		rc = ioutil.NopCloser(restore.InputReader)
+		rc = io.NopCloser(restore.InputReader)
 	} else {
 		targetStat, err := os.Stat(restore.InputOptions.Archive)
 		if err != nil {

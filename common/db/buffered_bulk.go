@@ -73,7 +73,7 @@ func (bb *BufferedBulkInserter) SetUpsert(upsert bool) *BufferedBulkInserter {
 	return bb
 }
 
-// throw away the old bulk and init a new one
+// throw away the old bulk and init a new one.
 func (bb *BufferedBulkInserter) resetBulk() {
 	bb.writeModels = bb.writeModels[:0]
 	bb.docCount = 0

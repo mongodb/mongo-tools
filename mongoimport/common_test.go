@@ -98,16 +98,6 @@ var (
 	}
 )
 
-func convertBSONDToRaw(documents []bson.D) []bson.Raw {
-	rawBSONDocuments := []bson.Raw{}
-	for _, document := range documents {
-		rawBytes, err := bson.Marshal(document)
-		So(err, ShouldBeNil)
-		rawBSONDocuments = append(rawBSONDocuments, rawBytes)
-	}
-	return rawBSONDocuments
-}
-
 func TestValidateFields(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -239,7 +229,8 @@ func TestSetNestedDocumentValue(t *testing.T) {
 		Convey("ensure top level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.E{"c", 4}
-			setNestedDocumentValue([]string{"c"}, 4, testDocument, false)
+			err := setNestedDocumentValue([]string{"c"}, 4, testDocument, false)
+			So(err, ShouldBeNil)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2], ShouldResemble, expectedDocument)
@@ -247,7 +238,8 @@ func TestSetNestedDocumentValue(t *testing.T) {
 		Convey("ensure new nested top-level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.D{{"b", "4"}}
-			setNestedDocumentValue([]string{"c", "b"}, "4", testDocument, false)
+			err := setNestedDocumentValue([]string{"c", "b"}, "4", testDocument, false)
+			So(err, ShouldBeNil)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2].Key, ShouldResemble, "c")
@@ -256,7 +248,8 @@ func TestSetNestedDocumentValue(t *testing.T) {
 		Convey("ensure existing nested level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
 			expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
-			setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
+			err := setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
+			So(err, ShouldBeNil)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
@@ -266,12 +259,14 @@ func TestSetNestedDocumentValue(t *testing.T) {
 			testDocument := &currentDocument
 			expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
 			expectedDocumentTwo := bson.E{"f", 23}
-			setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
+			err := setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
+			So(err, ShouldBeNil)
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
 			So(*newDocument[1].Value.(*bson.D), ShouldResemble, expectedDocumentOne)
-			setNestedDocumentValue([]string{"f"}, 23, testDocument, false)
+			err = setNestedDocumentValue([]string{"f"}, 23, testDocument, false)
+			So(err, ShouldBeNil)
 			newDocument = *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2], ShouldResemble, expectedDocumentTwo)
@@ -505,6 +500,7 @@ func TestDoSequentialStreaming(t *testing.T) {
 		Convey("documents moving through the input channel should be processed and returned in sequence", func() {
 			// start goroutines to do sequential processing
 			for _, iw := range importWorkers {
+				//nolint:errcheck
 				go iw.processDocuments(true)
 			}
 			// feed in a bunch of documents
@@ -569,20 +565,20 @@ func TestChannelQuorumError(t *testing.T) {
 			ch := make(chan error, 2)
 			ch <- nil
 			ch <- io.EOF
-			So(channelQuorumError(ch, 2), ShouldNotBeNil)
+			So(channelQuorumError(ch), ShouldNotBeNil)
 		})
 		Convey("no error should be returned if none is received", func() {
 			ch := make(chan error, 2)
 			ch <- nil
 			ch <- nil
-			So(channelQuorumError(ch, 2), ShouldBeNil)
+			So(channelQuorumError(ch), ShouldBeNil)
 		})
 		Convey("no error should be returned if up to quorum nil errors are received", func() {
 			ch := make(chan error, 3)
 			ch <- nil
 			ch <- nil
 			ch <- io.EOF
-			So(channelQuorumError(ch, 2), ShouldBeNil)
+			So(channelQuorumError(ch), ShouldBeNil)
 		})
 	})
 }

@@ -9,21 +9,19 @@ package options
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"regexp"
 	"runtime"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
-
-	"testing"
-	"time"
 )
 
 const (
@@ -631,7 +629,7 @@ func runConfigFileTestCases(t *testing.T, testCases []configTester) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.description, func(t *testing.T) {
-			if err := ioutil.WriteFile(configFilePath, testCase.yamlBytes, 0644); err != nil {
+			if err := os.WriteFile(configFilePath, testCase.yamlBytes, 0644); err != nil {
 				require.NoError(t, err)
 			}
 			opts := New("test", "", "", "", false, EnabledOptions{true, true, true, true})
@@ -742,7 +740,7 @@ func TestParseConfigFile(t *testing.T) {
 	t.Run("with command line args that override config file values", func(t *testing.T) {
 		configFilePath := "./test-config.yaml"
 		defer os.Remove(configFilePath)
-		if err := ioutil.WriteFile(configFilePath, []byte("password: abc123"), 0644); err != nil {
+		if err := os.WriteFile(configFilePath, []byte("password: abc123"), 0644); err != nil {
 			require.NoError(t, err)
 		}
 
@@ -1019,7 +1017,7 @@ func TestOptionsParsingForSRV(t *testing.T) {
 	runOptionsTestCases(t, testCases)
 }
 
-// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115
+// Regression test for TOOLS-1694 to prevent issue from TOOLS-1115.
 func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -1103,7 +1101,7 @@ func TestPasswordPrompt(t *testing.T) {
 		err := opts.NormalizeOptionsAndURI()
 		require.NoError(t, err)
 
-		prompt, err := ioutil.ReadFile(stderr.Name())
+		prompt, err := os.ReadFile(stderr.Name())
 		require.NoError(t, err)
 		require.Empty(t, string(prompt))
 	})
@@ -1120,7 +1118,7 @@ func TestPasswordPrompt(t *testing.T) {
 		err := opts.NormalizeOptionsAndURI()
 		require.NoError(t, err)
 
-		prompt, err := ioutil.ReadFile(stderr.Name())
+		prompt, err := os.ReadFile(stderr.Name())
 		require.NoError(t, err)
 		require.Regexp(t, expectPrompt, string(prompt))
 		require.Equal(t, pw, opts.ConnString.Password)
@@ -1141,7 +1139,7 @@ func TestPasswordPrompt(t *testing.T) {
 		err := opts.NormalizeOptionsAndURI()
 		require.NoError(t, err)
 
-		prompt, err := ioutil.ReadFile(stderr.Name())
+		prompt, err := os.ReadFile(stderr.Name())
 		require.NoError(t, err)
 		require.Regexp(t, expectPrompt, string(prompt))
 		require.Equal(t, pw, opts.ConnString.Password)
@@ -1161,7 +1159,7 @@ func TestPasswordPrompt(t *testing.T) {
 		err := opts.NormalizeOptionsAndURI()
 		require.NoError(t, err)
 
-		prompt, err := ioutil.ReadFile(stderr.Name())
+		prompt, err := os.ReadFile(stderr.Name())
 		require.NoError(t, err)
 		require.Regexp(t, expectPrompt, string(prompt))
 		require.Equal(t, pw, opts.ConnString.Password)

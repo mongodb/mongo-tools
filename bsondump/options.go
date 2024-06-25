@@ -25,7 +25,7 @@ type Options struct {
 	*OutputOptions
 }
 
-// Types out output supported by the --type option
+// Types out output supported by the --type option.
 const (
 	DebugOutputType = "debug"
 	JSONOutputType  = "json"

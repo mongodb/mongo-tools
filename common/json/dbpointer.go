@@ -7,10 +7,10 @@
 package json
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"fmt"
 	"reflect"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Transition functions for recognizing DBPointer.

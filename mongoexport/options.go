@@ -8,7 +8,7 @@ package mongoexport
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -84,7 +84,7 @@ func (inputOptions *InputOptions) GetQuery() ([]byte, error) {
 	if inputOptions.Query != "" {
 		return []byte(inputOptions.Query), nil
 	} else if inputOptions.QueryFile != "" {
-		content, err := ioutil.ReadFile(inputOptions.QueryFile)
+		content, err := os.ReadFile(inputOptions.QueryFile)
 		if err != nil {
 			err = fmt.Errorf("error reading queryFile: %s", err)
 		}

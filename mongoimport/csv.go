@@ -139,7 +139,7 @@ func (r *CSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (ret
 		csvErrChan <- streamDocuments(ordered, r.numDecoders, csvRecordChan, readDocs)
 	}()
 
-	return channelQuorumError(csvErrChan, 2)
+	return channelQuorumError(csvErrChan)
 }
 
 // Convert implements the Converter interface for CSV input. It converts a
@@ -153,12 +153,14 @@ func (c CSVConverter) Convert() (b bson.D, err error) {
 		c.useArrayIndexFields,
 	)
 	if _, ok := err.(coercionError); ok {
-		c.Print()
+		if err = c.Print(); err != nil {
+			return
+		}
 		err = nil
 	}
 	return
 }
 
-func (c CSVConverter) Print() {
-	c.rejectWriter.Write(c.data)
+func (c CSVConverter) Print() error {
+	return c.rejectWriter.Write(c.data)
 }

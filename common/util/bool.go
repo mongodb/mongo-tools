@@ -13,7 +13,7 @@ import (
 )
 
 // IsTruthy returns true for values the server will interpret as "true".
-// True values include {}, [], "", true, and any numbers != 0
+// True values include {}, [], "", true, and any numbers != 0.
 func IsTruthy(val interface{}) bool {
 	if val == nil {
 		return false
@@ -33,7 +33,7 @@ func IsTruthy(val interface{}) bool {
 }
 
 // IsFalsy returns true for values the server will interpret as "false".
-// False values include numbers == 0, false, and nil
+// False values include numbers == 0, false, and nil.
 func IsFalsy(val interface{}) bool {
 	return !IsTruthy(val)
 }

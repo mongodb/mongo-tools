@@ -150,7 +150,7 @@ func (r *TSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (ret
 		tsvErrChan <- streamDocuments(ordered, r.numDecoders, tsvRecordChan, readDocs)
 	}()
 
-	return channelQuorumError(tsvErrChan, 2)
+	return channelQuorumError(tsvErrChan)
 }
 
 // Convert implements the Converter interface for TSV input. It converts a
@@ -164,12 +164,12 @@ func (c TSVConverter) Convert() (b bson.D, err error) {
 		c.useArrayIndexFields,
 	)
 	if _, ok := err.(coercionError); ok {
-		c.Print()
-		err = nil
+		err = c.Print()
 	}
 	return
 }
 
-func (c TSVConverter) Print() {
-	c.rejectWriter.Write([]byte(c.data + "\n"))
+func (c TSVConverter) Print() error {
+	_, err := c.rejectWriter.Write([]byte(c.data + "\n"))
+	return err
 }

@@ -22,7 +22,7 @@ import (
 )
 
 // determineOplogCollectionName uses a command to infer
-// the name of the oplog collection in the connected db
+// the name of the oplog collection in the connected db.
 func (dump *MongoDump) determineOplogCollectionName() error {
 	masterDoc := bson.M{}
 	err := dump.SessionProvider.RunString("isMaster", &masterDoc, "admin")
@@ -47,7 +47,7 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 
 }
 
-// getOplogCurrentTime returns the most recent oplog entry
+// getOplogCurrentTime returns the most recent oplog entry.
 func (dump *MongoDump) getCurrentOplogTime() (primitive.Timestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
 	var tempBSON bson.Raw

@@ -3,7 +3,6 @@ package txn
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -16,7 +15,7 @@ const (
 )
 
 func readTestData() (bson.Raw, error) {
-	b, err := ioutil.ReadFile(OplogEntriesFile)
+	b, err := os.ReadFile(OplogEntriesFile)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't load %s: %v", OplogEntriesFile, err)
 	}

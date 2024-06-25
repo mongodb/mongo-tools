@@ -193,7 +193,7 @@ func TestNumberOfWrites(t *testing.T) {
 	})
 }
 
-// helper type for counting calls to a writer
+// helper type for counting calls to a writer.
 type CountWriter int
 
 func (cw CountWriter) Count() int {

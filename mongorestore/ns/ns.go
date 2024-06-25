@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-// Renamer maps namespaces given user-defined patterns
+// Renamer maps namespaces given user-defined patterns.
 type Renamer struct {
 	// List of regexps to match namespaces against
 	matchers []*regexp.Regexp
@@ -21,7 +21,7 @@ type Renamer struct {
 	replacers []string
 }
 
-// Matcher identifies namespaces given user-defined patterns
+// Matcher identifies namespaces given user-defined patterns.
 type Matcher struct {
 	// List of regexps to check namespaces against
 	matchers []*regexp.Regexp
@@ -36,29 +36,29 @@ var (
 	unescapeReplacer = strings.NewReplacer(unescapeReplacements...)
 )
 
-// Escape escapes instances of '\' and '*' with a backslash
+// Escape escapes instances of '\' and '*' with a backslash.
 func Escape(in string) string {
 	in = strings.Replace(in, `\`, `\\`, -1)
 	in = strings.Replace(in, "*", `\*`, -1)
 	return in
 }
 
-// Unescape removes the escaping backslash where applicable
+// Unescape removes the escaping backslash where applicable.
 func Unescape(in string) string {
 	return unescapeReplacer.Replace(in)
 }
 
 var (
-	// Finds non-escaped asterisks
+	// Finds non-escaped asterisks.
 	wildCardRE = regexp.MustCompile(`^(|.*[^\\])\*(.*)$`)
-	// Finds $variables$ at the beginning of a string
+	// Finds $variables$ at the beginning of a string.
 	variableRE = regexp.MustCompile(`^\$([^\$]*)\$(.*)$`)
-	// List of control characters that a regexp can use
+	// List of control characters that a regexp can use.
 	escapedChars = `*[](){}\?$^+!.|`
 )
 
 // peelLeadingVariable returns the first variable in the given string and
-// the remaining string if there is such a variable at the beginning
+// the remaining string if there is such a variable at the beginning.
 func peelLeadingVariable(in string) (name, rest string, ok bool) {
 	var match = variableRE.FindStringSubmatch(in)
 	if len(match) != 3 {
@@ -68,7 +68,7 @@ func peelLeadingVariable(in string) (name, rest string, ok bool) {
 }
 
 // replaceWildCards replaces non-escaped asterisks with named variables
-// i.e. 'pre*.*' becomes 'pre$1$.$2$'
+// i.e. 'pre*.*' becomes 'pre$1$.$2$'.
 func replaceWildCards(in string) string {
 	count := 1
 	match := wildCardRE.FindStringSubmatch(in)
@@ -80,18 +80,18 @@ func replaceWildCards(in string) string {
 	return Unescape(in)
 }
 
-// countAsterisks returns the number of non-escaped asterisks
+// countAsterisks returns the number of non-escaped asterisks.
 func countAsterisks(in string) int {
 	return strings.Count(in, "*") - strings.Count(in, `\*`)
 }
 
-// countDollarSigns returns the number of dollar signs
+// countDollarSigns returns the number of dollar signs.
 func countDollarSigns(in string) int {
 	return strings.Count(in, "$")
 }
 
 // validateReplacement performs preliminary checks on the from and to strings,
-// returning an error if it finds a syntactic issue
+// returning an error if it finds a syntactic issue.
 func validateReplacement(from, to string) error {
 	if strings.Contains(from, "$") {
 		if countDollarSigns(from)%2 != 0 {
@@ -109,7 +109,7 @@ func validateReplacement(from, to string) error {
 }
 
 // processReplacement converts the given from and to strings into a regexp and
-// a corresponding replacement string
+// a corresponding replacement string.
 func processReplacement(from, to string) (re *regexp.Regexp, replacer string, err error) {
 	if !strings.Contains(from, "$") {
 		// Convert asterisk wild cards to named variables
@@ -179,7 +179,7 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 }
 
 // NewRenamer creates a Renamer that will use the given from and to slices to
-// map namespaces
+// map namespaces.
 func NewRenamer(fromSlice, toSlice []string) (r *Renamer, err error) {
 	if len(fromSlice) != len(toSlice) {
 		err = fmt.Errorf("Different number of froms and tos")
@@ -205,7 +205,7 @@ func NewRenamer(fromSlice, toSlice []string) (r *Renamer, err error) {
 	return
 }
 
-// Get returns the rewritten namespace according to the renamer's rules
+// Get returns the rewritten namespace according to the renamer's rules.
 func (r *Renamer) Get(name string) string {
 	for i, matcher := range r.matchers {
 		if matcher.MatchString(name) {
@@ -216,7 +216,7 @@ func (r *Renamer) Get(name string) string {
 }
 
 // NewMatcher creates a matcher that will use the given list patterns to
-// match namespaces
+// match namespaces.
 func NewMatcher(patterns []string) (m *Matcher, err error) {
 	m = new(Matcher)
 	for _, pattern := range patterns {
@@ -233,7 +233,7 @@ func NewMatcher(patterns []string) (m *Matcher, err error) {
 	return
 }
 
-// Has returns whether the given namespace matches any of the matcher's patterns
+// Has returns whether the given namespace matches any of the matcher's patterns.
 func (m *Matcher) Has(name string) bool {
 	for _, re := range m.matchers {
 		if re.MatchString(name) {

@@ -97,12 +97,12 @@ func TestDateBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	timeNow := time.Now()
-	secs := int64(timeNow.Unix())
+	secs := timeNow.Unix()
 	nanosecs := timeNow.Nanosecond()
 	millis := int64(nanosecs / 1e6)
 
-	timeNowSecs := time.Unix(secs, int64(0))
-	timeNowMillis := time.Unix(secs, int64(millis*1e6))
+	timeNowSecs := time.Unix(secs, 0)
+	timeNowMillis := time.Unix(secs, millis*1e6)
 
 	Convey("Converting BSON time.Time 's dates to JSON", t, func() {
 		// json.Date is stored as an int64 representing the number of milliseconds since the epoch

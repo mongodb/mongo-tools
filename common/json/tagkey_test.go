@@ -60,6 +60,7 @@ type misnamedTag struct {
 }
 
 type badCodeTag struct {
+	//nolint:staticcheck
 	Z string `json:" !\"#&'()*+,."`
 }
 

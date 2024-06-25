@@ -38,14 +38,14 @@ func FormatMegabyteAmount(size int64) string {
 
 // FormatBits takes in a bit (not byte) count and returns a formatted string
 // including units with three total digits (except if it is less than 1k)
-// e.g. 12.0g, 0b, 124k
+// e.g. 12.0g, 0b, 124k.
 func FormatBits(size int64) string {
 	return formatUnitAmount(decimal, size, 3, shortBitUnits)
 }
 
 // formatUnitAmount formats the size using the units and at least minDigits
 // numbers, unless the number is already less than the base, where no decimal
-// will be added
+// will be added.
 func formatUnitAmount(base, size int64, minDigits int, units []string) string {
 	result := float64(size)
 	divisor := float64(base)
@@ -67,7 +67,7 @@ func formatUnitAmount(base, size int64, minDigits int, units []string) string {
 	return fmt.Sprintf(format, result, units[shifts])
 }
 
-// round applies the gradeschool method to round to the nth place
+// round applies the gradeschool method to round to the nth place.
 func round(result float64, precision int) float64 {
 	divisor := float64(math.Pow(10.0, float64(precision-1)))
 	// round(x) == floor(x + 0.5)

@@ -8,7 +8,7 @@ package db
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -35,7 +35,7 @@ func TestBufferlessBSONSource(t *testing.T) {
 		}
 		Convey("that we parse correctly with a BufferlessBSONSource", func() {
 			bsonSource := NewDecodedBSONSource(
-				NewBufferlessBSONSource(ioutil.NopCloser(writeBuf)))
+				NewBufferlessBSONSource(io.NopCloser(writeBuf)))
 			docs := []bson.M{}
 			count := 0
 			doc := &bson.M{}

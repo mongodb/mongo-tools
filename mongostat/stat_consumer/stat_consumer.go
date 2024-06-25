@@ -29,7 +29,7 @@ type StatConsumer struct {
 	flags                  int
 }
 
-// NewStatConsumer creates a new StatConsumer with no previous records
+// NewStatConsumer creates a new StatConsumer with no previous records.
 func NewStatConsumer(flags int, customHeaders []string, keyNames map[string]string, readerConfig *status.ReaderConfig, formatter LineFormatter, writer io.Writer) (sc *StatConsumer) {
 	sc = &StatConsumer{
 		formatter:     formatter,
@@ -46,7 +46,7 @@ func NewStatConsumer(flags int, customHeaders []string, keyNames map[string]stri
 	return sc
 }
 
-// Update takes in a ServerStatus and returns a StatLine if it has a previous record
+// Update takes in a ServerStatus and returns a StatLine if it has a previous record.
 func (sc *StatConsumer) Update(newStat *status.ServerStatus) (l *line.StatLine, seen bool) {
 	oldStat, seen := sc.oldStats[newStat.Host]
 	sc.oldStats[newStat.Host] = newStat
@@ -81,7 +81,7 @@ func (sc *StatConsumer) Update(newStat *status.ServerStatus) (l *line.StatLine, 
 }
 
 // FormatLines consumes StatLines, formats them, and sends them to its writer
-// It returns true if the formatter should no longer receive data
+// It returns true if the formatter should no longer receive data.
 func (sc *StatConsumer) FormatLines(lines []*line.StatLine) bool {
 	str := sc.formatter.FormatLines(lines, sc.headers, sc.keyNames)
 	_, err := fmt.Fprintf(sc.writer, "%s", str)

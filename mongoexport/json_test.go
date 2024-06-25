@@ -37,7 +37,7 @@ func TestWriteJSON(t *testing.T) {
 				So(out.String(), ShouldEqual, `{"_id":{"$oid":"`+objId.Hex()+`"}}`+"\n")
 			})
 
-			Convey("Canoncial format should be outputted if canonical is specified", func() {
+			Convey("Canonical format should be outputted if canonical is specified", func() {
 				exporter := NewJSONExportOutput(false, false, out, Canonical)
 
 				err := exporter.WriteHeader()

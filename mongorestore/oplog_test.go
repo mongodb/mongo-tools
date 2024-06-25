@@ -8,7 +8,6 @@ package mongorestore
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -159,7 +158,8 @@ func TestOplogRestore(t *testing.T) {
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		c1 := session.Database("db1").Collection("c1")
-		c1.Drop(nil)
+		err = c1.Drop(context.Background())
+		So(err, ShouldBeNil)
 
 		// Run mongorestore
 		result := restore.Restore()
@@ -167,10 +167,11 @@ func TestOplogRestore(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 
 		// Verify restoration
-		count, err := c1.CountDocuments(nil, bson.M{})
+		count, err := c1.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10)
-		session.Disconnect(context.Background())
+		err = session.Disconnect(context.Background())
+		So(err, ShouldBeNil)
 	})
 }
 
@@ -202,10 +203,11 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 
 		// Verify restoration
-		count, err := coll.CountDocuments(nil, bson.M{})
+		count, err := coll.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 1)
-		session.Disconnect(context.Background())
+		err = session.Disconnect(context.Background())
+		So(err, ShouldBeNil)
 	})
 }
 
@@ -216,6 +218,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No server available")
 	}
+	//nolint:errcheck
 	defer session.Disconnect(context.Background())
 
 	Convey("Index drop in oplog should delete it from indexCatalog", t, func() {
@@ -491,7 +494,10 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	}
 
 	c1 := session.Database("db1").Collection("c1")
-	c1.Drop(nil)
+	err = c1.Drop(context.Background())
+	if err != nil {
+		t.Fatal("Could not drop db1.c1")
+	}
 
 	Convey("With a test MongoRestore replay oplog with a 16 MiB document", t, func() {
 		// Generate an oplog document and verify that size exceeds 16 MiB.
@@ -500,7 +506,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 		So(len(oplogBytes), ShouldBeGreaterThan, db.MaxBSONSize)
 
 		// Temporarily write the oplog document to testdata/oplogdumpmaxsize/oplog.bson
-		err = ioutil.WriteFile("testdata/oplogdumpmaxsize/oplog.bson", oplogBytes, 0644)
+		err = os.WriteFile("testdata/oplogdumpmaxsize/oplog.bson", oplogBytes, 0644)
 		So(err, ShouldBeNil)
 		defer os.Remove("testdata/oplogdumpmaxsize/oplog.bson")
 
@@ -520,8 +526,11 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 		defer restore.Close()
 
 		// Make sure to drop the 16 MiB collection before disconnecting.
+		//
+		//nolint:errcheck
 		defer session.Disconnect(context.Background())
-		defer c1.Drop(nil)
+		//nolint:errcheck
+		defer c1.Drop(context.Background())
 
 		// Run mongorestore.
 		result := restore.Restore()
@@ -529,7 +538,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 
 		// Verify restoration (5 docs in c1.bson + 1 doc in oplog.bson).
-		count, err := c1.CountDocuments(nil, bson.M{})
+		count, err := c1.CountDocuments(context.Background(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 6)
 	})
@@ -567,7 +576,9 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 	// Creating the oplog document with the above 16 MiB document will allow
 	// the oplog document to exceed 16 MiB with the additional metadata.
 	var doc bson.D
-	bson.Unmarshal(rawdoc, &doc)
+	if err := bson.Unmarshal(rawdoc, &doc); err != nil {
+		return nil, err
+	}
 	oplog := db.Oplog{
 		Version:   2,
 		Operation: "i",

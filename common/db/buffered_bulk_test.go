@@ -33,6 +33,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			Auth: &auth,
 		}
 		err := opts.NormalizeOptionsAndURI()
+		So(err, ShouldBeNil)
 		provider, err := NewSessionProvider(opts)
 		So(provider, ShouldNotBeNil)
 		So(err, ShouldBeNil)
@@ -117,15 +118,15 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 					// test values
 					testDoc := bson.M{}
-					result := testCol.FindOne(nil, bson.M{"_id": 477232})
+					result := testCol.FindOne(context.Background(), bson.M{"_id": 477232})
 					err = result.Decode(&testDoc)
 					So(err, ShouldBeNil)
 					So(testDoc["_id"], ShouldEqual, 477232)
-					result = testCol.FindOne(nil, bson.M{"_id": 999999})
+					result = testCol.FindOne(context.Background(), bson.M{"_id": 999999})
 					err = result.Decode(&testDoc)
 					So(err, ShouldBeNil)
 					So(testDoc["_id"], ShouldEqual, 999999)
-					result = testCol.FindOne(nil, bson.M{"_id": 1})
+					result = testCol.FindOne(context.Background(), bson.M{"_id": 1})
 					err = result.Decode(&testDoc)
 					So(err, ShouldBeNil)
 					So(testDoc["_id"], ShouldEqual, 1)
@@ -151,7 +152,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 		})
 
 		Reset(func() {
-			provider.DropDatabase("tools-test")
+			So(provider.DropDatabase("tools-test"), ShouldBeNil)
 			provider.Close()
 		})
 	})

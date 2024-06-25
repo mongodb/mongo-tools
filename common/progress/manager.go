@@ -45,7 +45,7 @@ type BarWriter struct {
 }
 
 // NewBarWriter returns an initialized BarWriter with the given bar length and
-// byte-formatting toggle, waiting the given duration between writes
+// byte-formatting toggle, waiting the given duration between writes.
 func NewBarWriter(w io.Writer, waitTime time.Duration, barLength int, isBytes bool) *BarWriter {
 	return &BarWriter{
 		waitTime:  waitTime,
@@ -56,7 +56,7 @@ func NewBarWriter(w io.Writer, waitTime time.Duration, barLength int, isBytes bo
 	}
 }
 
-// Attach registers the given progressor with the manager
+// Attach registers the given progressor with the manager.
 func (manager *BarWriter) Attach(name string, progressor Progressor) {
 	pb := &Bar{
 		Name:      name,
@@ -115,7 +115,7 @@ func (manager *BarWriter) Detach(name string) {
 	manager.bars = updatedBars
 }
 
-// helper to render all bars in order
+// helper to render all bars in order.
 func (manager *BarWriter) renderAllBars() {
 	manager.Lock()
 	defer manager.Unlock()
@@ -130,6 +130,8 @@ func (manager *BarWriter) renderAllBars() {
 	if len(manager.bars) > 1 {
 		// we just write an empty array here, since a write call of any
 		// length to our log.Writer will trigger a new logline.
+		//
+		//nolint:errcheck
 		manager.writer.Write([]byte{})
 	}
 }

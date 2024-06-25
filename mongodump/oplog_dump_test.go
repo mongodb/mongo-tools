@@ -7,7 +7,7 @@
 package mongodump
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -17,7 +17,7 @@ import (
 func TestErrorOnImportCollection(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("An importCollection oplog entry should error", t, func() {
-		rawOp, err := ioutil.ReadFile("./testdata/importCollection.bson")
+		rawOp, err := os.ReadFile("./testdata/importCollection.bson")
 		So(err, ShouldBeNil)
 
 		err = oplogDocumentValidator(rawOp)

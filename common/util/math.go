@@ -11,7 +11,7 @@ import (
 	"reflect"
 )
 
-// Return the max of two ints
+// Return the max of two ints.
 func MaxInt(a, b int) int {
 	if a > b {
 		return a
@@ -25,7 +25,7 @@ type converterFunc func(interface{}) (interface{}, error)
 
 // this helper makes it simple to generate new numeric converters,
 // be sure to assign them on a package level instead of dynamically
-// within a function to avoid low performance
+// within a function to avoid low performance.
 func newNumberConverter(targetType reflect.Type) converterFunc {
 	return func(number interface{}) (interface{}, error) {
 		// to avoid panics on nil values
@@ -41,7 +41,7 @@ func newNumberConverter(targetType reflect.Type) converterFunc {
 	}
 }
 
-// making this package level so it is only evaluated once
+// making this package level so it is only evaluated once.
 var uint32Converter = newNumberConverter(reflect.TypeOf(uint32(0)))
 
 // ToUInt32 is a function for converting any numeric type

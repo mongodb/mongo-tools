@@ -8,6 +8,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -59,7 +60,7 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 	}
 
 	authSchemaQuery := bson.M{"_id": "authSchema"}
-	count, err := session.Database("admin").Collection("system.version").CountDocuments(nil, authSchemaQuery)
+	count, err := session.Database("admin").Collection("system.version").CountDocuments(context.TODO(), authSchemaQuery)
 	if err != nil {
 		return fmt.Errorf("error checking pressence of auth version: %v", err)
 	} else if count == 0 {

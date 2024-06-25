@@ -10,7 +10,7 @@ import (
 	"github.com/mongodb/mongo-tools/mongostat/status"
 )
 
-// StatLine is a wrapper for all metrics reported by mongostat for monitored hosts
+// StatLine is a wrapper for all metrics reported by mongostat for monitored hosts.
 type StatLine struct {
 	Fields  map[string]string
 	Error   error
@@ -31,7 +31,7 @@ func (slice StatLines) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
-// NewStatLine constructs a StatLine object from two ServerStatus objects
+// NewStatLine constructs a StatLine object from two ServerStatus objects.
 func NewStatLine(oldStat, newStat *status.ServerStatus, headerKeys []string, c *status.ReaderConfig) *StatLine {
 	line := &StatLine{
 		Fields: make(map[string]string),

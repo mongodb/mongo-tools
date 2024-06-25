@@ -54,9 +54,8 @@ func newTxnState(op db.Oplog) *txnState {
 // Because state is currently kept in memory, purge merely drops the reference
 // so the GC will eventually clean up.  Eventually, this might clean up a file
 // on disk.
-func (ts *txnState) purge() error {
+func (ts *txnState) purge() {
 	ts.buffer = nil
-	return nil
 }
 
 // Buffer stores transaction oplog entries until they are needed
@@ -281,10 +280,7 @@ func (b *Buffer) Stop() error {
 	b.wg.Wait()
 	var firstErr error
 	for _, state := range b.txns {
-		err := state.purge()
-		if err != nil && firstErr == nil {
-			firstErr = err
-		}
+		state.purge()
 	}
 
 	return firstErr

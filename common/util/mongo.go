@@ -18,7 +18,7 @@ const (
 	DefaultPort            = "27017"
 )
 
-// Extract the replica set name and the list of hosts from the connection string
+// Extract the replica set name and the list of hosts from the connection string.
 func SplitHostArg(connString string) ([]string, string) {
 
 	// strip off the replica set name from the beginning
@@ -62,7 +62,7 @@ func CreateConnectionAddrs(host, port string) []string {
 }
 
 // BuildURI assembles a URI from host and port arguments, including a possible
-// replica set name on the host part
+// replica set name on the host part.
 func BuildURI(host, port string) string {
 	seedlist, setname := SplitHostArg(host)
 

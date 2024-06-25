@@ -8,23 +8,20 @@ package mongorestore
 
 import (
 	"context"
+	"io"
+	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-
-	. "github.com/smartystreets/goconvey/convey"
-
-	"io"
-	"io/ioutil"
-	"os"
-	"testing"
 )
 
 func init() {
@@ -82,7 +79,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 
 			restore.archive = &archive.Reader{
 				Prelude: &archive.Prelude{},
-				In:      ioutil.NopCloser(io.LimitReader(file, i)),
+				In:      io.NopCloser(io.LimitReader(file, i)),
 			}
 
 			result := restore.Restore()
@@ -186,11 +183,11 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	adminSuffixedDB := session.Database(adminSuffixedDBName)
 
 	defer func() {
-		err = testDB.Drop(nil)
+		err = testDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
-		err = adminSuffixedDB.Drop(nil)
+		err = adminSuffixedDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop admin suffixed database: %v", err)
 		}
@@ -239,11 +236,11 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 	adminDB := session.Database(adminDBName)
 	adminSuffixedDB := session.Database(adminSuffixedDBName)
 	defer func() {
-		err = testDB.Drop(nil)
+		err = testDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
-		err = adminSuffixedDB.Drop(nil)
+		err = adminSuffixedDB.Drop(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to drop admin suffixed database: %v", err)
 		}
