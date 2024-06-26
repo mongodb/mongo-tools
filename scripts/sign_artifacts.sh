@@ -75,16 +75,17 @@ case $MONGO_OS in
 
   "windows-64")
     setup_garasign_authentication
-    msifile=$(ls mongodb-database-tools-*.msi)
+    msifile=$(ls mongodb-database-tools*.msi)
     authenticode_sign "$msifile"
-    zipfile=$(ls mongodb-database-tools-*.zip)
+    zipfile=$(ls mongodb-database-tools*.zip)
     pgp_sign "$zipfile" "$zipfile.sig"
     ;;
 
   *)
     setup_garasign_authentication
-    tarball=$(ls mongodb-database-tools-*.tgz)
-    pgp_sign "$tarball" "$tarball.sig"
+    for file in $(ls mongodb-database-tools*.{tgz,deb,rpm}); do
+        pgp_sign "$file" "$file.sig"
+    done
     ;;
 esac
 

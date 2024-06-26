@@ -203,7 +203,7 @@ func (p Platform) RPMArch() string {
 func (p Platform) ArtifactExtensions() []string {
 	switch p.OS {
 	case OSLinux:
-		return []string{"tgz", "tgz.sig", p.Pkg.String()}
+		return []string{"tgz", "tgz.sig", p.Pkg.String(), p.Pkg.String() + ".sig"}
 	case OSMac:
 		return []string{"zip"}
 	case OSWindows:
