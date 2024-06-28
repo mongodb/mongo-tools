@@ -552,3 +552,16 @@ repos:
       - arm64
     repos:
       - apt/ubuntu/dists/jammy/mongodb-enterprise
+
+  - name: ubuntu2404
+    type: deb
+    code_name: "noble"
+    edition: enterprise
+    bucket: repo.mongodb.com
+    component: multiverse
+    architectures:
+      - amd64
+      - i386
+      - arm64
+    repos:
+      - apt/ubuntu/dists/noble/mongodb-enterprise
