@@ -8,15 +8,12 @@ package mongodump
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/failpoint"
-	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -97,11 +94,6 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	contents, err := ioutil.ReadAll(oplogFile)
 	var oplog bson.D
 	require.NoError(t, bson.Unmarshal(contents, &oplog))
-
-	extJSON, err := bsonutil.ConvertBSONValueToLegacyExtJSON(oplog)
-	jsonBytes, err := json.Marshal(extJSON)
-	require.NoError(t, err)
-	fmt.Println(string(jsonBytes))
 
 	require.Equal(t, int32(1), oplog.Map()["multiOpType"])
 }
