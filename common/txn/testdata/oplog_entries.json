@@ -368,5 +368,44 @@
         ],
         "ns": "txntest.k",
         "postimage": [ ]
+    },
+    "not transaction with multiOpType": {
+        "ops": [
+            {
+                "lsid": {
+                    "id": { "$binary": "+0TxuFyBSeqjfJzju2Xl+w==", "$type": "04" },
+                    "uid": { "$binary": "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=", "$type": "00" }
+                },
+                "txnNumber": { "$numberLong": "0" },
+                "op": "c",
+                "o": {
+                    "applyOps": [ {
+                        "op": "i",
+                        "ns": "test.foo",
+                        "ui": { "$binary": "iSa6jmEaQsK7Gjt4GfYQ7Q==", "$type": "04" },
+                        "o": { "_id": 4, "x": -20, "y": 4 },
+                        "destinedRecipient": "shard0"
+                    },
+                        {
+                            "op": "i",
+                            "ns": "test.foo",
+                            "ui": { "$binary": "iSa6jmEaQsK7Gjt4GfYQ7Q==", "$type": "04" },
+                            "o": { "_id": 5, "x": -30, "y": 11 },
+                            "destinedRecipient": "shard1"
+                        }
+                    ]
+                },
+                "ts": { "$timestamp": { "t": 1609800491, "i": 1 } },
+                "t": { "$numberLong": "1" },
+                "wall": { "$date": "2021-01-04T17:48:11.237-05:00" },
+                "v": { "$numberLong": "2" },
+                "prevOpTime": {
+                    "ts": { "$timestamp": { "t": 0, "i": 0 } },
+                    "t": { "$numberLong": "-1" }
+                },
+                "multiOpType": 1
+            }
+        ],
+        "ns": "admin.$cmd"
     }
 }

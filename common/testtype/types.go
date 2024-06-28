@@ -39,6 +39,9 @@ const (
 
 	// For testing AWS auth via an STS AssumeRole request.
 	AWSAuthTestType = "TOOLS_TESTING_AWS_AUTH"
+
+	// Testing the tools with a replica set topology.
+	ReplSetTestType = "TOOLS_TESTING_REPLSET"
 )
 
 func HasTestType(testType string) bool {
