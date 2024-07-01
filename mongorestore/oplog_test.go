@@ -676,6 +676,11 @@ func TestShouldIgnoreNamespacee(t *testing.T) {
 }
 
 func TestOplogRestoreVectoredInsert(t *testing.T) {
+	testOplogRestoreVectoredInsert(t, true)
+	testOplogRestoreVectoredInsert(t, false)
+}
+
+func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	ctx := context.Background()
@@ -695,13 +700,19 @@ func TestOplogRestoreVectoredInsert(t *testing.T) {
 	}
 
 	// Prepare the test by creating the necessary collection.
+	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
 	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
+
+	oplogFileName := "testdata/oplogs/bson/vectored_insert.bson"
+	if linked {
+		oplogFileName = "testdata/oplogs/bson/linked_vectored_inserts.bson"
+	}
 
 	args := []string{
 		DirectoryOption, "testdata/coll_without_index",
 		OplogReplayOption,
 		DropOption,
-		OplogFileOption, "testdata/oplogs/bson/vectored_insert.bson",
+		OplogFileOption, oplogFileName,
 	}
 
 	restore, err := getRestoreWithArgs(args...)
@@ -714,6 +725,7 @@ func TestOplogRestoreVectoredInsert(t *testing.T) {
 	require.Equal(t, int64(0), result.Failures)
 
 	coll := session.Database("mongodump_test_db").Collection("coll1")
+	//defer require.NoError(t, coll.Drop(ctx))
 
 	// Verify restoration
 	cursor, err := coll.Find(ctx, bson.D{}, options.Find().SetSort(bson.D{{"_id", 1}}))
@@ -723,6 +735,15 @@ func TestOplogRestoreVectoredInsert(t *testing.T) {
 	expectedDocs := []bson.D{
 		{{"_id", 100}, {"a", 1}},
 		{{"_id", 200}, {"a", 2}},
+	}
+	if linked {
+		expectedDocs = []bson.D{
+			{{"_id", 300}, {"a", 3}},
+			{{"_id", 400}, {"a", 4}},
+			{{"_id", 500}, {"a", 5}},
+			{{"_id", 600}, {"a", 6}},
+			{{"_id", 700}, {"a", 7}},
+		}
 	}
 
 	i := 0
