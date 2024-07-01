@@ -162,6 +162,9 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		if ctx.Get("auth") == "true" {
 			env = append(env, testtype.AuthTestType+"=true")
 		}
+		if ctx.Get("topology") == "replSet" {
+			env = append(env, testtype.ReplSetTestType+"=true")
+		}
 
 		out := io.MultiWriter(ctx, outFile)
 

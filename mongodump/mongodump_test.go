@@ -62,7 +62,7 @@ func simpleMongoDumpInstance() *MongoDump {
 	var toolOptions *options.ToolOptions
 
 	// get ToolOptions from URI or defaults
-	if uri := os.Getenv("MONGOD"); uri != "" {
+	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
 		fakeArgs := []string{"--uri=" + uri}
 		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
 		_, err := toolOptions.ParseArgs(fakeArgs)
