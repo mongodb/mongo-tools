@@ -83,6 +83,7 @@ var testCases = []*TestData{
 	{name: "not transaction with lsid", entryCount: 1, notTxn: true},
 	{name: "not transaction with lsid and txnNumber", entryCount: 1, notTxn: true},
 	{name: "not transaction with lsid and txnNumber and command", entryCount: 1, notTxn: true},
+	{name: "not transaction with multiOpType", entryCount: 1, notTxn: true},
 }
 
 func TestMain(m *testing.M) {

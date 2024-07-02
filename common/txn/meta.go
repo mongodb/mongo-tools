@@ -50,6 +50,12 @@ type Meta struct {
 // future if we change the db.Oplog.Object to bson.Raw, so the API is designed
 // with failure as a possibility.
 func NewMeta(op db.Oplog) (Meta, error) {
+	// If a vectored insert is within a retryable session, it will contain `lsid`, `txnNumber`, and `prevOpTime` fields
+	// and also a `multiOpType: 1` field which distinguishes vectored inserts from transactions.
+	if op.MultiOpType != nil && *op.MultiOpType == 1 {
+		return Meta{}, nil
+	}
+
 	if op.LSID == nil || op.TxnNumber == nil || op.Operation != "c" {
 		return Meta{}, nil
 	}

@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -18,8 +19,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -670,4 +673,87 @@ func TestShouldIgnoreNamespacee(t *testing.T) {
 			t.Errorf("%s should have been %v but failed\n", testVals.ns, testVals.output)
 		}
 	}
+}
+
+func TestOplogRestoreVectoredInsert(t *testing.T) {
+	testOplogRestoreVectoredInsert(t, true)
+	testOplogRestoreVectoredInsert(t, false)
+}
+
+func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+	defer session.Disconnect(ctx)
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "8.0"); err != nil || cmp < 0 {
+		if err != nil {
+			t.Errorf("error getting FCV: %v", err)
+		}
+		t.Skipf("Requires server with FCV 8.0 or later; found %v", fcv)
+	}
+
+	// Prepare the test by creating the necessary collection.
+	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
+
+	oplogFileName := "testdata/oplogs/bson/vectored_insert.bson"
+	if linked {
+		oplogFileName = "testdata/oplogs/bson/linked_vectored_inserts.bson"
+	}
+
+	args := []string{
+		DirectoryOption, "testdata/coll_without_index",
+		OplogReplayOption,
+		DropOption,
+		OplogFileOption, oplogFileName,
+	}
+
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err)
+	defer restore.Close()
+
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err)
+	require.Equal(t, int64(0), result.Failures)
+
+	coll := session.Database("mongodump_test_db").Collection("coll1")
+	//defer require.NoError(t, coll.Drop(ctx))
+
+	// Verify restoration
+	cursor, err := coll.Find(ctx, bson.D{}, options.Find().SetSort(bson.D{{"_id", 1}}))
+	require.NoError(t, err)
+	defer cursor.Close(ctx)
+
+	expectedDocs := []bson.D{
+		{{"_id", 100}, {"a", 1}},
+		{{"_id", 200}, {"a", 2}},
+	}
+	if linked {
+		expectedDocs = []bson.D{
+			{{"_id", 300}, {"a", 3}},
+			{{"_id", 400}, {"a", 4}},
+			{{"_id", 500}, {"a", 5}},
+			{{"_id", 600}, {"a", 6}},
+			{{"_id", 700}, {"a", 7}},
+		}
+	}
+
+	i := 0
+	for cursor.Next(ctx) {
+		fmt.Println(cursor.Current)
+		require.Less(t, i, len(expectedDocs))
+		expectedDocRaw, marshalErr := bson.Marshal(expectedDocs[i])
+		require.NoError(t, marshalErr)
+		require.Equal(t, bson.Raw(expectedDocRaw), cursor.Current)
+		i++
+	}
+	require.Equal(t, len(expectedDocs), i)
 }

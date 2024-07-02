@@ -82,7 +82,11 @@ func GetBareArgs() []string {
 
 	args = append(args, GetSSLArgs()...)
 	args = append(args, GetAuthArgs()...)
-	args = append(args, "--host", "localhost", "--port", db.DefaultTestPort)
+	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
+		args = append(args, "--uri", uri)
+	} else {
+		args = append(args, "--host", "localhost", "--port", db.DefaultTestPort)
+	}
 
 	return args
 }
