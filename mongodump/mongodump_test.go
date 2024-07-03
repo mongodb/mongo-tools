@@ -332,6 +332,60 @@ func setUpTimeseries(dbName string, colName string) error {
 	return nil
 }
 
+func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	client, err := sessionProvider.GetSession()
+	if err != nil {
+		return err
+	}
+
+	if err := client.Database(dbName).Collection(collName).Drop(nil); err != nil {
+		return err
+	}
+
+	createCmd := bson.D{
+		{"create", collName},
+		{"timeseries", bson.D{
+			{"timeField", "t"},
+			{"metaField", "m"},
+		}},
+	}
+
+	createRes := sessionProvider.DB(dbName).RunCommand(nil, createCmd)
+	if createRes.Err() != nil {
+		return createRes.Err()
+	}
+
+	// Starting in v5.2, catalog entries for time-series collections have a new flag called timeseriesBucketsMayHaveMixedSchemaData in the md field.
+	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "5.2"); err != nil || cmp >= 0 {
+		if res := sessionProvider.DB(dbName).RunCommand(nil, bson.D{
+			{"collMod", collName},
+			{"timeseriesBucketsMayHaveMixedSchemaData", true},
+		}); res.Err() != nil {
+			return res.Err()
+		}
+	}
+
+	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
+	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
+	var bucketMap map[string]interface{}
+	if err := json.Unmarshal([]byte(bucketJSON), &bucketMap); err != nil {
+		return err
+	}
+	if err := bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap); err != nil {
+		return err
+	}
+	if _, err := bucketColl.InsertOne(nil, bucketMap); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getStringFromFile(path string) (string, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -1901,6 +1955,76 @@ func TestTimeseriesCollections(t *testing.T) {
 	if err != nil {
 		t.Logf("Failed to drop timeseries collection: %v", err)
 	}
+}
+
+func TestTimeseriesCollectionsWithMixedSchema(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
+	}
+
+	colName := "timeseriesColl"
+	dbName := "timeseries_test_DB"
+
+	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, colName))
+
+	md := simpleMongoDumpInstance()
+	md.ToolOptions.Namespace.DB = dbName
+	md.OutputOptions.Out = "dump"
+	md.OutputOptions.Out = ""
+	md.OutputOptions.Archive = "dump.archive"
+
+	require.NoError(t, md.Init())
+
+	require.NoError(t, md.Dump())
+
+	path, err := os.Getwd()
+	require.NoError(t, err)
+
+	archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+
+	archiveFile, err := os.Open(archiveFilePath)
+	require.NoError(t, err)
+	archiveReader := &archive.Reader{
+		In:      archiveFile,
+		Prelude: &archive.Prelude{},
+	}
+
+	require.NoError(t, archiveReader.Prelude.Read(archiveReader.In))
+
+	collectionMetadatas, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+	require.True(t, ok)
+
+	require.Len(t, collectionMetadatas, 1)
+	require.Equal(t, colName, collectionMetadatas[0].Collection)
+
+	pe, err := archiveReader.Prelude.NewPreludeExplorer()
+	require.NoError(t, err)
+
+	archiveContents, err := pe.ReadDir()
+	require.NoError(t, err)
+
+	for _, dirlike := range archiveContents {
+		if dirlike.IsDir() && dirlike.Name() == dbName {
+			dbContents, err := dirlike.ReadDir()
+			require.NoError(t, err)
+
+			require.Len(t, dbContents, 2)
+
+			for _, file := range dbContents {
+				require.Contains(t, []string{colName + ".metadata.json", "system.buckets." + colName + ".bson"}, file.Name())
+			}
+		}
+	}
+
+	require.NoError(t, archiveFile.Close())
+	require.NoError(t, os.Remove(archiveFilePath))
 }
 
 func TestFailDuringResharding(t *testing.T) {

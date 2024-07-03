@@ -1658,6 +1658,89 @@ func createTimeseries(dbName, coll string, client *mongo.Client) {
 	client.Database(dbName).RunCommand(context.Background(), createCmd)
 }
 
+func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.3"); cmp < 0 {
+		if err != nil {
+			t.Fatalf("Failed to get FCV: %v", err)
+		}
+		t.Skip("Requires server with FCV 5.3 or later")
+	}
+
+	dbName := "timeseries_test_DB"
+	testdb := session.Database(dbName)
+	bucketColl := testdb.Collection("system.buckets.timeseriesColl")
+
+	restore, err := getRestoreWithArgs(ArchiveOption + "=testdata/timeseries_tests/mixed_schema_dump.archive")
+	require.NoError(t, err)
+
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err)
+	require.Equal(t, int64(1), result.Successes)
+	require.Equal(t, int64(0), result.Failures)
+
+	count, err := testdb.Collection("timeseriesColl").CountDocuments(ctx, bson.M{})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), count)
+
+	count, err = bucketColl.CountDocuments(ctx, bson.M{})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count)
+
+	hasMixedSchema, err := timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
+	require.NoError(t, err)
+	require.False(t, hasMixedSchema)
+
+	require.NoError(t, testdb.Collection("timeseriesColl").Drop(ctx))
+}
+
+func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool, error) {
+	ctx := context.Background()
+	cursor, err := bucketColl.Database().RunCommandCursor(ctx, bson.D{
+		{"aggregate", bucketColl.Name()},
+		{"pipeline", bson.A{
+			bson.D{{"$listCatalog", bson.D{}}},
+		}},
+		{"cursor", bson.D{}},
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if !cursor.Next(ctx) {
+		return false, fmt.Errorf("no entry in $listCatalog response")
+	}
+
+	md, err := cursor.Current.LookupErr("md")
+	if err != nil {
+		return false, err
+	}
+
+	hasMixedSchema, err := md.Document().LookupErr("timeseriesBucketsMayHaveMixedSchemaData")
+	if err != nil {
+		return false, err
+	}
+
+	return hasMixedSchema.Boolean(), nil
+}
+
 func TestRestoreTimeseriesCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
