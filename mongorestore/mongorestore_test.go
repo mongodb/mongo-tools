@@ -1686,6 +1686,8 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	dbName := "timeseries_test_DB"
 	testdb := session.Database(dbName)
 	bucketColl := testdb.Collection("system.buckets.timeseriesColl")
+	
+	testdb.Collection("timeseriesColl").Drop(ctx)
 
 	restore, err := getRestoreWithArgs(ArchiveOption + "=testdata/timeseries_tests/mixed_schema_dump.archive")
 	require.NoError(t, err)
