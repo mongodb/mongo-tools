@@ -26,6 +26,11 @@ At the moment, there are no pre-release (alpha, beta, rc, etc.) versions of the 
 need to support pre-release versions of the Tools, we will need to update our release infrastructure
 to support them.
 
+## Supporting New Server Versions
+
+If adding support for a new server version, the Tools version should be able to be pushed to server's linux repo.
+This can be done by adding the server linux repo to `linuxRepoVersionsStable` in `release.go`.
+
 ## Releasing
 
 This section describes the steps for releasing a new version of the Tools.

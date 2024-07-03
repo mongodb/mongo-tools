@@ -1176,6 +1176,7 @@ var linuxRepoVersionsStable = []LinuxRepo{
 	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")}, // any 5.0 stable release version will send the package to the "5.0" repo
 	{"6.0", "6.0.0", "server-6.0", os.Getenv("NOTARY_TOKEN_6_0")}, // any 6.0 stable release version will send the package to the "6.0" repo
 	{"7.0", "7.0.0", "server-7.0", os.Getenv("NOTARY_TOKEN_7_0")}, // any 7.0 stable release version will send the package to the "7.0" repo
+	{"8.0", "8.0.0", "server-8.0", os.Getenv("NOTARY_TOKEN_8_0")}, // any 8.0 stable release version will send the package to the "8.0" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
