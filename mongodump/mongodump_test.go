@@ -360,8 +360,8 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 		return createRes.Err()
 	}
 
-	// Starting in v5.2, catalog entries for time-series collections have a new flag called timeseriesBucketsMayHaveMixedSchemaData in the md field.
-	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "5.2"); err != nil || cmp >= 0 {
+	// SERVER-84531 was only backported to 7.3.
+	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "7.3"); err != nil || cmp >= 0 {
 		if res := sessionProvider.DB(dbName).RunCommand(nil, bson.D{
 			{"collMod", collName},
 			{"timeseriesBucketsMayHaveMixedSchemaData", true},
