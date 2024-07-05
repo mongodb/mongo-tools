@@ -1957,7 +1957,7 @@ func TestTimeseriesCollections(t *testing.T) {
 	}
 }
 
-func TestTimeseriesCollectionsWithMixedSchema(t *testing.T) {
+func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
