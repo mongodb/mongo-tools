@@ -1167,20 +1167,19 @@ func uploadRelease(v version.Version) {
 type LinuxRepo struct {
 	name               string
 	mongoVersionNumber string
-	notaryKeyName      string
-	notaryToken        string
 }
 
 var linuxRepoVersionsStable = []LinuxRepo{
-	{"4.4", "4.4.0", "server-4.4", os.Getenv("NOTARY_TOKEN_4_4")}, // any 4.4 stable release version will send the package to the "4.4" repo
-	{"5.0", "5.0.0", "server-5.0", os.Getenv("NOTARY_TOKEN_5_0")}, // any 5.0 stable release version will send the package to the "5.0" repo
-	{"6.0", "6.0.0", "server-6.0", os.Getenv("NOTARY_TOKEN_6_0")}, // any 6.0 stable release version will send the package to the "6.0" repo
-	{"7.0", "7.0.0", "server-7.0", os.Getenv("NOTARY_TOKEN_7_0")}, // any 7.0 stable release version will send the package to the "7.0" repo
+	{"4.4", "4.4.0"}, // any 4.4 stable release version will send the package to the "4.4" repo
+	{"5.0", "5.0.0"}, // any 5.0 stable release version will send the package to the "5.0" repo
+	{"6.0", "6.0.0"}, // any 6.0 stable release version will send the package to the "6.0" repo
+	{"7.0", "7.0.0"}, // any 7.0 stable release version will send the package to the "7.0" repo
+	{"8.0", "8.0.0"}, // any 8.0 stable release version will send the package to the "8.0" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
-	{"development", "4.0.0-15-gabcde123", "", ""}, // any non-rc pre-release version will send the package to the "development" repo
-	{"testing", "4.0.0-rc0", "", ""},              // any rc version will send the package to the "testing" repo
+	{"development", "4.0.0-15-gabcde123"}, // any non-rc pre-release version will send the package to the "development" repo
+	{"testing", "4.0.0-rc0"},              // any rc version will send the package to the "testing" repo
 }
 
 // findArgIndex is the helper function to locate index of provided arg value from an array of arg list
@@ -1289,8 +1288,6 @@ func linuxRelease(v version.Version) {
 						}
 
 						envOverrides := make(map[string]string)
-						envOverrides["NOTARY_KEY_NAME"] = linuxRepo.notaryKeyName
-						envOverrides["NOTARY_TOKEN"] = linuxRepo.notaryToken
 
 						// Remove sensitive information from curator input and log
 						curatorArgsLog := append([]string{}, curatorArgs...)
@@ -1305,7 +1302,9 @@ func linuxRelease(v version.Version) {
 							panic("Could not find --api_key inside curatorArgs")
 						}
 
-						envOverridesLog["NOTARY_TOKEN"] = "[REDACTED]"
+						if envOverridesLog["NOTARY_TOKEN"] != "" {
+							envOverridesLog["NOTARY_TOKEN"] = "[REDACTED]"
+						}
 						log.Printf("[%s] curatorArgs: %v, envOverrides: %v\n", prefix, curatorArgsLog, envOverridesLog)
 
 						err = runAndStreamStderr(prefix, "./curator", envOverrides, curatorArgs...)
