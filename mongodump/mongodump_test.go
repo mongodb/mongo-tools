@@ -1969,7 +1969,7 @@ func TestTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
 	}
 
-	colName := "timeseriesColl"
+	colName := "timeseries_mixed_schema"
 	dbName := "timeseries_test_DB"
 
 	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, colName))
@@ -2025,6 +2025,7 @@ func TestTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 
 	require.NoError(t, archiveFile.Close())
 	require.NoError(t, os.Remove(archiveFilePath))
+	require.NoError(t, session.Database(dbName).Collection(colName).Drop(context.Background()))
 }
 
 func TestFailDuringResharding(t *testing.T) {

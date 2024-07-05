@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/mongodb/mongo-tools/common/archive"
@@ -195,6 +196,13 @@ func testRestoreAdminNamespaces(t *testing.T) {
 			t.Fatalf("Failed to drop admin suffixed database: %v", err)
 		}
 	}()
+
+	cursor, err := session.Database(dbName).ListCollections(context.Background(), bson.D{})
+	require.NoError(err)
+	fmt.Println("print collections")
+	for cursor.Next(context.Background()) {
+		fmt.Println(cursor.Current)
+	}
 
 	testCases := restoreNamespaceTestCases{
 		newRestoreNamespaceTestCase(t, testDB, adminPrefixedCollectionName, true),

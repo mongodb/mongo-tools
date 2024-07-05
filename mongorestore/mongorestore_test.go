@@ -1685,10 +1685,11 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	}
 
 	dbName := "timeseries_test_DB"
+	collName := "timeseries_mixed_schema"
 	testdb := session.Database(dbName)
-	bucketColl := testdb.Collection("system.buckets.timeseriesColl")
+	bucketColl := testdb.Collection("system.buckets." + collName)
 
-	testdb.Collection("timeseriesColl").Drop(ctx)
+	testdb.Collection(collName).Drop(ctx)
 
 	restore, err := getRestoreWithArgs(ArchiveOption + "=testdata/timeseries_tests/mixed_schema_dump.archive")
 	require.NoError(t, err)
@@ -1698,8 +1699,9 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	require.NoError(t, result.Err)
 	require.Equal(t, int64(1), result.Successes)
 	require.Equal(t, int64(0), result.Failures)
+	defer testdb.Collection(collName).Drop(ctx)
 
-	count, err := testdb.Collection("timeseriesColl").CountDocuments(ctx, bson.M{})
+	count, err := testdb.Collection(collName).CountDocuments(ctx, bson.M{})
 	require.NoError(t, err)
 	require.Equal(t, int64(2), count)
 
@@ -1710,8 +1712,6 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	hasMixedSchema, err := timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
 	require.NoError(t, err)
 	require.False(t, hasMixedSchema)
-
-	require.NoError(t, testdb.Collection("timeseriesColl").Drop(ctx))
 }
 
 func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool, error) {
