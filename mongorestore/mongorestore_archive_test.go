@@ -195,7 +195,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 			t.Fatalf("Failed to drop admin suffixed database: %v", err)
 		}
 	}()
-	
+
 	testCases := restoreNamespaceTestCases{
 		newRestoreNamespaceTestCase(t, testDB, adminPrefixedCollectionName, true),
 		newRestoreNamespaceTestCase(t, adminDB, adminPrefixedCollectionName, true),
