@@ -72,6 +72,9 @@ const (
 	ErrDuplicateKeyCode         = 11000
 	ErrFailedDocumentValidation = 121
 	ErrUnacknowledgedWrite      = "unacknowledged write"
+
+	// ErrCannotInsertTimeseriesBucketsWithMixedSchema can be handled by turning TimeseriesBucketsWithMixedSchema off.
+	ErrCannotInsertTimeseriesBucketsWithMixedSchema = 408
 )
 
 var ignorableWriteErrorCodes = map[int]bool{ErrDuplicateKeyCode: true, ErrFailedDocumentValidation: true}
@@ -548,6 +551,31 @@ func CanIgnoreError(err error) bool {
 	return false
 }
 
+// Returns whether the tools can needs to modify a timeseries bucket to turn off mixed schema.
+func TimeseriesBucketNeedsMixedSchema(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	switch mongoErr := err.(type) {
+	case mongo.WriteError:
+		return mongoErr.Code == ErrCannotInsertTimeseriesBucketsWithMixedSchema
+
+	case mongo.BulkWriteException:
+		for _, writeErr := range mongoErr.WriteErrors {
+			if writeErr.Code != ErrCannotInsertTimeseriesBucketsWithMixedSchema {
+				fmt.Println("here")
+				fmt.Println(writeErr)
+				fmt.Println(writeErr.Code)
+
+				return false
+			}
+			return true
+		}
+	}
+	return false
+}
+
 // IsMMAPV1 returns whether the storage engine is MMAPV1. Also returns false
 // if the storage engine type cannot be determined for some reason.
 func IsMMAPV1(database *mongo.Database, collectionName string) (bool, error) {
@@ -569,4 +597,13 @@ func IsMMAPV1(database *mongo.Database, collectionName string) (bool, error) {
 
 	_, ok := collStats[numExtents]
 	return ok, nil
+}
+
+// GetTimeseriesColNameFromBucket strips a timeseries collection name from its bucket collection name.
+func GetTimeseriesColNameFromBucket(bucketColName string) (string, error) {
+	colName := strings.TrimPrefix(bucketColName, "system.buckets.")
+	if colName == bucketColName || colName == "" {
+		return "", errors.New("invalid timeseries bucket name: " + bucketColName)
+	}
+	return colName, nil
 }

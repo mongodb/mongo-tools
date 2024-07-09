@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -1684,34 +1685,49 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		t.Skip("Requires server with FCV 7.3 or later")
 	}
 
+	if cmp, err := testutil.CompareFCV(fcv, "8.0"); cmp > 0 {
+		if err != nil {
+			t.Fatalf("Failed to get FCV: %v", err)
+		}
+		t.Skip("The test currently fails on v8.0 because of SERVER-92222")
+	}
+
 	dbName := "timeseries_test_DB"
 	collName := "timeseries_mixed_schema"
 	testdb := session.Database(dbName)
 	bucketColl := testdb.Collection("system.buckets." + collName)
 
-	testdb.Collection(collName).Drop(ctx)
+	setupTimeseriesWithMixedSchema(dbName, collName)
 
-	restore, err := getRestoreWithArgs(ArchiveOption + "=testdata/timeseries_tests/mixed_schema_dump.archive")
-	require.NoError(t, err)
+	withArchiveMongodump(t, func(file string) {
+		require.NoError(t, testdb.Collection(collName).Drop(ctx))
+		require.NoError(t, bucketColl.Drop(ctx))
 
-	// Run mongorestore
-	result := restore.Restore()
-	require.NoError(t, result.Err)
-	require.Equal(t, int64(1), result.Successes)
-	require.Equal(t, int64(0), result.Failures)
-	defer testdb.Collection(collName).Drop(ctx)
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			ArchiveOption+"="+file,
+		)
+		require.NoError(t, err)
+		defer restore.Close()
 
-	count, err := testdb.Collection(collName).CountDocuments(ctx, bson.M{})
-	require.NoError(t, err)
-	require.Equal(t, int64(2), count)
+		result := restore.Restore()
+		require.NoError(t, result.Err, "can run mongorestore")
+		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
 
-	count, err = bucketColl.CountDocuments(ctx, bson.M{})
-	require.NoError(t, err)
-	require.Equal(t, int64(1), count)
+		count, err := testdb.Collection(collName).CountDocuments(ctx, bson.M{})
+		require.NoError(t, err)
+		require.Equal(t, int64(2), count)
 
-	hasMixedSchema, err := timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
-	require.NoError(t, err)
-	require.False(t, hasMixedSchema)
+		count, err = bucketColl.CountDocuments(ctx, bson.M{})
+		require.NoError(t, err)
+		require.Equal(t, int64(1), count)
+
+		hasMixedSchema, err := timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
+		require.NoError(t, err)
+		require.True(t, hasMixedSchema)
+
+		defer testdb.Collection(collName).Drop(ctx)
+	})
 }
 
 func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool, error) {
@@ -1721,6 +1737,7 @@ func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool
 		{"pipeline", bson.A{
 			bson.D{{"$listCatalog", bson.D{}}},
 		}},
+		{"readConcern", bson.D{{"level", "majority"}}},
 		{"cursor", bson.D{}},
 	})
 	if err != nil {
@@ -1742,6 +1759,60 @@ func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool
 	}
 
 	return hasMixedSchema.Boolean(), nil
+}
+
+func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return err
+	}
+
+	client, err := sessionProvider.GetSession()
+	if err != nil {
+		return err
+	}
+
+	if err := client.Database(dbName).Collection(collName).Drop(nil); err != nil {
+		return err
+	}
+
+	createCmd := bson.D{
+		{"create", collName},
+		{"timeseries", bson.D{
+			{"timeField", "t"},
+			{"metaField", "m"},
+		}},
+	}
+
+	createRes := sessionProvider.DB(dbName).RunCommand(nil, createCmd)
+	if createRes.Err() != nil {
+		return createRes.Err()
+	}
+
+	// SERVER-84531 was only backported to 7.3.
+	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "7.3"); err != nil || cmp >= 0 {
+		if res := sessionProvider.DB(dbName).RunCommand(nil, bson.D{
+			{"collMod", collName},
+			{"timeseriesBucketsMayHaveMixedSchemaData", true},
+		}); res.Err() != nil {
+			return res.Err()
+		}
+	}
+
+	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
+	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
+	var bucketMap map[string]interface{}
+	if err := json.Unmarshal([]byte(bucketJSON), &bucketMap); err != nil {
+		return err
+	}
+	if err := bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap); err != nil {
+		return err
+	}
+	if _, err := bucketColl.InsertOne(nil, bucketMap); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func TestRestoreTimeseriesCollections(t *testing.T) {

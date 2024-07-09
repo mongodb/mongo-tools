@@ -618,3 +618,17 @@ func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
 	}
 	return nil
 }
+
+// AllowMixedSchemaInTimeseriesBucket runs collMod to turn on timeseriesBucketsMayHaveMixedSchemaData
+// for a timeseries collection.
+func (restore *MongoRestore) AllowMixedSchemaInTimeseriesBucket(dbName, colName string) error {
+	session, err := restore.SessionProvider.GetSession()
+	if err != nil {
+		return fmt.Errorf("error establishing connection: %v", err)
+	}
+
+	return session.Database(dbName).RunCommand(nil, bson.D{
+		{"collMod", colName},
+		{"timeseriesBucketsMayHaveMixedSchemaData", true},
+	}).Err()
+}
