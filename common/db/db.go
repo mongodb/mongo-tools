@@ -564,10 +564,6 @@ func TimeseriesBucketNeedsMixedSchema(err error) bool {
 	case mongo.BulkWriteException:
 		for _, writeErr := range mongoErr.WriteErrors {
 			if writeErr.Code != ErrCannotInsertTimeseriesBucketsWithMixedSchema {
-				fmt.Println("here")
-				fmt.Println(writeErr)
-				fmt.Println(writeErr.Code)
-
 				return false
 			}
 			return true
