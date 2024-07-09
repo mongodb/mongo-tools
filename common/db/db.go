@@ -566,8 +566,8 @@ func TimeseriesBucketNeedsMixedSchema(err error) bool {
 			if writeErr.Code != ErrCannotInsertTimeseriesBucketsWithMixedSchema {
 				return false
 			}
-			return true
 		}
+		return true
 	}
 	return false
 }

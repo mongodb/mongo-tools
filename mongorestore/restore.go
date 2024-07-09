@@ -545,7 +545,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 					resultChan <- result.withErr(errors.Wrap(collModErr, "failed to handle mixed schema in a timeseries bucket"))
 					return
 				}
-				bwResult, bwErr = bulk.Flush()
+				bwResult, bwErr = bulk.TryFlush()
 			}
 			result.combineWith(NewResultFromBulkResult(bwResult, bwErr))
 			resultChan <- result.withErr(db.FilterError(restore.OutputOptions.StopOnError, result.Err))
