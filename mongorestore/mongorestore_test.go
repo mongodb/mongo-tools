@@ -1748,7 +1748,7 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testdb := session.Database(dbName)
 	bucketColl := testdb.Collection("system.buckets." + collName)
 
-	setupTimeseriesWithMixedSchema(dbName, collName)
+	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, collName))
 
 	withArchiveMongodump(t, func(file string) {
 		require.NoError(t, testdb.Collection(collName).Drop(ctx))
@@ -1777,6 +1777,7 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, hasMixedSchema)
 
+		//nolint:errcheck
 		defer testdb.Collection(collName).Drop(ctx)
 	})
 }
@@ -1823,7 +1824,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 		return err
 	}
 
-	if err := client.Database(dbName).Collection(collName).Drop(nil); err != nil {
+	if err := client.Database(dbName).Collection(collName).Drop(context.Background()); err != nil {
 		return err
 	}
 
@@ -1835,14 +1836,14 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 		}},
 	}
 
-	createRes := sessionProvider.DB(dbName).RunCommand(nil, createCmd)
+	createRes := sessionProvider.DB(dbName).RunCommand(context.Background(), createCmd)
 	if createRes.Err() != nil {
 		return createRes.Err()
 	}
 
 	// SERVER-84531 was only backported to 7.3.
 	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "7.3"); err != nil || cmp >= 0 {
-		if res := sessionProvider.DB(dbName).RunCommand(nil, bson.D{
+		if res := sessionProvider.DB(dbName).RunCommand(context.Background(), bson.D{
 			{"collMod", collName},
 			{"timeseriesBucketsMayHaveMixedSchemaData", true},
 		}); res.Err() != nil {
@@ -1859,7 +1860,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 	if err := bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap); err != nil {
 		return err
 	}
-	if _, err := bucketColl.InsertOne(nil, bucketMap); err != nil {
+	if _, err := bucketColl.InsertOne(context.Background(), bucketMap); err != nil {
 		return err
 	}
 

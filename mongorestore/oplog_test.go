@@ -700,6 +700,7 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
+	//nolint:errcheck
 	defer session.Disconnect(ctx)
 
 	fcv := testutil.GetFCV(session)
