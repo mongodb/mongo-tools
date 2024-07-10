@@ -595,8 +595,8 @@ func IsMMAPV1(database *mongo.Database, collectionName string) (bool, error) {
 	return ok, nil
 }
 
-// GetTimeseriesColNameFromBucket returns a timeseries collection name from its bucket collection name.
-func GetTimeseriesColNameFromBucket(bucketCollName string) (string, error) {
+// GetTimeseriesCollNameFromBucket returns a timeseries collection name from its bucket collection name.
+func GetTimeseriesCollNameFromBucket(bucketCollName string) (string, error) {
 	colName := strings.TrimPrefix(bucketCollName, "system.buckets.")
 	if colName == bucketCollName || colName == "" {
 		return "", errors.New("invalid timeseries bucket name: " + bucketCollName)

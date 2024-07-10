@@ -536,7 +536,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 
 			if db.TimeseriesBucketNeedsMixedSchema(bwErr) {
 				// Modify the timeseries collection and retry flushing the bulk writer.
-				logicalColName, nameErr := db.GetTimeseriesColNameFromBucket(colName)
+				logicalColName, nameErr := db.GetTimeseriesCollNameFromBucket(colName)
 				if nameErr != nil {
 					resultChan <- result.withErr(nameErr)
 					return
