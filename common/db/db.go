@@ -563,11 +563,11 @@ func TimeseriesBucketNeedsMixedSchema(err error) bool {
 
 	case mongo.BulkWriteException:
 		for _, writeErr := range mongoErr.WriteErrors {
-			if writeErr.Code != ErrCannotInsertTimeseriesBucketsWithMixedSchema {
-				return false
+			if writeErr.Code == ErrCannotInsertTimeseriesBucketsWithMixedSchema {
+				return true
 			}
 		}
-		return true
+		return false
 	}
 	return false
 }
@@ -596,10 +596,10 @@ func IsMMAPV1(database *mongo.Database, collectionName string) (bool, error) {
 }
 
 // GetTimeseriesColNameFromBucket returns a timeseries collection name from its bucket collection name.
-func GetTimeseriesColNameFromBucket(bucketColName string) (string, error) {
-	colName := strings.TrimPrefix(bucketColName, "system.buckets.")
-	if colName == bucketColName || colName == "" {
-		return "", errors.New("invalid timeseries bucket name: " + bucketColName)
+func GetTimeseriesColNameFromBucket(bucketCollName string) (string, error) {
+	colName := strings.TrimPrefix(bucketCollName, "system.buckets.")
+	if colName == bucketCollName || colName == "" {
+		return "", errors.New("invalid timeseries bucket name: " + bucketCollName)
 	}
 	return colName, nil
 }
