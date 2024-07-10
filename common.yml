@@ -2116,10 +2116,32 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel88
+    display_name: RHEL 8.8
+    run_on:
+      - rhel88-small
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   - name: rhel90
     display_name: RHEL 9.0
     run_on:
       - rhel90-small
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
+  - name: rhel93
+    display_name: RHEL 9.3
+    run_on:
+      - rhel93-small
     tasks:
       - name: "dist"
       - name: "sign"
@@ -2371,10 +2393,34 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel88-aarch64
+    display_name: RHEL 8.8 ARM
+    run_on:
+      - rhel88-arm64
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   - name: rhel90-aarch64
     display_name: RHEL 9.0 ARM
     run_on:
       - rhel90-arm64-small
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
+  - name: rhel93-aarch64
+    display_name: RHEL 9.3 ARM
+    run_on:
+      - rhel93-arm64-small
     stepback: false
     tasks:
       - name: "dist"
