@@ -74,7 +74,7 @@ func (bb *BufferedBulkInserter) SetUpsert(upsert bool) *BufferedBulkInserter {
 }
 
 // throw away the old bulk and init a new one
-func (bb *BufferedBulkInserter) resetBulk() {
+func (bb *BufferedBulkInserter) ResetBulk() {
 	bb.writeModels = bb.writeModels[:0]
 	bb.docCount = 0
 	bb.byteCount = 0
@@ -144,10 +144,19 @@ func (bb *BufferedBulkInserter) addModel(model mongo.WriteModel) (*mongo.BulkWri
 
 // Flush writes all buffered documents in one bulk write and then resets the buffer.
 func (bb *BufferedBulkInserter) Flush() (*mongo.BulkWriteResult, error) {
+	defer bb.ResetBulk()
+	return bb.flush()
+}
+
+// TryFlush writes all buffered documents in one bulk write without resetting the buffer.
+func (bb *BufferedBulkInserter) TryFlush() (*mongo.BulkWriteResult, error) {
+	return bb.flush()
+}
+
+func (bb *BufferedBulkInserter) flush() (*mongo.BulkWriteResult, error) {
 	if bb.docCount == 0 {
 		return nil, nil
 	}
 
-	defer bb.resetBulk()
 	return bb.collection.BulkWrite(context.Background(), bb.writeModels, bb.bulkWriteOpts)
 }

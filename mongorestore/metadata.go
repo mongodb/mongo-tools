@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -617,4 +618,18 @@ func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
 		return fmt.Errorf("error dropping collection: %v", err)
 	}
 	return nil
+}
+
+// EnableMixedSchemaInTimeseriesBucket runs collMod to turn on timeseriesBucketsMayHaveMixedSchemaData
+// for a timeseries collection.
+func (restore *MongoRestore) EnableMixedSchemaInTimeseriesBucket(dbName, colName string) error {
+	session, err := restore.SessionProvider.GetSession()
+	if err != nil {
+		return fmt.Errorf("error establishing connection: %v", err)
+	}
+
+	return session.Database(dbName).RunCommand(context.Background(), bson.D{
+		{"collMod", colName},
+		{"timeseriesBucketsMayHaveMixedSchemaData", true},
+	}).Err()
 }

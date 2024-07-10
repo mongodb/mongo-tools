@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -530,7 +531,24 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				watchProgressor.Set(file.Pos())
 			}
 			// flush the remaining docs
-			result.combineWith(NewResultFromBulkResult(bulk.Flush()))
+			bwResult, bwErr := bulk.TryFlush()
+			defer bulk.ResetBulk()
+
+			if db.TimeseriesBucketNeedsMixedSchema(bwErr) {
+				// Modify the timeseries collection and retry flushing the bulk writer.
+				logicalColName, nameErr := db.GetTimeseriesCollNameFromBucket(colName)
+				if nameErr != nil {
+					resultChan <- result.withErr(nameErr)
+					return
+				}
+
+				if collModErr := restore.EnableMixedSchemaInTimeseriesBucket(dbName, logicalColName); collModErr != nil {
+					resultChan <- result.withErr(errors.Wrap(collModErr, "failed to enable mixed schema in a timeseries bucket"))
+					return
+				}
+				bwResult, bwErr = bulk.TryFlush()
+			}
+			result.combineWith(NewResultFromBulkResult(bwResult, bwErr))
 			resultChan <- result.withErr(db.FilterError(restore.OutputOptions.StopOnError, result.Err))
 			return
 		}()
