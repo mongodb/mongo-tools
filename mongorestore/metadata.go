@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -627,7 +628,7 @@ func (restore *MongoRestore) EnableMixedSchemaInTimeseriesBucket(dbName, colName
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
 
-	return session.Database(dbName).RunCommand(nil, bson.D{
+	return session.Database(dbName).RunCommand(context.Background(), bson.D{
 		{"collMod", colName},
 		{"timeseriesBucketsMayHaveMixedSchemaData", true},
 	}).Err()
