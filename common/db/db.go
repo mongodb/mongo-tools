@@ -551,7 +551,7 @@ func CanIgnoreError(err error) bool {
 	return false
 }
 
-// Returns whether the tools can needs to modify a timeseries bucket to turn off mixed schema.
+// Returns a boolean based on whether the given error indicates that this timeseries collection needs to be updated to set `timeseriesBucketsMayHaveMixedSchemaData` to `true`.
 func TimeseriesBucketNeedsMixedSchema(err error) bool {
 	if err == nil {
 		return false
