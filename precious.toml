@@ -1,3 +1,11 @@
+# When adding new tidiers, consider what labels it should have. If it's fast, set labels like this:
+#
+#     labels = [ "default", "fast-tidy" ]
+#
+# "Fast" here means anything less than 0.1s. These tidiers are intended to be invoked frequently,
+# for example from editors on save. Slower tidiers should only be invoked manually, either by
+# running the relevant mage command or by explicitly running `precious` from the CLI.
+
 exclude = "vendor/**/*"
 
 [commands.golangci-lint]
@@ -26,6 +34,7 @@ type = "tidy"
 include = "**/*.go"
 cmd = [ "$PRECIOUS_ROOT/dev-bin/goimports", "-w" ]
 ok-exit-codes = [0]
+labels = [ "default", "fast-tidy" ]
 
 # We could run this via golangci-lint but we want to exclude more directories
 # for gosec than we do for other linting. There doesn't seem to be a way to
@@ -68,6 +77,7 @@ tidy-flags = "--write"
 ok-exit-codes = [0]
 lint-failure-exit-codes = [1]
 ignore-stderr = ".*"
+labels = [ "default", "fast-tidy" ]
 
 [commands.prettier-md]
 type = "both"
@@ -85,6 +95,7 @@ tidy-flags = "--write"
 ok-exit-codes = [0]
 lint-failure-exit-codes = [1]
 ignore-stderr = ".*"
+labels = [ "default", "fast-tidy" ]
 
 # It'd be nice to use prettier to tidy the JS code too, but it seems to make
 # changes that cause it to fail to parse with the versions of the Mongo shell
