@@ -28,6 +28,9 @@ const (
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
+	if err := installUBI(ctx); err != nil {
+		return err
+	}
 	if err := installGoimports(ctx); err != nil {
 		return err
 	}
@@ -35,9 +38,6 @@ func SAInstallDevTools(ctx *task.Context) error {
 		return err
 	}
 	if err := installGosec(ctx); err != nil {
-		return err
-	}
-	if err := installUBI(ctx); err != nil {
 		return err
 	}
 	if err := installPrecious(ctx); err != nil {
