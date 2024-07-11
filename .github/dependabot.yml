@@ -8,4 +8,6 @@ updates:
     schedule:
       interval: "weekly"
     reviewers:
-      - tfogo
+      - tdq45gj
+      - autarch
+      - jddubois
