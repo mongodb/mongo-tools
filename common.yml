@@ -2078,10 +2078,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel80
-    display_name: "# RHEL 8.0"
+  - name: rhel88
+    display_name: "# RHEL 8.8"
     run_on:
-      - rhel80-test
+      - rhel8.8-small
     expansions:
       <<:
         [
@@ -2111,32 +2111,6 @@ buildvariants:
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-  - name: rhel88
-    display_name: RHEL 8.8
-    run_on:
-      - rhel8.8-small
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-  - name: rhel90
-    display_name: RHEL 9.0
-    run_on:
-      - rhel90-small
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
 
   - name: rhel93
     display_name: RHEL 9.3
@@ -2381,34 +2355,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel82-aarch64
-    display_name: RHEL 8.2 ARM
-    run_on:
-      - rhel82-arm64
-    stepback: false
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
   - name: rhel88-aarch64
     display_name: RHEL 8.8 ARM
     run_on:
       - rhel8.8-arm64-small
-    stepback: false
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-  - name: rhel90-aarch64
-    display_name: RHEL 9.0 ARM
-    run_on:
-      - rhel90-arm64-small
     stepback: false
     tasks:
       - name: "dist"
@@ -2502,7 +2452,7 @@ github_pr_aliases:
     task: "^.*$"
   # Run all integration tests on one variant. We pick RHEL 8.0 because it's
   # a relatively recent platform that supports a wide range of servers.
-  - variant: "rhel80"
+  - variant: "rhel88"
     task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
   # Run a subset of integration tests against the 3.6 version of MongoDB
   # Server on all variants where that is the most recent supported version.
@@ -2510,5 +2460,5 @@ github_pr_aliases:
     task: "integration-3.6"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel80|windows)$"
+  - variant: "^(rhel88|windows)$"
     task: "integration-latest"
