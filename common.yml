@@ -2081,7 +2081,7 @@ buildvariants:
   - name: rhel88
     display_name: "# RHEL 8.8"
     run_on:
-      - rhel8.8-small
+      - rhel8.8-large
     expansions:
       <<:
         [

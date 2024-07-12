@@ -63,6 +63,7 @@ type Platform struct {
 	BinaryExt         string
 	SkipForJSONFeed   bool
 	ServerVariantName string
+	ServerPlatform    string
 }
 
 func (p Platform) Variant() string {
@@ -496,6 +497,9 @@ var platforms = []Platform{
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoOrg, RepoEnterprise},
 		BuildTags: defaultBuildTags,
+		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
+		ServerVariantName: "enterprise-rhel-80-64-bit",
+		ServerPlatform:    "rhel80",
 	},
 	{
 		Name:      "rhel93",
