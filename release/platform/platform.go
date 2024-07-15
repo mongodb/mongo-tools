@@ -63,6 +63,7 @@ type Platform struct {
 	BinaryExt         string
 	SkipForJSONFeed   bool
 	ServerVariantName string
+	ServerPlatform    string
 }
 
 func (p Platform) Variant() string {
@@ -466,28 +467,11 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:              "rhel80",
-		Arch:              ArchX86_64,
-		OS:                OSLinux,
-		Pkg:               PkgRPM,
-		Repos:             []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:         defaultBuildTags,
-		ServerVariantName: "enterprise-rhel-80-64-bit",
-	},
-	{
 		Name:      "rhel81",
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "rhel82",
-		Arch:      ArchAarch64,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
 		BuildTags: defaultBuildTags,
 	},
 	{
@@ -499,7 +483,7 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "rhel90",
+		Name:      "rhel88",
 		Arch:      ArchAarch64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
@@ -507,7 +491,26 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "rhel90",
+		Name:      "rhel88",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
+		ServerVariantName: "enterprise-rhel-80-64-bit",
+		ServerPlatform:    "rhel80",
+	},
+	{
+		Name:      "rhel93",
+		Arch:      ArchAarch64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel93",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,

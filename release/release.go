@@ -1357,7 +1357,12 @@ func downloadMongodAndShell(v string) {
 	err = json.NewDecoder(res.Body).Decode(&feed)
 	check(err, "decode JSON feed")
 
-	url, githash, serverVersion, err := feed.FindURLHashAndVersion(v, pf.Name, string(pf.Arch), "enterprise")
+	target := pf.Name
+	if pf.ServerPlatform != "" {
+		target = pf.ServerPlatform
+	}
+
+	url, githash, serverVersion, err := feed.FindURLHashAndVersion(v, target, string(pf.Arch), "enterprise")
 	if err == download.ServerURLMissingError {
 		// If a server version is not found from JSON feed, handle this by downloading the artifacts from evergreen.
 		fmt.Printf("warning: download a version not found in JSON feed\n")
