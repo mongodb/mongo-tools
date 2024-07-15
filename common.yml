@@ -1580,6 +1580,22 @@ tasks:
         vars:
           test_path: "test/legacy42"
 
+  - name: legacy-jstests-8.0 # The server jstests from the tools removal from server in 4.2
+    tags: ["8.0"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run legacy tests"
+        vars:
+          test_path: "test/legacy42"
+
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
     tags: ["latest"]
     commands:
@@ -1695,6 +1711,23 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_tls}"
+          excludes: "requires_unstable,${excludes}"
+
+  - name: qa-tests-8.0
+    tags: ["8.0"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.0"
       - func: "run make target"
         vars:
           target: build
