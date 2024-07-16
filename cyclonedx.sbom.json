@@ -799,7 +799,7 @@
       "version": "v1.11.9"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.23.0",
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.25.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -807,7 +807,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.23.0"
+          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.25.0"
         }
       ],
       "group": "golang.org/x",
@@ -819,9 +819,9 @@
         }
       ],
       "name": "crypto",
-      "purl": "pkg:golang/golang.org/x/crypto@v0.23.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.25.0",
       "type": "library",
-      "version": "v0.23.0"
+      "version": "v0.25.0"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/exp@v0.0.0-20240529005216-23cca8864a10",
@@ -888,21 +888,32 @@
       "version": "v0.7.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/sys@v0.20.0",
+      "bom-ref": "pkg:golang/golang.org/x/sys@v0.22.0",
       "externalReferences": [
         {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/sys"
+        },
+        {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/sys@v0.20.0"
+          "url": "https://pkg.go.dev/golang.org/x/sys@v0.22.0"
         }
       ],
       "group": "golang.org/x",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ],
       "name": "sys",
-      "purl": "pkg:golang/golang.org/x/sys@v0.20.0",
+      "purl": "pkg:golang/golang.org/x/sys@v0.22.0",
       "type": "library",
-      "version": "v0.20.0"
+      "version": "v0.22.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/term@v0.20.0",
+      "bom-ref": "pkg:golang/golang.org/x/term@v0.22.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -910,7 +921,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/term@v0.20.0"
+          "url": "https://pkg.go.dev/golang.org/x/term@v0.22.0"
         }
       ],
       "group": "golang.org/x",
@@ -922,12 +933,12 @@
         }
       ],
       "name": "term",
-      "purl": "pkg:golang/golang.org/x/term@v0.20.0",
+      "purl": "pkg:golang/golang.org/x/term@v0.22.0",
       "type": "library",
-      "version": "v0.20.0"
+      "version": "v0.22.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/text@v0.15.0",
+      "bom-ref": "pkg:golang/golang.org/x/text@v0.16.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -935,7 +946,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/text@v0.15.0"
+          "url": "https://pkg.go.dev/golang.org/x/text@v0.16.0"
         }
       ],
       "group": "golang.org/x",
@@ -947,9 +958,9 @@
         }
       ],
       "name": "text",
-      "purl": "pkg:golang/golang.org/x/text@v0.15.0",
+      "purl": "pkg:golang/golang.org/x/text@v0.16.0",
       "type": "library",
-      "version": "v0.15.0"
+      "version": "v0.16.0"
     },
     {
       "bom-ref": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637",
@@ -1105,7 +1116,7 @@
       "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.11.9"
     },
     {
-      "ref": "pkg:golang/golang.org/x/crypto@v0.23.0"
+      "ref": "pkg:golang/golang.org/x/crypto@v0.25.0"
     },
     {
       "ref": "pkg:golang/golang.org/x/exp@v0.0.0-20240529005216-23cca8864a10"
@@ -1117,13 +1128,13 @@
       "ref": "pkg:golang/golang.org/x/sync@v0.7.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/sys@v0.20.0"
+      "ref": "pkg:golang/golang.org/x/sys@v0.22.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/term@v0.20.0"
+      "ref": "pkg:golang/golang.org/x/term@v0.22.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/text@v0.15.0"
+      "ref": "pkg:golang/golang.org/x/text@v0.16.0"
     },
     {
       "ref": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637"
@@ -1139,7 +1150,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2024-07-10T20:54:09.209755+00:00",
+    "timestamp": "2024-07-16T20:38:41.693523+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1183,7 +1194,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 8,
+  "version": 9,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
