@@ -28,8 +28,9 @@ to support them.
 
 ## Supporting New Server Versions
 
-If adding support for a new server version, the Tools version should be able to be pushed to server's linux repo.
-This can be done by adding the server linux repo to `linuxRepoVersionsStable` in `release.go`.
+If adding support for a new server version, the Tools version should be able to be pushed to
+server's linux repo. This can be done by adding the server linux repo to `linuxRepoVersionsStable`
+in `release.go`.
 
 ## Releasing
 
