@@ -314,6 +314,19 @@ repos:
     repos:
       - apt/ubuntu/dists/jammy/mongodb-org
 
+  - name: ubuntu2404
+    type: deb
+    code_name: "noble"
+    edition: org
+    bucket: repo.mongodb.org
+    component: multiverse
+    architectures:
+      - amd64
+      - i386
+      - arm64
+    repos:
+      - apt/ubuntu/dists/noble/mongodb-org
+
   ####################
   #
   # Enterprise Repos:
@@ -392,7 +405,23 @@ repos:
       - yum/redhat/8/mongodb-enterprise
       - yum/redhat/8Server/mongodb-enterprise
 
+  - name: rhel88
+    type: rpm
+    edition: enterprise
+    bucket: repo.mongodb.com
+    repos:
+      - yum/redhat/8/mongodb-enterprise
+      - yum/redhat/8Server/mongodb-enterprise
+
   - name: rhel90
+    type: rpm
+    edition: enterprise
+    bucket: repo.mongodb.com
+    repos:
+      - yum/redhat/9/mongodb-enterprise
+      - yum/redhat/9Server/mongodb-enterprise
+
+  - name: rhel93
     type: rpm
     edition: enterprise
     bucket: repo.mongodb.com
