@@ -629,7 +629,7 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error) {
 	newArgs := []string{}
 	var foundURI bool
-	var parsedURI connstring.ConnString
+	var parsedURI *connstring.ConnString
 
 	for _, arg := range args {
 		if arg == "" {
@@ -641,7 +641,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 				return []string{}, fmt.Errorf("too many URIs found in positional arguments: only one URI can be set as a positional argument")
 			}
 			foundURI = true
-			parsedURI = *cs
+			parsedURI = cs
 		} else if err.Error() == "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"" {
 			newArgs = append(newArgs, arg)
 		} else {
