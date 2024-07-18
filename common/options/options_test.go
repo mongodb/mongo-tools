@@ -152,7 +152,7 @@ func TestVerbosityFlag(t *testing.T) {
 
 type uriTester struct {
 	Name                     string
-	CS                       connstring.ConnString
+	CS                       *connstring.ConnString
 	OptsIn                   *ToolOptions
 	OptsExpected             *ToolOptions
 	WithGSSAPI               bool
@@ -169,7 +169,7 @@ func TestParseAndSetOptions(t *testing.T) {
 	testCases := []uriTester{
 		{
 			Name: "built with ssl",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				SSL:    true,
 				SSLSet: true,
 			},
@@ -191,7 +191,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "built with ssl using SRV",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				SSL:      true,
 				SSLSet:   true,
 				Original: "mongodb+srv://example.com/",
@@ -214,7 +214,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "not built with gssapi",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				AuthMechanism: "GSSAPI",
 			},
 			WithGSSAPI:   false,
@@ -224,7 +224,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "built with gssapi",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				AuthMechanism: "GSSAPI",
 				AuthMechanismProperties: map[string]string{
 					"SERVICE_NAME": "service",
@@ -250,7 +250,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "connection fields set",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				ConnectTimeout:    time.Duration(100) * time.Millisecond,
 				ConnectTimeoutSet: true,
 				SocketTimeout:     time.Duration(200) * time.Millisecond,
@@ -287,7 +287,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "auth fields set",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				AuthMechanism: "MONGODB-X509",
 				AuthSource:    "",
 				AuthSourceSet: true,
@@ -326,7 +326,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "aws auth fields set",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				AuthMechanism: "MONGODB-AWS",
 				AuthSource:    "",
 				AuthSourceSet: true,
@@ -366,7 +366,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "kerberos fields set but AuthMechanismProperties not init in connString",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				AuthMechanism:              "GSSAPI",
 				AuthSource:                 "",
 				AuthSourceSet:              true,
@@ -407,7 +407,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "should ask for user password",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				AuthMechanism: "MONGODB-X509",
 				AuthSource:    "",
 				Username:      "user",
@@ -443,7 +443,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "single connect sets 'Direct'",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				Connect: connstring.SingleConnect,
 			},
 			OptsIn: New("", "", "", "", true, enabledURIOnly),
@@ -463,7 +463,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "direct connection sets 'Direct'",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				DirectConnection: true,
 			},
 			OptsIn: New("", "", "", "", true, enabledURIOnly),
@@ -483,7 +483,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "ReplSetName is set when CS contains it",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				ReplicaSet: "replset",
 			},
 			OptsIn: New("", "", "", "", true, enabledURIOnly),
@@ -503,7 +503,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "RetryWrites is set when CS contains it",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				RetryWritesSet: true,
 				RetryWrites:    false,
 			},
@@ -524,7 +524,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "Direct is false when loadbalanced == true",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				LoadBalanced:    true,
 				LoadBalancedSet: true,
 			},
@@ -546,7 +546,7 @@ func TestParseAndSetOptions(t *testing.T) {
 		},
 		{
 			Name: "Don't fail when uri and options set",
-			CS: connstring.ConnString{
+			CS: &connstring.ConnString{
 				Hosts: []string{"host"},
 			},
 			OptsIn: &ToolOptions{

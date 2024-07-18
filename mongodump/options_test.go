@@ -42,7 +42,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
 							ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
-							ConnString: connstring.ConnString{
+							ConnString: &connstring.ConnString{
 								AuthMechanismProperties: map[string]string{"AWS_SESSION_TOKEN": "token"},
 							},
 						},
@@ -62,7 +62,7 @@ func TestPositionalArgumentParsing(t *testing.T) {
 					ToolOptions: &options.ToolOptions{
 						URI: &options.URI{
 							ConnectionString: "mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
-							ConnString: connstring.ConnString{
+							ConnString: &connstring.ConnString{
 								AuthMechanismProperties: map[string]string{
 									"SERVICE_NAME":           "service",
 									"CANONICALIZE_HOST_NAME": "host",
