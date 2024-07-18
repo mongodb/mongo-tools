@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -66,11 +67,12 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Selector:          ct.selector,
 		WriteConcern:      ct.writeConcern,
 		ServerAPI:         ct.serverAPI,
+		Name:              driverutil.CommitTransactionOp,
 	}.Execute(ctx)
 
 }
 
-func (ct *CommitTransaction) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (ct *CommitTransaction) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 
 	dst = bsoncore.AppendInt32Element(dst, "commitTransaction", 1)
 	if ct.recoveryToken != nil {

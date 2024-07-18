@@ -417,7 +417,7 @@ func NewURI(unparsed string) (*URI, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing URI from %v: %v", unparsed, err)
 	}
-	return &URI{ConnectionString: cs.String(), ConnString: cs}, nil
+	return &URI{ConnectionString: cs.String(), ConnString: *cs}, nil
 }
 
 func (uri *URI) GetConnectionAddrs() []string {
@@ -641,7 +641,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 				return []string{}, fmt.Errorf("too many URIs found in positional arguments: only one URI can be set as a positional argument")
 			}
 			foundURI = true
-			parsedURI = cs
+			parsedURI = *cs
 		} else if err.Error() == "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"" {
 			newArgs = append(newArgs, arg)
 		} else {
@@ -679,7 +679,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 	if err != nil {
 		return err
 	}
-	err = opts.setOptionsFromURI(cs)
+	err = opts.setOptionsFromURI(*cs)
 	if err != nil {
 		return err
 	}
