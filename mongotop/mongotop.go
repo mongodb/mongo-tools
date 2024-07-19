@@ -67,16 +67,18 @@ func (mt *MongoTop) runTopDiff() (outDiff FormattableDiff, err error) {
 	for _, elem := range totalsElems {
 		// Remove 'note' field that prevents easy decoding, then round-trip
 		// again to simplify unpacking into the nested data structure.
-		if elem.Key() != "note" {
-			if topinfo[elem.Key()] != (NSTopInfo{}) {
-				return nil, fmt.Errorf("duplicate namespace (%s) in top result", elem.Key())
-			}
-			info := NSTopInfo{}
-			if unmarshalErr := bson.Unmarshal(elem.Value().Document(), &info); unmarshalErr != nil {
-				return nil, unmarshalErr
-			}
-			topinfo[elem.Key()] = info
+		if elem.Key() == "note" {
+			continue
 		}
+
+		if topinfo[elem.Key()] != (NSTopInfo{}) {
+			return nil, fmt.Errorf("duplicate namespace (%s) in top result", elem.Key())
+		}
+		info := NSTopInfo{}
+		if unmarshalErr := bson.Unmarshal(elem.Value().Document(), &info); unmarshalErr != nil {
+			return nil, unmarshalErr
+		}
+		topinfo[elem.Key()] = info
 	}
 	currentTop := Top{Totals: topinfo}
 	if mt.previousTop != nil {
