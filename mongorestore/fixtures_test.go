@@ -8,13 +8,13 @@ package mongorestore
 
 import (
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"go.mongodb.org/mongo-driver/bson"
 )
