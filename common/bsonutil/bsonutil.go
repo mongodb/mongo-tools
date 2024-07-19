@@ -480,11 +480,11 @@ func MtoD(m bson.M) bson.D {
 func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool) ([]byte, error) {
 	jsonBytes, err := bson.MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
-		return jsonBytes, err
+		return nil, err
 	}
 	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
 	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
-		return jsonBytes, errors2.Wrap(unmarshalErr, "marshal is not reversible")
+		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
 	return jsonBytes, nil
 }

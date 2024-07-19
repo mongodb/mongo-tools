@@ -104,32 +104,36 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 	tests := []struct {
 		val          any
 		canonical    bool
-		expectedErr  error
+		reversible   bool
 		expectedJSON string
 	}{
 		{
 			bson.M{"field1": bson.M{"$date": 1257894000000}},
 			true,
-			nil,
+			true,
 			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
 		},
 		{
 			bson.M{"field1": time.Unix(1257894000, 0)},
 			true,
-			nil,
+			true,
 			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
 		},
 		{
 			bson.M{"field1": bson.M{"$date": "invalid"}},
 			true,
-			nil,
+			false,
 			``,
 		},
 	}
 
 	for _, test := range tests {
 		json, err := MarshalExtJSONReversible(test.val, test.canonical, false)
-		assert.ErrorIs(t, err, test.expectedErr)
+		if !test.reversible {
+			assert.ErrorContains(t, err, "marshal is not reversible")
+		} else {
+			assert.NoError(t, err)
+		}
 		assert.Equal(t, test.expectedJSON, string(json))
 	}
 }
