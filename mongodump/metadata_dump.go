@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -101,7 +102,7 @@ func (dump *MongoDump) dumpMetadata(intent *intents.Intent, buffer resettableOut
 	}
 
 	// Finally, we send the results to the writer as JSON bytes
-	jsonBytes, err := bson.MarshalExtJSON(meta, true, false)
+	jsonBytes, err := bsonutil.MarshalExtJSONReversible(meta, true, false)
 	if err != nil {
 		return fmt.Errorf("error marshalling metadata json for collection `%v`: %v", intent.Namespace(), err)
 	}

@@ -5,8 +5,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"testing"
+	"time"
 )
 
 func TestBson2Float64(t *testing.T) {
@@ -95,5 +95,41 @@ func TestIsEqual(t *testing.T) {
 				assert.False(isEq)
 			}
 		}
+	}
+}
+
+func TestMarshalExtJSONReversible(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	tests := []struct {
+		val          any
+		canonical    bool
+		expectedErr  error
+		expectedJSON string
+	}{
+		{
+			bson.M{"field1": bson.M{"$date": 1257894000000}},
+			true,
+			nil,
+			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
+		},
+		{
+			bson.M{"field1": time.Unix(1257894000, 0)},
+			true,
+			nil,
+			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
+		},
+		{
+			bson.M{"field1": bson.M{"$date": "invalid"}},
+			true,
+			nil,
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		json, err := MarshalExtJSONReversible(test.val, test.canonical, false)
+		assert.ErrorIs(t, err, test.expectedErr)
+		assert.Equal(t, test.expectedJSON, string(json))
 	}
 }

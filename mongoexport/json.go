@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -92,7 +93,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			}
 		}
 
-		jsonOut, err := bson.MarshalExtJSON(document, jsonExporter.JSONFormat == Canonical, false)
+		jsonOut, err := bsonutil.MarshalExtJSONReversible(document, jsonExporter.JSONFormat == Canonical, false)
 		if err != nil {
 			return err
 		}
@@ -109,7 +110,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			return err
 		}
 	} else {
-		extendedDoc, err := bson.MarshalExtJSON(document, jsonExporter.JSONFormat == Canonical, false)
+		extendedDoc, err := bsonutil.MarshalExtJSONReversible(document, jsonExporter.JSONFormat == Canonical, false)
 		if err != nil {
 			return err
 		}
