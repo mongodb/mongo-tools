@@ -752,18 +752,17 @@ tasks:
             chmod 0755 ./snyk
             ./snyk test --org="${snyk_organization_id}" --file=./go.mod
 
-# TODO (TOOLS-3621): Re-enable once DEVPROD-9074 is fixed.
-#  - name: check-augmented-sbom
-#    tags: ["git_tag"]
-#    commands:
-#      - func: "fetch source"
-#      - command: expansions.update
-#      - command: shell.exec
-#        params:
-#          working_dir: src/github.com/mongodb/mongo-tools
-#          script: |
-#            ${_set_shell_env}
-#            ./scripts/regenerate-and-diff-augmented-sbom.sh
+  - name: check-augmented-sbom
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - command: shell.exec
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            ./scripts/regenerate-and-diff-augmented-sbom.sh
 
   - name: release-json
     tags: ["git_tag"]
