@@ -1,12 +1,13 @@
 package bsonutil
 
 import (
+	"testing"
+	"time"
+
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"testing"
-	"time"
 )
 
 func TestBson2Float64(t *testing.T) {
