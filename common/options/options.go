@@ -139,7 +139,7 @@ type URI struct {
 
 	knownURIParameters   []string
 	extraOptionsRegistry []ExtraOptions
-	ConnString           connstring.ConnString
+	ConnString           *connstring.ConnString
 }
 
 // Struct holding connection-related options
@@ -364,7 +364,7 @@ type URISetter interface {
 	// SetOptionsFromURI provides a way for tools to fetch any options that were
 	// set in the URI and set them on the ExtraOptions that they pass to the options
 	// package.
-	SetOptionsFromURI(connstring.ConnString) error
+	SetOptionsFromURI(*connstring.ConnString) error
 }
 
 func (auth *Auth) RequiresExternalDB() bool {
@@ -427,7 +427,7 @@ func (uri *URI) ParsedConnString() *connstring.ConnString {
 	if uri.ConnectionString == "" {
 		return nil
 	}
-	return &uri.ConnString
+	return uri.ConnString
 }
 
 func (opts *ToolOptions) EnabledToolOptions() EnabledOptions {
@@ -629,7 +629,7 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error) {
 	newArgs := []string{}
 	var foundURI bool
-	var parsedURI connstring.ConnString
+	var parsedURI *connstring.ConnString
 
 	for _, arg := range args {
 		if arg == "" {
@@ -741,7 +741,7 @@ func (opts *ToolOptions) handleUnknownOption(option string, arg flags.SplitArgum
 // Some options (e.g. host and port) are more complicated. To check if a CLI option is set,
 // we check that it is not equal to its default value. To check that a URI option is set,
 // some options have an "OptionSet" field.
-func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
+func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 	opts.URI.ConnString = cs
 
 	if opts.enabledOptions.Connection {

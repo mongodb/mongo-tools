@@ -4,13 +4,20 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// Package driver is intended for internal use only. It is made available to
+// facilitate use cases that require access to internal MongoDB driver
+// functionality and state. The API of this package is not stable and there is
+// no backward compatibility guarantee.
+//
+// WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
+// NOTICE! USE WITH EXTREME CAUTION!
 package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 
 import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -89,7 +96,7 @@ type RTTMonitor interface {
 	Stats() string
 }
 
-var _ RTTMonitor = &internal.ZeroRTTMonitor{}
+var _ RTTMonitor = &csot.ZeroRTTMonitor{}
 
 // PinnedConnection represents a Connection that can be pinned by one or more cursors or transactions. Implementations
 // of this interface should maintain the following invariants:
@@ -210,21 +217,21 @@ var _ Server = SingleConnectionDeployment{}
 // SelectServer implements the Deployment interface. This method does not use the
 // description.SelectedServer provided and instead returns itself. The Connections returned from the
 // Connection method have a no-op Close method.
-func (ssd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
-	return ssd, nil
+func (scd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
+	return scd, nil
 }
 
 // Kind implements the Deployment interface. It always returns description.Single.
-func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
+func (SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
 
 // Connection implements the Server interface. It always returns the embedded connection.
-func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
-	return ssd.C, nil
+func (scd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
+	return scd.C, nil
 }
 
 // RTTMonitor implements the driver.Server interface.
-func (ssd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
-	return &internal.ZeroRTTMonitor{}
+func (scd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
+	return &csot.ZeroRTTMonitor{}
 }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using 2 bits for the mode and 1

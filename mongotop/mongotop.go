@@ -16,7 +16,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 // MongoTop is a container for the user-specified options and
@@ -47,26 +46,39 @@ func (mt *MongoTop) runDiff() (outDiff FormattableDiff, err error) {
 
 func (mt *MongoTop) runTopDiff() (outDiff FormattableDiff, err error) {
 	commandName := "top"
-	dest := &bsonx.Doc{}
+	dest := &bson.Raw{}
 	err = mt.SessionProvider.RunString(commandName, dest, "admin")
 	if err != nil {
 		mt.previousTop = nil
 		return nil, err
 	}
-	// Remove 'note' field that prevents easy decoding, then round-trip
-	// again to simplify unpacking into the nested data structure
+
 	totals, err := dest.LookupErr("totals")
 	if err != nil {
 		return nil, err
 	}
-	recoded, err := totals.Document().Delete("note").MarshalBSON()
+
+	totalsElems, err := totals.Document().Elements()
 	if err != nil {
 		return nil, err
 	}
 	topinfo := make(map[string]NSTopInfo)
-	err = bson.Unmarshal(recoded, &topinfo)
-	if err != nil {
-		return nil, err
+
+	for _, elem := range totalsElems {
+		// Remove 'note' field that prevents easy decoding, then round-trip
+		// again to simplify unpacking into the nested data structure.
+		if elem.Key() == "note" {
+			continue
+		}
+
+		if topinfo[elem.Key()] != (NSTopInfo{}) {
+			return nil, fmt.Errorf("duplicate namespace (%s) in top result", elem.Key())
+		}
+		info := NSTopInfo{}
+		if unmarshalErr := bson.Unmarshal(elem.Value().Document(), &info); unmarshalErr != nil {
+			return nil, unmarshalErr
+		}
+		topinfo[elem.Key()] = info
 	}
 	currentTop := Top{Totals: topinfo}
 	if mt.previousTop != nil {

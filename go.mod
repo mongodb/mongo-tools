@@ -20,7 +20,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	// Later versions remove a package the tools use, so we're sticking with
 	// this older version for now.
-	go.mongodb.org/mongo-driver v1.11.9
+	go.mongodb.org/mongo-driver v1.16.0
 	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240529005216-23cca8864a10
 	golang.org/x/mod v0.17.0
