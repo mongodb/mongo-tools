@@ -116,7 +116,7 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 		},
 		{
 			comment: "Run tests with the race detector enabled.",
-			variant: `ubuntu-race`,
+			variant: `rhel88-race`,
 			tasks:   `^.*$`,
 		},
 		{
@@ -159,7 +159,7 @@ func (c *Config) integrationTestAliases() ([]alias, error) {
 	variantsByServerVersion := make(map[string][]string)
 	for _, v := range c.Variants {
 		// This is a special case that is covered already.
-		if v.Name == "ubuntu-race" {
+		if v.Name == "rhel88-race" {
 			continue
 		}
 		if v.includesLatest() {

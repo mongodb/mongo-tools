@@ -166,6 +166,10 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 			env = append(env, testtype.ReplSetTestType+"=true")
 		}
 
+		if ctx.Get("race") == "true" {
+			args = append(args, "-race")
+		}
+
 		out := io.MultiWriter(ctx, outFile)
 
 		cmd := exec.CommandContext(ctx, "go", args...)

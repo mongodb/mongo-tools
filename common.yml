@@ -800,7 +800,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-3.6-mmapv1
     tags: ["3.6", "mmap"]
@@ -819,7 +819,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.0
     tags: ["4.0"]
@@ -836,7 +836,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.0-auth
     tags: ["4.0", "auth"]
@@ -859,7 +859,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-4.0-cluster
     tags: ["4.0", "cluster"]
@@ -877,7 +877,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.0-mmapv1
     tags: ["4.0", "mmap"]
@@ -896,7 +896,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.2
     tags: ["4.2"]
@@ -917,7 +917,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.2-auth
     tags: ["4.2", "auth"]
@@ -946,7 +946,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-4.4
     tags: ["4.4"]
@@ -967,7 +967,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.4-auth
     tags: ["4.4", "auth"]
@@ -996,7 +996,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-4.4-cluster
     tags: ["4.4", "cluster"]
@@ -1014,7 +1014,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: integration-5.0
     tags: ["5.0"]
@@ -1035,7 +1035,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-5.0-auth
     tags: ["5.0", "auth"]
@@ -1064,7 +1064,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-5.0-cluster
     tags: ["5.0", "cluster"]
@@ -1082,7 +1082,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-5.0
     tags: ["5.0", "aws-auth"]
@@ -1103,7 +1103,7 @@ tasks:
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
         vars:
-          target: test:awsauth
+          target: test:awsauth ${testArgs}
 
   - name: integration-6.0
     tags: ["6.0"]
@@ -1124,7 +1124,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-6.0-auth
     tags: ["6.0", "auth"]
@@ -1153,7 +1153,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-6.0-cluster
     tags: ["6.0", "cluster"]
@@ -1171,7 +1171,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-6.0
     tags: ["6.0", "aws-auth"]
@@ -1192,7 +1192,7 @@ tasks:
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
         vars:
-          target: test:awsauth
+          target: test:awsauth ${testArgs}
 
   - name: integration-7.0
     tags: ["7.0"]
@@ -1213,7 +1213,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-7.0-auth
     tags: ["7.0", "auth"]
@@ -1242,7 +1242,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-7.0-cluster
     tags: ["7.0", "cluster"]
@@ -1260,7 +1260,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-7.0
     tags: ["7.0", "aws-auth"]
@@ -1281,7 +1281,7 @@ tasks:
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
         vars:
-          target: test:awsauth
+          target: test:awsauth ${testArgs}
 
   - name: integration-8.0
     tags: ["8.0"]
@@ -1302,7 +1302,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-8.0-auth
     tags: ["8.0", "auth"]
@@ -1331,7 +1331,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.0-cluster
     tags: ["8.0", "cluster"]
@@ -1349,7 +1349,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-8.0
     tags: ["8.0", "aws-auth"]
@@ -1370,7 +1370,7 @@ tasks:
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
         vars:
-          target: test:awsauth
+          target: test:awsauth ${testArgs}
 
   - name: integration-latest
     tags: ["latest"]
@@ -1391,7 +1391,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-latest-auth
     tags: ["latest", "auth"]
@@ -1420,7 +1420,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -auth=true
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-latest-cluster
     tags: ["latest", "cluster"]
@@ -1438,7 +1438,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-latest
     tags: ["latest", "aws-auth"]
@@ -1459,7 +1459,7 @@ tasks:
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
         vars:
-          target: test:awsauth
+          target: test:awsauth ${testArgs}
 
   - name: aws-auth-4.4
     tags: ["4.4", "aws-auth"]
@@ -1480,7 +1480,7 @@ tasks:
       - func: "setup-aws-auth-test-with-assume-role-credentials"
       - func: "run make target"
         vars:
-          target: test:awsauth
+          target: test:awsauth ${testArgs}
 
   - name: kerberos
     tags: ["kerberos"]
@@ -1498,7 +1498,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:kerberos
+          target: test:kerberos ${testArgs}
 
   - name: legacy-jstests-4.2 # The server jstests from the tools removal from server in 4.2
     tags: ["4.2"]
@@ -1878,7 +1878,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:unit
+          target: test:unit ${testArgs}
 
   - name: vet
     commands:
@@ -2148,6 +2148,40 @@ buildvariants:
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
+
+  - name: rhel88-race
+    display_name: RHEL 8.8 w/ Race Detector
+    run_on:
+      - rhel8.8-large
+    expansions:
+      <<:
+        [
+          *mongod_ssl_startup_args,
+          *mongo_ssl_startup_args,
+          *mongod_tls_startup_args,
+          *mongo_tls_startup_args,
+        ]
+      mongo_os: "rhel80"
+      mongo_edition: "enterprise"
+      testArgs: "-race=true"
+      smoke_use_ssl: --use-ssl
+      resmoke_use_ssl: _ssl
+      smoke_use_tls: --use-tls
+      resmoke_use_tls: _tls
+      edition: enterprise
+      run_kinit: true
+      resmoke_args: --jobs 4
+    tasks:
+      - name: "unit"
+      - name: ".4.0"
+      - name: ".4.2"
+      - name: ".4.4"
+      - name: ".5.0"
+      - name: ".6.0"
+      - name: ".7.0"
+      - name: ".8.0"
+      - name: ".latest"
+      - name: ".kerberos"
 
   - name: rhel93
     display_name: RHEL 9.3
@@ -2472,8 +2506,6 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-# These aliases are generated by running `go run ./evergreen/generator` from
-# the repo root. Do not edit them directly!
 github_pr_aliases:
   # Run all static analysis tasks.
   - variant: "^static$"
@@ -2485,11 +2517,11 @@ github_pr_aliases:
   - variant: ".*"
     task: "^push$"
   # Run tests with the race detector enabled.
-  - variant: "ubuntu-race"
+  - variant: "rhel88-race"
     task: "^.*$"
   # Run all integration tests on one variant. We pick RHEL 8.0 because it's
   # a relatively recent platform that supports a wide range of servers.
-  - variant: "rhel88"
+  - variant: "rhel80"
     task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
   # Run a subset of integration tests against the 3.6 version of MongoDB
   # Server on all variants where that is the most recent supported version.
@@ -2497,5 +2529,5 @@ github_pr_aliases:
     task: "integration-3.6"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel88|windows)$"
+  - variant: "^(rhel88|rhel88-race|windows)$"
     task: "integration-latest"

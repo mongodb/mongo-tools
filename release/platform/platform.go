@@ -85,8 +85,8 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, err
 	}
 
-	if variant == "ubuntu-race" {
-		variant = "ubuntu1804"
+	if variant == "rhel88-race" {
+		variant = "rhel88"
 	}
 
 	pf, ok := GetByVariant(variant)

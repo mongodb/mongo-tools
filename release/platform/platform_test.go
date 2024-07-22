@@ -40,7 +40,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 	}
 
 	for _, v := range config.Variants {
-		if v.Name == "release" || v.Name == "static" || v.Name == "ubuntu-race" {
+		if v.Name == "release" || v.Name == "static" || v.Name == "rhel88-race" {
 			continue
 		}
 
