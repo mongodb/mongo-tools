@@ -13,11 +13,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/util"
+	errors2 "github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -469,4 +471,20 @@ func MtoD(m bson.M) bson.D {
 		doc = append(doc, bson.E{key, value})
 	}
 	return doc
+}
+
+// MarshalExtJSONReversible is a wrapper around bson.MarshalExtJSON function,
+// but would return an error if it cannot be reversed by bson.UnmarshalExtJSON.
+//
+// It is preferred to be used in mongodump to avoid generating un-reversible ext JSON.
+func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool) ([]byte, error) {
+	jsonBytes, err := bson.MarshalExtJSON(val, canonical, escapeHTML)
+	if err != nil {
+		return nil, err
+	}
+	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
+	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
+		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
+	}
+	return jsonBytes, nil
 }

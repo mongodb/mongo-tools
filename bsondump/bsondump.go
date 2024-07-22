@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/json"
@@ -118,7 +119,7 @@ func (bd *BSONDump) Close() error {
 }
 
 func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
-	extendedJSON, err := bson.MarshalExtJSON(doc, true, false)
+	extendedJSON, err := bsonutil.MarshalExtJSONReversible(doc, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("error converting BSON to extended JSON: %v", err)
 	}

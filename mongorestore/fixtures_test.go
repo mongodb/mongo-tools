@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -100,7 +101,7 @@ func (tcd testCollData) WriteMetadata(basePath string) error {
 	}
 	defer file.Close()
 
-	raw, err := bson.MarshalExtJSON(tcd.metadata, true, false)
+	raw, err := bsonutil.MarshalExtJSONReversible(tcd.metadata, true, false)
 	if err != nil {
 		return err
 	}
