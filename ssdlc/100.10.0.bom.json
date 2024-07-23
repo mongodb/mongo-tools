@@ -774,7 +774,7 @@
       "version": "v0.0.0-20201027041543-1326539a0a0a"
     },
     {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.11.9",
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.16.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -782,7 +782,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.11.9"
+          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.16.0"
         }
       ],
       "group": "go.mongodb.org",
@@ -794,9 +794,9 @@
         }
       ],
       "name": "mongo-driver",
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver@v1.11.9",
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver@v1.16.0",
       "type": "library",
-      "version": "v1.11.9"
+      "version": "v1.16.0"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/crypto@v0.25.0",
@@ -1113,7 +1113,7 @@
       "ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20201027041543-1326539a0a0a"
     },
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.11.9"
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.16.0"
     },
     {
       "ref": "pkg:golang/golang.org/x/crypto@v0.25.0"
@@ -1150,7 +1150,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2024-07-19T16:23:14.188242+00:00",
+    "timestamp": "2024-07-23T14:56:02.572971+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1194,7 +1194,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 10,
+  "version": 11,
   "vulnerabilities": [
     {
       "affects": [
@@ -1206,7 +1206,7 @@
         "detail": "tool_detected_remediation",
         "state": "resolved"
       },
-      "bom-ref": "BomRef.25542445665152236.12997706026583755",
+      "bom-ref": "BomRef.9461325443989455.6530665188109336",
       "created": "2024-07-04T04:40:05.262000+00:00",
       "cwes": [
         22
