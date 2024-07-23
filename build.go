@@ -16,8 +16,13 @@ func init() {
 	taskRegistry.Declare("build").Description("build the tools").OptionalArgs("pkgs").Do(buildscript.BuildTools)
 	taskRegistry.Declare("checkMinVersion").Description("check if the minimum required Go version exists").Do(buildscript.CheckMinimumGoVersion)
 
-	// SSDLC
-	taskRegistry.Declare("sbom:write").Description("create an SBOM Lite file using the Silkbomb tool").Do(buildscript.WriteSBOMLite)
+	// Deps & SSDL
+	taskRegistry.Declare("writeSBOMLite").Description("create an SBOM Lite file using the Silkbomb tool").Do(buildscript.WriteSBOMLite)
+	taskRegistry.Declare("writeAugmentedSBOM").Description("create an Augmented SBOM file using the Silkbomb tool").Do(buildscript.WriteSBOMLite)
+	taskRegistry.Declare("addDep").Description("Add a dependency").RequiredArg("pkg").Do(buildscript.AddDep)
+	taskRegistry.Declare("updateDep").Description("Update a dependency").RequiredArg("pkg").Do(buildscript.UpdateDep)
+	taskRegistry.Declare("updateAllDeps").Description("Update all dependencies").OptionalArg("exclude").Do(buildscript.UpdateAllDeps)
+	taskRegistry.Declare("writeThirdPartyNotices").Description("Write the THIRD-PARTY-NOTICES file").Do(buildscript.WriteThirdPartyNotices)
 
 	// Static Analysis
 	taskRegistry.Declare("sa:installdevtools").Description("installs dev tools").Do(buildscript.SAInstallDevTools)
