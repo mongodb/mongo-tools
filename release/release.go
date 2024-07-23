@@ -1256,6 +1256,22 @@ func linuxRelease(v version.Version) {
 
 		for _, linuxRepo := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
+				if canPerformStableRelease(v) {
+					mongoVer, err := version.Parse(linuxRepo.mongoVersionNumber)
+					check(err, "failed to parse mongoDB version: "+linuxRepo.mongoVersionNumber)
+
+					// Conditionally skip pushing a release to a linux repo because a server repo might of that version
+					// might not exist.
+					if pf.MinLinuxServerVersion != nil && pf.MinLinuxServerVersion.GreaterThan(mongoVer) {
+						log.Printf("skip to push a linux release to server version %s", mongoVer)
+						continue
+					}
+					if pf.MaxLinuxServerVersion != nil && mongoVer.GreaterThan(*pf.MaxLinuxServerVersion) {
+						log.Printf("skip to push a linux release to server version %s", mongoVer)
+						continue
+					}
+				}
+
 				wg.Add(1)
 				go func(mongoEdition string, linuxRepo LinuxRepo) {
 					var err error
