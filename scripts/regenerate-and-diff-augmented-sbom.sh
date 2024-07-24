@@ -15,7 +15,7 @@ if [ ! -f "$SBOM" ]; then
     exit 1
 fi
 
-./scripts/regenerate-augmented-sbom.sh --no-update-timestamp --no-update-sbom-version
+./scripts/regenerate-augmented-sbom.sh
 
 # TODO (TOOLS-3621): Check the entire file once DEVPROD-9074 is fixed.
 git diff --exit-code --ignore-matching-lines='timestamp' --ignore-matching-lines='bom-ref' "$SBOM"
