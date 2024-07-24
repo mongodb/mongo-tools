@@ -90,7 +90,6 @@ func TestConstructWCFromConnString(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a parsed &connstring, on calling constructWCFromConnString...", t, func() {
-
 		Convey("non integer values should set the correct boolean "+
 			"field", func() {
 			writeConcernString := "majority"

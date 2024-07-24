@@ -241,7 +241,6 @@ func ApplyFlags(opts *mopt.FindOneOptions, flags int) {
 		opts.SetHint(bson.D{{"_id", 1}})
 	}
 	if flags&LogReplay > 0 {
-		//nolint:staticcheck
 		opts.SetOplogReplay(true)
 	}
 }

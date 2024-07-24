@@ -116,7 +116,7 @@ func GetOldestActiveTransactionOpTime(client *mongo.Client) (OpTime, error) {
 	filter := bson.D{{"state", bson.D{{"$in", bson.A{"prepared", "inProgress"}}}}}
 	opts := mopts.FindOne().SetSort(bson.D{{"startOpTime", 1}})
 
-	result, err := coll.FindOne(context.Background(), filter, opts).DecodeBytes()
+	result, err := coll.FindOne(context.Background(), filter, opts).Raw()
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return OpTime{}, nil
@@ -142,11 +142,9 @@ func GetLatestVisibleOplogOpTime(client *mongo.Client) (OpTime, error) {
 	}
 	// Do a forward scan starting at the last op fetched to ensure that
 	// all operations with earlier oplog times have been storage-committed.
-	//
-	//nolint:staticcheck
 	opts := mopts.FindOne().SetOplogReplay(true)
 	coll := client.Database("local").Collection("oplog.rs")
-	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).DecodeBytes()
+	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).Raw()
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return OpTime{}, fmt.Errorf("last op was not confirmed. last optime: %+v. confirmation time was not found",

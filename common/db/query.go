@@ -48,7 +48,6 @@ func (q *DeferredQuery) Iter() (*mongo.Cursor, error) {
 		opts.SetHint(q.Hint)
 	}
 	if q.LogReplay {
-		//nolint:staticcheck
 		opts.SetOplogReplay(true)
 	}
 	filter := q.Filter

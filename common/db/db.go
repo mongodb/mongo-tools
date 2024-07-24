@@ -308,7 +308,6 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
 		t := true
-		//nolint:staticcheck
 		clientopt.AuthenticateToAnything = &t
 	}
 
@@ -319,7 +318,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetWriteConcern(opts.WriteConcern)
 	} else {
 		// If no write concern was specified, default to majority
-		clientopt.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+		clientopt.SetWriteConcern(writeconcern.Majority())
 	}
 
 	if opts.Compressors != "" && opts.Compressors != "none" {
