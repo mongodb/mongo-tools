@@ -1260,8 +1260,7 @@ func linuxRelease(v version.Version) {
 					mongoVer, err := version.Parse(linuxRepo.mongoVersionNumber)
 					check(err, "failed to parse mongoDB version: "+linuxRepo.mongoVersionNumber)
 
-					// Conditionally skip pushing a release to a linux repo because a server repo might of that version
-					// might not exist.
+					// We do not have linux repos for every Server version, and we can only push to repos that exist.
 					if pf.MinLinuxServerVersion != nil && pf.MinLinuxServerVersion.GreaterThan(mongoVer) {
 						log.Printf("skip to push a linux release to server version %s", mongoVer)
 						continue
