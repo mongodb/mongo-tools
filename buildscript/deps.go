@@ -47,7 +47,7 @@ func requirePodman(ctx *task.Context) error {
 	return err
 }
 
-//nolint:misspell // "license" is intentional here
+//nolint:misspell // "licence" is intentional here
 var (
 	// This matches a file that starts with "license" or "licence", in any
 	// case, with an optional extension.
