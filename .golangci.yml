@@ -41,3 +41,9 @@ issues:
   max-same-issues: 0
   exclude:
     - "composites: .+(primitive.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
+  # TODO (TOOLS-3633): Remove this exclusion and actually fix the issues.
+  exclude-rules:
+    - path: '\.go$'
+      linters:
+        - staticcheck
+      text: "is deprecated"
