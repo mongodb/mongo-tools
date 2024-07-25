@@ -184,8 +184,8 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 
 - Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too
   much unnecessary detail.
-- Submit a PR with your changes under the release ticket number, request reviews from TAR team leads 
-  and Tools product manager. Merge once approved.
+- Submit a PR with your changes under the release ticket number, request reviews from the TAR Team Leads
+  and the DB Tools Product Manager. Merge once approved.
 
 #### Close Release Ticket
 
