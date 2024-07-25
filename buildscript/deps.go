@@ -19,6 +19,9 @@ import (
 )
 
 func WriteSBOMLite(ctx *task.Context) error {
+	if err := requirePodman(ctx); err != nil {
+		return err
+	}
 	return sh.Run(ctx, "scripts/regenerate-sbom-lite.sh")
 }
 
