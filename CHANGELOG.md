@@ -18,7 +18,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <h3>        Vulnerability
 </h3>
 <ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3615'>TOOLS-3615</a>] -         Security Finding: Update package `crypto`
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3615'>TOOLS-3615</a>] -         Security Finding: Update package `golang.org/x/crypto` to address [CVE-2022-30636](https://www.cve.org/CVERecord?id=CVE-2022-30636)
 </li>
 </ul>
 
