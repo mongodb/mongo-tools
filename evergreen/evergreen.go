@@ -117,14 +117,14 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 		{
 			comment: "Run golang tests with the race detector enabled.",
 			variant: `rhel88-race`,
-			tasks:   `^(aws-auth|integration|kerberos|unit)$`,
+			tasks:   `^(aws-auth|integration|kerberos|unit)`,
 		},
 		{
 			comment: "Run all integration tests on one variant. We pick RHEL 8.8 because" +
 				" it's a relatively recent platform that supports a wide range of" +
 				" servers.",
 			variant: `rhel88`,
-			tasks:   `^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*`,
+			tasks:   `^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)`,
 		},
 	}
 
