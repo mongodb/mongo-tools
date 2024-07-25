@@ -162,7 +162,8 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
   of tickets tagged with the release version. (If the link doesn't work, you can access this through
   the release page for the version you are releasing.)
 - Go through the list of tickets and check that each ticket is categorized correctly (as a task,
-  bugfix etc.). Also make sure there is nothing in the list that might have been tagged with the
+  bugfix etc.). Make sure all tickets marked at `Mongo Internal` security level should be excluded except from Vulnerability Types.
+  Also make sure there is nothing in the list that might have been tagged with the
   wrong fix version.
 - Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of
   `<INSERT-LIST-OF-TICKETS>`.

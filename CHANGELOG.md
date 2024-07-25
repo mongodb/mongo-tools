@@ -1,5 +1,67 @@
 # Database Tools Changelog
 
+## 100.10.0
+
+_Released 2024-07-24_
+
+We are pleased to announce version 100.10.0 of the MongoDB Database Tools.
+
+This version adds support for MongoDB Server 8.0, and support for Ubuntu 24.04 platforms. It also updates several packages and fixes a bug.
+
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+<h3>        Vulnerability
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3615'>TOOLS-3615</a>] -         Security Finding: Update package `crypto`
+</li>
+</ul>
+
+<h3>        Release
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3576'>TOOLS-3576</a>] -         Release Database Tools 100.10.0
+</li>
+</ul>
+
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3611'>TOOLS-3611</a>] -         Mongodump and restore should not produce a JSON format error on $-prefixed object keys
+</li>
+</ul>
+
+<h3>        Epic
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3413'>TOOLS-3413</a>] -         Tools 8.0 Support
+</li>
+</ul>
+
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3546'>TOOLS-3546</a>] -         Support vectored insertion oplog format
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3572'>TOOLS-3572</a>] -         Fix file names for released deb packages
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3574'>TOOLS-3574</a>] -         Run integration tests against 8.0 and add ubuntu2404 variants
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3575'>TOOLS-3575</a>] -         Support dump and restore mixed-schema timeseries buckets
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3604'>TOOLS-3604</a>] -         Add platforms rhel8.8 (x86_64 and arm64) and rhel9.3 (x86_64 and arm64)
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3613'>TOOLS-3613</a>] -         Run qa and legacy tests against 8.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3616'>TOOLS-3616</a>] -         Update go driver version to v1.16.0
+</li>
+</ul>
+
 ## 100.9.5
 
 _Released 2024-06-17_
