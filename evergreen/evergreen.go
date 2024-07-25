@@ -120,10 +120,10 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 			tasks:   `^.*$`,
 		},
 		{
-			comment: "Run all integration tests on one variant. We pick RHEL 8.0 because" +
+			comment: "Run all integration tests on one variant. We pick RHEL 8.8 because" +
 				" it's a relatively recent platform that supports a wide range of" +
 				" servers.",
-			variant: `rhel80`,
+			variant: `rhel88`,
 			tasks:   `^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*`,
 		},
 	}
