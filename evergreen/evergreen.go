@@ -115,9 +115,9 @@ func (c *Config) GitHubPRAliasesYAML() (string, error) {
 			tasks:   `^push$`,
 		},
 		{
-			comment: "Run tests with the race detector enabled.",
+			comment: "Run golang tests with the race detector enabled.",
 			variant: `rhel88-race`,
-			tasks:   `^.*$`,
+			tasks:   `^(aws-auth|integration|kerberos|unit)$`,
 		},
 		{
 			comment: "Run all integration tests on one variant. We pick RHEL 8.8 because" +

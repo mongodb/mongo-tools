@@ -2519,9 +2519,9 @@ github_pr_aliases:
   # Run push and record this PR run in Papertrail.
   - variant: ".*"
     task: "^push$"
-  # Run tests with the race detector enabled.
+  # Run golang tests with the race detector enabled.
   - variant: "rhel88-race"
-    task: "^.*$"
+    task: "^(aws-auth|integration|kerberos|unit)$"
   # Run all integration tests on one variant. We pick RHEL 8.8 because it's
   # a relatively recent platform that supports a wide range of servers.
   - variant: "rhel88"
