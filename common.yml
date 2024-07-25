@@ -2525,7 +2525,7 @@ github_pr_aliases:
   # Run all integration tests on one variant. We pick RHEL 8.8 because it's
   # a relatively recent platform that supports a wide range of servers.
   - variant: "rhel88"
-    task: "^(aws-auth|integration|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
+    task: "^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)-.*"
   # Run a subset of integration tests against the 3.6 version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^rhel62-no-kerberos$"
