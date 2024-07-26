@@ -27,6 +27,7 @@ func WriteSBOMLite(ctx *task.Context) error {
 	if err := startPodmanMachine(ctx); err != nil {
 		return err
 	}
+	//nolint:errcheck
 	defer stopPodmanMachine(ctx)
 
 	return sh.Run(ctx, "scripts/regenerate-sbom-lite.sh")
