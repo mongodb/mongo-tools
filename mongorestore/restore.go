@@ -488,7 +488,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 				break
 			}
 
-			if restore.terminate {
+			if restore.terminate.Load() {
 				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
 				termErr = util.ErrTerminated
 				close(docChan)
@@ -565,7 +565,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		totalResult.combineWith(<-resultChan)
 		if finalErr == nil && totalResult.Err != nil {
 			finalErr = totalResult.Err
-			restore.terminate = true
+			restore.terminate.Store(true)
 		}
 	}
 

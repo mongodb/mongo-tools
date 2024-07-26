@@ -122,7 +122,10 @@ func (tl *ToolLogger) Writer(minVerb int) io.Writer {
 
 //// Global Logging
 
-var globalToolLogger *ToolLogger
+var (
+	globalToolLogger      *ToolLogger
+	globalToolLoggerMutex sync.Mutex
+)
 
 func init() {
 	if globalToolLogger == nil {
@@ -134,29 +137,43 @@ func init() {
 // IsInVerbosity returns true if the current verbosity level setting is
 // greater than or equal to the given level.
 func IsInVerbosity(minVerb int) bool {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	return minVerb <= globalToolLogger.verbosity
 }
 
 func Logvf(minVerb int, format string, a ...interface{}) {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	globalToolLogger.Logvf(minVerb, format, a...)
 }
 
 func Logv(minVerb int, msg string) {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	globalToolLogger.Logv(minVerb, msg)
 }
 
 func SetVerbosity(verbosity VerbosityLevel) {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	globalToolLogger.SetVerbosity(verbosity)
 }
 
 func SetWriter(writer io.Writer) {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	globalToolLogger.SetWriter(writer)
 }
 
 func SetDateFormat(dateFormat string) {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	globalToolLogger.SetDateFormat(dateFormat)
 }
 
 func Writer(minVerb int) io.Writer {
+	globalToolLoggerMutex.Lock()
+	defer globalToolLoggerMutex.Unlock()
 	return globalToolLogger.Writer(minVerb)
 }

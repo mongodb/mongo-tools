@@ -31,10 +31,10 @@ func init() {
 	taskRegistry.Declare("sa:evgvalidate").Description("runs evergreen validate").Do(buildscript.SAEvergreenValidate)
 
 	// Testing
-	taskRegistry.Declare("test:unit").Description("runs all unit tests").OptionalArgs("pkgs").Do(buildscript.TestUnit)
-	taskRegistry.Declare("test:integration").Description("runs all integration tests").OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology").Do(buildscript.TestIntegration)
-	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").Do(buildscript.TestKerberos)
-	taskRegistry.Declare("test:awsauth").Description("runs all aws auth tests").Do(buildscript.TestAWSAuth)
+	taskRegistry.Declare("test:unit").Description("runs all unit tests").OptionalArgs("pkgs", "race").Do(buildscript.TestUnit)
+	taskRegistry.Declare("test:integration").Description("runs all integration tests").OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology", "race").Do(buildscript.TestIntegration)
+	taskRegistry.Declare("test:kerberos").Description("runs all kerberos tests").OptionalArgs("race").Do(buildscript.TestKerberos)
+	taskRegistry.Declare("test:awsauth").Description("runs all aws auth tests").OptionalArgs("race").Do(buildscript.TestAWSAuth)
 }
 
 func main() {

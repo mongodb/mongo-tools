@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/archive"
@@ -84,7 +85,7 @@ type MongoRestore struct {
 	archive *archive.Reader
 
 	// boolean set if termination signal received; false by default
-	terminate bool
+	terminate atomic.Bool
 
 	// Reader to take care of BSON input if not reading from the local filesystem.
 	// This is initialized to os.Stdin if unset.
@@ -121,7 +122,6 @@ func New(opts Options) (*MongoRestore, error) {
 		SessionProvider: provider,
 		ProgressManager: progressManager,
 		serverVersion:   serverVersion,
-		terminate:       false,
 		indexCatalog:    idx.NewIndexCatalog(),
 	}
 
@@ -691,5 +691,5 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 }
 
 func (restore *MongoRestore) HandleInterrupt() {
-	restore.terminate = true
+	restore.terminate.Store(true)
 }

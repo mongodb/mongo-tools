@@ -104,7 +104,7 @@ func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
 
 	mainFile := filepath.Join(tool, "main", fmt.Sprintf("%s.go", tool))
 
-	buildFlags, err := getBuildFlags(ctx)
+	buildFlags, err := getBuildFlags(ctx, false)
 	if err != nil {
 		return fmt.Errorf("failed to get build flags: %w", err)
 	}
@@ -139,7 +139,7 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		}
 		defer outFile.Close()
 
-		buildFlags, err := getBuildFlags(ctx)
+		buildFlags, err := getBuildFlags(ctx, true)
 		if err != nil {
 			return fmt.Errorf("failed to get build flags: %w", err)
 		}
@@ -164,6 +164,10 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		}
 		if ctx.Get("topology") == "replSet" {
 			env = append(env, testtype.ReplSetTestType+"=true")
+		}
+
+		if ctx.Get("race") == "true" {
+			args = append(args, "-race")
 		}
 
 		out := io.MultiWriter(ctx, outFile)
@@ -211,7 +215,7 @@ func getLdflags(ctx *task.Context) (string, error) {
 
 // getBuildFlags gets all the build flags that should be used when
 // building the tools on the current platform, including tags and ldflags.
-func getBuildFlags(ctx *task.Context) ([]string, error) {
+func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
 	ldflags, err := getLdflags(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ldflags: %w", err)
@@ -233,7 +237,11 @@ func getBuildFlags(ctx *task.Context) ([]string, error) {
 	}
 
 	if pf.OS == platform.OSLinux {
-		flags = append(flags, "-buildmode=pie")
+		// We don't want to enable -buildmode=pie for tests. This interferes with enabling the race
+		// detector.
+		if !forTests {
+			flags = append(flags, "-buildmode=pie")
+		}
 	} else if pf.OS == platform.OSWindows {
 		flags = append(flags, "-buildmode=exe")
 	}
