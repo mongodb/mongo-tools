@@ -22,6 +22,11 @@ func WriteSBOMLite(ctx *task.Context) error {
 	if err := requirePodman(ctx); err != nil {
 		return err
 	}
+	if err := startPodmanMachine(ctx); err != nil {
+		return err
+	}
+	defer stopPodmanMachine(ctx)
+
 	return sh.Run(ctx, "scripts/regenerate-sbom-lite.sh")
 }
 
@@ -48,6 +53,44 @@ func requirePodman(ctx *task.Context) error {
 	fmt.Println(`This command requires the "podman" CLI tool, which you will need to install.`)
 	fmt.Println("See https://podman.io/ for more information and installation instructions.")
 	return err
+}
+
+var podmanCurrentMachineRegexp = regexp.MustCompile(`currentmachine:\s*"?([^"\s]*)"?`)
+var podmanMachineStateRegexp = regexp.MustCompile(`machinestate:\s*"?([^"\s]*)"?`)
+
+func startPodmanMachine(ctx *task.Context) error {
+	out, err := sh.RunOutput(ctx, "podman", "machine", "info")
+	if err != nil {
+		return err
+	}
+
+	currentMachines := podmanCurrentMachineRegexp.FindStringSubmatch(out)
+	fmt.Println(out)
+
+	if len(currentMachines) != 2 {
+		return errors.Errorf("failed to parse `currentmachine` field from podman machine info")
+	}
+	// Run podman machine init if there's no current machine.
+	if currentMachines[1] == "" {
+		err = sh.RunCmd(ctx, exec.CommandContext(ctx, "podman", "machine", "init"))
+		if err != nil {
+			return err
+		}
+	}
+
+	machineStates := podmanMachineStateRegexp.FindStringSubmatch(out)
+	if len(machineStates) != 2 {
+		return errors.Errorf("failed to parse `machinestate` field from podman machine info")
+	}
+	if machineStates[1] == "Running" {
+		return nil
+	}
+
+	return sh.Run(ctx, "podman", "machine", "start")
+}
+
+func stopPodmanMachine(ctx *task.Context) error {
+	return sh.Run(ctx, "podman", "machine", "stop")
 }
 
 //nolint:misspell // "licence" is intentional here
