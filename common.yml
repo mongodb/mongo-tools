@@ -532,17 +532,6 @@ functions:
 
           echo -n "$MONGOD_URI" > MONGOD_URI
 
-  "check third-party notices":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -e
-          set -x
-          ./etc/generate-notices.pl > ./THIRD-PARTY-NOTICES
-          git diff --exit-code
-
   "check sbom lite":
     command: shell.exec
     type: test
@@ -1897,7 +1886,17 @@ tasks:
   - name: check-third-party-notices
     commands:
       - func: "fetch source"
-      - func: "check third-party notices"
+      - func: "run make target"
+        vars:
+          target: writeThirdPartyNotices
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            set -e
+            set -x
+            git diff --exit-code
 
   - name: check-sbom-lite
     commands:

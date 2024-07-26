@@ -44,6 +44,27 @@ All commits to the MongoDB Tools repository must pass golint:
 
 _We use a modified version of [golint](https://github.com/golang/lint)_
 
+## Adding or Updating Dependencies
+
+There's some "paperwork" that needs to be done for all dependency changes. To simplify this there
+are several command you can run:
+
+```
+# Adds the latest version.
+go run build.go addDep -pkg=github.com/some/package
+# Adds the specified version.
+go run build.go addDep -pkg=github.com/some/package@v1.2.3
+# Updates to the latest version.
+go run build.go updateDep -pkg=github.com/some/package
+# Updates to the specified version.
+go run build.go updateDep -pkg=github.com/some/package@v1.2.3
+# Updates all dependencies to their latest versions.
+go run build.go updateAllDeps
+```
+
+This will update our `go.{mod,sum}` files, vendor the dependency, and update the SBOM Lite and
+`THIRD-PARTY-NOTICES` repo.
+
 ## Testing
 
 You will need a MongoDB server listening on `localhost:33333` to run the integration tests locally.
