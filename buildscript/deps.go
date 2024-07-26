@@ -1,12 +1,14 @@
 package buildscript
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"syscall"
@@ -55,34 +57,39 @@ func requirePodman(ctx *task.Context) error {
 	return err
 }
 
-var podmanCurrentMachineRegexp = regexp.MustCompile(`currentmachine:\s*"?([^"\s]*)"?`)
-var podmanMachineStateRegexp = regexp.MustCompile(`machinestate:\s*"?([^"\s]*)"?`)
-
 func startPodmanMachine(ctx *task.Context) error {
-	out, err := sh.RunOutput(ctx, "podman", "machine", "info")
+	if runtime.GOOS == "linux" {
+		// Linux doesn't need a podman machine to be up.
+		return nil
+	}
+
+	out, err := sh.RunOutput(ctx, "podman", "machine", "info", "--format", "json")
 	if err != nil {
 		return err
 	}
 
-	currentMachines := podmanCurrentMachineRegexp.FindStringSubmatch(out)
-	fmt.Println(out)
+	fmt.Printf("podman machine info: %s\n", out)
 
-	if len(currentMachines) != 2 {
-		return errors.Errorf("failed to parse `currentmachine` field from podman machine info")
+	info := struct {
+		Host struct {
+			CurrentMachine string `json:"CurrentMachine"`
+			MachineState   string `json:"MachineState"`
+		} `json:"Host"`
+	}{}
+	err = json.Unmarshal([]byte(out), &info)
+	if err != nil {
+		return err
 	}
+
 	// Run podman machine init if there's no current machine.
-	if currentMachines[1] == "" {
+	if info.Host.CurrentMachine == "" {
 		err = sh.RunCmd(ctx, exec.CommandContext(ctx, "podman", "machine", "init"))
 		if err != nil {
 			return err
 		}
 	}
 
-	machineStates := podmanMachineStateRegexp.FindStringSubmatch(out)
-	if len(machineStates) != 2 {
-		return errors.Errorf("failed to parse `machinestate` field from podman machine info")
-	}
-	if machineStates[1] == "Running" {
+	if info.Host.MachineState == "Running" {
 		return nil
 	}
 
@@ -90,6 +97,10 @@ func startPodmanMachine(ctx *task.Context) error {
 }
 
 func stopPodmanMachine(ctx *task.Context) error {
+	if runtime.GOOS == "linux" {
+		// Linux doesn't need a podman machine.
+		return nil
+	}
 	return sh.Run(ctx, "podman", "machine", "stop")
 }
 
