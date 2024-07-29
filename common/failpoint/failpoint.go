@@ -7,7 +7,7 @@
 //go:build failpoints
 // +build failpoints
 
-// Package failpoint implements triggers for custom debugging behavior
+// Package failpoint implements triggers for custom debugging behavior.
 package failpoint
 
 import (
