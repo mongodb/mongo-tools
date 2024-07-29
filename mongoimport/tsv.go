@@ -80,7 +80,7 @@ func NewTSVInputReader(colSpecs []ColumnSpec, in io.Reader, rejects io.Writer, n
 
 // ReadAndValidateHeader reads the header from the underlying reader and validates
 // the header fields. It sets err if the read/validation fails.
-func (r *TSVInputReader) ReadAndValidateHeader() (err error) {
+func (r *TSVInputReader) ReadAndValidateHeader(optionsWithFields ColumnsAsOptionFields) (err error) {
 	header, err := r.tsvReader.ReadString(entryDelimiter)
 	if err != nil {
 		return err
@@ -90,12 +90,15 @@ func (r *TSVInputReader) ReadAndValidateHeader() (err error) {
 		headerFields = append(headerFields, strings.TrimRight(field, "\r\n"))
 	}
 	r.colSpecs = ParseAutoHeaders(headerFields)
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
+		return err
+	}
 	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)
 }
 
 // ReadAndValidateTypedHeader reads the header from the underlying reader and validates
 // the header fields. It sets err if the read/validation fails.
-func (r *TSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err error) {
+func (r *TSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace, optionsWithFields ColumnsAsOptionFields) (err error) {
 	header, err := r.tsvReader.ReadString(entryDelimiter)
 	if err != nil {
 		return err
@@ -106,6 +109,9 @@ func (r *TSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err 
 	}
 	r.colSpecs, err = ParseTypedHeaders(headerFields, parseGrace)
 	if err != nil {
+		return err
+	}
+	if err = ValidateOptionDependentFields(r.colSpecs, optionsWithFields); err != nil {
 		return err
 	}
 	return validateReaderFields(ColumnNames(r.colSpecs), r.useArrayIndexFields)

@@ -102,6 +102,22 @@ type IngestOptions struct {
 	NumDecodingWorkers int `long:"numDecodingWorkers" default:"0" hidden:"true"`
 
 	BulkBufferSize int `long:"batchSize" default:"1000" hidden:"true"`
+
+	// Creates the target collection as a time-series collection using the value given
+	// as the TimeField. --columnsHaveTypes is required so mongoimport can validate
+	// that a date field exists, and because a date cannot be coerced from auto.
+	TimeSeriesTimeField string `long:"timeSeriesTimeField" value-name:"time-field" description:"Creates target collection as time-series with this field as the timeField e.g. --timeSeriesTimeField='timestamp'. Requires --columnsHaveTypes."`
+
+	// Optional. Passed to the creation of a time-series collection.
+	TimeSeriesMetaField string `long:"timeSeriesMetaField" value-name:"meta-field" description:"Sets the (optional) metaField of the target time-series collection e.g. --timeSeriesMetaField='sensor_id'. Requires --timeSeriesTimeField."`
+
+	// Optional. Passed to the creation of a time-series collection.
+	TimeSeriesGranularity string `long:"timeSeriesGranularity" choice:"seconds" choice:"minutes" choice:"hours" description:"Sets the (optional) granularity of time values on the target time-series collection to optimize how time-series data is stored internally. Requires --timeSeriesTimeField. (default: seconds)"`
+
+	// If an existing time-series collection exists, allow mongoimport to write to it directly, without creating the collection.
+	// You must ensure that the target collection was created as a time-series collection, and that the TimeField and/or MetaField was set correctly upon creation.
+	// Mongoimport is not currently able to fully validate what you are doing is correct.
+	TimeSeriesExists bool `long:"timeSeriesExists" description:"Allow mongoimport to write to an existing time-series collection directly, without creating the collection nor validating the options to mongoimport. You must ensure that the target collection was created as a time-series collection, and that the TimeField and/or MetaField was set correctly upon creation. Use this option with discretion."`
 }
 
 // Name returns a description of the IngestOptions struct.

@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -71,13 +72,43 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	return nil
 }
 
-func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
+func isTimeSeriesCollection(sessionProvider *db.SessionProvider, testCollectionName string) (bool, error) {
+	session, err := (*sessionProvider).GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	db := session.Database(testDb)
+	collInfoSpecs, err := db.ListCollectionSpecifications(context.TODO(), bson.D{{"name", testCollectionName}})
+	if err != nil {
+		return false, err
+	}
+
+	for _, elem := range collInfoSpecs {
+		opts := elem.Options
+		var collSpecs bson.D
+		err = bson.Unmarshal(opts, &collSpecs)
+		if err != nil {
+			return false, err
+		}
+
+		for _, collSpec := range collSpecs {
+			if collSpec.Key == "timeseries" {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func countDocuments(sessionProvider *db.SessionProvider, testCollectionName string) (int, error) {
 	session, err := (*sessionProvider).GetSession()
 	if err != nil {
 		return 0, err
 	}
 
-	collection := session.Database(testDb).Collection(testCollection)
+	collection := session.Database(testDb).Collection(testCollectionName)
 	n, err := collection.CountDocuments(nil, bson.D{})
 	if err != nil {
 		return 0, err
@@ -542,6 +573,59 @@ func TestGetInputReader(t *testing.T) {
 	})
 }
 
+func TestTimeSeriesImport(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skip("Requires server with FCV 5.0 or later")
+	}
+
+	Convey("With a mongoimport instance", t, func() {
+		Reset(func() {
+			sessionProvider, err := db.NewSessionProvider(*getBasicToolOptions())
+			if err != nil {
+				t.Fatalf("error getting session provider session: %v", err)
+			}
+			session, err := sessionProvider.GetSession()
+			if err != nil {
+				t.Fatalf("error getting session: %v", err)
+			}
+			_, err = session.Database(testDb).Collection("timeseries_coll").DeleteMany(nil, bson.D{})
+			if err != nil {
+				t.Fatalf("error dropping collection: %v", err)
+			}
+		})
+		Convey("CSV import with --timeSeriesTimeField should succeed in creating a time-series collection and inserting documents", func() {
+			imp, err := NewMongoImport()
+			So(err, ShouldBeNil)
+			imp.IngestOptions.Drop = true
+			imp.IngestOptions.Mode = modeInsert
+			imp.IngestOptions.TimeSeriesTimeField = "timestamp"
+			imp.InputOptions.ColumnsHaveTypes = true
+			imp.InputOptions.File = "testdata/test_timeseries.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.ToolOptions.Collection = "timeseries_coll"
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			So(err, ShouldBeNil)
+			So(numProcessed, ShouldEqual, 5)
+			So(numFailed, ShouldEqual, 0)
+			isTimeSeries, err := isTimeSeriesCollection(imp.SessionProvider, imp.ToolOptions.Collection)
+			So(err, ShouldBeNil)
+			So(isTimeSeries, ShouldBeTrue)
+			n, err := countDocuments(imp.SessionProvider, imp.ToolOptions.Collection)
+			So(err, ShouldBeNil)
+			So(n, ShouldEqual, 5)
+		})
+	})
+}
+
 func TestImportDocuments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	Convey("With a mongoimport instance", t, func() {
@@ -985,7 +1069,7 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numProcessed, ShouldEqual, 1)
 			So(numFailed, ShouldEqual, 0)
-			n, err := countDocuments(imp.SessionProvider)
+			n, err := countDocuments(imp.SessionProvider, testCollection)
 			So(err, ShouldBeNil)
 			So(n, ShouldEqual, 1)
 
@@ -1001,7 +1085,7 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(numProcessed, ShouldEqual, 1)
 			So(numFailed, ShouldEqual, 0)
-			n, err = countDocuments(imp.SessionProvider)
+			n, err = countDocuments(imp.SessionProvider, testCollection)
 			So(err, ShouldBeNil)
 			So(n, ShouldEqual, 1)
 		})

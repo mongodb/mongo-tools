@@ -14,9 +14,12 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/tomb.v2"
 
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -45,6 +48,8 @@ const (
 	workerBufferSize  = 16
 	progressBarLength = 24
 )
+
+var optionsWithFields ColumnsAsOptionFields
 
 // MongoImport is a container for the user-specified options and
 // internal state used for running mongoimport.
@@ -90,12 +95,12 @@ type InputReader interface {
 	// ReadAndValidateHeader reads the header line from the InputReader and returns
 	// a non-nil error if the fields from the header line are invalid; returns
 	// nil otherwise. No-op for JSON input readers.
-	ReadAndValidateHeader() error
+	ReadAndValidateHeader(optionsWithFields ColumnsAsOptionFields) error
 
 	// ReadAndValidateTypedHeader is the same as ReadAndValidateHeader,
 	// except it also parses types from the fields of the header. Parse errors
 	// will be handled according parseGrace.
-	ReadAndValidateTypedHeader(parseGrace ParseGrace) error
+	ReadAndValidateTypedHeader(parseGrace ParseGrace, optionsWithFields ColumnsAsOptionFields) error
 
 	// embedded io.Reader that tracks number of bytes read, to allow feeding into progress bar.
 	sizeTracker
@@ -204,6 +209,29 @@ func (imp *MongoImport) validateSettings(args []string) error {
 	// deprecated
 	if imp.IngestOptions.Upsert == true {
 		imp.IngestOptions.Mode = modeUpsert
+	}
+
+	// Validate TimeSeries Options
+	if imp.IngestOptions.TimeSeriesTimeField == "" {
+		if imp.IngestOptions.TimeSeriesMetaField != "" ||
+			imp.IngestOptions.TimeSeriesGranularity != "" {
+			return fmt.Errorf("cannot use --timeSeriesMetaField nor --timeSeriesGranularity without --timeSeriesTimeField")
+		}
+	} else {
+		if imp.InputOptions.Type == JSON {
+			return fmt.Errorf("cannot import time-series collections with JSON")
+		}
+
+		if imp.IngestOptions.TimeSeriesTimeField == imp.IngestOptions.TimeSeriesMetaField {
+			return fmt.Errorf("error the MetaField and TimeField for time-series collections must be different columns")
+		}
+
+		if !imp.InputOptions.ColumnsHaveTypes {
+			return fmt.Errorf("--timeSeriesTimeFields requires --columnsHaveTypes so mongoimport can validate the date field")
+		}
+
+		optionsWithFields.timeField = imp.IngestOptions.TimeSeriesTimeField
+		optionsWithFields.metaField = imp.IngestOptions.TimeSeriesMetaField
 	}
 
 	// parse UpsertFields, may set default mode to modeUpsert
@@ -329,9 +357,9 @@ func (imp *MongoImport) ImportDocuments() (uint64, uint64, error) {
 
 	if imp.InputOptions.HeaderLine {
 		if imp.InputOptions.ColumnsHaveTypes {
-			err = inputReader.ReadAndValidateTypedHeader(ParsePG(imp.InputOptions.ParseGrace))
+			err = inputReader.ReadAndValidateTypedHeader(ParsePG(imp.InputOptions.ParseGrace), optionsWithFields)
 		} else {
-			err = inputReader.ReadAndValidateHeader()
+			err = inputReader.ReadAndValidateHeader(optionsWithFields)
 		}
 		if err != nil {
 			return 0, 0, err
@@ -384,6 +412,44 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		if err := collection.Drop(nil); err != nil {
 			return 0, 0, err
 		}
+	}
+
+	// Before importing documents, create the target collection as TimeSeries.
+	// Fail if the collection already exists.
+	if imp.IngestOptions.TimeSeriesTimeField != "" {
+		if !imp.IngestOptions.Drop {
+			collectionFilter := bson.D{}
+			collectionFilter = append(collectionFilter, primitive.E{"name", imp.ToolOptions.Namespace.Collection})
+			cursor, err := session.Database(imp.ToolOptions.DB).ListCollections(context.TODO(), collectionFilter)
+
+			if err != nil {
+				return 0, 0, err
+			}
+
+			if cursor.Next(context.TODO()) {
+				cursor.Close(context.TODO())
+				if !imp.IngestOptions.TimeSeriesExists {
+					return 0, 0, fmt.Errorf("error when inserting to a time-series collection, the collection must not exist, or --drop must be provided. Consider using --timeSeriesExists if the time-series collection was already created")
+				}
+			}
+		}
+
+		log.Logvf(log.Always, "creating time-series collection: %v.%v",
+			imp.ToolOptions.Namespace.DB,
+			imp.ToolOptions.Namespace.Collection)
+		timeseriesOptions := mopt.TimeSeries()
+		timeseriesOptions.SetTimeField(imp.IngestOptions.TimeSeriesTimeField)
+
+		if imp.IngestOptions.TimeSeriesMetaField != "" {
+			timeseriesOptions.SetMetaField(imp.IngestOptions.TimeSeriesMetaField)
+		}
+
+		if imp.IngestOptions.TimeSeriesGranularity != "" {
+			timeseriesOptions.SetGranularity(imp.IngestOptions.TimeSeriesGranularity)
+		}
+		collectionOptions := mopt.CreateCollection().SetTimeSeriesOptions(timeseriesOptions)
+		session.Database(imp.ToolOptions.DB).CreateCollection(context.TODO(), imp.ToolOptions.Namespace.Collection, collectionOptions)
+
 	}
 
 	readDocs := make(chan bson.D, workerBufferSize)
@@ -570,6 +636,10 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 
 	// header fields validation can only happen once we have an input reader
 	if !imp.InputOptions.HeaderLine {
+		if err = ValidateOptionDependentFields(colSpecs, optionsWithFields); err != nil {
+			return nil, err
+		}
+
 		if err = validateReaderFields(ColumnNames(colSpecs), imp.InputOptions.UseArrayIndexFields); err != nil {
 			return nil, err
 		}
