@@ -115,7 +115,7 @@ func CompareFCV(x, y string) (int, error) {
 		return 0, err
 	}
 
-	// Ensure left is the shorter one, flip logic if necessary
+	// Ensure left is the shorter one, flip logic if necessary.
 	inverter := 1
 	if len(right) < len(left) {
 		inverter = -1
