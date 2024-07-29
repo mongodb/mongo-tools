@@ -258,11 +258,11 @@ func (b *Buffer) PurgeTxn(m Meta) error {
 
 // Stop shuts down processing and cleans up.  Subsequent calls to Stop() will return nil.
 // All other methods error after this is called.
-func (b *Buffer) Stop() error {
+func (b *Buffer) Stop() {
 	b.Lock()
 	if b.stopped {
 		b.Unlock()
-		return nil
+		return
 	}
 
 	b.stopped = true
@@ -278,12 +278,9 @@ func (b *Buffer) Stop() error {
 	// clean up.
 
 	b.wg.Wait()
-	var firstErr error
 	for _, state := range b.txns {
 		state.purge()
 	}
-
-	return firstErr
 }
 
 // sendErrAndClose is a utility for putting an error on a channel before closing.

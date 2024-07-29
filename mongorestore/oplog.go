@@ -106,7 +106,6 @@ func (restore *MongoRestore) RestoreOplog() error {
 		txnBuffer:  txn.NewBuffer(),
 		session:    session,
 	}
-	//nolint:errcheck
 	defer oplogCtx.txnBuffer.Stop()
 
 	if restore.ProgressManager != nil {
