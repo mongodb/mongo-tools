@@ -16,7 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/stretchr/testify v1.9.0
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/urfave/cli/v2 v2.27.3
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	// Later versions remove a package the tools use, so we're sticking with
 	// this older version for now.
