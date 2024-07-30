@@ -136,10 +136,8 @@ func newBomDiscardingReader(r io.Reader) *bomDiscardingReader {
 
 const quorum = 2
 
-// channelQuorumError takes a channel and a quorum - which specifies how many
-// messages to receive on that channel before returning. It either returns the
-// first non-nil error received on the channel or nil if up to `quorum` nil
-// errors are received.
+// channelQuorumError takes a channel and either returns the first non-nil error received on the
+// channel or nil if up to 2 nil errors are received.
 func channelQuorumError(ch <-chan error) (err error) {
 	for i := 0; i < quorum; i++ {
 		if err = <-ch; err != nil {
