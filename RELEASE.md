@@ -196,6 +196,18 @@ ticket tracking this release to the "Closed" state.
 Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects and linked to the
 release ticket.
 
+#### Mark the Release as Released in Jira
+
+Go to the
+[project's list of releases](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased).
+Click on the version you just released. Then click the "Release" button in the upper right and click
+"Release" in the pop-up window.
+
+#### Move Any VULN-Linked Ticket to "Remediation Released"
+
+[Search for tickets in the "Remediated" state](https://jira.mongodb.org/issues/?jql=project%20%3D%20%2212385%22%20AND%20status%20%3D%20Remediated).
+For any such tickets where the fix is included in the release, move them to "Remediation Released".
+
 #### Announce the release
 
 Copy your entry from CHANGELOG.md and post it to the
