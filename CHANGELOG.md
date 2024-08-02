@@ -6,13 +6,18 @@ _Released 2024-07-24_
 
 We are pleased to announce version 100.10.0 of the MongoDB Database Tools.
 
-This version adds support for MongoDB Server 8.0, and support for Ubuntu 24.04 platforms. It also updates several packages and fixes a bug.
+This version adds support for MongoDB Server 8.0, and support for Ubuntu 24.04 platforms. It also
+updates several packages and fixes a bug.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 <h3>        Vulnerability
 </h3>
