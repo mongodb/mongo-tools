@@ -562,16 +562,16 @@ func buildDeb() {
 			if !ok {
 				log.Fatalf("could not find md5sum for " + path)
 			}
-			_, err = f.WriteString(md5sum + " ")
+			_, err = f.WriteString(md5sum + "  ")
 			check(err, "write md5sum to md5sums")
 
 			pkgNameIdx := strings.Index(path, releaseName)
 			if pkgNameIdx == -1 {
 				log.Fatalf("could not find package name in path " + path)
 			}
-			// Modify path so that it's the relative path within the package.
-			path = path[pkgNameIdx+len(releaseName)+1:]
-			log.Println("path ", path)
+			//// Modify path so that it's the relative path within the package.
+			//path = path[pkgNameIdx+len(releaseName)+1:]
+			//log.Println("path ", path)
 
 			_, err = f.WriteString(path + "\n")
 			check(err, "write path to md5sums")
