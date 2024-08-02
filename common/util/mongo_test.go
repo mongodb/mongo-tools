@@ -104,7 +104,11 @@ func TestBuildURI(t *testing.T) {
 			{h: "host1,host2:27017", p: "33333", u: "mongodb://host1:33333,host2:27017/"},
 			{h: "foo/", p: "", u: "mongodb://localhost/?replicaSet=foo"},
 			{h: "foo/", p: "33333", u: "mongodb://localhost:33333/?replicaSet=foo"},
-			{h: "foo/host1,host2:27017", p: "33333", u: "mongodb://host1:33333,host2:27017/?replicaSet=foo"},
+			{
+				h: "foo/host1,host2:27017",
+				p: "33333",
+				u: "mongodb://host1:33333,host2:27017/?replicaSet=foo",
+			},
 		}
 
 		for _, c := range cases {

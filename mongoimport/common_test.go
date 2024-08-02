@@ -474,46 +474,53 @@ func TestProcessDocuments(t *testing.T) {
 func TestDoSequentialStreaming(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given some import workers, a Converters input channel and an bson.D output channel", t, func() {
-		inputChannel := make(chan Converter, 5)
-		outputChannel := make(chan bson.D, 5)
-		workerInputChannel := []chan Converter{
-			make(chan Converter),
-			make(chan Converter),
-		}
-		workerOutputChannel := []chan bson.D{
-			make(chan bson.D),
-			make(chan bson.D),
-		}
-		importWorkers := []*importWorker{
-			{
-				unprocessedDataChan:   workerInputChannel[0],
-				processedDocumentChan: workerOutputChannel[0],
-				tomb:                  &tomb.Tomb{},
-			},
-			{
-				unprocessedDataChan:   workerInputChannel[1],
-				processedDocumentChan: workerOutputChannel[1],
-				tomb:                  &tomb.Tomb{},
-			},
-		}
-		Convey("documents moving through the input channel should be processed and returned in sequence", func() {
-			// start goroutines to do sequential processing
-			for _, iw := range importWorkers {
-				//nolint:errcheck
-				go iw.processDocuments(true)
+	Convey(
+		"Given some import workers, a Converters input channel and an bson.D output channel",
+		t,
+		func() {
+			inputChannel := make(chan Converter, 5)
+			outputChannel := make(chan bson.D, 5)
+			workerInputChannel := []chan Converter{
+				make(chan Converter),
+				make(chan Converter),
 			}
-			// feed in a bunch of documents
-			for _, inputCSVDocument := range csvConverters {
-				inputChannel <- inputCSVDocument
+			workerOutputChannel := []chan bson.D{
+				make(chan bson.D),
+				make(chan bson.D),
 			}
-			close(inputChannel)
-			doSequentialStreaming(importWorkers, inputChannel, outputChannel)
-			for _, document := range expectedDocuments {
-				So(<-outputChannel, ShouldResemble, document)
+			importWorkers := []*importWorker{
+				{
+					unprocessedDataChan:   workerInputChannel[0],
+					processedDocumentChan: workerOutputChannel[0],
+					tomb:                  &tomb.Tomb{},
+				},
+				{
+					unprocessedDataChan:   workerInputChannel[1],
+					processedDocumentChan: workerOutputChannel[1],
+					tomb:                  &tomb.Tomb{},
+				},
 			}
-		})
-	})
+			Convey(
+				"documents moving through the input channel should be processed and returned in sequence",
+				func() {
+					// start goroutines to do sequential processing
+					for _, iw := range importWorkers {
+						//nolint:errcheck
+						go iw.processDocuments(true)
+					}
+					// feed in a bunch of documents
+					for _, inputCSVDocument := range csvConverters {
+						inputChannel <- inputCSVDocument
+					}
+					close(inputChannel)
+					doSequentialStreaming(importWorkers, inputChannel, outputChannel)
+					for _, document := range expectedDocuments {
+						So(<-outputChannel, ShouldResemble, document)
+					}
+				},
+			)
+		},
+	)
 }
 
 func TestStreamDocuments(t *testing.T) {
@@ -526,19 +533,22 @@ func TestStreamDocuments(t *testing.T) {
 		inputChannel := make(chan Converter, 5)
 		outputChannel := make(chan bson.D, 5)
 
-		Convey("the entire pipeline should complete without error under normal circumstances", func() {
-			// stream in some documents
-			for _, csvConverter := range csvConverters {
-				inputChannel <- csvConverter
-			}
-			close(inputChannel)
-			So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldBeNil)
+		Convey(
+			"the entire pipeline should complete without error under normal circumstances",
+			func() {
+				// stream in some documents
+				for _, csvConverter := range csvConverters {
+					inputChannel <- csvConverter
+				}
+				close(inputChannel)
+				So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldBeNil)
 
-			// ensure documents are streamed out and processed in the correct manner
-			for _, expectedDocument := range expectedDocuments {
-				So(<-outputChannel, ShouldResemble, expectedDocument)
-			}
-		})
+				// ensure documents are streamed out and processed in the correct manner
+				for _, expectedDocument := range expectedDocuments {
+					So(<-outputChannel, ShouldResemble, expectedDocument)
+				}
+			},
+		)
 		Convey("the entire pipeline should complete with error if an error is encountered", func() {
 			// stream in some documents - create duplicate headers to simulate an error
 			csvConverter := CSVConverter{

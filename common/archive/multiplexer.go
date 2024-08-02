@@ -297,7 +297,14 @@ func (muxIn *MuxIn) Write(buf []byte) (int, error) {
 		panic(fmt.Errorf("corrupt bson in MuxIn.Write (size %v/%v)", size, len(buf)))
 	}
 	if buf[size-1] != 0 {
-		panic(fmt.Errorf("corrupt bson in MuxIn.Write bson has no-zero terminator %v, (size %v/%v)", buf[size-1], size, len(buf)))
+		panic(
+			fmt.Errorf(
+				"corrupt bson in MuxIn.Write bson has no-zero terminator %v, (size %v/%v)",
+				buf[size-1],
+				size,
+				len(buf),
+			),
+		)
 	}
 	if bufferWrites {
 		if len(muxIn.buf)+len(buf) > cap(muxIn.buf) {

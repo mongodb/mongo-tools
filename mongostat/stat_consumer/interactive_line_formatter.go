@@ -71,7 +71,11 @@ func (ilf *InteractiveLineFormatter) Finish() {
 }
 
 // FormatLines formats the StatLines as a table in the terminal ui.
-func (ilf *InteractiveLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
+func (ilf *InteractiveLineFormatter) FormatLines(
+	lines []*line.StatLine,
+	headerKeys []string,
+	keyNames map[string]string,
+) string {
 	defer ilf.update() // so that it runs after the unlock, because update locks again
 	ilf.Lock()
 	defer ilf.Unlock()

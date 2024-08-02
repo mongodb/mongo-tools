@@ -177,7 +177,11 @@ func (b *Buffer) GetTxnStream(m Meta) (<-chan db.Oplog, <-chan error) {
 
 	state := b.txns[m.id]
 	if state == nil {
-		return sendErrAndClose(opChan, errChan, fmt.Errorf("GetTxnStream found no state for %v", m.id))
+		return sendErrAndClose(
+			opChan,
+			errChan,
+			fmt.Errorf("GetTxnStream found no state for %v", m.id),
+		)
 	}
 
 	// The final oplog entry must have been passed to AddOp before calling this

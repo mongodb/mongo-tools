@@ -260,7 +260,11 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	// Unescape the finalized collection name and return it.
 	unescapedCollName, err = util.UnescapeCollectionName(collName)
 	if err != nil {
-		return "", UnknownFileType, fmt.Errorf("error parsing collection name from filename \"%v\": %v", baseFileName, err)
+		return "", UnknownFileType, fmt.Errorf(
+			"error parsing collection name from filename \"%v\": %v",
+			baseFileName,
+			err,
+		)
 	}
 	return unescapedCollName, fileType, nil
 }
@@ -271,13 +275,18 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 // older metadata files that have no `collectionName` field.
 //
 // Intended as a helper to getInfoFromFile.
-func (restore *MongoRestore) getCollectionNameFromMetadata(metadataFullPath string) (string, error) {
+func (restore *MongoRestore) getCollectionNameFromMetadata(
+	metadataFullPath string,
+) (string, error) {
 	if metadataFullPath == "" {
 		return "", fmt.Errorf("metadata file path is empty")
 	}
 
 	// Open the metadata file for reading.
-	metadataFile := &realMetadataFile{path: metadataFullPath, gzip: strings.HasSuffix(metadataFullPath, ".gz")}
+	metadataFile := &realMetadataFile{
+		path: metadataFullPath,
+		gzip: strings.HasSuffix(metadataFullPath, ".gz"),
+	}
 	err := metadataFile.Open()
 	if err != nil {
 		return "", fmt.Errorf("error opening metadata file \"%s\": %v", metadataFullPath, err)
@@ -395,7 +404,11 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 		Size:     target.Size(),
 		Location: target.Path(),
 	}
-	intent.BSONFile = &realBSONFile{path: target.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
+	intent.BSONFile = &realBSONFile{
+		path:   target.Path(),
+		intent: intent,
+		gzip:   restore.InputOptions.Gzip,
+	}
 	restore.manager.PutOplogIntent(intent, "oplogFile")
 	return nil
 }
@@ -572,7 +585,11 @@ func (restore *MongoRestore) CreateStdinIntentForCollection(db string, collectio
 //
 // This method is not called by CreateIntentsForDB,
 // it is only used in the case where --db and --collection flags are set.
-func (restore *MongoRestore) CreateIntentForCollection(db string, collection string, bsonFile archive.DirLike) error {
+func (restore *MongoRestore) CreateIntentForCollection(
+	db string,
+	collection string,
+	bsonFile archive.DirLike,
+) error {
 	log.Logvf(log.DebugLow, "reading collection %v for database %v from %v",
 		collection, db, bsonFile.Path())
 	// First ensure that the bson file exists with one of correct file extensions.
@@ -605,14 +622,21 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	if isTimeseries {
 		intent.Type = "timeseries"
 	}
-	intent.BSONFile = &realBSONFile{path: bsonFile.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
+	intent.BSONFile = &realBSONFile{
+		path:   bsonFile.Path(),
+		intent: intent,
+		gzip:   restore.InputOptions.Gzip,
+	}
 	// Check if the bson file has a corresponding .metadata.json file in its folder. If there's a
 	// directory error, log a note but attempt to restore without the metadata file anyway.
 	log.Logvf(log.DebugLow, "scanning directory %v for metadata", bsonFile.Parent())
 	entries, err := bsonFile.Parent().ReadDir()
 	if err != nil {
 		if isTimeseries {
-			return fmt.Errorf("could not find the timeseries collection metadata file for %s", db+"."+collection)
+			return fmt.Errorf(
+				"could not find the timeseries collection metadata file for %s",
+				db+"."+collection,
+			)
 		}
 		log.Logvf(log.Info, "error attempting to locate metadata for file: %v", err)
 		log.Logv(log.Info, "restoring collection without metadata")
@@ -638,14 +662,21 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 			metadataPath := entry.Path()
 			log.Logvf(log.Info, "found metadata for collection at %v", metadataPath)
 			intent.MetadataLocation = metadataPath
-			intent.MetadataFile = &realMetadataFile{path: metadataPath, intent: intent, gzip: restore.InputOptions.Gzip}
+			intent.MetadataFile = &realMetadataFile{
+				path:   metadataPath,
+				intent: intent,
+				gzip:   restore.InputOptions.Gzip,
+			}
 			break
 		}
 	}
 
 	if intent.MetadataFile == nil {
 		if isTimeseries {
-			return fmt.Errorf("could not find the timeseries collection metadata file for %s", db+"."+collection)
+			return fmt.Errorf(
+				"could not find the timeseries collection metadata file for %s",
+				db+"."+collection,
+			)
 		}
 		log.Logv(log.Info, "restoring collection without metadata")
 	}
@@ -685,7 +716,11 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 			return fmt.Errorf("file %v does not have .bson extension", path)
 		}
 		restore.ToolOptions.Namespace.Collection = newCollectionName
-		log.Logvf(log.DebugLow, "inferred collection '%v' from file", restore.ToolOptions.Namespace.Collection)
+		log.Logvf(
+			log.DebugLow,
+			"inferred collection '%v' from file",
+			restore.ToolOptions.Namespace.Collection,
+		)
 	}
 	if restore.ToolOptions.Namespace.DB == "" {
 		// if the user did not set -d, use the directory containing the target
@@ -696,7 +731,11 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 			dirForFile = "test"
 		}
 		restore.ToolOptions.Namespace.DB = dirForFile
-		log.Logvf(log.DebugLow, "inferred db '%v' from the file's directory", restore.ToolOptions.Namespace.DB)
+		log.Logvf(
+			log.DebugLow,
+			"inferred db '%v' from the file's directory",
+			restore.ToolOptions.Namespace.DB,
+		)
 	}
 	return nil
 }

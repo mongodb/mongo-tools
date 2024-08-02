@@ -196,7 +196,14 @@ func TestParallelMux(t *testing.T) {
 	return
 }
 
-func makeIns(testIntents []*intents.Intent, mux *Multiplexer, inChecksum map[string]hash.Hash, muxIns map[string]*MuxIn, inLengths map[string]*int, errCh chan<- error) {
+func makeIns(
+	testIntents []*intents.Intent,
+	mux *Multiplexer,
+	inChecksum map[string]hash.Hash,
+	muxIns map[string]*MuxIn,
+	inLengths map[string]*int,
+	errCh chan<- error,
+) {
 	for index, dbc := range testIntents {
 		ns := dbc.Namespace()
 		sum := crc32.NewIEEE()
@@ -232,7 +239,14 @@ func makeIns(testIntents []*intents.Intent, mux *Multiplexer, inChecksum map[str
 	}
 }
 
-func makeOuts(testIntents []*intents.Intent, demux *Demultiplexer, outChecksum map[string]hash.Hash, demuxOuts map[string]*RegularCollectionReceiver, outLengths map[string]*int, errCh chan<- error) {
+func makeOuts(
+	testIntents []*intents.Intent,
+	demux *Demultiplexer,
+	outChecksum map[string]hash.Hash,
+	demuxOuts map[string]*RegularCollectionReceiver,
+	outLengths map[string]*int,
+	errCh chan<- error,
+) {
 	for _, dbc := range testIntents {
 		ns := dbc.Namespace()
 		sum := crc32.NewIEEE()

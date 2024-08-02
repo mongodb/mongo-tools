@@ -36,7 +36,11 @@ type gfsFileMetadata struct {
 
 func newGfsFile(ID interface{}, name string, mf *MongoFiles) (*gfsFile, error) {
 	if ID == nil || mf == nil {
-		return nil, fmt.Errorf("invalid gfsFile arguments, one of ID (%v) or MongoFiles (%v) nil", ID, mf)
+		return nil, fmt.Errorf(
+			"invalid gfsFile arguments, one of ID (%v) or MongoFiles (%v) nil",
+			ID,
+			mf,
+		)
 	}
 
 	return &gfsFile{Name: name, ID: ID, mf: mf}, nil

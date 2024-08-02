@@ -64,7 +64,14 @@ type TSVConverter struct {
 
 // NewTSVInputReader returns a TSVInputReader configured to read input from the
 // given io.Reader, extracting the specified columns only.
-func NewTSVInputReader(colSpecs []ColumnSpec, in io.Reader, rejects io.Writer, numDecoders int, ignoreBlanks bool, useArrayIndexFields bool) *TSVInputReader {
+func NewTSVInputReader(
+	colSpecs []ColumnSpec,
+	in io.Reader,
+	rejects io.Writer,
+	numDecoders int,
+	ignoreBlanks bool,
+	useArrayIndexFields bool,
+) *TSVInputReader {
 	szCount := newSizeTrackingReader(newBomDiscardingReader(in))
 	return &TSVInputReader{
 		colSpecs:            colSpecs,

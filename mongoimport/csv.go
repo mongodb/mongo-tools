@@ -58,7 +58,14 @@ type CSVConverter struct {
 // NewCSVInputReader returns a CSVInputReader configured to read data from the
 // given io.Reader, extracting only the specified columns using exactly "numDecoders"
 // goroutines.
-func NewCSVInputReader(colSpecs []ColumnSpec, in io.Reader, rejects io.Writer, numDecoders int, ignoreBlanks bool, useArrayIndexFields bool) *CSVInputReader {
+func NewCSVInputReader(
+	colSpecs []ColumnSpec,
+	in io.Reader,
+	rejects io.Writer,
+	numDecoders int,
+	ignoreBlanks bool,
+	useArrayIndexFields bool,
+) *CSVInputReader {
 	szCount := newSizeTrackingReader(newBomDiscardingReader(in))
 	csvReader := csv.NewReader(szCount)
 	// allow variable number of colSpecs in document

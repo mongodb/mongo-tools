@@ -30,7 +30,12 @@ type JSONExportOutput struct {
 
 // NewJSONExportOutput creates a new JSONExportOutput in array mode if specified,
 // configured to write data to the given io.Writer.
-func NewJSONExportOutput(arrayOutput bool, prettyOutput bool, out io.Writer, jsonFormat JSONFormat) *JSONExportOutput {
+func NewJSONExportOutput(
+	arrayOutput bool,
+	prettyOutput bool,
+	out io.Writer,
+	jsonFormat JSONFormat,
+) *JSONExportOutput {
 	return &JSONExportOutput{
 		arrayOutput,
 		prettyOutput,
@@ -93,7 +98,11 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			}
 		}
 
-		jsonOut, err := bsonutil.MarshalExtJSONReversible(document, jsonExporter.JSONFormat == Canonical, false)
+		jsonOut, err := bsonutil.MarshalExtJSONReversible(
+			document,
+			jsonExporter.JSONFormat == Canonical,
+			false,
+		)
 		if err != nil {
 			return err
 		}

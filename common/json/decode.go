@@ -143,7 +143,9 @@ type UnmarshalFieldError struct {
 }
 
 func (e *UnmarshalFieldError) Error() string {
-	return "json: cannot unmarshal object key " + strconv.Quote(e.Key) + " into unexported field " + e.Field.Name + " of type " + e.Type.String()
+	return "json: cannot unmarshal object key " + strconv.Quote(
+		e.Key,
+	) + " into unexported field " + e.Field.Name + " of type " + e.Type.String()
 }
 
 // An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
@@ -420,7 +422,10 @@ func (d *decodeState) value(v reflect.Value) {
 // until it gets to a non-pointer.
 // if it encounters an Unmarshaler, indirect stops and returns that.
 // if decodingNull is true, indirect stops at the last pointer so it can be set to nil.
-func (d *decodeState) indirect(v reflect.Value, decodingNull bool) (Unmarshaler, encoding.TextUnmarshaler, reflect.Value) {
+func (d *decodeState) indirect(
+	v reflect.Value,
+	decodingNull bool,
+) (Unmarshaler, encoding.TextUnmarshaler, reflect.Value) {
 	// If v is a named type and is addressable,
 	// start with its address, so that if the type has pointer methods,
 	// we find them.
@@ -432,7 +437,8 @@ func (d *decodeState) indirect(v reflect.Value, decodingNull bool) (Unmarshaler,
 		// usefully addressable.
 		if v.Kind() == reflect.Interface && !v.IsNil() {
 			e := v.Elem()
-			if e.Kind() == reflect.Ptr && !e.IsNil() && (!decodingNull || e.Elem().Kind() == reflect.Ptr) {
+			if e.Kind() == reflect.Ptr && !e.IsNil() &&
+				(!decodingNull || e.Elem().Kind() == reflect.Ptr) {
 				v = e
 				continue
 			}
@@ -774,7 +780,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 	// Check for unmarshaler.
 	if len(item) == 0 {
 		// Empty string given
-		d.saveError(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+		d.saveError(
+			fmt.Errorf(
+				"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+				item,
+				v.Type(),
+			),
+		)
 		return
 	}
 	wantptr := isNull(item) // null
@@ -789,7 +801,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 	if ut != nil {
 		if item[0] != '"' {
 			if fromQuoted {
-				d.saveError(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+				d.saveError(
+					fmt.Errorf(
+						"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+						item,
+						v.Type(),
+					),
+				)
 			} else {
 				d.saveError(&UnmarshalTypeError{"string", v.Type()})
 			}
@@ -797,7 +815,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		s, ok := unquoteBytes(item)
 		if !ok {
 			if fromQuoted {
-				d.error(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+				d.error(
+					fmt.Errorf(
+						"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+						item,
+						v.Type(),
+					),
+				)
 			} else {
 				d.error(errPhase)
 			}
@@ -823,7 +847,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		switch v.Kind() {
 		default:
 			if fromQuoted {
-				d.saveError(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+				d.saveError(
+					fmt.Errorf(
+						"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+						item,
+						v.Type(),
+					),
+				)
 			} else {
 				d.saveError(&UnmarshalTypeError{"bool", v.Type()})
 			}
@@ -842,7 +872,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 		s, ok := unquoteBytes(item)
 		if !ok {
 			if fromQuoted {
-				d.error(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+				d.error(
+					fmt.Errorf(
+						"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+						item,
+						v.Type(),
+					),
+				)
 			} else {
 				d.error(errPhase)
 			}
@@ -882,7 +918,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 				break
 			}
 			if fromQuoted {
-				d.error(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+				d.error(
+					fmt.Errorf(
+						"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+						item,
+						v.Type(),
+					),
+				)
 			} else {
 				d.error(&UnmarshalTypeError{"number", v.Type()})
 			}
@@ -910,7 +952,12 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 			}
 			v.SetInt(n)
 
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		case reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Uintptr:
 			base := 10
 			if isHexPrefix(s) {
 				base = 0 // strconv.ParseUint will infer base 16
@@ -934,7 +981,13 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 	default:
 		if ok := d.storeExtendedLiteral(item, v, fromQuoted); !ok {
 			if fromQuoted {
-				d.error(fmt.Errorf("json: invalid use of ,string struct tag, trying to unmarshal %q into %v", item, v.Type()))
+				d.error(
+					fmt.Errorf(
+						"json: invalid use of ,string struct tag, trying to unmarshal %q into %v",
+						item,
+						v.Type(),
+					),
+				)
 			} else {
 				d.error(errPhase)
 			}

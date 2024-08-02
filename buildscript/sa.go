@@ -196,7 +196,10 @@ func goInstall(ctx *task.Context, link string) error {
 	)
 }
 
-func installBinaryTool(ctx *task.Context, exeName, toolVersion, githubProject, downloadURLForCI string) error {
+func installBinaryTool(
+	ctx *task.Context,
+	exeName, toolVersion, githubProject, downloadURLForCI string,
+) error {
 	devBin, err := devBinDir()
 	if err != nil {
 		return err
@@ -334,7 +337,9 @@ func SAModTidy(ctx *task.Context) error {
 		// Restore originals, ignoring errors since they need tidying anyway.
 		_ = os.WriteFile("go.mod", origGoMod, 0600)
 		_ = os.WriteFile("go.sum", origGoSum, 0600)
-		return errors.New("go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes")
+		return errors.New(
+			"go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes",
+		)
 	}
 
 	return nil
@@ -342,7 +347,15 @@ func SAModTidy(ctx *task.Context) error {
 
 // SAEvergreenValidate runs `evergreen validate` on common.yml and ensures the file is valid.
 func SAEvergreenValidate(ctx *task.Context) error {
-	output, err := sh.RunOutput(ctx, "evergreen", "validate", "--file", "common.yml", "-p", "mongo-tools")
+	output, err := sh.RunOutput(
+		ctx,
+		"evergreen",
+		"validate",
+		"--file",
+		"common.yml",
+		"-p",
+		"mongo-tools",
+	)
 	if err != nil {
 		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
 	}

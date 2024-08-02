@@ -153,7 +153,11 @@ func (restore *MongoRestore) addToKnownCollections(intent *intents.Intent) {
 // CreateIndexes takes in an intent and an array of index documents and
 // attempts to create them using the createIndexes command. If that command
 // fails, we fall back to individual index creation.
-func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string, indexes []*idx.IndexDocument) error {
+func (restore *MongoRestore) CreateIndexes(
+	dbName string,
+	collectionName string,
+	indexes []*idx.IndexDocument,
+) error {
 	// first, sanitize the indexes
 	var indexNames []string
 	for _, index := range indexes {
@@ -189,7 +193,11 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 		{"indexes", indexes},
 	}
 
-	log.Logvf(log.Info, "\trun create Index command for indexes: %v", strings.Join(indexNames, ", "))
+	log.Logvf(
+		log.Info,
+		"\trun create Index command for indexes: %v",
+		strings.Join(indexNames, ", "),
+	)
 
 	if restore.serverVersion.GTE(db.Version{4, 1, 9}) {
 		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
@@ -234,7 +242,11 @@ func (restore *MongoRestore) LegacyInsertIndex(dbName string, index *idx.IndexDo
 
 // CreateCollection creates the collection specified in the intent with the
 // given options.
-func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bson.D, uuid string) error {
+func (restore *MongoRestore) CreateCollection(
+	intent *intents.Intent,
+	options bson.D,
+	uuid string,
+) error {
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
@@ -255,15 +267,23 @@ func (restore *MongoRestore) CreateCollection(intent *intents.Intent, options bs
 func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
 	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 		for i, elem := range options {
-			if elem.Key == "autoIndexId" && elem.Value == false && restore.ToolOptions.Namespace.DB != "local" {
+			if elem.Key == "autoIndexId" && elem.Value == false &&
+				restore.ToolOptions.Namespace.DB != "local" {
 				options[i].Value = true
-				log.Logvf(log.Always, "{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.")
+				log.Logvf(
+					log.Always,
+					"{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.",
+				)
 			}
 		}
 	}
 }
 
-func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, intent *intents.Intent, options bson.D) error {
+func (restore *MongoRestore) createCollectionWithCommand(
+	session *mongo.Client,
+	intent *intents.Intent,
+	options bson.D,
+) error {
 	restore.UpdateAutoIndexId(options)
 
 	command := createCollectionCommand(intent, options)
@@ -285,7 +305,12 @@ func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, 
 
 }
 
-func (restore *MongoRestore) createCollectionWithApplyOps(session *mongo.Client, intent *intents.Intent, options bson.D, uuidHex string) error {
+func (restore *MongoRestore) createCollectionWithApplyOps(
+	session *mongo.Client,
+	intent *intents.Intent,
+	options bson.D,
+	uuidHex string,
+) error {
 	restore.UpdateAutoIndexId(options)
 
 	command := createCollectionCommand(intent, options)
@@ -357,7 +382,11 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 	}
 
 	if users != nil && roles != nil && users.DB != roles.DB {
-		return fmt.Errorf("can't restore users and roles to different databases, %v and %v", users.DB, roles.DB)
+		return fmt.Errorf(
+			"can't restore users and roles to different databases, %v and %v",
+			users.DB,
+			roles.DB,
+		)
 	}
 
 	args := []loopArg{}
@@ -365,10 +394,16 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 	userTargetDB := ""
 
 	if users != nil {
-		args = append(args, loopArg{users, "users", "tempUsersCollection", restore.OutputOptions.TempUsersColl})
+		args = append(
+			args,
+			loopArg{users, "users", "tempUsersCollection", restore.OutputOptions.TempUsersColl},
+		)
 	}
 	if roles != nil {
-		args = append(args, loopArg{roles, "roles", "tempRolesCollection", restore.OutputOptions.TempRolesColl})
+		args = append(
+			args,
+			loopArg{roles, "roles", "tempRolesCollection", restore.OutputOptions.TempRolesColl},
+		)
 	}
 
 	session, err := restore.SessionProvider.GetSession()
@@ -384,7 +419,13 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		if arg.intent.Size == 0 {
 			// MongoDB complains if we try and remove a non-existent collection, so we should
 			// just skip auth collections with empty .bson files to avoid gnarly logic later on.
-			log.Logvf(log.Always, "%v file '%v' is empty; skipping %v restoration", arg.intentType, arg.intent.Location, arg.intentType)
+			log.Logvf(
+				log.Always,
+				"%v file '%v' is empty; skipping %v restoration",
+				arg.intentType,
+				arg.intent.Location,
+				arg.intentType,
+			)
 		}
 		log.Logvf(log.Always, "restoring %v from %v", arg.intentType, arg.intent.Location)
 
@@ -406,15 +447,30 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			return err
 		}
 		if tempCollectionNameExists {
-			log.Logvf(log.Info, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
+			log.Logvf(
+				log.Info,
+				"dropping preexisting temporary collection admin.%v",
+				arg.tempCollectionName,
+			)
 			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(context.TODO())
 			if err != nil {
-				return fmt.Errorf("error dropping preexisting temporary collection %v: %v", arg.tempCollectionName, err)
+				return fmt.Errorf(
+					"error dropping preexisting temporary collection %v: %v",
+					arg.tempCollectionName,
+					err,
+				)
 			}
 		}
 
 		log.Logvf(log.DebugLow, "restoring %v to temporary collection", arg.intentType)
-		result := restore.RestoreCollectionToDB("admin", arg.tempCollectionName, bsonSource, arg.intent.BSONFile, 0, "")
+		result := restore.RestoreCollectionToDB(
+			"admin",
+			arg.tempCollectionName,
+			bsonSource,
+			arg.intent.BSONFile,
+			0,
+			"",
+		)
 		if result.Err != nil {
 			return fmt.Errorf("error restoring %v: %v", arg.intentType, result.Err)
 		}
@@ -424,13 +480,29 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			session, e := restore.SessionProvider.GetSession()
 			if e != nil {
 				// logging errors here because this has no way of returning that doesn't mask other errors
-				log.Logvf(log.Info, "error establishing connection to drop temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
+				log.Logvf(
+					log.Info,
+					"error establishing connection to drop temporary collection admin.%v: %v",
+					cleanupArg.tempCollectionName,
+					e,
+				)
 				return
 			}
-			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", cleanupArg.tempCollectionName)
-			e = session.Database("admin").Collection(cleanupArg.tempCollectionName).Drop(context.TODO())
+			log.Logvf(
+				log.DebugHigh,
+				"dropping temporary collection admin.%v",
+				cleanupArg.tempCollectionName,
+			)
+			e = session.Database("admin").
+				Collection(cleanupArg.tempCollectionName).
+				Drop(context.TODO())
 			if e != nil {
-				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
+				log.Logvf(
+					log.Info,
+					"error dropping temporary collection admin.%v: %v",
+					cleanupArg.tempCollectionName,
+					e,
+				)
 			}
 		}(arg)
 		userTargetDB = arg.intent.DB
@@ -494,13 +566,26 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			// If we are using --restoreDbUsersAndRoles, we cannot guarantee an
 			// $admin.system.version collection from a 2.6 server,
 			// so we can assume up to version 3.
-			log.Logvf(log.Always, "no system.version bson file found in '%v' database dump", restore.ToolOptions.Namespace.DB)
-			log.Logv(log.Always, "warning: assuming users and roles collections are of auth version 3")
-			log.Logv(log.Always, "if users are from an earlier version of MongoDB, they may not restore properly")
+			log.Logvf(
+				log.Always,
+				"no system.version bson file found in '%v' database dump",
+				restore.ToolOptions.Namespace.DB,
+			)
+			log.Logv(
+				log.Always,
+				"warning: assuming users and roles collections are of auth version 3",
+			)
+			log.Logv(
+				log.Always,
+				"if users are from an earlier version of MongoDB, they may not restore properly",
+			)
 			return 3, nil
 		}
 		log.Logv(log.Info, "no system.version bson file found in dump")
-		log.Logv(log.Always, "assuming users in the dump directory are from <= 2.4 (auth version 1)")
+		log.Logv(
+			log.Always,
+			"assuming users in the dump directory are from <= 2.4 (auth version 1)",
+		)
 		return 1, nil
 	}
 
@@ -531,7 +616,11 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 				return 0, fmt.Errorf("can't unmarshal system.version curentVersion as an int: %v", versionDoc["currentVersion"])
 			}
 		}
-		log.Logvf(log.DebugLow, "system.version document is not an authSchema %v", versionDoc["_id"])
+		log.Logvf(
+			log.DebugLow,
+			"system.version document is not an authSchema %v",
+			versionDoc["_id"],
+		)
 	}
 	err = bsonSource.Err()
 	if err != nil {
@@ -580,7 +669,8 @@ func (restore *MongoRestore) ValidateAuthVersions() error {
 		fallthrough
 	case authVersionPair{3, 1}:
 		return fmt.Errorf(
-			"cannot restore users and roles dump file >= auth version 3 to a server of auth version 1")
+			"cannot restore users and roles dump file >= auth version 3 to a server of auth version 1",
+		)
 	default:
 		return fmt.Errorf("invalid auth pair: dump=%v, server=%v",
 			restore.authVersions.Dump, restore.authVersions.Server)

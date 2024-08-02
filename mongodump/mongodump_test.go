@@ -222,7 +222,9 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 			continue
 		}
 
-		collectionName, err := util.UnescapeCollectionName(fileName[:strings.LastIndex(fileName, ".bson")])
+		collectionName, err := util.UnescapeCollectionName(
+			fileName[:strings.LastIndex(fileName, ".bson")],
+		)
 		if err != nil {
 			return err
 		}
@@ -263,7 +265,15 @@ func setUpMongoDumpTestData() error {
 		coll := session.Database(testDB).Collection(collectionName)
 
 		for j := 0; j < 10*(i+1); j++ {
-			_, err = coll.InsertOne(context.Background(), bson.M{"collectionName": collectionName, "age": j, "": "foo", "coords": bson.D{{"x", i}, {"y", j}}})
+			_, err = coll.InsertOne(
+				context.Background(),
+				bson.M{
+					"collectionName": collectionName,
+					"age":            j,
+					"":               "foo",
+					"coords":         bson.D{{"x", i}, {"y", j}},
+				},
+			)
 			if err != nil {
 				return err
 			}
@@ -323,7 +333,14 @@ func setUpTimeseries(dbName string, colName string) error {
 		metadata := bson.M{
 			"device": i % 10,
 		}
-		_, err = coll.InsertOne(context.Background(), bson.M{"ts": primitive.NewDateTimeFromTime(time.Now()), "my_meta": metadata, "measurement": i})
+		_, err = coll.InsertOne(
+			context.Background(),
+			bson.M{
+				"ts":          primitive.NewDateTimeFromTime(time.Now()),
+				"my_meta":     metadata,
+				"measurement": i,
+			},
+		)
 		if err != nil {
 			return err
 		}
@@ -582,11 +599,13 @@ func testQuery(md *MongoDump, session *mongo.Client) string {
 
 	for _, testCollName := range testCollectionNames {
 		// count filtered docs
-		origDocCount, err := origDB.Collection(testCollName).CountDocuments(context.Background(), bsonQuery)
+		origDocCount, err := origDB.Collection(testCollName).
+			CountDocuments(context.Background(), bsonQuery)
 		So(err, ShouldBeNil)
 
 		// count number of all restored documents
-		restDocCount, err := restoredDB.Collection(testCollName).CountDocuments(context.Background(), bson.D{})
+		restDocCount, err := restoredDB.Collection(testCollName).
+			CountDocuments(context.Background(), bson.D{})
 		So(err, ShouldBeNil)
 
 		So(restDocCount, ShouldEqual, origDocCount)
@@ -663,7 +682,11 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 
 			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "cannot dump a collection without a specified database")
+			So(
+				err.Error(),
+				ShouldContainSubstring,
+				"cannot dump a collection without a specified database",
+			)
 		})
 
 		Convey("we have to specify a collection name if using a query", func() {
@@ -673,7 +696,11 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 
 			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "cannot dump using a query without a specified collection")
+			So(
+				err.Error(),
+				ShouldContainSubstring,
+				"cannot dump using a query without a specified collection",
+			)
 		})
 
 	})
@@ -695,7 +722,9 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 	session, err := sessionProvider.GetSession()
 	require.NoError(t, err)
 	// This case shouldn't error and should instead not return that it will try to restore users and roles.
-	_, err = session.Database("admin").Collection("testcol").InsertOne(context.Background(), bson.M{})
+	_, err = session.Database("admin").
+		Collection("testcol").
+		InsertOne(context.Background(), bson.M{})
 	require.NoError(t, err)
 	dbNames, err := md.GetValidDbs()
 	require.NoError(t, err)
@@ -705,7 +734,11 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 	// not possible with an atlas proxy.
 	md.OutputOptions.DumpDBUsersAndRoles = true
 	err = md.ValidateOptions()
-	require.Error(t, err, "can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster")
+	require.Error(
+		t,
+		err,
+		"can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster",
+	)
 
 	require.NoError(t, session.Database("admin").Collection("testcol").Drop(context.Background()))
 }
@@ -718,150 +751,164 @@ func TestMongoDumpBSON(t *testing.T) {
 		err := setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
-		Convey("testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection", func() {
-			md := simpleMongoDumpInstance()
-			md.InputOptions.Query = ""
+		Convey(
+			"testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection",
+			func() {
+				md := simpleMongoDumpInstance()
+				md.InputOptions.Query = ""
 
-			Convey("and that for a particular collection", func() {
-				md.ToolOptions.Namespace.Collection = testCollectionNames[0]
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				Convey("it dumps to the default output directory", func() {
-					testDumpOneCollection(md, "dump")
-				})
-
-				Convey("it dumps to a user-specified output directory", func() {
-					testDumpOneCollection(md, "dump_user")
-				})
-
-				Convey("it dumps to standard output", func() {
-					md.OutputOptions.Out = "-"
-					stdoutBuf := &bytes.Buffer{}
-					md.OutputWriter = stdoutBuf
-					err = md.Dump()
+				Convey("and that for a particular collection", func() {
+					md.ToolOptions.Namespace.Collection = testCollectionNames[0]
+					err = md.Init()
 					So(err, ShouldBeNil)
-					var count int
-					bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(io.NopCloser(stdoutBuf)))
-					defer bsonSource.Close()
 
-					var result bson.Raw
-					for bsonSource.Next(&result) {
-						count++
-					}
-					So(bsonSource.Err(), ShouldBeNil)
-					So(count, ShouldEqual, 10) //The 0th collection has 10 documents
+					Convey("it dumps to the default output directory", func() {
+						testDumpOneCollection(md, "dump")
+					})
 
-					Reset(func() {
+					Convey("it dumps to a user-specified output directory", func() {
+						testDumpOneCollection(md, "dump_user")
+					})
+
+					Convey("it dumps to standard output", func() {
+						md.OutputOptions.Out = "-"
+						stdoutBuf := &bytes.Buffer{}
+						md.OutputWriter = stdoutBuf
+						err = md.Dump()
+						So(err, ShouldBeNil)
+						var count int
+						bsonSource := db.NewDecodedBSONSource(
+							db.NewBSONSource(io.NopCloser(stdoutBuf)),
+						)
+						defer bsonSource.Close()
+
+						var result bson.Raw
+						for bsonSource.Next(&result) {
+							count++
+						}
+						So(bsonSource.Err(), ShouldBeNil)
+						So(count, ShouldEqual, 10) //The 0th collection has 10 documents
+
+						Reset(func() {
+						})
+
 					})
 
 				})
 
-			})
+				Convey("and that it dumps a collection with a slash in its name", func() {
+					md.ToolOptions.Namespace.Collection = testCollectionNames[2]
 
-			Convey("and that it dumps a collection with a slash in its name", func() {
-				md.ToolOptions.Namespace.Collection = testCollectionNames[2]
+					Convey("to the filesystem", func() {
+						err = md.Init()
+						So(err, ShouldBeNil)
+						testDumpOneCollection(md, "dump_slash")
+					})
 
-				Convey("to the filesystem", func() {
-					err = md.Init()
-					So(err, ShouldBeNil)
-					testDumpOneCollection(md, "dump_slash")
+					Convey("to an archive", func() {
+						md.OutputOptions.Archive = "dump_slash.archive"
+						err = md.Init()
+						So(err, ShouldBeNil)
+					})
 				})
 
-				Convey("to an archive", func() {
-					md.OutputOptions.Archive = "dump_slash.archive"
+				Convey("for an entire database", func() {
+					md.ToolOptions.Namespace.Collection = ""
 					err = md.Init()
 					So(err, ShouldBeNil)
-				})
-			})
 
-			Convey("for an entire database", func() {
-				md.ToolOptions.Namespace.Collection = ""
-				err = md.Init()
+					Convey(
+						"that exists. The dumped directory should contain the necessary bson files",
+						func() {
+							md.OutputOptions.Out = "dump"
+							err = md.Dump()
+							So(err, ShouldBeNil)
+							path, err := os.Getwd()
+							So(err, ShouldBeNil)
+
+							dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+							dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+							So(fileDirExists(dumpDir), ShouldBeTrue)
+							So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+							countColls, err := countNonIndexBSONFiles(dumpDBDir)
+							So(err, ShouldBeNil)
+							So(countColls, ShouldEqual, len(testCollectionNames))
+
+							Reset(func() {
+								So(os.RemoveAll(dumpDir), ShouldBeNil)
+							})
+
+						},
+					)
+
+					Convey(
+						"that does not exist. The dumped directory shouldn't be created",
+						func() {
+							md.OutputOptions.Out = "dump"
+							md.ToolOptions.Namespace.DB = "nottestdb"
+							err = md.Dump()
+							So(err, ShouldBeNil)
+
+							path, err := os.Getwd()
+							So(err, ShouldBeNil)
+
+							dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+							dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, "nottestdb"))
+
+							So(fileDirExists(dumpDir), ShouldBeFalse)
+							So(fileDirExists(dumpDBDir), ShouldBeFalse)
+						},
+					)
+
+				})
+			},
+		)
+
+		Convey(
+			"testing that using MongoDump WITH a query dumps a subset of documents in a database and/or collection",
+			func() {
+				session, err := testutil.GetBareSession()
+				So(err, ShouldBeNil)
+				md := simpleMongoDumpInstance()
+
+				// expect 10 documents per collection
+				bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
+				jsonQuery, err := bsonutil.ConvertBSONValueToLegacyExtJSON(bsonQuery)
+				So(err, ShouldBeNil)
+				jsonQueryBytes, err := json.Marshal(jsonQuery)
 				So(err, ShouldBeNil)
 
-				Convey("that exists. The dumped directory should contain the necessary bson files", func() {
+				Convey("using --query for all the collections in the database", func() {
+					md.InputOptions.Query = string(jsonQueryBytes)
+					md.ToolOptions.Namespace.DB = testDB
 					md.OutputOptions.Out = "dump"
-					err = md.Dump()
-					So(err, ShouldBeNil)
-					path, err := os.Getwd()
-					So(err, ShouldBeNil)
-
-					dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-					dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-					So(fileDirExists(dumpDir), ShouldBeTrue)
-					So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-					countColls, err := countNonIndexBSONFiles(dumpDBDir)
-					So(err, ShouldBeNil)
-					So(countColls, ShouldEqual, len(testCollectionNames))
+					dumpDir := testQuery(md, session)
 
 					Reset(func() {
+						So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
 						So(os.RemoveAll(dumpDir), ShouldBeNil)
 					})
 
 				})
 
-				Convey("that does not exist. The dumped directory shouldn't be created", func() {
+				Convey("using --queryFile for all the collections in the database", func() {
+					err = os.WriteFile("example.json", jsonQueryBytes, 0777)
+					So(err, ShouldBeNil)
+					md.InputOptions.QueryFile = "example.json"
+					md.ToolOptions.Namespace.DB = testDB
 					md.OutputOptions.Out = "dump"
-					md.ToolOptions.Namespace.DB = "nottestdb"
-					err = md.Dump()
-					So(err, ShouldBeNil)
+					dumpDir := testQuery(md, session)
 
-					path, err := os.Getwd()
-					So(err, ShouldBeNil)
+					Reset(func() {
+						So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
+						So(os.RemoveAll(dumpDir), ShouldBeNil)
+						So(os.Remove("example.json"), ShouldBeNil)
+					})
 
-					dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-					dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, "nottestdb"))
-
-					So(fileDirExists(dumpDir), ShouldBeFalse)
-					So(fileDirExists(dumpDBDir), ShouldBeFalse)
 				})
-
-			})
-		})
-
-		Convey("testing that using MongoDump WITH a query dumps a subset of documents in a database and/or collection", func() {
-			session, err := testutil.GetBareSession()
-			So(err, ShouldBeNil)
-			md := simpleMongoDumpInstance()
-
-			// expect 10 documents per collection
-			bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
-			jsonQuery, err := bsonutil.ConvertBSONValueToLegacyExtJSON(bsonQuery)
-			So(err, ShouldBeNil)
-			jsonQueryBytes, err := json.Marshal(jsonQuery)
-			So(err, ShouldBeNil)
-
-			Convey("using --query for all the collections in the database", func() {
-				md.InputOptions.Query = string(jsonQueryBytes)
-				md.ToolOptions.Namespace.DB = testDB
-				md.OutputOptions.Out = "dump"
-				dumpDir := testQuery(md, session)
-
-				Reset(func() {
-					So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
-					So(os.RemoveAll(dumpDir), ShouldBeNil)
-				})
-
-			})
-
-			Convey("using --queryFile for all the collections in the database", func() {
-				err = os.WriteFile("example.json", jsonQueryBytes, 0777)
-				So(err, ShouldBeNil)
-				md.InputOptions.QueryFile = "example.json"
-				md.ToolOptions.Namespace.DB = testDB
-				md.OutputOptions.Out = "dump"
-				dumpDir := testQuery(md, session)
-
-				Reset(func() {
-					So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
-					So(os.RemoveAll(dumpDir), ShouldBeNil)
-					So(os.Remove("example.json"), ShouldBeNil)
-				})
-
-			})
-		})
+			},
+		)
 
 		Convey("using MongoDump against a collection that doesn't exist succeeds", func() {
 			md := simpleMongoDumpInstance()
@@ -903,44 +950,51 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 
 		md := simpleMongoDumpInstance()
 
-		Convey("testing that it dumps a collection with a name >238 bytes in the right format", func() {
-			coll := session.Database(testDB).Collection(longCollectionName)
-			_, err = coll.InsertOne(context.Background(), bson.M{"a": 1})
-			So(err, ShouldBeNil)
-			//nolint:errcheck
-			defer coll.Drop(context.Background())
-
-			md.ToolOptions.Namespace.Collection = longCollectionName
-			err = md.Init()
-			So(err, ShouldBeNil)
-
-			path, err := os.Getwd()
-			So(err, ShouldBeNil)
-
-			absDumpDir := util.ToUniversalPath(filepath.Join(path, "dump_slash"))
-			So(os.RemoveAll(absDumpDir), ShouldBeNil)
-			So(fileDirExists(absDumpDir), ShouldBeFalse)
-
-			dumpDBDir := util.ToUniversalPath(filepath.Join("dump_slash", testDB))
-			So(fileDirExists(dumpDBDir), ShouldBeFalse)
-
-			md.OutputOptions.Out = "dump_slash"
-			err = md.Dump()
-			So(err, ShouldBeNil)
-			So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-			Convey("to a bson file", func() {
-				oneBsonFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longBsonName)))
+		Convey(
+			"testing that it dumps a collection with a name >238 bytes in the right format",
+			func() {
+				coll := session.Database(testDB).Collection(longCollectionName)
+				_, err = coll.InsertOne(context.Background(), bson.M{"a": 1})
 				So(err, ShouldBeNil)
-				oneBsonFile.Close()
-			})
+				//nolint:errcheck
+				defer coll.Drop(context.Background())
 
-			Convey("to a metadata file", func() {
-				oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, longMetadataName)))
+				md.ToolOptions.Namespace.Collection = longCollectionName
+				err = md.Init()
 				So(err, ShouldBeNil)
-				oneMetaFile.Close()
-			})
-		})
+
+				path, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				absDumpDir := util.ToUniversalPath(filepath.Join(path, "dump_slash"))
+				So(os.RemoveAll(absDumpDir), ShouldBeNil)
+				So(fileDirExists(absDumpDir), ShouldBeFalse)
+
+				dumpDBDir := util.ToUniversalPath(filepath.Join("dump_slash", testDB))
+				So(fileDirExists(dumpDBDir), ShouldBeFalse)
+
+				md.OutputOptions.Out = "dump_slash"
+				err = md.Dump()
+				So(err, ShouldBeNil)
+				So(fileDirExists(dumpDBDir), ShouldBeTrue)
+
+				Convey("to a bson file", func() {
+					oneBsonFile, err := os.Open(
+						util.ToUniversalPath(filepath.Join(dumpDBDir, longBsonName)),
+					)
+					So(err, ShouldBeNil)
+					oneBsonFile.Close()
+				})
+
+				Convey("to a metadata file", func() {
+					oneMetaFile, err := os.Open(
+						util.ToUniversalPath(filepath.Join(dumpDBDir, longMetadataName)),
+					)
+					So(err, ShouldBeNil)
+					oneMetaFile.Close()
+				})
+			},
+		)
 
 		Reset(func() {
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
@@ -991,7 +1045,9 @@ func TestMongoDumpMetaData(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(len(metaFiles), ShouldBeGreaterThan, 0)
 
-					oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
+					oneMetaFile, err := os.Open(
+						util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])),
+					)
 					//nolint:staticcheck
 					defer oneMetaFile.Close()
 					So(err, ShouldBeNil)
@@ -1342,7 +1398,9 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 				err = md.Dump()
 				So(err, ShouldBeNil)
 
-				dumpBSON := util.ToUniversalPath(filepath.Join(dumpDir, testDB, testCollectionNames[0]+".bson"))
+				dumpBSON := util.ToUniversalPath(
+					filepath.Join(dumpDir, testDB, testCollectionNames[0]+".bson"),
+				)
 
 				file, err := os.Open(dumpBSON)
 				So(err, ShouldBeNil)
@@ -1536,20 +1594,23 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 			So(filePath, ShouldNotContainSubstring, "%24")
 		})
 
-		Convey("don't change a collection name that could result in an output path =255 bytes", func() {
-			md.OutputOptions.Out = "dump"
+		Convey(
+			"don't change a collection name that could result in an output path =255 bytes",
+			func() {
+				md.OutputOptions.Out = "dump"
 
-			// 17 bytes * 14 = 238 bytes
-			// (output would be exactly 255 bytes with longest possible file extension of .metadata.json.gz)
-			colName := strings.Repeat("abcdefghijklmnopq", 14)
+				// 17 bytes * 14 = 238 bytes
+				// (output would be exactly 255 bytes with longest possible file extension of .metadata.json.gz)
+				colName := strings.Repeat("abcdefghijklmnopq", 14)
 
-			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-			So(len(fileComponents), ShouldEqual, 3)
+				fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+				So(len(fileComponents), ShouldEqual, 3)
 
-			filePath := fileComponents[len(fileComponents)-1]
-			So(filePath, ShouldEqual, colName)
-			So(filePath, ShouldNotContainSubstring, "%24")
-		})
+				filePath := fileComponents[len(fileComponents)-1]
+				So(filePath, ShouldEqual, colName)
+				So(filePath, ShouldNotContainSubstring, "%24")
+			},
+		)
 
 		Convey("truncate a collection name that results in an output path >255 bytes", func() {
 			md.OutputOptions.Out = "dump"
@@ -1729,7 +1790,14 @@ func TestTimeseriesCollections(t *testing.T) {
 						So(len(dbContents), ShouldEqual, 2)
 
 						for _, file := range dbContents {
-							So(file.Name(), ShouldBeIn, []string{colName + ".metadata.json", "system.buckets." + colName + ".bson"})
+							So(
+								file.Name(),
+								ShouldBeIn,
+								[]string{
+									colName + ".metadata.json",
+									"system.buckets." + colName + ".bson",
+								},
+							)
 						}
 					}
 				}
@@ -1771,8 +1839,12 @@ func TestTimeseriesCollections(t *testing.T) {
 
 				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
 				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-				metadataFile := util.ToUniversalPath(filepath.Join(dumpDBDir, colName+".metadata.json"))
-				bsonFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"))
+				metadataFile := util.ToUniversalPath(
+					filepath.Join(dumpDBDir, colName+".metadata.json"),
+				)
+				bsonFile := util.ToUniversalPath(
+					filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
+				)
 				So(fileDirExists(dumpDir), ShouldBeTrue)
 				So(fileDirExists(dumpDBDir), ShouldBeTrue)
 				So(fileDirExists(metadataFile), ShouldBeTrue)
@@ -1873,8 +1945,12 @@ func TestTimeseriesCollections(t *testing.T) {
 
 			err = md.Init()
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEndWith, "cannot specify a system.buckets collection in --collection. "+
-				"Specifying the timeseries collection will dump the system.buckets collection")
+			So(
+				err.Error(),
+				ShouldEndWith,
+				"cannot specify a system.buckets collection in --collection. "+
+					"Specifying the timeseries collection will dump the system.buckets collection",
+			)
 		})
 
 		Convey("querying the timeseries collection", func() {
@@ -1906,8 +1982,12 @@ func TestTimeseriesCollections(t *testing.T) {
 
 				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
 				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-				metadataFile := util.ToUniversalPath(filepath.Join(dumpDBDir, colName+".metadata.json"))
-				bsonFile := util.ToUniversalPath(filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"))
+				metadataFile := util.ToUniversalPath(
+					filepath.Join(dumpDBDir, colName+".metadata.json"),
+				)
+				bsonFile := util.ToUniversalPath(
+					filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
+				)
 				So(fileDirExists(dumpDir), ShouldBeTrue)
 				So(fileDirExists(dumpDBDir), ShouldBeTrue)
 				So(fileDirExists(metadataFile), ShouldBeTrue)
@@ -1966,7 +2046,11 @@ func TestTimeseriesCollections(t *testing.T) {
 
 			err = md.Dump()
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, "mongodump only processes queries on metadata fields for timeseries collections")
+			So(
+				err.Error(),
+				ShouldContainSubstring,
+				"mongodump only processes queries on metadata fields for timeseries collections",
+			)
 
 			os.Remove("ts_query.json")
 
@@ -2041,7 +2125,11 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 			require.Len(t, dbContents, 2)
 
 			for _, file := range dbContents {
-				require.Contains(t, []string{colName + ".metadata.json", "system.buckets." + colName + ".bson"}, file.Name())
+				require.Contains(
+					t,
+					[]string{colName + ".metadata.json", "system.buckets." + colName + ".bson"},
+					file.Name(),
+				)
 			}
 		}
 	}
@@ -2099,27 +2187,39 @@ func TestFailDuringResharding(t *testing.T) {
 			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
 		})
 
-		Convey("dump should fail if config.localReshardingOperations.donor exists on source", func() {
-			err = session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
-			So(err, ShouldBeNil)
-			//nolint:errcheck
-			defer session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
+		Convey(
+			"dump should fail if config.localReshardingOperations.donor exists on source",
+			func() {
+				err = session.Database("config").
+					CreateCollection(ctx, "localReshardingOperations.donor")
+				So(err, ShouldBeNil)
+				//nolint:errcheck
+				defer session.Database("config").
+					Collection("localReshardingOperations.donor").
+					Drop(ctx)
 
-			err = md.Dump()
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
-		})
+				err = md.Dump()
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
+			},
+		)
 
-		Convey("dump should fail if config.localReshardingOperations.recipient exists on source", func() {
-			err = session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
-			So(err, ShouldBeNil)
-			//nolint:errcheck
-			defer session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
+		Convey(
+			"dump should fail if config.localReshardingOperations.recipient exists on source",
+			func() {
+				err = session.Database("config").
+					CreateCollection(ctx, "localReshardingOperations.recipient")
+				So(err, ShouldBeNil)
+				//nolint:errcheck
+				defer session.Database("config").
+					Collection("localReshardingOperations.recipient").
+					Drop(ctx)
 
-			err = md.Dump()
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
-		})
+				err = md.Dump()
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
+			},
+		)
 
 		Convey("dump should fail if config.reshardingOperations created in oplog", func() {
 			failpoint.ParseFailpoints("PauseBeforeDumping")
@@ -2140,43 +2240,55 @@ func TestFailDuringResharding(t *testing.T) {
 			So(sessErr2, ShouldBeNil)
 		})
 
-		Convey("dump should fail if config.localReshardingOperations.donor created in oplog", func() {
-			failpoint.ParseFailpoints("PauseBeforeDumping")
-			defer failpoint.Reset()
+		Convey(
+			"dump should fail if config.localReshardingOperations.donor created in oplog",
+			func() {
+				failpoint.ParseFailpoints("PauseBeforeDumping")
+				defer failpoint.Reset()
 
-			var sessErr1, sessErr2 error
-			go func() {
-				time.Sleep(2 * time.Second)
-				sessErr1 = session.Database("config").CreateCollection(ctx, "localReshardingOperations.donor")
-				sessErr2 = session.Database("config").Collection("localReshardingOperations.donor").Drop(ctx)
-			}()
+				var sessErr1, sessErr2 error
+				go func() {
+					time.Sleep(2 * time.Second)
+					sessErr1 = session.Database("config").
+						CreateCollection(ctx, "localReshardingOperations.donor")
+					sessErr2 = session.Database("config").
+						Collection("localReshardingOperations.donor").
+						Drop(ctx)
+				}()
 
-			err = md.Dump()
+				err = md.Dump()
 
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
-			So(sessErr1, ShouldBeNil)
-			So(sessErr2, ShouldBeNil)
-		})
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
+				So(sessErr1, ShouldBeNil)
+				So(sessErr2, ShouldBeNil)
+			},
+		)
 
-		Convey("dump should fail if config.localReshardingOperations.recipient created in oplog", func() {
-			failpoint.ParseFailpoints("PauseBeforeDumping")
-			defer failpoint.Reset()
+		Convey(
+			"dump should fail if config.localReshardingOperations.recipient created in oplog",
+			func() {
+				failpoint.ParseFailpoints("PauseBeforeDumping")
+				defer failpoint.Reset()
 
-			var sessErr1, sessErr2 error
-			go func() {
-				time.Sleep(2 * time.Second)
-				sessErr1 = session.Database("config").CreateCollection(ctx, "localReshardingOperations.recipient")
-				sessErr2 = session.Database("config").Collection("localReshardingOperations.recipient").Drop(ctx)
-			}()
+				var sessErr1, sessErr2 error
+				go func() {
+					time.Sleep(2 * time.Second)
+					sessErr1 = session.Database("config").
+						CreateCollection(ctx, "localReshardingOperations.recipient")
+					sessErr2 = session.Database("config").
+						Collection("localReshardingOperations.recipient").
+						Drop(ctx)
+				}()
 
-			err = md.Dump()
+				err = md.Dump()
 
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
-			So(sessErr1, ShouldBeNil)
-			So(sessErr2, ShouldBeNil)
-		})
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
+				So(sessErr1, ShouldBeNil)
+				So(sessErr2, ShouldBeNil)
+			},
+		)
 
 	})
 }
@@ -2198,7 +2310,10 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 	// Create Columnstore indexes.
 	for _, colName := range testCollectionNames {
 		err := setUpColumnstoreIndex(testDB, colName)
-		if strings.Contains(err.Error(), "(NotImplemented) columnstore indexes are under development and cannot be used without enabling the feature flag") {
+		if strings.Contains(
+			err.Error(),
+			"(NotImplemented) columnstore indexes are under development and cannot be used without enabling the feature flag",
+		) {
 			t.Skip("Requires columnstore indexes to be implemented")
 		}
 		require.NoError(t, err)

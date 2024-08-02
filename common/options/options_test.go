@@ -598,20 +598,40 @@ func TestParseAndSetOptions(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		require.Equal(t, testCase.OptsExpected.Connection.Timeout, testCase.OptsIn.Connection.Timeout)
-		require.Equal(t, testCase.OptsExpected.Connection.SocketTimeout, testCase.OptsIn.Connection.SocketTimeout)
+		require.Equal(
+			t,
+			testCase.OptsExpected.Connection.Timeout,
+			testCase.OptsIn.Connection.Timeout,
+		)
+		require.Equal(
+			t,
+			testCase.OptsExpected.Connection.SocketTimeout,
+			testCase.OptsIn.Connection.SocketTimeout,
+		)
 		require.Equal(t, testCase.OptsExpected.Username, testCase.OptsIn.Username)
 		require.Equal(t, testCase.OptsExpected.Password, testCase.OptsIn.Password)
 		require.Equal(t, testCase.OptsExpected.Source, testCase.OptsIn.Source)
 		require.Equal(t, testCase.OptsExpected.Auth.Mechanism, testCase.OptsIn.Auth.Mechanism)
-		require.Equal(t, testCase.OptsExpected.Auth.AWSSessionToken, testCase.OptsIn.Auth.AWSSessionToken)
+		require.Equal(
+			t,
+			testCase.OptsExpected.Auth.AWSSessionToken,
+			testCase.OptsIn.Auth.AWSSessionToken,
+		)
 		require.Equal(t, testCase.OptsExpected.Direct, testCase.OptsIn.Direct)
 		require.Equal(t, testCase.OptsExpected.ReplicaSetName, testCase.OptsIn.ReplicaSetName)
 		require.Equal(t, testCase.OptsExpected.SSL.UseSSL, testCase.OptsIn.SSL.UseSSL)
 		require.Equal(t, testCase.OptsExpected.Kerberos.Service, testCase.OptsIn.Kerberos.Service)
-		require.Equal(t, testCase.OptsExpected.Kerberos.ServiceHost, testCase.OptsIn.Kerberos.ServiceHost)
+		require.Equal(
+			t,
+			testCase.OptsExpected.Kerberos.ServiceHost,
+			testCase.OptsIn.Kerberos.ServiceHost,
+		)
 		require.Equal(t, testCase.OptsExpected.RetryWrites, testCase.OptsIn.RetryWrites)
-		require.Equal(t, testCase.OptsExpected.Auth.ShouldAskForPassword(), testCase.OptsIn.Auth.ShouldAskForPassword())
+		require.Equal(
+			t,
+			testCase.OptsExpected.Auth.ShouldAskForPassword(),
+			testCase.OptsIn.Auth.ShouldAskForPassword(),
+		)
 	}
 }
 
@@ -638,8 +658,16 @@ func runConfigFileTestCases(t *testing.T, testCases []configTester) {
 			if testCase.outcome == ShouldSucceed {
 				require.NoError(t, err)
 				require.Equal(t, testCase.expectedOpts.Auth.Password, opts.Auth.Password)
-				require.Equal(t, testCase.expectedOpts.URI.ConnectionString, opts.URI.ConnectionString)
-				require.Equal(t, testCase.expectedOpts.SSL.SSLPEMKeyPassword, opts.SSL.SSLPEMKeyPassword)
+				require.Equal(
+					t,
+					testCase.expectedOpts.URI.ConnectionString,
+					opts.URI.ConnectionString,
+				)
+				require.Equal(
+					t,
+					testCase.expectedOpts.SSL.SSLPEMKeyPassword,
+					opts.SSL.SSLPEMKeyPassword,
+				)
 			} else {
 				require.Error(t, err)
 			}
@@ -771,11 +799,21 @@ type optionsTester struct {
 func createOptionsTestCases(s []string) []optionsTester {
 	ret := []optionsTester{
 		{fmt.Sprintf("%s %s", s[0], s[2]), "mongodb://user:pass@foo", ShouldSucceed},
-		{fmt.Sprintf("%s %s", s[0], s[2]), fmt.Sprintf("mongodb://user:pass@foo/?%s=%s", s[1], s[2]), ShouldSucceed},
-		{fmt.Sprintf("%s %s", s[0], s[2]), fmt.Sprintf("mongodb://user:pass@foo/?%s=%s", s[1], s[3]), ShouldFail},
+		{
+			fmt.Sprintf("%s %s", s[0], s[2]),
+			fmt.Sprintf("mongodb://user:pass@foo/?%s=%s", s[1], s[2]),
+			ShouldSucceed,
+		},
+		{
+			fmt.Sprintf("%s %s", s[0], s[2]),
+			fmt.Sprintf("mongodb://user:pass@foo/?%s=%s", s[1], s[3]),
+			ShouldFail,
+		},
 		{"", fmt.Sprintf("mongodb://user:pass@foo/?%s=%s", s[1], s[2]), ShouldSucceed},
 	}
-	if s[0] == "--ssl" || s[0] == "--sslAllowInvalidCertificates" || s[0] == "--sslAllowInvalidHostnames" || s[0] == "--tlsInsecure" {
+	if s[0] == "--ssl" || s[0] == "--sslAllowInvalidCertificates" ||
+		s[0] == "--sslAllowInvalidHostnames" ||
+		s[0] == "--tlsInsecure" {
 		ret[0].options = s[0]
 		ret[1].options = s[0]
 		ret[2].options = s[0]
@@ -825,11 +863,27 @@ func TestOptionsParsing(t *testing.T) {
 
 		{"--host foo,bar,baz", "mongodb://foo,bar,baz", ShouldSucceed},
 		{"--host foo,bar,baz", "mongodb://baz,bar,foo", ShouldSucceed},
-		{"--host foo:27018,bar:27019,baz:27020", "mongodb://baz:27020,bar:27019,foo:27018", ShouldSucceed},
-		{"--host foo:27018,bar:27019,baz:27020", "mongodb://baz:27018,bar:27019,foo:27020", ShouldFail},
-		{"--host foo:27018,bar:27019,baz:27020 --port 27018", "mongodb://baz:27018,bar:27019,foo:27020", ShouldFail},
+		{
+			"--host foo:27018,bar:27019,baz:27020",
+			"mongodb://baz:27020,bar:27019,foo:27018",
+			ShouldSucceed,
+		},
+		{
+			"--host foo:27018,bar:27019,baz:27020",
+			"mongodb://baz:27018,bar:27019,foo:27020",
+			ShouldFail,
+		},
+		{
+			"--host foo:27018,bar:27019,baz:27020 --port 27018",
+			"mongodb://baz:27018,bar:27019,foo:27020",
+			ShouldFail,
+		},
 		{"--host foo,bar,baz --port 27018", "mongodb://foo,bar,baz", ShouldSucceed},
-		{"--host foo,bar,baz --port 27018", "mongodb://foo:27018,bar:27018,baz:27018", ShouldSucceed},
+		{
+			"--host foo,bar,baz --port 27018",
+			"mongodb://foo:27018,bar:27018,baz:27018",
+			ShouldSucceed,
+		},
 		{"--host foo,bar,baz --port 27018", "mongodb://foo:27018,bar:27019,baz:27020", ShouldFail},
 
 		{"--host repl/foo,bar,baz", "mongodb://foo,bar,baz", ShouldSucceed},
@@ -862,13 +916,33 @@ func TestOptionsParsing(t *testing.T) {
 		{"", "mongodb://a/b:@foo/authSource=db1", ShouldFail},
 		{"", "mongodb://user:pass:a@foo/authSource=db1", ShouldFail},
 		{"--authenticationDatabase db1", "mongodb://user:pass@foo/db2", ShouldSucceed},
-		{"--authenticationDatabase db1", "mongodb://user:pass@foo/db2?authSource=db1", ShouldSucceed},
+		{
+			"--authenticationDatabase db1",
+			"mongodb://user:pass@foo/db2?authSource=db1",
+			ShouldSucceed,
+		},
 		{"--authenticationDatabase db1", "mongodb://user:pass@foo/db1?authSource=db2", ShouldFail},
 
-		{"--awsSessionToken token", "mongodb://user:pass@foo/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token", ShouldSucceed},
-		{"", "mongodb://user:pass@foo/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token", ShouldSucceed},
-		{"--awsSessionToken token", "mongodb://user:pass@foo/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:bar", ShouldFail},
-		{"--gssapiServiceName foo, --authenticationMechanism GSSAPI", "mongodb://user:pass@foo", ShouldSucceed},
+		{
+			"--awsSessionToken token",
+			"mongodb://user:pass@foo/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+			ShouldSucceed,
+		},
+		{
+			"",
+			"mongodb://user:pass@foo/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+			ShouldSucceed,
+		},
+		{
+			"--awsSessionToken token",
+			"mongodb://user:pass@foo/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:bar",
+			ShouldFail,
+		},
+		{
+			"--gssapiServiceName foo, --authenticationMechanism GSSAPI",
+			"mongodb://user:pass@foo",
+			ShouldSucceed,
+		},
 
 		// Namespace
 		{"--db db1", "mongodb://foo", ShouldSucceed},
@@ -880,9 +954,21 @@ func TestOptionsParsing(t *testing.T) {
 		{"--db db1", "mongodb://user:pass@foo/db2?authSource=db2", ShouldFail},
 
 		// Kerberos
-		{"--gssapiServiceName foo", "mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:foo", ShouldSucceed},
-		{"", "mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:foo", ShouldSucceed},
-		{"--gssapiServiceName foo", "mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:bar", ShouldFail},
+		{
+			"--gssapiServiceName foo",
+			"mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:foo",
+			ShouldSucceed,
+		},
+		{
+			"",
+			"mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:foo",
+			ShouldSucceed,
+		},
+		{
+			"--gssapiServiceName foo",
+			"mongodb://user:pass@foo/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:bar",
+			ShouldFail,
+		},
 		{"--gssapiServiceName foo", "mongodb://user:pass@foo/?authMechanism=GSSAPI", ShouldSucceed},
 
 		// Loadbalanced
@@ -905,8 +991,18 @@ func TestOptionsParsing(t *testing.T) {
 		{"--sslCAFile", "sslCertificateAuthorityFile", "foo", "bar"},
 		{"--sslCAFile", "tlsCAFile", "foo", "bar"},
 
-		{"--sslPEMKeyFile", "sslClientCertificateKeyFile", "../db/testdata/test-client-pkcs8-unencrypted.pem", "bar"},
-		{"--sslPEMKeyFile", "tlsCertificateKeyFile", "../db/testdata/test-client-pkcs8-unencrypted.pem", "bar"},
+		{
+			"--sslPEMKeyFile",
+			"sslClientCertificateKeyFile",
+			"../db/testdata/test-client-pkcs8-unencrypted.pem",
+			"bar",
+		},
+		{
+			"--sslPEMKeyFile",
+			"tlsCertificateKeyFile",
+			"../db/testdata/test-client-pkcs8-unencrypted.pem",
+			"bar",
+		},
 
 		{"--sslPEMKeyPassword", "sslClientCertificateKeyPassword", "foo", "bar"},
 		{"--sslPEMKeyPassword", "tlsCertificateKeyFilePassword", "foo", "bar"},
@@ -1010,8 +1106,16 @@ func TestOptionsParsingForSRV(t *testing.T) {
 		{"--username foo --authenticationDatabase db1", atlasURI, ShouldFail},
 		{"--username foo --ssl", atlasURI, ShouldSucceed},
 		{"--username foo --db db1", atlasURI, ShouldSucceed},
-		{fmt.Sprintf("--username foo --host %s/%s", cs.ReplicaSet, strings.Join(cs.Hosts, ",")), atlasURI, ShouldSucceed},
-		{fmt.Sprintf("--username foo --host %s/%s", "wrongReplSet", strings.Join(cs.Hosts, ",")), atlasURI, ShouldFail},
+		{
+			fmt.Sprintf("--username foo --host %s/%s", cs.ReplicaSet, strings.Join(cs.Hosts, ",")),
+			atlasURI,
+			ShouldSucceed,
+		},
+		{
+			fmt.Sprintf("--username foo --host %s/%s", "wrongReplSet", strings.Join(cs.Hosts, ",")),
+			atlasURI,
+			ShouldFail,
+		},
 	}
 
 	runOptionsTestCases(t, testCases)
@@ -1048,7 +1152,12 @@ func TestNamespace_String(t *testing.T) {
 	for _, c := range cases {
 		got := c.ns.String()
 		if got != c.expect {
-			t.Errorf("invalid string conversion for %#v, got '%s', expected '%s'", c.ns, got, c.expect)
+			t.Errorf(
+				"invalid string conversion for %#v, got '%s', expected '%s'",
+				c.ns,
+				got,
+				c.expect,
+			)
 		}
 	}
 

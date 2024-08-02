@@ -52,7 +52,15 @@ func (dump *MongoDump) getCurrentOplogTime() (primitive.Timestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
 	var tempBSON bson.Raw
 
-	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": -1}, &tempBSON, 0)
+	err := dump.SessionProvider.FindOne(
+		"local",
+		dump.oplogCollection,
+		0,
+		nil,
+		&bson.M{"$natural": -1},
+		&tempBSON,
+		0,
+	)
 	if err != nil {
 		return primitive.Timestamp{}, fmt.Errorf("error getting recent oplog entry: %v", err)
 	}
@@ -71,7 +79,8 @@ func (dump *MongoDump) getOplogCopyStartTime() (primitive.Timestamp, error) {
 		return primitive.Timestamp{}, fmt.Errorf("error getting client: %v", err)
 	}
 
-	coll := client.Database("config").Collection("transactions", mopt.Collection().SetReadConcern(readconcern.Local()))
+	coll := client.Database("config").
+		Collection("transactions", mopt.Collection().SetReadConcern(readconcern.Local()))
 	filter := bson.D{{"state", bson.D{{"$in", bson.A{"prepared", "inProgress"}}}}}
 	opts := mopt.FindOne().SetSort(bson.D{{"startOpTime", 1}})
 
@@ -87,12 +96,16 @@ func (dump *MongoDump) getOplogCopyStartTime() (primitive.Timestamp, error) {
 
 	rawTS, err := result.LookupErr("startOpTime", "ts")
 	if err != nil {
-		return primitive.Timestamp{}, fmt.Errorf("config.transactions row had no startOpTime.ts field")
+		return primitive.Timestamp{}, fmt.Errorf(
+			"config.transactions row had no startOpTime.ts field",
+		)
 	}
 
 	t, i, ok := rawTS.TimestampOK()
 	if !ok {
-		return primitive.Timestamp{}, fmt.Errorf("config.transactions startOpTime.ts was not a BSON timestamp")
+		return primitive.Timestamp{}, fmt.Errorf(
+			"config.transactions startOpTime.ts was not a BSON timestamp",
+		)
 	}
 
 	return primitive.Timestamp{T: t, I: i}, nil
@@ -106,7 +119,15 @@ func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, 
 	oldestOplogEntry := db.Oplog{}
 	var tempBSON bson.Raw
 
-	err := dump.SessionProvider.FindOne("local", dump.oplogCollection, 0, nil, &bson.M{"$natural": 1}, &tempBSON, 0)
+	err := dump.SessionProvider.FindOne(
+		"local",
+		dump.oplogCollection,
+		0,
+		nil,
+		&bson.M{"$natural": 1},
+		&tempBSON,
+		0,
+	)
 	if err != nil {
 		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
 	}
@@ -180,7 +201,12 @@ func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end primitive.Timestamp
 		Filter:    queryObj,
 		LogReplay: true,
 	}
-	oplogCount, err := dump.dumpValidatedQueryToIntent(oplogQuery, dump.manager.Oplog(), dump.getResettableOutputBuffer(), oplogDocumentValidator)
+	oplogCount, err := dump.dumpValidatedQueryToIntent(
+		oplogQuery,
+		dump.manager.Oplog(),
+		dump.getResettableOutputBuffer(),
+		oplogDocumentValidator,
+	)
 	if err == nil {
 		log.Logvf(log.Always, "\tdumped %v oplog %v",
 			oplogCount, util.Pluralize(int(oplogCount), "entry", "entries"))

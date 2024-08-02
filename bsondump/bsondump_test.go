@@ -282,7 +282,12 @@ func TestBsondumpMaxBSONSize(t *testing.T) {
 	t.Run("bsondump with file at max size + 1", func(t *testing.T) {
 		out, err := runBsondumpWithLargeFile(t, maxSize+1)
 		require.Error(t, err, "got error executing bsondump with large file")
-		require.Regexp(t, "is larger than maximum of 16793600 bytes", out, "bsondump prints error about file size")
+		require.Regexp(
+			t,
+			"is larger than maximum of 16793600 bytes",
+			out,
+			"bsondump prints error about file size",
+		)
 	})
 }
 

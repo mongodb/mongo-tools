@@ -111,5 +111,9 @@ func StripDBFromNamespace(namespace string, dbName string) (string, error) {
 	if strings.HasPrefix(namespace, namespacePrefix) {
 		return namespace[len(namespacePrefix):], nil
 	}
-	return "", fmt.Errorf("namespace '%v' format is invalid - expected to start with '%v'", namespace, namespacePrefix)
+	return "", fmt.Errorf(
+		"namespace '%v' format is invalid - expected to start with '%v'",
+		namespace,
+		namespacePrefix,
+	)
 }

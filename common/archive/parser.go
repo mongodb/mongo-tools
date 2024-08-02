@@ -95,7 +95,9 @@ func (parse *Parser) readBSONOrTerminator() (isTerminator bool, err error) {
 		return true, nil
 	}
 	if size < minBSONSize || size > db.MaxBSONSize {
-		return false, newParserError(fmt.Sprintf("%v is neither a valid bson length nor a archive terminator", size))
+		return false, newParserError(
+			fmt.Sprintf("%v is neither a valid bson length nor a archive terminator", size),
+		)
 	}
 	// TODO Because we're reusing this same buffer for all of our IO, we are basically guaranteeing that we'll
 	// copy the bytes twice.  At some point we should fix this. It's slightly complex, because we'll need consumer
@@ -106,7 +108,13 @@ func (parse *Parser) readBSONOrTerminator() (isTerminator bool, err error) {
 		return false, newParserWrappedError("read bson", err)
 	}
 	if parse.buf[size-1] != 0x00 {
-		return false, newParserError(fmt.Sprintf("bson (size: %v, byte: %d) doesn't end with a null byte", size, parse.buf[size-1]))
+		return false, newParserError(
+			fmt.Sprintf(
+				"bson (size: %v, byte: %d) doesn't end with a null byte",
+				size,
+				parse.buf[size-1],
+			),
+		)
 	}
 	parse.length = int(size)
 	return false, nil

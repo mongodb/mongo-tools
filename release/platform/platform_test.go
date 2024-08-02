@@ -123,7 +123,8 @@ func TestPlatformCorrectArch(t *testing.T) {
 	for _, p := range platforms {
 		name := p.Name
 		if p.Arch == ArchArm64 || p.Arch == ArchAarch64 {
-			if strings.Contains(name, "rhel") || strings.Contains(name, "amazon") || strings.Contains(name, "suse") {
+			if strings.Contains(name, "rhel") || strings.Contains(name, "amazon") ||
+				strings.Contains(name, "suse") {
 				assert.Equal(t, ArchAarch64, p.Arch, "platform %v need arch %s", p, ArchAarch64)
 			} else if strings.Contains(name, "debian") || strings.Contains(name, "ubuntu") {
 				assert.Equal(t, ArchArm64, p.Arch, "platform %v need arch %s", p, ArchArm64)

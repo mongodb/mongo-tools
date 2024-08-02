@@ -32,7 +32,11 @@ func (slice StatLines) Swap(i, j int) {
 }
 
 // NewStatLine constructs a StatLine object from two ServerStatus objects.
-func NewStatLine(oldStat, newStat *status.ServerStatus, headerKeys []string, c *status.ReaderConfig) *StatLine {
+func NewStatLine(
+	oldStat, newStat *status.ServerStatus,
+	headerKeys []string,
+	c *status.ReaderConfig,
+) *StatLine {
 	line := &StatLine{
 		Fields: make(map[string]string),
 	}

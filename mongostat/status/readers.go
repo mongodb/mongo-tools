@@ -210,7 +210,10 @@ func ReadDelete(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 
 func ReadGetMore(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
 	sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
-	return fmt.Sprintf("%d", diff(newStat.Opcounters.GetMore, oldStat.Opcounters.GetMore, sampleSecs))
+	return fmt.Sprintf(
+		"%d",
+		diff(newStat.Opcounters.GetMore, oldStat.Opcounters.GetMore, sampleSecs),
+	)
 }
 
 func ReadCommand(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
@@ -304,7 +307,8 @@ func ReadLRW(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {
 		if ok && global.AcquireCount != nil {
 			newColl, inNew := newStat.Locks["Collection"]
 			oldColl, inOld := oldStat.Locks["Collection"]
-			if inNew && inOld && newColl.AcquireWaitCount != nil && oldColl.AcquireWaitCount != nil {
+			if inNew && inOld && newColl.AcquireWaitCount != nil &&
+				oldColl.AcquireWaitCount != nil {
 				rWait := newColl.AcquireWaitCount.Read - oldColl.AcquireWaitCount.Read
 				wWait := newColl.AcquireWaitCount.Write - oldColl.AcquireWaitCount.Write
 				rTotal := newColl.AcquireCount.Read - oldColl.AcquireCount.Read
@@ -324,7 +328,8 @@ func ReadLRWT(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {
 		if ok && global.AcquireCount != nil {
 			newColl, inNew := newStat.Locks["Collection"]
 			oldColl, inOld := oldStat.Locks["Collection"]
-			if inNew && inOld && newColl.AcquireWaitCount != nil && oldColl.AcquireWaitCount != nil {
+			if inNew && inOld && newColl.AcquireWaitCount != nil &&
+				oldColl.AcquireWaitCount != nil {
 				rWait := newColl.AcquireWaitCount.Read - oldColl.AcquireWaitCount.Read
 				wWait := newColl.AcquireWaitCount.Write - oldColl.AcquireWaitCount.Write
 				rAcquire := newColl.TimeAcquiringMicros.Read - oldColl.TimeAcquiringMicros.Read
@@ -349,7 +354,10 @@ func ReadLockedDB(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) 
 			var percentage string
 			if len(lockdiffs) == 0 {
 				if newStat.GlobalLock != nil {
-					percentage = fmt.Sprintf("%.1f", percentageInt64(newStat.GlobalLock.LockTime, newStat.GlobalLock.TotalTime))
+					percentage = fmt.Sprintf(
+						"%.1f",
+						percentageInt64(newStat.GlobalLock.LockTime, newStat.GlobalLock.TotalTime),
+					)
 				}
 			} else {
 				// Get the entry with the highest lock

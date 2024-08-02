@@ -56,7 +56,11 @@ type Demultiplexer struct {
 	IsAtlasProxy    bool
 }
 
-func CreateDemux(namespaceMetadatas []*CollectionMetadata, in io.Reader, isAtlasProxy bool) *Demultiplexer {
+func CreateDemux(
+	namespaceMetadatas []*CollectionMetadata,
+	in io.Reader,
+	isAtlasProxy bool,
+) *Demultiplexer {
 	demux := &Demultiplexer{
 		NamespaceStatus: make(map[string]int),
 		In:              in,
@@ -206,7 +210,9 @@ func (demux *Demultiplexer) End() error {
 			}
 			demux.outs[ns].End()
 		}
-		err = newError(fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss))
+		err = newError(
+			fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss),
+		)
 	} else {
 		for ns, status := range demux.NamespaceStatus {
 			if status != NamespaceClosed {
@@ -414,7 +420,10 @@ type SpecialCollectionCache struct {
 	hash   hash.Hash64
 }
 
-func NewSpecialCollectionCache(intent *intents.Intent, demux *Demultiplexer) *SpecialCollectionCache {
+func NewSpecialCollectionCache(
+	intent *intents.Intent,
+	demux *Demultiplexer,
+) *SpecialCollectionCache {
 	return &SpecialCollectionCache{
 		Intent: intent,
 		Demux:  demux,
