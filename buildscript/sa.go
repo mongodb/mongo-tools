@@ -20,6 +20,7 @@ const (
 	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
 	golangCILintVersion = "1.59.1"
+	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
 	preciousVersion     = "0.7.2"
 	ubiVersion          = "0.0.18"
@@ -34,6 +35,9 @@ func SAInstallDevTools(ctx *task.Context) error {
 		return err
 	}
 	if err := installGolangCILint(ctx); err != nil {
+		return err
+	}
+	if err := installGolines(ctx); err != nil {
 		return err
 	}
 	if err := installGosec(ctx); err != nil {
@@ -126,6 +130,21 @@ func installGolangCILint(ctx *task.Context) error {
 			"https://github.com/golangci/golangci-lint/releases/download/v%s/golangci-lint-%s-linux-amd64.tar.gz",
 			golangCILintVersion,
 			golangCILintVersion,
+		),
+	)
+}
+
+// Install golines.
+func installGolines(ctx *task.Context) error {
+	return installBinaryTool(
+		ctx,
+		"golines",
+		golinesVersion,
+		"segmentio/golines",
+		fmt.Sprintf(
+			"https://github.com/segmentio/golines/releases/download/v%s/golines_%s_linux_amd64.tar.gz",
+			golinesVersion,
+			golinesVersion,
 		),
 	)
 }
