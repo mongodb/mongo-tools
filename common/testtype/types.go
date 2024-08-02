@@ -15,7 +15,7 @@ const (
 	// Integration tests require a mongod running on localhost:33333. If your
 	// mongod uses SSL you need to specify the "ssl" type below, and ditto for
 	// if your mongod requires auth.
-	// First checks for a URI for a Mongod in the env variable TOOLS_TESTING_MONGOD. If it does not find it, looks on localhost:33333
+	// First checks for a URI for a Mongod in the env variable TOOLS_TESTING_MONGOD. If it does not find it, looks on localhost:33333.
 	IntegrationTestType = "TOOLS_TESTING_INTEGRATION"
 
 	// Unit tests don't require a real mongod. They may still do file I/O.

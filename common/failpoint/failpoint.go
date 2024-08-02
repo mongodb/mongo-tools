@@ -7,7 +7,7 @@
 //go:build failpoints
 // +build failpoints
 
-// Package failpoint implements triggers for custom debugging behavoir
+// Package failpoint implements triggers for custom debugging behavior.
 package failpoint
 
 import (
@@ -24,7 +24,7 @@ func Reset() {
 	values = make(map[string]string)
 }
 
-// ParseFailpoints registers a comma-separated list of failpoint=value pairs
+// ParseFailpoints registers a comma-separated list of failpoint=value pairs.
 func ParseFailpoints(arg string) {
 	args := strings.Split(arg, ",")
 	for _, fp := range args {
@@ -39,13 +39,13 @@ func ParseFailpoints(arg string) {
 }
 
 // Get returns the value of the given failpoint and true, if it exists, and
-// false otherwise
+// false otherwise.
 func Get(fp string) (string, bool) {
 	val, ok := values[fp]
 	return val, ok
 }
 
-// Enabled returns true iff the given failpoint has been turned on
+// Enabled returns true iff the given failpoint has been turned on.
 func Enabled(fp string) bool {
 	_, ok := Get(fp)
 	return ok

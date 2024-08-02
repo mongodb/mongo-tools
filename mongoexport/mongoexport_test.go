@@ -10,7 +10,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"errors"
+	"io"
 	"os"
 	"testing"
 
@@ -23,10 +24,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
-	// database with test data
+	// database with test data.
 	testDB             = "mongoexport_test_db"
 	testCollectionName = "coll1"
 )
@@ -93,7 +95,8 @@ func TestExtendedJSON(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		jsonEncoder := json.NewEncoder(os.Stdout)
-		jsonEncoder.Encode(out)
+		err = jsonEncoder.Encode(out)
+		So(err, ShouldBeNil)
 	})
 }
 
@@ -111,7 +114,7 @@ func TestFieldSelect(t *testing.T) {
 // this is only allowed on the 'local' database.
 func TestMongoExportTOOLS2174(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
+	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -122,7 +125,13 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	dbName := "local"
 
 	var r1 bson.M
-	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	if err != nil {
+		var commandErr mongo.CommandError
+		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+			t.Fatalf("Failed to run drop: %v", err)
+		}
+	}
 
 	createCmd := bson.D{
 		{"create", collName},
@@ -152,7 +161,7 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 // this is not a wired tiger collection.
 func TestMongoExportTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(ioutil.Discard)
+	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -171,7 +180,13 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	dbStruct := session.Database(dbName)
 
 	var r1 bson.M
-	sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
+	if err != nil {
+		var commandErr mongo.CommandError
+		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+			t.Fatalf("Failed to run drop: %v", err)
+		}
+	}
 
 	createCmd := bson.D{
 		{"create", collName},

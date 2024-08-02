@@ -12,7 +12,7 @@ import (
 )
 
 // generic function that returns true if elt is in slice.
-// panics if slice is not of Kind reflect.Slice
+// panics if slice is not of Kind reflect.Slice.
 func SliceContains(slice, elt interface{}) bool {
 	if slice == nil {
 		return false
@@ -49,7 +49,7 @@ func StringSliceIndex(slice []string, str string) int {
 }
 
 // generic function that returns number of instances of 'elt' in 'slice'.
-// panics if slice is not of Kind reflect.Slice
+// panics if slice is not of Kind reflect.Slice.
 func SliceCount(slice, elt interface{}) int {
 	v := reflect.ValueOf(slice)
 	if v.Kind() != reflect.Slice {

@@ -43,7 +43,7 @@ func TestFailpointParsing(t *testing.T) {
 		val, ok = Get("")
 		c.So(val, c.ShouldEqual, "a")
 		c.So(ok, c.ShouldBeTrue)
-		val, ok = Get("bar")
+		_, ok = Get("bar")
 		c.So(ok, c.ShouldBeFalse)
 	})
 }

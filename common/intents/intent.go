@@ -43,7 +43,7 @@ type FileNeedsIOBuffer interface {
 }
 
 // mongorestore first scans the directory to generate a list
-// of all files to restore and what they map to. TODO comments
+// of all files to restore and what they map to. TODO comments.
 type Intent struct {
 	// Destination namespace info
 	DB string
@@ -165,7 +165,7 @@ func (it *Intent) MergeIntent(newIt *Intent) {
 }
 
 // HasSimpleCollation returns true if the collection does not have a collation
-// specified or if the collation locale is "simple"
+// specified or if the collation locale is "simple".
 func (it *Intent) HasSimpleCollation() bool {
 	if it == nil || it.Options == nil {
 		return true
@@ -394,7 +394,7 @@ func (mgr *Manager) GetDestinationConflicts() (errs []DestinationConflictError) 
 }
 
 // Intents returns a slice containing all of the intents in the manager.
-// Intents is not thread safe
+// Intents is not thread safe.
 func (mgr *Manager) Intents() []*Intent {
 	allIntents := []*Intent{}
 	for _, intent := range mgr.intents {
@@ -470,12 +470,12 @@ func (mgr *Manager) Oplog() *Intent {
 	return mgr.oplogIntent
 }
 
-// SystemIndexes returns the system.indexes bson for a database
+// SystemIndexes returns the system.indexes bson for a database.
 func (mgr *Manager) SystemIndexes(dbName string) *Intent {
 	return mgr.indexIntents[dbName]
 }
 
-// SystemIndexes returns the databases for which there are system.indexes
+// SystemIndexes returns the databases for which there are system.indexes.
 func (mgr *Manager) SystemIndexDBs() []string {
 	databases := []string{}
 	for dbname := range mgr.indexIntents {
@@ -484,17 +484,17 @@ func (mgr *Manager) SystemIndexDBs() []string {
 	return databases
 }
 
-// Users returns the intent of the users collection to restore, a special case
+// Users returns the intent of the users collection to restore, a special case.
 func (mgr *Manager) Users() *Intent {
 	return mgr.usersIntent
 }
 
-// Roles returns the intent of the user roles collection to restore, a special case
+// Roles returns the intent of the user roles collection to restore, a special case.
 func (mgr *Manager) Roles() *Intent {
 	return mgr.rolesIntent
 }
 
-// AuthVersion returns the intent of the version collection to restore, a special case
+// AuthVersion returns the intent of the version collection to restore, a special case.
 func (mgr *Manager) AuthVersion() *Intent {
 	return mgr.versionIntent
 }

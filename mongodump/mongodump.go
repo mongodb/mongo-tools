@@ -8,8 +8,16 @@
 package mongodump
 
 import (
+	"bufio"
+	"compress/gzip"
 	"context"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
@@ -26,15 +34,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-
-	"bufio"
-	"compress/gzip"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 type storageEngineType int
@@ -44,8 +43,6 @@ const (
 	storageEngineMMAPV1  = 1
 	storageEngineModern  = 2
 )
-
-const defaultPermissions = 0755
 
 // MongoDump is a container for the user-specified options and
 // internal state used for running mongodump.
@@ -734,13 +731,6 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 	return
 }
 
-// dumpIterToWriter takes an mgo iterator, a writer, and a pointer to
-// a counter, and dumps the iterator's contents to the writer.
-func (dump *MongoDump) dumpIterToWriter(
-	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable) error {
-	return dump.dumpValidatedIterToWriter(iter, writer, progressCount, nil)
-}
-
 // dumpValidatedIterToWriter takes a cursor, a writer, an Updateable object, and a documentValidator and validates and
 // dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpValidatedIterToWriter(
@@ -844,7 +834,7 @@ func (dump *MongoDump) DumpUsersAndRolesForDB(name string) error {
 }
 
 // DumpUsersAndRoles dumps all of the users and roles and versions
-// TODO: This and DumpUsersAndRolesForDB should be merged, correctly
+// TODO: This and DumpUsersAndRolesForDB should be merged, correctly.
 func (dump *MongoDump) DumpUsersAndRoles() error {
 	var err error
 	buffer := dump.getResettableOutputBuffer()
@@ -871,7 +861,7 @@ func (dump *MongoDump) DumpUsersAndRoles() error {
 }
 
 // DumpMetadata dumps the metadata for each intent in the manager
-// that has metadata
+// that has metadata.
 func (dump *MongoDump) DumpMetadata() error {
 	allIntents := dump.manager.Intents()
 	buffer := dump.getResettableOutputBuffer()
@@ -886,12 +876,12 @@ func (dump *MongoDump) DumpMetadata() error {
 	return nil
 }
 
-// nopCloseWriter implements io.WriteCloser. It wraps up a io.Writer, and adds a no-op Close
+// nopCloseWriter implements io.WriteCloser. It wraps up a io.Writer, and adds a no-op Close.
 type nopCloseWriter struct {
 	io.Writer
 }
 
-// Close does nothing on nopCloseWriters
+// Close does nothing on nopCloseWriters.
 func (*nopCloseWriter) Close() error {
 	return nil
 }

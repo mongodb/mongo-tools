@@ -127,7 +127,7 @@ func TestParsing(t *testing.T) {
 			So(err, ShouldEqual, io.EOF)
 			So(tc.eof, ShouldBeFalse)
 		})
-		Convey("an error comming from the consumer should propigate through the parser", func() {
+		Convey("an error coming from the consumer should propigate through the parser", func() {
 			tc.eof = true
 			buf := bytes.Buffer{}
 			parser.In = &buf

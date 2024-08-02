@@ -7,14 +7,14 @@
 package json
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"fmt"
 	"reflect"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Represents base-64 encoded binary data
+// Represents base-64 encoded binary data.
 type BinData struct {
 	Type   byte
 	Base64 string
@@ -35,7 +35,7 @@ type DBRef struct {
 }
 
 // Refers to a document in some namespace by wrapping a string containing the namespace
-// and the objectId in which the _id of the document is contained
+// and the objectId in which the _id of the document is contained.
 type DBPointer struct {
 	Namespace string
 	Id        primitive.ObjectID
@@ -83,12 +83,12 @@ type Float float64
 type Undefined struct{}
 
 var (
-	// primitive types
+	// primitive types.
 	byteType   = reflect.TypeOf(byte(0))
 	stringType = reflect.TypeOf(string(""))
 	uint32Type = reflect.TypeOf(uint32(0))
 
-	// object types
+	// object types.
 	binDataType     = reflect.TypeOf(BinData{})
 	dateType        = reflect.TypeOf(Date(0))
 	isoDateType     = reflect.TypeOf(ISODate(""))
@@ -98,13 +98,11 @@ var (
 	minKeyType      = reflect.TypeOf(MinKey{})
 	numberIntType   = reflect.TypeOf(NumberInt(0))
 	numberLongType  = reflect.TypeOf(NumberLong(0))
-	numberFloatType = reflect.TypeOf(NumberFloat(0))
 	objectIdType    = reflect.TypeOf(ObjectId(""))
 	regexpType      = reflect.TypeOf(RegExp{})
 	timestampType   = reflect.TypeOf(Timestamp{})
 	undefinedType   = reflect.TypeOf(Undefined{})
 	orderedBSONType = reflect.TypeOf(bson.D{})
-	interfaceType   = reflect.TypeOf((*interface{})(nil))
 )
 
 func (d Date) isFormatable() bool {

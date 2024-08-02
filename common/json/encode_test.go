@@ -27,6 +27,7 @@ type Optionals struct {
 	Ir int `json:"omitempty"` // actually named omitempty, not an option
 	Io int `json:"io,omitempty"`
 
+	//nolint:staticcheck
 	Slr []string `json:"slr,random"`
 	Slo []string `json:"slo,omitempty"`
 

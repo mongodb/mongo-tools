@@ -255,6 +255,7 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)
 			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
 
+			//nolint:dupword
 			contents = "a, a, a"
 			colSpecs = []ColumnSpec{}
 			r = NewCSVInputReader(colSpecs, bytes.NewReader([]byte(contents)), os.Stdout, 1, false, false)

@@ -36,12 +36,12 @@ type RawDocSource interface {
 	Err() error
 }
 
-// NewBSONSource creates a BSONSource with a reusable I/O buffer
+// NewBSONSource creates a BSONSource with a reusable I/O buffer.
 func NewBSONSource(in io.ReadCloser) *BSONSource {
 	return &BSONSource{make([]byte, MaxBSONSize), in, nil, MaxBSONSize}
 }
 
-// NewBufferlessBSONSource creates a BSONSource without a reusable I/O buffer
+// NewBufferlessBSONSource creates a BSONSource without a reusable I/O buffer.
 func NewBufferlessBSONSource(in io.ReadCloser) *BSONSource {
 	return &BSONSource{nil, in, nil, MaxBSONSize}
 }
@@ -83,7 +83,7 @@ func (dbs *DecodedBSONSource) Next(result interface{}) bool {
 // BSONSource was created with NewBSONSource then each returned []byte will be
 // a slice of a single reused I/O buffer. If the BSONSource was created with
 // NewBufferlessBSONSource then each returend []byte will be individually
-// allocated
+// allocated.
 func (bs *BSONSource) LoadNext() []byte {
 	var into []byte
 	if bs.reusableBuf == nil {

@@ -17,12 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
 	"github.com/mongodb/mongo-tools/mongoimport/dateconv"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// columnType defines different types for columns that can be parsed distinctly
+// columnType defines different types for columns that can be parsed distinctly.
 type columnType int
 
 const (
@@ -81,7 +80,7 @@ type ColumnSpec struct {
 	NameParts  []string
 }
 
-// ColumnNames maps a ColumnSpec slice to their associated names
+// ColumnNames maps a ColumnSpec slice to their associated names.
 func ColumnNames(fs []ColumnSpec) (s []string) {
 	for _, f := range fs {
 		s = append(s, f.Name)

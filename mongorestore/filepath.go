@@ -10,7 +10,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,7 +88,7 @@ func (f *mixedPosTrackingReader) Close() error {
 // realBSONFile implements the intents.file interface. It lets intents read from real BSON files
 // ok disk via an embedded os.File
 // The Read, Write and Close methods of the intents.file interface is implemented here by the
-// embedded os.File, the Write will return an error and not succeed
+// embedded os.File, the Write will return an error and not succeed.
 type realBSONFile struct {
 	path string
 	PosReader
@@ -130,7 +129,7 @@ func (f *realBSONFile) Open() (err error) {
 // realMetadataFile implements the intents.file interface. It lets intents read from real
 // metadata.json files on disk via an embedded os.File
 // The Read, Write and Close methods of the intents.file interface is implemented here by the
-// embedded os.File, the Write will return an error and not succeed
+// embedded os.File, the Write will return an error and not succeed.
 type realMetadataFile struct {
 	pos int64 // updated atomically, aligned at the beginning of the struct
 	io.ReadCloser
@@ -175,7 +174,7 @@ func (f *realMetadataFile) Pos() int64 {
 }
 
 // stdinFile implements the intents.file interface. They allow intents to read single collections
-// from standard input
+// from standard input.
 type stdinFile struct {
 	pos int64 // updated atomically, aligned at the beginning of the struct
 	io.Reader
@@ -286,7 +285,7 @@ func (restore *MongoRestore) getCollectionNameFromMetadata(metadataFullPath stri
 	defer metadataFile.Close()
 
 	// Read the metadata file into raw JSON, and then parse the JSON into a Metadata struct.
-	metadataJSON, err := ioutil.ReadAll(metadataFile)
+	metadataJSON, err := io.ReadAll(metadataFile)
 	if err != nil {
 		return "", fmt.Errorf("error reading metadata from %s: %v", metadataFullPath, err)
 	}
@@ -553,7 +552,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 }
 
 // CreateStdinIntentForCollection builds an intent for the given database and collection name
-// that is to be read from standard input
+// that is to be read from standard input.
 func (restore *MongoRestore) CreateStdinIntentForCollection(db string, collection string) error {
 	log.Logvf(log.DebugLow, "reading collection %v for database %v from standard input",
 		collection, db)
@@ -656,7 +655,7 @@ func (restore *MongoRestore) CreateIntentForCollection(db string, collection str
 	return nil
 }
 
-// helper for searching a list of FileInfo for metadata files
+// helper for searching a list of FileInfo for metadata files.
 func hasMetadataFiles(files []archive.DirLike) bool {
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".metadata.json") {
@@ -738,15 +737,19 @@ func (ap actualPath) Parent() archive.DirLike {
 }
 
 func (ap actualPath) ReadDir() ([]archive.DirLike, error) {
-	entries, err := ioutil.ReadDir(ap.Path())
+	entries, err := os.ReadDir(ap.Path())
 	if err != nil {
 		return nil, err
 	}
 	var returnFileInfo = make([]archive.DirLike, 0, len(entries))
 	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
 		returnFileInfo = append(returnFileInfo,
 			actualPath{
-				FileInfo: entry,
+				FileInfo: info,
 				path:     ap.Path(),
 				parent:   &ap,
 			})

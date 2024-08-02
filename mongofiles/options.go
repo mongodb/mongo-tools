@@ -14,7 +14,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 )
 
-// Usage string printed as part of --help
+// Usage string printed as part of --help.
 var Usage = `<options> <connection-string> <command> <filename or _id>
 
 Manipulate gridfs files using the command line.
@@ -34,7 +34,7 @@ Possible commands include:
 
 See http://docs.mongodb.com/database-tools/mongofiles/ for more information.`
 
-// ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance
+// ParseOptions reads command line arguments and converts them into options used to configure a MongoFiles instance.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	// initialize command-line opts
 	opts := options.New("mongofiles", versionStr, gitCommit, Usage, true, options.EnabledOptions{Auth: true, Connection: true, Namespace: false, URI: true})
@@ -74,7 +74,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	return Options{opts, storageOpts, inputOpts, extraArgs}, nil
 }
 
-// Options contains all the possible options that can configure mongofiles
+// Options contains all the possible options that can configure mongofiles.
 type Options struct {
 	*options.ToolOptions
 	*StorageOptions

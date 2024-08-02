@@ -31,7 +31,7 @@ type Updateable interface {
 	Set(amount int64)
 }
 
-// CountProgressor is an implementation of Progressor that uses
+// CountProgressor is an implementation of Progressor that uses.
 type CountProgressor struct {
 	max, current int64
 }

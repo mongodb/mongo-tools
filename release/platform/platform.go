@@ -39,7 +39,7 @@ const (
 	ArchArm64 Arch = "arm64"
 	// While arm64 and aarch64 are the same architecture, some Linux distros use arm64 and others use aarch64:
 	// - aarch64: RHEL/Amazon/SUSE
-	// - arm64: Debian/Ubuntu
+	// - arm64: Debian/Ubuntu.
 	ArchAarch64 Arch = "aarch64"
 	ArchS390x   Arch = "s390x"
 	ArchPpc64le Arch = "ppc64le"
@@ -77,8 +77,6 @@ func (p Platform) Variant() string {
 
 	return createVariantName(p.Name, p.Arch)
 }
-
-const evgVariantVar = "EVG_VARIANT"
 
 // GetFromEnv returns the Platform for this host, based on the value
 // of EVG_VARIANT. It returns an error if EVG_VARIANT is unset or set

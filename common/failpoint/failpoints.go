@@ -6,7 +6,7 @@
 
 package failpoint
 
-// Supported failpoint names
+// Supported failpoint names.
 const (
 	PauseBeforeDumping = "PauseBeforeDumping"
 	SlowBSONDump       = "SlowBSONDump"

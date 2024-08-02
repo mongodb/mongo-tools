@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// type for reflect code
+// type for reflect code.
 var marshalDType = reflect.TypeOf(bsonutil.MarshalD{})
 
 // CSVExportOutput is an implementation of ExportOutput that writes documents to the output in CSV format.
@@ -52,14 +52,16 @@ func NewCSVExportOutput(fields []string, noHeaderLine bool, out io.Writer) *CSVE
 // WriteHeader writes a comma-delimited list of fields as the output header row.
 func (csvExporter *CSVExportOutput) WriteHeader() error {
 	if !csvExporter.NoHeaderLine {
-		csvExporter.csvWriter.Write(csvExporter.Fields)
+		if err := csvExporter.csvWriter.Write(csvExporter.Fields); err != nil {
+			return err
+		}
 		return csvExporter.csvWriter.Error()
 	}
 	return nil
 }
 
 // WriteFooter is a no-op for CSV export formats.
-func (csvExporter *CSVExportOutput) WriteFooter() error {
+func (_ *CSVExportOutput) WriteFooter() error {
 	// no CSV footer
 	return nil
 }
@@ -96,7 +98,9 @@ func (csvExporter *CSVExportOutput) ExportDocument(document bson.D) error {
 			rowOut = append(rowOut, fmt.Sprintf("%v", fieldVal))
 		}
 	}
-	csvExporter.csvWriter.Write(rowOut)
+	if err = csvExporter.csvWriter.Write(rowOut); err != nil {
+		return err
+	}
 	csvExporter.NumExported++
 	return csvExporter.csvWriter.Error()
 }

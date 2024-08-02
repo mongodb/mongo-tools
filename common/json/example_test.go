@@ -163,8 +163,12 @@ func TestIndent(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	json.Indent(&out, b, "=", "\t")
-	out.WriteTo(os.Stdout)
+	if err = json.Indent(&out, b, "=", "\t"); err != nil {
+		log.Fatal(err)
+	}
+	if _, err = out.WriteTo(os.Stdout); err != nil {
+		log.Fatal(err)
+	}
 	// Output:
 	// [
 	// =	{

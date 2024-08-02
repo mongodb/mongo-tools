@@ -19,7 +19,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// InteractiveLineFormatter produces ncurses-style output
+// InteractiveLineFormatter produces ncurses-style output.
 type InteractiveLineFormatter struct {
 	*limitableFormatter
 
@@ -70,7 +70,7 @@ func (ilf *InteractiveLineFormatter) Finish() {
 	termbox.Close()
 }
 
-// FormatLines formats the StatLines as a table in the terminal ui
+// FormatLines formats the StatLines as a table in the terminal ui.
 func (ilf *InteractiveLineFormatter) FormatLines(lines []*line.StatLine, headerKeys []string, keyNames map[string]string) string {
 	defer ilf.update() // so that it runs after the unlock, because update locks again
 	ilf.Lock()
@@ -178,6 +178,7 @@ func (ilf *InteractiveLineFormatter) handleEvent(ev termbox.Event) {
 			cell.selected = !currSelected
 		}
 	case ev.Ch == 'r':
+		//nolint:errcheck
 		termbox.Sync()
 	case ev.Ch == '?':
 		ilf.showHelp = !ilf.showHelp
@@ -210,6 +211,7 @@ func writeString(x, y int, text string, fg, bg termbox.Attribute) {
 func (ilf *InteractiveLineFormatter) update() {
 	ilf.Lock()
 	defer ilf.Unlock()
+	//nolint:errcheck
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	x := 0
 	for i, column := range ilf.table {

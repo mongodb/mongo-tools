@@ -28,7 +28,7 @@ const (
 	Roles = "roles"
 )
 
-// struct for working with auth versions
+// struct for working with auth versions.
 type authVersionPair struct {
 	// Dump is the auth version of the users/roles collection files in the target dump directory
 	Dump int
@@ -85,6 +85,7 @@ func (restore *MongoRestore) LoadIndexesFromBSON() error {
 			if !bsonSource.Next(&indexDocument) {
 				break
 			}
+			//nolint:errcheck
 			namespace := indexDocument.Options["ns"].(string)
 			dbCollectionIndexes[dbname][stripDBFromNS(namespace)] =
 				append(dbCollectionIndexes[dbname][stripDBFromNS(namespace)], indexDocument)
@@ -120,12 +121,12 @@ func (restore *MongoRestore) CollectionExists(dbName, coll string) (bool, error)
 		if err != nil {
 			return false, fmt.Errorf("error establishing connection: %v", err)
 		}
-		collections, err := session.Database(dbName).ListCollections(nil, bson.M{})
+		collections, err := session.Database(dbName).ListCollections(context.TODO(), bson.M{})
 		if err != nil {
 			return false, err
 		}
 		// update the cache
-		for collections.Next(nil) {
+		for collections.Next(context.TODO()) {
 			colNameRaw := collections.Current.Lookup("name")
 			colName, ok := colNameRaw.StringValueOK()
 			if !ok {
@@ -194,7 +195,7 @@ func (restore *MongoRestore) CreateIndexes(dbName string, collectionName string,
 		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
 	}
 
-	err = session.Database(dbName).RunCommand(nil, rawCommand).Err()
+	err = session.Database(dbName).RunCommand(context.TODO(), rawCommand).Err()
 	if err == nil {
 		return nil
 	}
@@ -223,7 +224,7 @@ func (restore *MongoRestore) LegacyInsertIndex(dbName string, index *idx.IndexDo
 	}
 
 	indexCollection := session.Database(dbName).Collection("system.indexes")
-	_, err = indexCollection.InsertOne(nil, index)
+	_, err = indexCollection.InsertOne(context.TODO(), index)
 	if err != nil {
 		return fmt.Errorf("insert error: %v", err)
 	}
@@ -268,13 +269,15 @@ func (restore *MongoRestore) createCollectionWithCommand(session *mongo.Client, 
 	command := createCollectionCommand(intent, options)
 
 	// If there is no error, the result doesnt matter
-	singleRes := session.Database(intent.DB).RunCommand(nil, command, nil)
+	singleRes := session.Database(intent.DB).RunCommand(context.TODO(), command, nil)
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("error running create command: %v", err)
 	}
 
 	res := bson.M{}
-	singleRes.Decode(&res)
+	if err := singleRes.Decode(&res); err != nil {
+		return fmt.Errorf("error decoding result of create command: %v", err)
+	}
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("create command: %v", res["errmsg"])
 	}
@@ -404,7 +407,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		}
 		if tempCollectionNameExists {
 			log.Logvf(log.Info, "dropping preexisting temporary collection admin.%v", arg.tempCollectionName)
-			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(nil)
+			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(context.TODO())
 			if err != nil {
 				return fmt.Errorf("error dropping preexisting temporary collection %v: %v", arg.tempCollectionName, err)
 			}
@@ -425,7 +428,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 				return
 			}
 			log.Logvf(log.DebugHigh, "dropping temporary collection admin.%v", cleanupArg.tempCollectionName)
-			e = session.Database("admin").Collection(cleanupArg.tempCollectionName).Drop(nil)
+			e = session.Database("admin").Collection(cleanupArg.tempCollectionName).Drop(context.TODO())
 			if e != nil {
 				log.Logvf(log.Info, "error dropping temporary collection admin.%v: %v", cleanupArg.tempCollectionName, e)
 			}
@@ -465,12 +468,14 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 	}
 
 	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
-	resSingle := adminDB.RunCommand(nil, command)
+	resSingle := adminDB.RunCommand(context.TODO(), command)
 	if err = resSingle.Err(); err != nil {
 		return fmt.Errorf("error running merge command: %v", err)
 	}
 	res := bson.M{}
-	resSingle.Decode(&res)
+	if err = resSingle.Decode(&res); err != nil {
+		return fmt.Errorf("error decoding result of merge command: %v", err)
+	}
 	if util.IsFalsy(res["ok"]) {
 		return fmt.Errorf("_mergeAuthzCollections command: %v", res["errmsg"])
 	}
@@ -585,7 +590,7 @@ func (restore *MongoRestore) ValidateAuthVersions() error {
 }
 
 // ShouldRestoreUsersAndRoles returns true if mongorestore should go through
-// through the process of restoring collections pertaining to authentication.
+// the process of restoring collections pertaining to authentication.
 func (restore *MongoRestore) ShouldRestoreUsersAndRoles() bool {
 	if restore.SkipUsersAndRoles {
 		return false
@@ -613,7 +618,7 @@ func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	err = session.Database(intent.DB).Collection(intent.C).Drop(nil)
+	err = session.Database(intent.DB).Collection(intent.C).Drop(context.TODO())
 	if err != nil {
 		return fmt.Errorf("error dropping collection: %v", err)
 	}

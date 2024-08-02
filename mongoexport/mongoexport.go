@@ -8,6 +8,7 @@
 package mongoexport
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -39,9 +40,9 @@ const (
 type JSONFormat string
 
 const (
-	// Canonical indicates canonical json format
+	// Canonical indicates canonical json format.
 	Canonical JSONFormat = "canonical"
-	// Relaxed indicates relaxed json format
+	// Relaxed indicates relaxed json format.
 	Relaxed JSONFormat = "relaxed"
 )
 
@@ -257,7 +258,7 @@ func makeFieldSelector(fields string) bson.M {
 // limits will less then the total possible.
 // If there is a query and no limit then it returns 0, because it's too expensive to count the query.
 // If the collection is a view then it returns 0, because it is too expensive to count the view.
-// Otherwise it returns the count minus the skip
+// Otherwise it returns the count minus the skip.
 func (exp *MongoExport) getCount() (int64, error) {
 	session, err := exp.SessionProvider.GetSession()
 	if err != nil {
@@ -276,7 +277,7 @@ func (exp *MongoExport) getCount() (int64, error) {
 	}
 
 	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", exp.ToolOptions.Namespace.DB, exp.ToolOptions.Namespace.Collection)
-	c, err := coll.EstimatedDocumentCount(nil)
+	c, err := coll.EstimatedDocumentCount(context.TODO())
 	if err != nil {
 		return 0, err
 	}
@@ -370,7 +371,7 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		findOpts.SetProjection(makeFieldSelector(exp.OutputOpts.Fields))
 	}
 
-	return coll.Find(nil, query, findOpts)
+	return coll.Find(context.TODO(), query, findOpts)
 }
 
 // verifyCollectionExists checks if the collection exists. If it does, a copy of the collection info will be cached
@@ -414,7 +415,7 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 		return 0, err
 	}
 
-	watchProgressor := progress.NewCounter(int64(max))
+	watchProgressor := progress.NewCounter(max)
 	if exp.ProgressManager != nil {
 		name := fmt.Sprintf("%v.%v", exp.ToolOptions.Namespace.DB, exp.ToolOptions.Namespace.Collection)
 		exp.ProgressManager.Attach(name, watchProgressor)
@@ -430,7 +431,7 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer cursor.Close(nil)
+	defer cursor.Close(context.TODO())
 
 	// Write headers
 	err = exportOutput.WriteHeader()
@@ -441,7 +442,7 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	docsCount := int64(0)
 
 	// Write document content
-	for cursor.Next(nil) {
+	for cursor.Next(context.TODO()) {
 		var result bson.D
 		if err := cursor.Decode(&result); err != nil {
 			return docsCount, err
@@ -466,7 +467,9 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	if err != nil {
 		return docsCount, err
 	}
-	exportOutput.Flush()
+	if err = exportOutput.Flush(); err != nil {
+		return docsCount, err
+	}
 	return docsCount, nil
 }
 

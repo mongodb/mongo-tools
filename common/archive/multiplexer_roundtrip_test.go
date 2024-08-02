@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -108,7 +109,7 @@ func TestBasicMux(t *testing.T) {
 			makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, errChan)
 
 			Convey("and demultiplexed successfully", func() {
-				demux.Run()
+				So(demux.Run(), ShouldBeNil)
 				So(err, ShouldBeNil)
 
 				for range testIntents {
@@ -156,8 +157,20 @@ func TestParallelMux(t *testing.T) {
 		makeIns(testIntents, mux, inChecksum, muxIns, inLengths, writeErrChan)
 		makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, readErrChan)
 
-		go demux.Run()
-		go mux.Run()
+		var (
+			wg       sync.WaitGroup
+			demuxErr error
+		)
+		wg.Add(1)
+		go func() {
+			demuxErr = demux.Run()
+			wg.Done()
+		}()
+		wg.Add(1)
+		go func() {
+			mux.Run()
+			wg.Done()
+		}()
 
 		for range testIntents {
 			err := <-writeErrChan
@@ -176,6 +189,9 @@ func TestParallelMux(t *testing.T) {
 			outSum := outChecksum[ns].Sum([]byte{})
 			So(inSum, ShouldResemble, outSum)
 		}
+
+		wg.Wait()
+		So(demuxErr, ShouldBeNil)
 	})
 	return
 }
@@ -202,7 +218,11 @@ func makeIns(testIntents []*intents.Intent, mux *Multiplexer, inChecksum map[str
 				bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: ns})
 				bsonBuf := staticBSONBuf[:len(bsonBytes)]
 				copy(bsonBuf, bsonBytes)
-				muxIn.Write(bsonBuf)
+				_, err := muxIn.Write(bsonBuf)
+				if err != nil {
+					errCh <- err
+					return
+				}
 				sum.Write(bsonBuf)
 				inLength += len(bsonBuf)
 			}
@@ -227,7 +247,7 @@ func makeOuts(testIntents []*intents.Intent, demux *Demultiplexer, outChecksum m
 		demuxOuts[ns] = muxOut
 		outLengths[ns] = &outLength
 
-		demuxOuts[ns].Open()
+		So(demuxOuts[ns].Open(), ShouldBeNil)
 		go func() {
 			bs := make([]byte, db.MaxBSONSize)
 			var err error
@@ -281,6 +301,7 @@ func buildSingleIntentArchive(t *testing.T, singleIntent *intents.Intent) *closi
 
 func TestTOOLS1826(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	require := require.New(t)
 
 	singleIntent := testIntents[0]
 
@@ -294,7 +315,7 @@ func TestTOOLS1826(t *testing.T) {
 		Demux:  demux,
 		Origin: singleIntent.Namespace(),
 	}
-	muxOut.Open()
+	require.NoError(muxOut.Open())
 
 	var demuxErr error
 	wg := &sync.WaitGroup{}
@@ -308,13 +329,12 @@ func TestTOOLS1826(t *testing.T) {
 	muxOut.Close()
 
 	wg.Wait()
-	if demuxErr != errInterrupted {
-		t.Fatalf("unexpected error: %v", demuxErr)
-	}
+	require.ErrorIs(demuxErr, errInterrupted)
 }
 
 func TestTOOLS2403(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	require := require.New(t)
 
 	singleIntent := testIntents[0]
 
@@ -328,7 +348,7 @@ func TestTOOLS2403(t *testing.T) {
 		Demux:  demux,
 		Origin: singleIntent.Namespace(),
 	}
-	muxOut.Open()
+	require.NoError(muxOut.Open())
 
 	var demuxErr error
 	wg := &sync.WaitGroup{}
@@ -351,9 +371,7 @@ func TestTOOLS2403(t *testing.T) {
 	muxOut.Close()
 
 	wg.Wait()
-	if demuxErr != nil {
-		t.Fatalf("unexpected error: %v", demuxErr)
-	}
+	require.NoError(demuxErr)
 
 	return
 }

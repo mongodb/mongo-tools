@@ -29,7 +29,7 @@ var pkgNames = []string{
 	"release",
 }
 
-// minimumGoVersion must be prefixed with v to be parsed by golang.org/x/mod/semver
+// minimumGoVersion must be prefixed with v to be parsed by golang.org/x/mod/semver.
 const minimumGoVersion = "v1.21.10"
 
 func CheckMinimumGoVersion(ctx *task.Context) error {
@@ -188,7 +188,7 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 
 // getTags gets the go build tags that should be used for the current
 // platform.
-func getTags(ctx *task.Context) ([]string, error) {
+func getTags(_ *task.Context) ([]string, error) {
 	pf, err := getPlatform()
 	if err != nil {
 		return nil, err

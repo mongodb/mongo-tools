@@ -54,9 +54,8 @@ func newTxnState(op db.Oplog) *txnState {
 // Because state is currently kept in memory, purge merely drops the reference
 // so the GC will eventually clean up.  Eventually, this might clean up a file
 // on disk.
-func (ts *txnState) purge() error {
+func (ts *txnState) purge() {
 	ts.buffer = nil
-	return nil
 }
 
 // Buffer stores transaction oplog entries until they are needed
@@ -259,11 +258,11 @@ func (b *Buffer) PurgeTxn(m Meta) error {
 
 // Stop shuts down processing and cleans up.  Subsequent calls to Stop() will return nil.
 // All other methods error after this is called.
-func (b *Buffer) Stop() error {
+func (b *Buffer) Stop() {
 	b.Lock()
 	if b.stopped {
 		b.Unlock()
-		return nil
+		return
 	}
 
 	b.stopped = true
@@ -279,15 +278,9 @@ func (b *Buffer) Stop() error {
 	// clean up.
 
 	b.wg.Wait()
-	var firstErr error
 	for _, state := range b.txns {
-		err := state.purge()
-		if err != nil && firstErr == nil {
-			firstErr = err
-		}
+		state.purge()
 	}
-
-	return firstErr
 }
 
 // sendErrAndClose is a utility for putting an error on a channel before closing.

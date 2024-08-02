@@ -12,9 +12,8 @@ package password
 import (
 	"io"
 	"os"
-	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // This file contains all the calls needed to properly
@@ -22,25 +21,26 @@ import (
 // operating systems that aren't solaris
 
 func IsTerminal() bool {
-	return terminal.IsTerminal(int(syscall.Stdin))
+	return term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func readPassInteractively() (string, error) {
-	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
 	}
-	defer terminal.Restore(int(os.Stdin.Fd()), oldState)
+	//nolint:errcheck
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
 	screen := struct {
 		io.Reader
 		io.Writer
 	}{os.Stdin, os.Stderr}
 
-	t := terminal.NewTerminal(screen, "")
+	t := term.NewTerminal(screen, "")
 	pass, err := t.ReadPassword("")
 	if err != nil {
 		return "", err
 	}
-	return string(pass), nil
+	return pass, nil
 }

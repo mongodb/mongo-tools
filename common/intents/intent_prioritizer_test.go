@@ -64,6 +64,7 @@ func TestBasicDBHeapBehavior(t *testing.T) {
 			Convey("they should pop in active order, least to greatest", func() {
 				prev := -1
 				for dbheap.Len() > 0 {
+					//nolint:errcheck // the heap only contains *dbCounter values
 					popped := heap.Pop(dbheap).(*dbCounter)
 					So(popped.active, ShouldBeGreaterThan, prev)
 					prev = popped.active
@@ -81,6 +82,7 @@ func TestBasicDBHeapBehavior(t *testing.T) {
 			Convey("they should pop in bson size order, greatest to least", func() {
 				prev := int64(1024*1024 + 1) // Maximum
 				for dbheap.Len() > 0 {
+					//nolint:errcheck // the heap only contains *dbCounter values
 					popped := heap.Pop(dbheap).(*dbCounter)
 					So(popped.collections[0].Size, ShouldBeLessThan, prev)
 					prev = popped.collections[0].Size

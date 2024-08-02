@@ -7,12 +7,12 @@
 package db
 
 import (
+	"testing"
+	"time"
+
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-
-	"testing"
-	"time"
 )
 
 func TestNewMongoWriteConcern(t *testing.T) {
@@ -90,7 +90,6 @@ func TestConstructWCFromConnString(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Given a parsed &connstring, on calling constructWCFromConnString...", t, func() {
-
 		Convey("non integer values should set the correct boolean "+
 			"field", func() {
 			writeConcernString := "majority"

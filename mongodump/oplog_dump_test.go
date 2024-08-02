@@ -8,7 +8,7 @@ package mongodump
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,7 +28,7 @@ import (
 func TestErrorOnImportCollection(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("An importCollection oplog entry should error", t, func() {
-		rawOp, err := ioutil.ReadFile("./testdata/importCollection.bson")
+		rawOp, err := os.ReadFile("./testdata/importCollection.bson")
 		So(err, ShouldBeNil)
 
 		err = oplogDocumentValidator(rawOp)
@@ -44,7 +44,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
-	log.SetWriter(ioutil.Discard)
+	log.SetWriter(io.Discard)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -72,6 +72,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	defer failpoint.Reset()
 
 	require.NoError(t, vectoredInsert(ctx))
+	//nolint:errcheck
 	defer tearDownMongoDumpTestData()
 
 	require.NoError(t, md.Dump())
@@ -89,9 +90,12 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	defer os.RemoveAll(dumpDir)
 
 	oplogFile, err := os.Open(oplogFilePath)
+	require.NoError(t, err)
 	defer oplogFile.Close()
 
-	contents, err := ioutil.ReadAll(oplogFile)
+	contents, err := io.ReadAll(oplogFile)
+	require.NoError(t, err)
+
 	var oplog bson.D
 	require.NoError(t, bson.Unmarshal(contents, &oplog))
 

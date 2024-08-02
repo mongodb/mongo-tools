@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -48,7 +48,7 @@ var (
 	testFiles = map[string]primitive.ObjectID{"testfile1": primitive.NewObjectID(), "testfile2": primitive.NewObjectID(), "testfile3": primitive.NewObjectID(), "testfile4": primitive.NewObjectID()}
 )
 
-// put in some test data into GridFS
+// put in some test data into GridFS.
 func setUpGridFSTestData() (map[string]int, error) {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -69,7 +69,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 
 	i := 0
 	for item, id := range testFiles {
-		stream, err := bucket.OpenUploadStreamWithID(id, string(item))
+		stream, err := bucket.OpenUploadStreamWithID(id, item)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 			return nil, err
 		}
 
-		bytesExpected[item] = int(n)
+		bytesExpected[item] = n
 
 		if err = stream.Close(); err != nil {
 			return nil, err
@@ -91,7 +91,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 	return bytesExpected, nil
 }
 
-// remove test data from GridFS
+// remove test data from GridFS.
 func tearDownGridFSTestData() error {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
@@ -147,7 +147,7 @@ func simpleMongoFilesInstanceWithFilenameAndID(command, fname, ID string) (*Mong
 }
 
 // simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
-// Use this for tests that don't communicate with the server (e.g. options parsing tests)
+// Use this for tests that don't communicate with the server (e.g. options parsing tests).
 func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
 	return &MongoFiles{
 		ToolOptions:    toolOptions,
@@ -191,11 +191,11 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 		return false, nil
 	}
 
-	file1ContentsBytes, err := ioutil.ReadAll(file1)
+	file1ContentsBytes, err := io.ReadAll(file1)
 	if err != nil {
 		return false, err
 	}
-	file2ContentsBytes, err := ioutil.ReadAll(file2)
+	file2ContentsBytes, err := io.ReadAll(file2)
 	if err != nil {
 		return false, err
 	}
@@ -205,12 +205,12 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 
 }
 
-// get an id of an existing file, for _id access
+// get an id of an existing file, for _id access.
 func idOfFile(filename string) string {
 	return fmt.Sprintf(`{"$oid":"%s"}`, testFiles[filename].Hex())
 }
 
-// test output needs some cleaning
+// test output needs some cleaning.
 func cleanAndTokenizeTestOutput(str string) []string {
 	// remove last \r\n in str to avoid unnecessary line on split
 	if str != "" {
@@ -220,7 +220,7 @@ func cleanAndTokenizeTestOutput(str string) []string {
 	return strings.Split(strings.Trim(str, "\r\n"), "\n")
 }
 
-// return slices of files and bytes in each file represented by each line
+// return slices of files and bytes in each file represented by each line.
 func getFilesAndBytesFromLines(lines []string) map[string]int {
 	var fileName string
 	var byteCount int
@@ -228,6 +228,7 @@ func getFilesAndBytesFromLines(lines []string) map[string]int {
 	results := make(map[string]int)
 
 	for _, line := range lines {
+		//nolint:errcheck
 		fmt.Sscanf(line, "%s\t%d", &fileName, &byteCount)
 		results[fileName] = byteCount
 	}
@@ -250,7 +251,7 @@ func getFilesAndBytesListFromGridFS() (map[string]int, error) {
 	return results, nil
 }
 
-// check if file exists
+// check if file exists.
 func fileExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {
@@ -261,7 +262,7 @@ func fileExists(name string) bool {
 }
 
 // Test that it works whenever valid arguments are passed in and that
-// it barfs whenever invalid ones are passed
+// it barfs whenever invalid ones are passed.
 func TestValidArguments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -335,7 +336,7 @@ func TestValidArguments(t *testing.T) {
 	})
 }
 
-// Test that the output from mongofiles is actually correct
+// Test that the output from mongofiles is actually correct.
 func TestMongoFilesCommands(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -414,7 +415,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				defer testFile.Close()
 
 				// pretty small file; so read all
-				testFile1Bytes, err := ioutil.ReadAll(testFile)
+				testFile1Bytes, err := io.ReadAll(testFile)
 				So(err, ShouldBeNil)
 				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
@@ -464,7 +465,7 @@ func TestMongoFilesCommands(t *testing.T) {
 					So(err, ShouldBeNil)
 					defer testFile.Close()
 
-					bytesGotten, err := ioutil.ReadAll(testFile)
+					bytesGotten, err := io.ReadAll(testFile)
 					So(err, ShouldBeNil)
 					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
 				}
@@ -489,13 +490,11 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile1")
-			id := idOfFile("testfile1")
-
+			_, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
 			So(err, ShouldBeNil)
-			idString := id
 
-			mf, err = simpleMongoFilesInstanceWithID("get_id", idString)
+			id := idOfFile("testfile1")
+			mf, err := simpleMongoFilesInstanceWithID("get_id", id)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)
 
@@ -514,7 +513,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				defer testFile.Close()
 
 				// pretty small file; so read all
-				testFile1Bytes, err := ioutil.ReadAll(testFile)
+				testFile1Bytes, err := io.ReadAll(testFile)
 				So(err, ShouldBeNil)
 				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
 			})
@@ -710,9 +709,10 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'delete_id' command with a file that is in GridFS should", func() {
 			// hack to grab an _id
-			mf, _ := simpleMongoFilesInstanceWithFilename("get", "testfile2")
-			idString := idOfFile("testfile2")
+			_, err := simpleMongoFilesInstanceWithFilename("get", "testfile2")
+			So(err, ShouldBeNil)
 
+			idString := idOfFile("testfile2")
 			mf, err := simpleMongoFilesInstanceWithID("delete_id", idString)
 			So(err, ShouldBeNil)
 			So(mf, ShouldNotBeNil)

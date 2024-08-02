@@ -25,7 +25,7 @@ const (
 )
 
 // Bar is a tool for concurrently monitoring the progress
-// of a task with a simple linear ASCII visualization
+// of a task with a simple linear ASCII visualization.
 type Bar struct {
 	// Name is an identifier printed along with the bar
 	Name string
@@ -70,7 +70,7 @@ func (pb *Bar) Start() {
 }
 
 // validate does a set of sanity checks against the progress bar, and panics
-// if the bar is unfit for use
+// if the bar is unfit for use.
 func (pb *Bar) validate() {
 	if pb.Watching == nil {
 		panic("Cannot use a Bar with a nil Watching")
@@ -88,7 +88,7 @@ func (pb *Bar) validate() {
 //
 // to stop leakage
 // Stop() needs to be synchronous in order that when pb.Stop() is called
-// all of the rendering has completed
+// all of the rendering has completed.
 func (pb *Bar) Stop() {
 	close(pb.stopChan)
 	<-pb.stopChanSync
@@ -102,7 +102,7 @@ func (pb *Bar) formatCounts() (string, string) {
 	return fmt.Sprintf("%v", maxCount), fmt.Sprintf("%v", currentCount)
 }
 
-// computes all necessary values renders to the bar's Writer
+// computes all necessary values renders to the bar's Writer.
 func (pb *Bar) renderToWriter() {
 	pb.hasRendered = true
 	currentCount, maxCount := pb.Watching.Progress()
@@ -142,7 +142,7 @@ func (pb *Bar) renderToGridRow(grid *text.GridWriter) {
 	grid.EndRow()
 }
 
-// the main concurrent loop
+// the main concurrent loop.
 func (pb *Bar) start() {
 	if pb.WaitTime <= 0 {
 		pb.WaitTime = DefaultWaitTime

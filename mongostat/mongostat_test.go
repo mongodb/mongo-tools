@@ -7,7 +7,7 @@
 package mongostat
 
 import (
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -21,7 +21,7 @@ import (
 
 func readBSONFile(file string, t *testing.T) (stat *status.ServerStatus) {
 	stat = &status.ServerStatus{}
-	ssBSON, err := ioutil.ReadFile(file)
+	ssBSON, err := os.ReadFile(file)
 	if err == nil {
 		err = bson.Unmarshal(ssBSON, stat)
 	}

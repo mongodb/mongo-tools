@@ -7,15 +7,15 @@
 package mongorestore
 
 import (
+	"fmt"
+
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
-
-	"fmt"
 )
 
-// Usage describes basic usage of mongorestore
+// Usage describes basic usage of mongorestore.
 var Usage = `<options> <connection-string> <directory or file to restore>
 
 Restore backups generated with mongodump to a running server.
@@ -36,7 +36,7 @@ type Options struct {
 	TargetDirectory string
 }
 
-// InputOptions command line argument long names
+// InputOptions command line argument long names.
 const (
 	ObjcheckOption               = "--objcheck"
 	OplogReplayOption            = "--oplogReplay"
@@ -65,7 +65,7 @@ func (*InputOptions) Name() string {
 	return "input"
 }
 
-// OutputOptions command line argument long names
+// OutputOptions command line argument long names.
 const (
 	DropOption                     = "--drop"
 	DryRunOption                   = "--dryRun"
@@ -114,7 +114,7 @@ func (*OutputOptions) Name() string {
 	return "restore"
 }
 
-// NSOptions command line argument long names
+// NSOptions command line argument long names.
 const (
 	DBOption                         = "--db"
 	CollectionOption                 = "--collection"
@@ -126,7 +126,7 @@ const (
 	NSToOption                       = "--nsTo"
 )
 
-// NSOptions defines the set of options for configuring involved namespaces
+// NSOptions defines the set of options for configuring involved namespaces.
 type NSOptions struct {
 	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"DEPRECATED; collection to skip over during restore (may be specified multiple times to exclude additional collections)"`
 	ExcludedCollectionPrefixes []string `long:"excludeCollectionsWithPrefix" value-name:"<collection-prefix>" description:"DEPRECATED; collections to skip over during restore that have the given prefix (may be specified multiple times to exclude additional prefixes)"`
@@ -141,7 +141,7 @@ func (*NSOptions) Name() string {
 	return "namespace"
 }
 
-// ParseOptions reads the command line arguments and converts them into options used to configure a MongoRestore instance
+// ParseOptions reads the command line arguments and converts them into options used to configure a MongoRestore instance.
 func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, error) {
 	opts := options.New("mongorestore", versionStr, gitCommit, Usage, true,
 		options.EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true})

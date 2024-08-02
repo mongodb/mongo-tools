@@ -1,0 +1,49 @@
+linters:
+  disable-all: true
+  enable:
+    - dupword
+    - errcheck
+    - gci
+    - gocheckcompilerdirectives
+    - godot
+    - goimports
+    - ineffassign
+    - misspell
+    - nolintlint
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+  fast: false
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+
+  gci:
+    sections:
+      - standard
+      - default
+
+  misspell:
+    locale: US
+    extra-words:
+      - typo: "cancelation"
+        correction: "cancellation"
+      - typo: "cancelations"
+        correction: "cancellations"
+      - typo: "cancelling"
+        correction: "canceling"
+      - typo: "cancelled"
+        correction: "canceled"
+
+issues:
+  max-same-issues: 0
+  exclude:
+    - "composites: .+(primitive.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
+  # TODO (TOOLS-3633): Remove this exclusion and actually fix the issues.
+  exclude-rules:
+    - path: '\.go$'
+      linters:
+        - staticcheck
+      text: "is deprecated"

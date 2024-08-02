@@ -43,7 +43,7 @@ func IsEqual(left, right bson.D) (bool, error) {
 
 // ConvertLegacyExtJSONDocumentToBSON iterates through the document map and converts JSON
 // values to their corresponding BSON values. It also replaces any extended JSON
-// type value (e.g. $date) with the corresponding BSON type
+// type value (e.g. $date) with the corresponding BSON type.
 func ConvertLegacyExtJSONDocumentToBSON(doc map[string]interface{}) error {
 	for key, jsonValue := range doc {
 		var bsonValue interface{}
@@ -167,7 +167,7 @@ func RemoveKey(key string, document *bson.D) (interface{}, bool) {
 
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON
 // type (e.g $numberLong) and replaces any such values with the corresponding
-// BSON type. (uses legacy extJSON parser)
+// BSON type. (uses legacy extJSON parser).
 func ParseSpecialKeys(special interface{}) (interface{}, error) {
 	// first ensure we are using a correct document type
 	var doc map[string]interface{}
@@ -292,7 +292,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				return nil, errors.New("expected $timestamp to have 'i' field")
 			}
 			// see BSON spec for details on the bit fiddling here
-			return primitive.Timestamp{T: uint32(ts.Seconds), I: uint32(ts.Increment)}, nil
+			return primitive.Timestamp{T: ts.Seconds, I: ts.Increment}, nil
 		}
 
 		if jsonValue, ok := doc["$numberDecimal"]; ok {
@@ -464,7 +464,7 @@ func Bson2Float64(data interface{}) (float64, bool) {
 	return 0, false
 }
 
-// MtoD converts a bson.M to a bson.D
+// MtoD converts a bson.M to a bson.D.
 func MtoD(m bson.M) bson.D {
 	doc := make(bson.D, 0, len(m))
 	for key, value := range m {

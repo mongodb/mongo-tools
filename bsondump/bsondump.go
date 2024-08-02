@@ -16,9 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
@@ -26,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // BSONDump is a container for the user-specified options and
@@ -245,7 +243,7 @@ func printBSON(raw bson.Raw, indentLevel int, out io.Writer) error {
 		fmt.Fprintf(out, "%v\t\t\ttype: %4v size: %v\n", indent, int8(value.Type), len(rawElem))
 
 		//For nested objects or arrays, recurse.
-		if value.Type == bsontype.EmbeddedDocument || value.Type == bsontype.Array {
+		if value.Type == bson.TypeEmbeddedDocument || value.Type == bson.TypeArray {
 			err = printBSON(value.Value, indentLevel+3, out)
 			if err != nil {
 				return err

@@ -196,6 +196,7 @@ func TestNewKeyword(t *testing.T) {
 			var jsonMap map[string]interface{}
 
 			key := "key"
+			//nolint:dupword
 			value := "new new Date(123)"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 

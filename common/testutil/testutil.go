@@ -8,8 +8,8 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strconv"
@@ -98,12 +98,13 @@ func GetFCV(s *mongo.Client) string {
 	var result struct {
 		Version string
 	}
-	res := coll.FindOne(nil, bson.M{"_id": "featureCompatibilityVersion"})
+	res := coll.FindOne(context.TODO(), bson.M{"_id": "featureCompatibilityVersion"})
+	//nolint:errcheck
 	res.Decode(&result)
 	return result.Version
 }
 
-// CompareFCV compares two strings as dot-delimited tuples of integers
+// CompareFCV compares two strings as dot-delimited tuples of integers.
 func CompareFCV(x, y string) (int, error) {
 	left, err := dottedStringToSlice(x)
 	if err != nil {
@@ -114,7 +115,7 @@ func CompareFCV(x, y string) (int, error) {
 		return 0, err
 	}
 
-	// Ensure left is the shorter one, flip logic if necesary
+	// Ensure left is the shorter one, flip logic if necessary.
 	inverter := 1
 	if len(right) < len(left) {
 		inverter = -1
@@ -195,7 +196,7 @@ func MergeOplogStreams(input [][]db.Oplog) []db.Oplog {
 func MakeTempDir(t *testing.T) (string, func()) {
 	require := require.New(t)
 
-	dir, err := ioutil.TempDir("", "mongo-tools-test")
+	dir, err := os.MkdirTemp("", "mongo-tools-test")
 	require.NoError(err, "can create temp directory")
 	cleanup := func() {
 		if os.Getenv("TOOLS_TESTING_NO_CLEANUP") == "" {

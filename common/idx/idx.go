@@ -19,7 +19,7 @@ type IndexDocument struct {
 	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
 }
 
-// NewIndexDocumentFromD converts a bson.D index spec into an IndexDocument
+// NewIndexDocumentFromD converts a bson.D index spec into an IndexDocument.
 func NewIndexDocumentFromD(doc bson.D) (*IndexDocument, error) {
 	indexDoc := IndexDocument{}
 

@@ -1,12 +1,14 @@
 package db
 
 import (
+	"context"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// DeferredQuery represents a deferred query
+// DeferredQuery represents a deferred query.
 type DeferredQuery struct {
 	Coll      *mongo.Collection
 	Filter    interface{}
@@ -30,12 +32,12 @@ func (q *DeferredQuery) Count(isView bool) (int, error) {
 
 	if emptyFilter && !isView {
 		opt := mopt.EstimatedDocumentCount()
-		c, err := q.Coll.EstimatedDocumentCount(nil, opt)
+		c, err := q.Coll.EstimatedDocumentCount(context.TODO(), opt)
 		return int(c), err
 	}
 
 	opt := mopt.Count()
-	c, err := q.Coll.CountDocuments(nil, filter, opt)
+	c, err := q.Coll.CountDocuments(context.TODO(), filter, opt)
 	return int(c), err
 }
 
@@ -52,5 +54,5 @@ func (q *DeferredQuery) Iter() (*mongo.Cursor, error) {
 	if filter == nil {
 		filter = bson.D{}
 	}
-	return q.Coll.Find(nil, filter, opts)
+	return q.Coll.Find(context.TODO(), filter, opts)
 }

@@ -207,7 +207,7 @@ func (mf *MongoFiles) getLocalFileName(gridFile *gfsFile) string {
 	return localFileName
 }
 
-// handleGet contains the logic for the 'get' and 'get_id' commands
+// handleGet contains the logic for the 'get' and 'get_id' commands.
 func (mf *MongoFiles) handleGet() (err error) {
 	files, err := mf.getTargetGFSFiles()
 	if err != nil {
@@ -314,7 +314,7 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 	return nil
 }
 
-// handleDeleteID contains the logic for the 'delete_id' command
+// handleDeleteID contains the logic for the 'delete_id' command.
 func (mf *MongoFiles) handleDeleteID() error {
 	files, err := mf.getTargetGFSFiles()
 	if err != nil {
@@ -433,7 +433,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 	return n, nil
 }
 
-// handlePut contains the logic for the 'put' and 'put_id' commands
+// handlePut contains the logic for the 'put' and 'put_id' commands.
 func (mf *MongoFiles) handlePut() error {
 	if len(mf.FileNameList) == 0 {
 		mf.FileNameList = []string{mf.FileName}

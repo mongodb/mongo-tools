@@ -397,17 +397,6 @@ functions:
           set -e
           mkdir -p bin
 
-  "fetch golangci-lint":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -x
-          set -v
-          set -e
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
-
   "create repl_set":
     - command: shell.exec
       params:
@@ -551,7 +540,6 @@ functions:
           set -x
           set -v
           set -e
-          go run build.go sa:installdevtools
           GOSEC_SARIF_REPORT=1 ./dev-bin/precious lint --all --command gosec
           cat SARIF.json
 
@@ -724,6 +712,9 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "run make target"
+        vars:
+          target: sa:installdevtools
       - func: "generate gosec SARIF report"
 
   - name: check-snyk-results
@@ -1616,31 +1607,22 @@ tasks:
         vars:
           target: sa:evgvalidate
 
-  - name: format-go
+  - name: lint
     commands:
       - func: "fetch source"
-      - func: "fetch golangci-lint"
+      - func: "run make target"
+        vars:
+          target: sa:installdevtools
       - command: shell.exec
         type: test
         params:
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
             ${_set_shell_env}
-            PATH=$PATH:$PWD/bin golangci-lint run --disable-all -E gofmt ./...
-            exit $?
-
-  - name: lint-go
-    commands:
-      - func: "fetch source"
-      - command: shell.exec
-        type: test
-        params:
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            ${_set_shell_env}
-            retVal=$(go run vendor/github.com/3rf/mongo-lint/golint/golint.go mongo* bson*);
-            if [ "$retVal" = "" ]; then exit 0; else echo $retVal; exit 1; fi;
-            go run build.go sa:lint
+            set -x
+            set -v
+            set -e
+            ./dev-bin/precious lint --all
 
   - name: lint-js
     commands:
@@ -1915,14 +1897,14 @@ buildvariants:
     expansions:
       _platform: rhel80
     tasks:
-      - name: format-go
-      - name: lint-go
+      - name: lint
       - name: lint-js
       - name: mod-tidy
       - name: evergreen-validate
       - name: vet
       - name: check-third-party-notices
       - name: check-sbom-lite
+      - name: gosec-SARIF-report
 
   #######################################
   #     Release Manager Buildvariant    #
@@ -1934,7 +1916,6 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
-      - name: gosec-SARIF-report
       - name: check-snyk-results
       - name: check-augmented-sbom
         # podman is not available on the amazon distro.

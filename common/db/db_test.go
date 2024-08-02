@@ -8,19 +8,17 @@ package db
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
-
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
-// var block and functions copied from testutil to avoid import cycle
+// var block and functions copied from testutil to avoid import cycle.
 var (
 	UserAdmin              = "uAdmin"
 	UserAdminPassword      = "password"
@@ -205,7 +203,8 @@ func TestFindOne(t *testing.T) {
 		client, err := provider.GetSession()
 		So(err, ShouldBeNil)
 		coll := client.Database("exists").Collection("collection")
-		coll.InsertOne(context.Background(), bson.D{})
+		_, err = coll.InsertOne(context.Background(), bson.D{})
+		So(err, ShouldBeNil)
 
 		Convey("When FindOneis called", func() {
 			res := bson.D{}
@@ -264,7 +263,7 @@ func TestGetIndexes(t *testing.T) {
 				indexesIter, err := GetIndexes(missing)
 				So(err, ShouldBeNil)
 				Convey("and there should be no indexes", func() {
-					So(indexesIter.Next(nil), ShouldBeFalse)
+					So(indexesIter.Next(context.Background()), ShouldBeFalse)
 				})
 			})
 
@@ -272,25 +271,17 @@ func TestGetIndexes(t *testing.T) {
 				indexesIter, err := GetIndexes(missingDB)
 				So(err, ShouldBeNil)
 				Convey("and there should be no indexes", func() {
-					So(indexesIter.Next(nil), ShouldBeFalse)
+					So(indexesIter.Next(context.Background()), ShouldBeFalse)
 				})
 			})
 		})
 
 		Reset(func() {
-			provider.DropDatabase("exists")
+			err = provider.DropDatabase("exists")
+			So(err, ShouldBeNil)
 			provider.Close()
 		})
 	})
-}
-
-type listDatabasesCommand struct {
-	Databases []map[string]interface{} `json:"databases"`
-	Ok        bool                     `json:"ok"`
-}
-
-func (*listDatabasesCommand) AsRunnable() interface{} {
-	return "listDatabases"
 }
 
 func TestServerVersionArray(t *testing.T) {
@@ -411,7 +402,7 @@ func TestAuthConnection(t *testing.T) {
 
 		var uri string
 		if testtype.HasTestType(testtype.AWSAuthTestType) {
-			uriBytes, err := ioutil.ReadFile("../testdata/lib/MONGOD_URI")
+			uriBytes, err := os.ReadFile("../testdata/lib/MONGOD_URI")
 			if err != nil {
 				panic("Could not read MONGOD_URI file")
 			}

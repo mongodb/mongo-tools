@@ -45,8 +45,6 @@ type OplogTailTime struct {
 	Restart OpTime
 }
 
-var zeroTimestamp = primitive.Timestamp{}
-
 // GetOpTimeFromRawOplogEntry looks up the ts (timestamp), t (term), and
 // h (hash) fields in a raw oplog entry, and assigns them to an OpTime.
 // If the Timestamp can't be found or is an invalid format, it throws an error.
@@ -92,7 +90,7 @@ func GetOpTimeFromRawOplogEntry(rawOplogEntry bson.Raw) (OpTime, error) {
 	return opTime, nil
 }
 
-// GetOplogTailTime constructs an OplogTailTime
+// GetOplogTailTime constructs an OplogTailTime.
 func GetOplogTailTime(client *mongo.Client) (OplogTailTime, error) {
 	// Check oldest active first to be sure it is less-than-or-equal to the
 	// latest visible.
@@ -112,13 +110,13 @@ func GetOplogTailTime(client *mongo.Client) (OplogTailTime, error) {
 }
 
 // GetOldestActiveTransactionOpTime returns the oldest active transaction
-// optime from the config.transactions table or else a zero-value db.OpTime{}
+// optime from the config.transactions table or else a zero-value db.OpTime{}.
 func GetOldestActiveTransactionOpTime(client *mongo.Client) (OpTime, error) {
 	coll := client.Database("config").Collection("transactions", mopts.Collection().SetReadConcern(readconcern.Local()))
 	filter := bson.D{{"state", bson.D{{"$in", bson.A{"prepared", "inProgress"}}}}}
 	opts := mopts.FindOne().SetSort(bson.D{{"startOpTime", 1}})
 
-	result, err := coll.FindOne(context.Background(), filter, opts).DecodeBytes()
+	result, err := coll.FindOne(context.Background(), filter, opts).Raw()
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return OpTime{}, nil
@@ -146,7 +144,7 @@ func GetLatestVisibleOplogOpTime(client *mongo.Client) (OpTime, error) {
 	// all operations with earlier oplog times have been storage-committed.
 	opts := mopts.FindOne().SetOplogReplay(true)
 	coll := client.Database("local").Collection("oplog.rs")
-	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).DecodeBytes()
+	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).Raw()
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return OpTime{}, fmt.Errorf("last op was not confirmed. last optime: %+v. confirmation time was not found",

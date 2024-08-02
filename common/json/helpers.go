@@ -68,7 +68,7 @@ func stateOptionalConstructor(s *scanner, c int) int {
 	return stateEndValue(s, c)
 }
 
-// stateInParen is the state when inside a `(` waiting for a `)`
+// stateInParen is the state when inside a `(` waiting for a `)`.
 func stateInParen(s *scanner, c int) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanContinue

@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -31,9 +30,8 @@ import (
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
-	"golang.org/x/mod/semver"
-
 	"github.com/urfave/cli/v2"
+	"golang.org/x/mod/semver"
 )
 
 // These are the binaries that are part of mongo-tools, relative
@@ -224,11 +222,6 @@ func runAndStreamStderr(logPrefix string, name string, envOverrides map[string]s
 	streamOutput(logPrefix, stderrPipe)
 
 	return cmd.Wait()
-}
-
-func isTaggedRelease(rev string) bool {
-	_, err := run("git", "describe", "--exact", rev)
-	return err == nil
 }
 
 func getReleaseName() string {
@@ -428,7 +421,7 @@ func buildRPM() {
 		defer f.Close()
 
 		// get the control file content.
-		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "rpm", specFile))
+		contentBytes, err := os.ReadFile(filepath.Join("..", "installer", "rpm", specFile))
 		content := string(contentBytes)
 		check(err, "reading spec file content")
 		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
@@ -539,7 +532,7 @@ func buildDeb() {
 		check(err, "get version")
 
 		// get the control file content.
-		contentBytes, err := ioutil.ReadFile(filepath.Join("..", "installer", "deb", "control"))
+		contentBytes, err := os.ReadFile(filepath.Join("..", "installer", "deb", "control"))
 		content := string(contentBytes)
 		check(err, "reading control file content")
 		content = strings.Replace(content, "@TOOLS_VERSION@", v.String(), -1)
@@ -555,7 +548,8 @@ func buildDeb() {
 		f, err := os.Create(md5sumsFile)
 		check(err, "create md5sums")
 		defer f.Close()
-		os.Chmod(md5sumsFile, 0644)
+		err = os.Chmod(md5sumsFile, 0644)
+		check(err, "chmod md5sum file %q", md5sumsFile)
 		// create the md5sums file.
 		for _, path := range md5sumsOrder {
 			md5sum, ok := md5sums[path]
@@ -640,7 +634,7 @@ func buildMSI() {
 	msiFilesPath := filepath.Join("..", "installer", "msi")
 
 	// These are the meta-text files that are part of mongo-tools, relative
-	// to the location of this go file. We have to use an rtf verison of the
+	// to the location of this go file. We have to use an rtf version of the
 	// license, so we do not include it in the static files.
 	var msiStaticFiles = []string{
 		"README.md",
@@ -803,21 +797,21 @@ func downloadFile(url, dst string) {
 }
 
 func computeMD5(filename string) string {
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	check(err, "reading file during md5 summing")
-	return fmt.Sprintf("%x", md5.Sum([]byte(content)))
+	return fmt.Sprintf("%x", md5.Sum(content))
 }
 
 func computeSHA1(filename string) string {
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	check(err, "reading file during sha1 summing")
-	return fmt.Sprintf("%x", sha1.Sum([]byte(content)))
+	return fmt.Sprintf("%x", sha1.Sum(content))
 }
 
 func computeSHA256(filename string) string {
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	check(err, "reading file during sha256 summing")
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+	return fmt.Sprintf("%x", sha256.Sum256(content))
 }
 
 func useWorkingDir(dir string) func() {
@@ -828,7 +822,8 @@ func useWorkingDir(dir string) func() {
 	cur, err := os.Getwd()
 	check(err, "get current directory")
 	return func() {
-		os.Chdir(cur)
+		chdirErr := os.Chdir(cur)
+		check(chdirErr, "chdir back to original directory %q", cur)
 	}
 }
 
@@ -1074,7 +1069,8 @@ func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS
 	check(err, "encode json feed")
 
 	log.Printf("uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", filename)
-	awsClient.UploadBytes("downloads.mongodb.org", "/tools/db", filename, &feedBuffer)
+	err = awsClient.UploadBytes("downloads.mongodb.org", "/tools/db", filename, &feedBuffer)
+	check(err, "upload json feed")
 }
 
 func uploadRelease(v version.Version) {
@@ -1147,18 +1143,18 @@ func uploadRelease(v version.Version) {
 
 			log.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
-
-			log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", unstableFile)
-			awsClient.UploadFile("downloads.mongodb.org", "/tools/db", unstableFile)
-
 			if canPerformStableRelease(v) {
-				copyFile(unstableFile, stableFile)
-				copyFile(unstableFile, latestStableFile)
+				err = copyFile(unstableFile, stableFile)
+				check(err, "copying %s to %s", unstableFile, stableFile)
+				err = copyFile(unstableFile, latestStableFile)
+				check(err, "copying %s to %s", unstableFile, latestStableFile)
 
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", stableFile)
-				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
+				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
+				check(err, "uploading %q file to S3", stableFile)
 				log.Printf("    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n", latestStableFile)
-				awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
+				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
+				check(err, "uploading %q file to S3", latestStableFile)
 			}
 		}
 	}
@@ -1184,7 +1180,7 @@ var linuxRepoVersionsUnstable = []LinuxRepo{
 
 // findArgIndex is the helper function to locate index of provided arg value from an array of arg list
 // The arg list array is assumed to be in such format: ["arg1_name", "arg1_value", "arg2_name", "arg2_value"...]
-// It returns the index of the arg value from the list. If not found or index output bound, it returns -1
+// It returns the index of the arg value from the list. If not found or index output bound, it returns -1.
 func findArgIndex(args []string, name string) int {
 	for i, v := range args {
 		if i%2 == 1 {
@@ -1429,6 +1425,7 @@ func downloadBinaries(url string) {
 	}
 
 	binFiles, err := filepath.Glob(path.Join(tempDir, "mongodb-*", "bin", "*"))
+	check(err, "getting glob of files in temp dir %q", tempDir)
 
 	for _, f := range binFiles {
 		if filepath.Ext(f) != ".pdb" {
@@ -1523,7 +1520,8 @@ func downloadArtifacts(v string, artifactNames []string) {
 	grepArg := fmt.Sprintf("--grep=%s$", v)
 	fmt.Printf("grepArg: %s\n", grepArg)
 
-	pwd, err := run("pwd")
+	pwd, err := os.Getwd()
+	check(err, "os.Getwd")
 	fmt.Printf("pwd: %s\n", pwd)
 
 	_, err = run("git", "clone", "git@github.com:10gen/mongo-release.git")
@@ -1589,7 +1587,8 @@ func maybeCopyAugmentedSBOMToRoot(repoRoot, releaseFilename string) string {
 	} else {
 		sourceFile = mostRecentAugmentedSBOM(repoRoot)
 	}
-	copyFile(sourceFile, targetFile)
+	err := copyFile(sourceFile, targetFile)
+	check(err, "copying %s to %s", sourceFile, targetFile)
 
 	return prefixRE.ReplaceAllString(targetFile, "")
 }

@@ -11,7 +11,6 @@ package options
 import (
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"runtime"
@@ -107,7 +106,7 @@ func (ns Namespace) String() string {
 	return ns.DB + "." + ns.Collection
 }
 
-// Struct holding generic options
+// Struct holding generic options.
 type General struct {
 	Help       bool   `long:"help" description:"print usage"`
 	Version    bool   `long:"version" description:"print the tool version and exit"`
@@ -118,7 +117,7 @@ type General struct {
 	Trace      bool   `long:"trace" hidden:"true"`
 }
 
-// Struct holding verbosity-related options
+// Struct holding verbosity-related options.
 type Verbosity struct {
 	SetVerbosity    func(string) `short:"v" long:"verbose" value-name:"<level>" description:"more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)" optional:"true" optional-value:""`
 	Quiet           bool         `long:"quiet" description:"hide all log output"`
@@ -137,12 +136,11 @@ func (v Verbosity) IsQuiet() bool {
 type URI struct {
 	ConnectionString string `long:"uri" value-name:"mongodb-uri" description:"mongodb uri connection string"`
 
-	knownURIParameters   []string
 	extraOptionsRegistry []ExtraOptions
 	ConnString           *connstring.ConnString
 }
 
-// Struct holding connection-related options
+// Struct holding connection-related options.
 type Connection struct {
 	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
 	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
@@ -154,7 +152,7 @@ type Connection struct {
 	Compressors            string `long:"compressors" default:"none" hidden:"true" value-name:"<snappy,...>" description:"comma-separated list of compressors to enable. Use 'none' to disable."`
 }
 
-// Struct holding ssl-related options
+// Struct holding ssl-related options.
 type SSL struct {
 	UseSSL              bool   `long:"ssl" description:"connect to a mongod or mongos that has ssl enabled"`
 	SSLCAFile           string `long:"sslCAFile" value-name:"<filename>" description:"the .pem file containing the root certificate chain from the certificate authority"`
@@ -167,7 +165,7 @@ type SSL struct {
 	TLSInsecure         bool   `long:"tlsInsecure" description:"bypass the validation for server's certificate chain and host name"`
 }
 
-// Struct holding auth-related options
+// Struct holding auth-related options.
 type Auth struct {
 	Username        string `short:"u" value-name:"<username>" long:"username" description:"username for authentication"`
 	Password        string `short:"p" value-name:"<password>" long:"password" description:"password for authentication"`
@@ -176,7 +174,7 @@ type Auth struct {
 	AWSSessionToken string `long:"awsSessionToken" value-name:"<aws-session-token>" description:"session token to authenticate via AWS IAM"`
 }
 
-// Struct for Kerberos/GSSAPI-specific options
+// Struct for Kerberos/GSSAPI-specific options.
 type Kerberos struct {
 	Service     string `long:"gssapiServiceName" value-name:"<service-name>" description:"service name to use when authenticating using GSSAPI/Kerberos (default: mongodb)"`
 	ServiceHost string `long:"gssapiHostName" value-name:"<host-name>" description:"hostname to use when authenticating using GSSAPI/Kerberos (default: <remote server's address>)"`
@@ -185,11 +183,6 @@ type WriteConcern struct {
 	// Specifies the write concern for each write operation that mongofiles writes to the target database.
 	// By default, mongofiles waits for a majority of members from the replica set to respond before returning.
 	WriteConcern string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
-
-	w        int
-	wtimeout int
-	fsync    bool
-	journal  bool
 }
 
 type OptionRegistrationFunction func(*ToolOptions) error
@@ -212,7 +205,7 @@ func parseVal(val string) int {
 	return ret
 }
 
-// Ask for a new instance of tool options
+// Ask for a new instance of tool options.
 func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsURI bool, enabled EnabledOptions) *ToolOptions {
 	opts := &ToolOptions{
 		AppName:    appName,
@@ -303,7 +296,7 @@ func New(appName, versionStr, gitCommit, usageStr string, parsePositionalArgsAsU
 }
 
 // UseReadOnlyHostDescription changes the help description of the --host arg to
-// not mention the shard/host:port format used in the data-mutating tools
+// not mention the shard/host:port format used in the data-mutating tools.
 func (opts *ToolOptions) UseReadOnlyHostDescription() {
 	hostOpt := opts.parser.FindOptionByLongName("host")
 	hostOpt.Description = "mongodb host(s) to connect to (use commas to delimit hosts)"
@@ -311,7 +304,7 @@ func (opts *ToolOptions) UseReadOnlyHostDescription() {
 
 // FindOptionByLongName finds an option in any of the added option groups by
 // matching its long name; useful for modifying the attributes (e.g. description
-// or name) of an option
+// or name) of an option.
 func (opts *ToolOptions) FindOptionByLongName(name string) *flags.Option {
 	return opts.parser.FindOptionByLongName(name)
 }
@@ -348,7 +341,7 @@ func (opts *ToolOptions) PrintVersion() bool {
 	return opts.Version
 }
 
-// Interface for extra options that need to be used by specific tools
+// Interface for extra options that need to be used by specific tools.
 type ExtraOptions interface {
 	// Name specifying what type of options these are
 	Name() string
@@ -393,7 +386,7 @@ func (ssl *SSL) ShouldAskForPassword() (bool, error) {
 }
 
 func (ssl *SSL) pemKeyFileHasEncryptedKey() (bool, error) {
-	b, err := ioutil.ReadFile(ssl.SSLPEMKeyFile)
+	b, err := os.ReadFile(ssl.SSLPEMKeyFile)
 	if err != nil {
 		return false, err
 	}
@@ -456,7 +449,7 @@ func (opts *ToolOptions) GetAuthenticationDatabase() string {
 	return ""
 }
 
-// AddOptions registers an additional options group to this instance
+// AddOptions registers an additional options group to this instance.
 func (opts *ToolOptions) AddOptions(extraOpts ExtraOptions) {
 	_, err := opts.parser.AddGroup(extraOpts.Name()+" options", "", extraOpts)
 	if err != nil {
@@ -593,7 +586,7 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	}
 
 	// --config option specifies a file path.
-	configBytes, err := ioutil.ReadFile(opts.General.ConfigPath)
+	configBytes, err := os.ReadFile(opts.General.ConfigPath)
 	if err != nil {
 		return errors.Wrapf(err, "error opening file with --config")
 	}
@@ -1114,39 +1107,4 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 	opts.ConnString = cs
 
 	return nil
-}
-
-// getIntArg returns 3 args: the parsed int value, a bool set to true if a value
-// was consumed from the incoming args array during parsing, and an error
-// value if parsing failed
-func getIntArg(arg flags.SplitArgument, args []string) (int, bool, error) {
-	var rawVal string
-	consumeValue := false
-	rawVal, hasVal := arg.Value()
-	if !hasVal {
-		if len(args) == 0 {
-			return 0, false, fmt.Errorf("no value specified")
-		}
-		rawVal = args[0]
-		consumeValue = true
-	}
-	val, err := strconv.Atoi(rawVal)
-	if err != nil {
-		return val, consumeValue, fmt.Errorf("expected an integer value but got '%v'", rawVal)
-	}
-	return val, consumeValue, nil
-}
-
-// getStringArg returns 3 args: the parsed string value, a bool set to true if a value
-// was consumed from the incoming args array during parsing, and an error
-// value if parsing failed
-func getStringArg(arg flags.SplitArgument, args []string) (string, bool, error) {
-	value, hasVal := arg.Value()
-	if hasVal {
-		return value, false, nil
-	}
-	if len(args) == 0 {
-		return "", false, fmt.Errorf("no value specified")
-	}
-	return args[0], true, nil
 }
