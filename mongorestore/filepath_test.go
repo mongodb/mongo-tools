@@ -327,7 +327,9 @@ func TestHandlingBSON(t *testing.T) {
 		})
 
 		Convey("with a target path to a truncated bson file instead of a directory", func() {
-			err := mr.handleBSONInsteadOfDirectory("testdata/longcollectionname/db1/" + longBsonName)
+			err := mr.handleBSONInsteadOfDirectory(
+				"testdata/longcollectionname/db1/" + longBsonName,
+			)
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
@@ -415,7 +417,11 @@ func TestCreateIntentsForCollection(t *testing.T) {
 				So(i1, ShouldBeNil)
 
 				Convey("and a set Metadata path", func() {
-					So(i0.MetadataLocation, ShouldEqual, util.ToUniversalPath("testdata/testdirs/db1/c1.metadata.json"))
+					So(
+						i0.MetadataLocation,
+						ShouldEqual,
+						util.ToUniversalPath("testdata/testdirs/db1/c1.metadata.json"),
+					)
 					logs := buff.String()
 					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
 				})
@@ -472,38 +478,58 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 		}
 		log.SetWriter(&buff)
 
-		Convey("running CreateIntentForCollection on a truncated bson file without metadata", func() {
-			ddl, err := newActualPath(util.ToUniversalPath("testdata/longcollectionname/" + longInvalidBson))
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+		Convey(
+			"running CreateIntentForCollection on a truncated bson file without metadata",
+			func() {
+				ddl, err := newActualPath(
+					util.ToUniversalPath("testdata/longcollectionname/" + longInvalidBson),
+				)
+				So(err, ShouldBeNil)
+				err = mr.CreateIntentForCollection("myDB", "myC", ddl)
 
-			Convey("should fail", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
-
-		Convey("running CreateIntentForCollection on a truncated bson file *with* metadata", func() {
-			ddl, err := newActualPath(util.ToUniversalPath("testdata/longcollectionname/db1/" + longBsonName))
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
-			So(err, ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
-
-			Convey("should create one intent with 'myDb' and 'myC' fields", func() {
-				i0 := mr.manager.Pop()
-				So(i0, ShouldNotBeNil)
-				So(i0.DB, ShouldEqual, "myDB")
-				So(i0.C, ShouldEqual, "myC")
-				So(i0.Location, ShouldEqual, util.ToUniversalPath("testdata/longcollectionname/db1/"+longBsonName))
-				i1 := mr.manager.Pop()
-				So(i1, ShouldBeNil)
-
-				Convey("and a set Metadata path", func() {
-					So(i0.MetadataLocation, ShouldEqual, util.ToUniversalPath("testdata/longcollectionname/db1/"+longMetadataName))
-					logs := buff.String()
-					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+				Convey("should fail", func() {
+					So(err, ShouldNotBeNil)
 				})
-			})
-		})
+			},
+		)
+
+		Convey(
+			"running CreateIntentForCollection on a truncated bson file *with* metadata",
+			func() {
+				ddl, err := newActualPath(
+					util.ToUniversalPath("testdata/longcollectionname/db1/" + longBsonName),
+				)
+				So(err, ShouldBeNil)
+				err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+				So(err, ShouldBeNil)
+				mr.manager.Finalize(intents.Legacy)
+
+				Convey("should create one intent with 'myDb' and 'myC' fields", func() {
+					i0 := mr.manager.Pop()
+					So(i0, ShouldNotBeNil)
+					So(i0.DB, ShouldEqual, "myDB")
+					So(i0.C, ShouldEqual, "myC")
+					So(
+						i0.Location,
+						ShouldEqual,
+						util.ToUniversalPath("testdata/longcollectionname/db1/"+longBsonName),
+					)
+					i1 := mr.manager.Pop()
+					So(i1, ShouldBeNil)
+
+					Convey("and a set Metadata path", func() {
+						So(
+							i0.MetadataLocation,
+							ShouldEqual,
+							util.ToUniversalPath(
+								"testdata/longcollectionname/db1/"+longMetadataName,
+							),
+						)
+						logs := buff.String()
+						So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+					})
+				})
+			},
+		)
 	})
 }

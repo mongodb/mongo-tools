@@ -43,7 +43,9 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 	require.NoError(t, err)
 
 	// This case shouldn't error and should instead not return that it will try to restore users and roles.
-	_, err = session.Database("admin").Collection("testcol").InsertOne(context.Background(), bson.M{})
+	_, err = session.Database("admin").
+		Collection("testcol").
+		InsertOne(context.Background(), bson.M{})
 	require.NoError(t, err)
 	require.False(t, restore.ShouldRestoreUsersAndRoles())
 
@@ -52,7 +54,11 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 	restore.InputOptions.RestoreDBUsersAndRoles = true
 	restore.ToolOptions.DB = "test"
 	err = restore.ParseAndValidateOptions()
-	require.Error(t, err, "cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster")
+	require.Error(
+		t,
+		err,
+		"cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster",
+	)
 
 	err = session.Database("admin").Collection("testcol").Drop(context.Background())
 	require.NoError(t, err)
@@ -77,11 +83,17 @@ func TestCollectionExists(t *testing.T) {
 		Convey("and some test data in a server", func() {
 			session, err := restore.SessionProvider.GetSession()
 			So(err, ShouldBeNil)
-			_, insertErr := session.Database(ExistsDB).Collection("one").InsertOne(context.Background(), bson.M{})
+			_, insertErr := session.Database(ExistsDB).
+				Collection("one").
+				InsertOne(context.Background(), bson.M{})
 			So(insertErr, ShouldBeNil)
-			_, insertErr = session.Database(ExistsDB).Collection("two").InsertOne(context.Background(), bson.M{})
+			_, insertErr = session.Database(ExistsDB).
+				Collection("two").
+				InsertOne(context.Background(), bson.M{})
 			So(insertErr, ShouldBeNil)
-			_, insertErr = session.Database(ExistsDB).Collection("three").InsertOne(context.Background(), bson.M{})
+			_, insertErr = session.Database(ExistsDB).
+				Collection("three").
+				InsertOne(context.Background(), bson.M{})
 			So(insertErr, ShouldBeNil)
 
 			Convey("collections that exist should return true", func() {
@@ -148,7 +160,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 					C:        "system.version",
 					Location: "testdata/auth_version_3.bson",
 				}
-				intent.BSONFile = &realBSONFile{path: "testdata/auth_version_3.bson", intent: intent}
+				intent.BSONFile = &realBSONFile{
+					path:   "testdata/auth_version_3.bson",
+					intent: intent,
+				}
 				restore.manager.Put(intent)
 				version, err := restore.GetDumpAuthVersion()
 				So(err, ShouldBeNil)
@@ -162,7 +177,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 					C:        "system.version",
 					Location: "testdata/auth_version_5.bson",
 				}
-				intent.BSONFile = &realBSONFile{path: "testdata/auth_version_5.bson", intent: intent}
+				intent.BSONFile = &realBSONFile{
+					path:   "testdata/auth_version_5.bson",
+					intent: intent,
+				}
 				restore.manager.Put(intent)
 				version, err := restore.GetDumpAuthVersion()
 				So(err, ShouldBeNil)
@@ -196,7 +214,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 					C:        "system.version",
 					Location: "testdata/auth_version_3.bson",
 				}
-				intent.BSONFile = &realBSONFile{path: "testdata/auth_version_3.bson", intent: intent}
+				intent.BSONFile = &realBSONFile{
+					path:   "testdata/auth_version_3.bson",
+					intent: intent,
+				}
 				restore.manager.Put(intent)
 				version, err := restore.GetDumpAuthVersion()
 				So(err, ShouldBeNil)
@@ -210,7 +231,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 					C:        "system.version",
 					Location: "testdata/auth_version_5.bson",
 				}
-				intent.BSONFile = &realBSONFile{path: "testdata/auth_version_5.bson", intent: intent}
+				intent.BSONFile = &realBSONFile{
+					path:   "testdata/auth_version_5.bson",
+					intent: intent,
+				}
 				restore.manager.Put(intent)
 				version, err := restore.GetDumpAuthVersion()
 				So(err, ShouldBeNil)

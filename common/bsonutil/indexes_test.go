@@ -48,7 +48,11 @@ func TestIsIndexKeysEqual(t *testing.T) {
 
 	for _, test := range tests {
 		if result := IsIndexKeysEqual(test.IndexKeys1, test.IndexKeys2); result != test.Expected {
-			t.Fatalf("Wrong output from IsIndexKeysEqual as expected, test: %v, actual: %v", test, result)
+			t.Fatalf(
+				"Wrong output from IsIndexKeysEqual as expected, test: %v, actual: %v",
+				test,
+				result,
+			)
 		}
 	}
 }
@@ -58,18 +62,39 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 
 	Convey("Converting legacy Indexes", t, func() {
 		index1Key := bson.D{{"foo", int32(0)}, {"int32field", int32(2)},
-			{"int64field", int64(-3)}, {"float64field", float64(-1)}, {"float64field", float64(-1.1)}}
+			{
+				"int64field",
+				int64(-3),
+			}, {"float64field", float64(-1)}, {"float64field", float64(-1.1)}}
 		ConvertLegacyIndexKeys(index1Key, "test")
-		So(index1Key, ShouldResemble, bson.D{{"foo", int32(1)}, {"int32field", int32(2)}, {"int64field", int64(-3)},
-			{"float64field", float64(-1)}, {"float64field", float64(-1.1)}})
+		So(
+			index1Key,
+			ShouldResemble,
+			bson.D{{"foo", int32(1)}, {"int32field", int32(2)}, {"int64field", int64(-3)},
+				{"float64field", float64(-1)}, {"float64field", float64(-1.1)}},
+		)
 
 		decimalNOne, _ := primitive.ParseDecimal128("-1")
 		decimalZero, _ := primitive.ParseDecimal128("0")
 		decimalOne, _ := primitive.ParseDecimal128("1")
 		decimalZero1, _ := primitive.ParseDecimal128("0.00")
-		index2Key := bson.D{{"key1", decimalNOne}, {"key2", decimalZero}, {"key3", decimalOne}, {"key4", decimalZero1}}
+		index2Key := bson.D{
+			{"key1", decimalNOne},
+			{"key2", decimalZero},
+			{"key3", decimalOne},
+			{"key4", decimalZero1},
+		}
 		ConvertLegacyIndexKeys(index2Key, "test")
-		So(index2Key, ShouldResemble, bson.D{{"key1", decimalNOne}, {"key2", int32(1)}, {"key3", decimalOne}, {"key4", int32(1)}})
+		So(
+			index2Key,
+			ShouldResemble,
+			bson.D{
+				{"key1", decimalNOne},
+				{"key2", int32(1)},
+				{"key3", decimalOne},
+				{"key4", int32(1)},
+			},
+		)
 
 		index3Key := bson.D{{"key1", ""}, {"key2", "2dsphere"}}
 		ConvertLegacyIndexKeys(index3Key, "test")
@@ -97,8 +122,17 @@ func TestConvertLegacyIndexOptionsFromOp(t *testing.T) {
 		ConvertLegacyIndexOptionsFromOp(&indexoptionsSingleInvalidOption)
 		So(indexoptionsSingleInvalidOption, ShouldResemble, convertedIndex)
 
-		indexoptionsMultipleInvalidOptions := bson.D{{"v", int32(1)}, {"key", bson.D{{"a", int32(1)}}},
-			{"name", "a_1"}, {"unique", true}, {"invalid_option_1", true}, {"invalid_option_2", int32(1)}}
+		indexoptionsMultipleInvalidOptions := bson.D{
+			{"v", int32(1)},
+			{"key", bson.D{{"a", int32(1)}}},
+			{
+				"name",
+				"a_1",
+			},
+			{"unique", true},
+			{"invalid_option_1", true},
+			{"invalid_option_2", int32(1)},
+		}
 		ConvertLegacyIndexOptionsFromOp(&indexoptionsMultipleInvalidOptions)
 		So(indexoptionsMultipleInvalidOptions, ShouldResemble, convertedIndex)
 	})

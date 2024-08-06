@@ -126,7 +126,12 @@ func New(opts Options) (*MongoExport, error) {
 		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
 	}
 
-	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, false)
+	progressManager := progress.NewBarWriter(
+		log.Writer(0),
+		progressBarWaitTime,
+		progressBarLength,
+		false,
+	)
 	progressManager.Start()
 
 	exporter.SessionProvider = provider
@@ -178,7 +183,10 @@ func (exp *MongoExport) validateSettings() error {
 	}
 
 	if exp.OutputOpts.JSONFormat != Canonical && exp.OutputOpts.JSONFormat != Relaxed {
-		return fmt.Errorf("invalid JSON format '%v', choose 'relaxed' or 'canonical'", exp.OutputOpts.JSONFormat)
+		return fmt.Errorf(
+			"invalid JSON format '%v', choose 'relaxed' or 'canonical'",
+			exp.OutputOpts.JSONFormat,
+		)
 	}
 
 	if exp.InputOpts.Query != "" && exp.InputOpts.ForceTableScan {
@@ -270,13 +278,19 @@ func (exp *MongoExport) getCount() (int64, error) {
 	if exp.InputOpts != nil && exp.InputOpts.Query != "" {
 		return 0, nil
 	}
-	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	coll := session.Database(exp.ToolOptions.Namespace.DB).
+		Collection(exp.ToolOptions.Namespace.Collection)
 
 	if exp.collInfo.IsView() {
 		return 0, nil
 	}
 
-	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", exp.ToolOptions.Namespace.DB, exp.ToolOptions.Namespace.Collection)
+	log.Logvf(
+		log.DebugHigh,
+		"Getting estimated count for %v.%v",
+		exp.ToolOptions.Namespace.DB,
+		exp.ToolOptions.Namespace.Collection,
+	)
 	c, err := coll.EstimatedDocumentCount(context.TODO())
 	if err != nil {
 		return 0, err
@@ -382,7 +396,8 @@ func (exp *MongoExport) verifyCollectionExists() (bool, error) {
 		return false, err
 	}
 
-	coll := session.Database(exp.ToolOptions.Namespace.DB).Collection(exp.ToolOptions.Namespace.Collection)
+	coll := session.Database(exp.ToolOptions.Namespace.DB).
+		Collection(exp.ToolOptions.Namespace.Collection)
 	exp.collInfo, err = db.GetCollectionInfo(coll)
 	if err != nil {
 		return false, err
@@ -392,7 +407,10 @@ func (exp *MongoExport) verifyCollectionExists() (bool, error) {
 	if exp.collInfo == nil {
 		var collInfoErr error
 		if exp.InputOpts.AssertExists {
-			collInfoErr = fmt.Errorf("collection '%s' does not exist", exp.ToolOptions.Namespace.Collection)
+			collInfoErr = fmt.Errorf(
+				"collection '%s' does not exist",
+				exp.ToolOptions.Namespace.Collection,
+			)
 		}
 
 		return false, collInfoErr
@@ -417,7 +435,11 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 
 	watchProgressor := progress.NewCounter(max)
 	if exp.ProgressManager != nil {
-		name := fmt.Sprintf("%v.%v", exp.ToolOptions.Namespace.DB, exp.ToolOptions.Namespace.Collection)
+		name := fmt.Sprintf(
+			"%v.%v",
+			exp.ToolOptions.Namespace.DB,
+			exp.ToolOptions.Namespace.Collection,
+		)
 		exp.ProgressManager.Attach(name, watchProgressor)
 		defer exp.ProgressManager.Detach(name)
 	}
@@ -512,7 +534,12 @@ func (exp *MongoExport) getExportOutput(out io.Writer) (ExportOutput, error) {
 
 		return NewCSVExportOutput(exportFields, exp.OutputOpts.NoHeaderLine, out), nil
 	}
-	return NewJSONExportOutput(exp.OutputOpts.JSONArray, exp.OutputOpts.Pretty, out, exp.OutputOpts.JSONFormat), nil
+	return NewJSONExportOutput(
+		exp.OutputOpts.JSONArray,
+		exp.OutputOpts.Pretty,
+		out,
+		exp.OutputOpts.JSONFormat,
+	), nil
 }
 
 // getObjectFromByteArg takes an object in extended JSON, and converts it to an object that

@@ -42,7 +42,11 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	cursor, err := collection.Find(context.Background(), bson.D{}, mopt.Find().SetSort(bson.D{{"_id", 1}}))
+	cursor, err := collection.Find(
+		context.Background(),
+		bson.D{},
+		mopt.Find().SetSort(bson.D{{"_id", 1}}),
+	)
 	if err != nil {
 		return err
 	}
@@ -361,13 +365,16 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.validateSettings(), ShouldBeNil)
 		})
 
-		Convey("an error should be thrown if an empty --fields is supplied with CSV import", func() {
-			imp := NewMockMongoImport()
-			fields := ""
-			imp.InputOptions.Fields = &fields
-			imp.InputOptions.Type = CSV
-			So(imp.validateSettings(), ShouldBeNil)
-		})
+		Convey(
+			"an error should be thrown if an empty --fields is supplied with CSV import",
+			func() {
+				imp := NewMockMongoImport()
+				fields := ""
+				imp.InputOptions.Fields = &fields
+				imp.InputOptions.Type = CSV
+				So(imp.validateSettings(), ShouldBeNil)
+			},
+		)
 
 		Convey("no error should be thrown if --fieldFile is supplied with CSV import", func() {
 			imp := NewMockMongoImport()
@@ -409,14 +416,17 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.ToolOptions.Namespace.Collection, ShouldEqual, "input")
 		})
 
-		Convey("error should be thrown if --legacy is specified and input type is not JSON", func() {
-			imp := NewMockMongoImport()
-			imp.InputOptions.Type = CSV
-			fieldFile := "test.csv"
-			imp.InputOptions.FieldFile = &fieldFile
-			imp.InputOptions.Legacy = true
-			So(imp.validateSettings(), ShouldNotBeNil)
-		})
+		Convey(
+			"error should be thrown if --legacy is specified and input type is not JSON",
+			func() {
+				imp := NewMockMongoImport()
+				imp.InputOptions.Type = CSV
+				fieldFile := "test.csv"
+				imp.InputOptions.FieldFile = &fieldFile
+				imp.InputOptions.Legacy = true
+				So(imp.validateSettings(), ShouldNotBeNil)
+			},
+		)
 	})
 }
 
@@ -554,7 +564,9 @@ func TestImportDocuments(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error getting session: %v", err)
 			}
-			_, err = session.Database(testDb).Collection(testCollection).DeleteMany(context.Background(), bson.D{})
+			_, err = session.Database(testDb).
+				Collection(testCollection).
+				DeleteMany(context.Background(), bson.D{})
 			if err != nil {
 				t.Fatalf("error dropping collection: %v", err)
 			}
@@ -681,29 +693,32 @@ func TestImportDocuments(t *testing.T) {
 			}
 			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
-		Convey("CSV import with duplicate _id's should not error if --stopOnError is not set", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_duplicate.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.StopOnError = false
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 4)
-			So(numFailed, ShouldEqual, 1)
+		Convey(
+			"CSV import with duplicate _id's should not error if --stopOnError is not set",
+			func() {
+				imp, err := NewMongoImport()
+				So(err, ShouldBeNil)
+				imp.IngestOptions.Mode = modeInsert
+				imp.InputOptions.Type = CSV
+				imp.InputOptions.File = "testdata/test_duplicate.csv"
+				fields := "_id,b,c"
+				imp.InputOptions.Fields = &fields
+				imp.IngestOptions.StopOnError = false
+				numProcessed, numFailed, err := imp.ImportDocuments()
+				So(err, ShouldBeNil)
+				So(numProcessed, ShouldEqual, 4)
+				So(numFailed, ShouldEqual, 1)
 
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				{"_id": int32(3), "b": 5.4, "c": "string"},
-				{"_id": int32(5), "b": int32(6), "c": int32(6)},
-				{"_id": int32(8), "b": int32(6), "c": int32(6)},
-			}
-			// all docs except the one with duplicate _id - should be imported
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
+				expectedDocuments := []bson.M{
+					{"_id": int32(1), "b": int32(2), "c": int32(3)},
+					{"_id": int32(3), "b": 5.4, "c": "string"},
+					{"_id": int32(5), "b": int32(6), "c": int32(6)},
+					{"_id": int32(8), "b": int32(6), "c": int32(6)},
+				}
+				// all docs except the one with duplicate _id - should be imported
+				So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			},
+		)
 		Convey("no error should be thrown for CSV import on test data with --drop", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
@@ -973,38 +988,41 @@ func TestImportDocuments(t *testing.T) {
 			_, _, err = imp.ImportDocuments()
 			So(err, ShouldNotBeNil)
 		})
-		Convey("CSV import with --mode=upsert/--upsertFields with a nested upsert field should succeed when repeated", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_nested_upsert.csv"
-			imp.InputOptions.HeaderLine = true
-			imp.IngestOptions.Mode = modeUpsert
-			imp.upsertFields = []string{"level1.level2.key1"}
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 1)
-			So(numFailed, ShouldEqual, 0)
-			n, err := countDocuments(imp.SessionProvider)
-			So(err, ShouldBeNil)
-			So(n, ShouldEqual, 1)
+		Convey(
+			"CSV import with --mode=upsert/--upsertFields with a nested upsert field should succeed when repeated",
+			func() {
+				imp, err := NewMongoImport()
+				So(err, ShouldBeNil)
+				imp.InputOptions.Type = CSV
+				imp.InputOptions.File = "testdata/test_nested_upsert.csv"
+				imp.InputOptions.HeaderLine = true
+				imp.IngestOptions.Mode = modeUpsert
+				imp.upsertFields = []string{"level1.level2.key1"}
+				numProcessed, numFailed, err := imp.ImportDocuments()
+				So(err, ShouldBeNil)
+				So(numProcessed, ShouldEqual, 1)
+				So(numFailed, ShouldEqual, 0)
+				n, err := countDocuments(imp.SessionProvider)
+				So(err, ShouldBeNil)
+				So(n, ShouldEqual, 1)
 
-			// Repeat must succeed
-			imp, err = NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_nested_upsert.csv"
-			imp.InputOptions.HeaderLine = true
-			imp.IngestOptions.Mode = modeUpsert
-			imp.upsertFields = []string{"level1.level2.key1"}
-			numProcessed, numFailed, err = imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 1)
-			So(numFailed, ShouldEqual, 0)
-			n, err = countDocuments(imp.SessionProvider)
-			So(err, ShouldBeNil)
-			So(n, ShouldEqual, 1)
-		})
+				// Repeat must succeed
+				imp, err = NewMongoImport()
+				So(err, ShouldBeNil)
+				imp.InputOptions.Type = CSV
+				imp.InputOptions.File = "testdata/test_nested_upsert.csv"
+				imp.InputOptions.HeaderLine = true
+				imp.IngestOptions.Mode = modeUpsert
+				imp.upsertFields = []string{"level1.level2.key1"}
+				numProcessed, numFailed, err = imp.ImportDocuments()
+				So(err, ShouldBeNil)
+				So(numProcessed, ShouldEqual, 1)
+				So(numFailed, ShouldEqual, 0)
+				n, err = countDocuments(imp.SessionProvider)
+				So(err, ShouldBeNil)
+				So(n, ShouldEqual, 1)
+			},
+		)
 		Convey("With --useArrayIndexFields: Top-level numerical fields should be document keys",
 			nestedFieldsTestHelper(
 				"_id,0,1\n1,2,3",
@@ -1036,7 +1054,10 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a.0.a,a.0.b,a.1.a\n1,2,3,4",
 				[]bson.M{
-					{"_id": int32(1), "a": bson.A{bson.M{"a": int32(2), "b": int32(3)}, bson.M{"a": int32(4)}}},
+					{
+						"_id": int32(1),
+						"a":   bson.A{bson.M{"a": int32(2), "b": int32(3)}, bson.M{"a": int32(4)}},
+					},
 				},
 				nil,
 			),
@@ -1068,7 +1089,8 @@ func TestImportDocuments(t *testing.T) {
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: If an array element is blank in the csv file, an empty string should be inserted",
+		Convey(
+			"With --useArrayIndexFields: If an array element is blank in the csv file, an empty string should be inserted",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.1,a.2\n1,2,,4",
 				[]bson.M{
@@ -1077,16 +1099,32 @@ func TestImportDocuments(t *testing.T) {
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: If an array with more than 10 fields should be inserted",
+		Convey(
+			"With --useArrayIndexFields: If an array with more than 10 fields should be inserted",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.1,a.2,a.3,a.4,a.5,a.6,a.7,a.8,a.9,a.10\n0,1,2,3,4,5,6,7,8,9,10",
 				[]bson.M{
-					{"_id": int32(0), "a": bson.A{int32(1), int32(2), int32(3), int32(4), int32(5), int32(6), int32(7), int32(8), int32(9), int32(10)}},
+					{
+						"_id": int32(0),
+						"a": bson.A{
+							int32(1),
+							int32(2),
+							int32(3),
+							int32(4),
+							int32(5),
+							int32(6),
+							int32(7),
+							int32(8),
+							int32(9),
+							int32(10),
+						},
+					},
 				},
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: An number with leading zeros should be interpreted as a document key, not an index",
+		Convey(
+			"With --useArrayIndexFields: An number with leading zeros should be interpreted as a document key, not an index",
 			nestedFieldsTestHelper(
 				"_id,a.0001\n1,2",
 				[]bson.M{
@@ -1095,7 +1133,8 @@ func TestImportDocuments(t *testing.T) {
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: An number with leading plus should be interpreted as a document key, not an index",
+		Convey(
+			"With --useArrayIndexFields: An number with leading plus should be interpreted as a document key, not an index",
 			nestedFieldsTestHelper(
 				"_id,a.+15558675309\n1,2",
 				[]bson.M{
@@ -1104,11 +1143,15 @@ func TestImportDocuments(t *testing.T) {
 				nil,
 			),
 		)
-		Convey("With --useArrayIndexFields: Should be able to make changes to document in an array once document has been created",
+		Convey(
+			"With --useArrayIndexFields: Should be able to make changes to document in an array once document has been created",
 			nestedFieldsTestHelper(
 				"_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
 				[]bson.M{
-					{"_id": int32(1), "a": bson.A{bson.M{"a": int32(2), "b": int32(4)}, bson.M{"a": int32(3)}}},
+					{
+						"_id": int32(1),
+						"a":   bson.A{bson.M{"a": int32(2), "b": int32(4)}, bson.M{"a": int32(3)}},
+					},
 				},
 				nil,
 			),
@@ -1117,73 +1160,89 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a.0,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array fields not starting at 0 should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.1,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("array index error with field 'a.1': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'a.1': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array fields skipping an index should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.2\n1,2,3",
 				nil,
-				fmt.Errorf("array index error with field 'a.2': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'a.2': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
-		Convey("With --useArrayIndexFields: Array fields with sub documents skipping an index should throw an error",
+		Convey(
+			"With --useArrayIndexFields: Array fields with sub documents skipping an index should throw an error",
 			nestedFieldsTestHelper(
 				"_id,a.0.a,a.2.a\n1,2,3",
 				nil,
-				fmt.Errorf("array index error with field 'a.2.a': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'a.2.a': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
-		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
+		Convey(
+			"With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
 			nestedFieldsTestHelper(
 				"_id,a.a,a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a' and 'a.0' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as document (deep object)",
+		Convey(
+			"With --useArrayIndexFields: Array field should throw an error if value has already been set as document (deep object)",
 			nestedFieldsTestHelper(
 				"_id,a.a.a.a,a.a.0.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a.a' and 'a.a.0.a' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Document field should throw an error if value has already been set as array",
+		Convey(
+			"With --useArrayIndexFields: Document field should throw an error if value has already been set as array",
 			nestedFieldsTestHelper(
 				"_id,a.0,a.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.0' and 'a.a' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Document field should throw an error if value has already been set as array (deep object)",
+		Convey(
+			"With --useArrayIndexFields: Document field should throw an error if value has already been set as array (deep object)",
 			nestedFieldsTestHelper(
 				"_id,a.a.a.0,a.a.a.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a.0' and 'a.a.a.a' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as value",
+		Convey(
+			"With --useArrayIndexFields: Array field should throw an error if value has already been set as value",
 			nestedFieldsTestHelper(
 				"_id,a,a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a' and 'a.0' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Array field should throw an error if value has already been set as value (deep object)",
+		Convey(
+			"With --useArrayIndexFields: Array field should throw an error if value has already been set as value (deep object)",
 			nestedFieldsTestHelper(
 				"_id,a.a.a,a.a.a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a' and 'a.a.a.0' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Array field should be incompatible with a document field starting with a symbol that is sorted before 0",
+		Convey(
+			"With --useArrayIndexFields: Array field should be incompatible with a document field starting with a symbol that is sorted before 0",
 			nestedFieldsTestHelper(
 				"_id,a./,a.0\n1,2,3",
 				nil,
@@ -1194,17 +1253,23 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a,b.1\n1,2,3",
 				nil,
-				fmt.Errorf("array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
-		Convey("With --useArrayIndexFields: Indexes in fields must start from 0 (last field same length)",
+		Convey(
+			"With --useArrayIndexFields: Indexes in fields must start from 0 (last field same length)",
 			nestedFieldsTestHelper(
 				"_id,a.b,b.1\n1,2,3",
 				nil,
-				fmt.Errorf("array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
-		Convey("With --useArrayIndexFields: Fields that are the same should throw an error (no arrays)",
+		Convey(
+			"With --useArrayIndexFields: Fields that are the same should throw an error (no arrays)",
 			nestedFieldsTestHelper(
 				"_id,a.b,a.b\n1,2,3",
 				nil,
@@ -1215,7 +1280,9 @@ func TestImportDocuments(t *testing.T) {
 			nestedFieldsTestHelper(
 				"_id,a.0,a.1,a.2,a.0\n1,2,3,4,5",
 				nil,
-				fmt.Errorf("array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially"),
+				fmt.Errorf(
+					"array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially",
+				),
 			),
 		)
 		Convey("With --useArrayIndexFields: Array entries of different types should throw an error",
@@ -1225,14 +1292,16 @@ func TestImportDocuments(t *testing.T) {
 				fmt.Errorf("fields 'a.a.0.a' and 'a.a.0.1' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Document field should throw an error if element has already been set to an array",
+		Convey(
+			"With --useArrayIndexFields: Document field should throw an error if element has already been set to an array",
 			nestedFieldsTestHelper(
 				"_id,a.0.0,a.0.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.0.0' and 'a.0.a' are incompatible"),
 			),
 		)
-		Convey("With --useArrayIndexFields: Incompatible fields should throw error (one long, one short)",
+		Convey(
+			"With --useArrayIndexFields: Incompatible fields should throw error (one long, one short)",
 			nestedFieldsTestHelper(
 				"_id,a.a.a.a,a.a\n1,2,3",
 				nil,

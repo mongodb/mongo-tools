@@ -166,7 +166,9 @@ func (dump *MongoDump) shouldSkipSystemNamespace(dbName, collName string) bool {
 
 func isReshardingCollection(collName string) bool {
 	switch collName {
-	case "reshardingOperations", "localReshardingOperations.donor", "localReshardingOperations.recipient":
+	case "reshardingOperations",
+		"localReshardingOperations.donor",
+		"localReshardingOperations.recipient":
 		return true
 	default:
 		return false
@@ -298,7 +300,10 @@ func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	return nil
 }
 
-func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo) (*intents.Intent, error) {
+func (dump *MongoDump) NewIntentFromOptions(
+	dbName string,
+	ci *db.CollectionInfo,
+) (*intents.Intent, error) {
 	intent := &intents.Intent{
 		DB:      dbName,
 		C:       ci.Name,
@@ -366,7 +371,9 @@ func (dump *MongoDump) NewIntentFromOptions(dbName string, ci *db.CollectionInfo
 		return nil, err
 	}
 	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", dbName, ci.Name)
-	count, err := session.Database(dbName).Collection(ci.Name).EstimatedDocumentCount(context.Background())
+	count, err := session.Database(dbName).
+		Collection(ci.Name).
+		EstimatedDocumentCount(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("error counting %v: %v", intent.Namespace(), err)
 	}
@@ -400,11 +407,18 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		// This MUST precede the remaining checks since it avoids
 		// a mid-reshard backup.
 		if dbName == "config" && dump.OutputOptions.Oplog && isReshardingCollection(collInfo.Name) {
-			return fmt.Errorf("detected resharding in progress. Cannot dump with --oplog while resharding")
+			return fmt.Errorf(
+				"detected resharding in progress. Cannot dump with --oplog while resharding",
+			)
 		}
 
 		if dump.shouldSkipSystemNamespace(dbName, collInfo.Name) {
-			log.Logvf(log.DebugHigh, "will not dump system collection '%s.%s'", dbName, collInfo.Name)
+			log.Logvf(
+				log.DebugHigh,
+				"will not dump system collection '%s.%s'",
+				dbName,
+				collInfo.Name,
+			)
 			continue
 		}
 
@@ -414,7 +428,12 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && !collInfo.IsView() {
-			log.Logvf(log.DebugLow, "skipping dump of %v.%v because it is not a view", dbName, collInfo.Name)
+			log.Logvf(
+				log.DebugLow,
+				"skipping dump of %v.%v because it is not a view",
+				dbName,
+				collInfo.Name,
+			)
 			continue
 		}
 		intent, err := dump.NewIntentFromOptions(dbName, collInfo)

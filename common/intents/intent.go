@@ -138,7 +138,8 @@ func (it *Intent) IsSystemProfile() bool {
 
 func (it *Intent) IsSpecialCollection() bool {
 	// can't see oplog as special collection because when restore from archive it need to be a RegularCollectionReceiver
-	return it.IsSystemIndexes() || it.IsUsers() || it.IsRoles() || it.IsAuthVersion() || it.IsSystemProfile()
+	return it.IsSystemIndexes() || it.IsUsers() || it.IsRoles() || it.IsAuthVersion() ||
+		it.IsSystemProfile()
 }
 
 func (it *Intent) IsView() bool {
@@ -511,7 +512,10 @@ func (mgr *Manager) Finalize(pType PriorityType) {
 		log.Logv(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
 		mgr.prioritizer = newLongestTaskFirstPrioritizer(mgr.intentsByDiscoveryOrder)
 	case MultiDatabaseLTF:
-		log.Logv(log.DebugHigh, "finalizing intent manager with multi-database longest task first prioritizer")
+		log.Logv(
+			log.DebugHigh,
+			"finalizing intent manager with multi-database longest task first prioritizer",
+		)
 		mgr.prioritizer = newMultiDatabaseLTFPrioritizer(mgr.intentsByDiscoveryOrder)
 	default:
 		panic("cannot initialize IntentPrioritizer with unknown type")

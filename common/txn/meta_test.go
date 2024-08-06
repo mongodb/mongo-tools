@@ -60,7 +60,13 @@ func runTxnMetaCase(t *testing.T, c *TestData) {
 
 		isMultiOp := c.entryCount > 1
 		if meta.IsMultiOp() != isMultiOp {
-			t.Errorf("case %s [%d]: expected IsMultiOp %v, but got %v", c.name, i, meta.IsMultiOp(), isMultiOp)
+			t.Errorf(
+				"case %s [%d]: expected IsMultiOp %v, but got %v",
+				c.name,
+				i,
+				meta.IsMultiOp(),
+				isMultiOp,
+			)
 		}
 
 		if i == 0 {

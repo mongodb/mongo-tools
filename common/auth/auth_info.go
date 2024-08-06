@@ -46,7 +46,11 @@ func GetAuthVersion(sessionProvider *db.SessionProvider) (int, error) {
 
 	version, err := util.ToInt(results["authSchemaVersion"])
 	if err != nil {
-		return 0, fmt.Errorf("getParameter command returned non-numeric result: %v, error: %v", results["authSchemaVersion"], err)
+		return 0, fmt.Errorf(
+			"getParameter command returned non-numeric result: %v, error: %v",
+			results["authSchemaVersion"],
+			err,
+		)
 	}
 	return version, nil
 }
@@ -60,7 +64,9 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 	}
 
 	authSchemaQuery := bson.M{"_id": "authSchema"}
-	count, err := session.Database("admin").Collection("system.version").CountDocuments(context.TODO(), authSchemaQuery)
+	count, err := session.Database("admin").
+		Collection("system.version").
+		CountDocuments(context.TODO(), authSchemaQuery)
 	if err != nil {
 		return fmt.Errorf("error checking pressence of auth version: %v", err)
 	} else if count == 0 {

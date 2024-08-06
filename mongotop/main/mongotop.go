@@ -56,10 +56,16 @@ func main() {
 
 	if opts.Auth.Username != "" && opts.Auth.Source == "" && !opts.Auth.RequiresExternalDB() {
 		if opts.URI != nil && opts.URI.ConnectionString != "" {
-			log.Logvf(log.Always, "authSource is required when authenticating against a non $external database")
+			log.Logvf(
+				log.Always,
+				"authSource is required when authenticating against a non $external database",
+			)
 			os.Exit(util.ExitFailure)
 		}
-		log.Logvf(log.Always, "--authenticationDatabase is required when authenticating against a non $external database")
+		log.Logvf(
+			log.Always,
+			"--authenticationDatabase is required when authenticating against a non $external database",
+		)
 		os.Exit(util.ExitFailure)
 	}
 

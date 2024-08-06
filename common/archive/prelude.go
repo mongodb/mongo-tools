@@ -90,7 +90,11 @@ func (prelude *Prelude) Read(in io.Reader) error {
 }
 
 // NewPrelude generates a Prelude using the contents of an intent.Manager.
-func NewPrelude(manager *intents.Manager, concurrentColls int, serverVersion, toolVersion string) (*Prelude, error) {
+func NewPrelude(
+	manager *intents.Manager,
+	concurrentColls int,
+	serverVersion, toolVersion string,
+) (*Prelude, error) {
 	prelude := Prelude{
 		Header: &Header{
 			FormatVersion:         archiveFormatVersion,
@@ -134,7 +138,10 @@ func (prelude *Prelude) AddMetadata(cm *CollectionMetadata) {
 	if !ok {
 		prelude.DBS = append(prelude.DBS, cm.Database)
 	}
-	prelude.NamespaceMetadatasByDB[cm.Database] = append(prelude.NamespaceMetadatasByDB[cm.Database], cm)
+	prelude.NamespaceMetadatasByDB[cm.Database] = append(
+		prelude.NamespaceMetadatasByDB[cm.Database],
+		cm,
+	)
 	log.Logvf(log.Info, "archive prelude %v.%v", cm.Database, cm.Collection)
 }
 

@@ -118,7 +118,9 @@ func (dump *MongoDump) ValidateOptions() error {
 	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.Collection != "":
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.Collection != "":
-		return fmt.Errorf("--collection is not allowed when --excludeCollectionsWithPrefix is specified")
+		return fmt.Errorf(
+			"--collection is not allowed when --excludeCollectionsWithPrefix is specified",
+		)
 	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.DB == "":
 		return fmt.Errorf("--db is required when --excludeCollection is specified")
 	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.DB == "":
@@ -126,11 +128,15 @@ func (dump *MongoDump) ValidateOptions() error {
 	case dump.OutputOptions.Out != "" && dump.OutputOptions.Archive != "":
 		return fmt.Errorf("--out not allowed when --archive is specified")
 	case dump.OutputOptions.Out == "-" && dump.OutputOptions.Gzip:
-		return fmt.Errorf("compression can't be used when dumping a single collection to standard output")
+		return fmt.Errorf(
+			"compression can't be used when dumping a single collection to standard output",
+		)
 	case dump.OutputOptions.NumParallelCollections <= 0:
 		return fmt.Errorf("numParallelCollections must be positive")
 	case dump.isAtlasProxy && (dump.OutputOptions.DumpDBUsersAndRoles || dump.ToolOptions.DB == "admin"):
-		return fmt.Errorf("can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster")
+		return fmt.Errorf(
+			"can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster",
+		)
 	}
 	return nil
 }
@@ -143,7 +149,10 @@ func (dump *MongoDump) Init() error {
 	// redefinition of the constants.
 	dump.storageEngine = storageEngineUnknown
 
-	pref, err := db.NewReadPreference(dump.InputOptions.ReadPreference, dump.ToolOptions.URI.ParsedConnString())
+	pref, err := db.NewReadPreference(
+		dump.InputOptions.ReadPreference,
+		dump.ToolOptions.URI.ParsedConnString(),
+	)
 	if err != nil {
 		return fmt.Errorf("error parsing --readPreference : %v", err)
 	}
@@ -193,7 +202,8 @@ func (dump *MongoDump) verifyCollectionExists() (bool, error) {
 		return true, nil
 	}
 
-	coll := dump.SessionProvider.DB(dump.ToolOptions.Namespace.DB).Collection(dump.ToolOptions.Namespace.Collection)
+	coll := dump.SessionProvider.DB(dump.ToolOptions.Namespace.DB).
+		Collection(dump.ToolOptions.Namespace.Collection)
 	collInfo, err := db.GetCollectionInfo(coll)
 	if err != nil {
 		return false, err
@@ -336,7 +346,8 @@ func (dump *MongoDump) Dump() (err error) {
 
 	// If we enter this case, then we're not connected to an atlas proxy otherwise
 	// mongodump would have errored earlier.
-	if !dump.SkipUsersAndRoles && dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.DB != "admin" {
+	if !dump.SkipUsersAndRoles && dump.OutputOptions.DumpDBUsersAndRoles &&
+		dump.ToolOptions.DB != "admin" {
 		err = dump.CreateUsersRolesVersionIntentsForDB(dump.ToolOptions.DB)
 		if err != nil {
 			return err
@@ -360,7 +371,12 @@ func (dump *MongoDump) Dump() (err error) {
 			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
 			serverVersion = "unknown"
 		}
-		dump.archive.Prelude, err = archive.NewPrelude(dump.manager, dump.OutputOptions.NumParallelCollections, serverVersion, dump.ToolOptions.VersionStr)
+		dump.archive.Prelude, err = archive.NewPrelude(
+			dump.manager,
+			dump.OutputOptions.NumParallelCollections,
+			serverVersion,
+			dump.ToolOptions.VersionStr,
+		)
 		if err != nil {
 			return fmt.Errorf("creating archive prelude: %v", err)
 		}
@@ -423,7 +439,8 @@ func (dump *MongoDump) Dump() (err error) {
 		exists, err := dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
 			return fmt.Errorf(
-				"oplog overflow: mongodump was unable to capture all new oplog entries during execution")
+				"oplog overflow: mongodump was unable to capture all new oplog entries during execution",
+			)
 		}
 		if err != nil {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
@@ -444,7 +461,8 @@ func (dump *MongoDump) Dump() (err error) {
 		exists, err = dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
 			return fmt.Errorf(
-				"oplog overflow: mongodump was unable to capture all new oplog entries during execution")
+				"oplog overflow: mongodump was unable to capture all new oplog entries during execution",
+			)
 		}
 		if err != nil {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
@@ -506,7 +524,11 @@ func (dump *MongoDump) DumpIntents() error {
 			for {
 				intent := dump.manager.Pop()
 				if intent == nil {
-					log.Logvf(log.DebugHigh, "ending dump routine with id=%v, no more work to do", id)
+					log.Logvf(
+						log.DebugHigh,
+						"ending dump routine with id=%v, no more work to do",
+						id,
+					)
 					resultChan <- nil
 					return
 				}
@@ -586,11 +608,19 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		if intent.IsTimeseries() {
 			timeseriesOptions, err := bsonutil.FindSubdocumentByKey("timeseries", &intent.Options)
 			if err != nil {
-				return errors.Wrapf(err, "could not find timeseries options for %s", intent.Namespace())
+				return errors.Wrapf(
+					err,
+					"could not find timeseries options for %s",
+					intent.Namespace(),
+				)
 			}
 			metaKey, err := bsonutil.FindStringValueByKey("metaField", &timeseriesOptions)
 			if err != nil {
-				return errors.Wrapf(err, "could not determine the metaField for %s", intent.Namespace())
+				return errors.Wrapf(
+					err,
+					"could not determine the metaField for %s",
+					intent.Namespace(),
+				)
 			}
 			for i, predicate := range dump.query {
 				splitPredicateKey := strings.SplitN(predicate.Key, ".", 2)
@@ -634,7 +664,13 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		return err
 	}
 
-	log.Logvf(log.Always, "done dumping %v (%v %v)", intent.DataNamespace(), dumpCount, docPlural(dumpCount))
+	log.Logvf(
+		log.Always,
+		"done dumping %v (%v %v)",
+		intent.DataNamespace(),
+		dumpCount,
+		docPlural(dumpCount),
+	)
 	return nil
 }
 
@@ -646,7 +682,10 @@ type documentValidator func([]byte) error
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occurred.
 func (dump *MongoDump) dumpQueryToIntent(
-	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer) (dumpCount int64, err error) {
+	query *db.DeferredQuery,
+	intent *intents.Intent,
+	buffer resettableOutputBuffer,
+) (dumpCount int64, err error) {
 	return dump.dumpValidatedQueryToIntent(query, intent, buffer, nil)
 }
 
@@ -658,7 +697,12 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 		return 0, nil
 	}
 
-	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", query.Coll.Database().Name(), query.Coll.Name())
+	log.Logvf(
+		log.DebugHigh,
+		"Getting estimated count for %v.%v",
+		query.Coll.Database().Name(),
+		query.Coll.Name(),
+	)
 	// We call getCount() when we are dumping a collection. If we are dumping views as collections, we need to run a
 	// count instead of an estimatedDocumentCount which uses collStats. We don't do this if the intent is timeseries because
 	// we would be dumping system.buckets.X which can use collStats.
@@ -667,7 +711,13 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 		return 0, fmt.Errorf("error getting count from db: %v", err)
 	}
 
-	log.Logvf(log.DebugLow, "counted %v %v in %v", total, docPlural(int64(total)), intent.Namespace())
+	log.Logvf(
+		log.DebugLow,
+		"counted %v %v in %v",
+		total,
+		docPlural(int64(total)),
+		intent.Namespace(),
+	)
 	return int64(total), nil
 }
 
@@ -676,7 +726,11 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 // and writes the raw bson results to the writer. Returns a final count of documents
 // dumped, and any errors that occurred.
 func (dump *MongoDump) dumpValidatedQueryToIntent(
-	query *db.DeferredQuery, intent *intents.Intent, buffer resettableOutputBuffer, validator documentValidator) (dumpCount int64, err error) {
+	query *db.DeferredQuery,
+	intent *intents.Intent,
+	buffer resettableOutputBuffer,
+	validator documentValidator,
+) (dumpCount int64, err error) {
 
 	// restore of views from archives require an empty collection as the trigger to create the view
 	// so, we open here before the early return if IsView so that we write an empty collection to the archive
@@ -687,7 +741,11 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 	defer func() {
 		closeErr := intent.BSONFile.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), closeErr)
+			err = fmt.Errorf(
+				"error writing data for collection `%v` to disk: %v",
+				intent.Namespace(),
+				closeErr,
+			)
 		}
 	}()
 	// don't dump any data for views being dumped as views
@@ -714,7 +772,11 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 		defer func() {
 			closeErr := buffer.Close()
 			if err == nil && closeErr != nil {
-				err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), closeErr)
+				err = fmt.Errorf(
+					"error writing data for collection `%v` to disk: %v",
+					intent.Namespace(),
+					closeErr,
+				)
 			}
 		}()
 	}
@@ -726,7 +788,11 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 	err = dump.dumpValidatedIterToWriter(cursor, f, dumpProgressor, validator)
 	dumpCount, _ = dumpProgressor.Progress()
 	if err != nil {
-		err = fmt.Errorf("error writing data for collection `%v` to disk: %v", intent.Namespace(), err)
+		err = fmt.Errorf(
+			"error writing data for collection `%v` to disk: %v",
+			intent.Namespace(),
+			err,
+		)
 	}
 	return
 }
@@ -734,7 +800,11 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 // dumpValidatedIterToWriter takes a cursor, a writer, an Updateable object, and a documentValidator and validates and
 // dumps the iterator's contents to the writer.
 func (dump *MongoDump) dumpValidatedIterToWriter(
-	iter *mongo.Cursor, writer io.Writer, progressCount progress.Updateable, validator documentValidator) error {
+	iter *mongo.Cursor,
+	writer io.Writer,
+	progressCount progress.Updateable,
+	validator documentValidator,
+) error {
 	defer iter.Close(context.Background())
 	var termErr error
 

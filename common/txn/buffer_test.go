@@ -95,7 +95,11 @@ func testBufferOps(t *testing.T, buffer *Buffer, ops []db.Oplog, txnByID map[ID]
 
 		expectedCnt := txnByID[meta.id].innerOpCount
 		if innerOpCounter[meta.id] != expectedCnt {
-			t.Errorf("incorrect streamed op count; got %d, expected %d", innerOpCounter[meta.id], expectedCnt)
+			t.Errorf(
+				"incorrect streamed op count; got %d, expected %d",
+				innerOpCounter[meta.id],
+				expectedCnt,
+			)
 		}
 
 		err = buffer.PurgeTxn(meta)
@@ -195,30 +199,34 @@ func TestExtractInnerOps(t *testing.T) {
 
 	timestamp := primitive.Timestamp{T: 1234, I: 1}
 
-	Convey("extracted oplogs from transaction oplog should have the same timestamp, term and hash", t, func() {
-		op := db.Oplog{
-			Timestamp: primitive.Timestamp{T: 1234, I: 1},
-			Term:      &term[0],
-			Hash:      &hash[0],
-			LSID:      bson.Raw{0, 0, 0, 0, 1},
-			TxnNumber: &txnN[0],
-			Operation: "c",
-			Namespace: "admin.$cmd",
-			Object: bson.D{
-				{"applyOps", bson.A{bson.D{{"op", "n"}}}},
-				{"partialTxn", true},
-			},
-		}
+	Convey(
+		"extracted oplogs from transaction oplog should have the same timestamp, term and hash",
+		t,
+		func() {
+			op := db.Oplog{
+				Timestamp: primitive.Timestamp{T: 1234, I: 1},
+				Term:      &term[0],
+				Hash:      &hash[0],
+				LSID:      bson.Raw{0, 0, 0, 0, 1},
+				TxnNumber: &txnN[0],
+				Operation: "c",
+				Namespace: "admin.$cmd",
+				Object: bson.D{
+					{"applyOps", bson.A{bson.D{{"op", "n"}}}},
+					{"partialTxn", true},
+				},
+			}
 
-		innerOps, err := extractInnerOps(&op)
-		if err != nil {
-			t.Fatalf("PurgeTxn (abort) failed: %v", err)
-		}
+			innerOps, err := extractInnerOps(&op)
+			if err != nil {
+				t.Fatalf("PurgeTxn (abort) failed: %v", err)
+			}
 
-		for _, innerOp := range innerOps {
-			So(innerOp.Timestamp, ShouldEqual, timestamp)
-			So(*innerOp.Term, ShouldEqual, term[0])
-			So(*innerOp.Hash, ShouldEqual, hash[0])
-		}
-	})
+			for _, innerOp := range innerOps {
+				So(innerOp.Timestamp, ShouldEqual, timestamp)
+				So(*innerOp.Term, ShouldEqual, term[0])
+				So(*innerOp.Hash, ShouldEqual, hash[0])
+			}
+		},
+	)
 }

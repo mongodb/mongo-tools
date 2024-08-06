@@ -23,7 +23,10 @@ func Parse(desc string) (Version, error) {
 	// that func.
 	parts := strings.Split(strings.Split(desc, "-")[0], ".")
 	if len(parts) < 2 || len(parts) > 3 {
-		return Version{}, fmt.Errorf("could not find a two- or three-part dotted version in %q", desc)
+		return Version{}, fmt.Errorf(
+			"could not find a two- or three-part dotted version in %q",
+			desc,
+		)
 	}
 
 	maj, err := strconv.Atoi(parts[0])

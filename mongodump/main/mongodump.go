@@ -54,7 +54,12 @@ func main() {
 	opts.URI.LogUnsupportedOptions()
 
 	// kick off the progress bar manager
-	progressManager := progress.NewBarWriter(log.Writer(0), progressBarWaitTime, progressBarLength, false)
+	progressManager := progress.NewBarWriter(
+		log.Writer(0),
+		progressBarWaitTime,
+		progressBarLength,
+		false,
+	)
 	progressManager.Start()
 	defer progressManager.Stop()
 

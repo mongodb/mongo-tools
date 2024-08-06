@@ -110,7 +110,12 @@ func TestStringTag(t *testing.T) {
 		t.Fatalf("Decode: %v", err)
 	}
 	if !reflect.DeepEqual(s, s2) {
-		t.Fatalf("decode didn't match.\nsource: %#v\nEncoded as:\n%s\ndecode: %#v", s, string(got), s2)
+		t.Fatalf(
+			"decode didn't match.\nsource: %#v\nEncoded as:\n%s\ndecode: %#v",
+			s,
+			string(got),
+			s2,
+		)
 	}
 }
 

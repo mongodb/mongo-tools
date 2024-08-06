@@ -112,7 +112,8 @@ func GetOplogTailTime(client *mongo.Client) (OplogTailTime, error) {
 // GetOldestActiveTransactionOpTime returns the oldest active transaction
 // optime from the config.transactions table or else a zero-value db.OpTime{}.
 func GetOldestActiveTransactionOpTime(client *mongo.Client) (OpTime, error) {
-	coll := client.Database("config").Collection("transactions", mopts.Collection().SetReadConcern(readconcern.Local()))
+	coll := client.Database("config").
+		Collection("transactions", mopts.Collection().SetReadConcern(readconcern.Local()))
 	filter := bson.D{{"state", bson.D{{"$in", bson.A{"prepared", "inProgress"}}}}}
 	opts := mopts.FindOne().SetSort(bson.D{{"startOpTime", 1}})
 
@@ -144,11 +145,14 @@ func GetLatestVisibleOplogOpTime(client *mongo.Client) (OpTime, error) {
 	// all operations with earlier oplog times have been storage-committed.
 	opts := mopts.FindOne().SetOplogReplay(true)
 	coll := client.Database("local").Collection("oplog.rs")
-	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).Raw()
+	result, err := coll.FindOne(context.Background(), bson.M{"ts": bson.M{"$gte": latestOpTime.Timestamp}}, opts).
+		Raw()
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return OpTime{}, fmt.Errorf("last op was not confirmed. last optime: %+v. confirmation time was not found",
-				latestOpTime)
+			return OpTime{}, fmt.Errorf(
+				"last op was not confirmed. last optime: %+v. confirmation time was not found",
+				latestOpTime,
+			)
 		}
 		return OpTime{}, err
 	}
@@ -159,8 +163,11 @@ func GetLatestVisibleOplogOpTime(client *mongo.Client) (OpTime, error) {
 	}
 
 	if !OpTimeEquals(opTime, latestOpTime) {
-		return OpTime{}, fmt.Errorf("last op was not confirmed. last optime: %+v. confirmation time: %+v",
-			latestOpTime, opTime)
+		return OpTime{}, fmt.Errorf(
+			"last op was not confirmed. last optime: %+v. confirmation time: %+v",
+			latestOpTime,
+			opTime,
+		)
 	}
 	return latestOpTime, nil
 }
@@ -171,7 +178,9 @@ func GetLatestVisibleOplogOpTime(client *mongo.Client) (OpTime, error) {
 // entries are visible (i.e. have been storage-committed).
 func GetLatestOplogOpTime(client *mongo.Client, query interface{}) (OpTime, error) {
 	var record Oplog
-	opts := mopts.FindOne().SetProjection(bson.M{"ts": 1, "t": 1, "h": 1}).SetSort(bson.D{{"$natural", -1}})
+	opts := mopts.FindOne().
+		SetProjection(bson.M{"ts": 1, "t": 1, "h": 1}).
+		SetSort(bson.D{{"$natural", -1}})
 	coll := client.Database("local").Collection("oplog.rs")
 	res := coll.FindOne(context.Background(), query, opts)
 	if err := res.Err(); err != nil {

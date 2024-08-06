@@ -132,7 +132,9 @@ func TestManagerStartAndStop(t *testing.T) {
 
 		Convey("running the manager for 100 ms and stopping", func() {
 			manager.Start()
-			time.Sleep(time.Millisecond * 100) // enough time for the manager to write at least 4 times
+			time.Sleep(
+				time.Millisecond * 100,
+			) // enough time for the manager to write at least 4 times
 			manager.Stop()
 
 			Convey("should generate 4 writes of the bar", func() {

@@ -198,7 +198,9 @@ type ArtifactMetadata struct {
 func extractArtifactMetadata(obj *s3.Object) *ArtifactMetadata {
 	name := *obj.Key
 
-	artifactParts := regexp.MustCompile(`^tools\/db\/mongodb-database-tools-(.*)-(.*)-([0-9]+\.[0-9]+\.[0-9]+-?.*)\.(zip|tgz|deb|rpm|msi)$`)
+	artifactParts := regexp.MustCompile(
+		`^tools\/db\/mongodb-database-tools-(.*)-(.*)-([0-9]+\.[0-9]+\.[0-9]+-?.*)\.(zip|tgz|deb|rpm|msi)$`,
+	)
 	parts := artifactParts.FindStringSubmatch(name)
 
 	if parts == nil {

@@ -162,9 +162,11 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
   of tickets tagged with the release version. (If the link doesn't work, you can access this through
   the release page for the version you are releasing.)
 - Go through the list of tickets and check that each ticket is categorized correctly (as a task,
-  bugfix etc.). Make sure that all tickets marked as `Mongo Internal` for their "Security Level" field are excluded from the release notes, _except_ for tickets created for third-party vulnerabilities. These vulnerability tickets will be linked to a corresponding ticket in the internal-only "VULN" Jira project.
-  Also make sure there is nothing in the list that might have been tagged with the
-  wrong fix version.
+  bugfix etc.). Make sure that all tickets marked as `Mongo Internal` for their "Security Level"
+  field are excluded from the release notes, _except_ for tickets created for third-party
+  vulnerabilities. These vulnerability tickets will be linked to a corresponding ticket in the
+  internal-only "VULN" Jira project. Also make sure there is nothing in the list that might have
+  been tagged with the wrong fix version.
 - Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of
   `<INSERT-LIST-OF-TICKETS>`.
 - Remove the top line of the list of tickets that says
@@ -184,8 +186,8 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 
 - Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`. Don't go into too
   much unnecessary detail.
-- Submit a PR with your changes under the release ticket number, request reviews from the TAR Team Leads
-  and the DB Tools Product Manager. Merge once approved.
+- Submit a PR with your changes under the release ticket number, request reviews from the TAR Team
+  Leads and the DB Tools Product Manager. Merge once approved.
 
 #### Close Release Ticket
 
