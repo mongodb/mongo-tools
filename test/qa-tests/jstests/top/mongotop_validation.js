@@ -40,32 +40,32 @@ load('jstests/top/util/mongotop_common.js');
       .concat(sslOptions)), 0, '--rowcount assertion failure 1');
     assert.neq(runMongoProgram.apply(this, ['mongotop',
       '--port', conn.port, '--rowcount', 'hello']
-        .concat(passthrough.args)
-        .concat(sslOptions)), 0, '--rowcount assertion failure 2');
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, '--rowcount assertion failure 2');
     assert.neq(runMongoProgram.apply(this, ['mongotop',
       '--port', conn.port, '--rowcount', '']
-        .concat(passthrough.args)
-        .concat(sslOptions)), 0, '--rowcount assertion failure 3');
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, '--rowcount assertion failure 3');
 
     // when supplied invalid sleep times
     assert.neq(runMongoProgram.apply(this, ['mongotop',
       '--port', conn.port, '-4']
-        .concat(passthrough.args)
-        .concat(sslOptions)), 0, 'sleep time assertion failure 1');
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, 'sleep time assertion failure 1');
     assert.neq(runMongoProgram.apply(this, ['mongotop',
       '--port', conn.port, 'forever']
-        .concat(passthrough.args)
-        .concat(sslOptions)), 0, 'sleep time assertion failure 2');
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, 'sleep time assertion failure 2');
 
     // when supplied invalid options
     assert.neq(runMongoProgram.apply(this, ['mongotop',
       '--port', conn.port, '--elder']
-        .concat(passthrough.args)
-        .concat(sslOptions)), 0, 'invalid options failure 1');
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, 'invalid options failure 1');
     assert.neq(runMongoProgram.apply(this, ['mongotop',
       '--port', conn.port, '--price']
-        .concat(passthrough.args)
-        .concat(sslOptions)), 0, 'invalid options failure 2');
+      .concat(passthrough.args)
+      .concat(sslOptions)), 0, 'invalid options failure 2');
 
     t.stop();
   };

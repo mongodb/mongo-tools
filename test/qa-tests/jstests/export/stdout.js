@@ -32,11 +32,11 @@
 
   // export the data, writing to stdout
   var ret = toolTest.runTool('export', '--db', 'test',
-      '--collection', 'data',
-      '--ssl',
-      '--sslPEMKeyFile=jstests/libs/client.pem',
-      '--sslCAFile=jstests/libs/ca.pem',
-      '--sslAllowInvalidHostnames');
+    '--collection', 'data',
+    '--ssl',
+    '--sslPEMKeyFile=jstests/libs/client.pem',
+    '--sslCAFile=jstests/libs/ca.pem',
+    '--sslAllowInvalidHostnames');
   assert.eq(0, ret);
 
   // wait for full output to appear
