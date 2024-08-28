@@ -27,7 +27,7 @@ func init() {
 		Do(buildscript.WriteSBOMLite)
 	taskRegistry.Declare("writeAugmentedSBOM").
 		Description("create an Augmented SBOM file using the Silkbomb tool").
-		Do(buildscript.WriteSBOMLite)
+		Do(buildscript.WriteAugmentedSBOM)
 	taskRegistry.Declare("addDep").
 		Description("Add a dependency").
 		RequiredArg("pkg").
