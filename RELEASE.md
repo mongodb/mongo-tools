@@ -45,7 +45,69 @@ Complete these tasks before tagging a new release.
 Move the JIRA ticket for the release to the "In Progress" state. Ensure that its fixVersion matches
 the version being released.
 
-#### Ensure Evergreen Passing
+#### Check for Outstanding Vulnerabilities in Dependencies with Snyk
+
+You can view outstanding issues on
+[the Snyk dashboard for this project](https://app.snyk.io/org/dev-prod/project/e1b49d8a-45fc-45c5-8a45-fef4d3870a26).
+
+We have an SLA for releasing an updated version of the Database Tools to address _applicable_
+vulnerabilities in dependencies, based on the issue's severity. It's possible that a vulnerability
+is not applicable because the Database Tools code does not use the code path that leads to the
+vulnerability. This timeline **starts when the upstream fix is available, not when the issue is
+discovered**. The timeline for each severity level is as follows:
+
+- Critical or High severity - 30 days
+- Medium - 90 days
+- Low or None - no SLA
+
+If possible, we do not want to make a release with any known, applicable issues at the High or
+Critical severity levels, even if this would not violate our SLA.
+
+If possible, we would like to avoid releasing with known, applicable issues at the Medium severity
+level, but these can be deferred at the team's discretion.
+
+#### Create the Augmented SBOM File for the Upcoming Release
+
+You can generate this by running `go run build.go writeAugmentedSBOM`. This requires several
+environment variables to be set:
+
+- `SILK_CLIENT_ID` - available from 1Password.
+- `SILK_CLIENT_SECRET` - available from 1Password.
+- `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
+
+```
+SILK_CLIENT_ID="$client_id"\
+    SILK_CLIENT_SECRET="$clent_secret" \
+    EVG_TRIGGERED_BY_TAG=100.9.5 \
+    go run build.go writeAugmentedSBOM
+```
+
+The Silk credentials are shared with our team via 1Password.
+
+**Note that if there have been recent changes to this project's dependencies, these may not be
+reflected in the Augmented SBOM.** That's because new dependencies are only processed once per day.
+These are _first_ processed by Snyk based on the SBOM Lite file, `cyclonedx.sbom.json`. Then another
+service, Silk, ingests this file from Snyk and adds vulnerability information to it. That means it
+can take up to 48 hours before changes to our dependencies are reflected in the generated Augmented
+SBOM.
+
+If there are recently fixed third-party vulnerabilities, make sure that these are reflected in the
+Augmented SBOM before the release.
+
+See our [documentation on contributing](./CONTRIBUTING.md) for more details on how we handle
+dependency scanning and vulnerabilities.
+
+#### Ensure All Static Dependency Checks Pass
+
+The easiest way to do this is to run our linting, which includes `gosec`:
+
+`go run build.go sa:lint`
+
+If `gosec` reports any vulnerabilities, these must be addressed before release. See our
+[documentation on contributing](./CONTRIBUTING.md) for more details on how we handle these
+vulnerabilities.
+
+#### Ensure Evergreen is Passing
 
 Ensure that the build you are releasing is passing the tests on the evergreen waterfall. A
 completely green build is not mandatory, since we do have flaky tests; however, failing tasks should
@@ -67,12 +129,12 @@ The only uncompleted ticket in the release should be the release ticket. If ther
 tickets that will not be included in this release, remove the fixVersion and assign them a new one
 if appropriate.
 
-#### Update the release ticket
+#### Update the Release Ticket
 
 Mark the release ticket as "Docs Changes Needed". In "Docs Changes Summary", indicate that the
 release notes will be found in CHANGELOG.md after the release ticket is closed.
 
-### Releasing
+### Triggering the Release
 
 #### Major Release
 
@@ -83,12 +145,12 @@ instructions.
 
 #### Minor/Patch Release
 
-##### Ensure master up to date
+##### Ensure `master` Is Up to Date
 
 Ensure you have the `master` branch checked out, and that you have pulled the latest commit from
 `mongodb/mongo-tools`.
 
-##### Create the tag and push
+##### Create the Tag and Push
 
 Create an annotated tag and push it:
 
@@ -218,6 +280,13 @@ Copy your entry from CHANGELOG.md and post it to the
 [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools)
 in the "Developer Tools" section with the tag `database-tools`. Also post it in the #mongo-tools
 slack channel to announce it internally.
+
+#### Create a New SSDLC Compliance Report for the Release
+
+The report template is at `ssdlc/ssdlc-compliance-report-template.md`. Copy this to a new file
+containing the tag that was released. The name should follow the pattern of
+`ssdlc-compliance-report.$tag.md`. There are various variables in this template. Search for `$` to
+find them. Replace them with the correct values as appropriate.
 
 ### Handling Release Task Failures
 
