@@ -23,5 +23,6 @@ internal. Examples include:
 Vulnerabilities are created as internal by default. But once they're resolved, either being mitigated or 
 being marked as false positive, they should be publicly viewable following a new release. 
 Our [release process](RELEASE.md) requires the release manager to mark any resolved vulnerability tickets as public 
-and include them in the [changelog](CHANGELOG.md).
+and include them in the [changelog](CHANGELOG.md). Examples include:
+- [TOOLS-3615](https://jira.mongodb.org/browse/TOOLS-3615)
 
