@@ -45,10 +45,10 @@ Complete these tasks before tagging a new release.
 Move the JIRA ticket for the release to the "In Progress" state. Ensure that its fixVersion matches
 the version being released.
 
-#### Check for Outstanding Vulnerabilities in Dependencies with Snyk
+#### Check for Outstanding Vulnerabilities in Dependencies in Silk
 
-You can view outstanding issues on
-[the Snyk dashboard for this project](https://app.snyk.io/org/dev-prod/project/e1b49d8a-45fc-45c5-8a45-fef4d3870a26).
+You can view open findings on
+[the Silk dashboard for this project](https://us1.app.silk.security/inventory/code-repositories?assetId=mongodb____DedupedCodeAsset____dd18b99bbdf5e991fa452636302d07dd04bb48bd&assets-filters=%5B%7B%22filterCriteria%22%3A%22is%22%2C%22filterField%22%3A%22ignored_info.ignored%22%2C%22filterString%22%3A%5B%22false%22%5D%2C%22filterType%22%3A%22boolean%22%7D%2C%7B%22filterCriteria%22%3A%22is%22%2C%22filterField%22%3A%22project_name%22%2C%22filterString%22%3A%5B%22mongodb%2Fmongo-tools%22%5D%2C%22filterType%22%3A%22string%22%7D%5D&assets-page=1).
 
 We have an SLA for releasing an updated version of the Database Tools to address _applicable_
 vulnerabilities in dependencies, based on the issue's severity. It's possible that a vulnerability
@@ -65,6 +65,11 @@ Critical severity levels, even if this would not violate our SLA.
 
 If possible, we would like to avoid releasing with known, applicable issues at the Medium severity
 level, but these can be deferred at the team's discretion.
+
+Sometimes Silk will report findings that are not actual vulnerabilities. If you are confident this
+is the case, you can click on an individual finding, then click on the "Ignore" button. This will
+prompt you for the ignore reason. Pick the appropriate one and add a comment explaining why this is
+the case. If you're not sure if a finding is a false positive, discuss it with the team in Slack.
 
 #### Create the Augmented SBOM File for the Upcoming Release
 
