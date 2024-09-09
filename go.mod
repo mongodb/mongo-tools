@@ -1,6 +1,7 @@
 module github.com/mongodb/mongo-tools
 
 go 1.21
+toolchain go1.22.5
 
 require (
 	github.com/aws/aws-sdk-go v1.53.11
@@ -20,7 +21,7 @@ require (
 	go.mongodb.org/mongo-driver v1.16.0
 	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/exp v0.0.0-20240529005216-23cca8864a10
-	golang.org/x/mod v0.19.0
+	golang.org/x/mod v0.21.0
 	golang.org/x/term v0.22.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v2 v2.4.0
