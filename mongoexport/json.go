@@ -8,11 +8,16 @@ package mongoexport
 
 import (
 	"bytes"
+	"encoding/hex"
 	"io"
+	"reflect"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/json"
+	errors2 "github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // JSONExportOutput is an implementation of ExportOutput that writes documents
@@ -98,7 +103,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			}
 		}
 
-		jsonOut, err := bsonutil.MarshalExtJSONReversible(
+		jsonOut, err := marshalExtJSONUUIDString(
 			document,
 			jsonExporter.JSONFormat == Canonical,
 			false,
@@ -119,7 +124,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			return err
 		}
 	} else {
-		extendedDoc, err := bsonutil.MarshalExtJSONReversible(document, jsonExporter.JSONFormat == Canonical, false)
+		extendedDoc, err := marshalExtJSONUUIDString(document, jsonExporter.JSONFormat == Canonical, false)
 		if err != nil {
 			return err
 		}
@@ -131,4 +136,78 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 	}
 	jsonExporter.NumExported++
 	return nil
+}
+
+var tBinary = reflect.TypeOf(primitive.Binary{})
+
+func uuidString(uuid []byte) string {
+	var str [36]byte
+	hex.Encode(str[:], uuid[:4])
+	str[8] = '-'
+	hex.Encode(str[9:13], uuid[4:6])
+	str[13] = '-'
+	hex.Encode(str[14:18], uuid[6:8])
+	str[18] = '-'
+	hex.Encode(str[19:23], uuid[8:10])
+	str[23] = '-'
+	hex.Encode(str[24:], uuid[10:])
+	return string(str[:])
+}
+
+// binaryEncodeUUIDString is the ValueEncoderFunc for Binary.
+func binaryEncodeUUIDString(_ bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tBinary {
+		return bsoncodec.ValueEncoderError{Name: "binaryEncodeUUIDString", Types: []reflect.Type{tBinary}, Received: val}
+	}
+	b := val.Interface().(primitive.Binary)
+
+	if b.Subtype == bson.TypeBinaryUUID {
+		dw, err := vw.WriteDocument()
+		if err != nil {
+			return err
+		}
+		vw, err := dw.WriteDocumentElement("$uuid")
+		if err != nil {
+			return err
+		}
+
+		err = vw.WriteString(uuidString(b.Data))
+		if err != nil {
+			return err
+		}
+		return dw.WriteDocumentEnd()
+	}
+
+	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
+}
+
+var uuidStringReg *bsoncodec.Registry
+
+func init() {
+	uuidStringReg = bson.NewRegistry()
+	uuidStringReg.RegisterTypeEncoder(tBinary, bsoncodec.ValueEncoderFunc(binaryEncodeUUIDString))
+}
+
+func marshalExtJSONUUIDString(val interface{}, canonical bool, escapeHTML bool) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	vw, err := bsonrw.NewExtJSONValueWriter(buf, canonical, escapeHTML)
+	if err != nil {
+		return nil, err
+	}
+	enc, err := bson.NewEncoder(vw)
+	if err != nil {
+		return nil, err
+	}
+	enc.SetRegistry(uuidStringReg)
+	err = enc.Encode(val)
+	if err != nil {
+		return nil, err
+	}
+	jsonBytes := buf.Bytes()
+
+	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
+	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
+		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
+	}
+	return jsonBytes, nil
 }
