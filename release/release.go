@@ -1581,7 +1581,11 @@ func downloadArtifacts(v string, artifactNames []string) {
 		log.Fatalf("invalid empty token")
 	}
 
-	_, err = run("git", "clone", fmt.Sprintf("https://x-access-token:%s@github.com/10gen/mongo-release.git", token))
+	_, err = run(
+		"git",
+		"clone",
+		fmt.Sprintf("https://x-access-token:%s@github.com/10gen/mongo-release.git", token),
+	)
 	check(err, "git clone")
 
 	githash, err := run("git", "-C", "mongo-release", "log", "--pretty=format:%H", grepArg)
