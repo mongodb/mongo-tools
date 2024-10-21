@@ -89,6 +89,13 @@ functions:
         go run build.go -v ${target}
 
   "download mongod and shell":
+    - command: github.generate_token
+      params:
+        owner: 10gen
+        repo: mongo-release
+        expansion_name: generated_token_mongo_release
+        permissions:
+          contents: read
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
@@ -97,6 +104,7 @@ functions:
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
           go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
+        add_expansions_to_env: true
 
   "get buildnumber":
     command: keyval.inc

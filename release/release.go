@@ -1576,7 +1576,14 @@ func downloadArtifacts(v string, artifactNames []string) {
 	check(err, "os.Getwd")
 	fmt.Printf("pwd: %s\n", pwd)
 
-	_, err = run("git", "clone", "git@github.com:10gen/mongo-release.git")
+	_, err = run(
+		"git",
+		"clone",
+		fmt.Sprintf(
+			"https://x-access-token:%s@github.com/10gen/mongo-release.git",
+			getMongoReleaseAccessToken(),
+		),
+	)
 	check(err, "git clone")
 
 	githash, err := run("git", "-C", "mongo-release", "log", "--pretty=format:%H", grepArg)
@@ -1617,6 +1624,15 @@ func downloadArtifacts(v string, artifactNames []string) {
 			numArtifactsDownloaded,
 		)
 	}
+}
+
+func getMongoReleaseAccessToken() string {
+	const tokenVar = "generated_token_mongo_release"
+	token := os.Getenv(tokenVar)
+	if token == "" {
+		log.Fatalf("The environment must contain a nonempty %#q.", tokenVar)
+	}
+	return token
 }
 
 func getStaticFiles(repoRoot, releaseFilename string) []string {
