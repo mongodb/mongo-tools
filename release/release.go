@@ -1579,7 +1579,10 @@ func downloadArtifacts(v string, artifactNames []string) {
 	_, err = run(
 		"git",
 		"clone",
-		fmt.Sprintf("https://x-access-token:%s@github.com/10gen/mongo-release.git", getMongoReleaseAccessToken()),
+		fmt.Sprintf(
+			"https://x-access-token:%s@github.com/10gen/mongo-release.git",
+			getMongoReleaseAccessToken(),
+		),
 	)
 	check(err, "git clone")
 
