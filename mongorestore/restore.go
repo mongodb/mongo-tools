@@ -137,19 +137,6 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	namespaceString := fmt.Sprintf("%s.%s", namespace.DB, namespace.Collection)
 	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
-	for i, index := range indexes {
-		var key []string
-		for k := range index.Key.Map() {
-			key = append(key, k)
-		}
-		if len(key) == 1 && key[0] == "_id" {
-			// The _id index was created when the collection was created,
-			// so we do not build the index here.
-			indexes = append(indexes[:i], indexes[i+1:]...)
-			break
-		}
-	}
-
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
 		if restore.OutputOptions.ConvertLegacyIndexes {
