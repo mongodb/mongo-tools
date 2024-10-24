@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -31,6 +33,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	moptions "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -2852,6 +2855,58 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 	t.Run("restore from oplog", func(t *testing.T) {
 		testRestoreColumnstoreIndexFromOplog(t)
 	})
+}
+
+func TestRestoreMultipleIDIndexes(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+
+	coll := testDB.Collection("mycoll")
+
+	ctx := context.Background()
+
+	indexesToCreate := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"_id", 1}},
+			Options: moptions.Index().SetCollation(
+				&moptions.Collation{Locale: "de"},
+			),
+		},
+		{
+			Keys: bson.D{{"_id", 1}},
+			Options: moptions.Index().SetCollation(
+				&moptions.Collation{Locale: "ar"},
+			),
+		},
+		{Keys: bson.D{{"_id", "hashed"}}},
+	}
+
+	_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
+	require.NoError(err, "indexes created")
+
+	withBSONMongodumpForCollection(t, testDB.Name(), "mycoll", func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+	})
+
+	foundIndexes, err := coll.Indexes().ListSpecifications(ctx)
+
+	spew.Dump(foundIndexes)
 }
 
 // testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
