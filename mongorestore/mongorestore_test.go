@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -2933,8 +2934,8 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				restoredIndexes, err := coll.Indexes().ListSpecifications(ctx)
 				require.NoError(t, err, "list indexes should succeed")
 
-				t.Logf("archived: %+v", archivedIndexes)
-				t.Logf("restored: %+v", restoredIndexes)
+				t.Logf("archived: %s", spew.Sdump(archivedIndexes))
+				t.Logf("restored: %s", spew.Sdump(restoredIndexes))
 
 				assert.EqualExportedValues(
 					t,

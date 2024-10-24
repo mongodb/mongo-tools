@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
@@ -146,8 +145,6 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	if err != nil {
 		return fmt.Errorf("failed to remove default _id index from indexes list (%+v): %w", indexesFull, err)
 	}
-
-	fmt.Printf("%#q indexes: %s\n\n", namespaceString, spew.Sdump(indexes))
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
