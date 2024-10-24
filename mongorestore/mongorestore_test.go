@@ -2886,6 +2886,7 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				SetName("_id_hashed_ar").
 				SetCollation(&moptions.Collation{Locale: "ar"}),
 		},
+		{Keys: bson.D{{"_id", "2dsphere"}}},
 	}
 
 	_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)

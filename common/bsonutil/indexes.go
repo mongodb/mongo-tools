@@ -80,47 +80,16 @@ func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
 // will cause the index build to fail. See TOOLS-2412 for more information.
 //
 // This function logs the keys that are converted.
+//
+// For a “quiet” variant of this function, see NormalizeIndexKeyValue.
 func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexKey)
 	for j, elem := range indexKey {
-		switch v := elem.Value.(type) {
-		case int:
-			if v == 0 {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case int32:
-			if v == int32(0) {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case int64:
-			if v == int64(0) {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case float64:
-			if math.Abs(v-float64(0)) < epsilon {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case primitive.Decimal128:
-			if bi, _, err := v.BigInt(); err == nil {
-				if bi.Cmp(big.NewInt(0)) == 0 {
-					indexKey[j].Value = int32(1)
-					converted = true
-				}
-			}
-		case string:
-			// Only convert an empty string
-			if v == "" {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		default:
-			// Convert all types that aren't strings or numbers
-			indexKey[j].Value = int32(1)
+		newValue, convertedThis := NormalizeIndexKeyValue(elem.Value)
+
+		if convertedThis {
+			indexKey[j].Value = newValue
 			converted = true
 		}
 	}
@@ -134,6 +103,52 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 			ns,
 		)
 	}
+}
+
+// NormalizeIndexKeyValue provides ConvertLegacyIndexKeys’s implementation
+// without logging or mutating inputs. It just returns the normalized value
+// and a boolean that indicates whether the value was normalized/converted.
+func NormalizeIndexKeyValue(value any) (any, bool) {
+	var needsConversion bool
+
+	switch v := value.(type) {
+	case int:
+		if v == 0 {
+			needsConversion = true
+		}
+	case int32:
+		if v == int32(0) {
+			needsConversion = true
+		}
+	case int64:
+		if v == int64(0) {
+			needsConversion = true
+		}
+	case float64:
+		if math.Abs(v-float64(0)) < epsilon {
+			needsConversion = true
+		}
+	case primitive.Decimal128:
+		if bi, _, err := v.BigInt(); err == nil {
+			if bi.Cmp(big.NewInt(0)) == 0 {
+				needsConversion = true
+			}
+		}
+	case string:
+		// Only convert an empty string
+		if v == "" {
+			needsConversion = true
+		}
+	default:
+		// Convert all types that aren't strings or numbers
+		needsConversion = true
+	}
+
+	if needsConversion {
+		value = int32(1)
+	}
+
+	return value, needsConversion
 }
 
 // ConvertLegacyIndexOptions removes options that don't match a known list of index options.

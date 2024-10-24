@@ -137,6 +137,12 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	namespaceString := fmt.Sprintf("%s.%s", namespace.DB, namespace.Collection)
 	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
+	// The default _id index is created along with the collection,
+	// so we do not build that index here. We could try to submit it
+	// and tolerate errors, but since we create the indexes in batch
+	// that would significantly complicate the logic.
+	indexes = removeDefaultIdIndex(indexes)
+
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
 		if restore.OutputOptions.ConvertLegacyIndexes {
@@ -162,6 +168,27 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	}
 
 	return nil
+}
+
+func removeDefaultIdIndex(indexes []*idx.IndexDocument) []*idx.IndexDocument {
+	for i, index := range indexes {
+		indexKeyIsIdOnly := len(index.Key) == 1 && index.Key[0].Key == "_id"
+
+		if !indexKeyIsIdOnly {
+			continue
+		}
+
+		// We need to retain special indexes like hashed or 2dsphere. Historically
+		// “non-special” indexes weren’t always persisted with 1 as the value,
+		// so before we check we normalize.
+		normalizedVal, _ := bsonutil.NormalizeIndexKeyValue(index.Key[0].Value)
+		if normalizedVal == 1 {
+			indexes = append(indexes[:i], indexes[i+1:]...)
+			break
+		}
+	}
+
+	return indexes
 }
 
 func (restore *MongoRestore) PopulateMetadataForIntents() error {
