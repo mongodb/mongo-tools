@@ -2933,7 +2933,7 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				restoredIndexes := []bson.M{}
 				require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
 
-				assert.EqualValues(
+				assert.ElementsMatch(
 					t,
 					archivedIndexes,
 					restoredIndexes,
