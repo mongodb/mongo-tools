@@ -31,6 +31,42 @@ func Test_removeDefaultIdIndex(t *testing.T) {
 			},
 			DefaultIdIndexAt: 0,
 		},
+		{
+			Label: "_id index plus hashed",
+			Input: []*idx.IndexDocument{
+				{
+					Key: bson.D{{"_id", "hashed"}},
+				},
+				{
+					Key: bson.D{{"_id", int32(1)}},
+				},
+			},
+			DefaultIdIndexAt: 1,
+		},
+		{
+			Label: "_id index plus hashed (int(1))",
+			Input: []*idx.IndexDocument{
+				{
+					Key: bson.D{{"_id", "hashed"}},
+				},
+				{
+					Key: bson.D{{"_id", 1}},
+				},
+			},
+			DefaultIdIndexAt: 1,
+		},
+		{
+			Label: "_id index plus 2dsphere (int(1))",
+			Input: []*idx.IndexDocument{
+				{
+					Key: bson.D{{"_id", "2dsphere"}},
+				},
+				{
+					Key: bson.D{{"_id", 1}},
+				},
+			},
+			DefaultIdIndexAt: 1,
+		},
 	}
 
 	for _, curCase := range cases {
