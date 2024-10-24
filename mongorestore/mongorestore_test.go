@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -2904,8 +2903,8 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
 				require.NoError(t, err, "indexes should be created")
 
-				archivedIndexes, err := coll.Indexes().ListSpecifications(ctx)
-				require.NoError(t, err, "indexes should be listed")
+				archivedIndexes := []bson.M{}
+				require.NoError(t, listIndexes(ctx, coll, &archivedIndexes), "should list indexes")
 
 				withBSONMongodumpForCollection(t, testDB.Name(), "mycoll", func(dir string) {
 					restore, err := getRestoreWithArgs(
@@ -2931,11 +2930,8 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 					)
 				})
 
-				restoredIndexes, err := coll.Indexes().ListSpecifications(ctx)
-				require.NoError(t, err, "list indexes should succeed")
-
-				t.Logf("archived: %s", spew.Sdump(archivedIndexes))
-				t.Logf("restored: %s", spew.Sdump(restoredIndexes))
+				restoredIndexes := []bson.M{}
+				require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
 
 				assert.EqualExportedValues(
 					t,
@@ -2947,6 +2943,17 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 		)
 
 	}
+}
+
+func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) error {
+	ns := coll.Database().Name() + "." + coll.Name()
+
+	cursor, err := coll.Indexes().List(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start listing indexes for %#q: %w", ns, err)
+	}
+	err = cursor.All(ctx, target)
+	return fmt.Errorf("failed to list indexes for %#q: %w", ns, err)
 }
 
 // testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
