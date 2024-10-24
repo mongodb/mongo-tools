@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
@@ -142,6 +143,8 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	// and tolerate errors, but since we create the indexes in batch
 	// that would significantly complicate the logic.
 	indexes = removeDefaultIdIndex(indexes)
+
+	fmt.Printf("indexes: %s\n\n", spew.Sdump(indexes))
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
