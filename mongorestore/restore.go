@@ -137,17 +137,11 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	namespaceString := fmt.Sprintf("%s.%s", namespace.DB, namespace.Collection)
 	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
-	// The default _id index is created along with the collection.
-	// Thus, for restores to a pre-v8 cluster we do not build that index here.
-	// We could try to submit it and tolerate errors, but since we create the
-	// indexes in batch that would significantly complicate the logic.
-	//
-	// For v8+ we don’t need to remove anything, which is a bit safer because
-	// we do less parsing of the index specification. It also will allow
-	// restores of duplicate `_id` indexes should the server ever allow them.
-	if restore.serverVersion.LT(db.Version{8, 0, 0}) {
-		indexes = removeDefaultIdIndex(indexes)
-	}
+	// The default _id index is created along with the collection,
+	// so we do not build that index here. We could try to submit it
+	// and tolerate errors, but since we create the indexes in batch
+	// that would significantly complicate the logic.
+	indexes = removeDefaultIdIndex(indexes)
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
