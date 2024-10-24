@@ -9,6 +9,7 @@ package idx
 import (
 	"fmt"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -45,4 +46,28 @@ func NewIndexDocumentFromD(doc bson.D) (*IndexDocument, error) {
 	}
 
 	return &indexDoc, nil
+}
+
+// IsDefaultIdIndex indicates whether the IndexDocument represents its
+// collection’s default _id index.
+func (id *IndexDocument) IsDefaultIdIndex() bool {
+
+	// Default indexes can’t have partial filters.
+	if id.PartialFilterExpression != nil {
+		return false
+	}
+
+	indexKeyIsIdOnly := len(id.Key) == 1 && id.Key[0].Key == "_id"
+
+	if !indexKeyIsIdOnly {
+		return false
+	}
+
+	// We need to ignore special indexes like hashed or 2dsphere. Historically
+	// “non-special” indexes weren’t always persisted with 1 as the value,
+	// so before we check for “special” we normalize.
+	normalizedVal, _ := bsonutil.NormalizeIndexKeyValue(id.Key[0].Value)
+
+	// Default indexes are always { _id:1 }
+	return normalizedVal == int32(1)
 }

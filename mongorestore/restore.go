@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -134,15 +135,17 @@ func (restore *MongoRestore) RestoreIndexes() error {
 }
 
 func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Namespace) error {
-	var err error
 	namespaceString := fmt.Sprintf("%s.%s", namespace.DB, namespace.Collection)
-	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
+	indexesFull := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
 	// The default _id index is created along with the collection,
 	// so we do not build that index here. We could try to submit it
 	// and tolerate errors, but since we create the indexes in batch
 	// that would significantly complicate the logic.
-	indexes = removeDefaultIdIndex(indexes)
+	indexes, err := removeDefaultIdIndex(indexesFull)
+	if err != nil {
+		return fmt.Errorf("failed to remove default _id index from indexes list (%+v): %w", indexesFull, err)
+	}
 
 	fmt.Printf("%#q indexes: %s\n\n", namespaceString, spew.Sdump(indexes))
 
@@ -173,25 +176,25 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	return nil
 }
 
-func removeDefaultIdIndex(indexes []*idx.IndexDocument) []*idx.IndexDocument {
+func removeDefaultIdIndex(indexes []*idx.IndexDocument) ([]*idx.IndexDocument, error) {
+	var defaultIdIndexAt *int
+
 	for i, index := range indexes {
-		indexKeyIsIdOnly := len(index.Key) == 1 && index.Key[0].Key == "_id"
+		if index.IsDefaultIdIndex() {
+			if defaultIdIndexAt != nil {
+				return nil, fmt.Errorf("Found second default _id index (%+v)", indexes)
+			}
 
-		if !indexKeyIsIdOnly {
-			continue
-		}
-
-		// We need to retain special indexes like hashed or 2dsphere. Historically
-		// “non-special” indexes weren’t always persisted with 1 as the value,
-		// so before we check we normalize.
-		normalizedVal, _ := bsonutil.NormalizeIndexKeyValue(index.Key[0].Value)
-		if normalizedVal == 1 {
-			indexes = append(indexes[:i], indexes[i+1:]...)
-			break
+			var i2 = i
+			defaultIdIndexAt = &i2
 		}
 	}
 
-	return indexes
+	if defaultIdIndexAt != nil {
+		indexes = slices.Delete(indexes, *defaultIdIndexAt, 1+*defaultIdIndexAt)
+	}
+
+	return indexes, nil
 }
 
 func (restore *MongoRestore) PopulateMetadataForIntents() error {
