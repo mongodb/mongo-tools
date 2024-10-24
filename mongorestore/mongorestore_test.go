@@ -2873,19 +2873,19 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 	ctx := context.Background()
 
 	indexesToCreate := []mongo.IndexModel{
-		{
-			Keys: bson.D{{"_id", 1}},
-			Options: moptions.Index().SetCollation(
-				&moptions.Collation{Locale: "de"},
-			),
-		},
-		{
-			Keys: bson.D{{"_id", 1}},
-			Options: moptions.Index().SetCollation(
-				&moptions.Collation{Locale: "ar"},
-			),
-		},
 		{Keys: bson.D{{"_id", "hashed"}}},
+		{
+			Keys: bson.D{{"_id", "hashed"}},
+			Options: moptions.Index().
+				SetName("_id_hashed_de").
+				SetCollation(&moptions.Collation{Locale: "de"}),
+		},
+		{
+			Keys: bson.D{{"_id", "hashed"}},
+			Options: moptions.Index().
+				SetName("_id_hashed_ar").
+				SetCollation(&moptions.Collation{Locale: "ar"}),
+		},
 	}
 
 	_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
