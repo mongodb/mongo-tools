@@ -67,7 +67,7 @@ func (id *IndexDocument) IsDefaultIdIndex() bool {
 	// We need to ignore special indexes like hashed or 2dsphere. Historically
 	// “non-special” indexes weren’t always persisted with 1 as the value,
 	// so before we check for “special” we normalize.
-	normalizedVal, _ := bsonutil.NormalizeIndexKeyValue(id.Key[0].Value)
+	normalizedVal, _ := bsonutil.ConvertLegacyIndexKeyValue(id.Key[0].Value)
 
 	// Default indexes are always { _id:1 }. They’re probably always int32(1),
 	// but let’s be more permissive than that.

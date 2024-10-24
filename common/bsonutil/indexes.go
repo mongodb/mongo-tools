@@ -86,7 +86,7 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexKey)
 	for j, elem := range indexKey {
-		newValue, convertedThis := NormalizeIndexKeyValue(elem.Value)
+		newValue, convertedThis := ConvertLegacyIndexKeyValue(elem.Value)
 
 		if convertedThis {
 			indexKey[j].Value = newValue
@@ -105,10 +105,10 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	}
 }
 
-// NormalizeIndexKeyValue provides ConvertLegacyIndexKeys’s implementation
+// ConvertLegacyIndexKeyValue provides ConvertLegacyIndexKeys’s implementation
 // without logging or mutating inputs. It just returns the normalized value
 // and a boolean that indicates whether the value was normalized/converted.
-func NormalizeIndexKeyValue(value any) (any, bool) {
+func ConvertLegacyIndexKeyValue(value any) (any, bool) {
 	var needsConversion bool
 
 	switch v := value.(type) {

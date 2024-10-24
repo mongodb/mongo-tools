@@ -143,7 +143,11 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	// that would significantly complicate the logic.
 	indexes, err := removeDefaultIdIndex(indexesFull)
 	if err != nil {
-		return fmt.Errorf("failed to remove default _id index from indexes list (%+v): %w", indexesFull, err)
+		return fmt.Errorf(
+			"failed to remove default _id index from indexes list (%+v): %w",
+			indexesFull,
+			err,
+		)
 	}
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {

@@ -71,12 +71,19 @@ func Test_removeDefaultIdIndex(t *testing.T) {
 
 	for _, curCase := range cases {
 		Convey(
-			fmt.Sprintf("Verfifying that default _id indexes are removed when needed: %s", curCase.Label),
+			fmt.Sprintf(
+				"Verfifying that default _id indexes are removed when needed: %s",
+				curCase.Label,
+			),
 			t,
 			func() {
 				expect := slices.Clone(curCase.Input)
 				if curCase.DefaultIdIndexAt >= 0 {
-					expect = slices.Delete(expect, curCase.DefaultIdIndexAt, 1+curCase.DefaultIdIndexAt)
+					expect = slices.Delete(
+						expect,
+						curCase.DefaultIdIndexAt,
+						1+curCase.DefaultIdIndexAt,
+					)
 				}
 
 				got, err := removeDefaultIdIndex(slices.Clone(curCase.Input))
