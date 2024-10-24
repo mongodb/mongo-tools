@@ -275,10 +275,12 @@ Go to the
 Click on the version you just released. Then click the "Release" button in the upper right and click
 "Release" in the pop-up window.
 
-#### Move Any VULN-Linked Ticket to "Remediation Released"
+#### Confirm that VULN-Linked Tickets Were Updated Properly
 
-[Search for tickets in the "Remediated" state](https://jira.mongodb.org/issues/?jql=project%20%3D%20%2212385%22%20AND%20status%20%3D%20Remediated).
-For any such tickets where the fix is included in the release, move them to "Remediation Released".
+Any tickets that were in the release that were in the "Remediation Pending Release" state should be
+automatically transitioned to "Remediation Complete" when the release is marked as done in Jira. You
+can confirm this by searching for tickets in these two states and making sure that they have the
+expected status.
 
 #### Announce the release
 
