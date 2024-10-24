@@ -144,7 +144,7 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	// that would significantly complicate the logic.
 	indexes = removeDefaultIdIndex(indexes)
 
-	fmt.Printf("indexes: %s\n\n", spew.Sdump(indexes))
+	fmt.Printf("%#q indexes: %s\n\n", namespaceString, spew.Sdump(indexes))
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
