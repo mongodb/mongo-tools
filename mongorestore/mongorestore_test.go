@@ -2933,6 +2933,9 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				restoredIndexes, err := coll.Indexes().ListSpecifications(ctx)
 				require.NoError(t, err, "list indexes should succeed")
 
+				t.Logf("archived: %+v", archivedIndexes)
+				t.Logf("restored: %+v", restoredIndexes)
+
 				assert.EqualExportedValues(
 					t,
 					archivedIndexes,
