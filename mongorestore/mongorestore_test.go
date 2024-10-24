@@ -2933,7 +2933,7 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				restoredIndexes := []bson.M{}
 				require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
 
-				assert.EqualExportedValues(
+				assert.EqualValues(
 					t,
 					archivedIndexes,
 					restoredIndexes,
@@ -2945,6 +2945,9 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 	}
 }
 
+// ListSpecifications returns IndexSpecifications, which don’t describe all
+// parts of the index. So we need to List() the indexes directly and marshal
+// them to something that lets us compare everything.
 func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) error {
 	ns := coll.Database().Name() + "." + coll.Name()
 
