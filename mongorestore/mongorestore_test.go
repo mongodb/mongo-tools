@@ -2953,7 +2953,11 @@ func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) 
 		return fmt.Errorf("failed to start listing indexes for %#q: %w", ns, err)
 	}
 	err = cursor.All(ctx, target)
-	return fmt.Errorf("failed to list indexes for %#q: %w", ns, err)
+	if err != nil {
+		return fmt.Errorf("failed to list indexes for %#q: %w", ns, err)
+	}
+
+	return nil
 }
 
 // testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
