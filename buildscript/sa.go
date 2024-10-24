@@ -33,7 +33,7 @@ const (
 	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
 	preciousVersion     = "0.7.2"
-	ubiVersion          = "0.0.18"
+	ubiVersion          = "0.0.29"
 	prettierVersion     = "3.3.1"
 )
 
