@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -28,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -2857,12 +2857,10 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 }
 
 func TestRestoreMultipleIDIndexes(t *testing.T) {
-	require := require.New(t)
-
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	require.NoError(t, err, "can connect to server")
 
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
@@ -2871,42 +2869,80 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 
 	ctx := context.Background()
 
-	indexesToCreate := []mongo.IndexModel{
-		{Keys: bson.D{{"_id", "hashed"}}},
+	cases := []struct {
+		Label   string
+		Indexes []mongo.IndexModel
+	}{
 		{
-			Keys: bson.D{{"_id", "hashed"}},
-			Options: moptions.Index().
-				SetName("_id_hashed_de").
-				SetCollation(&moptions.Collation{Locale: "de"}),
+			Label: "multiple hashed + 2dsphere",
+			Indexes: []mongo.IndexModel{
+				{Keys: bson.D{{"_id", "hashed"}}},
+				{
+					Keys: bson.D{{"_id", "hashed"}},
+					Options: moptions.Index().
+						SetName("_id_hashed_de").
+						SetCollation(&moptions.Collation{Locale: "de"}),
+				},
+				{
+					Keys: bson.D{{"_id", "hashed"}},
+					Options: moptions.Index().
+						SetName("_id_hashed_ar").
+						SetCollation(&moptions.Collation{Locale: "ar"}),
+				},
+				{Keys: bson.D{{"_id", "2dsphere"}}},
+			},
 		},
-		{
-			Keys: bson.D{{"_id", "hashed"}},
-			Options: moptions.Index().
-				SetName("_id_hashed_ar").
-				SetCollation(&moptions.Collation{Locale: "ar"}),
-		},
-		{Keys: bson.D{{"_id", "2dsphere"}}},
 	}
 
-	_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
-	require.NoError(err, "indexes created")
+	for _, curCase := range cases {
+		indexesToCreate := curCase.Indexes
 
-	withBSONMongodumpForCollection(t, testDB.Name(), "mycoll", func(dir string) {
-		restore, err := getRestoreWithArgs(
-			DropOption,
-			dir,
+		t.Run(
+			curCase.Label,
+			func(t *testing.T) {
+				_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
+				require.NoError(t, err, "indexes should be created")
+
+				archivedIndexes, err := coll.Indexes().ListSpecifications(ctx)
+				require.NoError(t, err, "indexes should be listed")
+
+				withBSONMongodumpForCollection(t, testDB.Name(), "mycoll", func(dir string) {
+					restore, err := getRestoreWithArgs(
+						DropOption,
+						dir,
+					)
+					require.NoError(t, err)
+					defer restore.Close()
+
+					result := restore.Restore()
+					require.NoError(
+						t,
+						result.Err,
+						"%s: mongorestore should finish OK",
+						curCase.Label,
+					)
+					require.EqualValues(
+						t,
+						0,
+						result.Failures,
+						"%s: mongorestore should report 0 failures",
+						curCase.Label,
+					)
+				})
+
+				restoredIndexes, err := coll.Indexes().ListSpecifications(ctx)
+				require.NoError(t, err, "list indexes should succeed")
+
+				assert.Equal(
+					t,
+					archivedIndexes,
+					restoredIndexes,
+					"indexes should round-trip dump/restore",
+				)
+			},
 		)
-		require.NoError(err)
-		defer restore.Close()
 
-		result := restore.Restore()
-		require.NoError(result.Err, "can run mongorestore")
-		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
-	})
-
-	foundIndexes, err := coll.Indexes().ListSpecifications(ctx)
-
-	spew.Dump(foundIndexes)
+	}
 }
 
 // testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
