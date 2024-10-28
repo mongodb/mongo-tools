@@ -81,7 +81,7 @@ func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
 //
 // This function logs the keys that are converted.
 //
-// For a “quiet” variant of this function, see NormalizeIndexKeyValue.
+// For a “quiet” variant of this function, see ConvertLegacyIndexKeyValue.
 func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexKey)
