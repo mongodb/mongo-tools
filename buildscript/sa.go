@@ -90,10 +90,7 @@ func installUBI(ctx *task.Context) error {
 	case "windows":
 		ubiBootstrapURL = "https://raw.githubusercontent.com/houseabsolute/ubi/ci-for-bootstrap/bootstrap/bootstrap-ubi.ps1"
 	default:
-		ubiBootstrapURL = fmt.Sprintf(
-			"https://raw.githubusercontent.com/houseabsolute/ubi/v%s/bootstrap/bootstrap-ubi.sh",
-			ubiVersion,
-		)
+		ubiBootstrapURL = "https://raw.githubusercontent.com/houseabsolute/ubi/master/bootstrap/bootstrap-ubi.sh"
 	}
 
 	s := strings.Split(ubiBootstrapURL, "/")
