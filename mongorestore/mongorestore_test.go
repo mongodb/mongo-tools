@@ -2902,6 +2902,8 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 				t.Parallel()
 
 				for attemptNum := range [20]any{} {
+					attemptNum := attemptNum
+
 					t.Run(
 						fmt.Sprintf("%s attempt %d", curCase.Label, attemptNum),
 						func(t *testing.T) {
@@ -2923,7 +2925,6 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 							archivedIndexes := []bson.M{}
 							require.NoError(t, listIndexes(ctx, coll, &archivedIndexes), "should list indexes")
 
-							t.Logf("archived: %v", archivedIndexes)
 							withBSONMongodumpForCollection(t, testDB.Name(), coll.Name(), func(dir string) {
 								restore, err := getRestoreWithArgs(
 									DropOption,
