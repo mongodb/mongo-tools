@@ -2862,11 +2862,6 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 	session, err := testutil.GetBareSession()
 	require.NoError(t, err, "can connect to server")
 
-	dbName := uniqueDBName()
-	testDB := session.Database(dbName)
-
-	coll := testDB.Collection("mycoll")
-
 	ctx := context.Background()
 
 	cases := []struct {
@@ -2874,7 +2869,13 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 		Indexes []mongo.IndexModel
 	}{
 		{
-			Label: "multiple hashed + 2dsphere",
+			Label: "single simple hashed ID index",
+			Indexes: []mongo.IndexModel{
+				{Keys: bson.D{{"_id", "hashed"}}},
+			},
+		},
+		{
+			Label: "multiple hashed with collations and 2dsphere",
 			Indexes: []mongo.IndexModel{
 				{Keys: bson.D{{"_id", "hashed"}}},
 				{
@@ -2900,45 +2901,58 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 		t.Run(
 			curCase.Label,
 			func(t *testing.T) {
-				_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
-				require.NoError(t, err, "indexes should be created")
+				dbName := uniqueDBName()
+				testDB := session.Database(dbName)
 
-				archivedIndexes := []bson.M{}
-				require.NoError(t, listIndexes(ctx, coll, &archivedIndexes), "should list indexes")
+				coll := testDB.Collection("mycoll")
 
-				withBSONMongodumpForCollection(t, testDB.Name(), "mycoll", func(dir string) {
-					restore, err := getRestoreWithArgs(
-						DropOption,
-						dir,
-					)
-					require.NoError(t, err)
-					defer restore.Close()
+				for attemptNum := range [100]any{} {
+					_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
+					require.NoError(t, err, "indexes should be created")
 
-					result := restore.Restore()
-					require.NoError(
+					archivedIndexes := []bson.M{}
+					require.NoError(t, listIndexes(ctx, coll, &archivedIndexes), "should list indexes")
+
+					t.Logf("archived: %v", archivedIndexes)
+					withBSONMongodumpForCollection(t, testDB.Name(), "mycoll", func(dir string) {
+						restore, err := getRestoreWithArgs(
+							DropOption,
+							dir,
+						)
+						require.NoError(t, err)
+						defer restore.Close()
+
+						result := restore.Restore()
+						require.NoError(
+							t,
+							result.Err,
+							"%s: mongorestore should finish OK",
+							curCase.Label,
+						)
+						require.EqualValues(
+							t,
+							0,
+							result.Failures,
+							"%s: mongorestore should report 0 failures",
+							curCase.Label,
+						)
+					})
+
+					restoredIndexes := []bson.M{}
+					require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
+
+					ok := assert.ElementsMatch(
 						t,
-						result.Err,
-						"%s: mongorestore should finish OK",
-						curCase.Label,
+						archivedIndexes,
+						restoredIndexes,
+						"indexes should round-trip dump/restore (attempt #%d)",
+						1+attemptNum,
 					)
-					require.EqualValues(
-						t,
-						0,
-						result.Failures,
-						"%s: mongorestore should report 0 failures",
-						curCase.Label,
-					)
-				})
 
-				restoredIndexes := []bson.M{}
-				require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
-
-				assert.ElementsMatch(
-					t,
-					archivedIndexes,
-					restoredIndexes,
-					"indexes should round-trip dump/restore",
-				)
+					if !ok {
+						break
+					}
+				}
 			},
 		)
 
