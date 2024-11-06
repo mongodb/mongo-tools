@@ -517,7 +517,7 @@ func (dump *MongoDump) DumpIntents() error {
 	log.Logvf(log.Info, "dumping up to %v collections in parallel", jobs)
 
 	// start a goroutine for each job thread
-	for i := 0; i < jobs; i++ {
+	for i := range jobs {
 		go func(id int) {
 			buffer := dump.getResettableOutputBuffer()
 			log.Logvf(log.DebugHigh, "starting dump routine with id=%v", id)
