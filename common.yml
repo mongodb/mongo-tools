@@ -2002,7 +2002,6 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: macos-1014-codesign
       - name: "push"
         run_on: rhel80-small
 
@@ -2019,7 +2018,6 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: macos-1014-codesign
       - name: "push"
         run_on: rhel80-small
 
