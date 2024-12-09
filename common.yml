@@ -307,6 +307,7 @@ functions:
         ARTIFACTORY_USERNAME: ${artifactory_username}
         GARASIGN_PASSWORD: ${garasign_password}
         GARASIGN_USERNAME: ${garasign_username}
+        AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
         TASK_ID: ${task_id}
       args:
         - "./scripts/sign_artifacts.sh"
