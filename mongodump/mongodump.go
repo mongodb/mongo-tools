@@ -226,6 +226,11 @@ func (dump *MongoDump) Dump() (err error) {
 		return nil
 	}
 
+	if !dump.OutputOptions.Oplog && (dump.InputOptions.sourceWritesDoneBarrier != "") {
+		// Wait for tests to stop writes before dumping any collections
+		waitForSourceWritesDoneBarrier(dump.InputOptions.sourceWritesDoneBarrier)
+	}
+
 	log.Logvf(log.DebugHigh, "starting Dump()")
 
 	dump.shutdownIntentsNotifier = newNotifier()
@@ -430,6 +435,10 @@ func (dump *MongoDump) Dump() (err error) {
 	// we check to see if the oplog has rolled over (i.e. the most recent entry when
 	// we started still exist, so we know we haven't lost data)
 	if dump.OutputOptions.Oplog {
+	    if dump.InputOptions.sourceWritesDoneBarrier != "" {
+		    // Wait for tests to stop writes before choosing the oplogEnd time
+		    waitForSourceWritesDoneBarrier(dump.InputOptions.sourceWritesDoneBarrier)
+	    }
 		dump.oplogEnd, err = dump.getCurrentOplogTime()
 		if err != nil {
 			return fmt.Errorf("error getting oplog end: %v", err)
