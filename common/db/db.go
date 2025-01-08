@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/youmark/pkcs8"
@@ -286,6 +288,33 @@ func addCACertsFromFile(cfg *tls.Config, file string) error {
 	return nil
 }
 
+// AKSCallback is a callback function that can be used to authenticate with Azure Kubernetes
+// Service. See https://github.com/pmeredit/atlas-azure-fed-auth for testing, speficially the go
+// test with AKS.
+func AKSCallback(
+	ctx context.Context,
+	_ *mopt.OIDCArgs,
+) (*mopt.OIDCCredential, error) {
+	appID := os.Getenv("AZURE_APP_CLIENT_ID")
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, err
+	}
+	opts := policy.TokenRequestOptions{
+		Scopes: []string{
+			fmt.Sprintf("api://%s/.default", appID),
+		},
+	}
+	token, err := cred.GetToken(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &mopt.OIDCCredential{
+		AccessToken: token.Token,
+		ExpiresAt:   &token.ExpiresOn,
+	}, nil
+}
+
 // configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if opts.URI == nil || opts.URI.ConnectionString == "" {
@@ -431,9 +460,31 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			AuthSource:    opts.GetAuthenticationDatabase(),
 			AuthMechanism: opts.Auth.Mechanism,
 		}
-		if cs.AuthMechanism == "MONGODB-AWS" || cs.AuthMechanism == "MONGODB-OIDC" {
+		if cs.AuthMechanism == "MONGODB-AWS" {
 			cred.Username = cs.Username
 			cred.Password = cs.Password
+			cred.AuthSource = cs.AuthSource
+			cred.AuthMechanism = cs.AuthMechanism
+			cred.AuthMechanismProperties = cs.AuthMechanismProperties
+		} else if cs.AuthMechanism == "MONGODB-OIDC" {
+			if env, ok := cs.AuthMechanismProperties["ENVIRONMENT"]; ok && env == "azure" {
+				_, okApp := os.LookupEnv("AZURE_APP_CLIENT_ID")
+				_, okClient := os.LookupEnv("AZURE_IDENTITY_CLIENT_ID")
+				_, okTenant := os.LookupEnv("AZURE_TENANT_ID")
+				_, okToken := os.LookupEnv("AZURE_FEDERATED_TOKEN_FILE")
+				if okApp && okClient && okTenant && okToken {
+					cred.OIDCMachineCallback = AKSCallback
+					// We must delete the ENVIRONMENT because we are using a custom
+					// callback
+					delete(cs.AuthMechanismProperties, "ENVIRONMENT")
+				} else if okApp || okClient || okTenant || okToken {
+					return nil, fmt.Errorf(
+						"must set all of AZURE_TENANT_ID, AZURE_APP_CLIENT, AZURE_IDENTITY_CLIENT_ID, " +
+							"and AZURE_FEDERATED_TOKEN_FILE for Azure Kubernetes Service")
+				}
+			}
+			cred.Username = cs.Username
+			// Password is never used
 			cred.AuthSource = cs.AuthSource
 			cred.AuthMechanism = cs.AuthMechanism
 			cred.AuthMechanismProperties = cs.AuthMechanismProperties
