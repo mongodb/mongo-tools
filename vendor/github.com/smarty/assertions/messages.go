@@ -1,17 +1,12 @@
 package assertions
 
 const (
-	shouldHaveBeenEqual              = "Expected: '%v'\nActual:   '%v'\n(Should be equal)"
-	shouldHaveBeenEqualNoResemblance = "Both the actual and expected values render equally ('%s') and their types are the same. Try using ShouldResemble instead."
-	shouldNotHaveBeenEqual           = "Expected     '%v'\nto NOT equal '%v'\n(but it did)!"
-	shouldHaveBeenEqualTypeMismatch  = "Expected: '%v' (%T)\nActual:   '%v' (%T)\n(Should be equal, type mismatch)"
-
 	shouldHaveBeenAlmostEqual    = "Expected '%v' to almost equal '%v' (but it didn't)!"
 	shouldHaveNotBeenAlmostEqual = "Expected '%v' to NOT almost equal '%v' (but it did)!"
 
-	shouldHaveResembled            = "Expected: %s\nActual:   %s\n(Should equal)!"
-	shouldHaveResembledButTypeDiff = "Expected: %s\nActual:   %s\n(Should equal, but there is a type difference within the two)!"
-	shouldNotHaveResembled         = "Expected        '%#v'\nto NOT resemble '%#v'\n(but it did)!"
+	shouldHaveBeenEqual            = "Expected: %s\nActual:   %s\n(Should equal)!"
+	shouldHaveBeenEqualButTypeDiff = "Expected: %s\nActual:   %s\n(Should equal, but there is a type difference within the two)!"
+	shouldNotHaveBeenEqual         = "Expected     '%v'\nto NOT equal '%v'\n(but it did)!"
 
 	shouldBePointers            = "Both arguments should be pointers "
 	shouldHaveBeenNonNilPointer = shouldBePointers + "(the %s was %s)!"
@@ -51,8 +46,9 @@ const (
 	shouldHaveBeenIn    = "Expected '%v' to be in the container (%v), but it wasn't!"
 	shouldNotHaveBeenIn = "Expected '%v' NOT to be in the container (%v), but it was!"
 
-	shouldHaveBeenEmpty    = "Expected %+v to be empty (but it wasn't)!"
-	shouldNotHaveBeenEmpty = "Expected %+v to NOT be empty (but it was)!"
+	shouldHaveBeenEmpty          = "Expected %+v to be empty (but it wasn't)!"
+	shouldNotHaveBeenEmpty       = "Expected %+v to NOT be empty (but it was)!"
+	shouldHaveBeenEmptyWrongKind = "Expected value's kind to be slice, chan, map, or string (you provided %s)!"
 
 	shouldHaveBeenAValidInteger = "You must provide a valid integer (was %v)!"
 	shouldHaveBeenAValidLength  = "You must provide a valid positive integer (was %v)!"
