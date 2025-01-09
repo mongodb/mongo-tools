@@ -1,7 +1,7 @@
 {
   "components": [
     {
-      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.11.1",
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.17.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -9,7 +9,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.11.1"
+          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.17.0"
         }
       ],
       "group": "github.com/Azure/azure-sdk-for-go/sdk",
@@ -21,12 +21,12 @@
         }
       ],
       "name": "azcore",
-      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.11.1",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.17.0",
       "type": "library",
-      "version": "v1.11.1"
+      "version": "v1.17.0"
     },
     {
-      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.7.0-beta.1",
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.8.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -34,7 +34,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.7.0-beta.1"
+          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.8.0"
         }
       ],
       "group": "github.com/Azure/azure-sdk-for-go/sdk",
@@ -46,12 +46,12 @@
         }
       ],
       "name": "azidentity",
-      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.7.0-beta.1",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.8.0",
       "type": "library",
-      "version": "v1.7.0-beta.1"
+      "version": "v1.8.0"
     },
     {
-      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.8.0",
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.10.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -59,7 +59,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.8.0"
+          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.10.0"
         }
       ],
       "group": "github.com/Azure/azure-sdk-for-go/sdk",
@@ -71,9 +71,9 @@
         }
       ],
       "name": "internal",
-      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.8.0",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.10.0",
       "type": "library",
-      "version": "v1.8.0"
+      "version": "v1.10.0"
     },
     {
       "bom-ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.3.2",
@@ -1281,13 +1281,13 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.11.1"
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.17.0"
     },
     {
-      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.7.0-beta.1"
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.8.0"
     },
     {
-      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.8.0"
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.10.0"
     },
     {
       "ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.3.2"
