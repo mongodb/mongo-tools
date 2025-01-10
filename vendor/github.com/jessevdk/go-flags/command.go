@@ -30,12 +30,6 @@ type Command struct {
 	// Whether positional arguments are required
 	ArgsRequired bool
 
-	// Whether to pass all arguments after the first non option as remaining
-	// command line arguments. This is equivalent to strict POSIX processing.
-	// This is command-local version of PassAfterNonOption Parser flag. It
-	// cannot be turned off when PassAfterNonOption Parser flag is set.
-	PassAfterNonOption bool
-
 	commands            []*Command
 	hasBuiltinHelpGroup bool
 	args                []*Arg
@@ -250,7 +244,6 @@ func (c *Command) scanSubcommandHandler(parentg *Group) scanHandler {
 			longDescription := mtag.Get("long-description")
 			subcommandsOptional := mtag.Get("subcommands-optional")
 			aliases := mtag.GetMany("alias")
-			passAfterNonOption := mtag.Get("pass-after-non-option")
 
 			subc, err := c.AddCommand(subcommand, shortDescription, longDescription, ptrval.Interface())
 
@@ -266,10 +259,6 @@ func (c *Command) scanSubcommandHandler(parentg *Group) scanHandler {
 
 			if len(aliases) > 0 {
 				subc.Aliases = aliases
-			}
-
-			if len(passAfterNonOption) > 0 {
-				subc.PassAfterNonOption = true
 			}
 
 			return true, nil

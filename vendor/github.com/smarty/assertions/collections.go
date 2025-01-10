@@ -152,19 +152,32 @@ func ShouldBeEmpty(actual any, expected ...any) string {
 	}
 
 	value := reflect.ValueOf(actual)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
 	switch value.Kind() {
-	case reflect.Array, reflect.Slice, reflect.Chan, reflect.Map, reflect.String:
+	case reflect.Slice:
 		if value.Len() == 0 {
 			return success
-		} else {
-			return fmt.Sprintf(shouldHaveBeenEmpty, actual)
 		}
-	default:
-		return fmt.Sprintf(shouldHaveBeenEmptyWrongKind, value.Kind())
+	case reflect.Chan:
+		if value.Len() == 0 {
+			return success
+		}
+	case reflect.Map:
+		if value.Len() == 0 {
+			return success
+		}
+	case reflect.String:
+		if value.Len() == 0 {
+			return success
+		}
+	case reflect.Ptr:
+		elem := value.Elem()
+		kind := elem.Kind()
+		if (kind == reflect.Slice || kind == reflect.Array) && elem.Len() == 0 {
+			return success
+		}
 	}
+
+	return fmt.Sprintf(shouldHaveBeenEmpty, actual)
 }
 
 // ShouldNotBeEmpty receives a single parameter (actual) and determines whether

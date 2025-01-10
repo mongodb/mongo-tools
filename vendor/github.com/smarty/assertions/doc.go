@@ -87,8 +87,11 @@ func (this *Assertion) So(actual any, assert SoFunc, expected ...any) bool {
 // For an alternative implementation of So (that provides more flexible return options)
 // see the `So` function in the package at github.com/smarty/assertions/assert.
 func So(actual any, assert SoFunc, expected ...any) (bool, string) {
-	result := so(actual, assert, expected...)
-	return len(result) == 0, result
+	if result := so(actual, assert, expected...); len(result) == 0 {
+		return true, result
+	} else {
+		return false, result
+	}
 }
 
 // so is like So, except that it only returns the string message, which is blank if the

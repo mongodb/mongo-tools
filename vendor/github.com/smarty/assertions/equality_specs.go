@@ -14,7 +14,6 @@ type specification interface {
 var equalitySpecs = []specification{
 	numericEquality{},
 	timeEquality{},
-	pointerEquality{},
 	deepEquality{},
 	equalityMethodSpecification{}, // Now that we have the timeEquality spec, this could probably be removed..
 }
@@ -117,19 +116,4 @@ func (timeEquality) passes(a, b any) bool {
 func isTime(v any) bool {
 	_, ok := v.(time.Time)
 	return ok
-}
-
-type pointerEquality struct{}
-
-func (pointerEquality) assertable(a, b any) bool {
-	return areSameType(a, b) && isKind(reflect.Func, a)
-}
-func (pointerEquality) passes(a, b any) bool {
-	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
-}
-func areSameType(a, b any) bool {
-	return reflect.TypeOf(a) == reflect.TypeOf(b)
-}
-func isKind(kind reflect.Kind, a any) bool {
-	return reflect.ValueOf(a).Kind() == kind
 }

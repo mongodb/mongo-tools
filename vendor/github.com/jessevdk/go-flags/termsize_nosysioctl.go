@@ -1,5 +1,4 @@
-//go:build plan9 || appengine || wasm || aix
-// +build plan9 appengine wasm aix
+// +build plan9 appengine wasm
 
 package flags
 
