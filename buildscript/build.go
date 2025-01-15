@@ -30,7 +30,7 @@ var pkgNames = []string{
 }
 
 // minimumGoVersion must be prefixed with v to be parsed by golang.org/x/mod/semver.
-const minimumGoVersion = "v1.22.10"
+const minimumGoVersion = "v1.22.9"
 
 func CheckMinimumGoVersion(ctx *task.Context) error {
 	goVersionStr, err := runCmd(ctx, "go", "version")
