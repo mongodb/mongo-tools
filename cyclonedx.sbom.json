@@ -1099,6 +1099,7 @@
       "version": "v0.19.0"
     },
     {
+<<<<<<< HEAD
       "bom-ref": "pkg:golang/golang.org/x/net@v0.34.0",
       "externalReferences": [
         {
@@ -1124,6 +1125,8 @@
       "version": "v0.34.0"
     },
     {
+=======
+>>>>>>> master
       "bom-ref": "pkg:golang/golang.org/x/sync@v0.10.0",
       "externalReferences": [
         {
@@ -1266,17 +1269,21 @@
       "version": "v3.0.1"
     },
     {
-      "bom-ref": "pkg:golang/std@go1.21.13",
+      "bom-ref": "pkg:golang/std@go1.22.10",
       "externalReferences": [
         {
           "type": "website",
-          "url": "https://pkg.go.dev/None/std@go1.21.13"
+          "url": "https://pkg.go.dev/None/std@go1.22.10"
         }
       ],
       "name": "std",
-      "purl": "pkg:golang/std@go1.21.13",
+      "purl": "pkg:golang/std@go1.22.10",
       "type": "library",
+<<<<<<< HEAD
       "version": "go1.22.6"
+=======
+      "version": "go1.22.10"
+>>>>>>> master
     }
   ],
   "dependencies": [
@@ -1437,11 +1444,11 @@
       "ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
     },
     {
-      "ref": "pkg:golang/std@go1.21.13"
+      "ref": "pkg:golang/std@go1.22.10"
     }
   ],
   "metadata": {
-    "timestamp": "2025-01-10T16:16:50.206945+00:00",
+    "timestamp": "2025-01-15T19:05:18.567230+00:00",
     "tools": [
       {
         "externalReferences": [
