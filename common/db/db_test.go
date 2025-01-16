@@ -452,3 +452,74 @@ func TestConfigureClientMultipleHosts(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 }
+
+func TestConfigureClientAKS(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey(
+		"Configuring options with azure ENVIRONMENT and proper OS environments set should use the AKSCallback",
+		t,
+		func() {
+			enabled := options.EnabledOptions{
+				Auth:       true,
+				Connection: true,
+				Namespace:  true,
+				URI:        true,
+			}
+
+			os.Setenv("AZURE_APP_CLIENT_ID", "test")
+			os.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
+			os.Setenv("AZURE_TENANT_ID", "test")
+			os.Setenv("AZURE_FEDERATED_TOKEN_FILE", "test")
+			toolOptions := options.New("test", "", "", "", true, enabled)
+			_, err := toolOptions.ParseArgs(
+				[]string{
+					"--uri",
+					"mongodb://test.net/?directConnection=true&tls=true&authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:azure",
+				},
+			)
+			So(err, ShouldBeNil)
+
+			_, err = configureClient(*toolOptions)
+			So(err, ShouldBeNil)
+			So(toolOptions.Auth.Mechanism, ShouldEqual, "MONGODB-OIDC")
+			os.Unsetenv("AZURE_APP_CLIENT_ID")
+			os.Unsetenv("AZURE_IDENTITY_CLIENT_ID")
+			os.Unsetenv("AZURE_TENANT_ID")
+			os.Unsetenv("AZURE_FEDERATED_TOKEN_FILE")
+		},
+	)
+}
+
+func TestMissConfigureClientAKS(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey(
+		"Configuring options with azure ENVIRONMENT and strict subset of OS environments set should be an error",
+		t,
+		func() {
+			enabled := options.EnabledOptions{
+				Auth:       true,
+				Connection: true,
+				Namespace:  true,
+				URI:        true,
+			}
+
+			os.Setenv("AZURE_APP_CLIENT_ID", "test")
+			os.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
+			os.Setenv("AZURE_TENANT_ID", "test")
+			toolOptions := options.New("test", "", "", "", true, enabled)
+			_, err := toolOptions.ParseArgs(
+				[]string{
+					"--uri",
+					"mongodb://test.net/?directConnection=true&tls=true&authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:azure",
+				},
+			)
+			So(err, ShouldBeNil)
+
+			_, err = configureClient(*toolOptions)
+			So(err, ShouldNotBeNil)
+			os.Unsetenv("AZURE_APP_CLIENT_ID")
+			os.Unsetenv("AZURE_IDENTITY_CLIENT_ID")
+			os.Unsetenv("AZURE_TENANT_ID")
+		},
+	)
+}
