@@ -267,16 +267,11 @@ Organization ID from there. **Make sure you are in the `dev-prod` organization!*
 
 If the dependency you just added has any known vulnerabilities this command will report them.
 
-**We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies. All
-vulnerabilities found in the `master` branch must be resolved before a release.**
+**We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies unless
+there is no fixed version available. All vulnerabilities found in the `master` branch must be
+resolved before a release.**
 
-We can address them in one of the following ways:
-
-1. Upgrade to a new version of the dependency which contains a fix.
-2. **MongoDB employees only** - Use [the Silk UI](https://us1.app.silk.security/) to create a new
-   ticket in the `VULN` project and transition the ticket to "Rejected". You will need to select a
-   "State" describing why this ticket was rejected, which can be one of "not affected", or "false
-   positive". You will also supply a "Justification", which will end up in the Augmented SBOM.
+There are more details about how we handle vulnerabilities in [the release docs](RELEASE.md)
 
 ### Software Security Development Lifecycle (SSDLC) Notes
 
