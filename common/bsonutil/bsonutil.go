@@ -486,5 +486,33 @@ func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool) 
 	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
 		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
+
+	var leftD, rightD bson.D
+
+	// Convert `val` to `bson.D` for comparison purposes.
+	switch v := val.(type) {
+	case bson.D:
+		leftD = v
+	case bson.M:
+		leftD = MtoD(v)
+	default:
+		return nil, fmt.Errorf("val type cannot be converted to bson.D")
+	}
+
+	// Convert `reversedVal` to `bson.D` for comparison purposes.
+	switch v := reversedVal.(type) {
+	case bson.D:
+		rightD = v
+	case bson.M:
+		rightD = MtoD(v)
+	default:
+		return nil, fmt.Errorf("reversedVal type cannot be converted to bson.D")
+	}
+
+	isEqual, _ := IsEqual(leftD, rightD)
+	if !isEqual {
+		return nil, fmt.Errorf("inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies")
+	}
+
 	return jsonBytes, nil
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func TestBson2Float64(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	// testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	assert := assert.New(t)
 
@@ -103,19 +103,29 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	tests := []struct {
-		val          any
-		canonical    bool
-		reversible   bool
-		expectedJSON string
+		val                  any
+		canonical            bool
+		reversible           bool
+		convertibleToExtJSON bool
+		expectedJSON         string
 	}{
+		{
+			bson.M{"field1": bson.M{"abc": int64(123)}},
+			true,
+			true,
+			true,
+			`{"field1":{"abc":{"$numberLong":"123"}}}`,
+		},
 		{
 			bson.M{"field1": bson.M{"$date": 1257894000000}},
 			true,
 			true,
-			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
+			false,
+			``,
 		},
 		{
 			bson.M{"field1": time.Unix(1257894000, 0)},
+			true,
 			true,
 			true,
 			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
@@ -123,6 +133,7 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 		{
 			bson.M{"field1": bson.M{"$date": "invalid"}},
 			true,
+			false,
 			false,
 			``,
 		},
@@ -132,6 +143,8 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 		json, err := MarshalExtJSONReversible(test.val, test.canonical, false)
 		if !test.reversible {
 			assert.ErrorContains(t, err, "marshal is not reversible")
+		} else if !test.convertibleToJSON {
+			assert.ErrorContains(t, err, "inconsistent metadata detected during dump")
 		} else {
 			assert.NoError(t, err)
 		}
