@@ -486,36 +486,52 @@ func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool) 
 	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
 		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
-
-	var leftD, rightD bson.D
-	testBSONEquality := true
-
-	// Convert `val` to `bson.D` for comparison purposes.
-	switch v := val.(type) {
-	case bson.D:
-		leftD = v
-	case bson.M:
-		leftD = MtoD(v)
-	default:
-		testBSONEquality = false
+	originalBSON, err := bson.Marshal(val)
+	if err != nil {
+		return jsonBytes, nil
+	}
+	reversedBSON, err := bson.Marshal(reversedVal)
+	if err != nil {
+		return nil, errors2.Wrap(err, "failed to marshal reversed value to BSON")
+	}
+	// Compare the two BSON byte slices directly
+	if !reflect.DeepEqual(originalBSON, reversedBSON) {
+		return nil, fmt.Errorf("inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies")
 	}
 
-	// Convert `reversedVal` to `bson.D` for comparison purposes.
-	switch v := reversedVal.(type) {
-	case bson.D:
-		rightD = v
-	case bson.M:
-		rightD = MtoD(v)
-	default:
-		testBSONEquality = false
-	}
+	// if !reflect.DeepEqual(val, reversedVal) {
+	// 	return nil, fmt.Errorf("inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies")
+	// }
 
-	if testBSONEquality {
-		isEqual, _ := IsEqual(leftD, rightD)
-		if !isEqual {
-			return nil, fmt.Errorf("inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies")
-		}
-	}
+	// var leftD, rightD bson.D
+	// testBSONEquality := true
+
+	// // Convert `val` to `bson.D` for comparison purposes.
+	// switch v := val.(type) {
+	// case bson.D:
+	// 	leftD = v
+	// case bson.M:
+	// 	leftD = MtoD(v)
+	// default:
+	// 	testBSONEquality = false
+	// }
+
+	// // Convert `reversedVal` to `bson.D` for comparison purposes.
+	// switch v := reversedVal.(type) {
+	// case bson.D:
+	// 	rightD = v
+	// case bson.M:
+	// 	rightD = MtoD(v)
+	// default:
+	// 	testBSONEquality = false
+	// }
+
+	// if testBSONEquality {
+	// 	isEqual, _ := IsEqual(leftD, rightD)
+	// 	if !isEqual {
+	// 		return nil, fmt.Errorf("inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies")
+	// 	}
+	// }
 
 	return jsonBytes, nil
 }
