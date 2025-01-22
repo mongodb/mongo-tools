@@ -143,7 +143,7 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 		json, err := MarshalExtJSONReversible(test.val, test.canonical, false)
 		if !test.reversible {
 			assert.ErrorContains(t, err, "marshal is not reversible")
-		} else if !test.convertibleToJSON {
+		} else if !test.convertibleToExtJSON {
 			assert.ErrorContains(t, err, "inconsistent metadata detected during dump")
 		} else {
 			assert.NoError(t, err)
