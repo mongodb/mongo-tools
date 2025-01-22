@@ -1441,7 +1441,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-01-21T14:38:32.462136+00:00",
+    "timestamp": "2025-01-22T14:40:52.674289+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1496,7 +1496,7 @@
       "analysis": {
         "state": "in_triage"
       },
-      "bom-ref": "BomRef.12080884083566246.15137544465500075",
+      "bom-ref": "BomRef.7420732457585157.33533927072103453",
       "created": "2023-12-18T23:44:37+00:00",
       "cwes": [
         285,
@@ -1545,7 +1545,7 @@
       "analysis": {
         "state": "in_triage"
       },
-      "bom-ref": "BomRef.37466844625302975.11108932108106773",
+      "bom-ref": "BomRef.21728484505814616.222788129669669",
       "created": "2023-03-07T03:10:55+00:00",
       "cwes": [
         79,
@@ -1571,6 +1571,13 @@
           "id": "SILK-303328",
           "source": {
             "name": "silk"
+          }
+        },
+        {
+          "id": "VULN-232",
+          "source": {
+            "name": "jira",
+            "url": "https://jira.mongodb.org/browse/VULN-232"
           }
         }
       ],
