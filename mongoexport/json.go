@@ -102,6 +102,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			document,
 			jsonExporter.JSONFormat == Canonical,
 			false,
+			false,
 		)
 		if err != nil {
 			return err
@@ -119,7 +120,7 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			return err
 		}
 	} else {
-		extendedDoc, err := bsonutil.MarshalExtJSONReversible(document, jsonExporter.JSONFormat == Canonical, false)
+		extendedDoc, err := bsonutil.MarshalExtJSONReversible(document, jsonExporter.JSONFormat == Canonical, false, false)
 		if err != nil {
 			return err
 		}

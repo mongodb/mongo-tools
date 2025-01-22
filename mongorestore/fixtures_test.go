@@ -101,7 +101,7 @@ func (tcd testCollData) WriteMetadata(basePath string) error {
 	}
 	defer file.Close()
 
-	raw, err := bsonutil.MarshalExtJSONReversible(tcd.metadata, true, false)
+	raw, err := bsonutil.MarshalExtJSONReversible(tcd.metadata, true, false, false)
 	if err != nil {
 		return err
 	}

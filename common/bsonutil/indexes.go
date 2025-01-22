@@ -194,7 +194,7 @@ func CreateExtJSONString(doc interface{}) string {
 	// want to throw an error when formatting informational messages.
 	// An error would be inconsequential.
 	JSONString := "<unable to format document>"
-	JSONBytes, err := MarshalExtJSONReversible(doc, false, false)
+	JSONBytes, err := MarshalExtJSONReversible(doc, false, false, false)
 	if err == nil {
 		JSONString = string(JSONBytes)
 	}
