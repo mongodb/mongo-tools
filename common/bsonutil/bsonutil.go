@@ -495,7 +495,9 @@ func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool) 
 		return jsonBytes, nil
 	}
 	if !bytes.Equal(originalBSON, reversedBSON) {
-		return nil, fmt.Errorf("inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies")
+		return nil, fmt.Errorf(
+			"inconsistent metadata detected during dump: marshaling BSON to ExtJSON and back resulted in discrepancies",
+		)
 	}
 
 	return jsonBytes, nil
