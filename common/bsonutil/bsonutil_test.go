@@ -11,7 +11,7 @@ import (
 )
 
 func TestBson2Float64(t *testing.T) {
-	// testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	assert := assert.New(t)
 
