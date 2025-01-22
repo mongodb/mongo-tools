@@ -475,13 +475,16 @@ func MtoD(m bson.M) bson.D {
 
 // MarshalExtJSONReversible is a wrapper around bson.MarshalExtJSON function,
 // but would return an error if it cannot be reversed by bson.UnmarshalExtJSON.
+// If used during mongodump, we also check that BSON objects which are marshaled
+// to ExtJSON objects return a consistent BSON object when unmarshaled. This is
+// to ensure collection metadata consistency with mongorestore.
 //
 // It is preferred to be used in mongodump to avoid generating un-reversible ext JSON.
 func MarshalExtJSONReversible(
 	val interface{},
 	canonical bool,
 	escapeHTML bool,
-	mongoDump bool,
+	forMongodump bool,
 ) ([]byte, error) {
 	jsonBytes, err := bson.MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
@@ -492,7 +495,7 @@ func MarshalExtJSONReversible(
 		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
 
-	if !mongoDump {
+	if !forMongodump {
 		return jsonBytes, nil
 	}
 
