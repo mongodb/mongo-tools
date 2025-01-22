@@ -477,7 +477,12 @@ func MtoD(m bson.M) bson.D {
 // but would return an error if it cannot be reversed by bson.UnmarshalExtJSON.
 //
 // It is preferred to be used in mongodump to avoid generating un-reversible ext JSON.
-func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool, mongoDump bool) ([]byte, error) {
+func MarshalExtJSONReversible(
+	val interface{},
+	canonical bool,
+	escapeHTML bool,
+	mongoDump bool,
+) ([]byte, error) {
 	jsonBytes, err := bson.MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err
