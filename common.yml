@@ -2026,51 +2026,6 @@ buildvariants:
   #     RHEL x86_64 Buildvariants       #
   #######################################
 
-  - name: rhel62
-    display_name: RHEL 6.2
-    expansions:
-      mongo_os: "rhel62"
-    run_on:
-      - rhel62-small
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-  # This build is specifically for Splunk
-  - name: rhel62-no-kerberos
-    display_name: "# RHEL 6.2 w/o Kerberos"
-    expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
-      mongo_os: "rhel62"
-      mongo_edition: "enterprise"
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
-      resmoke_use_tls: _tls
-      edition: enterprise
-      run_kinit: true
-      resmoke_args: --jobs 4
-    run_on:
-      - rhel62-small
-    tasks:
-      - name: "unit"
-      - name: ".3.6"
-      - name: ".4.0"
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-    # We intentionally do not invoke the push task. We want to upload these
-    # binaries to S3, but we do not add them to the release feed or RPM repos.
-
   - name: rhel70
     display_name: RHEL 7.0
     run_on:
@@ -2497,10 +2452,6 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "^rhel88$"
     task: "^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)"
-  # Run a subset of integration tests against the 3.6 version of MongoDB
-  # Server on all variants where that is the most recent supported version.
-  - variant: "^rhel62-no-kerberos$"
-    task: "integration-3.6"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^(rhel88|windows)$"
