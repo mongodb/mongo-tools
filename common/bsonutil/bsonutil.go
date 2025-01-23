@@ -517,6 +517,8 @@ func MarshalExtJSONWithBSONRoundtripConsistency(
 	}
 
 	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
+	bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal)
+
 	reversedBSON, err := bson.Marshal(reversedVal)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal into BSON")

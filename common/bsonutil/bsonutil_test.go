@@ -103,48 +103,74 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	tests := []struct {
-		val                  any
-		canonical            bool
-		reversible           bool
-		convertibleToExtJSON bool
-		expectedJSON         string
+		val          any
+		reversible   bool
+		expectedJSON string
 	}{
-		{
-			bson.M{"field1": bson.M{"abc": int64(123)}},
-			true,
-			true,
-			true,
-			`{"field1":{"abc":{"$numberLong":"123"}}}`,
-		},
 		{
 			bson.M{"field1": bson.M{"$date": 1257894000000}},
 			true,
-			true,
-			false,
-			``,
+			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
 		},
 		{
 			bson.M{"field1": time.Unix(1257894000, 0)},
-			true,
-			true,
 			true,
 			`{"field1":{"$date":{"$numberLong":"1257894000000"}}}`,
 		},
 		{
 			bson.M{"field1": bson.M{"$date": "invalid"}},
-			true,
-			false,
 			false,
 			``,
 		},
 	}
 
 	for _, test := range tests {
-		json, err := MarshalExtJSONReversible(test.val, test.canonical, false)
+		json, err := MarshalExtJSONReversible(
+			test.val,
+			true,  /* canonical */
+			false, /* escapeHTML */
+		)
 		if !test.reversible {
 			assert.ErrorContains(t, err, "marshal is not reversible")
-		} else if !test.convertibleToExtJSON {
-			assert.ErrorContains(t, err, "inconsistent metadata detected during dump")
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, test.expectedJSON, string(json))
+	}
+}
+
+func TestMarshalExtJSONWithBSONRoundtripConsistency(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	tests := []struct {
+		val                  any
+		convertibleToExtJSON bool
+		expectedJSON         string
+	}{
+		{
+			bson.M{"field1": bson.M{"grapes": int64(123)}},
+			true,
+			`{"field1":{"grapes":{"$numberLong":"123"}}}`,
+		},
+		{
+			bson.M{"field1": bson.M{"$date": 1257894000000}},
+			false,
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		json, err := MarshalExtJSONWithBSONRoundtripConsistency(
+			test.val,
+			true,  /* canonical */
+			false, /* escapeHTML */
+		)
+		if !test.convertibleToExtJSON {
+			assert.ErrorContains(
+				t,
+				err,
+				"marshaling BSON to ExtJSON and back resulted in discrepancies",
+			)
 		} else {
 			assert.NoError(t, err)
 		}
