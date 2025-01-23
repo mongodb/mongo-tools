@@ -140,7 +140,7 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		json, err := MarshalExtJSONReversible(test.val, test.canonical, false, true)
+		json, err := MarshalExtJSONReversible(test.val, test.canonical, false)
 		if !test.reversible {
 			assert.ErrorContains(t, err, "marshal is not reversible")
 		} else if !test.convertibleToExtJSON {

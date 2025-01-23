@@ -117,7 +117,7 @@ func (bd *BSONDump) Close() error {
 }
 
 func formatJSON(doc *bson.Raw, pretty bool) ([]byte, error) {
-	extendedJSON, err := bsonutil.MarshalExtJSONReversible(doc, true, false, false)
+	extendedJSON, err := bsonutil.MarshalExtJSONReversible(doc, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("error converting BSON to extended JSON: %v", err)
 	}
