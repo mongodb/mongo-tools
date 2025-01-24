@@ -482,7 +482,6 @@ func MarshalExtJSONReversible(
 	canonical bool,
 	escapeHTML bool,
 ) ([]byte, error) {
-
 	jsonBytes, err := bson.MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err
@@ -505,7 +504,6 @@ func MarshalExtJSONWithBSONRoundtripConsistency(
 	canonical bool,
 	escapeHTML bool,
 ) ([]byte, error) {
-
 	jsonBytes, err := MarshalExtJSONReversible(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err
