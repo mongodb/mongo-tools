@@ -1,10 +1,10 @@
 package bsonutil
 
 import (
+	"math"
 	"testing"
 	"time"
-	"math"
-
+	
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
