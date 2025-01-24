@@ -3,6 +3,7 @@ package bsonutil
 import (
 	"testing"
 	"time"
+	"math"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
@@ -156,6 +157,11 @@ func TestMarshalExtJSONWithBSONRoundtripConsistency(t *testing.T) {
 			bson.M{"field1": bson.M{"$date": 1257894000000}},
 			false,
 			``,
+		},
+		{
+			bson.M{"field1": bson.M{"nanField": math.NaN()}},
+			true,
+			`{"field1":{"nanField":{"$numberDouble":"NaN"}}}`,
 		},
 	}
 
