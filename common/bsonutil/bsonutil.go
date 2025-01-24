@@ -488,7 +488,6 @@ func MarshalExtJSONReversible(
 	}
 
 	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
-
 	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
 		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
