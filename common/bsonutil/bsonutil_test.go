@@ -144,9 +144,9 @@ func TestMarshalExtJSONWithBSONRoundtripConsistency(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	tests := []struct {
-		val                  any
+		val                          any
 		consistentAfterRoundtripping bool
-		expectedJSON         string
+		expectedJSON                 string
 	}{
 		{
 			bson.M{"field1": bson.M{"grapes": int64(123)}},
