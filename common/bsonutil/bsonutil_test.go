@@ -145,7 +145,7 @@ func TestMarshalExtJSONWithBSONRoundtripConsistency(t *testing.T) {
 
 	tests := []struct {
 		val                  any
-		convertibleToExtJSON bool
+		consistentAfterRoundtripping bool
 		expectedJSON         string
 	}{
 		{
@@ -171,7 +171,7 @@ func TestMarshalExtJSONWithBSONRoundtripConsistency(t *testing.T) {
 			true,  /* canonical */
 			false, /* escapeHTML */
 		)
-		if !test.convertibleToExtJSON {
+		if !test.consistentAfterRoundtripping {
 			assert.ErrorContains(
 				t,
 				err,
