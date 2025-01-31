@@ -437,30 +437,6 @@ var platforms = []Platform{
 		BuildTags:         defaultBuildTags,
 		ServerVariantName: "enterprise-macos",
 	},
-	// This is a special build that we upload to S3 but not to the release
-	// repos.
-	{
-		Name: "rhel62",
-		// This needs to match the name of the buildvariant in the Evergreen
-		// config.
-		VariantName:           "rhel62-no-kerberos",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		BuildTags:             []string{"failpoints"},
-		SkipForJSONFeed:       true,
-		ServerVariantName:     "enterprise-rhel-62-64-bit",
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
-	{
-		Name:                  "rhel62",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:             defaultBuildTags,
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
 	{
 		Name:                  "rhel70",
 		Arch:                  ArchX86_64,
