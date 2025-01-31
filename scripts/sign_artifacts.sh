@@ -54,20 +54,20 @@ macos_notarize_and_sign() {
 
   case "$myarch" in
     arm64)
-      zip_filename=darwin_arm64.zip
+      zip_filename_base=darwin_arm64.zip
       ;;
     amd64)
-      zip_filename=darwin_amd64.zip
+      zip_filename_base=darwin_amd64.zip
       ;;
     *)
       echo "Unknown architecture: $myarch"
       exit 1
   esac
 
-  curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/${zip_filename:?}"
-  unzip "$zip_filename"
-  chmod 0755 ./darwin_amd64/macnotary
-  ./darwin_amd64/macnotary -v
+  curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/${zip_filename_base:?}.zip"
+  unzip "${zip_filename_base}.zip"
+  chmod 0755 ./$zip_filename_base/macnotary
+  ./$zip_filename_base/macnotary -v
 
   # The key id and secret were set as MACOS_NOTARY_KEY and MACOS_NOTARY_SECRET
   # env vars from the expansions. The macnotary client will look for these env
