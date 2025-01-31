@@ -611,6 +611,9 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	var isTimeseries bool
 	if strings.HasPrefix(bsonFile.Name(), "system.buckets.") {
 		isTimeseries = true
+		// the name of the collection should be without the prefix to allow for operations (like drop) which should be
+		// performed on the timeseries view and not the system.buckets collection.
+		collection = strings.TrimPrefix(collection, "system.buckets.")
 	}
 	// Create the intent using the bson file.
 	intent := &intents.Intent{
