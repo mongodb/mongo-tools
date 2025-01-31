@@ -50,8 +50,22 @@ macos_notarize_and_sign() {
   # turn the untarred package into a zip
   zip -r unsigned.zip "$pkgname"
 
-  curl -LO https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/darwin_amd64.zip
-  unzip darwin_amd64.zip
+  myarch=$(uname -m)
+
+  case "$myarch" in
+    arm64)
+      zip_filename=darwin_arm64.zip
+      ;;
+    amd64)
+      zip_filename=darwin_amd64.zip
+      ;;
+    *)
+      echo "Unknown architecture: $myarch"
+      exit 1
+  esac
+
+  curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/${zip_filename:?}"
+  unzip "$zip_filename"
   chmod 0755 ./darwin_amd64/macnotary
   ./darwin_amd64/macnotary -v
 
