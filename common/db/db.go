@@ -601,6 +601,15 @@ func CanIgnoreError(err error) bool {
 		return ok
 	case mongo.BulkWriteException:
 		for _, writeErr := range mongoErr.WriteErrors {
+			
+			var decoded bson.M
+    		err := bson.Unmarshal(writeErr.Raw, &decoded)
+			if err != nil {
+				return false
+			}
+			keyValue, _ := decoded["keyValue"].(bson.D)
+			fmt.Printf("TESTING THIS %+v\n", keyValue)
+
 			if _, ok := ignorableWriteErrorCodes[writeErr.Code]; !ok {
 				return false
 			}
