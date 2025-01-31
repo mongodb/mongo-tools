@@ -1441,7 +1441,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-01-22T14:40:52.674289+00:00",
+    "timestamp": "2025-01-31T17:28:11.949440+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1490,99 +1490,39 @@
     {
       "affects": [
         {
-          "ref": "pkg:golang/golang.org/x/crypto@v0.32.0"
+          "ref": "pkg:golang/github.com/aws/aws-sdk-go@v1.53.11"
         }
       ],
       "analysis": {
         "state": "in_triage"
       },
-      "bom-ref": "BomRef.7420732457585157.33533927072103453",
-      "created": "2023-12-18T23:44:37+00:00",
+      "bom-ref": "BomRef.1401203316933416.3615743914836227",
       "cwes": [
-        285,
-        303,
-        345,
-        354
+        327
       ],
-      "description": "Update package `crypto` to remediate multiple CVEs",
-      "id": "crypto___CVE-2023-48795__CVE-2024-45337",
+      "description": "There is no immediate fix available for vulnerability on package `aws-sdk-go`.  Research is required to fix this vulnerability.",
+      "id": "aws-sdk-go___CVE-2020-8911",
       "ratings": [
         {
           "method": "CVSSv31",
-          "score": 9.1,
-          "severity": "critical",
+          "score": 5.6,
+          "severity": "medium",
           "source": {
             "name": "NVD"
           },
-          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+          "vector": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:C/C:H/I:N/A:N"
         }
       ],
       "references": [
         {
-          "id": "SILK-29916",
+          "id": "SILK-388853",
           "source": {
             "name": "silk"
-          }
-        },
-        {
-          "id": "VULN-216",
-          "source": {
-            "name": "jira",
-            "url": "https://jira.mongodb.org/browse/VULN-216"
           }
         }
       ],
       "source": {
-        "name": "github, snyk"
-      }
-    },
-    {
-      "affects": [
-        {
-          "ref": "pkg:golang/golang.org/x/net@v0.34.0"
-        }
-      ],
-      "analysis": {
-        "state": "in_triage"
-      },
-      "bom-ref": "BomRef.21728484505814616.222788129669669",
-      "created": "2023-03-07T03:10:55+00:00",
-      "cwes": [
-        79,
-        400,
-        444,
-        770
-      ],
-      "description": "Update package `golang.org/x/net` to remediate multiple CVEs",
-      "id": "golang.org/x/net___CVE-2022-27664__CVE-2022-41721__CVE-2022-41723__CVE-2023-3978__CVE-2023-44487__CVE-2023-45288__CVE-2024-45338",
-      "ratings": [
-        {
-          "method": "CVSSv31",
-          "score": 7.5,
-          "severity": "high",
-          "source": {
-            "name": "NVD"
-          },
-          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
-        }
-      ],
-      "references": [
-        {
-          "id": "SILK-303328",
-          "source": {
-            "name": "silk"
-          }
-        },
-        {
-          "id": "VULN-232",
-          "source": {
-            "name": "jira",
-            "url": "https://jira.mongodb.org/browse/VULN-232"
-          }
-        }
-      ],
-      "source": {
-        "name": "github, snyk"
+        "name": "snyk"
       }
     }
   ],
