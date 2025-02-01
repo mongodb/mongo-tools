@@ -50,15 +50,32 @@ macos_notarize_and_sign() {
   # turn the untarred package into a zip
   zip -r unsigned.zip "$pkgname"
 
-  curl -LO https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/darwin_amd64.zip
-  unzip darwin_amd64.zip
-  chmod 0755 ./darwin_amd64/macnotary
-  ./darwin_amd64/macnotary -v
+  uname_arch=$(uname -m)
+
+  case "$uname_arch" in
+    arm64)
+      myarch=arm64
+      ;;
+    x86_64)
+      myarch=amd64
+      ;;
+    *)
+      echo "Unknown architecture: $uname_arch"
+      exit 1
+  esac
+
+  zip_filename=darwin_${myarch}.zip
+  macnotary_dir=darwin_${myarch}
+
+  curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/${zip_filename:?}"
+  unzip "$zip_filename"
+  chmod 0755 "./$macnotary_dir/macnotary"
+  "./$macnotary_dir/macnotary" -v
 
   # The key id and secret were set as MACOS_NOTARY_KEY and MACOS_NOTARY_SECRET
   # env vars from the expansions. The macnotary client will look for these env
   # vars so we don't need to pass the credentials as CLI options.
-  ./darwin_amd64/macnotary \
+  "./$macnotary_dir/macnotary" \
       --task-comment "signing the mongo-database-tools release" \
       --task-id "$TASK_ID" \
       --file "$PWD/unsigned.zip" \
