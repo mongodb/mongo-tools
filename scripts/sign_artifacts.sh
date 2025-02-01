@@ -50,15 +50,17 @@ macos_notarize_and_sign() {
   # turn the untarred package into a zip
   zip -r unsigned.zip "$pkgname"
 
-  myarch=$(uname -m)
+  uname_arch=$(uname -m)
 
-  case "$myarch" in
+  case "$uname_arch" in
     arm64)
+      myarch=arm64
       ;;
-    amd64)
+    x86_64)
+      myarch=amd64
       ;;
     *)
-      echo "Unknown architecture: $myarch"
+      echo "Unknown architecture: $uname_arch"
       exit 1
   esac
 
