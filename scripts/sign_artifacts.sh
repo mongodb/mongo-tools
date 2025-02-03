@@ -64,8 +64,8 @@ macos_notarize_and_sign() {
       exit 1
   esac
 
-  zip_filename=darwin_${myarch}.zip
   macnotary_dir=darwin_${myarch}
+  zip_filename=${macnotary_dir}.zip
 
   curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/${zip_filename:?}"
   unzip "$zip_filename"
