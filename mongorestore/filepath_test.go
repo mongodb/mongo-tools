@@ -457,15 +457,32 @@ func TestCreateIntentsForCollection(t *testing.T) {
 			})
 		})
 
+	})
+}
+
+func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
+	var mr *MongoRestore
+	var buff bytes.Buffer
+
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+	Convey("With a test MongoRestore", t, func() {
+		buff = bytes.Buffer{}
+		mr = &MongoRestore{
+			manager:      intents.NewIntentManager(),
+			ToolOptions:  &commonOpts.ToolOptions{},
+			InputOptions: &InputOptions{},
+		}
+		log.SetWriter(&buff)
+
 		Convey("running CreateIntentForCollection on a system.buckets file *with* metadata", func() {
-			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/system.buckets.c5timeseries.bson"))
+			ddl, err := newActualPath(util.ToUniversalPath("testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson"))
 			So(err, ShouldBeNil)
 			mr.ToolOptions.Namespace = &commonOpts.Namespace{}
 
 			err = mr.handleBSONInsteadOfDirectory(ddl.Path())
 			So(err, ShouldBeNil)
-			So(mr.ToolOptions.Namespace.DB, ShouldEqual, "db1")
-			So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "system.buckets.c5timeseries")
+			So(mr.ToolOptions.Namespace.DB, ShouldEqual, "timeseries_test")
+			So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "system.buckets.foo_ts")
 
 			Convey("should create one intent with inferred fields from BSON name", func() {
 				err = mr.CreateIntentForCollection(mr.ToolOptions.Namespace.DB, mr.ToolOptions.Namespace.Collection, ddl)
@@ -475,7 +492,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 				i0 := mr.manager.Pop()
 				So(i0, ShouldNotBeNil)
 				So(i0.DB, ShouldEqual, mr.ToolOptions.Namespace.DB)
-				So(i0.C, ShouldEqual, "c5timeseries")
+				So(i0.C, ShouldEqual, "foo_ts")
 				So(i0.Location, ShouldEqual, util.ToUniversalPath(ddl.Path()))
 				i1 := mr.manager.Pop()
 				So(i1, ShouldBeNil)
@@ -484,7 +501,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 					So(
 						i0.MetadataLocation,
 						ShouldEqual,
-						util.ToUniversalPath("testdata/testdirs/db1/c5timeseries.metadata.json"),
+						util.ToUniversalPath("testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json"),
 					)
 					logs := buff.String()
 					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
@@ -507,14 +524,13 @@ func TestCreateIntentsForCollection(t *testing.T) {
 					So(
 						i0.MetadataLocation,
 						ShouldEqual,
-						util.ToUniversalPath("testdata/testdirs/db1/c5timeseries.metadata.json"),
+						util.ToUniversalPath("testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json"),
 					)
 					logs := buff.String()
 					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
 				})
 			})
 		})
-
 	})
 }
 
