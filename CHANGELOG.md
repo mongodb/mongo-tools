@@ -1,5 +1,47 @@
 # Database Tools Changelog
 
+## 100.11.0
+
+_Released 2024-02-01_
+
+We are pleased to announce version X.Y.Z of the MongoDB Database Tools.
+
+This version adds support for OIDC for programmatic workloads. It also updates a few dependency
+libraries to fix vulnerabilities, adds a check of metadata consistency to accommodates $-prefixed
+fields, and fixes a small race condition in logging.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3618'>TOOLS-3618</a>] -         Race condition in the mongorestore.ParseOptions and log.Logvf
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3637'>TOOLS-3637</a>] -         Mongodump should check collection metadata consistency 
+</li>
+</ul>
+                
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3537'>TOOLS-3537</a>] -         Create the SSDLC report template
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3736'>TOOLS-3736</a>] -         Add OIDC Support for Programmatic workloads
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3741'>TOOLS-3741</a>] -         Update x/crypto to address CVE-2024-45337
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3743'>TOOLS-3743</a>] -         Release new mongo-tools version.
+</li>
+</ul>
+
 ## 100.10.0
 
 _Released 2024-07-24_
