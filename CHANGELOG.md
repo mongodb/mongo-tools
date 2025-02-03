@@ -4,7 +4,7 @@
 
 _Released 2024-02-01_
 
-We are pleased to announce version X.Y.Z of the MongoDB Database Tools.
+We are pleased to announce version 100.11.0 of the MongoDB Database Tools.
 
 This version adds support for OIDC for programmatic workloads. It also updates a few dependency
 libraries to fix vulnerabilities, adds a check of metadata consistency to accommodates $-prefixed
