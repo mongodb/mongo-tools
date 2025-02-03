@@ -2244,6 +2244,34 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		)
 
 		Convey(
+			"timeseries collection should be restored with system.buckets BSON file as target and the metadata exists without db option and collection option",
+			func() {
+				args = append(
+					args,
+					"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
+				)
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+
+				result := restore.Restore()
+				defer restore.Close()
+				So(result.Err, ShouldBeNil)
+				So(result.Successes, ShouldEqual, 10)
+				So(result.Failures, ShouldEqual, 0)
+
+				count, err := testdb.Collection("foo_ts").
+					CountDocuments(context.Background(), bson.M{})
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 1000)
+
+				count, err = testdb.Collection("system.buckets.foo_ts").
+					CountDocuments(context.Background(), bson.M{})
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 10)
+			},
+		)
+
+		Convey(
 			"restoring a single system.buckets BSON file (with no metadata) should fail",
 			func() {
 				args = append(
