@@ -20,8 +20,8 @@ Please make sure to tag forum posts with `database-tools`. Bugs and feature requ
 in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
 can be found.
 
-<h2>        Bug
-</h2>
+<h3>        Bug
+</h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3618'>TOOLS-3618</a>] -         Race condition in the mongorestore.ParseOptions and log.Logvf
 </li>
@@ -29,8 +29,8 @@ can be found.
 </li>
 </ul>
                 
-<h2>        Task
-</h2>
+<h3>        Task
+</h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3537'>TOOLS-3537</a>] -         Create the SSDLC report template
 </li>
