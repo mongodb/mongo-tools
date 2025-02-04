@@ -2404,6 +2404,18 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel9-ppc64le
+    display_name: ZAP PPC64LE RHEL 9
+    run_on:
+      - rhel9-power-small
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   #######################################
   #     Z (s390x) Buildvariants         #
   #######################################
@@ -2424,6 +2436,18 @@ buildvariants:
     display_name: ZAP s390x RHEL 8.3
     run_on:
       - rhel83-zseries
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
+  - name: rhel9-s390x
+    display_name: ZAP s390x RHEL 9
+    run_on:
+      - rhel9-zseries-small
     stepback: false
     tasks:
       - name: "dist"
