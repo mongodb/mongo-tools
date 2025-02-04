@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -o errexit
 
 pgp_sign() {
@@ -7,8 +9,8 @@ pgp_sign() {
   podman run \
     --env-file=signing-envfile \
     --rm \
-    -v $PWD:$PWD \
-    -w $PWD \
+    --volume "$PWD:$PWD" \
+    --workdir "$PWD" \
     artifactory.corp.mongodb.com/release-tools-container-registry-local/garasign-gpg \
     /bin/bash -c "gpgloader && gpg --yes -v --armor -o ${signature_name} --detach-sign ${file_name}"
 }
@@ -19,8 +21,8 @@ authenticode_sign() {
   podman run \
   --env-file=signing-envfile \
   --rm \
-  -v $PWD:$PWD \
-  -w $PWD \
+  --volume "$PWD:$PWD" \
+  --workdir "$PWD" \
   artifactory.corp.mongodb.com/release-tools-container-registry-local/garasign-jsign \
   /bin/bash -c "jsign -a ${AUTHENTICODE_KEY_NAME} --replace --tsaurl http://timestamp.digicert.com -d SHA-256 ${file_name}"
 }
@@ -28,7 +30,7 @@ authenticode_sign() {
 setup_garasign_authentication() {
   set +x
 
-  echo "${ARTIFACTORY_PASSWORD}" | podman login --password-stdin --username ${ARTIFACTORY_USERNAME} artifactory.corp.mongodb.com
+  echo "${ARTIFACTORY_PASSWORD}" | podman login --password-stdin --username "${ARTIFACTORY_USERNAME}" artifactory.corp.mongodb.com
 
   echo "GRS_CONFIG_USER1_USERNAME=${GARASIGN_USERNAME}" >> "signing-envfile"
   echo "GRS_CONFIG_USER1_PASSWORD=${GARASIGN_PASSWORD}" >> "signing-envfile"
@@ -67,7 +69,7 @@ macos_notarize_and_sign() {
   macnotary_dir=darwin_${myarch}
   zip_filename=${macnotary_dir}.zip
 
-  curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/${zip_filename:?}"
+  curl -LO "https://macos-notary-1628249594.s3.amazonaws.com/releases/client/v3.3.3/$zip_filename"
   unzip "$zip_filename"
   chmod 0755 "./$macnotary_dir/macnotary"
   "./$macnotary_dir/macnotary" -v
@@ -100,7 +102,7 @@ case $MONGO_OS in
 
   *)
     setup_garasign_authentication
-    for file in $(ls mongodb-database-tools*.{tgz,deb,rpm}); do
+    for file in mongodb-database-tools*.{tgz,deb,rpm}; do
         pgp_sign "$file" "$file.sig"
     done
     ;;
