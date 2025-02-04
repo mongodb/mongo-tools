@@ -34,7 +34,7 @@ const (
 	gosecVersion        = "2.20.0"
 	preciousVersion     = "0.7.3"
 	ubiVersion          = "0.4.2"
-	prettierVersion     = "3.3.1"
+	prettierVersion     = "3.4.2"
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
