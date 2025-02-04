@@ -151,6 +151,12 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	}
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
+		for _, index := range indexes {
+			if err := index.FindInconsistency(); err != nil {
+				return fmt.Errorf("found inconsistent index: %w", err)
+			}
+		}
+
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
 		if restore.OutputOptions.ConvertLegacyIndexes {
 			indexes = restore.convertLegacyIndexes(indexes, namespaceString)

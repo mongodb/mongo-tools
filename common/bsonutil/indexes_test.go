@@ -7,6 +7,7 @@
 package bsonutil
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -98,6 +99,7 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 
 		index3Key := bson.D{{"key1", ""}, {"key2", "2dsphere"}}
 		ConvertLegacyIndexKeys(index3Key, "test")
+		fmt.Printf("\n=========\nindex3key: %+v\n\n\n", index3Key)
 		So(index3Key, ShouldResemble, bson.D{{"key1", int32(1)}, {"key2", "2dsphere"}})
 
 		index4Key := bson.D{{"key1", bson.E{"invalid", 1}}, {"key2", primitive.Binary{}}}
