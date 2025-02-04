@@ -103,7 +103,7 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 			}
 		case float64:
 			if math.Abs(v) < epsilon {
-				indexKey[j].Value = int32(lo.Ternary(v > 0, 1, -1))
+				indexKey[j].Value = int32(lo.Ternary(v >= 0, 1, -1))
 				converted = true
 			}
 		case primitive.Decimal128:
