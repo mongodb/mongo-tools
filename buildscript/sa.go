@@ -32,8 +32,8 @@ const (
 	golangCILintVersion = "1.59.1"
 	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
-	preciousVersion     = "0.7.2"
-	ubiVersion          = "0.0.18"
+	preciousVersion     = "0.7.3"
+	ubiVersion          = "0.4.2"
 	prettierVersion     = "3.3.1"
 )
 
