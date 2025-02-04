@@ -474,63 +474,81 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 		}
 		log.SetWriter(&buff)
 
-		Convey("running CreateIntentForCollection on a system.buckets file *with* metadata", func() {
-			ddl, err := newActualPath(util.ToUniversalPath("testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson"))
-			So(err, ShouldBeNil)
-			mr.ToolOptions.Namespace = &commonOpts.Namespace{}
-
-			err = mr.handleBSONInsteadOfDirectory(ddl.Path())
-			So(err, ShouldBeNil)
-			So(mr.ToolOptions.Namespace.DB, ShouldEqual, "timeseries_test")
-			So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "system.buckets.foo_ts")
-
-			Convey("should create one intent with inferred fields from BSON name", func() {
-				err = mr.CreateIntentForCollection(mr.ToolOptions.Namespace.DB, mr.ToolOptions.Namespace.Collection, ddl)
-				mr.manager.Finalize(intents.Legacy)
+		Convey(
+			"running CreateIntentForCollection on a system.buckets file *with* metadata",
+			func() {
+				ddl, err := newActualPath(
+					util.ToUniversalPath(
+						"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
+					),
+				)
 				So(err, ShouldBeNil)
+				mr.ToolOptions.Namespace = &commonOpts.Namespace{}
 
-				i0 := mr.manager.Pop()
-				So(i0, ShouldNotBeNil)
-				So(i0.DB, ShouldEqual, mr.ToolOptions.Namespace.DB)
-				So(i0.C, ShouldEqual, "foo_ts")
-				So(i0.Location, ShouldEqual, util.ToUniversalPath(ddl.Path()))
-				i1 := mr.manager.Pop()
-				So(i1, ShouldBeNil)
-
-				Convey("and a set Metadata path", func() {
-					So(
-						i0.MetadataLocation,
-						ShouldEqual,
-						util.ToUniversalPath("testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json"),
-					)
-					logs := buff.String()
-					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
-				})
-			})
-
-			Convey("should create an intent correctly when input db and collection params contain 'system.buckets.' prefix", func() {
-				err = mr.CreateIntentForCollection("myDB", "system.buckets.myC", ddl)
-				mr.manager.Finalize(intents.Legacy)
+				err = mr.handleBSONInsteadOfDirectory(ddl.Path())
 				So(err, ShouldBeNil)
-				i0 := mr.manager.Pop()
-				So(i0, ShouldNotBeNil)
-				So(i0.DB, ShouldEqual, "myDB")
-				So(i0.C, ShouldEqual, "myC")
-				So(i0.Location, ShouldEqual, ddl.Path())
-				i1 := mr.manager.Pop()
-				So(i1, ShouldBeNil)
+				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "timeseries_test")
+				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "system.buckets.foo_ts")
 
-				Convey("and a set Metadata path", func() {
-					So(
-						i0.MetadataLocation,
-						ShouldEqual,
-						util.ToUniversalPath("testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json"),
+				Convey("should create one intent with inferred fields from BSON name", func() {
+					err = mr.CreateIntentForCollection(
+						mr.ToolOptions.Namespace.DB,
+						mr.ToolOptions.Namespace.Collection,
+						ddl,
 					)
-					logs := buff.String()
-					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+					mr.manager.Finalize(intents.Legacy)
+					So(err, ShouldBeNil)
+
+					i0 := mr.manager.Pop()
+					So(i0, ShouldNotBeNil)
+					So(i0.DB, ShouldEqual, mr.ToolOptions.Namespace.DB)
+					So(i0.C, ShouldEqual, "foo_ts")
+					So(i0.Location, ShouldEqual, util.ToUniversalPath(ddl.Path()))
+					i1 := mr.manager.Pop()
+					So(i1, ShouldBeNil)
+
+					Convey("and a set Metadata path", func() {
+						So(
+							i0.MetadataLocation,
+							ShouldEqual,
+							util.ToUniversalPath(
+								"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
+							),
+						)
+						logs := buff.String()
+						So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+					})
 				})
-			})
-		})
+
+				Convey(
+					"should create an intent correctly when input db and collection params contain 'system.buckets.' prefix",
+					func() {
+						err = mr.CreateIntentForCollection("myDB", "system.buckets.myC", ddl)
+						mr.manager.Finalize(intents.Legacy)
+						So(err, ShouldBeNil)
+						i0 := mr.manager.Pop()
+						So(i0, ShouldNotBeNil)
+						So(i0.DB, ShouldEqual, "myDB")
+						So(i0.C, ShouldEqual, "myC")
+						So(i0.Location, ShouldEqual, ddl.Path())
+						i1 := mr.manager.Pop()
+						So(i1, ShouldBeNil)
+
+						Convey("and a set Metadata path", func() {
+							So(
+								i0.MetadataLocation,
+								ShouldEqual,
+								util.ToUniversalPath(
+									"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
+								),
+							)
+							logs := buff.String()
+							So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
+						})
+					},
+				)
+			},
+		)
 	})
 }
 
