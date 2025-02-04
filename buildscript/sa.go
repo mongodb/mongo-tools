@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	goimportsVersion = "v0.22.0"
+	goimportsVersion = "v0.29.0"
 	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
 	// For JS tools like eslint and prettier, these versions need to match the ones in the
