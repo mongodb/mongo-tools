@@ -39,13 +39,14 @@ export GOROOT=/usr/local/go
 
 ### Mac OS only:
 
-When running the built binaries, if the process gets killed immediately and you see the following output:  
+When running the built binaries, if the process gets killed immediately and you see the following
+output:  
 `zsh: killed ./bin/mongodump --help`  
 Then you need to sign the binary in order to run it:  
 `codesign -f -s - bin/mongodump`
 
-You can also choose to configure the security policy of the terminal
-application so that signing is not required:  
+You can also choose to configure the security policy of the terminal application so that signing is
+not required:  
 (in macOS Sonoma) System Settings > Privacy & Security > Developer Tools
 
 ## Updating Dependencies
