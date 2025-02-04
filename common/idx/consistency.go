@@ -21,7 +21,16 @@ func (idx IndexDocument) FindInconsistency() error {
 		for _, ftro := range fieldTypeRequiredOpts {
 			if keySpec.Value == ftro.fieldType {
 				if _, hasOpt := idx.Options[ftro.option]; !hasOpt {
-					errors = append(errors, fmt.Errorf("index %#q includes a %#q field (%#q) but lacks a %#q", idx.Options["name"], ftro.fieldType, keySpec.Key, ftro.option))
+					errors = append(
+						errors,
+						fmt.Errorf(
+							"index %#q includes a %#q field (%#q) but lacks a %#q",
+							idx.Options["name"],
+							ftro.fieldType,
+							keySpec.Key,
+							ftro.option,
+						),
+					)
 				}
 			}
 		}
