@@ -61,17 +61,36 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Converting legacy Indexes", t, func() {
-		index1Key := bson.D{{"foo", int32(0)}, {"int32field", int32(2)},
-			{
-				"int64field",
-				int64(-3),
-			}, {"float64field", float64(-1)}, {"float64field", float64(-1.1)}}
+		index1Key := bson.D{
+			{"foo", int32(0)},
+			{"int32field", int32(2)},
+			{"int64field", int64(-3)},
+			{"float64field", float64(0)},
+			{"float64field", float64(-1)},
+			{"float64field", float64(-1.1)},
+			{"float64field", float64(1e-9)},
+			{"float64field", float64(-1e-9)},
+			{"float64field", float64(1e-10)},
+			{"float64field", float64(-1e-10)},
+		}
+
 		ConvertLegacyIndexKeys(index1Key, "test")
+
 		So(
 			index1Key,
 			ShouldResemble,
-			bson.D{{"foo", int32(1)}, {"int32field", int32(2)}, {"int64field", int64(-3)},
-				{"float64field", float64(-1)}, {"float64field", float64(-1.1)}},
+			bson.D{
+				{"foo", int32(1)},
+				{"int32field", int32(2)},
+				{"int64field", int64(-3)},
+				{"float64field", int32(1)},
+				{"float64field", float64(-1)},
+				{"float64field", float64(-1.1)},
+				{"float64field", float64(1e-9)},
+				{"float64field", float64(-1e-9)},
+				{"float64field", int32(1)},
+				{"float64field", int32(-1)},
+			},
 		)
 
 		decimalNOne, _ := primitive.ParseDecimal128("-1")
