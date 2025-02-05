@@ -43,7 +43,7 @@ When running the built binaries, if the process gets killed immediately and you 
 output:  
 `zsh: killed ./bin/mongodump --help`  
 Then you need to sign the binary in order to run it:  
-`codesign -f -s - bin/mongodump`
+`codesign --force --sign - bin/mongodump`
 
 You can also choose to configure the security policy of the terminal application so that signing is
 not required:  
