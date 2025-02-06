@@ -1049,7 +1049,7 @@
       "version": "v0.32.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/exp@v0.0.0-20240529005216-23cca8864a10",
+      "bom-ref": "pkg:golang/golang.org/x/exp@v0.0.0-20250128182459-e0ece0dbea4c",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1057,7 +1057,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/exp@v0.0.0-20240529005216-23cca8864a10"
+          "url": "https://pkg.go.dev/golang.org/x/exp@v0.0.0-20250128182459-e0ece0dbea4c"
         }
       ],
       "group": "golang.org/x",
@@ -1069,12 +1069,12 @@
         }
       ],
       "name": "exp",
-      "purl": "pkg:golang/golang.org/x/exp@v0.0.0-20240529005216-23cca8864a10",
+      "purl": "pkg:golang/golang.org/x/exp@v0.0.0-20250128182459-e0ece0dbea4c",
       "type": "library",
-      "version": "v0.0.0-20240529005216-23cca8864a10"
+      "version": "v0.0.0-20250128182459-e0ece0dbea4c"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/mod@v0.19.0",
+      "bom-ref": "pkg:golang/golang.org/x/mod@v0.22.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1082,7 +1082,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/mod@v0.19.0"
+          "url": "https://pkg.go.dev/golang.org/x/mod@v0.22.0"
         }
       ],
       "group": "golang.org/x",
@@ -1094,9 +1094,9 @@
         }
       ],
       "name": "mod",
-      "purl": "pkg:golang/golang.org/x/mod@v0.19.0",
+      "purl": "pkg:golang/golang.org/x/mod@v0.22.0",
       "type": "library",
-      "version": "v0.19.0"
+      "version": "v0.22.0"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/net@v0.34.0",
@@ -1407,10 +1407,10 @@
       "ref": "pkg:golang/golang.org/x/crypto@v0.32.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/exp@v0.0.0-20240529005216-23cca8864a10"
+      "ref": "pkg:golang/golang.org/x/exp@v0.0.0-20250128182459-e0ece0dbea4c"
     },
     {
-      "ref": "pkg:golang/golang.org/x/mod@v0.19.0"
+      "ref": "pkg:golang/golang.org/x/mod@v0.22.0"
     },
     {
       "ref": "pkg:golang/golang.org/x/net@v0.34.0"
@@ -1441,7 +1441,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-02-03T16:54:49.019565+00:00",
+    "timestamp": "2025-02-06T21:31:31.208497+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1485,7 +1485,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 18,
+  "version": 19,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
