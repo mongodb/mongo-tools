@@ -8,6 +8,14 @@ var fieldTypeRequiredOpts = []struct {
 	{"text", "textIndexVersion"},
 }
 
+// EnsureIndexVersions ensures that each versioned index has
+// a version number. This prevents current MongoDB servers from
+// creating current-version indexes when the backed-up index was
+// actually old enough to predate index versioning (and is thus
+// always version 1).
+//
+// The returned map maps index properties to their new values
+// (as of this writing, always 1).
 func (idx IndexDocument) EnsureIndexVersions() map[string]any {
 	inferred := map[string]any{}
 
