@@ -1793,18 +1793,6 @@ func TestUnversionedIndexes(t *testing.T) {
 
 	coll := session.Database(dbName).Collection(collName)
 
-	/*
-		_, err = coll.Indexes().CreateOne(
-			ctx,
-			mongo.IndexModel{
-				Keys: bson.D{
-					{"myfield", "2dsphere"},
-				},
-			},
-		)
-		require.NoError(t, err, "should create index")
-	*/
-
 	metadataEJSON, err := bson.MarshalExtJSON(
 		bson.D{
 			{"collectionName", collName},

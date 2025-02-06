@@ -10,18 +10,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type SimpleNamespace struct {
-	Database   string
-	Collection string
-	Documents  []bson.D
-}
-
-// SimpleArchive represents an entire archive. This is useful for mutating
-// and synthesizing archives in tests.
+// SimpleArchive represents an entire archive. This is useful for synthesizing
+// archives in tests.
 type SimpleArchive struct {
 	Header             Header
 	CollectionMetadata []CollectionMetadata
 	Namespaces         []SimpleNamespace
+}
+
+// SimpleNamespace represents a namespace in a SimpleArchive.
+type SimpleNamespace struct {
+	Database   string
+	Collection string
+	Documents  []bson.D
 }
 
 func (sa SimpleArchive) Marshal() ([]byte, error) {
