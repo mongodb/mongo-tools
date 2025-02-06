@@ -330,7 +330,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
 	cs := opts.URI.ParsedConnString()
 
-	clientopt.Hosts = cs.Hosts
+	clientopt.ApplyURI(cs.String())
 
 	if opts.RetryWrites != nil {
 		clientopt.SetRetryWrites(*opts.RetryWrites)
