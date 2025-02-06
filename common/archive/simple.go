@@ -6,7 +6,6 @@ import (
 	"hash/crc64"
 
 	"github.com/pkg/errors"
-
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -68,7 +67,12 @@ func (sa SimpleArchive) Marshal() ([]byte, error) {
 		for _, doc := range ns.Documents {
 			docBytes, err := bson.Marshal(doc)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to marshal namespace %#q’s document (%+v)", ns.Database+"."+ns.Collection, doc)
+				return nil, errors.Wrapf(
+					err,
+					"failed to marshal namespace %#q’s document (%+v)",
+					ns.Database+"."+ns.Collection,
+					doc,
+				)
 			}
 
 			crc.Write(docBytes)
