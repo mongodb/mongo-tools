@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/exp/maps"
 )
 
 const insertBufferFactor = 16
@@ -152,8 +154,20 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		for _, index := range indexes {
-			if err := index.FindInconsistency(); err != nil {
-				return fmt.Errorf("found inconsistent index: %w", err)
+			if addedOpts := index.EnsureIndexVersions(); len(addedOpts) != 0 {
+				optNames := maps.Keys(addedOpts)
+
+				slices.Sort(optNames)
+				for _, optName := range optNames {
+					log.Logvf(
+						log.Info,
+						"index %#q (%v) lacks %#q; inferring %#q",
+						index.Options["name"].(string),
+						index.Key,
+						optName,
+						addedOpts[optName],
+					)
+				}
 			}
 		}
 
