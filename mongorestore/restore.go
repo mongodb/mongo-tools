@@ -156,8 +156,8 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 		for _, index := range indexes {
 			if addedOpts := index.EnsureIndexVersions(); len(addedOpts) != 0 {
 				optNames := maps.Keys(addedOpts)
-
 				slices.Sort(optNames)
+
 				for _, optName := range optNames {
 					log.Logvf(
 						log.Info,
