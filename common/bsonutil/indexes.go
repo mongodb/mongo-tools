@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -101,8 +102,8 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 				converted = true
 			}
 		case float64:
-			if math.Abs(v-float64(0)) < epsilon {
-				indexKey[j].Value = int32(1)
+			if math.Abs(v) < epsilon {
+				indexKey[j].Value = int32(lo.Ternary(v >= 0, 1, -1))
 				converted = true
 			}
 		case primitive.Decimal128:

@@ -774,6 +774,31 @@
       "version": "v2.1.0"
     },
     {
+      "bom-ref": "pkg:golang/github.com/samber/lo@v1.49.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/samber/lo"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/samber/lo@v1.49.1"
+        }
+      ],
+      "group": "github.com/samber",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "lo",
+      "purl": "pkg:golang/github.com/samber/lo@v1.49.1",
+      "type": "library",
+      "version": "v1.49.1"
+    },
+    {
       "bom-ref": "pkg:golang/github.com/smarty/assertions@v1.15.0",
       "externalReferences": [
         {
@@ -1374,6 +1399,9 @@
       "ref": "pkg:golang/github.com/russross/blackfriday/v2@v2.1.0"
     },
     {
+      "ref": "pkg:golang/github.com/samber/lo@v1.49.1"
+    },
+    {
       "ref": "pkg:golang/github.com/smarty/assertions@v1.15.0"
     },
     {
@@ -1441,7 +1469,11 @@
     }
   ],
   "metadata": {
+<<<<<<< HEAD
     "timestamp": "2025-02-06T21:31:31.208497+00:00",
+=======
+    "timestamp": "2025-02-04T19:56:55.698923+00:00",
+>>>>>>> master
     "tools": [
       {
         "externalReferences": [
