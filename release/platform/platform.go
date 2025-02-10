@@ -447,6 +447,15 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
+		Name:                  "rhel80",
+		Arch:                  ArchX86_64,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:             defaultBuildTags,
+		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
 		Name:                  "rhel71",
 		Arch:                  ArchPpc64le,
 		OS:                    OSLinux,
