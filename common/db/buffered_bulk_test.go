@@ -100,7 +100,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 					errCnt := 0
 					for i := 0; i < 1000000; i++ {
-						result, err := bufBulk.Insert(bson.M{"_id": i})
+						result, err := bufBulk.Insert(bson.D{{"_id", i}})
 						if err != nil {
 							errCnt++
 						}
