@@ -1809,11 +1809,6 @@ func TestUnversionedIndexes(t *testing.T) {
 					{"key", bson.D{{"myfield", "2dsphere"}}},
 					{"name", "my2dsphere"},
 				},
-				{
-					{"v", 2},
-					{"key", bson.D{{"myfield", "text"}}},
-					{"name", "myText"},
-				},
 			}},
 		},
 		false,
@@ -1865,22 +1860,15 @@ func TestUnversionedIndexes(t *testing.T) {
 		t.Logf("indexes: %+v", indexes)
 
 		var twoDIndexDoc idx.IndexDocument
-		var textIndexDoc idx.IndexDocument
 
 		for _, idx := range indexes {
 			if idx.Options["name"] == "my2dsphere" {
 				twoDIndexDoc = idx
 			}
-			if idx.Options["name"] == "myText" {
-				textIndexDoc = idx
-			}
 		}
 
 		require.NotNil(t, twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
 		assert.EqualValues(t, 1, twoDIndexDoc.Options["2dsphereIndexVersion"])
-
-		require.NotNil(t, textIndexDoc.Key, "should find text index (indexes: %+v)", indexes)
-		assert.EqualValues(t, 1, textIndexDoc.Options["textIndexVersion"])
 	})
 }
 

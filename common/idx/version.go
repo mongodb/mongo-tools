@@ -5,7 +5,6 @@ var fieldTypeRequiredOpts = []struct {
 	option    string
 }{
 	{"2dsphere", "2dsphereIndexVersion"},
-	{"text", "textIndexVersion"},
 }
 
 // EnsureIndexVersions ensures that each versioned index has
