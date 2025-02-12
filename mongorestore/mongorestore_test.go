@@ -20,13 +20,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -1765,6 +1769,107 @@ func createTimeseries(dbName, coll string, client *mongo.Client) {
 		{"timeseries", timeseriesOptions},
 	}
 	client.Database(dbName).RunCommand(context.Background(), createCmd)
+}
+
+func TestUnversionedIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	dbName := t.Name()
+	collName := "coll"
+
+	coll := session.Database(dbName).Collection(collName)
+
+	metadataEJSON, err := bson.MarshalExtJSON(
+		bson.D{
+			{"collectionName", collName},
+			{"type", "collection"},
+			{"uuid", uuid.New().String()},
+			{"indexes", []bson.D{
+				{
+					{"v", 2},
+					{"key", bson.D{{"_id", 1}}},
+					{"name", "_id_"},
+				},
+				{
+					{"v", 2},
+					{"key", bson.D{{"myfield", "2dsphere"}}},
+					{"name", "my2dsphere"},
+				},
+			}},
+		},
+		false,
+		false,
+	)
+	require.NoError(t, err, "should marshal metadata to extJSON")
+
+	archive := archive.SimpleArchive{
+		CollectionMetadata: []archive.CollectionMetadata{
+			{
+				Database:   dbName,
+				Collection: collName,
+				Metadata:   string(metadataEJSON),
+				Size:       0,
+			},
+		},
+		Namespaces: []archive.SimpleNamespace{
+			{
+				Database:   dbName,
+				Collection: collName,
+			},
+		},
+	}
+	archiveBytes, err := archive.Marshal()
+	require.NoError(t, err, "should marshal the archive")
+
+	withArchiveMongodump(t, func(archivePath string) {
+		require.NoError(t, os.WriteFile(archivePath, archiveBytes, 0644))
+
+		// Restore our altered archive:
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			ArchiveOption+"="+archivePath,
+		)
+		require.NoError(t, err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "can run mongorestore")
+		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
+
+		cursor, err := coll.Indexes().List(ctx)
+		require.NoError(t, err, "should open index-list cursor")
+
+		var indexes []idx.IndexDocument
+		err = cursor.All(ctx, &indexes)
+		require.NoError(t, err, "should fetch index specs")
+
+		t.Logf("indexes: %+v", indexes)
+
+		var twoDIndexDoc idx.IndexDocument
+
+		for _, idx := range indexes {
+			if idx.Options["name"] == "my2dsphere" {
+				twoDIndexDoc = idx
+			}
+		}
+
+		require.NotNil(t, twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
+		assert.EqualValues(t, 1, twoDIndexDoc.Options["2dsphereIndexVersion"])
+	})
 }
 
 func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
