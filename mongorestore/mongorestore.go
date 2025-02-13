@@ -475,6 +475,19 @@ func (restore *MongoRestore) Restore() Result {
 			"remove the 'config' directory from the dump directory first")}
 	}
 
+	// if --restoreDbUsersAndRoles is used then db specific users and roles ($admin.system.users.bson / $admin.system.roles.bson)
+	// should exist in target directory / archive
+	if restore.InputOptions.RestoreDBUsersAndRoles &&
+		restore.ToolOptions.Namespace.DB != "" &&
+		(restore.manager.Users() == nil && restore.manager.Roles() == nil) {
+		return Result{
+			Err: fmt.Errorf(
+				"cannot find users or roles to restore with --restoreDbUsersAndRoles - " +
+					"use the archive or db directory dumped with --dumpDbUsersAndRoles as the target",
+			),
+		}
+	}
+
 	if restore.InputOptions.OplogFile != "" {
 		err = restore.CreateIntentForOplog()
 		if err != nil {
