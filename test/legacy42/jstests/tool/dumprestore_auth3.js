@@ -10,6 +10,9 @@ function runTool(toolName, mongod, options) {
 }
 
 var dumpRestoreAuth3 = function(backup_role, restore_role) {
+    load('jstests/libs/extended_assert.js');
+    var assert = extendedAssert;
+
     var mongod = MongoRunner.runMongod();
     var admindb = mongod.getDB("admin");
     var db = mongod.getDB("foo");

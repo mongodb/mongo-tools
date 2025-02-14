@@ -3,6 +3,9 @@
 // This test is derived from legacy30 test dumprestore_auth3.js
 
 (function () {
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
+
   // Runs the tool with the given name against the given mongod.
   function runTool(toolName, mongod, options) {
     const opts = {
