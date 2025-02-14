@@ -22,7 +22,7 @@
 
   // run the restore with no users or roles. it should succeed, but create no
   // users or roles
-  var ret = toolTest.runTool.apply(toolTest, ['restore',
+  toolTest.runTool.apply(toolTest, ['restore',
     '--db', 'test',
     '--restoreDbUsersAndRoles']
     .concat(getRestoreTarget('jstests/restore/testdata/blankdb'))
