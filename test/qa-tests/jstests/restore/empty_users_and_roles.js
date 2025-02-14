@@ -1,4 +1,6 @@
 (function() {
+  load('jstests/libs/extended_assert.js');
+  var assert = extendedAssert;
 
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');
@@ -25,7 +27,9 @@
     '--restoreDbUsersAndRoles']
     .concat(getRestoreTarget('jstests/restore/testdata/blankdb'))
     .concat(commonToolArgs));
-  assert.eq(0, ret);
+
+  assert.strContains.soon("cannot find users or roles to restore with --restoreDbUsersAndRoles", rawMongoProgramOutput,
+    "restore without users should not succeed");
 
   // success
   toolTest.stop();
