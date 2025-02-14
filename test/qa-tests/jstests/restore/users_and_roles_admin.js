@@ -77,9 +77,16 @@
   foodb.dropAllUsers();
   foodb.dropAllRoles();
 
-  jsTestLog("Restore foo database from dump that doesn't contain user data without --restoreDbUsersAndRoles");
+  jsTestLog("Try to restore foo database with --restoreDbUsersAndRoles from dump that doesn't contain user data");
 
   runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: ""});
+
+  assert.strContains.soon("cannot find users or roles to restore with --restoreDbUsersAndRoles", rawMongoProgramOutput,
+    "restore without users should not succeed");
+
+  jsTestLog("Restore foo database from dump that doesn't contain user data without --restoreDbUsersAndRoles");
+
+  runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo'});
 
   assert.soon(function () {
     return foodb.bar.findOne();
@@ -87,13 +94,6 @@
   assert.eq(1, foodb.bar.findOne().a);
   assert.eq(0, foodb.getUsers().length, "Restore created users somehow");
   assert.eq(0, foodb.getRoles().length, "Restore created roles somehow");
-
-
-  jsTestLog("Restore foo database with --restoreDbUsersAndRoles from dump that doesn't contain user data");
-
-  runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: ""});
-
-  assert.strContains.soon("cannot find users or roles to restore with --restoreDbUsersAndRoles");
 
   // Re-create user data
   foodb.createUser({user: 'user', pwd: 'password', roles: jsTest.basicUserRoles});
