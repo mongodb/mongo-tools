@@ -10,9 +10,6 @@ function runTool(toolName, mongod, options) {
 }
 
 var dumpRestoreAuth3 = function(backup_role, restore_role) {
-    load('jstests/libs/extended_assert.js');
-    var assert = extendedAssert;
-
     var mongod = MongoRunner.runMongod();
     var admindb = mongod.getDB("admin");
     var db = mongod.getDB("foo");
@@ -61,16 +58,21 @@ var dumpRestoreAuth3 = function(backup_role, restore_role) {
     db.dropAllUsers();
     db.dropAllRoles();
 
-    jsTestLog("Restore foo database from dump that doesn't contain user data ");
+    jsTestLog("Restore foo database from dump that doesn't contain user data without restoring user data");
     // This test depends on W=0 to mask unique index violations.
     // This should be fixed once we implement TOOLS-341
     runTool("mongorestore",
             mongod,
-            {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: "", writeConcern: "1"});
+            {dir: dumpDir + "foo/", db: 'foo', writeConcern: "1"});
 
     db = mongod.getDB('foo');
 
-    assert.strContains.soon("cannot find users or roles to restore with --restoreDbUsersAndRoles");
+    assert.soon(function() {
+        return db.bar.findOne();
+    }, "no data after restore");
+    assert.eq(1, db.bar.findOne().a);
+    assert.eq(0, db.getUsers().length, "Restore created users somehow");
+    assert.eq(0, db.getRoles().length, "Restore created roles somehow");
 
     // Re-create user data
     db.createUser({user: 'user', pwd: 'password', roles: jsTest.basicUserRoles});

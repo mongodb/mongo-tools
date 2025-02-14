@@ -77,7 +77,19 @@
   foodb.dropAllUsers();
   foodb.dropAllRoles();
 
-  jsTestLog("Restore foo database from dump that doesn't contain user data ");
+  jsTestLog("Restore foo database from dump that doesn't contain user data without --restoreDbUsersAndRoles");
+
+  runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: ""});
+
+  assert.soon(function () {
+    return foodb.bar.findOne();
+  }, "no data after restore");
+  assert.eq(1, foodb.bar.findOne().a);
+  assert.eq(0, foodb.getUsers().length, "Restore created users somehow");
+  assert.eq(0, foodb.getRoles().length, "Restore created roles somehow");
+
+
+  jsTestLog("Restore foo database with --restoreDbUsersAndRoles from dump that doesn't contain user data");
 
   runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: ""});
 
