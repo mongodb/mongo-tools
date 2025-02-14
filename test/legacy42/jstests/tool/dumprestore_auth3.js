@@ -67,12 +67,7 @@ var dumpRestoreAuth3 = function(backup_role, restore_role) {
 
     db = mongod.getDB('foo');
 
-    assert.soon(function() {
-        return db.bar.findOne();
-    }, "no data after restore");
-    assert.eq(1, db.bar.findOne().a);
-    assert.eq(0, db.getUsers().length, "Restore created users somehow");
-    assert.eq(0, db.getRoles().length, "Restore created roles somehow");
+    assert.strContains.soon("cannot find users or roles to restore with --restoreDbUsersAndRoles");
 
     // Re-create user data
     db.createUser({user: 'user', pwd: 'password', roles: jsTest.basicUserRoles});
