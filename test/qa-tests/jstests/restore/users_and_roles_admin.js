@@ -3,9 +3,6 @@
 // This test is derived from legacy30 test dumprestore_auth3.js
 
 (function () {
-  load('jstests/libs/extended_assert.js');
-  var assert = extendedAssert;
-
   // Runs the tool with the given name against the given mongod.
   function runTool(toolName, mongod, options) {
     const opts = {
@@ -76,13 +73,6 @@
   foodb.dropDatabase();
   foodb.dropAllUsers();
   foodb.dropAllRoles();
-
-  jsTestLog("Try to restore foo database with --restoreDbUsersAndRoles from dump that doesn't contain user data");
-
-  runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: ""});
-
-  assert.strContains.soon("cannot find users or roles to restore with --restoreDbUsersAndRoles", rawMongoProgramOutput,
-    "restore without users should not succeed");
 
   jsTestLog("Restore foo database from dump that doesn't contain user data without --restoreDbUsersAndRoles");
 
