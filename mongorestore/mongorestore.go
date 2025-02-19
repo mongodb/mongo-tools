@@ -483,7 +483,7 @@ func (restore *MongoRestore) Restore() Result {
 		return Result{
 			Err: fmt.Errorf(
 				"cannot find users or roles to restore with --restoreDbUsersAndRoles - " +
-					"use the archive or db directory dumped with --dumpDbUsersAndRoles as the target",
+					"restore target should be a dump created with --dumpDbUsersAndRoles",
 			),
 		}
 	}
