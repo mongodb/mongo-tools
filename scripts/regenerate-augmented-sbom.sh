@@ -34,6 +34,6 @@ podman run \
     augment \
     --sbom-in /pwd/cyclonedx.sbom.json \
     --repo mongodb/mongo-tools \
-    --branch $KONDUKTO_BRANCH \
+    --branch "$KONDUKTO_BRANCH" \
     --sbom-out "/pwd/$SBOM_FILE" \
     $@
