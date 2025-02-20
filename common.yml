@@ -564,6 +564,24 @@ functions:
           set -e
           ./scripts/write-evergreen-config-file.sh
 
+  "set silkbomb credentials":
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to pull Kondukto API token
+      params:
+        role_arn: ${kondukto_role_arn}
+    - command: shell.exec
+      display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
+      params:
+        silent: true
+        shell: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        script: |
+          set -e
+          # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
+          kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
+          # set the KONDUKTO_TOKEN environment variable
+          export KONDUKTO_TOKEN=$kondukto_token
+
 pre:
   - command: shell.exec
     params:
@@ -605,8 +623,6 @@ pre:
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
           export SNYK_TOKEN='${snyk_token}'
-          export SILK_CLIENT_ID='${silk_client_id}'
-          export SILK_CLIENT_SECRET='${silk_client_secret}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -746,9 +762,11 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "set silkbomb credentials"
       - command: shell.exec
         params:
           working_dir: src/github.com/mongodb/mongo-tools
+          include_expansions_in_env: [KONDUKTO_TOKEN]
           script: |
             ${_set_shell_env}
             ./scripts/regenerate-and-diff-augmented-sbom.sh

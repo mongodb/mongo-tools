@@ -79,13 +79,11 @@ level, but these can be deferred at the team's discretion.
 You can generate this by running `go run build.go writeAugmentedSBOM`. This requires several
 environment variables to be set:
 
-- `SILK_CLIENT_ID` - available from 1Password.
-- `SILK_CLIENT_SECRET` - available from 1Password.
+- `KONDUKTO_TOKEN` - available from 1Password.
 - `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
 
 ```
-SILK_CLIENT_ID="$client_id"\
-    SILK_CLIENT_SECRET="$clent_secret" \
+KONDUKTO_TOKEN="$kondukto_token"\
     EVG_TRIGGERED_BY_TAG=100.9.5 \
     go run build.go writeAugmentedSBOM
 ```
