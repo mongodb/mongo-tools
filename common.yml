@@ -574,7 +574,8 @@ functions:
       params:
         silent: true
         shell: bash
-        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        include_expansions_in_env:
+          [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         script: |
           set -e
           # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
