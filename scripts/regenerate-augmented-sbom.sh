@@ -11,6 +11,12 @@ if [ -z "$TAG" ]; then
 fi
 
 SBOM_FILE="./ssdlc/$TAG.bom.json"
+if [ -z "${branch_name}" ]; then
+    KONDUKTO_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+else
+    # use default Evergreen expansion for branch name
+    KONDUKTO_BRANCH="${branch_name}"
+fi
 
 cat <<EOF >silkbomb.env
 KONDUKTO_TOKEN=${KONDUKTO_TOKEN}
@@ -28,6 +34,6 @@ podman run \
     augment \
     --sbom-in /pwd/cyclonedx.sbom.json \
     --repo mongodb/mongo-tools \
-    --branch ${branch_name} \
+    --branch $KONDUKTO_BRANCH \
     --sbom-out "/pwd/$SBOM_FILE" \
     $@
