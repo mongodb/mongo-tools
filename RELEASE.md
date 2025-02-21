@@ -101,7 +101,7 @@ Augmented SBOM before the release.
 See our [documentation on contributing](./CONTRIBUTING.md) for more details on how we handle
 dependency scanning and vulnerabilities.
 
-#### Ensure All Static Dependency Checks Pass
+#### Ensure All Static Analysis Checks Pass
 
 The easiest way to do this is to run our linting, which includes `gosec`:
 
