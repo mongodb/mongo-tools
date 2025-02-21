@@ -54,6 +54,7 @@ more details on how we handle third-party vulnerabilities, in particular
 We want to make sure that we have taken action on all reported vulnerabities in third-party
 dependencies before release. To find these, we should look for
 [TOOLS tickets linked to VULN tickets](<https://jira.mongodb.org/issues/?jql=project%20%3D%20TOOLS%20and%20issue%20in%20linkedTo(%22project%20%3D%20VULN%22)>).
+
 Ideally, all of these tickets should have the "Remediation Completed" status. However, in some
 cases, there may not be a version of the dependency available that addresses the vulnerability. In
 that case, it's okay to do a release with the vulnerability still present in the dependency we use.
