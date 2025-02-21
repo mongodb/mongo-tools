@@ -245,27 +245,9 @@ generate as part of the release process.
 
 ### Third-Party Dependency Vulnerability Handling
 
-**Note that this will only work for MongoDB employees with access to Snyk.**
-
-We use [Snyk](https://snyk.io/) to check our dependencies for known security issues.
-
-We run these checks in CI, so it's not strictly necessary to do so manually when you add or upgrade
-a dependency, but you can save some time by checking this locally first.
-
-In order to do this, you will need to first
-[install the `snyk` CLI tool](https://docs.snyk.io/snyk-cli/install-or-update-the-snyk-cli).
-
-Then you can run the following commands:
-
-```
-snyk auth
-snyk test --org="$org_id" --file=./go.mod
-```
-
-You can get the right organization ID from the Snyk web UI. Go to the "Settings" page and copy the
-Organization ID from there. **Make sure you are in the `dev-prod` organization!**
-
-If the dependency you just added has any known vulnerabilities this command will report them.
+We use [Kondukto](http://kondukto.io/), a third-party SaaS tool that MongoDB, to scan for
+third-party dependency vulnerabilities. Kondukto will create Jira tickets in the `VULN` project for
+any vulnerabilities it finds. Our Jira instance is set up to then create a linked `TOOLS` ticket.
 
 **We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies unless
 there is no fixed version available. All vulnerabilities found in the `master` branch must be
@@ -302,12 +284,6 @@ name, license, etc. This includes a recursive list of all third-party dependenci
 managing SBOMs and third-party vulneerability scanning for our projects. Kondukto is integrated with
 our Jira instance so that it can do things like create tickets for vulnerabilities in a project’s
 dependencies.
-
-#### [Snyk](https://snyk.io/)
-
-[Snyk](https://snyk.io/) is a company that provides a variety of code scanning tools, including
-tools that do vulnerability checking for third-party dependencies and static code analysis for
-various languages.
 
 #### Static Analysis
 

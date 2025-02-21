@@ -623,7 +623,6 @@ pre:
           export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
-          export SNYK_TOKEN='${snyk_token}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -680,7 +679,6 @@ timeout:
 tasks:
   - name: dist
     tags: ["git_tag"]
-    depends_on:
     commands:
       - func: "fetch source"
       - func: "run make target"
@@ -743,21 +741,6 @@ tasks:
           target: sa:installdevtools
       - func: "generate gosec SARIF report"
 
-  - name: check-snyk-results
-    tags: ["git_tag"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - command: shell.exec
-        params:
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            ${_set_shell_env}
-            set -e
-            curl -sSL -o ./snyk https://static.snyk.io/cli/latest/snyk-linux
-            chmod 0755 ./snyk
-            ./snyk test --org="${snyk_organization_id}" --file=./go.mod
-
   - name: check-augmented-sbom
     tags: ["git_tag"]
     commands:
@@ -775,8 +758,6 @@ tasks:
   - name: release-json
     tags: ["git_tag"]
     depends_on:
-      - name: check-snyk-results
-        variant: "*"
       - name: push
         variant: "*"
     commands:
@@ -785,9 +766,6 @@ tasks:
       - func: "upload release json feed to s3"
 
   - name: generate-full-json
-    depends_on:
-      - name: check-snyk-results
-        variant: "*"
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1928,7 +1906,6 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
-      - name: check-snyk-results
       - name: check-augmented-sbom
         # podman is not available on the amazon distro.
         run_on: rhel87-small
