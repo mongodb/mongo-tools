@@ -12,7 +12,7 @@ triggered the release by tagging the repo.
 
 ## Tool Used to Track Third-Party Vulnerabilities
 
-We use the [Silk Security platform](https://www.silk.security/) to track third-party-dependencies.
+We use the [Kondukto](http://kondukto.io/) to track vulnerabilities in third-party dependencies.
 
 ## Third-Party Dependency Information
 

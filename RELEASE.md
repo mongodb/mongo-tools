@@ -79,25 +79,16 @@ level, but these can be deferred at the team's discretion.
 You can generate this by running `go run build.go writeAugmentedSBOM`. This requires several
 environment variables to be set:
 
-- `SILK_CLIENT_ID` - available from 1Password.
-- `SILK_CLIENT_SECRET` - available from 1Password.
+- `KONDUKTO_TOKEN` - available from 1Password.
 - `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
 
 ```
-SILK_CLIENT_ID="$client_id"\
-    SILK_CLIENT_SECRET="$clent_secret" \
+KONDUKTO_TOKEN="$kondukto_token"\
     EVG_TRIGGERED_BY_TAG=100.9.5 \
     go run build.go writeAugmentedSBOM
 ```
 
-The Silk credentials are shared with our team via 1Password.
-
-**Note that if there have been recent changes to this project's dependencies, these may not be
-reflected in the Augmented SBOM.** That's because new dependencies are only processed once per day.
-These are _first_ processed by Snyk based on the SBOM Lite file, `cyclonedx.sbom.json`. Then another
-service, Silk, ingests this file from Snyk and adds vulnerability information to it. That means it
-can take up to 48 hours before changes to our dependencies are reflected in the generated Augmented
-SBOM.
+The Kondukto credentials are shared with our team via 1Password.
 
 If there are recently fixed third-party vulnerabilities, make sure that these are reflected in the
 Augmented SBOM before the release.
