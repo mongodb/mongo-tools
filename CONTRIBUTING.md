@@ -288,19 +288,20 @@ types of vulnerability scanning, signing releases, and documentation of all thes
 
 #### SARIF: The Static Analysis Results Interchange Format
 
-This is a file format that static analysis tools can output. Silk accepts reports in this format.
-See https://sarifweb.azurewebsites.net/ for more information.
+This is a file format that static analysis tools can output. See https://sarifweb.azurewebsites.net/
+for more information.
 
 #### SBOM: Software Bill of Materials
 
 A machine-readable file containing information about dependencies, including things like the package
 name, license, etc. This includes a recursive list of all third-party dependencies.
 
-#### [Silk](https://www.silk.security/)
+#### [Kondukto](http://kondukto.io/)
 
-[Silk](https://www.silk.security/) is a third-party SaaS tool that MongoDB as a whole will use for
-managing all SSDLC-related info for our projects. Silk will be integrated with our Jira instance so
-that it can do things like create tickets for vulnerabilities in a project’s dependencies.
+[Kondukto](http://kondukto.io/) is a third-party SaaS tool that MongoDB as a whole will use for
+managing SBOMs and third-party vulneerability scanning for our projects. Kondukto is integrated with
+our Jira instance so that it can do things like create tickets for vulnerabilities in a project’s
+dependencies.
 
 #### [Snyk](https://snyk.io/)
 
@@ -334,7 +335,7 @@ and we enforce this via CI.
 #### Generating the Augmented SBOM File
 
 Generating this file can only be done by MongoDB employees, as it requires access to
-[Silk](https://www.silk.security/). See our [release documentation](./RELEASE.md) for more details.
+[Kondukto](http://kondukto.io/). See our [release documentation](./RELEASE.md) for more details.
 
 ### Papertrail Integration
 

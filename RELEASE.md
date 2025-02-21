@@ -88,14 +88,7 @@ KONDUKTO_TOKEN="$kondukto_token"\
     go run build.go writeAugmentedSBOM
 ```
 
-The Silk credentials are shared with our team via 1Password.
-
-**Note that if there have been recent changes to this project's dependencies, these may not be
-reflected in the Augmented SBOM.** That's because new dependencies are only processed once per day.
-These are _first_ processed by Snyk based on the SBOM Lite file, `cyclonedx.sbom.json`. Then another
-service, Silk, ingests this file from Snyk and adds vulnerability information to it. That means it
-can take up to 48 hours before changes to our dependencies are reflected in the generated Augmented
-SBOM.
+The Kondukto credentials are shared with our team via 1Password.
 
 If there are recently fixed third-party vulnerabilities, make sure that these are reflected in the
 Augmented SBOM before the release.
