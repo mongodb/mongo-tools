@@ -44,7 +44,9 @@ const (
 )
 
 var (
-	NoUsersOrRolesInDumpError = errors.New("No users or roles found in restore target. Please omit --restoreDbUsersAndRoles, or use a dump created with --dumpDbUsersAndRoles.")
+	NoUsersOrRolesInDumpError = errors.New(
+		"No users or roles found in restore target. Please omit --restoreDbUsersAndRoles, or use a dump created with --dumpDbUsersAndRoles.",
+	)
 )
 
 // MongoRestore is a container for the user-specified options and
