@@ -9,6 +9,7 @@ package mongorestore
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -40,6 +41,10 @@ const (
 	deprecatedDBAndCollectionsOptionsWarning = "The --db and --collection flags are deprecated for " +
 		"this use-case; please use --nsInclude instead, " +
 		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
+)
+
+var (
+	NoUsersOrRolesInDumpError = errors.New("No users or roles found in restore target. Please omit --restoreDbUsersAndRoles, or use a dump created with --dumpDbUsersAndRoles.")
 )
 
 // MongoRestore is a container for the user-specified options and
@@ -481,10 +486,7 @@ func (restore *MongoRestore) Restore() Result {
 		restore.ToolOptions.Namespace.DB != "" &&
 		(restore.manager.Users() == nil && restore.manager.Roles() == nil) {
 		return Result{
-			Err: fmt.Errorf(
-				"cannot find users or roles to restore with --restoreDbUsersAndRoles - " +
-					"restore target should be a dump created with --dumpDbUsersAndRoles",
-			),
+			Err: NoUsersOrRolesInDumpError,
 		}
 	}
 

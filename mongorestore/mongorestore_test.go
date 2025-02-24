@@ -1074,8 +1074,6 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 		})
 
 		Convey("If --dumpUsersAndRoles was not used with the target", func() {
-			expectedError := "cannot find users or roles to restore with --restoreDbUsersAndRoles - " +
-				"restore target should be a dump created with --dumpDbUsersAndRoles"
 			Convey("Restoring from db directory should not be allowed", func() {
 				args = append(
 					args,
@@ -1091,7 +1089,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 
 				result := restore.Restore()
 				So(result.Err, ShouldNotBeNil)
-				So(result.Err.Error(), ShouldEqual, expectedError)
+				So(result.Err, ShouldEqual, NoUsersOrRolesInDumpError)
 			})
 
 			Convey("Restoring from base dump directory should not be allowed", func() {
@@ -1109,7 +1107,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 
 				result := restore.Restore()
 				So(result.Err, ShouldNotBeNil)
-				So(result.Err.Error(), ShouldEqual, expectedError)
+				So(result.Err, ShouldEqual, NoUsersOrRolesInDumpError)
 			})
 
 			Convey("Restoring from archive of entire dump should not be allowed", func() {
@@ -1128,7 +1126,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 
 					result := restore.Restore()
 					So(result.Err, ShouldNotBeNil)
-					So(result.Err.Error(), ShouldEqual, expectedError)
+					So(result.Err, ShouldEqual, NoUsersOrRolesInDumpError)
 
 				})
 			})
