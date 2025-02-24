@@ -77,10 +77,6 @@ level, but these can be deferred at the team's discretion.
 
 #### Create the Augmented SBOM File for the Upcoming Release
 
-**Note that as of 2025-02-21, there is a known issue where the Augmented SBOM is only correct when
-this is run against the `master` branch. This means you need to generate the Augmented SBOM on
-`master` before creating a release branch.**
-
 You can generate this by running `go run build.go writeAugmentedSBOM`. This requires several
 environment variables to be set:
 
