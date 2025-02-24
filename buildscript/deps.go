@@ -36,8 +36,7 @@ func WriteSBOMLite(ctx *task.Context) error {
 // WriteAugmentedSBOM creates the SBOM Lite file for this project. This requires the following env
 // vars to be set:
 //
-//   - SILK_CLIENT_ID
-//   - SILK_CLIENT_SECRET
+//   - KONDUKTO_TOKEN
 //   - EVG_TRIGGERED_BY_TAG
 func WriteAugmentedSBOM(ctx *task.Context) error {
 	if err := requirePodman(ctx); err != nil {
