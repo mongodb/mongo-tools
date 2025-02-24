@@ -280,9 +280,9 @@ name, license, etc. This includes a recursive list of all third-party dependenci
 
 #### [Kondukto](http://kondukto.io/)
 
-[Kondukto](http://kondukto.io/) is a third-party SaaS tool that MongoDB as a whole uses for
-managing SBOMs and third-party vulneerability scanning for our projects. Kondukto is integrated with
-our Jira instance so that it can do things like create tickets for vulnerabilities in a project’s
+[Kondukto](http://kondukto.io/) is a third-party SaaS tool that MongoDB as a whole uses for managing
+SBOMs and third-party vulneerability scanning for our projects. Kondukto is integrated with our Jira
+instance so that it can do things like create tickets for vulnerabilities in a project’s
 dependencies.
 
 #### Static Analysis
