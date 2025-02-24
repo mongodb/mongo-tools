@@ -245,9 +245,9 @@ generate as part of the release process.
 
 ### Third-Party Dependency Vulnerability Handling
 
-We use [Kondukto](http://kondukto.io/), a third-party SaaS tool that MongoDB, to scan for
-third-party dependency vulnerabilities. Kondukto will create Jira tickets in the `VULN` project for
-any vulnerabilities it finds. Our Jira instance is set up to then create a linked `TOOLS` ticket.
+We use [Kondukto](http://kondukto.io/), a third-party SaaS tool, to scan for third-party dependency
+vulnerabilities. Kondukto will create Jira tickets in the `VULN` project for any vulnerabilities it
+finds. Our Jira instance is set up to then create a linked `TOOLS` ticket.
 
 **We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies unless
 there is no fixed version available. All vulnerabilities found in the `master` branch must be
