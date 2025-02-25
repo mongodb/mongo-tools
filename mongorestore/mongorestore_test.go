@@ -29,12 +29,14 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -2684,6 +2686,63 @@ func TestRestoreClusteredIndex(t *testing.T) {
 	t.Run("restore from oplog with default index name", func(t *testing.T) {
 		testRestoreClusteredIndexFromOplog(t, "custom index name")
 	})
+}
+
+func TestRestoreEmptyTimestamp(t *testing.T) {
+	ctx := context.Background()
+
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(ctx)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	coll := testDB.Collection("mycoll")
+
+	insertOpt := mopt.InsertOne()
+	insertOpt.BypassEmptyTsReplacement = lo.ToPtr(true)
+	_, err = coll.InsertOne(
+		ctx,
+		bson.D{
+			{"empty_time", primitive.Timestamp{}},
+		},
+		insertOpt,
+	)
+	require.NoError(err, "should insert")
+
+	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+	})
+
+	cursor, err := coll.Find(ctx, bson.D{})
+	require.NoError(err, "should find docs")
+	docs := []bson.M{}
+	require.NoError(cursor.All(ctx, &docs), "should read docs")
+
+	require.Len(docs, 1, "expect docs count")
+	assert.Equal(
+		t,
+		primitive.Timestamp{},
+		docs[0]["empty_time"],
+		"expect empty timestamp restored",
+	)
 }
 
 func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
