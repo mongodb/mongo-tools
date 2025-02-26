@@ -2708,30 +2708,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 
 	coll := testDB.Collection("mycoll")
 
-	docID := strings.Repeat("x", 42)
-
-	/*
-		err = coll.Database().RunCommand(
-			ctx,
-			bson.D{
-				{"update", coll.Name()},
-				{"updates", []bson.D{
-					{
-						{"upsert", true},
-						{"q", bson.D{{"_id", docID}}},
-						{"u", mongo.Pipeline{
-							{{"$replaceRoot", bson.D{
-								{"newRoot", bson.D{
-									{"_id", docID},
-									{"empty_time", primitive.Timestamp{}},
-								}},
-							}}},
-						}},
-					},
-				}},
-			},
-		).Err()
-	*/
+	docID := strings.Repeat("x", 7*1024*1024)
 
 	_, err = coll.UpdateOne(
 		ctx,

@@ -328,12 +328,6 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	clientopt := mopt.Client()
-	clientopt.SetLoggerOptions(
-		mopt.Logger().SetComponentLevel(
-			mopt.LogComponentCommand,
-			mopt.LogLevelDebug,
-		),
-	)
 	cs := opts.URI.ParsedConnString()
 
 	clientopt.ApplyURI(opts.URI.ConnectionString)
