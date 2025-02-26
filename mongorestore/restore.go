@@ -599,55 +599,24 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 				if err != nil {
 					result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
 				} else {
+					var newResult Result
 					if len(emptyTsFields) > 0 {
-						var parsedDoc bson.D
-						var docWithoutID bson.Raw
-						var id any
-						err := bson.Unmarshal(rawDoc, &parsedDoc)
+						err := insertDocWithEmptyTimestamps(
+							context.Background(),
+							collection,
+							rawDoc,
+						)
 
 						if err != nil {
-							result.Err = errors.Wrapf(err, "failed to unmarshal document with empty timestamp (%+v)", rawDoc)
+							newResult = Result{0, 1, err}
 						} else {
-							parsedDoc = lo.Filter(
-								parsedDoc,
-								func(el bson.E, _ int) bool {
-									if el.Key == "_id" {
-										id = el.Value
-										return false
-									}
-
-									return true
-								},
-							)
-
-							docWithoutID, err = bson.Marshal(parsedDoc)
-							if err != nil {
-								result.Err = errors.Wrapf(err, "failed to re-marshal _id-stripped document with empty timestamp (%+v)", parsedDoc)
-							}
-						}
-
-						if result.Err == nil {
-							_, err := collection.UpdateOne(
-								context.Background(),
-								bson.D{
-									{"_id", id},
-								},
-								mongo.Pipeline{
-									{
-										{"$replaceWith", bson.D{
-											{"$literal", docWithoutID},
-										}},
-									},
-								},
-								mopt.Update().SetUpsert(true),
-							)
-
-							result.Err = errors.Wrapf(err, "failed to aggregate to $merge document with empty timestamp (%+v)", rawDoc)
+							newResult = Result{1, 0, nil}
 						}
 					} else {
-						result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
+						newResult = NewResultFromBulkResult(bulk.InsertRaw(rawDoc))
 					}
 
+					result.combineWith(newResult)
 					result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
 				}
 
@@ -704,4 +673,47 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 		totalResult.Err = termErr
 	}
 	return totalResult
+}
+
+func insertDocWithEmptyTimestamps(
+	ctx context.Context,
+	collection *mongo.Collection,
+	rawDoc bson.Raw,
+) error {
+	var parsedDoc bson.D
+	var id any
+	err := bson.Unmarshal(rawDoc, &parsedDoc)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal document with empty timestamp")
+	}
+
+	docWithoutID := lo.Filter(
+		parsedDoc,
+		func(el bson.E, _ int) bool {
+			if el.Key == "_id" {
+				id = el.Value
+				return false
+			}
+
+			return true
+		},
+	)
+
+	_, err = collection.UpdateOne(
+		context.Background(),
+		bson.D{
+			{"_id", id},
+		},
+		mongo.Pipeline{
+			{
+				{"$replaceWith", bson.D{
+					{"$literal", docWithoutID},
+				}},
+			},
+		},
+		mopt.Update().SetUpsert(true),
+	)
+
+	return errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%+v)", id)
 }
