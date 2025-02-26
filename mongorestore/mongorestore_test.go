@@ -2708,7 +2708,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 
 	coll := testDB.Collection("mycoll")
 
-	docID := strings.Repeat("x", 7*1024*1024)
+	docID := strings.Repeat("x", 24)
 
 	_, err = coll.UpdateOne(
 		ctx,
@@ -2718,7 +2718,10 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 		mongo.Pipeline{
 			{{"$replaceRoot", bson.D{
 				{"newRoot", bson.D{
-					{"empty_time", primitive.Timestamp{}},
+					{"$literal", bson.D{
+						{"empty_time", primitive.Timestamp{}},
+						{"$wonky.$field", bson.D{{"$deep", 123.45}}},
+					}},
 				}},
 			}}},
 		},
@@ -2735,7 +2738,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 		defer restore.Close()
 
 		result := restore.Restore()
-		require.NoError(result.Err, "can run mongorestore")
+		require.NoError(result.Err, "can run mongorestore (result: %+v)", result)
 		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 	})
 
@@ -2747,8 +2750,14 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 	require.Len(docs, 1, "expect docs count")
 	assert.Equal(
 		t,
-		primitive.Timestamp{},
-		docs[0]["empty_time"],
+		bson.M{
+			"_id":        docID,
+			"empty_time": primitive.Timestamp{},
+			"$wonky.$field": bson.M{
+				"$deep": 123.45,
+			},
+		},
+		docs[0],
 		"expect empty timestamp restored",
 	)
 }
