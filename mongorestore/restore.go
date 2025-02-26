@@ -737,7 +737,7 @@ func insertDocWithEmptyTimestamps(
 			{
 				{"$merge", bson.D{
 					{"into", collection.Name()},
-					{"whenMatched", "keepExisting"},
+					{"whenMatched", "fail"},
 				}},
 			},
 		},
