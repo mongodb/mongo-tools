@@ -707,8 +707,8 @@ func insertDocWithEmptyTimestamps(
 		},
 		mongo.Pipeline{
 			{
-				{"$replaceWith", bson.D{
-					{"$literal", docWithoutID},
+				{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{{"$literal", docWithoutID}}},
 				}},
 			},
 		},

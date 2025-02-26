@@ -50,12 +50,22 @@ func FindEmptyTimestampFields(raw bson.Raw) ([][]string, error) {
 		for i, el := range els {
 			key, err := el.KeyErr()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse key from element %d of %+v", i, curField)
+				return nil, errors.Wrapf(
+					err,
+					"failed to parse key from element %d of %+v",
+					i,
+					curField,
+				)
 			}
 
 			subVal, err := el.ValueErr()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse value from element %d of %+v", i, curField)
+				return nil, errors.Wrapf(
+					err,
+					"failed to parse value from element %d of %+v",
+					i,
+					curField,
+				)
 			}
 
 			subField := append(
@@ -88,7 +98,7 @@ func bytesSuggestEmptyTimestamp(raw bson.Raw) bool {
 	// .. i.e., 0x11, then the NUL-terminated field name, then the timestamp’s
 	// two zero-value int32s.
 	//
-	// For speed we use raw byte checking rather than a regexp.
+	// For speed we examine raw bytes rather than using a regexp.
 
 	var curRaw []byte
 	tsAt := -1
@@ -123,8 +133,7 @@ func bytesSuggestEmptyTimestamp(raw bson.Raw) bool {
 		}
 
 		// It’s getting more likely that we have an empty timestamp. To confirm,
-		// we check to see if the bytes between the 0x11 and the nine NULs are
-		// all non-NUL.
+		// we check to see if any NULs are between the 0x11 and the nine NULs.
 		firstNulBetweenAt := bytes.IndexByte(bytesAfterTs[:nineNulsAt], 0x00)
 
 		// Most likely: we find a NUL between the 0x11 and the nine NULs, which
