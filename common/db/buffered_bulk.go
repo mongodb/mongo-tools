@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -40,17 +39,9 @@ func newBufferedBulkInserter(
 	docLimit int,
 	ordered bool,
 ) *BufferedBulkInserter {
-	bulkWriteOpts := options.BulkWrite().SetOrdered(ordered)
-
-	// This makes the server interpret Timestamp(0, 0) literally rather than
-	// as a “magic value” to indicate current time.
-	//
-	//nolint:deprecated
-	bulkWriteOpts.BypassEmptyTsReplacement = lo.ToPtr(true)
-
 	bb := &BufferedBulkInserter{
 		collection:    collection,
-		bulkWriteOpts: bulkWriteOpts,
+		bulkWriteOpts: options.BulkWrite().SetOrdered(ordered),
 		docLimit:      docLimit,
 		// We set the byte limit to be slightly lower than maxMessageSizeBytes so it can fit in one OP_MSG.
 		// This may not always be perfect, e.g. we don't count update selectors in byte totals, but it should

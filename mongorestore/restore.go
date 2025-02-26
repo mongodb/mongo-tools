@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"slices"
@@ -22,8 +23,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/exp/maps"
 )
 
@@ -591,8 +594,63 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 						return
 					}
 				}
-				result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
-				result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+
+				emptyTsFields, err := FindEmptyTimestampFields(rawDoc)
+				if err != nil {
+					result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
+				} else {
+					if len(emptyTsFields) > 0 {
+						var parsedDoc bson.D
+						var docWithoutID bson.Raw
+						var id any
+						err := bson.Unmarshal(rawDoc, &parsedDoc)
+
+						if err != nil {
+							result.Err = errors.Wrapf(err, "failed to unmarshal document with empty timestamp (%+v)", rawDoc)
+						} else {
+							parsedDoc = lo.Filter(
+								parsedDoc,
+								func(el bson.E, _ int) bool {
+									if el.Key == "_id" {
+										id = el.Value
+										return false
+									}
+
+									return true
+								},
+							)
+
+							docWithoutID, err = bson.Marshal(parsedDoc)
+							if err != nil {
+								result.Err = errors.Wrapf(err, "failed to re-marshal _id-stripped document with empty timestamp (%+v)", parsedDoc)
+							}
+						}
+
+						if result.Err == nil {
+							_, err := collection.UpdateOne(
+								context.Background(),
+								bson.D{
+									{"_id", id},
+								},
+								mongo.Pipeline{
+									{
+										{"$replaceWith", bson.D{
+											{"$literal", docWithoutID},
+										}},
+									},
+								},
+								mopt.Update().SetUpsert(true),
+							)
+
+							result.Err = errors.Wrapf(err, "failed to aggregate to $merge document with empty timestamp (%+v)", rawDoc)
+						}
+					} else {
+						result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
+					}
+
+					result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+				}
+
 				if result.Err != nil {
 					resultChan <- result
 					return
