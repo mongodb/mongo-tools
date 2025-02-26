@@ -2688,7 +2688,7 @@ func TestRestoreClusteredIndex(t *testing.T) {
 	})
 }
 
-func TestRestoreEmptyTimestamp(t *testing.T) {
+func TestRestoreZeroTimestamp(t *testing.T) {
 	ctx := context.Background()
 
 	require := require.New(t)
@@ -2707,14 +2707,14 @@ func TestRestoreEmptyTimestamp(t *testing.T) {
 
 	coll := testDB.Collection("mycoll")
 
-	insertOpt := mopt.InsertOne()
-	insertOpt.BypassEmptyTsReplacement = lo.ToPtr(true)
 	_, err = coll.InsertOne(
 		ctx,
 		bson.D{
 			{"empty_time", primitive.Timestamp{}},
 		},
-		insertOpt,
+		&mopt.InsertOneOptions{
+			BypassEmptyTsReplacement: lo.ToPtr(true),
+		},
 	)
 	require.NoError(err, "should insert")
 
