@@ -608,7 +608,6 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 						)
 
 						if err != nil {
-							fmt.Printf("\n======== error: %+v\n", err)
 							newResult = Result{0, 1, err}
 						} else {
 							newResult = Result{1, 0, nil}
