@@ -709,7 +709,7 @@ func insertDocWithEmptyTimestamps(
 	}
 
 	_, err = sess.WithTransaction(
-		context.Background(),
+		ctx,
 		func(ctx mongo.SessionContext) (any, error) {
 			result, err := collection.UpdateOne(
 				ctx,
@@ -727,7 +727,7 @@ func insertDocWithEmptyTimestamps(
 			)
 
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%+v)", id)
+				return nil, errors.Wrapf(err, "failed to upsert document with empty timestamp (_id=%#q)", id)
 			}
 
 			if result.MatchedCount > 0 {
