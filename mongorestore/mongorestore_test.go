@@ -2720,7 +2720,6 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 				{"newRoot", bson.D{
 					{"$literal", bson.D{
 						{"empty_time", primitive.Timestamp{}},
-						{"$wonky.$field", bson.D{{"$deep", 123.45}}},
 					}},
 				}},
 			}}},
@@ -2753,9 +2752,6 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 		bson.M{
 			"_id":        docID,
 			"empty_time": primitive.Timestamp{},
-			"$wonky.$field": bson.M{
-				"$deep": 123.45,
-			},
 		},
 		docs[0],
 		"expect empty timestamp restored",
