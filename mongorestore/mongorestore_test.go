@@ -2689,6 +2689,8 @@ func TestRestoreClusteredIndex(t *testing.T) {
 }
 
 func TestRestoreZeroTimestamp(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
 	ctx := context.Background()
 
 	require := require.New(t)
