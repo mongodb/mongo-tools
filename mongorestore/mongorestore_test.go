@@ -29,7 +29,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2709,16 +2708,46 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 
 	coll := testDB.Collection("mycoll")
 
-	_, err = coll.InsertOne(
+	docID := strings.Repeat("x", 42)
+
+	/*
+		err = coll.Database().RunCommand(
+			ctx,
+			bson.D{
+				{"update", coll.Name()},
+				{"updates", []bson.D{
+					{
+						{"upsert", true},
+						{"q", bson.D{{"_id", docID}}},
+						{"u", mongo.Pipeline{
+							{{"$replaceRoot", bson.D{
+								{"newRoot", bson.D{
+									{"_id", docID},
+									{"empty_time", primitive.Timestamp{}},
+								}},
+							}}},
+						}},
+					},
+				}},
+			},
+		).Err()
+	*/
+
+	_, err = coll.UpdateOne(
 		ctx,
 		bson.D{
-			{"empty_time", primitive.Timestamp{}},
+			{"_id", docID},
 		},
-		&mopt.InsertOneOptions{
-			BypassEmptyTsReplacement: lo.ToPtr(true),
+		mongo.Pipeline{
+			{{"$replaceRoot", bson.D{
+				{"newRoot", bson.D{
+					{"empty_time", primitive.Timestamp{}},
+				}},
+			}}},
 		},
+		mopt.Update().SetUpsert(true),
 	)
-	require.NoError(err, "should insert")
+	require.NoError(err, "should insert (via update/upsert)")
 
 	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
 		restore, err := getRestoreWithArgs(

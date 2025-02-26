@@ -608,6 +608,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 						)
 
 						if err != nil {
+							fmt.Printf("\n======== error: %+v\n", err)
 							newResult = Result{0, 1, err}
 						} else {
 							newResult = Result{1, 0, nil}
@@ -688,6 +689,9 @@ func insertDocWithEmptyTimestamps(
 		return errors.Wrap(err, "failed to unmarshal document with empty timestamp")
 	}
 
+	// We remove the _id so that we only specify it once in the update
+	// command. The server ends up duplicating the `_id` in the oplog anyway,
+	// so this is really more just to optimize what we send over the wire.
 	docWithoutID := lo.Filter(
 		parsedDoc,
 		func(el bson.E, _ int) bool {
