@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
@@ -26,7 +27,6 @@ import (
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/exp/maps"
 )
 
@@ -684,6 +684,10 @@ func insertDocWithEmptyTimestamps(
 	var id any
 	err := bson.Unmarshal(rawDoc, &parsedDoc)
 
+	tmpCollection := collection.
+		Database().
+		Collection("mongorestore.tmp." + uuid.New().String())
+
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal document with empty timestamp")
 	}
@@ -703,42 +707,47 @@ func insertDocWithEmptyTimestamps(
 		},
 	)
 
-	sess, err := collection.Database().Client().StartSession()
+	randomID := uuid.New()
+	docWithRandomID := append(
+		slices.Clone(docWithoutID),
+		bson.E{"_id", randomID},
+	)
+
+	_, err = tmpCollection.InsertOne(
+		ctx,
+		docWithRandomID,
+	)
 	if err != nil {
-		return errors.Wrap(err, "failed to start transaction")
+		return errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%#q, temporary _id: %#q)", id, randomID)
 	}
 
-	_, err = sess.WithTransaction(
+	defer tmpCollection.Drop(ctx)
+
+	cursor, err := tmpCollection.Aggregate(
 		ctx,
-		func(ctx mongo.SessionContext) (any, error) {
-			result, err := collection.UpdateOne(
-				ctx,
-				bson.D{
-					{"_id", id},
-				},
-				mongo.Pipeline{
-					{
-						{"$replaceRoot", bson.D{
-							{"newRoot", bson.D{{"$literal", docWithoutID}}},
-						}},
-					},
-				},
-				mopt.Update().SetUpsert(true),
-			)
-
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to upsert document with empty timestamp (_id=%#q)", id)
-			}
-
-			if result.MatchedCount > 0 {
-
-				// Returning an error will abort the transaction.
-				return nil, db.FoundExistingDocumentError{rawDoc}
-			}
-
-			return nil, nil
+		mongo.Pipeline{
+			{
+				{"$match", bson.D{{"_id", randomID}}},
+			},
+			{
+				{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{{"$literal", rawDoc}}},
+				}},
+			},
+			{
+				{"$merge", bson.D{
+					{"into", collection.Name()},
+					{"whenMatched", "keepExisting"},
+				}},
+			},
 		},
 	)
 
-	return err
+	if err != nil {
+		return errors.Wrapf(err, "failed to fix document with empty timestamp (_id=%#q, temporary _id: %#q)", id, randomID)
+	}
+
+	cursor.Close(ctx)
+
+	return nil
 }
