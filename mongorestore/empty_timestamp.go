@@ -10,66 +10,6 @@ import (
 
 var nineNuls = make([]byte, 9, 9)
 
-func bytesSuggestEmptyTimestamp(raw bson.Raw) bool {
-	// The pattern we seek is:
-	//
-	//	/\x11 [^\x00]* \x00 \x00{4} \x00{4}/x
-	//
-	// .. i.e., 0x11, then the NUL-terminated field name, then the timestamp’s
-	// two zero-value int32s.
-	//
-	// For speed we use raw byte checking rather than a regexp.
-
-	var curRaw []byte
-	tsAt := -1
-
-	for {
-		if curRaw == nil {
-			curRaw = []byte(raw)
-		} else {
-			if tsAt == -1 {
-				panic("tsAt should be nonnegative!")
-			}
-
-			curRaw = curRaw[1+tsAt:]
-		}
-
-		tsAt = bytes.IndexByte(curRaw, byte(bson.TypeTimestamp))
-
-		// The most likely scenario: no timestamp byte in the document at all.
-		if tsAt == -1 {
-			return false
-		}
-
-		// OK, we found a timestamp byte. That means little on its own because
-		// that byte is probably part of some other value. To narrow things
-		// down let’s find the next 9-NUL sequence.
-		bytesAfterTs := curRaw[1+tsAt:]
-		nineNulsAt := bytes.Index(bytesAfterTs, nineNuls)
-
-		// Most likely:
-		if nineNulsAt == -1 {
-			continue
-		}
-
-		// It’s getting more likely that we have an empty timestamp. To confirm,
-		// we check to see if the bytes between the 0x11 and the nine NULs are
-		// all non-NUL.
-		firstNulBetweenAt := bytes.IndexByte(bytesAfterTs[:nineNulsAt], 0x00)
-
-		// Most likely: we find a NUL between the 0x11 and the nine NULs, which
-		// means that we did not, in fact, find an empty timestamp.
-		if firstNulBetweenAt != -1 {
-			continue
-		}
-
-		// This means we found the sequence we sought. It could have appeared
-		// inside some other field (e.g., binary string), but at this point
-		// we do a full BSON decode to determine that.
-		return true
-	}
-}
-
 func FindEmptyTimestampFields(raw bson.Raw) ([][]string, error) {
 	if !bytesSuggestEmptyTimestamp(raw) {
 		return nil, nil
@@ -138,4 +78,64 @@ func FindEmptyTimestampFields(raw bson.Raw) ([][]string, error) {
 		[]string{},
 		bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: raw},
 	)
+}
+
+func bytesSuggestEmptyTimestamp(raw bson.Raw) bool {
+	// The pattern we seek is:
+	//
+	//	/\x11 [^\x00]* \x00 \x00{4} \x00{4}/x
+	//
+	// .. i.e., 0x11, then the NUL-terminated field name, then the timestamp’s
+	// two zero-value int32s.
+	//
+	// For speed we use raw byte checking rather than a regexp.
+
+	var curRaw []byte
+	tsAt := -1
+
+	for {
+		if curRaw == nil {
+			curRaw = []byte(raw)
+		} else {
+			if tsAt == -1 {
+				panic("tsAt should be nonnegative!")
+			}
+
+			curRaw = curRaw[1+tsAt:]
+		}
+
+		tsAt = bytes.IndexByte(curRaw, byte(bson.TypeTimestamp))
+
+		// The most likely scenario: no timestamp byte in the document at all.
+		if tsAt == -1 {
+			return false
+		}
+
+		// OK, we found a timestamp byte. That means little on its own because
+		// that byte is probably part of some other value. To narrow things
+		// down let’s find the next 9-NUL sequence.
+		bytesAfterTs := curRaw[1+tsAt:]
+		nineNulsAt := bytes.Index(bytesAfterTs, nineNuls)
+
+		// Most likely:
+		if nineNulsAt == -1 {
+			continue
+		}
+
+		// It’s getting more likely that we have an empty timestamp. To confirm,
+		// we check to see if the bytes between the 0x11 and the nine NULs are
+		// all non-NUL.
+		firstNulBetweenAt := bytes.IndexByte(bytesAfterTs[:nineNulsAt], 0x00)
+
+		// Most likely: we find a NUL between the 0x11 and the nine NULs, which
+		// means that we did not, in fact, find an empty timestamp.
+		if firstNulBetweenAt != -1 {
+			continue
+		}
+
+		// This means we found the sequence we sought. It could have appeared
+		// inside some other field (e.g., binary string), but at this point
+		// we do a full BSON decode to determine that.
+		return true
+	}
 }
