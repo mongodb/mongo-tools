@@ -595,7 +595,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 					}
 				}
 
-				emptyTsFields, err := FindEmptyTimestampFields(rawDoc)
+				emptyTsFields, err := FindZeroTimestamps(rawDoc)
 				if err != nil {
 					result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
 				} else {
@@ -704,20 +704,42 @@ func insertDocWithEmptyTimestamps(
 		},
 	)
 
-	_, err = collection.UpdateOne(
+	sess, err := collection.Database().Client().StartSession()
+	if err != nil {
+		return errors.Wrap(err, "failed to start transaction")
+	}
+
+	_, err = sess.WithTransaction(
 		context.Background(),
-		bson.D{
-			{"_id", id},
+		func(ctx mongo.SessionContext) (any, error) {
+			result, err := collection.UpdateOne(
+				ctx,
+				bson.D{
+					{"_id", id},
+				},
+				mongo.Pipeline{
+					{
+						{"$replaceRoot", bson.D{
+							{"newRoot", bson.D{{"$literal", docWithoutID}}},
+						}},
+					},
+				},
+				mopt.Update().SetUpsert(true),
+			)
+
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%+v)", id)
+			}
+
+			if result.MatchedCount > 0 {
+
+				// Returning an error will abort the transaction.
+				return nil, db.FoundExistingDocumentError{rawDoc}
+			}
+
+			return nil, nil
 		},
-		mongo.Pipeline{
-			{
-				{"$replaceRoot", bson.D{
-					{"newRoot", bson.D{{"$literal", docWithoutID}}},
-				}},
-			},
-		},
-		mopt.Update().SetUpsert(true),
 	)
 
-	return errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%+v)", id)
+	return err
 }

@@ -2753,6 +2753,88 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 	)
 }
 
+func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(ctx)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	coll := testDB.Collection("mycoll")
+
+	docID := strings.Repeat("x", 7)
+
+	_, err = coll.UpdateOne(
+		ctx,
+		bson.D{
+			{"_id", docID},
+		},
+		mongo.Pipeline{
+			{{"$replaceRoot", bson.D{
+				{"newRoot", bson.D{
+					{"empty_time", primitive.Timestamp{}},
+				}},
+			}}},
+		},
+		mopt.Update().SetUpsert(true),
+	)
+	require.NoError(err, "should insert (via update/upsert)")
+
+	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
+		updated, err := coll.UpdateOne(
+			ctx,
+			bson.D{
+				{"_id", docID},
+			},
+			mongo.Pipeline{
+				{{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{
+						{"nonempty_time", primitive.Timestamp{1, 2}},
+					}},
+				}}},
+			},
+		)
+		require.NoError(err, "should send update")
+		require.NotZero(updated.MatchedCount, "update should match a doc")
+
+		restore, err := getRestoreWithArgs(
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+		require.EqualValues(1, result.Failures, "mongorestore reports failure")
+	})
+
+	cursor, err := coll.Find(ctx, bson.D{})
+	require.NoError(err, "should find docs")
+	docs := []bson.M{}
+	require.NoError(cursor.All(ctx, &docs), "should read docs")
+
+	require.Len(docs, 1, "expect docs count")
+	assert.NotContains(
+		t,
+		docs[0],
+		"empty_time",
+		"restore did not clobber existing document (found: %+v)",
+		docs[0],
+	)
+}
+
 func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 	require := require.New(t)
 

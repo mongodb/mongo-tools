@@ -62,7 +62,7 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 		raw, err := bson.Marshal(tc.doc)
 		require.NoError(t, err, "must marshal doc: %+v", tc.doc)
 
-		fields, err := FindEmptyTimestampFields(raw)
+		fields, err := FindZeroTimestamps(raw)
 		require.NoError(t, err, "should seek empty timestamps in doc %+v", tc.doc)
 		assert.ElementsMatch(t, tc.fields, fields, "should find empty timestamps in doc %+v", tc.doc)
 	}
@@ -83,7 +83,7 @@ func TestFindEmptyTimestampFields_ShouldNotFind(t *testing.T) {
 		raw, err := bson.Marshal(doc)
 		require.NoError(t, err, "must marshal doc: %+v", doc)
 
-		fields, err := FindEmptyTimestampFields(raw)
+		fields, err := FindZeroTimestamps(raw)
 		require.NoError(t, err, "should seek empty timestamps in doc %+v", doc)
 		assert.Empty(t, fields, "should find no empty timestamps in doc %+v", doc)
 	}

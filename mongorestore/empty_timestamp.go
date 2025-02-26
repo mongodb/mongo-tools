@@ -10,7 +10,9 @@ import (
 
 var nineNuls = make([]byte, 9, 9)
 
-func FindEmptyTimestampFields(raw bson.Raw) ([][]string, error) {
+// FindZeroTimestamps returns all document paths (each represented as
+// a []string) that contain a zero-value timestamp.
+func FindZeroTimestamps(raw bson.Raw) ([][]string, error) {
 	if !bytesSuggestEmptyTimestamp(raw) {
 		return nil, nil
 	}

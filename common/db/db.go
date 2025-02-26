@@ -597,6 +597,10 @@ func CanIgnoreError(err error) bool {
 		return true
 	}
 
+	if errors.As(err, &FoundExistingDocumentError{}) {
+		return true
+	}
+
 	switch mongoErr := err.(type) {
 	case mongo.WriteError:
 		_, ok := ignorableWriteErrorCodes[mongoErr.Code]
