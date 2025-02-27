@@ -166,7 +166,7 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 					log.Logvf(
 						log.Info,
 						"index %#q (%v) lacks %#q; inferring %#q",
-						index.Options["name"].(string),
+						index.Options["name"],
 						index.Key,
 						optName,
 						addedOpts[optName],

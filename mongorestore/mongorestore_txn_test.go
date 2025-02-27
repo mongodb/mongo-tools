@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -175,7 +176,7 @@ func postImageCheck(client *mongo.Client, c *txnTestDataCase) error {
 			return fmt.Errorf("got unexpected document with _id '%d'", id)
 		}
 		if diff := cmp.Diff(got, want); diff != "" {
-			return fmt.Errorf(diff)
+			return errors.New(diff)
 		}
 		delete(expected, id)
 	}

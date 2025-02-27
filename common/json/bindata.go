@@ -59,13 +59,29 @@ func (d *decodeState) getBinData() interface{} {
 	if err := ctorNumArgsMismatch("BinData", 2, len(args)); err != nil {
 		d.error(err)
 	}
-	arg0, err := args[0].(Number).Uint8()
+
+	arg0Num, ok := args[0].(Number)
+	if !ok {
+		d.error(
+			fmt.Errorf(
+				"expected number (not %T) for first argument of BinData constructor",
+				args[0],
+			),
+		)
+	}
+
+	arg0, err := arg0Num.Uint8()
 	if err != nil {
 		d.error(fmt.Errorf("expected byte for first argument of BinData constructor"))
 	}
 	arg1, ok := args[1].(string)
 	if !ok {
-		d.error(fmt.Errorf("expected string for second argument of BinData constructor"))
+		d.error(
+			fmt.Errorf(
+				"expected string (not %T) for second argument of BinData constructor",
+				args[1],
+			),
+		)
 	}
 
 	d.useNumber = useNumber
