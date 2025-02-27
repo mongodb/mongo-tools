@@ -157,7 +157,7 @@ func main() {
 
 }
 
-func check(err error, format ...interface{}) {
+func check(err error, format ...any) {
 	if err == nil {
 		return
 	}
@@ -165,7 +165,7 @@ func check(err error, format ...interface{}) {
 	if len(format) != 0 {
 		formatStr, ok := format[0].(string)
 		if !ok {
-			log.Fatal("format should be a string, not %T", format[0])
+			log.Fatalf("format should be a string, not %T", format[0])
 		}
 
 		task := fmt.Sprintf(formatStr, format[1:]...)
