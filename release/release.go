@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/release/aws"
 	"github.com/mongodb/mongo-tools/release/download"
 	"github.com/mongodb/mongo-tools/release/env"
@@ -1416,14 +1415,9 @@ func downloadMongodAndShell(v string) {
 		target = pf.ServerPlatform
 	}
 
-	acceptableTargets := mapset.NewSet(target)
-	if target == "rhel80" {
-		acceptableTargets.Add("rhel8")
-	}
-
 	url, githash, serverVersion, err := feed.FindURLHashAndVersion(
 		v,
-		acceptableTargets,
+		target,
 		string(pf.Arch),
 		"enterprise",
 	)
