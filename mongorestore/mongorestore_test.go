@@ -1052,13 +1052,14 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		db := session.Database("admin")
-
 		Convey("Restoring users and roles should drop tempusers and temproles", func() {
+
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+			defer restore.Close()
+
+			db := session.Database("admin")
+
 			restore.TargetDirectory = "testdata/usersdump"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -1070,6 +1071,62 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 				So(collName, ShouldNotEqual, "tempusers")
 				So(collName, ShouldNotEqual, "temproles")
 			}
+		})
+
+		Convey("If --dumpUsersAndRoles was not used with the target", func() {
+			Convey("Restoring from db directory should not be allowed", func() {
+				args = append(
+					args,
+					RestoreDBUsersAndRolesOption,
+					DBOption,
+					"db1",
+					"testdata/testdirs/db1",
+				)
+
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+				defer restore.Close()
+
+				result := restore.Restore()
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+			})
+
+			Convey("Restoring from base dump directory should not be allowed", func() {
+				args = append(
+					args,
+					RestoreDBUsersAndRolesOption,
+					DBOption,
+					"db1",
+					"testdata/testdirs",
+				)
+
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+				defer restore.Close()
+
+				result := restore.Restore()
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+			})
+
+			Convey("Restoring from archive of entire dump should not be allowed", func() {
+				withArchiveMongodump(t, func(archive string) {
+					args = append(
+						args,
+						RestoreDBUsersAndRolesOption,
+						DBOption,
+						"db1",
+						ArchiveOption+"="+archive,
+					)
+
+					restore, err := getRestoreWithArgs(args...)
+					So(err, ShouldBeNil)
+					defer restore.Close()
+
+					result := restore.Restore()
+					So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+
+				})
+			})
 		})
 	})
 }

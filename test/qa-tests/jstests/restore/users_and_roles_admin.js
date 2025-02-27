@@ -74,9 +74,9 @@
   foodb.dropAllUsers();
   foodb.dropAllRoles();
 
-  jsTestLog("Restore foo database from dump that doesn't contain user data ");
+  jsTestLog("Restore foo database from dump that doesn't contain user data without --restoreDbUsersAndRoles");
 
-  runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: ""});
+  runTool("mongorestore", mongod, {dir: dumpDir + "foo/", db: 'foo'});
 
   assert.soon(function () {
     return foodb.bar.findOne();
