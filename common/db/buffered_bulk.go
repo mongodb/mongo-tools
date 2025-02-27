@@ -48,11 +48,16 @@ func newBufferedBulkInserter(
 	)
 
 	if err != nil {
-		panic(fmt.Sprintf("Failed to determine if mongo can accept literal zero timestamp (%+v); cannot proceed!", err))
+		panic(
+			fmt.Sprintf(
+				"Failed to determine if mongo can accept literal zero timestamp (%+v); cannot proceed!",
+				err,
+			),
+		)
 	}
 
 	if canDoZeroTs {
-		//nolint
+
 		bulkOpts.BypassEmptyTsReplacement = lo.ToPtr(true)
 	}
 

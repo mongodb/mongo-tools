@@ -602,7 +602,10 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 				if !bulk.CanDoZeroTimestamp() {
 					emptyTsFields, err := FindZeroTimestamps(rawDoc)
 					if err != nil {
-						result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
+						result.Err = errors.Wrapf(
+							err,
+							"failed to seek empty timestamps in document",
+						)
 					}
 
 					needsSpecialZeroTimestampHandling = len(emptyTsFields) > 0
@@ -741,10 +744,24 @@ func insertDocWithEmptyTimestamps(
 		docWithRandomID,
 	)
 	if err != nil {
-		return errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%#q, temporary _id: %#q)", id, randomID)
+		return errors.Wrapf(
+			err,
+			"failed to insert document with empty timestamp (_id=%#q, temporary _id: %#q)",
+			id,
+			randomID,
+		)
 	}
 
-	defer tmpCollection.Drop(ctx)
+	defer func() {
+		err := tmpCollection.Drop(ctx)
+		if err != nil {
+			log.Logvf(
+				log.Always,
+				"Failed to drop temporary collection %#q. Please drop it manually.",
+				tmpCollection.Database().Name()+"."+tmpCollection.Name(),
+			)
+		}
+	}()
 
 	cursor, err := tmpCollection.Aggregate(
 		ctx,
@@ -772,7 +789,12 @@ func insertDocWithEmptyTimestamps(
 	)
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to fix document with empty timestamp (_id=%#q, temporary _id: %#q)", id, randomID)
+		return errors.Wrapf(
+			err,
+			"failed to fix document with empty timestamp (_id=%#q, temporary _id: %#q)",
+			id,
+			randomID,
+		)
 	}
 
 	cursor.Close(ctx)

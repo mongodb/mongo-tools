@@ -64,7 +64,13 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 
 		fields, err := FindZeroTimestamps(raw)
 		require.NoError(t, err, "should seek empty timestamps in doc %+v", tc.doc)
-		assert.ElementsMatch(t, tc.fields, fields, "should find empty timestamps in doc %+v", tc.doc)
+		assert.ElementsMatch(
+			t,
+			tc.fields,
+			fields,
+			"should find empty timestamps in doc %+v",
+			tc.doc,
+		)
 	}
 }
 
