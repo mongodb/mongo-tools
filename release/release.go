@@ -1441,13 +1441,18 @@ func downloadMongodAndShell(v string) {
 		// serverVersion >= 6.0.0, download mongo shell.
 		downloadArtifacts(serverVersion, []string{"Jstestshell"})
 	}
+
+	// if serverVersion >= 8.1.0, download mongo shell's modules and install them in the bin/ directory
+	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "8.1.0-alpha1") >= 0 {
+		downloadJstestshellModules()
+	}
 }
 
 func downloadBinaries(url string) {
 	tempDir, err := os.MkdirTemp("bin", "")
 	check(err, "create temp dir")
 
-	filename := filepath.Base(url)
+	filename := filepath.Base(strings.Split(url, "?")[0])
 	tempPath := filepath.Join(tempDir, filename)
 	packageFile, err := os.Create(tempPath)
 	check(err, "create the server package file")
@@ -1557,6 +1562,50 @@ func untargz(src, dst string) {
 	gzReader.Close()
 }
 
+func downloadJstestshellModules() {
+	pwd, err := os.Getwd()
+	check(err, "os.Getwd")
+	fmt.Printf("pwd: %s\n", pwd)
+
+	// hardcoding this for now, need to figure out how to find commit hash, then get build id, then get artifacts for that build
+	artifacts, err := evergreen.GetArtifactsForTask("mongodb_mongo_master_amazon2_x86_compile_archive_dist_test_f39cca59881a01d2162b7f6a2c15e6c55924db33_25_02_26_18_38_24")
+	check(err, "get artifacts")
+
+	for _, a := range artifacts {
+		// move to variable?
+		if a.Name == "Artifacts" {
+			fmt.Printf("Downloading %s\n", a.Name)
+			downloadBinaries(a.URL)
+		}
+	}
+
+	binDirs, err := filepath.Glob(path.Join("bin", "*", "src", "jstests"))
+	check(err, "find jstests binaries")
+
+	if len(binDirs) > 0 {
+		jstestsPath := binDirs[0]
+		fmt.Printf("jstests path: %s", jstestsPath)
+		err = os.Rename(jstestsPath, "./jstests")
+		check(err, "move jstests directory failed")
+
+		jsconfig := map[string]interface{}{
+			"compilerOptions": map[string]string{
+				"baseUrl":          ".",
+				"disableSizeLimit": "true",
+			},
+		}
+		jsconfigBytes, err := json.Marshal(jsconfig)
+		check(err, "marshal jsconfig.json")
+
+		err = os.WriteFile("./jsconfig.json", jsconfigBytes, 0644)
+		check(err, "write jsconfig.json")
+
+		// cleanup the libs?
+	} else {
+		log.Fatalf("no jstests directory found %v", binDirs)
+	}
+}
+
 func downloadArtifacts(v string, artifactNames []string) {
 	if v == "" {
 		log.Fatalf("invalid empty version string")
@@ -1574,7 +1623,6 @@ func downloadArtifacts(v string, artifactNames []string) {
 	pwd, err := os.Getwd()
 	check(err, "os.Getwd")
 	fmt.Printf("pwd: %s\n", pwd)
-
 	_, err = run(
 		"git",
 		"clone",

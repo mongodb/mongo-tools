@@ -496,8 +496,9 @@ var platforms = []Platform{
 		Repos:     []Repo{RepoOrg, RepoEnterprise},
 		BuildTags: defaultBuildTags,
 		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
-		ServerVariantName: "enterprise-rhel-80-64-bit",
-		ServerPlatform:    "rhel80",
+		// Should these be rhel-8 not rhel-80 permanently? The evergreen list doesn't have rhel80 for rhel 8.0 anywhere.
+		ServerVariantName: "enterprise-rhel-8-64-bit",
+		ServerPlatform:    "rhel8",
 	},
 	{
 		Name:      "rhel9",

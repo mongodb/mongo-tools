@@ -57,7 +57,8 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        ./mongo --nodb lib/run_mongod.js jstests/tool/*.js
+        find ./
+        ./mongo --nodb --eval 'const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;' lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
@@ -104,6 +105,7 @@ functions:
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
           go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
+          find ./bin/
         add_expansions_to_env: true
 
   "get buildnumber":
@@ -425,8 +427,7 @@ functions:
           elif [ "${USE_SSL}" = "true" ]; then
             NODE_OPTIONS="${replsettest_ssl_config}"
           fi
-
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
 
     - command: shell.exec
       params:
@@ -1358,6 +1359,95 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
+  - name: integration-8.1
+    tags: ["8.1"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.1.0-alpha3"
+      - func: "start mongod"
+        vars:
+          USE_TLS: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true ${testArgs}
+
+  - name: integration-8.1-auth
+    tags: ["8.1", "auth"]
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args_tls"
+              concat: " --auth"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.1.0-alpha3"
+      - func: "start mongod"
+        vars:
+          USE_TLS: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: "true"
+      - func: "create mongod users"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true -auth=true ${testArgs}
+
+  - name: integration-8.1-cluster
+    tags: ["8.1", "cluster"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.1.0-alpha3"
+      - func: "create repl_set"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
+
+  - name: aws-auth-8.1
+    tags: ["8.1", "aws-auth"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          edition: "enterprise"
+          mongo_version: "8.1.0-alpha3"
+      - func: "start mongod"
+        vars:
+          AWS_AUTH: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          AWS_AUTH: "true"
+      - func: "add-aws-auth-variables-to-file"
+      - func: "setup-aws-auth-test-with-assume-role-credentials"
+      - func: "run make target"
+        vars:
+          target: test:awsauth ${testArgs}
+
   - name: integration-latest
     tags: ["latest"]
     commands:
@@ -1582,6 +1672,22 @@ tasks:
         vars:
           test_path: "test/legacy42"
 
+  - name: legacy-jstests-8.1 # The server jstests from the tools removal from server in 4.2
+    tags: ["8.1"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.1.0-alpha3"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run legacy tests"
+        vars:
+          test_path: "test/legacy42"
+
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
     tags: ["latest"]
     commands:
@@ -1690,6 +1796,23 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_tls}"
+          excludes: "requires_unstable,${excludes}"
+
+  - name: qa-tests-8.1
+    tags: ["8.1"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.1.0-alpha3"
       - func: "run make target"
         vars:
           target: build
@@ -2063,6 +2186,7 @@ buildvariants:
       - name: ".6.0"
       - name: ".7.0"
       - name: ".8.0"
+      - name: ".8.1"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2102,6 +2226,7 @@ buildvariants:
       - name: ".6.0"
       - name: ".7.0"
       - name: ".8.0"
+      - name: ".8.1"
       - name: ".latest"
       - name: ".kerberos"
 
@@ -2252,6 +2377,7 @@ buildvariants:
       - name: ".6.0"
       - name: ".7.0"
       - name: ".8.0"
+      - name: ".8.1"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
