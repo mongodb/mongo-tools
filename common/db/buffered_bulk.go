@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -39,9 +40,25 @@ func newBufferedBulkInserter(
 	docLimit int,
 	ordered bool,
 ) *BufferedBulkInserter {
+	bulkOpts := options.BulkWrite().SetOrdered(ordered)
+
+	canDoZeroTs, err := MongoCanAcceptLiteralZeroTimestamp(
+		context.Background(),
+		collection.Database().Client(),
+	)
+
+	if err != nil {
+		panic(fmt.Sprintf("Failed to determine if mongo can accept literal zero timestamp (%+v); cannot proceed!", err))
+	}
+
+	if canDoZeroTs {
+		//nolint
+		bulkOpts.BypassEmptyTsReplacement = lo.ToPtr(true)
+	}
+
 	bb := &BufferedBulkInserter{
 		collection:    collection,
-		bulkWriteOpts: options.BulkWrite().SetOrdered(ordered),
+		bulkWriteOpts: bulkOpts,
 		docLimit:      docLimit,
 		// We set the byte limit to be slightly lower than maxMessageSizeBytes so it can fit in one OP_MSG.
 		// This may not always be perfect, e.g. we don't count update selectors in byte totals, but it should
@@ -52,15 +69,13 @@ func newBufferedBulkInserter(
 	return bb
 }
 
-// NewOrderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing ordered bulk writes.
-func NewOrderedBufferedBulkInserter(
-	collection *mongo.Collection,
-	docLimit int,
-) *BufferedBulkInserter {
-	return newBufferedBulkInserter(collection, docLimit, true)
+func (bb *BufferedBulkInserter) CanDoZeroTimestamp() bool {
+	bypassSettingPtr := bb.bulkWriteOpts.BypassEmptyTsReplacement
+
+	return bypassSettingPtr != nil && *bypassSettingPtr
 }
 
-// NewOrderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing unordered bulk writes.
+// NewUnorderedBufferedBulkInserter returns an initialized BufferedBulkInserter for performing unordered bulk writes.
 func NewUnorderedBufferedBulkInserter(
 	collection *mongo.Collection,
 	docLimit int,

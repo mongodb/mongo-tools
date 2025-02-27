@@ -2760,6 +2760,18 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 	)
 }
 
+func expectHandleZeroTimestamp(restore *MongoRestore) bool {
+	v := restore.serverVersion
+
+	// 5.0, 6.0, and 7.0 (not intervening versions)
+	if v[0] > 4 && v[0] < 8 {
+		return v[1] == 0
+	}
+
+	// 8.0 and later
+	return v[0] >= 8
+}
+
 func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -2825,8 +2837,9 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 		result := restore.Restore()
 		require.NoError(result.Err, "can run mongorestore")
 
-		// We don’t actually get a failure from mongorestore here. :(
-		//assert.EqualValues(t, 1, result.Failures, "mongorestore reports failure")
+		if expectHandleZeroTimestamp(restore) {
+			assert.EqualValues(t, 1, result.Failures, "mongorestore reports failure")
+		}
 	})
 
 	cursor, err := coll.Find(ctx, bson.D{})

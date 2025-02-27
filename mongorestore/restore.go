@@ -12,6 +12,7 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -577,6 +578,8 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 
 	log.Logvf(log.DebugLow, "using %v insertion workers", maxInsertWorkers)
 
+	var warnedAboutEmptyTimestamp atomic.Bool
+
 	for i := 0; i < maxInsertWorkers; i++ {
 		go func() {
 			var result Result
@@ -595,12 +598,30 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 					}
 				}
 
-				emptyTsFields, err := FindZeroTimestamps(rawDoc)
-				if err != nil {
-					result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
-				} else {
+				needsSpecialZeroTimestampHandling := false
+				if !bulk.CanDoZeroTimestamp() {
+					emptyTsFields, err := FindZeroTimestamps(rawDoc)
+					if err != nil {
+						result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
+					}
+
+					needsSpecialZeroTimestampHandling = len(emptyTsFields) > 0
+				}
+
+				if result.Err == nil {
 					var newResult Result
-					if len(emptyTsFields) > 0 {
+					if needsSpecialZeroTimestampHandling {
+						if !warnedAboutEmptyTimestamp.Swap(true) {
+							log.Logvf(
+								lo.Ternary(
+									restore.OutputOptions.StopOnError,
+									log.Always,
+									log.DebugLow,
+								),
+								"Restoring document(s) with empty timestamp. mongorestore will ignore pre-existing documents without giving notice.",
+							)
+						}
+
 						err := insertDocWithEmptyTimestamps(
 							context.Background(),
 							collection,
@@ -675,6 +696,8 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 	return totalResult
 }
 
+// This is here to accommodate 4.4, 4.2, and any other server versions that
+// lack the `bypassEmptyTsReplacement` insert/update flag.
 func insertDocWithEmptyTimestamps(
 	ctx context.Context,
 	collection *mongo.Collection,
@@ -737,7 +760,12 @@ func insertDocWithEmptyTimestamps(
 			{
 				{"$merge", bson.D{
 					{"into", collection.Name()},
-					{"whenMatched", "fail"},
+
+					// Ideally we could use "fail" here instead of
+					// "keepExisting", but "fail" causes mongo to interpret
+					// the zero timestamp as “current time”, which is exactly
+					// the behavior this function exists to avoid.
+					{"whenMatched", "keepExisting"},
 				}},
 			},
 		},
