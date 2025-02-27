@@ -301,6 +301,8 @@ func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		//nolint:errcheck
 		return MarshalD(out.(bson.D)), nil
 	case []interface{}: // array
 		out := []interface{}{}
