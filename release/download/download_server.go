@@ -3,6 +3,7 @@ package download
 import (
 	"fmt"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/release/version"
 )
 
