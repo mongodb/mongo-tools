@@ -3009,15 +3009,19 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	require.True(t, found, "index has a key named 'key'")
 	require.IsType(t, bson.M{}, keys, "key value is a bson.M")
 
-	//nolint:errcheck
-	keysM := keys.(bson.M)
+	keysM, ok := keys.(bson.M)
+	require.True(t, ok)
+
 	var keyNames []string
 	for k := range keysM {
 		keyNames = append(keyNames, k)
 	}
 
+	nameStr, ok := name.(string)
+	require.True(t, ok)
+
 	return indexInfo{
-		name: name.(string),
+		name: nameStr,
 		keys: keyNames,
 	}
 }

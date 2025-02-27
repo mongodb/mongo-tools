@@ -1075,7 +1075,11 @@ func TestMongoDumpMetaData(t *testing.T) {
 							uuid, ok := jsonResult["uuid"]
 							So(ok, ShouldBeTrue)
 							checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
-							So(checkUUID.MatchString(uuid.(string)), ShouldBeTrue)
+
+							uuidStr, ok := uuid.(string)
+							So(ok, ShouldBeTrue)
+
+							So(checkUUID.MatchString(uuidStr), ShouldBeTrue)
 							// XXX useless -- xdg, 2018-09-21
 							So(err, ShouldBeNil)
 						})
@@ -2367,7 +2371,10 @@ func TestMongoDumpColumnstoreIndexes(t *testing.T) {
 		require.True(t, ok)
 		count := 0
 
-		for _, index := range indexes.([]interface{}) {
+		indexesSlice, ok := indexes.([]any)
+		require.True(t, ok)
+
+		for _, index := range indexesSlice {
 			indexMap, ok := index.(map[string]interface{})
 			require.True(t, ok)
 
