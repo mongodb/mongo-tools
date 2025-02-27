@@ -243,11 +243,7 @@ func TestSetNestedDocumentValue(t *testing.T) {
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 3)
 			So(newDocument[2].Key, ShouldResemble, "c")
-
-			valMap, ok := newDocument[2].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(*valMap, ShouldResemble, expectedDocument)
+			So(*newDocument[2].Value.(*bson.D), ShouldResemble, expectedDocument)
 		})
 		Convey("ensure existing nested level fields are set and others, unchanged", func() {
 			testDocument := &currentDocument
@@ -257,11 +253,7 @@ func TestSetNestedDocumentValue(t *testing.T) {
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
-
-			valMap, ok := newDocument[1].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(*valMap, ShouldResemble, expectedDocument)
+			So(*newDocument[1].Value.(*bson.D), ShouldResemble, expectedDocument)
 		})
 		Convey("ensure subsequent calls update fields accordingly", func() {
 			testDocument := &currentDocument
@@ -272,11 +264,7 @@ func TestSetNestedDocumentValue(t *testing.T) {
 			newDocument := *testDocument
 			So(len(newDocument), ShouldEqual, 2)
 			So(newDocument[1].Key, ShouldResemble, "b")
-
-			valDoc, ok := newDocument[1].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(*valDoc, ShouldResemble, expectedDocumentOne)
+			So(*newDocument[1].Value.(*bson.D), ShouldResemble, expectedDocumentOne)
 			err = setNestedDocumentValue([]string{"f"}, 23, testDocument, false)
 			So(err, ShouldBeNil)
 			newDocument = *testDocument
@@ -395,11 +383,7 @@ func TestTokensToBSON(t *testing.T) {
 			So(expectedDocument[1].Key, ShouldResemble, bsonD[1].Key)
 			So(expectedDocument[1].Value, ShouldResemble, bsonD[1].Value)
 			So(expectedDocument[2].Key, ShouldResemble, bsonD[2].Key)
-
-			valueD, ok := bsonD[2].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(expectedDocument[2].Value, ShouldResemble, *valueD)
+			So(expectedDocument[2].Value, ShouldResemble, *bsonD[2].Value.(*bson.D))
 		})
 	})
 }

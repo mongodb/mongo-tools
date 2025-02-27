@@ -166,7 +166,7 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 					log.Logvf(
 						log.Info,
 						"index %#q (%v) lacks %#q; inferring %#q",
-						index.Options["name"],
+						index.Options["name"].(string),
 						index.Key,
 						optName,
 						addedOpts[optName],
@@ -602,10 +602,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 				if !bulk.CanDoZeroTimestamp() {
 					emptyTsFields, err := FindZeroTimestamps(rawDoc)
 					if err != nil {
-						result.Err = errors.Wrapf(
-							err,
-							"failed to seek empty timestamps in document",
-						)
+						result.Err = errors.Wrapf(err, "failed to seek empty timestamps in document")
 					}
 
 					needsSpecialZeroTimestampHandling = len(emptyTsFields) > 0
@@ -744,25 +741,10 @@ func insertDocWithEmptyTimestamps(
 		docWithRandomID,
 	)
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"failed to insert document with empty timestamp (_id=%#q, temporary _id: %#q)",
-			id,
-			randomID,
-		)
+		return errors.Wrapf(err, "failed to insert document with empty timestamp (_id=%#q, temporary _id: %#q)", id, randomID)
 	}
 
-	defer func() {
-		err := tmpCollection.Drop(ctx)
-		if err != nil {
-			log.Logvf(
-				log.DebugLow,
-				"Failed to drop temp collection %#q: %v",
-				tmpCollection.Database().Name()+"."+tmpCollection.Name(),
-				err,
-			)
-		}
-	}()
+	defer tmpCollection.Drop(ctx)
 
 	cursor, err := tmpCollection.Aggregate(
 		ctx,
@@ -790,23 +772,10 @@ func insertDocWithEmptyTimestamps(
 	)
 
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"failed to fix document with empty timestamp (_id=%#q, temporary _id: %#q)",
-			id,
-			randomID,
-		)
+		return errors.Wrapf(err, "failed to fix document with empty timestamp (_id=%#q, temporary _id: %#q)", id, randomID)
 	}
 
-	err = cursor.Close(ctx)
-	if err != nil {
-		log.Logvf(
-			log.DebugLow,
-			"Failed to close aggregation cursor on %#q: %v",
-			tmpCollection.Database().Name()+"."+tmpCollection.Name(),
-			err,
-		)
-	}
+	cursor.Close(ctx)
 
 	return nil
 }

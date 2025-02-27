@@ -128,7 +128,6 @@ func extractFieldByName(fieldName string, document interface{}) interface{} {
 		} else if docKind == reflect.Slice {
 			if docType == marshalDType {
 				// dive into a D as a document
-				//nolint:errcheck
 				asD := bson.D(subdoc.(bsonutil.MarshalD))
 				var err error
 				subdoc, err = bsonutil.FindValueByKey(path, &asD)

@@ -336,11 +336,7 @@ func TestJSCodeBSONToJSON(t *testing.T) {
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)
 				So(ok, ShouldBeTrue)
-
-				scopeMap, ok := jObj.Scope.(bson.M)
-				So(ok, ShouldBeTrue)
-
-				So(scopeMap["x"], ShouldEqual, 2)
+				So(jObj.Scope.(bson.M)["x"], ShouldEqual, 2)
 				So(jObj.Code, ShouldEqual, "function() { return x; }")
 			})
 		})

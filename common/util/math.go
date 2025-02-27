@@ -52,8 +52,8 @@ func ToUInt32(number interface{}) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	return convert[uint32](asInterface)
+	// no check for "ok" here, since we know it will work
+	return asInterface.(uint32), nil
 }
 
 var intConverter = newNumberConverter(reflect.TypeOf(int(0)))
@@ -66,8 +66,8 @@ func ToInt(number interface{}) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	return convert[int](asInterface)
+	// no check for "ok" here, since we know it will work
+	return asInterface.(int), nil
 }
 
 var float64Converter = newNumberConverter(reflect.TypeOf(float64(0)))
@@ -79,15 +79,6 @@ func ToFloat64(number interface{}) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	return convert[float64](asInterface)
-}
-
-func convert[T any](val any) (T, error) {
-	converted, ok := val.(T)
-	if !ok {
-		return *new(T), fmt.Errorf("Expected %+v (%T) to be float64", val, val)
-	}
-
-	return converted, nil
+	// no check for "ok" here, since we know it will work
+	return asInterface.(float64), nil
 }

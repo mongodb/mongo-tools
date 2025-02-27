@@ -45,11 +45,7 @@ func TestTimestampValue(t *testing.T) {
 
 				bsonMap, err := ConvertLegacyExtJSONValueToBSON(jsonMap)
 				So(err, ShouldBeNil)
-
-				realMap, ok := bsonMap.(map[string]interface{})
-				So(ok, ShouldBeTrue)
-
-				So(realMap["ts"], ShouldEqual, testTS)
+				So(bsonMap.(map[string]interface{})["ts"], ShouldEqual, testTS)
 			})
 		})
 	})

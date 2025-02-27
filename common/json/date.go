@@ -69,19 +69,13 @@ func (d *decodeState) getDate() interface{} {
 	}
 	arg0num, isNumber := args[0].(Number)
 	if !isNumber {
-		arg0str, isString := args[0].(string)
-		if !isString {
-			d.error(fmt.Errorf("expected number or string for first argument of Date constructor"))
-		}
-
 		// validate the date format of the string
-		_, err := util.FormatDate(arg0str)
+		_, err := util.FormatDate(args[0].(string))
 		if err != nil {
 			d.error(fmt.Errorf("unexpected ISODate format"))
 		}
 		d.useNumber = useNumber
-
-		return ISODate(arg0str)
+		return ISODate(args[0].(string))
 	}
 	arg0, err := arg0num.Int64()
 	if err != nil {

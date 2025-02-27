@@ -372,7 +372,7 @@ func newTypeEncoder(t reflect.Type, allowAddr bool) encoderFunc {
 		return marshalerEncoder
 	}
 	if t.Kind() != reflect.Ptr && allowAddr {
-		if reflect.PointerTo(t).Implements(marshalerType) {
+		if reflect.PtrTo(t).Implements(marshalerType) {
 			return newCondAddrEncoder(addrMarshalerEncoder, newTypeEncoder(t, false))
 		}
 	}
@@ -381,7 +381,7 @@ func newTypeEncoder(t reflect.Type, allowAddr bool) encoderFunc {
 		return textMarshalerEncoder
 	}
 	if t.Kind() != reflect.Ptr && allowAddr {
-		if reflect.PointerTo(t).Implements(textMarshalerType) {
+		if reflect.PtrTo(t).Implements(textMarshalerType) {
 			return newCondAddrEncoder(addrTextMarshalerEncoder, newTypeEncoder(t, false))
 		}
 	}

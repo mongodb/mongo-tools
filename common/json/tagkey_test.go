@@ -106,12 +106,7 @@ func TestStructTagObjectKey(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unmarshal(%#q) failed: %v", b, err)
 		}
-
-		fMap, isMap := f.(map[string]any)
-		if !isMap {
-			t.Fatalf("Expected map but got %T", f)
-		}
-		for i, v := range fMap {
+		for i, v := range f.(map[string]interface{}) {
 			switch i {
 			case tt.key:
 				if s, ok := v.(string); !ok || s != tt.value {

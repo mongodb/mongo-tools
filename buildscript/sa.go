@@ -29,7 +29,7 @@ const (
 	// This is the latest version to support a YAML config file. Updating to
 	// the new config file syntax did not seem trivial.
 	eslintVersion       = "8.57.0"
-	golangCILintVersion = "1.63.4"
+	golangCILintVersion = "1.59.1"
 	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
 	preciousVersion     = "0.7.3"

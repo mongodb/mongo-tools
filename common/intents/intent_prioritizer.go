@@ -253,7 +253,6 @@ func (dbh DBHeap) Less(i, j int) bool {
 }
 
 func (dbh *DBHeap) Push(x interface{}) {
-	//nolint:errcheck
 	*dbh = append(*dbh, x.(*dbCounter))
 }
 
