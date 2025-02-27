@@ -1088,8 +1088,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 				defer restore.Close()
 
 				result := restore.Restore()
-				So(result.Err, ShouldNotBeNil)
-				So(result.Err, ShouldEqual, NoUsersOrRolesInDumpError)
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
 			})
 
 			Convey("Restoring from base dump directory should not be allowed", func() {
