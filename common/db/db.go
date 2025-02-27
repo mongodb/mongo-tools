@@ -330,7 +330,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
 	cs := opts.URI.ParsedConnString()
 
-	clientopt.Hosts = cs.Hosts
+	clientopt.ApplyURI(opts.URI.ConnectionString)
 
 	if opts.RetryWrites != nil {
 		clientopt.SetRetryWrites(*opts.RetryWrites)
@@ -594,6 +594,10 @@ func FilterError(stopOnError bool, err error) error {
 // Currently, only DuplicateKeyErrors are ignorable.
 func CanIgnoreError(err error) bool {
 	if err == nil {
+		return true
+	}
+
+	if errors.As(err, &FoundExistingDocumentError{}) {
 		return true
 	}
 

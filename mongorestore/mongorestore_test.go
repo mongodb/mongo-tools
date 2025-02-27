@@ -35,6 +35,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -2684,6 +2685,176 @@ func TestRestoreClusteredIndex(t *testing.T) {
 	t.Run("restore from oplog with default index name", func(t *testing.T) {
 		testRestoreClusteredIndexFromOplog(t, "custom index name")
 	})
+}
+
+func TestRestoreZeroTimestamp(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(ctx)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	coll := testDB.Collection("mycoll")
+
+	docID := strings.Repeat("x", 24)
+
+	_, err = coll.UpdateOne(
+		ctx,
+		bson.D{
+			{"_id", docID},
+		},
+		mongo.Pipeline{
+			{{"$replaceRoot", bson.D{
+				{"newRoot", bson.D{
+					{"$literal", bson.D{
+						{"empty_time", primitive.Timestamp{}},
+						{"other", "$$ROOT"},
+					}},
+				}},
+			}}},
+		},
+		mopt.Update().SetUpsert(true),
+	)
+	require.NoError(err, "should insert (via update/upsert)")
+
+	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore (result: %+v)", result)
+		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+	})
+
+	cursor, err := coll.Find(ctx, bson.D{})
+	require.NoError(err, "should find docs")
+	docs := []bson.M{}
+	require.NoError(cursor.All(ctx, &docs), "should read docs")
+
+	require.Len(docs, 1, "expect docs count")
+	assert.Equal(
+		t,
+		bson.M{
+			"_id":        docID,
+			"empty_time": primitive.Timestamp{},
+			"other":      "$$ROOT",
+		},
+		docs[0],
+		"expect empty timestamp restored",
+	)
+}
+
+func expectHandleZeroTimestamp(restore *MongoRestore) bool {
+	v := restore.serverVersion
+
+	// 5.0, 6.0, and 7.0 (not intervening versions)
+	if v[0] > 4 && v[0] < 8 {
+		return v[1] == 0
+	}
+
+	// 8.0 and later
+	return v[0] >= 8
+}
+
+func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	dbName := uniqueDBName()
+	testDB := session.Database(dbName)
+	defer func() {
+		err = testDB.Drop(ctx)
+		if err != nil {
+			t.Fatalf("Failed to drop test database: %v", err)
+		}
+	}()
+
+	coll := testDB.Collection("mycoll")
+
+	docID := strings.Repeat("x", 7)
+
+	_, err = coll.UpdateOne(
+		ctx,
+		bson.D{
+			{"_id", docID},
+		},
+		mongo.Pipeline{
+			{{"$replaceRoot", bson.D{
+				{"newRoot", bson.D{
+					{"empty_time", primitive.Timestamp{}},
+				}},
+			}}},
+		},
+		mopt.Update().SetUpsert(true),
+	)
+	require.NoError(err, "should insert (via update/upsert)")
+
+	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
+		updated, err := coll.UpdateOne(
+			ctx,
+			bson.D{
+				{"_id", docID},
+			},
+			mongo.Pipeline{
+				{{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{
+						{"nonempty_time", primitive.Timestamp{1, 2}},
+					}},
+				}}},
+			},
+		)
+		require.NoError(err, "should send update")
+		require.NotZero(updated.MatchedCount, "update should match a doc")
+
+		restore, err := getRestoreWithArgs(
+			dir,
+		)
+		require.NoError(err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(result.Err, "can run mongorestore")
+
+		if expectHandleZeroTimestamp(restore) {
+			assert.EqualValues(t, 1, result.Failures, "mongorestore reports failure")
+		}
+	})
+
+	cursor, err := coll.Find(ctx, bson.D{})
+	require.NoError(err, "should find docs")
+	docs := []bson.M{}
+	require.NoError(cursor.All(ctx, &docs), "should read docs")
+
+	require.Len(docs, 1, "expect docs count")
+	assert.NotContains(
+		t,
+		docs[0],
+		"empty_time",
+		"restore did not clobber existing document (found: %+v)",
+		docs[0],
+	)
 }
 
 func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {

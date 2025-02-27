@@ -7,12 +7,15 @@
 package mongorestore
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
@@ -22,6 +25,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/exp/maps"
@@ -574,6 +578,8 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 
 	log.Logvf(log.DebugLow, "using %v insertion workers", maxInsertWorkers)
 
+	var warnedAboutEmptyTimestamp atomic.Bool
+
 	for i := 0; i < maxInsertWorkers; i++ {
 		go func() {
 			var result Result
@@ -591,8 +597,53 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 						return
 					}
 				}
-				result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
-				result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+
+				needsSpecialZeroTimestampHandling := false
+				if !bulk.CanDoZeroTimestamp() {
+					emptyTsFields, err := FindZeroTimestamps(rawDoc)
+					if err != nil {
+						result.Err = errors.Wrapf(
+							err,
+							"failed to seek empty timestamps in document",
+						)
+					}
+
+					needsSpecialZeroTimestampHandling = len(emptyTsFields) > 0
+				}
+
+				if result.Err == nil {
+					var newResult Result
+					if needsSpecialZeroTimestampHandling {
+						if !warnedAboutEmptyTimestamp.Swap(true) {
+							log.Logvf(
+								lo.Ternary(
+									restore.OutputOptions.StopOnError,
+									log.Always,
+									log.DebugLow,
+								),
+								"Restoring document(s) with empty timestamp. mongorestore will ignore pre-existing documents without giving notice.",
+							)
+						}
+
+						err := insertDocWithEmptyTimestamps(
+							context.Background(),
+							collection,
+							rawDoc,
+						)
+
+						if err != nil {
+							newResult = Result{0, 1, err}
+						} else {
+							newResult = Result{1, 0, nil}
+						}
+					} else {
+						newResult = NewResultFromBulkResult(bulk.InsertRaw(rawDoc))
+					}
+
+					result.combineWith(newResult)
+					result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+				}
+
 				if result.Err != nil {
 					resultChan <- result
 					return
@@ -646,4 +697,107 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 		totalResult.Err = termErr
 	}
 	return totalResult
+}
+
+// This is here to accommodate 4.4, 4.2, and any other server versions that
+// lack the `bypassEmptyTsReplacement` insert/update flag.
+func insertDocWithEmptyTimestamps(
+	ctx context.Context,
+	collection *mongo.Collection,
+	rawDoc bson.Raw,
+) error {
+	var parsedDoc bson.D
+	var id any
+	err := bson.Unmarshal(rawDoc, &parsedDoc)
+
+	tmpCollection := collection.
+		Database().
+		Collection("mongorestore.tmp." + uuid.New().String())
+
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal document with empty timestamp")
+	}
+
+	// We remove the _id so that we only specify it once in the update
+	// command. The server ends up duplicating the `_id` in the oplog anyway,
+	// so this is really more just to optimize what we send over the wire.
+	docWithoutID := lo.Filter(
+		parsedDoc,
+		func(el bson.E, _ int) bool {
+			if el.Key == "_id" {
+				id = el.Value
+				return false
+			}
+
+			return true
+		},
+	)
+
+	randomID := uuid.New()
+	docWithRandomID := append(
+		slices.Clone(docWithoutID),
+		bson.E{"_id", randomID},
+	)
+
+	_, err = tmpCollection.InsertOne(
+		ctx,
+		docWithRandomID,
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to insert document with empty timestamp (_id=%#q, temporary _id: %#q)",
+			id,
+			randomID,
+		)
+	}
+
+	defer func() {
+		err := tmpCollection.Drop(ctx)
+		if err != nil {
+			log.Logvf(
+				log.Always,
+				"Failed to drop temporary collection %#q. Please drop it manually.",
+				tmpCollection.Database().Name()+"."+tmpCollection.Name(),
+			)
+		}
+	}()
+
+	cursor, err := tmpCollection.Aggregate(
+		ctx,
+		mongo.Pipeline{
+			{
+				{"$match", bson.D{{"_id", randomID}}},
+			},
+			{
+				{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{{"$literal", rawDoc}}},
+				}},
+			},
+			{
+				{"$merge", bson.D{
+					{"into", collection.Name()},
+
+					// Ideally we could use "fail" here instead of
+					// "keepExisting", but "fail" causes mongo to interpret
+					// the zero timestamp as “current time”, which is exactly
+					// the behavior this function exists to avoid.
+					{"whenMatched", "keepExisting"},
+				}},
+			},
+		},
+	)
+
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to fix document with empty timestamp (_id=%#q, temporary _id: %#q)",
+			id,
+			randomID,
+		)
+	}
+
+	cursor.Close(ctx)
+
+	return nil
 }
