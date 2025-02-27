@@ -37,11 +37,11 @@ var (
 
 func (f *ServerJSONFeed) FindURLHashAndVersion(
 	serverVersion string,
-	target string,
+	acceptableTargets mapset.Set[string],
 	arch string,
 	edition string,
 ) (string, string, string, error) {
-	fmt.Printf("Finding %v, %v, %v, %v\n", serverVersion, target, arch, edition)
+	fmt.Printf("Finding %v, %v, %v, %v\n", serverVersion, acceptableTargets, arch, edition)
 
 	var sv version.Version
 	var err error
@@ -70,7 +70,7 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 				versionGuess = feedVersion.String()
 			}
 			for _, dl := range v.Downloads {
-				if dl.Target == target && dl.Arch == arch && dl.Edition == edition {
+				if acceptableTargets.Contains(dl.Target) && dl.Arch == arch && dl.Edition == edition {
 					return dl.Archive.URL, v.GitHash, v.Version, nil
 				}
 			}
