@@ -3097,7 +3097,7 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 					attemptNum := attemptNum
 
 					t.Run(
-						fmt.Sprintf("%s attempt %d", curCase.Label, attemptNum),
+						fmt.Sprintf("attempt %d", attemptNum),
 						func(t *testing.T) {
 							session, err := testutil.GetBareSession()
 							require.NoError(t, err, "should connect to server")
