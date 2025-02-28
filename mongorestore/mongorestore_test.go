@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -3092,16 +3093,12 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 		t.Run(
 			curCase.Label,
 			func(t *testing.T) {
-				t.Parallel()
-
 				for attemptNum := range [20]any{} {
 					attemptNum := attemptNum
 
 					t.Run(
 						fmt.Sprintf("%s attempt %d", curCase.Label, attemptNum),
 						func(t *testing.T) {
-							t.Parallel()
-
 							session, err := testutil.GetBareSession()
 							require.NoError(t, err, "should connect to server")
 
