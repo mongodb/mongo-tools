@@ -35,6 +35,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	moptions "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
@@ -3046,6 +3047,136 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 	t.Run("restore from oplog", func(t *testing.T) {
 		testRestoreColumnstoreIndexFromOplog(t)
 	})
+}
+
+func TestRestoreMultipleIDIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	cases := []struct {
+		Label   string
+		Indexes []mongo.IndexModel
+	}{
+		{
+			Label: "single simple hashed ID index",
+			Indexes: []mongo.IndexModel{
+				{Keys: bson.D{{"_id", "hashed"}}},
+			},
+		},
+		{
+			Label: "multiple hashed with collations and 2dsphere",
+			Indexes: []mongo.IndexModel{
+				{Keys: bson.D{{"_id", "hashed"}}},
+				{
+					Keys: bson.D{{"_id", "hashed"}},
+					Options: moptions.Index().
+						SetName("_id_hashed_de").
+						SetCollation(&moptions.Collation{Locale: "de"}),
+				},
+				{
+					Keys: bson.D{{"_id", "hashed"}},
+					Options: moptions.Index().
+						SetName("_id_hashed_ar").
+						SetCollation(&moptions.Collation{Locale: "ar"}),
+				},
+				{Keys: bson.D{{"_id", "2dsphere"}}},
+			},
+		},
+	}
+
+	dbName := uniqueDBName()
+
+	for c := range cases {
+		curCase := cases[c]
+		indexesToCreate := curCase.Indexes
+
+		t.Run(
+			curCase.Label,
+			func(t *testing.T) {
+				t.Parallel()
+
+				for attemptNum := range [20]any{} {
+					attemptNum := attemptNum
+
+					t.Run(
+						fmt.Sprintf("%s attempt %d", curCase.Label, attemptNum),
+						func(t *testing.T) {
+							t.Parallel()
+
+							session, err := testutil.GetBareSession()
+							require.NoError(t, err, "should connect to server")
+
+							ctx := context.Background()
+
+							testDB := session.Database(dbName)
+
+							collName := strings.Replace(t.Name(), "/", "_", -1)
+							coll := testDB.Collection(collName)
+
+							_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
+							require.NoError(t, err, "indexes should be created")
+
+							archivedIndexes := []bson.M{}
+							require.NoError(t, listIndexes(ctx, coll, &archivedIndexes), "should list indexes")
+
+							withBSONMongodumpForCollection(t, testDB.Name(), coll.Name(), func(dir string) {
+								restore, err := getRestoreWithArgs(
+									DropOption,
+									dir,
+								)
+								require.NoError(t, err)
+								defer restore.Close()
+
+								result := restore.Restore()
+								require.NoError(
+									t,
+									result.Err,
+									"%s: mongorestore should finish OK",
+									curCase.Label,
+								)
+								require.EqualValues(
+									t,
+									0,
+									result.Failures,
+									"%s: mongorestore should report 0 failures",
+									curCase.Label,
+								)
+							})
+
+							restoredIndexes := []bson.M{}
+							require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
+
+							assert.ElementsMatch(
+								t,
+								archivedIndexes,
+								restoredIndexes,
+								"indexes should round-trip dump/restore (attempt #%d)",
+								1+attemptNum,
+							)
+						},
+					)
+				}
+			},
+		)
+
+	}
+}
+
+// ListSpecifications returns IndexSpecifications, which don’t describe all
+// parts of the index. So we need to List() the indexes directly and marshal
+// them to something that lets us compare everything.
+func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) error {
+	ns := coll.Database().Name() + "." + coll.Name()
+
+	cursor, err := coll.Indexes().List(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start listing indexes for %#q: %w", ns, err)
+	}
+	err = cursor.All(ctx, target)
+	if err != nil {
+		return fmt.Errorf("failed to list indexes for %#q: %w", ns, err)
+	}
+
+	return nil
 }
 
 // testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
