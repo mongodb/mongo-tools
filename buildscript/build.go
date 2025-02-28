@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -275,9 +276,18 @@ func selectedPkgs(ctx *task.Context) []string {
 	return selectedPkgs
 }
 
-func getPlatform() (platform.Platform, error) {
+func getPlatform() (pf platform.Platform, err error) {
 	if os.Getenv("CI") != "" {
-		return platform.GetFromEnv()
+		pf, err = platform.GetFromEnv()
+		if err == nil {
+			log.Printf("Platform from env: %+v\n", pf)
+		}
+	} else {
+		pf, err = platform.DetectLocal()
+		if err == nil {
+			log.Printf("Platform detected: %+v\n", pf)
+		}
 	}
-	return platform.DetectLocal()
+
+	return
 }
