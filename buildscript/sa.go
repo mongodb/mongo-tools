@@ -326,10 +326,6 @@ func SAPreciousLint(ctx *task.Context) error {
 	return runPrecious(ctx, "lint", "--all")
 }
 
-func SAPreciousLint(ctx *task.Context) error {
-	return runPrecious(ctx, "--all")
-}
-
 func runPrecious(ctx *task.Context, args ...string) error {
 	devBin, err := devBinDir()
 	if err != nil {
