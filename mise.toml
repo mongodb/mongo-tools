@@ -1,0 +1,24 @@
+# We use ubi for nearly everything we can for two reasons. One is consistency. This way we don't
+# have two developers who compile a Go package with different Go versions. The other is that it's
+# the fastest way to install these packages. In many cases, these tools are available in the mise
+# registry with multiple backends, so spelling out "ubi:..." ensures we use the ubi backend.
+[tools]
+# Go stuff
+go = "1.23.6"
+"go:golang.org/x/tools/cmd/goimports" = "0.24.0"
+"go:golang.org/x/tools/cmd/stringer" = "0.14.0"
+"ubi:golangci/golangci-lint" = "1.63.4"
+"ubi:securego/gosec" = "2.22.0"
+"ubi:segmentio/golines" = "0.12.2"
+"ubi:vektra/mockery" = "2.46.3"
+
+# Other stuff
+"node" = "22.14.0"
+"npm:eslint" = "9.19.0"
+"npm:jest" = "29.7.0"
+"npm:prettier" = "3.4.2"
+"ubi:astral-sh/ruff" = "0.9.4"
+"ubi:houseabsolute/omegasort" = "0.1.3"
+"ubi:houseabsolute/precious" = "0.7.3"
+"ubi:koalaman/shellcheck" = "0.10.0"
+"ubi:mvdan/sh" = { exe = "shfmt", version = "3.10.0" }
