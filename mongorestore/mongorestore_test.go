@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -1053,13 +1054,14 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		db := session.Database("admin")
-
 		Convey("Restoring users and roles should drop tempusers and temproles", func() {
+
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+			defer restore.Close()
+
+			db := session.Database("admin")
+
 			restore.TargetDirectory = "testdata/usersdump"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -1071,6 +1073,62 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 				So(collName, ShouldNotEqual, "tempusers")
 				So(collName, ShouldNotEqual, "temproles")
 			}
+		})
+
+		Convey("If --dumpUsersAndRoles was not used with the target", func() {
+			Convey("Restoring from db directory should not be allowed", func() {
+				args = append(
+					args,
+					RestoreDBUsersAndRolesOption,
+					DBOption,
+					"db1",
+					"testdata/testdirs/db1",
+				)
+
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+				defer restore.Close()
+
+				result := restore.Restore()
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+			})
+
+			Convey("Restoring from base dump directory should not be allowed", func() {
+				args = append(
+					args,
+					RestoreDBUsersAndRolesOption,
+					DBOption,
+					"db1",
+					"testdata/testdirs",
+				)
+
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+				defer restore.Close()
+
+				result := restore.Restore()
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+			})
+
+			Convey("Restoring from archive of entire dump should not be allowed", func() {
+				withArchiveMongodump(t, func(archive string) {
+					args = append(
+						args,
+						RestoreDBUsersAndRolesOption,
+						DBOption,
+						"db1",
+						ArchiveOption+"="+archive,
+					)
+
+					restore, err := getRestoreWithArgs(args...)
+					So(err, ShouldBeNil)
+					defer restore.Close()
+
+					result := restore.Restore()
+					So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+
+				})
+			})
 		})
 	})
 }
@@ -3160,6 +3218,136 @@ func TestRestoreColumnstoreIndex(t *testing.T) {
 	t.Run("restore from oplog", func(t *testing.T) {
 		testRestoreColumnstoreIndexFromOplog(t)
 	})
+}
+
+func TestRestoreMultipleIDIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	cases := []struct {
+		Label   string
+		Indexes []mongo.IndexModel
+	}{
+		{
+			Label: "single simple hashed ID index",
+			Indexes: []mongo.IndexModel{
+				{Keys: bson.D{{"_id", "hashed"}}},
+			},
+		},
+		{
+			Label: "multiple hashed with collations and 2dsphere",
+			Indexes: []mongo.IndexModel{
+				{Keys: bson.D{{"_id", "hashed"}}},
+				{
+					Keys: bson.D{{"_id", "hashed"}},
+					Options: mopt.Index().
+						SetName("_id_hashed_de").
+						SetCollation(&mopt.Collation{Locale: "de"}),
+				},
+				{
+					Keys: bson.D{{"_id", "hashed"}},
+					Options: mopt.Index().
+						SetName("_id_hashed_ar").
+						SetCollation(&mopt.Collation{Locale: "ar"}),
+				},
+				{Keys: bson.D{{"_id", "2dsphere"}}},
+			},
+		},
+	}
+
+	dbName := uniqueDBName()
+
+	for c := range cases {
+		curCase := cases[c]
+		indexesToCreate := curCase.Indexes
+
+		t.Run(
+			curCase.Label,
+			func(t *testing.T) {
+				t.Parallel()
+
+				for attemptNum := range [20]any{} {
+					attemptNum := attemptNum
+
+					t.Run(
+						fmt.Sprintf("%s attempt %d", curCase.Label, attemptNum),
+						func(t *testing.T) {
+							t.Parallel()
+
+							session, err := testutil.GetBareSession()
+							require.NoError(t, err, "should connect to server")
+
+							ctx := context.Background()
+
+							testDB := session.Database(dbName)
+
+							collName := strings.Replace(t.Name(), "/", "_", -1)
+							coll := testDB.Collection(collName)
+
+							_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
+							require.NoError(t, err, "indexes should be created")
+
+							archivedIndexes := []bson.M{}
+							require.NoError(t, listIndexes(ctx, coll, &archivedIndexes), "should list indexes")
+
+							withBSONMongodumpForCollection(t, testDB.Name(), coll.Name(), func(dir string) {
+								restore, err := getRestoreWithArgs(
+									DropOption,
+									dir,
+								)
+								require.NoError(t, err)
+								defer restore.Close()
+
+								result := restore.Restore()
+								require.NoError(
+									t,
+									result.Err,
+									"%s: mongorestore should finish OK",
+									curCase.Label,
+								)
+								require.EqualValues(
+									t,
+									0,
+									result.Failures,
+									"%s: mongorestore should report 0 failures",
+									curCase.Label,
+								)
+							})
+
+							restoredIndexes := []bson.M{}
+							require.NoError(t, listIndexes(ctx, coll, &restoredIndexes), "should list indexes")
+
+							assert.ElementsMatch(
+								t,
+								archivedIndexes,
+								restoredIndexes,
+								"indexes should round-trip dump/restore (attempt #%d)",
+								1+attemptNum,
+							)
+						},
+					)
+				}
+			},
+		)
+
+	}
+}
+
+// ListSpecifications returns IndexSpecifications, which don’t describe all
+// parts of the index. So we need to List() the indexes directly and marshal
+// them to something that lets us compare everything.
+func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) error {
+	ns := coll.Database().Name() + "." + coll.Name()
+
+	cursor, err := coll.Indexes().List(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start listing indexes for %#q: %w", ns, err)
+	}
+	err = cursor.All(ctx, target)
+	if err != nil {
+		return fmt.Errorf("failed to list indexes for %#q: %w", ns, err)
+	}
+
+	return nil
 }
 
 // testRestoreColumnstoreIndexFromDump tests restoring Columnstore Indexes from dump files.
