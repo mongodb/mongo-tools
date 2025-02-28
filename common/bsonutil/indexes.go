@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -109,46 +110,40 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 // without logging or mutating inputs. It just returns the normalized value
 // and a boolean that indicates whether the value was normalized/converted.
 func ConvertLegacyIndexKeyValue(value any) (any, bool) {
-	var needsConversion bool
-
 	switch v := value.(type) {
 	case int:
 		if v == 0 {
-			needsConversion = true
+			return int32(1), true
 		}
 	case int32:
 		if v == int32(0) {
-			needsConversion = true
+			return int32(1), true
 		}
 	case int64:
 		if v == int64(0) {
-			needsConversion = true
+			return int32(1), true
 		}
 	case float64:
-		if math.Abs(v-float64(0)) < epsilon {
-			needsConversion = true
+		if math.Abs(v) < epsilon {
+			return int32(lo.Ternary(v >= 0, 1, -1)), true
 		}
 	case primitive.Decimal128:
 		if bi, _, err := v.BigInt(); err == nil {
 			if bi.Cmp(big.NewInt(0)) == 0 {
-				needsConversion = true
+				return int32(1), true
 			}
 		}
 	case string:
 		// Only convert an empty string
 		if v == "" {
-			needsConversion = true
+			return int32(1), true
 		}
 	default:
 		// Convert all types that aren't strings or numbers
-		needsConversion = true
+		return int32(1), true
 	}
 
-	if needsConversion {
-		value = int32(1)
-	}
-
-	return value, needsConversion
+	return value, false
 }
 
 // ConvertLegacyIndexOptions removes options that don't match a known list of index options.

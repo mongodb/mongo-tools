@@ -45,10 +45,19 @@ Complete these tasks before tagging a new release.
 Move the JIRA ticket for the release to the "In Progress" state. Ensure that its fixVersion matches
 the version being released.
 
-#### Check for Outstanding Vulnerabilities in Dependencies in Silk
+#### Check for Outstanding Vulnerabilities in Dependencies
 
-You can view open findings on
-[the Silk dashboard for this project](https://us1.app.silk.security/inventory/code-repositories?assetId=mongodb____DedupedCodeAsset____dd18b99bbdf5e991fa452636302d07dd04bb48bd&assets-filters=%5B%7B%22filterCriteria%22%3A%22is%22%2C%22filterField%22%3A%22ignored_info.ignored%22%2C%22filterString%22%3A%5B%22false%22%5D%2C%22filterType%22%3A%22boolean%22%7D%2C%7B%22filterCriteria%22%3A%22is%22%2C%22filterField%22%3A%22project_name%22%2C%22filterString%22%3A%5B%22mongodb%2Fmongo-tools%22%5D%2C%22filterType%22%3A%22string%22%7D%5D&assets-page=1).
+See [our internal wiki](https://wiki.corp.mongodb.com/pages/viewpage.action?pageId=276642867) for
+more details on how we handle third-party vulnerabilities, in particular
+[our vulnerability issue lifecycle](https://wiki.corp.mongodb.com/pages/viewpage.action?pageId=285096119).
+
+We want to make sure that we have taken action on all reported vulnerabities in third-party
+dependencies before release. To find these, we should look for
+[TOOLS tickets linked to VULN tickets](<https://jira.mongodb.org/issues/?jql=project%20%3D%20TOOLS%20and%20issue%20in%20linkedTo(%22project%20%3D%20VULN%22)>).
+
+Ideally, all of these tickets should have the "Remediation Completed" status. However, in some
+cases, there may not be a version of the dependency available that addresses the vulnerability. In
+that case, it's okay to do a release with the vulnerability still present in the dependency we use.
 
 We have an SLA for releasing an updated version of the Database Tools to address _applicable_
 vulnerabilities in dependencies, based on the issue's severity. It's possible that a vulnerability
@@ -66,35 +75,21 @@ Critical severity levels, even if this would not violate our SLA.
 If possible, we would like to avoid releasing with known, applicable issues at the Medium severity
 level, but these can be deferred at the team's discretion.
 
-Sometimes Silk will report findings that are not actual vulnerabilities. If you are confident this
-is the case, you can click on an individual finding, then click on the "Ignore" button. This will
-prompt you for the ignore reason. Pick the appropriate one and add a comment explaining why this is
-the case. If you're not sure if a finding is a false positive, discuss it with the team in Slack.
-
 #### Create the Augmented SBOM File for the Upcoming Release
 
 You can generate this by running `go run build.go writeAugmentedSBOM`. This requires several
 environment variables to be set:
 
-- `SILK_CLIENT_ID` - available from 1Password.
-- `SILK_CLIENT_SECRET` - available from 1Password.
+- `KONDUKTO_TOKEN` - available from 1Password.
 - `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
 
 ```
-SILK_CLIENT_ID="$client_id"\
-    SILK_CLIENT_SECRET="$clent_secret" \
+KONDUKTO_TOKEN="$kondukto_token"\
     EVG_TRIGGERED_BY_TAG=100.9.5 \
     go run build.go writeAugmentedSBOM
 ```
 
-The Silk credentials are shared with our team via 1Password.
-
-**Note that if there have been recent changes to this project's dependencies, these may not be
-reflected in the Augmented SBOM.** That's because new dependencies are only processed once per day.
-These are _first_ processed by Snyk based on the SBOM Lite file, `cyclonedx.sbom.json`. Then another
-service, Silk, ingests this file from Snyk and adds vulnerability information to it. That means it
-can take up to 48 hours before changes to our dependencies are reflected in the generated Augmented
-SBOM.
+The Kondukto credentials are shared with our team via 1Password.
 
 If there are recently fixed third-party vulnerabilities, make sure that these are reflected in the
 Augmented SBOM before the release.
@@ -102,7 +97,7 @@ Augmented SBOM before the release.
 See our [documentation on contributing](./CONTRIBUTING.md) for more details on how we handle
 dependency scanning and vulnerabilities.
 
-#### Ensure All Static Dependency Checks Pass
+#### Ensure All Static Analysis Checks Pass
 
 The easiest way to do this is to run our linting, which includes `gosec`:
 
@@ -275,10 +270,12 @@ Go to the
 Click on the version you just released. Then click the "Release" button in the upper right and click
 "Release" in the pop-up window.
 
-#### Move Any VULN-Linked Ticket to "Remediation Released"
+#### Confirm that VULN-Linked Tickets Were Updated Properly
 
-[Search for tickets in the "Remediated" state](https://jira.mongodb.org/issues/?jql=project%20%3D%20%2212385%22%20AND%20status%20%3D%20Remediated).
-For any such tickets where the fix is included in the release, move them to "Remediation Released".
+Any tickets that were in the release that were in the "Remediation Pending Release" state should be
+automatically transitioned to "Remediation Complete" when the release is marked as done in Jira. You
+can confirm this by searching for tickets in these two states and making sure that they have the
+expected status.
 
 #### Announce the release
 

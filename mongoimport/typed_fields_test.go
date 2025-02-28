@@ -110,47 +110,54 @@ func TestAutoHeaderParser(t *testing.T) {
 	})
 }
 
+func cast[T any](val any) T {
+	converted, ok := val.(T)
+	So(ok, ShouldBeTrue)
+
+	return converted
+}
+
 func TestFieldParsers(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("Using FieldAutoParser", t, func() {
 		var p, _ = NewFieldParser(ctAuto, "")
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("parses integers when it can", func() {
 			value, err = p.Parse("2147483648")
-			So(value.(int64), ShouldEqual, int64(2147483648))
+			So(cast[int64](value), ShouldEqual, int64(2147483648))
 			So(err, ShouldBeNil)
 			value, err = p.Parse("42")
-			So(value.(int32), ShouldEqual, 42)
+			So(cast[int32](value), ShouldEqual, 42)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-2147483649")
-			So(value.(int64), ShouldEqual, int64(-2147483649))
+			So(cast[int64](value), ShouldEqual, int64(-2147483649))
 		})
 		Convey("parses decimals when it can", func() {
 			value, err = p.Parse("3.14159265")
-			So(value.(float64), ShouldEqual, 3.14159265)
+			So(cast[float64](value), ShouldEqual, 3.14159265)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("0.123123")
-			So(value.(float64), ShouldEqual, 0.123123)
+			So(cast[float64](value), ShouldEqual, 0.123123)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-123456.789")
-			So(value.(float64), ShouldEqual, -123456.789)
+			So(cast[float64](value), ShouldEqual, -123456.789)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-1.")
-			So(value.(float64), ShouldEqual, -1.0)
+			So(cast[float64](value), ShouldEqual, -1.0)
 			So(err, ShouldBeNil)
 		})
 		Convey("leaves everything else as a string", func() {
 			value, err = p.Parse("12345-6789")
-			So(value.(string), ShouldEqual, "12345-6789")
+			So(cast[string](value), ShouldEqual, "12345-6789")
 			So(err, ShouldBeNil)
 			value, err = p.Parse("06/02/1997")
-			So(value.(string), ShouldEqual, "06/02/1997")
+			So(cast[string](value), ShouldEqual, "06/02/1997")
 			So(err, ShouldBeNil)
 			value, err = p.Parse("")
-			So(value.(string), ShouldEqual, "")
+			So(cast[string](value), ShouldEqual, "")
 			So(err, ShouldBeNil)
 		})
 	})
@@ -162,24 +169,24 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses representations of true correctly", func() {
 			value, err = p.Parse("true")
-			So(value.(bool), ShouldBeTrue)
+			So(cast[bool](value), ShouldBeTrue)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("TrUe")
-			So(value.(bool), ShouldBeTrue)
+			So(cast[bool](value), ShouldBeTrue)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("1")
-			So(value.(bool), ShouldBeTrue)
+			So(cast[bool](value), ShouldBeTrue)
 			So(err, ShouldBeNil)
 		})
 		Convey("parses representations of false correctly", func() {
 			value, err = p.Parse("false")
-			So(value.(bool), ShouldBeFalse)
+			So(cast[bool](value), ShouldBeFalse)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("FaLsE")
-			So(value.(bool), ShouldBeFalse)
+			So(cast[bool](value), ShouldBeFalse)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("0")
-			So(value.(bool), ShouldBeFalse)
+			So(cast[bool](value), ShouldBeFalse)
 			So(err, ShouldBeNil)
 		})
 		Convey("does not parse other boolean representations", func() {
@@ -204,16 +211,16 @@ func TestFieldParsers(t *testing.T) {
 			var p, _ = NewFieldParser(ctBinary, "hex")
 			Convey("parses valid hex values correctly", func() {
 				value, err = p.Parse("400a11")
-				So(value.([]byte), ShouldResemble, []byte{64, 10, 17})
+				So(cast[[]byte](value), ShouldResemble, []byte{64, 10, 17})
 				So(err, ShouldBeNil)
 				value, err = p.Parse("400A11")
-				So(value.([]byte), ShouldResemble, []byte{64, 10, 17})
+				So(cast[[]byte](value), ShouldResemble, []byte{64, 10, 17})
 				So(err, ShouldBeNil)
 				value, err = p.Parse("0b400A11")
-				So(value.([]byte), ShouldResemble, []byte{11, 64, 10, 17})
+				So(cast[[]byte](value), ShouldResemble, []byte{11, 64, 10, 17})
 				So(err, ShouldBeNil)
 				value, err = p.Parse("")
-				So(value.([]byte), ShouldResemble, []byte{})
+				So(cast[[]byte](value), ShouldResemble, []byte{})
 				So(err, ShouldBeNil)
 			})
 		})
@@ -221,10 +228,10 @@ func TestFieldParsers(t *testing.T) {
 			var p, _ = NewFieldParser(ctBinary, "base32")
 			Convey("parses valid base32 values correctly", func() {
 				value, err = p.Parse("")
-				So(value.([]uint8), ShouldResemble, []uint8{})
+				So(cast[[]uint8](value), ShouldResemble, []uint8{})
 				So(err, ShouldBeNil)
 				value, err = p.Parse("MZXW6YTBOI======")
-				So(value.([]uint8), ShouldResemble, []uint8{102, 111, 111, 98, 97, 114})
+				So(cast[[]uint8](value), ShouldResemble, []uint8{102, 111, 111, 98, 97, 114})
 				So(err, ShouldBeNil)
 			})
 		})
@@ -232,10 +239,10 @@ func TestFieldParsers(t *testing.T) {
 			var p, _ = NewFieldParser(ctBinary, "base64")
 			Convey("parses valid base64 values correctly", func() {
 				value, err = p.Parse("")
-				So(value.([]uint8), ShouldResemble, []uint8{})
+				So(cast[[]uint8](value), ShouldResemble, []uint8{})
 				So(err, ShouldBeNil)
 				value, err = p.Parse("Zm9vYmFy")
-				So(value.([]uint8), ShouldResemble, []uint8{102, 111, 111, 98, 97, 114})
+				So(cast[[]uint8](value), ShouldResemble, []uint8{102, 111, 111, 98, 97, 114})
 				So(err, ShouldBeNil)
 			})
 		})
@@ -250,7 +257,7 @@ func TestFieldParsers(t *testing.T) {
 			Convey("parses valid timestamps correctly", func() {
 				value, err = p.Parse("01/04/2000 5:38:10pm UTC")
 				So(
-					value.(time.Time),
+					cast[time.Time](value),
 					ShouldResemble,
 					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
 				)
@@ -270,7 +277,7 @@ func TestFieldParsers(t *testing.T) {
 			Convey("parses valid timestamps correctly", func() {
 				value, err = p.Parse("01/04/2000 5:38:10PM")
 				So(
-					value.(time.Time),
+					cast[time.Time](value),
 					ShouldResemble,
 					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
 				)
@@ -292,7 +299,7 @@ func TestFieldParsers(t *testing.T) {
 			Convey("parses valid timestamps correctly", func() {
 				value, err = p.Parse("01/04/2000 05:38:10PM")
 				So(
-					value.(time.Time),
+					cast[time.Time](value),
 					ShouldResemble,
 					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
 				)
@@ -318,16 +325,16 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses valid decimal values correctly", func() {
 			value, err = p.Parse("3.14159265")
-			So(value.(float64), ShouldEqual, 3.14159265)
+			So(cast[float64](value), ShouldEqual, 3.14159265)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("0.123123")
-			So(value.(float64), ShouldEqual, 0.123123)
+			So(cast[float64](value), ShouldEqual, 0.123123)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-123456.789")
-			So(value.(float64), ShouldEqual, -123456.789)
+			So(cast[float64](value), ShouldEqual, -123456.789)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-1.")
-			So(value.(float64), ShouldEqual, -1.0)
+			So(cast[float64](value), ShouldEqual, -1.0)
 			So(err, ShouldBeNil)
 		})
 		Convey("does not parse invalid numbers", func() {
@@ -349,13 +356,13 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses valid integer values correctly", func() {
 			value, err = p.Parse("2147483647")
-			So(value.(int32), ShouldEqual, 2147483647)
+			So(cast[int32](value), ShouldEqual, 2147483647)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("42")
-			So(value.(int32), ShouldEqual, 42)
+			So(cast[int32](value), ShouldEqual, 42)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-2147483648")
-			So(value.(int32), ShouldEqual, -2147483648)
+			So(cast[int32](value), ShouldEqual, -2147483648)
 		})
 		Convey("does not parse invalid numbers", func() {
 			_, err = p.Parse("")
@@ -380,13 +387,13 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses valid integer values correctly", func() {
 			value, err = p.Parse("2147483648")
-			So(value.(int64), ShouldEqual, int64(2147483648))
+			So(cast[int64](value), ShouldEqual, int64(2147483648))
 			So(err, ShouldBeNil)
 			value, err = p.Parse("42")
-			So(value.(int64), ShouldEqual, 42)
+			So(cast[int64](value), ShouldEqual, 42)
 			So(err, ShouldBeNil)
 			value, err = p.Parse("-2147483649")
-			So(value.(int64), ShouldEqual, int64(-2147483649))
+			So(cast[int64](value), ShouldEqual, int64(-2147483649))
 		})
 		Convey("does not parse invalid numbers", func() {
 			_, err = p.Parse("")
@@ -411,7 +418,7 @@ func TestFieldParsers(t *testing.T) {
 				parsedValue, err := p.Parse(ts)
 				So(err, ShouldBeNil)
 
-				So(testVal, ShouldResemble, parsedValue.(primitive.Decimal128))
+				So(testVal, ShouldResemble, cast[primitive.Decimal128](parsedValue))
 			}
 		})
 		Convey("does not parse invalid decimal values", func() {
@@ -429,13 +436,13 @@ func TestFieldParsers(t *testing.T) {
 
 		Convey("parses strings as strings only", func() {
 			value, err = p.Parse("42")
-			So(value.(string), ShouldEqual, "42")
+			So(cast[string](value), ShouldEqual, "42")
 			So(err, ShouldBeNil)
 			value, err = p.Parse("true")
-			So(value.(string), ShouldEqual, "true")
+			So(cast[string](value), ShouldEqual, "true")
 			So(err, ShouldBeNil)
 			value, err = p.Parse("")
-			So(value.(string), ShouldEqual, "")
+			So(cast[string](value), ShouldEqual, "")
 			So(err, ShouldBeNil)
 		})
 	})

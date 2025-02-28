@@ -307,6 +307,7 @@ functions:
         ARTIFACTORY_USERNAME: ${artifactory_username}
         GARASIGN_PASSWORD: ${garasign_password}
         GARASIGN_USERNAME: ${garasign_username}
+        AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
         TASK_ID: ${task_id}
       args:
         - "./scripts/sign_artifacts.sh"
@@ -563,6 +564,25 @@ functions:
           set -e
           ./scripts/write-evergreen-config-file.sh
 
+  "set silkbomb credentials":
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to pull Kondukto API token
+      params:
+        role_arn: ${kondukto_role_arn}
+    - command: shell.exec
+      display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
+      params:
+        silent: true
+        shell: bash
+        include_expansions_in_env:
+          [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        script: |
+          set -e
+          # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
+          kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
+          # set the KONDUKTO_TOKEN environment variable
+          export KONDUKTO_TOKEN=$kondukto_token
+
 pre:
   - command: shell.exec
     params:
@@ -603,9 +623,6 @@ pre:
           export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
           export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
           export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
-          export SNYK_TOKEN='${snyk_token}'
-          export SILK_CLIENT_ID='${silk_client_id}'
-          export SILK_CLIENT_SECRET='${silk_client_secret}'
           set -o xtrace
           set -o verbose
           set -o errexit
@@ -662,7 +679,6 @@ timeout:
 tasks:
   - name: dist
     tags: ["git_tag"]
-    depends_on:
     commands:
       - func: "fetch source"
       - func: "run make target"
@@ -725,29 +741,16 @@ tasks:
           target: sa:installdevtools
       - func: "generate gosec SARIF report"
 
-  - name: check-snyk-results
-    tags: ["git_tag"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - command: shell.exec
-        params:
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            ${_set_shell_env}
-            set -e
-            curl -sSL -o ./snyk https://static.snyk.io/cli/latest/snyk-linux
-            chmod 0755 ./snyk
-            ./snyk test --org="${snyk_organization_id}" --file=./go.mod
-
   - name: check-augmented-sbom
     tags: ["git_tag"]
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "set silkbomb credentials"
       - command: shell.exec
         params:
           working_dir: src/github.com/mongodb/mongo-tools
+          include_expansions_in_env: [KONDUKTO_TOKEN]
           script: |
             ${_set_shell_env}
             ./scripts/regenerate-and-diff-augmented-sbom.sh
@@ -755,8 +758,6 @@ tasks:
   - name: release-json
     tags: ["git_tag"]
     depends_on:
-      - name: check-snyk-results
-        variant: "*"
       - name: push
         variant: "*"
     commands:
@@ -765,9 +766,6 @@ tasks:
       - func: "upload release json feed to s3"
 
   - name: generate-full-json
-    depends_on:
-      - name: check-snyk-results
-        variant: "*"
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1908,7 +1906,6 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
-      - name: check-snyk-results
       - name: check-augmented-sbom
         # podman is not available on the amazon distro.
         run_on: rhel87-small
@@ -2002,7 +1999,6 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: macos-1014-codesign
       - name: "push"
         run_on: rhel80-small
 
@@ -2019,58 +2015,12 @@ buildvariants:
     tasks:
       - name: "dist"
       - name: "sign"
-        run_on: macos-1014-codesign
       - name: "push"
         run_on: rhel80-small
 
   #######################################
   #     RHEL x86_64 Buildvariants       #
   #######################################
-
-  - name: rhel62
-    display_name: RHEL 6.2
-    expansions:
-      mongo_os: "rhel62"
-    run_on:
-      - rhel62-small
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-  # This build is specifically for Splunk
-  - name: rhel62-no-kerberos
-    display_name: "# RHEL 6.2 w/o Kerberos"
-    expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
-      mongo_os: "rhel62"
-      mongo_edition: "enterprise"
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
-      resmoke_use_tls: _tls
-      edition: enterprise
-      run_kinit: true
-      resmoke_args: --jobs 4
-    run_on:
-      - rhel62-small
-    tasks:
-      - name: "unit"
-      - name: ".3.6"
-      - name: ".4.0"
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-    # We intentionally do not invoke the push task. We want to upload these
-    # binaries to S3, but we do not add them to the release feed or RPM repos.
 
   - name: rhel70
     display_name: RHEL 7.0
@@ -2450,6 +2400,18 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel9-ppc64le
+    display_name: ZAP PPC64LE RHEL 9
+    run_on:
+      - rhel9-power-small
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   #######################################
   #     Z (s390x) Buildvariants         #
   #######################################
@@ -2478,6 +2440,18 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel9-s390x
+    display_name: ZAP s390x RHEL 9
+    run_on:
+      - rhel9-zseries-small
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
 # This set of aliases is generated by the code in the `evergreen` directory.
 # Do not edit this by hand!
 # It can be regenerated by running `go run evergreen/generator/main.go`.
@@ -2498,10 +2472,6 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "^rhel88$"
     task: "^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)"
-  # Run a subset of integration tests against the 3.6 version of MongoDB
-  # Server on all variants where that is the most recent supported version.
-  - variant: "^rhel62-no-kerberos$"
-    task: "integration-3.6"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^(rhel88|windows)$"

@@ -51,8 +51,12 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 					So(asMap["aaa"], ShouldEqual, 543.2)
 					So(asMap["I"], ShouldEqual, 0)
 					So(asMap["E"], ShouldEqual, 0)
-					So(asMap["map"].(map[string]interface{})["1"], ShouldEqual, 1)
-					So(asMap["map"].(map[string]interface{})["2"], ShouldEqual, "two")
+
+					asMapMap, ok := asMap["map"].(map[string]any)
+					So(ok, ShouldBeTrue)
+
+					So(asMapMap["1"], ShouldEqual, 1)
+					So(asMapMap["2"], ShouldEqual, "two")
 				})
 			})
 

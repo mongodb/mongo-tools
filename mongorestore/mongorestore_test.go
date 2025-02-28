@@ -20,8 +20,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -1050,13 +1053,14 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		db := session.Database("admin")
-
 		Convey("Restoring users and roles should drop tempusers and temproles", func() {
+
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+			defer restore.Close()
+
+			db := session.Database("admin")
+
 			restore.TargetDirectory = "testdata/usersdump"
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
@@ -1068,6 +1072,62 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 				So(collName, ShouldNotEqual, "tempusers")
 				So(collName, ShouldNotEqual, "temproles")
 			}
+		})
+
+		Convey("If --dumpUsersAndRoles was not used with the target", func() {
+			Convey("Restoring from db directory should not be allowed", func() {
+				args = append(
+					args,
+					RestoreDBUsersAndRolesOption,
+					DBOption,
+					"db1",
+					"testdata/testdirs/db1",
+				)
+
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+				defer restore.Close()
+
+				result := restore.Restore()
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+			})
+
+			Convey("Restoring from base dump directory should not be allowed", func() {
+				args = append(
+					args,
+					RestoreDBUsersAndRolesOption,
+					DBOption,
+					"db1",
+					"testdata/testdirs",
+				)
+
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+				defer restore.Close()
+
+				result := restore.Restore()
+				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+			})
+
+			Convey("Restoring from archive of entire dump should not be allowed", func() {
+				withArchiveMongodump(t, func(archive string) {
+					args = append(
+						args,
+						RestoreDBUsersAndRolesOption,
+						DBOption,
+						"db1",
+						ArchiveOption+"="+archive,
+					)
+
+					restore, err := getRestoreWithArgs(args...)
+					So(err, ShouldBeNil)
+					defer restore.Close()
+
+					result := restore.Restore()
+					So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+
+				})
+			})
 		})
 	})
 }
@@ -1769,6 +1829,107 @@ func createTimeseries(dbName, coll string, client *mongo.Client) {
 	client.Database(dbName).RunCommand(context.Background(), createCmd)
 }
 
+func TestUnversionedIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		t.Fatalf("No client available")
+	}
+
+	dbName := t.Name()
+	collName := "coll"
+
+	coll := session.Database(dbName).Collection(collName)
+
+	metadataEJSON, err := bson.MarshalExtJSON(
+		bson.D{
+			{"collectionName", collName},
+			{"type", "collection"},
+			{"uuid", uuid.New().String()},
+			{"indexes", []bson.D{
+				{
+					{"v", 2},
+					{"key", bson.D{{"_id", 1}}},
+					{"name", "_id_"},
+				},
+				{
+					{"v", 2},
+					{"key", bson.D{{"myfield", "2dsphere"}}},
+					{"name", "my2dsphere"},
+				},
+			}},
+		},
+		false,
+		false,
+	)
+	require.NoError(t, err, "should marshal metadata to extJSON")
+
+	archive := archive.SimpleArchive{
+		CollectionMetadata: []archive.CollectionMetadata{
+			{
+				Database:   dbName,
+				Collection: collName,
+				Metadata:   string(metadataEJSON),
+				Size:       0,
+			},
+		},
+		Namespaces: []archive.SimpleNamespace{
+			{
+				Database:   dbName,
+				Collection: collName,
+			},
+		},
+	}
+	archiveBytes, err := archive.Marshal()
+	require.NoError(t, err, "should marshal the archive")
+
+	withArchiveMongodump(t, func(archivePath string) {
+		require.NoError(t, os.WriteFile(archivePath, archiveBytes, 0644))
+
+		// Restore our altered archive:
+		restore, err := getRestoreWithArgs(
+			DropOption,
+			ArchiveOption+"="+archivePath,
+		)
+		require.NoError(t, err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "can run mongorestore")
+		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
+
+		cursor, err := coll.Indexes().List(ctx)
+		require.NoError(t, err, "should open index-list cursor")
+
+		var indexes []idx.IndexDocument
+		err = cursor.All(ctx, &indexes)
+		require.NoError(t, err, "should fetch index specs")
+
+		t.Logf("indexes: %+v", indexes)
+
+		var twoDIndexDoc idx.IndexDocument
+
+		for _, idx := range indexes {
+			if idx.Options["name"] == "my2dsphere" {
+				twoDIndexDoc = idx
+			}
+		}
+
+		require.NotNil(t, twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
+		assert.EqualValues(t, 1, twoDIndexDoc.Options["2dsphereIndexVersion"])
+	})
+}
+
 func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -2246,6 +2407,34 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		)
 
 		Convey(
+			"timeseries collection should be restored with system.buckets BSON file as target and the metadata exists without db option and collection option",
+			func() {
+				args = append(
+					args,
+					"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
+				)
+				restore, err := getRestoreWithArgs(args...)
+				So(err, ShouldBeNil)
+
+				result := restore.Restore()
+				defer restore.Close()
+				So(result.Err, ShouldBeNil)
+				So(result.Successes, ShouldEqual, 10)
+				So(result.Failures, ShouldEqual, 0)
+
+				count, err := testdb.Collection("foo_ts").
+					CountDocuments(context.Background(), bson.M{})
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 1000)
+
+				count, err = testdb.Collection("system.buckets.foo_ts").
+					CountDocuments(context.Background(), bson.M{})
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 10)
+			},
+		)
+
+		Convey(
 			"restoring a single system.buckets BSON file (with no metadata) should fail",
 			func() {
 				args = append(
@@ -2707,15 +2896,19 @@ func clusteredIndexInfo(t *testing.T, options bson.M) indexInfo {
 	require.True(t, found, "index has a key named 'key'")
 	require.IsType(t, bson.M{}, keys, "key value is a bson.M")
 
-	//nolint:errcheck
-	keysM := keys.(bson.M)
+	keysM, ok := keys.(bson.M)
+	require.True(t, ok)
+
 	var keyNames []string
 	for k := range keysM {
 		keyNames = append(keyNames, k)
 	}
 
+	nameStr, ok := name.(string)
+	require.True(t, ok)
+
 	return indexInfo{
-		name: name.(string),
+		name: nameStr,
 		keys: keyNames,
 	}
 }

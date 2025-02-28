@@ -477,14 +477,58 @@ func MtoD(m bson.M) bson.D {
 // but would return an error if it cannot be reversed by bson.UnmarshalExtJSON.
 //
 // It is preferred to be used in mongodump to avoid generating un-reversible ext JSON.
-func MarshalExtJSONReversible(val interface{}, canonical bool, escapeHTML bool) ([]byte, error) {
+func MarshalExtJSONReversible(
+	val interface{},
+	canonical bool,
+	escapeHTML bool,
+) ([]byte, error) {
 	jsonBytes, err := bson.MarshalExtJSON(val, canonical, escapeHTML)
 	if err != nil {
 		return nil, err
 	}
+
 	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
 	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
 		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
+
+	return jsonBytes, nil
+}
+
+// MarshalExtJSONWithBSONRoundtripConsistency is a wrapper around bson.MarshalExtJSON
+// which also validates that BSON objects that are marshaled to ExtJSON objects
+// return a consistent BSON object when unmarshaled.
+func MarshalExtJSONWithBSONRoundtripConsistency(
+	val interface{},
+	canonical bool,
+	escapeHTML bool,
+) ([]byte, error) {
+	jsonBytes, err := MarshalExtJSONReversible(val, canonical, escapeHTML)
+	if err != nil {
+		return nil, err
+	}
+
+	originalBSON, err := bson.Marshal(val)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal into BSON")
+	}
+
+	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
+	err = bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal)
+	if err != nil {
+		return nil, err
+	}
+
+	reversedBSON, err := bson.Marshal(reversedVal)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal into BSON")
+	}
+
+	if !bytes.Equal(originalBSON, reversedBSON) {
+		return nil, fmt.Errorf(
+			"marshaling BSON to ExtJSON and back resulted in discrepancies",
+		)
+	}
+
 	return jsonBytes, nil
 }

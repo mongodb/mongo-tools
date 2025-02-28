@@ -22,7 +22,7 @@ authenticode_sign() {
   -v $PWD:$PWD \
   -w $PWD \
   artifactory.corp.mongodb.com/release-tools-container-registry-local/garasign-jsign \
-  /bin/bash -c "jsign -a mongo-authenticode-2021 --replace --tsaurl http://timestamp.digicert.com -d SHA-256 ${file_name}"
+  /bin/bash -c "jsign -a ${AUTHENTICODE_KEY_NAME} --replace --tsaurl http://timestamp.digicert.com -d SHA-256 ${file_name}"
 }
 
 setup_garasign_authentication() {

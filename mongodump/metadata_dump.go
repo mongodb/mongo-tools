@@ -109,7 +109,7 @@ func (dump *MongoDump) dumpMetadata(
 	}
 
 	// Finally, we send the results to the writer as JSON bytes
-	jsonBytes, err := bsonutil.MarshalExtJSONReversible(meta, true, false)
+	jsonBytes, err := bsonutil.MarshalExtJSONWithBSONRoundtripConsistency(meta, true, false)
 	if err != nil {
 		return fmt.Errorf(
 			"error marshaling metadata json for collection `%v`: %v",

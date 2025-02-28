@@ -25,7 +25,7 @@ cd mongo-tools
 ```
 
 Then run `./make build` to build all the tools, placing them in the `bin` directory inside the
-repository.
+repository. Run `./bin/mongodump --help` to verify that the built binary works.
 
 You can also build a subset of the tools using the `-pkgs` option. For example,
 `./make build -pkgs=mongodump,mongorestore` builds only `mongodump` and `mongorestore`.
@@ -36,6 +36,18 @@ directory. This may depend on how you installed Go.
 ```
 export GOROOT=/usr/local/go
 ```
+
+### Mac OS only:
+
+When running the built binaries, if the process gets killed immediately and you see the following
+output:  
+`zsh: killed ./bin/mongodump --help`  
+Then you need to sign the binary in order to run it:  
+`codesign --force --sign - bin/mongodump`
+
+You can also choose to configure the security policy of the terminal application so that signing is
+not required:  
+(in macOS Sonoma) System Settings > Privacy & Security > Developer Tools
 
 ## Updating Dependencies
 

@@ -157,13 +157,18 @@ func main() {
 
 }
 
-func check(err error, format ...interface{}) {
+func check(err error, format ...any) {
 	if err == nil {
 		return
 	}
 	msg := err.Error()
 	if len(format) != 0 {
-		task := fmt.Sprintf(format[0].(string), format[1:]...)
+		formatStr, ok := format[0].(string)
+		if !ok {
+			log.Fatalf("format should be a string, not %T", format[0])
+		}
+
+		task := fmt.Sprintf(formatStr, format[1:]...)
 		msg = fmt.Sprintf("'%s' failed: %v", task, err)
 	}
 	log.Fatal(msg)
@@ -1196,7 +1201,6 @@ type LinuxRepo struct {
 }
 
 var linuxRepoVersionsStable = []LinuxRepo{
-	{"4.4", "4.4.0"}, // any 4.4 stable release version will send the package to the "4.4" repo
 	{"5.0", "5.0.0"}, // any 5.0 stable release version will send the package to the "5.0" repo
 	{"6.0", "6.0.0"}, // any 6.0 stable release version will send the package to the "6.0" repo
 	{"7.0", "7.0.0"}, // any 7.0 stable release version will send the package to the "7.0" repo

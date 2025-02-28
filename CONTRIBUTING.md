@@ -245,38 +245,15 @@ generate as part of the release process.
 
 ### Third-Party Dependency Vulnerability Handling
 
-**Note that this will only work for MongoDB employees with access to Snyk.**
+We use [Kondukto](http://kondukto.io/), a third-party SaaS tool, to scan for third-party dependency
+vulnerabilities. Kondukto will create Jira tickets in the `VULN` project for any vulnerabilities it
+finds. Our Jira instance is set up to then create a linked `TOOLS` ticket.
 
-We use [Snyk](https://snyk.io/) to check our dependencies for known security issues.
+**We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies unless
+there is no fixed version available. All vulnerabilities found in the `master` branch must be
+resolved before a release.**
 
-We run these checks in CI, so it's not strictly necessary to do so manually when you add or upgrade
-a dependency, but you can save some time by checking this locally first.
-
-In order to do this, you will need to first
-[install the `snyk` CLI tool](https://docs.snyk.io/snyk-cli/install-or-update-the-snyk-cli).
-
-Then you can run the following commands:
-
-```
-snyk auth
-snyk test --org="$org_id" --file=./go.mod
-```
-
-You can get the right organization ID from the Snyk web UI. Go to the "Settings" page and copy the
-Organization ID from there. **Make sure you are in the `dev-prod` organization!**
-
-If the dependency you just added has any known vulnerabilities this command will report them.
-
-**We do not merge PRs which contain unaddressed vulnerabilities in third-party dependencies. All
-vulnerabilities found in the `master` branch must be resolved before a release.**
-
-We can address them in one of the following ways:
-
-1. Upgrade to a new version of the dependency which contains a fix.
-2. **MongoDB employees only** - Use [the Silk UI](https://us1.app.silk.security/) to create a new
-   ticket in the `VULN` project and transition the ticket to "Rejected". You will need to select a
-   "State" describing why this ticket was rejected, which can be one of "not affected", or "false
-   positive". You will also supply a "Justification", which will end up in the Augmented SBOM.
+There are more details about how we handle vulnerabilities in [the release docs](RELEASE.md)
 
 ### Software Security Development Lifecycle (SSDLC) Notes
 
@@ -293,25 +270,20 @@ types of vulnerability scanning, signing releases, and documentation of all thes
 
 #### SARIF: The Static Analysis Results Interchange Format
 
-This is a file format that static analysis tools can output. Silk accepts reports in this format.
-See https://sarifweb.azurewebsites.net/ for more information.
+This is a file format that static analysis tools can output. See https://sarifweb.azurewebsites.net/
+for more information.
 
 #### SBOM: Software Bill of Materials
 
 A machine-readable file containing information about dependencies, including things like the package
 name, license, etc. This includes a recursive list of all third-party dependencies.
 
-#### [Silk](https://www.silk.security/)
+#### [Kondukto](http://kondukto.io/)
 
-[Silk](https://www.silk.security/) is a third-party SaaS tool that MongoDB as a whole will use for
-managing all SSDLC-related info for our projects. Silk will be integrated with our Jira instance so
-that it can do things like create tickets for vulnerabilities in a project’s dependencies.
-
-#### [Snyk](https://snyk.io/)
-
-[Snyk](https://snyk.io/) is a company that provides a variety of code scanning tools, including
-tools that do vulnerability checking for third-party dependencies and static code analysis for
-various languages.
+[Kondukto](http://kondukto.io/) is a third-party SaaS tool that MongoDB as a whole uses for managing
+SBOMs and third-party vulneerability scanning for our projects. Kondukto is integrated with our Jira
+instance so that it can do things like create tickets for vulnerabilities in a project’s
+dependencies.
 
 #### Static Analysis
 
@@ -339,7 +311,7 @@ and we enforce this via CI.
 #### Generating the Augmented SBOM File
 
 Generating this file can only be done by MongoDB employees, as it requires access to
-[Silk](https://www.silk.security/). See our [release documentation](./RELEASE.md) for more details.
+[Kondukto](http://kondukto.io/). See our [release documentation](./RELEASE.md) for more details.
 
 ### Papertrail Integration
 

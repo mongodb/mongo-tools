@@ -212,7 +212,7 @@ func (p Platform) ArtifactExtensions() []string {
 	case OSWindows:
 		return []string{"zip", "zip.sig", "msi"}
 	}
-	panic("unreachable")
+	panic(fmt.Sprintf("unreachable; os=%#q", p.OS))
 }
 
 func (p Platform) asGolangString() string {
@@ -283,7 +283,7 @@ func (o OS) ConstName() string {
 	case OSMac:
 		return "OSMac"
 	}
-	panic("unreachable")
+	panic(fmt.Sprintf("unreachable; os=%#q", o))
 }
 
 func (o OS) String() string {
@@ -297,7 +297,7 @@ func (p Pkg) ConstName() string {
 	case PkgRPM:
 		return "PkgRPM"
 	}
-	panic("unreachable")
+	panic(fmt.Sprintf("unreachable; pkg=%#q", p))
 }
 
 func (p Pkg) String() string {
@@ -311,7 +311,7 @@ func (r Repo) ConstName() string {
 	case RepoEnterprise:
 		return "RepoEnterprise"
 	}
-	panic("unreachable")
+	panic(fmt.Sprintf("unreachable; repo=%#q", r))
 }
 
 func (r Repo) String() string {
@@ -331,7 +331,7 @@ func (a Arch) ConstName() string {
 	case ArchX86_64:
 		return "ArchX86_64"
 	}
-	panic("unreachable")
+	panic(fmt.Sprintf("unreachable; arch=%#q", a))
 }
 
 func (a Arch) String() string {
@@ -437,30 +437,6 @@ var platforms = []Platform{
 		BuildTags:         defaultBuildTags,
 		ServerVariantName: "enterprise-macos",
 	},
-	// This is a special build that we upload to S3 but not to the release
-	// repos.
-	{
-		Name: "rhel62",
-		// This needs to match the name of the buildvariant in the Evergreen
-		// config.
-		VariantName:           "rhel62-no-kerberos",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		BuildTags:             []string{"failpoints"},
-		SkipForJSONFeed:       true,
-		ServerVariantName:     "enterprise-rhel-62-64-bit",
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
-	{
-		Name:                  "rhel62",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:             defaultBuildTags,
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
 	{
 		Name:                  "rhel70",
 		Arch:                  ArchX86_64,
@@ -522,6 +498,22 @@ var platforms = []Platform{
 		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
 		ServerVariantName: "enterprise-rhel-80-64-bit",
 		ServerPlatform:    "rhel80",
+	},
+	{
+		Name:      "rhel9",
+		Arch:      ArchPpc64le,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel9",
+		Arch:      ArchS390x,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
 	},
 	{
 		Name:      "rhel93",

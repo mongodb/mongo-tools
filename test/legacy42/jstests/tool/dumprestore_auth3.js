@@ -58,12 +58,12 @@ var dumpRestoreAuth3 = function(backup_role, restore_role) {
     db.dropAllUsers();
     db.dropAllRoles();
 
-    jsTestLog("Restore foo database from dump that doesn't contain user data ");
+    jsTestLog("Restore foo database from dump that doesn't contain user data without restoring user data");
     // This test depends on W=0 to mask unique index violations.
     // This should be fixed once we implement TOOLS-341
     runTool("mongorestore",
             mongod,
-            {dir: dumpDir + "foo/", db: 'foo', restoreDbUsersAndRoles: "", writeConcern: "1"});
+            {dir: dumpDir + "foo/", db: 'foo', writeConcern: "1"});
 
     db = mongod.getDB('foo');
 

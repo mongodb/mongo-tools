@@ -9,6 +9,7 @@ package mongorestore
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -40,6 +41,12 @@ const (
 	deprecatedDBAndCollectionsOptionsWarning = "The --db and --collection flags are deprecated for " +
 		"this use-case; please use --nsInclude instead, " +
 		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
+)
+
+var (
+	NoUsersOrRolesInDumpError = errors.New(
+		"No users or roles found in restore target. Please omit --restoreDbUsersAndRoles, or use a dump created with --dumpDbUsersAndRoles.",
+	)
 )
 
 // MongoRestore is a container for the user-specified options and
@@ -473,6 +480,16 @@ func (restore *MongoRestore) Restore() Result {
 		restore.ToolOptions.Namespace.DB == "" {
 		return Result{Err: fmt.Errorf("cannot do a full restore on a sharded system - " +
 			"remove the 'config' directory from the dump directory first")}
+	}
+
+	// if --restoreDbUsersAndRoles is used then db specific users and roles ($admin.system.users.bson / $admin.system.roles.bson)
+	// should exist in target directory / archive
+	if restore.InputOptions.RestoreDBUsersAndRoles &&
+		restore.ToolOptions.Namespace.DB != "" &&
+		(restore.manager.Users() == nil && restore.manager.Roles() == nil) {
+		return Result{
+			Err: NoUsersOrRolesInDumpError,
+		}
 	}
 
 	if restore.InputOptions.OplogFile != "" {

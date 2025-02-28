@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 )
 
@@ -371,8 +372,8 @@ type URISetter interface {
 }
 
 func (auth *Auth) RequiresExternalDB() bool {
-	return auth.Mechanism == "GSSAPI" || auth.Mechanism == "PLAIN" ||
-		auth.Mechanism == "MONGODB-X509"
+	reqsExternalDB := []string{"GSSAPI", "PLAIN", "MONGODB-X509", "MONGODB-OIDC"}
+	return slices.Contains(reqsExternalDB, auth.Mechanism)
 }
 
 func (auth *Auth) IsSet() bool {
@@ -382,8 +383,9 @@ func (auth *Auth) IsSet() bool {
 // ShouldAskForPassword returns true if the user specifies a username flag
 // but no password, and the authentication mechanism requires a password.
 func (auth *Auth) ShouldAskForPassword() bool {
+	neverUsesPassword := []string{"MONGODB-X509", "GSSAPI", "MONGODB-OIDC"}
 	return auth.Username != "" && auth.Password == "" &&
-		!(auth.Mechanism == "MONGODB-X509" || auth.Mechanism == "GSSAPI")
+		!slices.Contains(neverUsesPassword, auth.Mechanism)
 }
 
 // ShouldAskForPassword returns true if the user specifies a ssl pem key file
