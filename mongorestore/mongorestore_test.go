@@ -3064,7 +3064,7 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 			},
 		},
 		{
-			Label: "multiple hashed with collations and 2dsphere",
+			Label: "multihashed collations 2dsphere",
 			Indexes: []mongo.IndexModel{
 				{Keys: bson.D{{"_id", "hashed"}}},
 				{
@@ -3106,7 +3106,7 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 
 							testDB := session.Database(dbName)
 
-							collName := strings.Replace(t.Name(), "/", "_", -1)
+							collName := fmt.Sprintf("%s %d", curCase.Label, attemptNum)
 							coll := testDB.Collection(collName)
 
 							_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)

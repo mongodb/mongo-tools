@@ -11,7 +11,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -32,6 +31,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -445,7 +445,7 @@ func setUpColumnstoreIndex(dbName string, colName string) error {
 	var r bson.M
 	err = sessionProvider.Run(createIndexCmd, &r, dbName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create columnstore index")
 	}
 
 	return nil
