@@ -2708,8 +2708,6 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 type indexInfo struct {
 	name string
 	keys []string
-	// columnstoreProjection contains info about columnstoreProjection key in columnstore indexes.
-	columnstoreProjection map[string]int32
 }
 
 func TestRestoreClusteredIndex(t *testing.T) {
