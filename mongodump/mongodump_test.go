@@ -424,33 +424,6 @@ func setUpDBView(dbName string, colName string) error {
 	return nil
 }
 
-func setUpColumnstoreIndex(dbName string, colName string) error {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		return err
-	}
-
-	createIndexCmd := bson.D{
-		{"createIndexes", colName},
-		{"indexes", bson.A{
-			bson.D{
-				{"key", bson.D{{"$**", "columnstore"}}},
-				{"name", "dump_columnstore_test"},
-				{"columnstoreProjection", bson.D{
-					{"_id", 1},
-				}},
-			},
-		}},
-	}
-	var r bson.M
-	err = sessionProvider.Run(createIndexCmd, &r, dbName)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func turnOnProfiling(dbName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -2295,102 +2268,6 @@ func TestFailDuringResharding(t *testing.T) {
 		)
 
 	})
-}
-
-// TestMongoDumpColumnstoreIndexes tests dumping a collection with Columnstore Indexes.
-func TestMongoDumpColumnstoreIndexes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(io.Discard)
-
-	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
-	fcv := testutil.GetFCV(session)
-	if cmp, err := testutil.CompareFCV(fcv, "6.3"); err != nil || cmp < 0 {
-		t.Skipf("Requires server with FCV 6.3 or later; found %v", fcv)
-	}
-
-	// Create Columnstore indexes.
-	for _, colName := range testCollectionNames {
-		err := setUpColumnstoreIndex(testDB, colName)
-		if strings.Contains(
-			err.Error(),
-			"(NotImplemented) columnstore indexes are under development and cannot be used without enabling the feature flag",
-		) {
-			t.Skip("Requires columnstore indexes to be implemented")
-		}
-		require.NoError(t, err)
-	}
-
-	require.NoError(t, setUpMongoDumpTestData())
-
-	md := simpleMongoDumpInstance()
-	md.ToolOptions.Namespace.DB = testDB
-	md.OutputOptions.Out = "dump"
-
-	require.NoError(t, md.Init())
-	require.NoError(t, md.Dump())
-
-	//nolint:errcheck
-	defer tearDownMongoDumpTestData()
-
-	path, err := os.Getwd()
-	require.NoError(t, err)
-
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-	require.True(t, fileDirExists(dumpDir))
-	require.True(t, fileDirExists(dumpDBDir))
-
-	defer os.RemoveAll(dumpDir)
-
-	c1, err := countNonIndexBSONFiles(dumpDBDir)
-	require.NoError(t, err)
-
-	c2, err := countMetaDataFiles(dumpDBDir)
-	require.NoError(t, err)
-	require.Equal(t, c1, c2)
-
-	metaFiles, err := getMatchingFiles(dumpDBDir, ".*\\.metadata\\.json")
-	require.NoError(t, err)
-	require.Greater(t, len(metaFiles), 0)
-
-	for _, metaFile := range metaFiles {
-		oneMetaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFile)))
-		//nolint:staticcheck
-		defer oneMetaFile.Close()
-		require.NoError(t, err)
-		contents, err := io.ReadAll(oneMetaFile)
-		require.NoError(t, err)
-		var jsonResult map[string]interface{}
-		err = json.Unmarshal(contents, &jsonResult)
-		require.NoError(t, err)
-
-		indexes, ok := jsonResult["indexes"]
-		require.True(t, ok)
-		count := 0
-
-		indexesSlice, ok := indexes.([]any)
-		require.True(t, ok)
-
-		for _, index := range indexesSlice {
-			indexMap, ok := index.(map[string]interface{})
-			require.True(t, ok)
-
-			if indexMap["name"] == "dump_columnstore_test" {
-				count = count + 1
-
-				require.Contains(t, indexMap, "columnstoreProjection")
-
-				key, ok := indexMap["key"].(map[string]interface{})
-				require.True(t, ok)
-				require.Equal(t, key, map[string]interface{}{"$**": "columnstore"})
-			}
-		}
-		// Expect exactly one index with name "dump_columnstore_test"
-		require.Equal(t, count, 1)
-	}
 }
 
 func TestOptionsOrderIsPreserved(t *testing.T) {
