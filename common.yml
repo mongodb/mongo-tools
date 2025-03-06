@@ -56,6 +56,7 @@ functions:
         set -e
         chmod +x bin/*
         mv bin/* ${test_path}/
+        cp -n -R jstests ${test_path}/
         cd ${test_path}
         find ./
         ./mongo --nodb --eval 'const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;' lib/run_mongod.js jstests/tool/*.js
@@ -105,7 +106,6 @@ functions:
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
           go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
-          find ./bin/
         add_expansions_to_env: true
 
   "get buildnumber":
