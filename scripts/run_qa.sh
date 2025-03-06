@@ -6,9 +6,12 @@ set -e
 
 chmod +x bin/*
 mv bin/* test/qa-tests/
-cp -n -R jstests test/qa-tests/
-cp jsconfig.json test/qa-tests/jsconfig.json
+if [ -r jsconfig.json ]; then
+  cp -n -R jstests test/qa-tests/
+  cp jsconfig.json test/qa-tests/jsconfig.json
+fi
 cd test/qa-tests
+./mongo --nodb --eval 'assert.soon;'
 find ./
 chmod 400 jstests/libs/key*
 
