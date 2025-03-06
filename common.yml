@@ -57,13 +57,11 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         if [ -r jsconfig.json ]; then
-          cp -n -R jstests ${test_path}/
           cp jsconfig.json ${test_path}/jsconfig.json
         fi
         cd ${test_path}
-        ./mongo --nodb --eval 'assert.soon;TestData'
         find ./
-        ./mongo --nodb --eval 'TestData = new Object();const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;' lib/run_mongod.js jstests/tool/*.js
+        ./mongo --nodb --eval 'print(TestData);TestData = new Object();const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;' lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
