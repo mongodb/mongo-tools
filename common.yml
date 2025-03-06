@@ -59,7 +59,7 @@ functions:
         cp -n -R jstests ${test_path}/
         cd ${test_path}
         find ./
-        ./mongo --nodb --eval 'const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;' lib/run_mongod.js jstests/tool/*.js
+        ./mongo --nodb --eval 'TestData = new Object();const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;' lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
@@ -427,7 +427,7 @@ functions:
           elif [ "${USE_SSL}" = "true" ]; then
             NODE_OPTIONS="${replsettest_ssl_config}"
           fi
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}";const {ReplSetTest} = await import("jstests/libs/replsettest.js");globalThis.ReplSetTest = ReplSetTest;var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
 
     - command: shell.exec
       params:
