@@ -6,6 +6,8 @@ set -e
 
 chmod +x bin/*
 mv bin/* test/qa-tests/
+cp -n -R jstests test/qa-tests/
+cp jsconfig.json test/qa-tests/jsconfig.json
 cd test/qa-tests
 chmod 400 jstests/libs/key*
 
