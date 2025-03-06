@@ -1443,7 +1443,7 @@ func downloadMongodAndShell(v string) {
 	}
 
 	// if serverVersion >= 8.1.0, download mongo shell's modules and install them in the bin/ directory
-	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v8.1.0-alpha1") >= 0 {
+	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v8.0.0") >= 0 {
 		downloadJstestshellModules()
 	}
 }

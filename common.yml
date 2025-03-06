@@ -57,6 +57,7 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         if [ -r jsconfig.json ]; then
+          cp -R -n jstests ${test_path}/
           cp jsconfig.json ${test_path}/jsconfig.json
         fi
         cd ${test_path}
