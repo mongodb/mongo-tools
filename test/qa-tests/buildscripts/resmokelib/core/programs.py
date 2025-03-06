@@ -132,6 +132,9 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
     }
 
     test_data = global_vars.get("TestData", {}).copy()
+    logger.info("########################")
+    logger.info(test_data)
+    logger.info("########################")
     for opt_name in shortcut_opts:
         (opt_value, opt_default) = shortcut_opts[opt_name]
         if opt_value is not None:
