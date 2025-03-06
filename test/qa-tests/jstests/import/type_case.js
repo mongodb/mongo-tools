@@ -1,8 +1,8 @@
 (function() {
   if (typeof getToolTest === 'undefined') {
-    load('jstests/configs/plain_28.config.js');
+    load('test/qa-test/jstests/configs/plain_28.config.js');
   }
-  load('jstests/libs/extended_assert.js');
+  load('test/qa-test/jstests/libs/extended_assert.js');
   var assert = extendedAssert;
 
   jsTest.log('Testing running import with bad command line options');
