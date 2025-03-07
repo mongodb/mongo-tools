@@ -3077,7 +3077,11 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 
 							testDB := session.Database(dbName)
 
-							collName := fmt.Sprintf("%s %d", curCase.Label, attemptNum)
+							collName := strings.ReplaceAll(
+								fmt.Sprintf("%s %d", curCase.Label, attemptNum),
+								" ",
+								"-",
+							)
 							coll := testDB.Collection(collName)
 
 							_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
