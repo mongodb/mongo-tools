@@ -9,7 +9,7 @@
 
   var results;
   assert.eq.soon(22, function() {
-    results = rawMongoProgramOutput();
+    results = rawMongoProgramOutput(".*");
     return (results.match(/--- new object ---/g) || []).length;
   }, "should see all documents from the test data");
 

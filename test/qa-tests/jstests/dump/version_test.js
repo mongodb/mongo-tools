@@ -32,9 +32,9 @@
   assert.eq(toolTest.runTool.apply(toolTest, restoreArgs), 0,
     'mongorestore should succeed');
 
-  var out = rawMongoProgramOutput();
+  var out = rawMongoProgramOutput(".*");
   assert.lte.soon(3, function() {
-    out = rawMongoProgramOutput();
+    out = rawMongoProgramOutput(".*");
     return (out.match(/archive \w+ version/g) || []).length;
   }, "should see at least three version string in the output");
   assert(/archive format version "\S+"/.test(out), "format version found");

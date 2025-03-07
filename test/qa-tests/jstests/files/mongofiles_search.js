@@ -48,7 +48,7 @@ var testName = 'mongofiles_search';
 
       // eslint-disable-next-line no-loop-func
       assert.eq.soon(expectedResult, function() {
-        return hasMatch(rawMongoProgramOutput(), queryString, exactString);
+        return hasMatch(rawMongoProgramOutput(".*"), queryString, exactString);
       }, 'search failed: expected "' + queryString + '" to be ' + (expectedResult ? 'found' : 'missing'));
     }
   };

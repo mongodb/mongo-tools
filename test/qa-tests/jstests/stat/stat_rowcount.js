@@ -27,7 +27,7 @@
   clearRawMongoProgramOutput();
 
   pid = startMongoProgramNoConnect.apply(null, ["mongostat", "--port", toolTest.port].concat(commonToolArgs));
-  assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
+  assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput(".*"), "should produce some output");
   assert.eq(exitCodeFailure, stopMongoProgramByPid(pid), "stopping should cause mongostat exit with a 'failure' code");
 
   x = runMongoProgram.apply(this, ["mongostat", "--port", toolTest.port - 1, "--rowcount", 1].concat(commonToolArgs));
@@ -43,7 +43,7 @@
   assert.eq(exitCodeFailure, x, "--host used with a replica set string for nodes not in a replica set");
 
   pid = startMongoProgramNoConnect.apply(null, ["mongostat", "--host", "127.0.0.1:" + toolTest.port].concat(commonToolArgs));
-  assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput, "should produce some output");
+  assert.strContains.soon('sh'+pid+'|  ', rawMongoProgramOutput(".*"), "should produce some output");
   toolTest.stop();
 
   sleep(1000);

@@ -40,11 +40,11 @@
   assert.eq(0, ret);
 
   // wait for full output to appear
-  assert.strContains.soon('exported 20 records', rawMongoProgramOutput,
+  assert.strContains.soon('exported 20 records', rawMongoProgramOutput(".*"),
     'should show number of exported records');
 
   // grab the raw output
-  var output = rawMongoProgramOutput();
+  var output = rawMongoProgramOutput(".*");
 
   // make sure it contains the json output
   for (i = 0; i < 20; i++) {

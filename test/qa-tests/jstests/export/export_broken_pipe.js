@@ -32,13 +32,13 @@
 
   var ret = runProgram('bash', '-c', exportArgs.concat('|', ddArgs).join(' '));
   assert.eq(0, ret, "bash execution should succeed");
-  assert.strContains.soon('exported 500 records', rawMongoProgramOutput, 'should print the success message');
+  assert.strContains.soon('exported 500 records', rawMongoProgramOutput(".*"), 'should print the success message');
 
   ddArgs = ['dd', 'count=100', 'bs=1', 'of=/dev/null'];
   ret = runProgram('bash', '-c', exportArgs.concat('|', ddArgs).join(' '));
   assert.neq(0, ret, "bash execution should fail");
   assert.soon(function() {
-    return rawMongoProgramOutput().search(/broken pipe|The pipe is being closed/);
+    return rawMongoProgramOutput(".*").search(/broken pipe|The pipe is being closed/);
   }, 'should print an error message');
 
   testDb.dropDatabase();

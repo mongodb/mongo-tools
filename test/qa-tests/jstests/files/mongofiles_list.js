@@ -62,7 +62,7 @@ var testName = 'mongofiles_list';
 
     var files;
     assert.neq.soon(0, function() {
-      files = rawMongoProgramOutput()
+      files = rawMongoProgramOutput(".*")
         .split('\n')
         .filter(function(line) {
           return line.indexOf('sh'+pid) !== -1 && line.match(inputFileRegex);

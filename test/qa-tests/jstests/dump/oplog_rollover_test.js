@@ -43,7 +43,7 @@
 
   var expectedError = 'oplog overflow: mongodump was unable to capture all ' +
     'new oplog entries during execution';
-  assert.strContains.soon(expectedError, rawMongoProgramOutput,
+  assert.strContains.soon(expectedError, rawMongoProgramOutput(".*"),
     'mongodump --oplog failure should output the correct error message');
 
   toolTest.stop();

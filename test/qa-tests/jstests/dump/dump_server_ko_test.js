@@ -68,7 +68,7 @@ if (typeof getToolTest === 'undefined') {
     'interrupted',
   ];
   assert.soon(function() {
-    var output = rawMongoProgramOutput();
+    var output = rawMongoProgramOutput(".*");
     return possibleErrors
       .map(output.indexOf, output)
       .some(function(index) {

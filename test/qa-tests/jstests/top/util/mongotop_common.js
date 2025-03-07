@@ -10,7 +10,7 @@ var executeProgram = function(args) {
   var exitCode = waitProgram(pid);
   var prefix = 'sh'+pid+'| ';
   var getOutput = function() {
-    return rawMongoProgramOutput().split('\n').filter(function(line) {
+    return rawMongoProgramOutput(".*").split('\n').filter(function(line) {
       return line.indexOf(prefix) === 0;
     }).join('\n');
   };
