@@ -24,6 +24,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	mongoOpts "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"gopkg.in/tomb.v2"
 )
 
@@ -454,7 +456,7 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	if err != nil {
 		return fmt.Errorf("error connecting to mongod: %v", err)
 	}
-	collection := session.Database(imp.ToolOptions.DB).Collection(imp.ToolOptions.Collection)
+	collection := session.Database(imp.ToolOptions.DB).Collection(imp.ToolOptions.Collection, &mongoOpts.CollectionOptions{ReadConcern: readconcern.Majority()})
 
 	inserter := db.NewUnorderedBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize).
 		SetBypassDocumentValidation(imp.IngestOptions.BypassDocumentValidation).
@@ -468,7 +470,7 @@ readLoop:
 			if !alive {
 				break readLoop
 			}
-			err := imp.importDocument(inserter, document)
+			err := imp.importDocument(inserter, document)			
 			if db.FilterError(imp.IngestOptions.StopOnError, err) != nil {
 				return err
 			}
@@ -479,6 +481,15 @@ readLoop:
 	result, err := inserter.Flush()
 	imp.updateCounts(result, err)
 	return db.FilterError(imp.IngestOptions.StopOnError, err)
+}
+
+func checkMajority(ctx context.Context, collection *mongo.Collection, document bson.D) {
+	// readOpts := mongoOpts.FindOne().
+	var result bson.M
+	err := collection.FindOne(context.Background(), document).Decode(&result)
+	if err == nil {
+		fmt.Printf("found one %s", result)
+	}
 }
 
 func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {

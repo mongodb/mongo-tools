@@ -932,7 +932,7 @@ func TestImportDocuments(t *testing.T) {
 			}
 			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
-		Convey("an error should be thrown for CSV import on test data with "+
+		Convey("an error should be thrown for CSV import on test data wisth "+
 			"duplicate _id if --stopOnError is set", func() {
 			imp, err := NewMongoImport()
 			So(err, ShouldBeNil)
@@ -1310,6 +1310,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 	})
 }
+
 
 func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr error) func() {
 	return func() {
