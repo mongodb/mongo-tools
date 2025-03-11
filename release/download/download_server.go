@@ -72,7 +72,8 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 				if !targetsMatch(dl.Target, target) {
 					continue
 				}
-				if dl.Target == target && dl.Arch == arch && dl.Edition == edition {
+
+				if dl.Arch == arch && dl.Edition == edition {
 					return dl.Archive.URL, v.GitHash, v.Version, nil
 				}
 			}
