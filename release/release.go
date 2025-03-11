@@ -171,7 +171,7 @@ func check(err error, format ...any) {
 		task := fmt.Sprintf(formatStr, format[1:]...)
 		msg = fmt.Sprintf("'%s' failed: %v", task, err)
 	}
-	log.Fatal(msg)
+	log.Panic(msg)
 }
 
 func run(name string, args ...string) (string, error) {

@@ -50,7 +50,6 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 		if err != nil {
 			return "", "", "", fmt.Errorf("Unable to parse server version: %v", err)
 		}
-		fmt.Printf("sv: %+v\n", sv)
 	}
 
 	// Return a version string that matches the specified major and minor number even if it cannot find an exact feed
@@ -70,6 +69,9 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 				versionGuess = feedVersion.String()
 			}
 			for _, dl := range v.Downloads {
+				if !targetsMatch(dl.Target, target) {
+					continue
+				}
 				if dl.Target == target && dl.Arch == arch && dl.Edition == edition {
 					return dl.Archive.URL, v.GitHash, v.Version, nil
 				}
@@ -78,4 +80,18 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 	}
 
 	return "", "", versionGuess, ServerURLMissingError
+}
+
+var canonicalTarget = map[string]string{
+	"rhel80": "rhel8",
+}
+
+func targetsMatch(dltarget, target string) bool {
+	for _, strRef := range []*string{&dltarget, &target} {
+		if canonical, isNonCanonical := canonicalTarget[*strRef]; isNonCanonical {
+			*strRef = canonical
+		}
+	}
+
+	return dltarget == target
 }
