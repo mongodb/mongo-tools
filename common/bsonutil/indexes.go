@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -80,47 +81,16 @@ func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
 // will cause the index build to fail. See TOOLS-2412 for more information.
 //
 // This function logs the keys that are converted.
+//
+// For a “quiet” variant of this function, see ConvertLegacyIndexKeyValue.
 func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 	var converted bool
 	originalJSONString := CreateExtJSONString(indexKey)
 	for j, elem := range indexKey {
-		switch v := elem.Value.(type) {
-		case int:
-			if v == 0 {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case int32:
-			if v == int32(0) {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case int64:
-			if v == int64(0) {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case float64:
-			if math.Abs(v-float64(0)) < epsilon {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		case primitive.Decimal128:
-			if bi, _, err := v.BigInt(); err == nil {
-				if bi.Cmp(big.NewInt(0)) == 0 {
-					indexKey[j].Value = int32(1)
-					converted = true
-				}
-			}
-		case string:
-			// Only convert an empty string
-			if v == "" {
-				indexKey[j].Value = int32(1)
-				converted = true
-			}
-		default:
-			// Convert all types that aren't strings or numbers
-			indexKey[j].Value = int32(1)
+		newValue, convertedThis := ConvertLegacyIndexKeyValue(elem.Value)
+
+		if convertedThis {
+			indexKey[j].Value = newValue
 			converted = true
 		}
 	}
@@ -134,6 +104,46 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 			ns,
 		)
 	}
+}
+
+// ConvertLegacyIndexKeyValue provides ConvertLegacyIndexKeys’s implementation
+// without logging or mutating inputs. It just returns the normalized value
+// and a boolean that indicates whether the value was normalized/converted.
+func ConvertLegacyIndexKeyValue(value any) (any, bool) {
+	switch v := value.(type) {
+	case int:
+		if v == 0 {
+			return int32(1), true
+		}
+	case int32:
+		if v == int32(0) {
+			return int32(1), true
+		}
+	case int64:
+		if v == int64(0) {
+			return int32(1), true
+		}
+	case float64:
+		if math.Abs(v) < epsilon {
+			return int32(lo.Ternary(v >= 0, 1, -1)), true
+		}
+	case primitive.Decimal128:
+		if bi, _, err := v.BigInt(); err == nil {
+			if bi.Cmp(big.NewInt(0)) == 0 {
+				return int32(1), true
+			}
+		}
+	case string:
+		// Only convert an empty string
+		if v == "" {
+			return int32(1), true
+		}
+	default:
+		// Convert all types that aren't strings or numbers
+		return int32(1), true
+	}
+
+	return value, false
 }
 
 // ConvertLegacyIndexOptions removes options that don't match a known list of index options.

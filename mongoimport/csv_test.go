@@ -166,7 +166,11 @@ func TestCSVStreamDocument(t *testing.T) {
 			readDocument := <-docChan
 			So(readDocument[0], ShouldResemble, expectedRead[0])
 			So(readDocument[1].Key, ShouldResemble, expectedRead[1].Key)
-			So(*readDocument[1].Value.(*bson.D), ShouldResemble, expectedRead[1].Value)
+
+			valueD, ok := readDocument[1].Value.(*bson.D)
+			So(ok, ShouldBeTrue)
+
+			So(*valueD, ShouldResemble, expectedRead[1].Value)
 			So(readDocument[2], ShouldResemble, expectedRead[2])
 			So(readDocument[3], ShouldResemble, expectedRead[3])
 		})

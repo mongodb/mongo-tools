@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	goimportsVersion = "v0.22.0"
+	goimportsVersion = "v0.29.0"
 	goimportsPkg     = "golang.org/x/tools/cmd/goimports@" + goimportsVersion
 
 	// For JS tools like eslint and prettier, these versions need to match the ones in the
@@ -29,12 +29,12 @@ const (
 	// This is the latest version to support a YAML config file. Updating to
 	// the new config file syntax did not seem trivial.
 	eslintVersion       = "8.57.0"
-	golangCILintVersion = "1.59.1"
+	golangCILintVersion = "1.64.5"
 	golinesVersion      = "0.12.2"
 	gosecVersion        = "2.20.0"
-	preciousVersion     = "0.7.2"
-	ubiVersion          = "0.0.18"
-	prettierVersion     = "3.3.1"
+	preciousVersion     = "0.7.3"
+	ubiVersion          = "0.4.2"
+	prettierVersion     = "3.4.2"
 )
 
 func SAInstallDevTools(ctx *task.Context) error {

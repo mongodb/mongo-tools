@@ -18,7 +18,7 @@ podman run \
     -it \
     --rm \
     -v "${PWD}":/pwd \
-    artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:1.0 \
+    artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
     update \
     --sbom-in /pwd/cyclonedx.sbom.json \
     --purls /pwd/purls.txt \

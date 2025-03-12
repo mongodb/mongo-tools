@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/exp/maps"
 )
 
 const insertBufferFactor = 16
@@ -133,24 +135,41 @@ func (restore *MongoRestore) RestoreIndexes() error {
 }
 
 func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Namespace) error {
-	var err error
 	namespaceString := fmt.Sprintf("%s.%s", namespace.DB, namespace.Collection)
-	indexes := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
+	indexesFull := restore.indexCatalog.GetIndexes(namespace.DB, namespace.Collection)
 
-	for i, index := range indexes {
-		var key []string
-		for k := range index.Key.Map() {
-			key = append(key, k)
-		}
-		if len(key) == 1 && key[0] == "_id" {
-			// The _id index was created when the collection was created,
-			// so we do not build the index here.
-			indexes = append(indexes[:i], indexes[i+1:]...)
-			break
-		}
+	// The default _id index is created along with the collection,
+	// so we do not build that index here. We could try to submit it
+	// and tolerate errors, but since we create the indexes in batch
+	// that would significantly complicate the logic.
+	indexes, err := removeDefaultIdIndex(indexesFull)
+	if err != nil {
+		return fmt.Errorf(
+			"failed to remove default _id index from indexes list (%+v): %w",
+			indexesFull,
+			err,
+		)
 	}
 
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
+		for _, index := range indexes {
+			if addedOpts := index.EnsureIndexVersions(); len(addedOpts) != 0 {
+				optNames := maps.Keys(addedOpts)
+				slices.Sort(optNames)
+
+				for _, optName := range optNames {
+					log.Logvf(
+						log.Info,
+						"index %#q (%v) lacks %#q; inferring %#q",
+						index.Options["name"],
+						index.Key,
+						optName,
+						addedOpts[optName],
+					)
+				}
+			}
+		}
+
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
 		if restore.OutputOptions.ConvertLegacyIndexes {
 			indexes = restore.convertLegacyIndexes(indexes, namespaceString)
@@ -175,6 +194,27 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	}
 
 	return nil
+}
+
+func removeDefaultIdIndex(indexes []*idx.IndexDocument) ([]*idx.IndexDocument, error) {
+	var defaultIdIndexAt *int
+
+	for i, index := range indexes {
+		if index.IsDefaultIdIndex() {
+			if defaultIdIndexAt != nil {
+				return nil, fmt.Errorf("Found second default _id index (%+v)", indexes)
+			}
+
+			var i2 = i
+			defaultIdIndexAt = &i2
+		}
+	}
+
+	if defaultIdIndexAt != nil {
+		indexes = slices.Delete(indexes, *defaultIdIndexAt, 1+*defaultIdIndexAt)
+	}
+
+	return indexes, nil
 }
 
 func (restore *MongoRestore) PopulateMetadataForIntents() error {

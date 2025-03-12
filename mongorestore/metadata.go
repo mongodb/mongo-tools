@@ -173,7 +173,17 @@ func (restore *MongoRestore) CreateIndexes(
 						"namespace is too long (max size is 127 bytes)", fullIndexName)
 			}
 		}
-		indexNames = append(indexNames, index.Options["name"].(string))
+
+		nameStr, isString := index.Options["name"].(string)
+		if !isString {
+			return fmt.Errorf(
+				"expected name (%T: %v) to be a string",
+				index.Options["name"],
+				index.Options["name"],
+			)
+		}
+
+		indexNames = append(indexNames, nameStr)
 
 		// remove the index version, forcing an update,
 		// unless we specifically want to keep it

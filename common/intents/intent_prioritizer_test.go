@@ -203,13 +203,21 @@ func TestSimulatedMultiDBJob(t *testing.T) {
 						So(i3.DB, ShouldEqual, "db1")
 
 						Convey("which means that there should be two active db1 jobs", func() {
-							counter := prioritizer.(*multiDatabaseLTFPrioritizer).counterMap["db1"]
+							prioConcrete, ok := prioritizer.(*multiDatabaseLTFPrioritizer)
+							So(ok, ShouldBeTrue)
+
+							counter, ok := prioConcrete.counterMap["db1"]
+							So(ok, ShouldBeTrue)
+
 							So(counter.active, ShouldEqual, 2)
 						})
 					})
 
 					Convey("the heap should now be empty", func() {
-						So(prioritizer.(*multiDatabaseLTFPrioritizer).dbHeap.Len(), ShouldEqual, 0)
+						prioConcrete, ok := prioritizer.(*multiDatabaseLTFPrioritizer)
+						So(ok, ShouldBeTrue)
+
+						So(prioConcrete.dbHeap.Len(), ShouldEqual, 0)
 					})
 				})
 			})
