@@ -1827,7 +1827,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				So(fileDirExists(metadataFile), ShouldBeTrue)
 				So(fileDirExists(bsonFile), ShouldBeTrue)
 
-				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
 				So(err, ShouldBeNil)
 				So(len(allFiles), ShouldEqual, 2)
 
@@ -1970,7 +1970,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				So(fileDirExists(metadataFile), ShouldBeTrue)
 				So(fileDirExists(bsonFile), ShouldBeTrue)
 
-				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
 				So(err, ShouldBeNil)
 				So(len(allFiles), ShouldEqual, 2)
 

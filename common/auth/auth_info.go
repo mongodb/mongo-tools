@@ -9,7 +9,9 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
@@ -61,6 +63,18 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error getting session from server: %v", err)
+	}
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	// The authSchema document has been removed from system.version as of server 8.1+ (SERVER-83663) because the only auth version used is 5
+	// We check whether any users / roles exist instead, because that is the condition for the authSchema document to be created in previous versions.
+	if err == nil && serverVersion.GTE(db.Version{8, 1, 0}) {
+		usersExist := session.Database("admin").Collection("system.users").FindOne(context.Background(), bson.D{})
+		rolesExist := session.Database("admin").Collection("system.roles").FindOne(context.Background(), bson.D{})
+		if errors.Is(usersExist.Err(), mongo.ErrNoDocuments) && errors.Is(rolesExist.Err(), mongo.ErrNoDocuments) {
+			return fmt.Errorf("no users / roles to dump")
+		}
+		return nil
 	}
 
 	authSchemaQuery := bson.M{"_id": "authSchema"}
