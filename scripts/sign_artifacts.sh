@@ -103,6 +103,8 @@ case $MONGO_OS in
   *)
     setup_garasign_authentication
     for file in mongodb-database-tools*.{tgz,deb,rpm}; do
+        [ -e "$file" ] || continue
+        
         pgp_sign "$file" "$file.sig"
     done
     ;;
