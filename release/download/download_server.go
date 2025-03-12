@@ -2,6 +2,7 @@ package download
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
@@ -58,6 +59,10 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 	// This is useful to find a server release that is not in the feed.
 	versionGuess := ""
 	for _, v := range f.Versions {
+		if strings.Contains(v.Version, "-rc") {
+			continue
+		}
+
 		feedVersion, err := version.Parse(v.Version)
 		if err != nil {
 			return "", "", "", fmt.Errorf("Unable to parse feed version: %v", err)
