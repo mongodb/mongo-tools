@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/mongodb/mongo-tools/release/platform"
 )
 
 const (
@@ -103,7 +105,7 @@ func GetArtifactsForTask(id string) ([]Artifact, error) {
 // GetPackageTaskForVersion gets the package tasks associated with a particular variant and version.
 // This is used to get the package task from the mongo-release project, which is then used to
 // download the jstestshell.
-func GetPackageTaskForVersion(variant, version string) (string, error) {
+func GetPackageTaskForVersion(pf platform.Platform, version string) (string, error) {
 	res, err := get("/versions/" + version)
 	if err != nil {
 		return "", err
@@ -118,13 +120,15 @@ func GetPackageTaskForVersion(variant, version string) (string, error) {
 
 	buildID := ""
 
-	fmt.Printf("looking for variant %s within builds:\n", variant)
+	variants := pf.ServerVariantNames
+
+	fmt.Printf("looking for variant(s) %s within builds:\n", variants)
 	for _, buildDetail := range evgVersion.BuildVariantStatus {
 		fmt.Println(buildDetail)
 	}
 
 	for _, buildDetail := range evgVersion.BuildVariantStatus {
-		if buildDetail.BuildVariant == variant {
+		if variants.Contains(buildDetail.BuildVariant) {
 			buildID = buildDetail.BuildID
 			break
 		}

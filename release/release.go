@@ -171,7 +171,7 @@ func check(err error, format ...any) {
 		task := fmt.Sprintf(formatStr, format[1:]...)
 		msg = fmt.Sprintf("'%s' failed: %v", task, err)
 	}
-	log.Fatal(msg)
+	log.Panic(msg)
 }
 
 func run(name string, args ...string) (string, error) {
@@ -1415,15 +1415,9 @@ func downloadMongodAndShell(v string) {
 	err = json.NewDecoder(res.Body).Decode(&feed)
 	check(err, "decode JSON feed")
 
-	target := pf.Name
-	if pf.ServerPlatform != "" {
-		target = pf.ServerPlatform
-	}
-
 	url, githash, serverVersion, err := feed.FindURLHashAndVersion(
 		v,
-		target,
-		string(pf.Arch),
+		pf,
 		"enterprise",
 	)
 	if err == download.ServerURLMissingError {
@@ -1598,12 +1592,12 @@ func downloadArtifacts(v string, artifactNames []string) {
 	evgVersion := fmt.Sprintf("mongo_release_%s", githash)
 	fmt.Printf("Version: %v\n", evgVersion)
 
-	if pf.ServerVariantName == "" {
-		log.Fatalf("ServerVariantName is not set")
+	if pf.ServerVariantNames == nil {
+		log.Fatalf("ServerVariantNames is not set")
 	}
 
-	buildID, err := evergreen.GetPackageTaskForVersion(pf.ServerVariantName, evgVersion)
-	check(err, "get tasks for version")
+	buildID, err := evergreen.GetPackageTaskForVersion(pf, evgVersion)
+	check(err, "get tasks for %s version %s", pf.ServerVariantNames, evgVersion)
 	fmt.Printf("buildID: %v\n", buildID)
 
 	artifacts, err := evergreen.GetArtifactsForTask(buildID)
