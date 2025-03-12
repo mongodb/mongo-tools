@@ -1024,7 +1024,7 @@
       "version": "v0.0.0-20240726163527-a2c0da244d78"
     },
     {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.0",
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.3",
       "externalReferences": [
         {
           "type": "vcs",
@@ -1032,7 +1032,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.17.0"
+          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.17.3"
         }
       ],
       "group": "go.mongodb.org",
@@ -1044,9 +1044,9 @@
         }
       ],
       "name": "mongo-driver",
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.0",
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.3",
       "type": "library",
-      "version": "v1.17.0"
+      "version": "v1.17.3"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/crypto@v0.32.0",
@@ -1429,7 +1429,7 @@
       "ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78"
     },
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.0"
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.3"
     },
     {
       "ref": "pkg:golang/golang.org/x/crypto@v0.32.0"
@@ -1469,7 +1469,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-02-10T20:26:15.731194+00:00",
+    "timestamp": "2025-03-12T12:29:32.664815+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1513,7 +1513,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 21,
+  "version": 22,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
