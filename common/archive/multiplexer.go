@@ -66,7 +66,7 @@ func NewMultiplexer(out io.WriteCloser, shutdownInputs notifier) *Multiplexer {
 	return mux
 }
 
-// Run multiplexes until it receives an EOF on its Control chan.
+// Run multiplexes until its Control chan closes.
 func (mux *Multiplexer) Run() {
 	var err, completionErr error
 	for {
