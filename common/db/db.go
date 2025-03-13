@@ -625,7 +625,8 @@ func CanIgnoreError(err error) bool {
 func TimeseriesBucketNeedsMixedSchema(err error) bool {
 	var mongoErr mongo.ServerError
 
-	return errors.As(err, &mongoErr) && mongoErr.HasErrorCode(ErrCannotInsertTimeseriesBucketsWithMixedSchema)
+	return errors.As(err, &mongoErr) &&
+		mongoErr.HasErrorCode(ErrCannotInsertTimeseriesBucketsWithMixedSchema)
 }
 
 // IsMMAPV1 returns whether the storage engine is MMAPV1. Also returns false
