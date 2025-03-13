@@ -59,7 +59,8 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 	// This is useful to find a server release that is not in the feed.
 	versionGuess := ""
 	for _, v := range f.Versions {
-		if strings.Contains(v.Version, "-rc") {
+		if serverVersion != "latest" && strings.Contains(v.Version, "-rc") {
+			fmt.Printf("Skipping release candidate: %v\n", v.Version)
 			continue
 		}
 
@@ -67,7 +68,7 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 		if err != nil {
 			return "", "", "", fmt.Errorf("Unable to parse feed version: %v", err)
 		}
-		fmt.Printf("feedVersion: %+v\n", feedVersion)
+		fmt.Printf("feedVersion: %+v (%s)\n", feedVersion, v.Version)
 
 		if serverVersion == "latest" ||
 			(feedVersion.Major == sv.Major && feedVersion.Minor == sv.Minor) {

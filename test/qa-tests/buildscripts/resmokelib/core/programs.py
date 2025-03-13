@@ -122,6 +122,7 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
     global_vars = kwargs.pop("global_vars", {}).copy()
 
     shortcut_opts = {
+        "ignoreUnterminatedProcesses": True,
         "noJournal": (config.NO_JOURNAL, False),
         "noJournalPrealloc": (config.NO_PREALLOC_JOURNAL, False),
         "storageEngine": (config.STORAGE_ENGINE, ""),
