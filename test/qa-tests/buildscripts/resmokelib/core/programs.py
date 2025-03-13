@@ -170,6 +170,10 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
         eval_sb.append(str(kwargs.pop("eval_prepend")))
 
     mongo_version = os.environ['mongo_version']
+    logger.info('mongo_version is "' + mongo_version +'"')
+    import pprint
+    pprint.pprint(os.environ)
+
     if compare_semvers(mongo_version, '8.0') >= 0:
         logger.info('mongo_version is "' + mongo_version +'"; pre-loading ReplSetTest manually')
         eval_sb.append('await import("jstests/libs/replsettest-' + mongo_version + '.js");')
