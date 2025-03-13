@@ -208,7 +208,8 @@ def _mongo_shell_version(path):
     proc = subprocess.run([path, "--version"], capture_output=True)
     proc.check_returncode()
 
-    version_pattern = r'MongoDB shell version v(\d+[.]\d+[.]\d+)'
+    # We only want major.minor, not patch.
+    version_pattern = r'MongoDB shell version v(\d+[.]\d+)'
     match = re.search(version_pattern, str(proc.stdout))
 
     if match:
