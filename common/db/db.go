@@ -623,23 +623,9 @@ func CanIgnoreError(err error) bool {
 
 // Returns a boolean based on whether the given error indicates that this timeseries collection needs to be updated to set `timeseriesBucketsMayHaveMixedSchemaData` to `true`.
 func TimeseriesBucketNeedsMixedSchema(err error) bool {
-	if err == nil {
-		return false
-	}
+	var mongoErr mongo.ServerError
 
-	switch mongoErr := err.(type) {
-	case mongo.WriteError:
-		return mongoErr.Code == ErrCannotInsertTimeseriesBucketsWithMixedSchema
-
-	case mongo.BulkWriteException:
-		for _, writeErr := range mongoErr.WriteErrors {
-			if writeErr.Code == ErrCannotInsertTimeseriesBucketsWithMixedSchema {
-				return true
-			}
-		}
-		return false
-	}
-	return false
+	return errors.As(err, &mongoErr) && mongoErr.HasErrorCode(ErrCannotInsertTimeseriesBucketsWithMixedSchema)
 }
 
 // IsMMAPV1 returns whether the storage engine is MMAPV1. Also returns false
