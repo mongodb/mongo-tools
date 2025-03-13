@@ -1437,10 +1437,8 @@ func downloadMongodAndShell(v string) {
 	downloadBinaries(url)
 
 	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
-		// serverVersion >= 6.0.0, download mongo shell. We always download
-		// v7’s shell because we don’t actually update our JS tests, so we
-		// might as well use a stable version of the shell.
-		downloadArtifacts("6.0.21", []string{"Jstestshell"})
+		// serverVersion >= 6.0.0, download mongo shell.
+		downloadArtifacts(serverVersion, []string{"Jstestshell"})
 	}
 }
 
