@@ -7,10 +7,12 @@
 package mongorestore
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -22,6 +24,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/exp/maps"
@@ -594,11 +597,17 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 
 	log.Logvf(log.DebugLow, "using %v insertion workers", maxInsertWorkers)
 
+	var warnedAboutEmptyTimestamp atomic.Bool
+
 	for i := 0; i < maxInsertWorkers; i++ {
 		go func() {
 			var result Result
 
-			bulk := db.NewUnorderedBufferedBulkInserter(collection, restore.OutputOptions.BulkBufferSize).
+			bulk := db.NewUnorderedBufferedBulkInserter(
+				collection,
+				restore.OutputOptions.BulkBufferSize,
+				restore.serverVersion,
+			).
 				SetOrdered(restore.OutputOptions.MaintainInsertionOrder)
 			if collectionType != "timeseries" {
 				bulk.SetBypassDocumentValidation(restore.OutputOptions.BypassDocumentValidation)
@@ -611,8 +620,53 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 						return
 					}
 				}
-				result.combineWith(NewResultFromBulkResult(bulk.InsertRaw(rawDoc)))
-				result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+
+				needsSpecialZeroTimestampHandling := false
+				if !bulk.CanDoZeroTimestamp() {
+					emptyTsFields, err := FindZeroTimestamps(rawDoc)
+					if err != nil {
+						result.Err = errors.Wrapf(
+							err,
+							"failed to seek empty timestamps in document",
+						)
+					}
+
+					needsSpecialZeroTimestampHandling = len(emptyTsFields) > 0
+				}
+
+				if result.Err == nil {
+					var newResult Result
+					if needsSpecialZeroTimestampHandling {
+						if !warnedAboutEmptyTimestamp.Swap(true) {
+							log.Logvf(
+								lo.Ternary(
+									restore.OutputOptions.StopOnError,
+									log.Always,
+									log.DebugLow,
+								),
+								"Restoring document(s) with empty timestamp. mongorestore will ignore pre-existing documents without giving notice.",
+							)
+						}
+
+						err := insertDocWithEmptyTimestamps(
+							context.Background(),
+							collection,
+							rawDoc,
+						)
+
+						if err != nil {
+							newResult = Result{0, 1, err}
+						} else {
+							newResult = Result{1, 0, nil}
+						}
+					} else {
+						newResult = NewResultFromBulkResult(bulk.InsertRaw(rawDoc))
+					}
+
+					result.combineWith(newResult)
+					result.Err = db.FilterError(restore.OutputOptions.StopOnError, result.Err)
+				}
+
 				if result.Err != nil {
 					resultChan <- result
 					return
@@ -666,4 +720,59 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 		totalResult.Err = termErr
 	}
 	return totalResult
+}
+
+// This is here to accommodate 4.4, 4.2, and any other server versions that
+// lack the `bypassEmptyTsReplacement` insert/update flag.
+func insertDocWithEmptyTimestamps(
+	ctx context.Context,
+	collection *mongo.Collection,
+	rawDoc bson.Raw,
+) error {
+	parsedDoc := struct {
+		ID any `bson:"_id"`
+	}{}
+
+	err := bson.Unmarshal(rawDoc, &parsedDoc)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal document with empty timestamp")
+	}
+
+	// NB: insert preserves empty-timestamp _id.
+	_, err = collection.InsertOne(
+		ctx,
+		rawDoc,
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to insert document with empty timestamp (_id=%#q)",
+			parsedDoc.ID,
+		)
+	}
+
+	// Ideally we’d do this in a transaction with the insert, but we have
+	// support standalone mongod, which can’t do transactions.
+	_, err = collection.UpdateOne(
+		ctx,
+		bson.D{{"_id", parsedDoc.ID}},
+		mongo.Pipeline{
+			{
+				{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{{"$literal", rawDoc}}},
+				}},
+			},
+		},
+	)
+
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to fix document with empty timestamp (_id=%#q)",
+			parsedDoc.ID,
+		)
+	}
+
+	return nil
 }

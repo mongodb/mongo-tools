@@ -41,9 +41,12 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
+		serverVersion, err := provider.ServerVersionArray()
+		So(err, ShouldBeNil)
+
 		Convey("using a test collection and a doc limit of 3", func() {
 			testCol := session.Database("tools-test").Collection("bulk1")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 3)
+			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 3, serverVersion)
 			So(bufBulk, ShouldNotBeNil)
 
 			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
@@ -69,7 +72,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 		Convey("using a test collection and a doc limit of 1", func() {
 			testCol := session.Database("tools-test").Collection("bulk2")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1)
+			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1, serverVersion)
 			So(bufBulk, ShouldNotBeNil)
 
 			Convey("inserting 10 documents into the BufferedBulkInserter and flushing", func() {
@@ -91,7 +94,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 		Convey("using a test collection and a doc limit of 1000", func() {
 			testCol := session.Database("tools-test").Collection("bulk3")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 100)
+			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 100, serverVersion)
 			So(bufBulk, ShouldNotBeNil)
 
 			Convey(
@@ -140,7 +143,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 		Convey("using a test collection and a byte limit of 1", func() {
 			testCol := session.Database("tools-test").Collection("bulk4")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1000)
+			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1000, serverVersion)
 			So(bufBulk, ShouldNotBeNil)
 			bufBulk.byteLimit = 1
 

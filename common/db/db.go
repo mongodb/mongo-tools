@@ -23,6 +23,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/youmark/pkcs8"
@@ -66,10 +67,10 @@ const (
 	ErrCannotInsertTimeseriesBucketsWithMixedSchema = 408
 )
 
-var ignorableWriteErrorCodes = map[int]bool{
-	ErrDuplicateKeyCode:         true,
-	ErrFailedDocumentValidation: true,
-}
+var ignorableWriteErrorCodes = mapset.NewSet(
+	ErrDuplicateKeyCode,
+	ErrFailedDocumentValidation,
+)
 
 const (
 	continueThroughErrorFormat = "continuing through error: %v"
@@ -597,25 +598,13 @@ func CanIgnoreError(err error) bool {
 		return true
 	}
 
-	switch mongoErr := err.(type) {
-	case mongo.WriteError:
-		_, ok := ignorableWriteErrorCodes[mongoErr.Code]
-		return ok
-	case mongo.BulkWriteException:
-		for _, writeErr := range mongoErr.WriteErrors {
-			if _, ok := ignorableWriteErrorCodes[writeErr.Code]; !ok {
-				return false
+	var mongoErr mongo.ServerError
+	if errors.As(err, &mongoErr) {
+		for code := range ignorableWriteErrorCodes.Iter() {
+			if mongoErr.HasErrorCode(code) {
+				return true
 			}
 		}
-
-		if mongoErr.WriteConcernError != nil {
-			log.Logvf(log.Always, "write concern error when inserting documents: %v", mongoErr.WriteConcernError)
-			return false
-		}
-		return true
-	case mongo.CommandError:
-		_, ok := ignorableWriteErrorCodes[int(mongoErr.Code)]
-		return ok
 	}
 
 	return false
