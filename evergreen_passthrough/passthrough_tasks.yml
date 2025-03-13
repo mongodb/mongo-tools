@@ -6,7 +6,7 @@ tasks:
         params:
           directory: src
           revisions:
-            mongosync: "60669ce0dbfc35c5e0270ace667920ad84766b3b"
+            mongosync: 60669ce0dbfc35c5e0270ace667920ad84766b3b
       - command: shell.exec
         params:
           working_dir: src

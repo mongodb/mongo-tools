@@ -1,11 +1,9 @@
 # mongodump passthrough tests use mongosync resmoke
 
 modules:
-  - name: mongo
-    repo: git@github.com:10gen/mongo.git
-    prefix: ${workdir}/src
-    branch: v6.0
   - name: mongosync
-    repo: git@github.com:10gen/mongosync
-    prefix: ${workdir}/src
+    owner: 10gen
+    repo: mongosync
+    prefix: src
+    ref: 60669ce0dbfc35c5e0270ace667920ad84766b3b
     branch: rcownie/REP-5481c
