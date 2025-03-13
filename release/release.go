@@ -1446,8 +1446,8 @@ func downloadMongodAndShell(v string) {
 		// The 8.1.0 mongo shell made a couple of changes that would break our jstests as they are today.
 		// Example: ReplSetTest was removed and converted into a module that needs to be imported separately.
 		// These tests are not dependent on change in the server code, so we don't need to test the latest version of the server with a matching version of the mongo shell.
-		// Picking 8.0.5 as the last known server version without these breaking changes.
-		downloadArtifacts("8.0.5", []string{"Jstestshell"})
+		// Picking 8.0.0 as the last known server version without these breaking changes.
+		downloadArtifacts("8.0.0", []string{"Jstestshell"})
 	} else if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
 		// serverVersion >= 6.0.0, download mongo shell.
 		downloadArtifacts(serverVersion, []string{"Jstestshell"})
