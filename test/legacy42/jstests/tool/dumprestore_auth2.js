@@ -1,6 +1,7 @@
 // dumprestore_auth2.js
 // Tests that mongodump and mongorestore properly handle access control information
 // Tests that the default auth roles of backup and restore work properly.
+load('../qa-tests/jstests/common/check_version.js');
 
 var dumpRestoreAuth2 = function(backup_role, restore_role) {
     t = new ToolTest("dumprestore_auth2", {auth: ""});
@@ -33,7 +34,11 @@ var dumpRestoreAuth2 = function(backup_role, restore_role) {
               "setup2: " + tojson(admindb.system.users.getIndexes()));
     assert.eq(1, admindb.system.roles.count(), "setup3");
     assert.eq(2, admindb.system.roles.getIndexes().length, "setup4");
-    assert.eq(1, admindb.system.version.find({_id: "authSchema"}).count());
+    // authSchema document has been removed from server version 8.1.0+, no need to check for it
+    // load isAtLeastVersion from qa tests for the time being.
+    if (!isAtLeastVersion(admindb.version(), "8.1.0")) {
+        assert.eq(1, admindb.system.version.find({_id: "authSchema"}).count());
+    }
     var versionDoc = admindb.system.version.findOne({_id: "authSchema"});
 
     // Logout root user.
@@ -108,11 +113,15 @@ var dumpRestoreAuth2 = function(backup_role, restore_role) {
     assert.eq(1, admindb.system.roles.find({role: 'customRole'}).count(), "didn't restore roles");
     assert.eq(2, admindb.system.users.getIndexes().length, "didn't maintain user indexes");
     assert.eq(2, admindb.system.roles.getIndexes().length, "didn't maintain role indexes");
-    assert.eq(
-        1, admindb.system.version.find({_id: "authSchema"}).count(), "didn't restore version");
-    assert.docEq(versionDoc,
-                 admindb.system.version.findOne({_id: "authSchema"}),
-                 "version doc wasn't restored properly");
+    // authSchema document has been removed from server version 8.1.0+, no need to check for it
+    // load isAtLeastVersion from qa tests for the time being.
+    if (!isAtLeastVersion(admindb.version(), "8.1.0")) {
+        assert.eq(
+            1, admindb.system.version.find({_id: "authSchema"}).count(), "didn't restore version");
+        assert.docEq(versionDoc,
+            admindb.system.version.findOne({_id: "authSchema"}),
+            "version doc wasn't restored properly");
+    }
     admindb.logout();
 
     t.stop();
