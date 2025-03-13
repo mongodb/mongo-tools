@@ -169,10 +169,7 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
     if "eval_prepend" in kwargs:
         eval_sb.append(str(kwargs.pop("eval_prepend")))
 
-    mongo_version = os.environ['mongo_version']
-    logger.info('mongo_version is "' + mongo_version +'"')
-    import pprint
-    pprint.pprint(os.environ)
+    mongo_version = _mongo_shell_version(executable)
 
     if compare_semvers(mongo_version, '8.0') >= 0:
         logger.info('mongo_version is "' + mongo_version +'"; pre-loading ReplSetTest manually')
@@ -204,6 +201,18 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
 
     process_kwargs = utils.default_if_none(process_kwargs, {})
     return _process.Process(logger, args, **process_kwargs)
+
+def _mongo_shell_version(path):
+    proc = subprocess.run([path, "--version"], capture_output=True)
+    proc.check_returncode()
+
+    version_pattern = r'MongoDB shell version v(\d+[.]\d+[.]\d+)'
+    match = re.search(version_pattern, str(proc.stdout))
+
+    if match:
+        return match.group(1)
+    else:
+        raise Exception("mongo shell version not found:\n" + str(proc.stdout))
 
 def _format_shell_vars(sb, path, value):
     """
