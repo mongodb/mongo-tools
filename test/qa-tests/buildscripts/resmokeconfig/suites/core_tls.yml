@@ -21,11 +21,11 @@ executor:
     config:
       shell_options:
         eval_prepend: >
-            load('jstests/libs/run_mongod.js');
-            load('jstests/libs/assert_authenticate.js');
-            if (typeof ReplSetTest !== 'object') load('jstests/libs/replsettest.js');
-            var __origRawMongoProgramOutput = rawMongoProgramOutput;
-            rawMongoProgramOutput = function() { return __origRawMongoProgramOutput('.*') };
+          load('jstests/libs/run_mongod.js');
+          load('jstests/libs/assert_authenticate.js');
+          if (typeof ReplSetTest !== 'object') load('jstests/libs/replsettest.js');
+          var __origRawMongoProgramOutput = rawMongoProgramOutput;
+          rawMongoProgramOutput = function() { return __origRawMongoProgramOutput('.*') };
         global_vars:
           TestData:
             useTLS: true

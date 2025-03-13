@@ -78,7 +78,10 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 
 			if feedVersion.GreaterThan(maxServerVersion) {
 				if serverVersion == "latest" {
-					fmt.Printf("Skipping because it exceeds the max server version (%v)\n", maxServerVersion)
+					fmt.Printf(
+						"Skipping because it exceeds the max server version (%v)\n",
+						maxServerVersion,
+					)
 					continue
 				} else {
 					return "", "", "", fmt.Errorf("cannot match a server version (%v) that exceeds the max server version (%v)", feedVersion, maxServerVersion)
