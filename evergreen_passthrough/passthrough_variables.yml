@@ -1,0 +1,2 @@
+variables:
+  passthrough_dummy: &passthrough_dummy "passthrough_dummy_string_value"

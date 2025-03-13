@@ -1,0 +1,18 @@
+tasks:
+  - name: passthrough_test1
+    tags: ["git_tag"]
+    commands:
+      - command: git.get_project
+        params:
+          directory: src
+          revisions:
+            mongosync: "60669ce0dbfc35c5e0270ace667920ad84766b3b"
+      - command: shell.exec
+        params:
+          working_dir: src
+          script: |
+            set -e
+            set -v
+            set -x
+            find . -name "mongosync"
+            find . -name "mongo-tools"
