@@ -167,6 +167,11 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
     if "eval_prepend" in kwargs:
         eval_sb.append(str(kwargs.pop("eval_prepend")))
 
+    mongo_version = os.environ['mongo_version']
+    if utils.compare_semvers(mongo_version, '8.0') >= 0:
+        logger.info('mongo_version is "' + mongo_version +'"; pre-loading ReplSetTest manually')
+        eval_sb.append('await import("jstests/libs/replsettest-' + mongo_version + '.js");')
+
     for var_name in global_vars:
         _format_shell_vars(eval_sb, var_name, global_vars[var_name])
 
@@ -193,7 +198,6 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
 
     process_kwargs = utils.default_if_none(process_kwargs, {})
     return _process.Process(logger, args, **process_kwargs)
-
 
 def _format_shell_vars(sb, path, value):
     """

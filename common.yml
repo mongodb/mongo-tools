@@ -1636,40 +1636,6 @@ tasks:
           resmoke_suite: "core${resmoke_use_tls}"
           excludes: "requires_unstable,${excludes}"
 
-  - name: qa-tests-4.0
-    tags: ["4.0"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_ssl}"
-          excludes: "requires_min_mongo_42,requires_unstable,${excludes}"
-
-  - name: qa-tests-3.6
-    tags: ["3.6"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "3.6"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_ssl}"
-          excludes: "requires_min_mongo_40,requires_min_mongo_42,requires_unstable,${excludes}"
-
   - name: native-cert-ssl-4.4
     tags: ["4.4"]
     commands:
@@ -1934,16 +1900,12 @@ buildvariants:
         ]
       mongo_os: "rhel80"
       mongo_edition: "enterprise"
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
       resmoke_use_tls: _tls
       edition: enterprise
       run_kinit: true
       resmoke_args: --jobs 4
     tasks:
       - name: "unit"
-      - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
       - name: ".5.0"
@@ -1973,16 +1935,12 @@ buildvariants:
       mongo_os: "rhel80"
       mongo_edition: "enterprise"
       testArgs: "-race=true"
-      smoke_use_ssl: --use-ssl
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
       resmoke_use_tls: _tls
       edition: enterprise
       run_kinit: true
       resmoke_args: --jobs 4
     tasks:
       - name: "unit"
-      - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
       - name: ".5.0"
@@ -2120,10 +2078,7 @@ buildvariants:
       mongo_os: "windows-64"
       mongo_edition: "enterprise"
       mongo_target: "windows"
-      smoke_use_ssl: --use-ssl
       resmoke_args: --jobs 4
-      resmoke_use_ssl: _ssl
-      smoke_use_tls: --use-tls
       resmoke_use_tls: _tls
       excludes: requires_large_ram,requires_mongo_24
       edition: enterprise
@@ -2132,7 +2087,6 @@ buildvariants:
       USE_SSL: "true"
     tasks:
       - name: "unit"
-      - name: ".4.0"
       - name: ".4.2"
       - name: ".4.4"
       - name: ".5.0"

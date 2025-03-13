@@ -233,3 +233,19 @@ def unicode_dammit(string, encoding='utf8'):
     # name inpsired by BeautifulSoup's "UnicodeDammit"
     return string.decode(encoding, 'repr')
 
+def compare_semvers(version1, version2):
+    """
+    Returns -1, 0, or 1 as per usual cmp functionality.
+    """
+
+    # Split the versions into their components (major, minor, patch)
+    v1_parts = list(map(int, version1.split('.')))
+    v2_parts = list(map(int, version2.split('.')))
+
+    for v1, v2 in zip(v1_parts, v2_parts):
+        if v1 < v2:
+            return -1
+        if v1 > v2:
+            return 1
+
+    return 0
