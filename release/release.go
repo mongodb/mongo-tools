@@ -1593,7 +1593,7 @@ func downloadArtifacts(v string, artifactNames []string) {
 	fmt.Printf("Version: %v\n", evgVersion)
 
 	if pf.ServerVariantNames == nil {
-		log.Fatalf("ServerVariantNames is not set")
+		log.Fatalf("ServerVariantNames is unset")
 	}
 
 	buildID, err := evergreen.GetPackageTaskForVersion(pf, evgVersion)
