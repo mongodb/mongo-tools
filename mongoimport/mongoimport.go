@@ -456,7 +456,12 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	}
 	collection := session.Database(imp.ToolOptions.DB).Collection(imp.ToolOptions.Collection)
 
-	inserter := db.NewUnorderedBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize).
+	serverVersion, err := imp.SessionProvider.ServerVersionArray()
+	if err != nil {
+		return fmt.Errorf("failed to fetch server version: %w", err)
+	}
+
+	inserter := db.NewUnorderedBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, serverVersion).
 		SetBypassDocumentValidation(imp.IngestOptions.BypassDocumentValidation).
 		SetOrdered(imp.IngestOptions.MaintainInsertionOrder).
 		SetUpsert(true)
