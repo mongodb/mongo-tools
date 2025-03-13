@@ -8,7 +8,7 @@ import (
 	"github.com/mongodb/mongo-tools/release/version"
 )
 
-// TODO: Remove this to support >8.0.
+// Increase this as needed for new server versions.
 var maxServerVersion = version.Version{8, 0, 999, ""}
 
 // JSONFeed represents the structure of the JSON
