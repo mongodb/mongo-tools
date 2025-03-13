@@ -1,6 +1,8 @@
 // This file is copied from the server’s v7.0 branch.
 // It’s here for v8 `mongo`, which no longer includes the ReplSetTest
 // global.
+//
+// A few alterations are needed for 8.0+, as noted.
 
 /**
  * Sets up a replica set. To make the set running, call {@link #startSet},
@@ -2974,8 +2976,10 @@ var ReplSetTest = function(opts) {
             // TODO (SERVER-74398): Remove special handling of 'confirm: true' once we no longer run
             // suites with v6.X. We disable this check by default now so that we can pass suites
             // without individually handling each multiversion test running on old binaries.
+            /* -- omitted for 8.0+
             options.setParameter.requireConfirmInSetFcv =
                 options.setParameter.requireConfirmInSetFcv || false;
+            */
         }
 
         if (tojson(options) != tojson({}))
