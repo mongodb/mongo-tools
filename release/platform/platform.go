@@ -495,9 +495,9 @@ var platforms = []Platform{
 		Pkg:       PkgRPM,
 		Repos:     []Repo{RepoOrg, RepoEnterprise},
 		BuildTags: defaultBuildTags,
-		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
-		ServerVariantName: "enterprise-rhel-80-64-bit",
-		ServerPlatform:    "rhel80",
+		// Using server rhel 8 builds because "enterprise-rhel-88-64-bit" is not available for all server versions.
+		ServerVariantName: "enterprise-rhel-8-64-bit",
+		ServerPlatform:    "rhel8",
 	},
 	{
 		Name:      "rhel9",
