@@ -4,6 +4,6 @@ modules:
   - name: mongosync
     owner: 10gen
     repo: mongosync
-    prefix: src
+    prefix: src/mongosync
     ref: 60669ce0dbfc35c5e0270ace667920ad84766b3b
     branch: rcownie/REP-5481c

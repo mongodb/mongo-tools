@@ -1,3 +1,6 @@
+variables:
+  _mongosync_pin: &_mongosync_pin 60669ce0dbfc35c5e0270ace667920ad84766b3b
+
 tasks:
   - name: passthrough_test1
     tags: ["git_tag"]
@@ -6,10 +9,9 @@ tasks:
         params:
           directory: src
           revisions:
-            mongosync: 60669ce0dbfc35c5e0270ace667920ad84766b3b
+            mongosync: *_mongosync_pin
       - command: shell.exec
         params:
-          working_dir: src
           script: |
             set -e
             set -v

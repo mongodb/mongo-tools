@@ -2044,6 +2044,8 @@ buildvariants:
 
   - name: rhel88
     display_name: "# RHEL 8.8"
+    modules:
+      - mongosync
     run_on:
       - rhel8.8-large
     expansions:
@@ -2063,9 +2065,6 @@ buildvariants:
       edition: enterprise
       run_kinit: true
       resmoke_args: --jobs 4
-    modules:
-      # mongosync is needed for running mongodump passthrough tests
-      - mongosync
     tasks:
       - name: "passthrough_test1"
       - name: "unit"
