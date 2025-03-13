@@ -1,7 +1,8 @@
 package db
 
 // MongoCanAcceptLiteralZeroTimestamp indicates whether the given server
-// version can accept a literal zero timestamp in a query. See SERVER-88750.
+// version can accept a literal zero timestamp in a query. See SERVER-88750
+// and TOOLS-3540.
 func MongoCanAcceptLiteralZeroTimestamp(version Version) bool {
 	// bypassEmptyTsReplacement was released with 8.0.
 	if version[0] >= 8 {
