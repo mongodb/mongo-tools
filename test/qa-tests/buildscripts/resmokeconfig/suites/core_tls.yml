@@ -24,6 +24,11 @@ executor:
         global_vars:
           TestData:
             useTLS: true
+
+            # SERVER-91804 changed the mongo shell to expect termination
+            # of all subprocesses by default. We add the following to
+            # preserve the old behavior (i.e., of not caring).
+            ignoreUnterminatedProcesses: true
         tls: ""
         tlsAllowInvalidCertificates: ""
         tlsCAFile: jstests/libs/ca.pem
