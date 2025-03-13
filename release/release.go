@@ -1440,7 +1440,7 @@ func downloadMongodAndShell(v string) {
 		// serverVersion >= 6.0.0, download mongo shell. We always download
 		// v7’s shell because we don’t actually update our JS tests, so we
 		// might as well use a stable version of the shell.
-		downloadArtifacts("7.0.17", []string{"Jstestshell"})
+		downloadArtifacts("6.0.21", []string{"Jstestshell"})
 	}
 }
 
