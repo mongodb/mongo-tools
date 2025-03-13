@@ -10,6 +10,7 @@ import json
 import os
 import os.path
 import stat
+import subprocess
 
 from . import process as _process
 from .. import utils
