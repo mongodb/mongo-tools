@@ -31,11 +31,11 @@
   const x = _runMongoProgram("bsondump", "--type=json", "jstests/bson/testdata/all_in_one_doc.bson");
   assert.eq(x, 0, "bsondump should exit successfully with 0");
 
-  assert.strContains.soon("1 objects found", rawMongoProgramOutput,
+  assert.strContains.soon("1 objects found", rawMongoProgramOutput(".*"),
     "should print out all top-level documents from the test data");
 
   // get row of output containing the json
-  const results = filterShellRows(rawMongoProgramOutput(), row => row.indexOf("$oid") !== -1);
+  const results = filterShellRows(rawMongoProgramOutput(".*"), row => row.indexOf("$oid") !== -1);
   assert.eq(results.length, 1);
   assert.eq(JSON.parse(results[0]), doc);
 }());

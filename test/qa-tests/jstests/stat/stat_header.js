@@ -10,7 +10,7 @@
   var commonToolArgs = getCommonToolArguments();
 
   function outputIncludesHeader() {
-    return rawMongoProgramOutput()
+    return rawMongoProgramOutput(".*")
       .split("\n").some(function(line) {
         return line.match(/^sh\d+\| insert/);
       });

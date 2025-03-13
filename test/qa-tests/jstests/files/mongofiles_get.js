@@ -72,7 +72,7 @@ var testName = 'mongofiles_get';
       .concat(sslOptions)),
     0, 'get stdout failed');
     var expectedContent = "this is a text file";
-    assert.strContains.soon(expectedContent, rawMongoProgramOutput,
+    assert.strContains.soon(expectedContent, rawMongoProgramOutput(".*"),
       "stdout get didn't match expected file content");
 
     t.stop();

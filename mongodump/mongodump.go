@@ -429,6 +429,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// while dumping the database. Before and after dumping the oplog,
 	// we check to see if the oplog has rolled over (i.e. the most recent entry when
 	// we started still exist, so we know we haven't lost data)
+	//time.Sleep(10 * time.Second)
 	if dump.OutputOptions.Oplog {
 		dump.oplogEnd, err = dump.getCurrentOplogTime()
 		if err != nil {

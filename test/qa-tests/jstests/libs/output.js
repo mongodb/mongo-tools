@@ -23,11 +23,11 @@ function filterShellRows(chunk, matcherFunc) {
 
 // get all rows of shell output
 function allShellRows() {
-  return filterShellRows(rawMongoProgramOutput(), () => true);
+  return filterShellRows(rawMongoProgramOutput(".*"), () => true);
 }
 
 function allDefaultStatRows() {
-  return filterShellRows(rawMongoProgramOutput(), isDefaultStatLine);
+  return filterShellRows(rawMongoProgramOutput(".*"), isDefaultStatLine);
 }
 
 function statFields(row) {
@@ -37,7 +37,7 @@ function statFields(row) {
 }
 
 function getLatestChunk() {
-  var output = rawMongoProgramOutput();
+  var output = rawMongoProgramOutput(".*");
   // mongostat outputs a blank line between each set of stats when there are
   // multiple hosts; we want just one chunk of stat lines
   var lineChunks = output.split("| \n");

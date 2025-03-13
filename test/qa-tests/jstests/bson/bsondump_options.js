@@ -30,10 +30,10 @@
   clearRawMongoProgramOutput();
   var pid = _startMongoProgram("bsondump", "--quiet", sampleFilepath);
   assert.eq(waitProgram(pid), 0, "bsondump should exit with success when given --quiet");
-  assert.strContains.soon("I am a string", rawMongoProgramOutput,
+  assert.strContains.soon("I am a string", rawMongoProgramOutput(".*"),
     "found docs should still be printed when --quiet is used");
   assert.eq.soon(-1, function() {
-    return rawMongoProgramOutput()
+    return rawMongoProgramOutput(".*")
       .split("\n")
       .filter(function(line) {
         return line.indexOf("sh"+pid+"| ") === 0;
@@ -45,13 +45,13 @@
   clearRawMongoProgramOutput();
   x = _runMongoProgram("bsondump", "--help");
   assert.eq(x, 0, "bsondump should exit with success when given --help");
-  assert.strContains.soon("Usage", rawMongoProgramOutput,
+  assert.strContains.soon("Usage", rawMongoProgramOutput(".*"),
     "help text should be printed when given --help");
 
   clearRawMongoProgramOutput();
   x = _runMongoProgram("bsondump", "--version");
   assert.eq(x, 0, "bsondump should exit with success when given --version");
-  assert.strContains.soon("version", rawMongoProgramOutput,
+  assert.strContains.soon("version", rawMongoProgramOutput(".*"),
     "version info should be printed when given --version");
 
 }());

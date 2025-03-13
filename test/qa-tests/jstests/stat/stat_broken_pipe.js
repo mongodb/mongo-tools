@@ -27,7 +27,7 @@
   ret = runProgram('bash', '-c', statArgs.concat('|', ddArgs).join(' '));
   assert.neq(0, ret, "bash execution should fail");
   assert.soon(function() {
-    return rawMongoProgramOutput().search(/broken pipe|The pipe is being closed/);
+    return rawMongoProgramOutput(".*").search(/broken pipe|The pipe is being closed/);
   }, 'should print an error message');
 
   toolTest.stop();
