@@ -9,6 +9,7 @@ package mongorestore
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -96,8 +97,9 @@ type MongoRestore struct {
 	// This is initialized to os.Stdin if unset.
 	InputReader io.Reader
 
-	// Server version for version-specific behavior
-	serverVersion db.Version
+	// Server versions for version-specific behavior
+	dumpServerVersion string
+	serverVersion     db.Version
 }
 
 type collectionIndexes map[string][]*idx.IndexDocument
@@ -373,6 +375,7 @@ func (restore *MongoRestore) Restore() Result {
 			`archive server version "%v"`,
 			restore.archive.Prelude.Header.ServerVersion,
 		)
+		restore.dumpServerVersion = restore.archive.Prelude.Header.ServerVersion
 		log.Logvf(
 			log.DebugLow,
 			`archive tool version "%v"`,
@@ -395,6 +398,10 @@ func (restore *MongoRestore) Restore() Result {
 				log.Logv(log.Always, util.ShortUsage("mongorestore"))
 			}
 			return Result{Err: fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)}
+		}
+		if err = restore.ReadPreludeMetadata(target); err != nil {
+			// don't error out here because older dump versions will not prelude.json
+			log.Logvf(log.Always, fmt.Sprintf("unable to read dump metadata from prelude.json file: %v", err))
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
@@ -660,6 +667,60 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	return result
+}
+
+// ReadPreludeMetadata finds and parses the prelude.json file if it's present.
+// It currently only sets the server.dumpServerVersion, but in the future we can read and set other metadata from the dump as required.
+func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) error {
+	filename := "prelude.json"
+	if restore.InputOptions.Gzip {
+		filename += ".gz"
+	}
+
+	var reader io.ReadCloser
+	file, err := os.Open(filepath.Join(target.Path(), filename))
+	if err != nil {
+		// check the parent directory in case the db directory is used as target
+		file, err = os.Open(filepath.Join(target.Parent().Path(), filename))
+		if err != nil {
+			log.Logvf(log.DebugLow, "could not open prelude metadata file: %v", err)
+			return fmt.Errorf("could not open prelude metadata file %s", filename)
+		}
+	}
+	defer file.Close()
+	if restore.InputOptions.Gzip {
+		zipfile, err := gzip.NewReader(file)
+		if err != nil {
+			log.Logvf(log.DebugLow, "error creating gzip reader: %v", err)
+			return fmt.Errorf("could not read gzip file %s", filename)
+		}
+		defer zipfile.Close()
+		reader = zipfile
+	} else {
+		reader = file
+	}
+	bytes, err := io.ReadAll(reader)
+	if err != nil {
+		log.Logvf(log.DebugLow, "error reading file: %v", err)
+		return fmt.Errorf("could not read prelude metadata from file %s", filename)
+	}
+
+	var prelude map[string]string
+	err = json.Unmarshal(bytes, &prelude)
+	if err != nil {
+		log.Logvf(log.DebugLow, "prelude metadata unmarshalling failed: %v", err)
+		return fmt.Errorf("could not unmarshal prelude metadata from file %s", filename)
+	}
+
+	dumpVersion, ok := prelude["ServerVersion"]
+	if !ok {
+		log.Logvf(log.DebugLow, "server version does not exist in prelude.json: %v", err)
+		return fmt.Errorf("ServerVersion key not available in prelude.json")
+	}
+	restore.dumpServerVersion = dumpVersion
+	log.Logvf(log.DebugLow, "restore.dumpServerVersion: %v", dumpVersion)
+
+	return nil
 }
 
 func (restore *MongoRestore) preFlightChecks() error {

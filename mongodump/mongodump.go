@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -67,6 +68,7 @@ type MongoDump struct {
 	isMongos        bool
 	isAtlasProxy    bool
 	storageEngine   storageEngineType
+	serverVersion   string
 	authVersion     int
 	archive         *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
@@ -365,16 +367,17 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error dumping metadata: %v", err)
 	}
 
+	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
+
 	if dump.OutputOptions.Archive != "" {
-		serverVersion, err := dump.SessionProvider.ServerVersion()
 		if err != nil {
 			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
-			serverVersion = "unknown"
+			dump.serverVersion = "unknown"
 		}
 		dump.archive.Prelude, err = archive.NewPrelude(
 			dump.manager,
 			dump.OutputOptions.NumParallelCollections,
-			serverVersion,
+			dump.serverVersion,
 			dump.ToolOptions.VersionStr,
 		)
 		if err != nil {
@@ -468,6 +471,14 @@ func (dump *MongoDump) Dump() (err error) {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
+	}
+
+	if dump.OutputOptions.Archive == "" {
+		log.Logvf(log.DebugLow, "dump phase IV: top level metadata json")
+		err = dump.DumpPreludeMetadata()
+		if err != nil {
+			return fmt.Errorf("error dumping top level metadata: %v", err)
+		}
 	}
 
 	log.Logvf(log.DebugLow, "finishing dump")
@@ -943,6 +954,61 @@ func (dump *MongoDump) DumpMetadata() error {
 			}
 		}
 	}
+	return nil
+}
+
+// DumpPreludeMetadata dumps information about the server and the dump in json format
+// Currently only writes the server version and tool version, but we can use this to write other metadata about the dump in the future.
+func (dump *MongoDump) DumpPreludeMetadata() error {
+	preludeJson := map[string]string{
+		"ServerVersion": dump.serverVersion,
+		"ToolVersion":   dump.ToolOptions.VersionStr,
+	}
+
+	filename := "prelude.json"
+
+	if dump.ToolOptions.Namespace.DB != "" {
+		filename = filepath.Join(dump.ToolOptions.Namespace.DB, filename)
+	}
+	if dump.OutputOptions.Out == "" {
+		filename = filepath.Join("dump", filename)
+	} else {
+		filename = filepath.Join(dump.OutputOptions.Out, filename)
+	}
+	if dump.OutputOptions.Gzip {
+		filename += ".gz"
+	}
+	if _, err := os.Stat(filepath.Dir(filename)); err != nil {
+		// most likely means there was no data to dump
+		log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
+		return nil
+	}
+	log.Logvf(log.DebugLow, "dumping prelude metadata to file: %s", filename)
+
+	file, err := os.Create(filename)
+	if err != nil {
+		log.Logvf(log.DebugLow, "error opening file: %v", err)
+		return fmt.Errorf("error opening prelude.json file %v", filename)
+	}
+	defer file.Close()
+
+	var writer io.WriteCloser = file
+	if dump.OutputOptions.Gzip {
+		writer = gzip.NewWriter(file)
+		defer writer.Close()
+	}
+	bytes, err := json.Marshal(preludeJson)
+	if err != nil {
+		log.Logvf(log.DebugLow, "error marshaling prelude data: %v", err)
+		return fmt.Errorf("error marshaling json")
+	}
+
+	_, err = writer.Write(bytes)
+	if err != nil {
+		log.Logvf(log.DebugLow, "error writing bytes to file: %v", err)
+		return fmt.Errorf("error writing top level prelude.json to file %v", filename)
+	}
+
 	return nil
 }
 

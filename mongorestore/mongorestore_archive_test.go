@@ -155,6 +155,29 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 // write tests using testify.
 // ----------------------------------------------------------------------
 
+func TestReadDumpServerVersionFromArchive(t *testing.T) {
+	require := require.New(t)
+
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	withArchiveMongodump(t, func(archivePath string) {
+		sessionProvider, _, err := testutil.GetBareSessionProvider()
+		require.NoError(err)
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			ArchiveOption + "=" + archivePath,
+		}
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(err)
+		defer restore.Close()
+
+		_ = restore.Restore()
+		expectedVersion, err := sessionProvider.ServerVersion()
+		require.Equal(restore.dumpServerVersion, expectedVersion)
+	})
+}
+
 func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 	require := require.New(t)
 
