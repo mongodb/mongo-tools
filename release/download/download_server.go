@@ -8,6 +8,9 @@ import (
 	"github.com/mongodb/mongo-tools/release/version"
 )
 
+// TODO: Remove this to support >8.0.
+var maxServerVersion = version.Version{8, 0, 999, ""}
+
 // JSONFeed represents the structure of the JSON
 // document consumed by the MongoDB downloads center.
 type ServerJSONFeed struct {
@@ -72,6 +75,16 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 
 		if serverVersion == "latest" ||
 			(feedVersion.Major == sv.Major && feedVersion.Minor == sv.Minor) {
+
+			if feedVersion.GreaterThan(maxServerVersion) {
+				if serverVersion == "latest" {
+					fmt.Printf("Skipping because it exceeds the max server version (%v)\n", maxServerVersion)
+					continue
+				} else {
+					return "", "", "", fmt.Errorf("cannot match a server version (%v) that exceeds the max server version (%v)", feedVersion, maxServerVersion)
+				}
+			}
+
 			if versionGuess == "" {
 				versionGuess = feedVersion.String()
 			}
