@@ -1,12 +1,14 @@
 package platform
 
 import (
+	"cmp"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/version"
 )
@@ -55,16 +57,16 @@ type Platform struct {
 	// This is used to override the variant name. It should only be used for
 	// special builds. In general, we want to use the OS name + arch for the
 	// variant name.
-	VariantName       string
-	Arch              Arch
-	OS                OS
-	Pkg               Pkg
-	Repos             []Repo
-	BuildTags         []string
-	BinaryExt         string
-	SkipForJSONFeed   bool
-	ServerVariantName string
-	ServerPlatform    string
+	VariantName        string
+	Arch               Arch
+	OS                 OS
+	Pkg                Pkg
+	Repos              []Repo
+	BuildTags          []string
+	BinaryExt          string
+	SkipForJSONFeed    bool
+	ServerVariantNames mapset.Set[string]
+	ServerPlatform     string
 	// If set, this a linux release will only be pushed to server repos within this range (inclusive).
 	MinLinuxServerVersion *version.Version
 	MaxLinuxServerVersion *version.Version
@@ -270,6 +272,22 @@ func (p Platform) asGolangString() string {
 	)
 }
 
+var canonicalTarget = map[string]string{
+	"rhel80": "rhel8",
+}
+
+func (p Platform) TargetMatches(target string) bool {
+	baseTarget := cmp.Or(p.ServerPlatform, p.Name)
+
+	for _, ref := range []*string{&target, &baseTarget} {
+		if canonical, has := canonicalTarget[*ref]; has {
+			*ref = canonical
+		}
+	}
+
+	return target == baseTarget
+}
+
 func indentGolangField(name, value string) string {
 	return fmt.Sprintf("\n    %s: %s,", name, value)
 }
@@ -406,13 +424,13 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:              "debian12",
-		Arch:              ArchX86_64,
-		OS:                OSLinux,
-		Pkg:               PkgDeb,
-		Repos:             []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:         defaultBuildTags,
-		ServerVariantName: "enterprise-debian12-64",
+		Name:               "debian12",
+		Arch:               ArchX86_64,
+		OS:                 OSLinux,
+		Pkg:                PkgDeb,
+		Repos:              []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:          defaultBuildTags,
+		ServerVariantNames: mapset.NewSet("enterprise-debian12-64"),
 	},
 	{
 		Name:                  "debian92",
@@ -424,18 +442,18 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:              "macos",
-		Arch:              ArchArm64,
-		OS:                OSMac,
-		BuildTags:         defaultBuildTags,
-		ServerVariantName: "enterprise-macos-arm64",
+		Name:               "macos",
+		Arch:               ArchArm64,
+		OS:                 OSMac,
+		BuildTags:          defaultBuildTags,
+		ServerVariantNames: mapset.NewSet("enterprise-macos-arm64"),
 	},
 	{
-		Name:              "macos",
-		Arch:              ArchX86_64,
-		OS:                OSMac,
-		BuildTags:         defaultBuildTags,
-		ServerVariantName: "enterprise-macos",
+		Name:               "macos",
+		Arch:               ArchX86_64,
+		OS:                 OSMac,
+		BuildTags:          defaultBuildTags,
+		ServerVariantNames: mapset.NewSet("enterprise-macos"),
 	},
 	{
 		Name:                  "rhel70",
@@ -496,8 +514,12 @@ var platforms = []Platform{
 		Repos:     []Repo{RepoOrg, RepoEnterprise},
 		BuildTags: defaultBuildTags,
 		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
-		ServerVariantName: "enterprise-rhel-80-64-bit",
-		ServerPlatform:    "rhel80",
+		// NB: Older builds are “rhel-80”, while newer ones are just “rhel-8”.
+		ServerVariantNames: mapset.NewSet(
+			"enterprise-rhel-80-64-bit",
+			"enterprise-rhel-8-64-bit",
+		),
+		ServerPlatform: "rhel80",
 	},
 	{
 		Name:      "rhel9",
@@ -635,12 +657,12 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
-		Name:              "windows",
-		Arch:              ArchX86_64,
-		OS:                OSWindows,
-		BuildTags:         defaultBuildTags,
-		BinaryExt:         ".exe",
-		ServerVariantName: "enterprise-windows",
+		Name:               "windows",
+		Arch:               ArchX86_64,
+		OS:                 OSWindows,
+		BuildTags:          defaultBuildTags,
+		BinaryExt:          ".exe",
+		ServerVariantNames: mapset.NewSet("enterprise-windows"),
 	},
 }
 
