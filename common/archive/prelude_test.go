@@ -44,6 +44,8 @@ func TestPrelude(t *testing.T) {
 
 		archivePrelude := &Prelude{
 			Header: &Header{
+				ServerVersion: "7.0.16",
+				ToolVersion:   "100.10.0",
 				FormatVersion: "version-foo",
 			},
 			NamespaceMetadatas: []*CollectionMetadata{cm1, cm2, cm3, cm4},

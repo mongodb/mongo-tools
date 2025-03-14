@@ -1178,6 +1178,83 @@ func TestKnownCollections(t *testing.T) {
 	})
 }
 
+func TestReadPreludeMetadata(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	Convey("With a test MongoRestore", t, func() {
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		session, _ = restore.SessionProvider.GetSession()
+		db := session.Database("test")
+		defer func() {
+			dropErr := db.Collection("foo").Drop(context.Background())
+			So(dropErr, ShouldBeNil)
+		}()
+
+		Convey("sets serverDumpVersion from prelude.json when dump dir is target", func() {
+			restore.TargetDirectory = "testdata/prelude_test/prelude_top_level"
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+		})
+
+		Convey("sets serverDumpVersion from prelude.json.gz when gzipped dump is used", func() {
+			restore.TargetDirectory = "testdata/prelude_test/prelude_gzip/test"
+			restore.InputOptions.Gzip = true
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+
+			So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+		})
+
+		Convey(
+			"sets serverDumpVersion from prelude.json in main dump dir when db dir is target",
+			func() {
+				restore.TargetDirectory = "testdata/prelude_test/prelude_top_level/test"
+				result := restore.Restore()
+				So(result.Err, ShouldBeNil)
+
+				So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+			},
+		)
+
+		Convey(
+			"sets serverDumpVersion from prelude.json from the db's directory",
+			func() {
+				restore.TargetDirectory = "testdata/prelude_test/prelude_db_target/test"
+				restore.ToolOptions.Namespace.DB = "test"
+				result := restore.Restore()
+				So(result.Err, ShouldBeNil)
+
+				So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+			},
+		)
+
+		Convey(
+			"does not error out when prelude is not available",
+			func() {
+				restore.TargetDirectory = "testdata/foodump"
+				result := restore.Restore()
+				So(result.Err, ShouldBeNil)
+
+				So(restore.dumpServerVersion, ShouldBeEmpty)
+			},
+		)
+	})
+}
+
 func TestFixHashedIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
