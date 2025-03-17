@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"context"
 	"fmt"
+	"github.com/mongodb/mongo-tools/common/db"
 	"os"
 	"testing"
 
@@ -243,7 +244,7 @@ func TestGetDumpAuthVersion(t *testing.T) {
 
 			Convey("when system.version does not contain authSchema document", func() {
 				Convey("should return an error for dump server versions pre 8.1.0", func() {
-					restore.dumpServerVersion = "8.0.0"
+					restore.dumpServerVersion = db.Version{8, 0, 0}
 					restore.manager = intents.NewIntentManager()
 					intent := &intents.Intent{
 						DB:       "admin",
@@ -260,7 +261,7 @@ func TestGetDumpAuthVersion(t *testing.T) {
 				})
 
 				Convey("auth version 5 should be detected for dump server version 8.1.0+", func() {
-					restore.dumpServerVersion = "8.1.0"
+					restore.dumpServerVersion = db.Version{8, 1, 0}
 					version, err := restore.GetDumpAuthVersion()
 					So(err, ShouldBeNil)
 					So(version, ShouldEqual, 5)

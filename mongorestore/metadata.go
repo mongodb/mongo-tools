@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/mod/semver"
 )
 
 // Specially treated restore collection types.
@@ -572,7 +571,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 	// authSchema doc has been removed from system.version from 8.1+ (SERVER-83663)
 	// The only auth version used by server 8.1+ is 5
-	if semver.Compare(fmt.Sprintf("v%v", restore.dumpServerVersion), "v8.1.0") >= 0 {
+	if restore.dumpServerVersion.GTE(db.Version{8, 1, 0}) {
 		log.Logvf(
 			log.DebugLow,
 			"skipping authSchema check for server version %v",
@@ -580,6 +579,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 		)
 		return 5, nil
 	}
+
 	// first handle the case where we have no auth version
 	intent := restore.manager.AuthVersion()
 	if intent == nil {

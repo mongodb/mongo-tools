@@ -1196,9 +1196,9 @@ func TestReadPreludeMetadata(t *testing.T) {
 		defer restore.Close()
 
 		session, _ = restore.SessionProvider.GetSession()
-		db := session.Database("test")
+		database := session.Database("test")
 		defer func() {
-			dropErr := db.Collection("foo").Drop(context.Background())
+			dropErr := database.Collection("foo").Drop(context.Background())
 			So(dropErr, ShouldBeNil)
 		}()
 
@@ -1207,7 +1207,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+			So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
 		})
 
 		Convey("sets serverDumpVersion from prelude.json.gz when gzipped dump is used", func() {
@@ -1216,7 +1216,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 			result := restore.Restore()
 			So(result.Err, ShouldBeNil)
 
-			So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+			So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
 		})
 
 		Convey(
@@ -1226,7 +1226,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
 
-				So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+				So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
 			},
 		)
 
@@ -1238,7 +1238,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
 
-				So(restore.dumpServerVersion, ShouldEqual, "7.0.16")
+				So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
 			},
 		)
 
@@ -1249,7 +1249,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
 
-				So(restore.dumpServerVersion, ShouldBeEmpty)
+				So(restore.dumpServerVersion, ShouldEqual, db.Version{})
 			},
 		)
 	})

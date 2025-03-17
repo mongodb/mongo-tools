@@ -98,7 +98,7 @@ type MongoRestore struct {
 	InputReader io.Reader
 
 	// Server versions for version-specific behavior
-	dumpServerVersion string
+	dumpServerVersion db.Version
 	serverVersion     db.Version
 }
 
@@ -375,7 +375,7 @@ func (restore *MongoRestore) Restore() Result {
 			`archive server version "%v"`,
 			restore.archive.Prelude.Header.ServerVersion,
 		)
-		restore.dumpServerVersion = restore.archive.Prelude.Header.ServerVersion
+		restore.dumpServerVersion, _ = db.StrToVersion(restore.archive.Prelude.Header.ServerVersion)
 		log.Logvf(
 			log.DebugLow,
 			`archive tool version "%v"`,
@@ -701,26 +701,27 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) error {
 	}
 	bytes, err := io.ReadAll(reader)
 	if err != nil {
-		log.Logvf(log.DebugLow, "error reading file: %v", err)
-		return fmt.Errorf("could not read prelude metadata from file %s", filename)
+		return fmt.Errorf("failed to read prelude metadata from file %s: %w", filename, err)
 	}
 
 	var prelude map[string]string
 	err = json.Unmarshal(bytes, &prelude)
 	if err != nil {
-		log.Logvf(log.DebugLow, "prelude metadata unmarshalling failed: %v", err)
-		return fmt.Errorf("could not unmarshal prelude metadata from file %s", filename)
+		return fmt.Errorf("failed to unmarshal prelude metadata from file %s: %w", filename, err)
 	}
 
 	dumpVersion, ok := prelude["ServerVersion"]
 	if !ok {
-		log.Logvf(log.DebugLow, "server version does not exist in prelude.json: %v", err)
-		return fmt.Errorf("ServerVersion key not available in prelude.json")
+		return errors.New("ServerVersion key not found in prelude.json")
 	}
-	restore.dumpServerVersion = dumpVersion
-	log.Logvf(log.DebugLow, "restore.dumpServerVersion: %v", dumpVersion)
 
-	return nil
+	restore.dumpServerVersion, err = db.StrToVersion(dumpVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse server version from prelude.json: %w", err)
+	} else {
+		log.Logvf(log.DebugLow, "restore.dumpServerVersion: %v", dumpVersion)
+		return nil
+	}
 }
 
 func (restore *MongoRestore) preFlightChecks() error {

@@ -81,3 +81,29 @@ func TestVersionComparisons(t *testing.T) {
 		t.Errorf("GTE failed")
 	}
 }
+
+func TestStrToVersion(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	type testCase struct {
+		str string
+		v   Version
+	}
+
+	cases := []testCase{
+		{str: "1.2.3", v: Version{1, 2, 3}},
+		{str: "1.2.3+metainfo", v: Version{1, 2, 3}},
+		{str: "1.2.3-rc", v: Version{1, 2, 3}},
+		{str: "1", v: Version{}},
+		{str: "1.2", v: Version{}},
+		{str: "1.2.3.4", v: Version{}},
+		{str: "v1.2.3", v: Version{}},
+	}
+
+	for _, c := range cases {
+		got, err := StrToVersion(c.str)
+		if got != c.v {
+			t.Errorf("StrToVersion(%v): got %v; wanted: %v, error: %v", c.str, got, c.v, err)
+		}
+	}
+}
