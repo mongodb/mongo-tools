@@ -77,7 +77,7 @@
 
 /* global retryOnRetryableError */
 
-var ReplSetTest = function ReplSetTest(opts) {
+export var ReplSetTest = function ReplSetTest(opts) {
     'use strict';
 
     if (!(this instanceof ReplSetTest)) {

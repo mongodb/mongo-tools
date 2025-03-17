@@ -59,9 +59,9 @@ functions:
         cd ${test_path}
         if [ -n "${mongo_version}" ]; then
           if [ "${mongo_version}" == "latest" ]; then
-            EVAL_REPLSETTEST="await import(\"../shell_common/libs/replsettest-8.1.js\");"
+            EVAL_REPLSETTEST="await import(\"../shell_common/libs/load_libs-8.1.js\");"
           else
-            EVAL_REPLSETTEST="await import(\"../shell_common/libs/replsettest-${mongo_version}.js\");"
+            EVAL_REPLSETTEST="await import(\"../shell_common/libs/load_libs-${mongo_version}.js\");"
           fi
         fi
         ./mongo --nodb --eval "$EVAL_REPLSETTEST" lib/run_mongod.js jstests/tool/*.js
