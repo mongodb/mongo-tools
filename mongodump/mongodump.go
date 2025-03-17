@@ -978,17 +978,17 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 	if dump.OutputOptions.Gzip {
 		filename += ".gz"
 	}
-	if _, err := os.Stat(filepath.Dir(filename)); err != nil {
-		// most likely means there was no data to dump
-		log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
-		return nil
-	}
+
 	log.Logvf(log.DebugLow, "dumping prelude metadata to file: %s", filename)
 
 	file, err := os.Create(filename)
 	if err != nil {
-		log.Logvf(log.DebugLow, "error opening file: %v", err)
-		return fmt.Errorf("error opening prelude.json file %v", filename)
+		if errors.Is(err, os.ErrNotExist) {
+			// most likely means there was no data to dump
+			log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
+			return nil
+		}
+		return fmt.Errorf("failed to open prelude.json file %v: %w", filename, err)
 	}
 	defer file.Close()
 
@@ -999,14 +999,12 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 	}
 	bytes, err := json.Marshal(preludeJson)
 	if err != nil {
-		log.Logvf(log.DebugLow, "error marshaling prelude data: %v", err)
-		return fmt.Errorf("error marshaling json")
+		return fmt.Errorf("error marshaling prelude data: %w", err)
 	}
 
 	_, err = writer.Write(bytes)
 	if err != nil {
-		log.Logvf(log.DebugLow, "error writing bytes to file: %v", err)
-		return fmt.Errorf("error writing top level prelude.json to file %v", filename)
+		return fmt.Errorf("failed to write to prelude.json to file %v: %w", filename, err)
 	}
 
 	return nil

@@ -401,7 +401,7 @@ func (restore *MongoRestore) Restore() Result {
 		}
 		if err = restore.ReadPreludeMetadata(target); err != nil {
 			// don't error out here because older dump versions will not prelude.json
-			log.Logvf(log.Always, fmt.Sprintf("unable to read dump metadata from prelude.json file: %v", err))
+			log.Logvf(log.DebugLow, fmt.Sprintf("error reading dump metadata from prelude.json file: %v", err))
 		}
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
@@ -679,20 +679,18 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) error {
 
 	var reader io.ReadCloser
 	file, err := os.Open(filepath.Join(target.Path(), filename))
-	if err != nil {
-		// check the parent directory in case the db directory is used as target
+	if errors.Is(err, os.ErrNotExist) {
+		// if prelude.json doesn't exist, check the parent directory in case db directory was used as target
 		file, err = os.Open(filepath.Join(target.Parent().Path(), filename))
 		if err != nil {
-			log.Logvf(log.DebugLow, "could not open prelude metadata file: %v", err)
-			return fmt.Errorf("could not open prelude metadata file %s", filename)
+			return fmt.Errorf("failed to open prelude metadata file %s: %w", filename, err)
 		}
 	}
 	defer file.Close()
 	if restore.InputOptions.Gzip {
 		zipfile, err := gzip.NewReader(file)
 		if err != nil {
-			log.Logvf(log.DebugLow, "error creating gzip reader: %v", err)
-			return fmt.Errorf("could not read gzip file %s", filename)
+			return true, fmt.Errorf("failed to open gzip file %s: %w", filename, err)
 		}
 		defer zipfile.Close()
 		reader = zipfile
