@@ -64,7 +64,7 @@ functions:
             EVAL_REPLSETTEST="await import(\"../shell_common/libs/replsettest-${mongo_version}.js\");"
           fi
         fi
-        ./mongo --nodb --eval $EVAL_REPLSETTEST lib/run_mongod.js jstests/tool/*.js
+        ./mongo --nodb --eval "$EVAL_REPLSETTEST" lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
