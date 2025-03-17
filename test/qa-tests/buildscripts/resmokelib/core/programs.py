@@ -169,7 +169,7 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
 
     if compare_semvers(mongo_version, '8.0') >= 0:
         logger.info('mongo_version is "' + mongo_version +'"; pre-loading ReplSetTest manually')
-        eval_sb.append('await import("jstests/libs/replsettest-' + mongo_version + '.js");')
+        eval_sb.append('await import("../shell_common/libs/replsettest-' + mongo_version + '.js");')
 
     for var_name in global_vars:
         _format_shell_vars(eval_sb, var_name, global_vars[var_name])

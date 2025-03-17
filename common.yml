@@ -57,7 +57,14 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        ./mongo --nodb lib/run_mongod.js jstests/tool/*.js
+        if [ -n "${mongo_version}" ]; then
+          if [ "${mongo_version}" == "latest" ]; then
+            EVAL_REPLSETTEST="await import(\"../shell_common/libs/replsettest-8.1.js\");"
+          else
+            EVAL_REPLSETTEST="await import(\"../shell_common/libs/replsettest-${mongo_version}.js\");"
+          fi
+        fi
+        ./mongo --nodb --eval $EVAL_REPLSETTEST lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
@@ -1556,6 +1563,7 @@ tasks:
           target: build
       - func: "run legacy tests"
         vars:
+          mongo_version: "8.0"
           test_path: "test/legacy42"
 
   - name: legacy-jstests-8.1 # The server jstests from the tools removal from server in 4.2
@@ -1572,6 +1580,7 @@ tasks:
           target: build
       - func: "run legacy tests"
         vars:
+          mongo_version: "8.1"
           test_path: "test/legacy42"
 
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
