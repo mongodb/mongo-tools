@@ -4094,3 +4094,6 @@ ReplSetTest.OpTimeType = {
     LAST_APPLIED: 1,
     LAST_DURABLE: 2,
 };
+
+// Adding this to put ReplSetTest in globalThis
+globalThis.ReplSetTest = ReplSetTest;
