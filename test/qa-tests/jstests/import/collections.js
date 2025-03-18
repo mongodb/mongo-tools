@@ -24,7 +24,7 @@
     .concat(commonToolArgs));
 
   db1.c.drop();
-  assert.eq(0, db1.c.count(), "after drop", "-d", toolTest.baseName, "-c", "foo");
+  assert.eq(0, db1.c.count(), `after drop -d ${toolTest.baseName} -c foo`);
 
 
   // copy the file to a file that contains the collection name
