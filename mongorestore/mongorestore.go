@@ -399,10 +399,14 @@ func (restore *MongoRestore) Restore() Result {
 			}
 			return Result{Err: fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)}
 		}
-		if err = restore.ReadPreludeMetadata(target); err != nil {
+		preludeFileExists, err := restore.ReadPreludeMetadata(target)
+		if !preludeFileExists {
 			// don't error out here because older dump versions will not prelude.json
-			log.Logvf(log.DebugLow, fmt.Sprintf("error reading dump metadata from prelude.json file: %v", err))
+			log.Logvf(log.DebugLow, "no prelude metadata found in target directory or parent, skipping")
+		} else if err != nil {
+			return Result{Err: fmt.Errorf("error reading dump metadata from prelude.json: %v", err)}
 		}
+
 		// handle cases where the user passes in a file instead of a directory
 		if !target.IsDir() {
 			log.Logv(log.DebugLow, "mongorestore target is a file, not a directory")
@@ -671,22 +675,30 @@ func (restore *MongoRestore) Restore() Result {
 
 // ReadPreludeMetadata finds and parses the prelude.json file if it's present.
 // It currently only sets the server.dumpServerVersion, but in the future we can read and set other metadata from the dump as required.
-func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) error {
+// Returns true if the metadata file exists.
+func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, error) {
 	filename := "prelude.json"
 	if restore.InputOptions.Gzip {
 		filename += ".gz"
 	}
 
 	var reader io.ReadCloser
+	if !target.IsDir() {
+		target = target.Parent()
+	}
 	file, err := os.Open(filepath.Join(target.Path(), filename))
 	if errors.Is(err, os.ErrNotExist) {
 		// if prelude.json doesn't exist, check the parent directory in case db directory was used as target
 		file, err = os.Open(filepath.Join(target.Parent().Path(), filename))
-		if err != nil {
-			return fmt.Errorf("failed to open prelude metadata file %s: %w", filename, err)
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		} else if err != nil {
+			return false, err
 		}
 	}
+
 	defer file.Close()
+
 	if restore.InputOptions.Gzip {
 		zipfile, err := gzip.NewReader(file)
 		if err != nil {
@@ -699,26 +711,27 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) error {
 	}
 	bytes, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("failed to read prelude metadata from file %s: %w", filename, err)
+		return true, fmt.Errorf("failed to read prelude metadata from %s: %w", filename, err)
 	}
 
 	var prelude map[string]string
 	err = json.Unmarshal(bytes, &prelude)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal prelude metadata from file %s: %w", filename, err)
+		return true, fmt.Errorf("failed to unmarshal prelude metadata from %s: %w", filename, err)
 	}
 
 	dumpVersion, ok := prelude["ServerVersion"]
 	if !ok {
-		return errors.New("ServerVersion key not found in prelude.json")
+		return true, fmt.Errorf("ServerVersion key not found in %s", filename)
 	}
 
 	restore.dumpServerVersion, err = db.StrToVersion(dumpVersion)
 	if err != nil {
-		return fmt.Errorf("failed to parse server version from prelude.json: %w", err)
+		return true, fmt.Errorf("failed to parse server version from prelude.json: %w", err)
 	} else {
+		log.Logvf(log.Info, "successfully parsed prelude metadata from prelude.json")
 		log.Logvf(log.DebugLow, "restore.dumpServerVersion: %v", dumpVersion)
-		return nil
+		return true, nil
 	}
 }
 
