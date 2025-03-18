@@ -735,7 +735,7 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 
 	// mongodump sets server version to unknown if it can't get the server version
 	if dumpVersion == common.ServerVersionUnknown {
-		log.Logvf(log.Info, "server version in prelude.json is 'unknown'")
+		log.Logvf(log.Info, "ServerVersion is 'unknown' in %#q", filePath)
 		return true, nil
 	}
 

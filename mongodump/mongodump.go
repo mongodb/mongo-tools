@@ -990,10 +990,10 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 	file, err := os.Create(filename)
 	if errors.Is(err, os.ErrNotExist) {
 		// if parent directory doesn't exist, there was no data to dump, don't write prelude.json
-		log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
+		log.Logvf(log.DebugLow, "parent directory does not exist, not writing %#q", filename)
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("failed to open prelude.json file %#q: %w", filename, err)
+		return fmt.Errorf("failed to open file %#q: %w", filename, err)
 	}
 	defer file.Close()
 
@@ -1009,7 +1009,7 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 
 	_, err = writer.Write(bytes)
 	if err != nil {
-		return fmt.Errorf("failed to write to prelude.json to file %#q: %w", filename, err)
+		return fmt.Errorf("failed to write prelude metadata to file %#q: %w", filename, err)
 	}
 
 	return nil
