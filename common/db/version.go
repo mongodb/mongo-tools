@@ -51,7 +51,9 @@ func StrToVersion(v string) (Version, error) {
 	for i, part := range parts {
 		n, err := strconv.Atoi(part)
 		if err != nil {
-			return Version{}, errors.New("failed to parse version number part, invalid version strong")
+			return Version{}, errors.New(
+				"failed to parse version number part, invalid version strong",
+			)
 		}
 		result[i] = n
 	}
