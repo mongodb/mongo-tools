@@ -399,7 +399,7 @@ func (restore *MongoRestore) Restore() Result {
 		}
 		preludeFileExists, err := restore.ReadPreludeMetadata(target)
 		if !preludeFileExists {
-			// don't error out here because older dump versions will not prelude.json
+			// don't error out here because mongodump versions before 100.12.0 will not include prelude.json
 			log.Logvf(log.DebugLow, "no prelude metadata found in target directory or parent, skipping")
 		} else if err != nil {
 			return Result{Err: fmt.Errorf("error reading dump metadata from prelude.json: %v", err)}
