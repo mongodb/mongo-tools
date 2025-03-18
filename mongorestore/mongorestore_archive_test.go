@@ -173,7 +173,7 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 		defer restore.Close()
 
 		_ = restore.Restore()
-		expectedVersion, err := sessionProvider.ServerVersionArray()
+		expectedVersion, _ := sessionProvider.ServerVersionArray()
 		require.Equal(restore.dumpServerVersion, expectedVersion)
 	})
 }

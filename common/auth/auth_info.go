@@ -68,16 +68,22 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 	serverVersion, err := sessionProvider.ServerVersionArray()
 	// The authSchema document has been removed from system.version as of server 8.1+ (SERVER-83663) because the only auth version used is 5
 	// We check whether any users / roles exist instead, because that is the condition for the authSchema document to be created in previous versions.
-	if err == nil && serverVersion.GTE(db.Version{8, 1, 0}) {
+	if err != nil {
+		return fmt.Errorf("error getting server version: %v", err)
+	} else if serverVersion.GTE(db.Version{8, 1, 0}) {
 		usersExist := session.Database("admin").
 			Collection("system.users").
 			FindOne(context.Background(), bson.D{})
 		rolesExist := session.Database("admin").
 			Collection("system.roles").
 			FindOne(context.Background(), bson.D{})
-		if errors.Is(usersExist.Err(), mongo.ErrNoDocuments) &&
-			errors.Is(rolesExist.Err(), mongo.ErrNoDocuments) {
-			return fmt.Errorf("no users / roles to dump")
+		userErr, rolesErr := usersExist.Err(), rolesExist.Err()
+
+		if errors.Is(userErr, mongo.ErrNoDocuments) &&
+			errors.Is(userErr, mongo.ErrNoDocuments) {
+			return fmt.Errorf("no users / roles exist")
+		} else if userErr == nil || rolesErr == nil {
+			return fmt.Errorf("error checking that users or roles exist: %w %w", userErr, rolesErr)
 		}
 		return nil
 	}

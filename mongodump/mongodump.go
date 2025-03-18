@@ -957,12 +957,17 @@ func (dump *MongoDump) DumpMetadata() error {
 	return nil
 }
 
+type PreludeData struct {
+	ServerVersion string `json:"ServerVersion"`
+	ToolVersion   string `json:"ToolVersion"`
+}
+
 // DumpPreludeMetadata dumps information about the server and the dump in json format
 // Currently only writes the server version and tool version, but we can use this to write other metadata about the dump in the future.
 func (dump *MongoDump) DumpPreludeMetadata() error {
-	preludeJson := map[string]string{
-		"ServerVersion": dump.serverVersion,
-		"ToolVersion":   dump.ToolOptions.VersionStr,
+	preludeData := PreludeData{
+		ServerVersion: dump.serverVersion,
+		ToolVersion:   dump.ToolOptions.VersionStr,
 	}
 
 	filename := "prelude.json"
@@ -997,7 +1002,7 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 		writer = gzip.NewWriter(file)
 		defer writer.Close()
 	}
-	bytes, err := json.Marshal(preludeJson)
+	bytes, err := json.Marshal(preludeData)
 	if err != nil {
 		return fmt.Errorf("error marshaling prelude data: %w", err)
 	}
