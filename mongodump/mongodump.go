@@ -988,7 +988,7 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 
 	file, err := os.Create(filename)
 	if errors.Is(err, os.ErrExist) {
-		// most likely means there was no data to dump
+		// if parent directory doesn't exist, there was no data to dump, don't write prelude.json
 		log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
 		return nil
 	} else if err != nil {
