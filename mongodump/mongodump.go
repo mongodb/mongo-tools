@@ -477,7 +477,7 @@ func (dump *MongoDump) Dump() (err error) {
 		log.Logvf(log.DebugLow, "dump phase IV: top level metadata json")
 		err = dump.DumpPreludeMetadata()
 		if err != nil {
-			return fmt.Errorf("error dumping top level metadata: %v", err)
+			return fmt.Errorf("failed to dump top level metadata: %v", err)
 		}
 	}
 
@@ -984,16 +984,15 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 		filename += ".gz"
 	}
 
-	log.Logvf(log.DebugLow, "dumping prelude metadata to file: %s", filename)
+	log.Logvf(log.DebugLow, "dumping prelude metadata to file %#q", filename)
 
 	file, err := os.Create(filename)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			// most likely means there was no data to dump
-			log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
-			return nil
-		}
-		return fmt.Errorf("failed to open prelude.json file %v: %w", filename, err)
+	if errors.Is(err, os.ErrExist) {
+		// most likely means there was no data to dump
+		log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to open prelude.json file %#q: %w", filename, err)
 	}
 	defer file.Close()
 
@@ -1009,7 +1008,7 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 
 	_, err = writer.Write(bytes)
 	if err != nil {
-		return fmt.Errorf("failed to write to prelude.json to file %v: %w", filename, err)
+		return fmt.Errorf("failed to write to prelude.json to file %#q: %w", filename, err)
 	}
 
 	return nil

@@ -34,14 +34,12 @@ import (
 )
 
 const (
-	progressBarLength   = 24
-	progressBarWaitTime = time.Second * 3
-)
-
-const (
+	progressBarLength                        = 24
+	progressBarWaitTime                      = time.Second * 3
 	deprecatedDBAndCollectionsOptionsWarning = "The --db and --collection flags are deprecated for " +
 		"this use-case; please use --nsInclude instead, " +
 		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
+	serverVersionUnknown = "unknown"
 )
 
 var (
@@ -685,19 +683,23 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 	var err error
 	var reader io.ReadCloser
 	if !target.IsDir() {
+		// Look for prelude.json in target's directory if target is .bson file.
 		target, err = newActualPath(target.Parent().Path())
 		if err != nil {
 			return false, fmt.Errorf("error finding parent of target file: %w", err)
 		}
 	}
-	file, err := os.Open(filepath.Join(target.Path(), filename))
+	filePath := filepath.Join(target.Path(), filename)
+	file, err := os.Open(filePath)
 	if errors.Is(err, os.ErrNotExist) {
-		// if prelude.json doesn't exist, check the parent directory in case db directory was used as target
-		file, err = os.Open(filepath.Join(target.Parent().Path(), filename))
+		// If the mongodump was for all databases, prelude.json will be in the top level directory.
+		// If a single database's directory was used as the target, look for prelude.json in the target's parent directory.
+		filePath = filepath.Join(target.Parent().Path(), filename)
+		file, err = os.Open(filePath)
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		} else if err != nil {
-			return false, err
+			return false, fmt.Errorf("error opening prelude.json file %#q: %w", filePath, err)
 		}
 	}
 
@@ -706,7 +708,7 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 	if restore.InputOptions.Gzip {
 		zipfile, err := gzip.NewReader(file)
 		if err != nil {
-			return true, fmt.Errorf("failed to open gzip file %s: %w", filename, err)
+			return true, fmt.Errorf("failed to open gzip file %#q: %w", filePath, err)
 		}
 		defer zipfile.Close()
 		reader = zipfile
@@ -715,32 +717,32 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 	}
 	bytes, err := io.ReadAll(reader)
 	if err != nil {
-		return true, fmt.Errorf("failed to read prelude metadata from %s: %w", filename, err)
+		return true, fmt.Errorf("failed to read prelude metadata from %#q: %w", filePath, err)
 	}
 
 	var prelude map[string]string
 	err = json.Unmarshal(bytes, &prelude)
 	if err != nil {
-		return true, fmt.Errorf("failed to unmarshal prelude metadata from %s: %w", filename, err)
+		return true, fmt.Errorf("failed to unmarshal prelude metadata from %#q: %w", filePath, err)
 	}
 
 	dumpVersion, ok := prelude["ServerVersion"]
 	if !ok {
-		return true, fmt.Errorf("ServerVersion key not found in %s", filename)
+		return true, fmt.Errorf("ServerVersion key not found in %#q", filePath)
 	}
 
 	// mongodump sets server version to unknown if it can't get the server version
-	if dumpVersion == "unknown" {
+	if dumpVersion == serverVersionUnknown {
 		log.Logvf(log.Info, "server version in prelude.json is 'unknown'")
 		return true, nil
 	}
 
 	restore.dumpServerVersion, err = db.StrToVersion(dumpVersion)
 	if err != nil {
-		return true, fmt.Errorf("failed to parse server version from prelude.json: %w", err)
+		return true, fmt.Errorf("failed to parse server version from %#q: %w", filePath, err)
 	} else {
-		log.Logvf(log.Info, "successfully parsed prelude metadata from prelude.json")
-		log.Logvf(log.DebugLow, "restore.dumpServerVersion: %v", dumpVersion)
+		log.Logvf(log.Info, "successfully parsed prelude metadata from %#q", filePath)
+		log.Logvf(log.DebugLow, "restore.dumpServerVersion: %#q", dumpVersion)
 		return true, nil
 	}
 }
