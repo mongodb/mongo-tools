@@ -87,7 +87,7 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 		}
 
 		if errors.Is(usersErr, mongo.ErrNoDocuments) &&
-			errors.Is(usersErr, mongo.ErrNoDocuments) {
+			errors.Is(rolesErr, mongo.ErrNoDocuments) {
 			return fmt.Errorf("no users / roles exist")
 		}
 		return nil
