@@ -699,8 +699,10 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		} else if err != nil {
-			return false, fmt.Errorf("error opening prelude.json file %#q: %w", filePath, err)
+			return false, fmt.Errorf("error opening file %#q: %w", filePath, err)
 		}
+	} else if err != nil {
+		return false, fmt.Errorf("error opening file %#q: %w", filePath, err)
 	}
 
 	defer file.Close()
