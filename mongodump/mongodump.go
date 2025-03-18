@@ -473,7 +473,7 @@ func (dump *MongoDump) Dump() (err error) {
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 	}
 
-	if dump.OutputOptions.Archive == "" {
+	if dump.OutputOptions.Archive == "" && dump.OutputOptions.Out != "-" {
 		log.Logvf(log.DebugLow, "dump phase IV: top level metadata json")
 		err = dump.DumpPreludeMetadata()
 		if err != nil {
@@ -987,7 +987,7 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 	log.Logvf(log.DebugLow, "dumping prelude metadata to file %#q", filename)
 
 	file, err := os.Create(filename)
-	if errors.Is(err, os.ErrExist) {
+	if errors.Is(err, os.ErrNotExist) {
 		// if parent directory doesn't exist, there was no data to dump, don't write prelude.json
 		log.Logvf(log.DebugLow, "parent directory does not exist, not writing prelude.json")
 		return nil
