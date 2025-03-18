@@ -9,10 +9,10 @@ package mongorestore
 import (
 	"context"
 	"fmt"
-	"github.com/mongodb/mongo-tools/common/db"
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"

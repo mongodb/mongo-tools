@@ -1031,7 +1031,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		err = setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
-		sessionProvider, _, err := testutil.GetBareSessionProvider()
+		sessionProvider, _, _ := testutil.GetBareSessionProvider()
 		So(sessionProvider, ShouldNotBeNil)
 		serverVersion, err := sessionProvider.ServerVersion()
 		So(err, ShouldBeNil)
