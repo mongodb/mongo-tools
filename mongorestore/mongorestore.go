@@ -402,7 +402,7 @@ func (restore *MongoRestore) Restore() Result {
 			// don't error out here because mongodump versions before 100.12.0 will not include prelude.json
 			log.Logvf(log.DebugLow, "no prelude metadata found in target directory or parent, skipping")
 		} else if err != nil {
-			return Result{Err: fmt.Errorf("error reading dump metadata from prelude.json: %v", err)}
+			return Result{Err: fmt.Errorf("error reading dump metadata: %w", err)}
 		}
 
 		// handle cases where the user passes in a file instead of a directory
