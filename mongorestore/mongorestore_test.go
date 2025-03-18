@@ -1255,6 +1255,17 @@ func TestReadPreludeMetadata(t *testing.T) {
 		)
 
 		Convey(
+			"does not error out when server version is unknown",
+			func() {
+				restore.TargetDirectory = "testdata/prelude_test/server_version_unknown"
+				result := restore.Restore()
+				So(result.Err, ShouldBeNil)
+
+				So(restore.dumpServerVersion, ShouldEqual, db.Version{})
+			},
+		)
+
+		Convey(
 			"does not error out when prelude is not available",
 			func() {
 				restore.TargetDirectory = "testdata/foodump"

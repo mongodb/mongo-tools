@@ -725,6 +725,12 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 		return true, fmt.Errorf("ServerVersion key not found in %s", filename)
 	}
 
+	// mongodump sets server version to unknown if it can't get the server version
+	if dumpVersion == "unknown" {
+		log.Logvf(log.Info, "server version in prelude.json is 'unknown'")
+		return true, nil
+	}
+
 	restore.dumpServerVersion, err = db.StrToVersion(dumpVersion)
 	if err != nil {
 		return true, fmt.Errorf("failed to parse server version from prelude.json: %w", err)

@@ -368,12 +368,12 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 
 	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
+		dump.serverVersion = "unknown"
+	}
 
 	if dump.OutputOptions.Archive != "" {
-		if err != nil {
-			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
-			dump.serverVersion = "unknown"
-		}
 		dump.archive.Prelude, err = archive.NewPrelude(
 			dump.manager,
 			dump.OutputOptions.NumParallelCollections,
