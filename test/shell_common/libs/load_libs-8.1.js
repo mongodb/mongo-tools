@@ -2,6 +2,8 @@
 // Assume that the shell is running from either test/legacy42/ or test/qa-tests directories for load paths.
 
 // Just load 8.0's replsettest, our legacy shell tests haven't changed in forever, so it shouldn't matter.
+TestData = new Object();
+
 const {ReplSetTest} = await import('../shell_common/libs/replsettest-8.0.js');
 globalThis.ReplSetTest = ReplSetTest
 
