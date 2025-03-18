@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mongodb/mongo-tools/common"
 	"io"
 	"os"
 	"path/filepath"
@@ -370,7 +371,7 @@ func (dump *MongoDump) Dump() (err error) {
 	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
 	if err != nil {
 		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
-		dump.serverVersion = "unknown"
+		dump.serverVersion = common.ServerVersionUnknown
 	}
 
 	if dump.OutputOptions.Archive != "" {

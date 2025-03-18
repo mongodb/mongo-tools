@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mongodb/mongo-tools/common"
 	"io"
 	"os"
 	"path/filepath"
@@ -39,7 +40,6 @@ const (
 	deprecatedDBAndCollectionsOptionsWarning = "The --db and --collection flags are deprecated for " +
 		"this use-case; please use --nsInclude instead, " +
 		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
-	serverVersionUnknown = "unknown"
 )
 
 var (
@@ -732,7 +732,7 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 	}
 
 	// mongodump sets server version to unknown if it can't get the server version
-	if dumpVersion == serverVersionUnknown {
+	if dumpVersion == common.ServerVersionUnknown {
 		log.Logvf(log.Info, "server version in prelude.json is 'unknown'")
 		return true, nil
 	}
