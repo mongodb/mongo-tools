@@ -682,9 +682,13 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 		filename += ".gz"
 	}
 
+	var err error
 	var reader io.ReadCloser
 	if !target.IsDir() {
-		target = target.Parent()
+		target, err = newActualPath(target.Parent().Path())
+		if err != nil {
+			return false, fmt.Errorf("error finding parent of target file: %w", err)
+		}
 	}
 	file, err := os.Open(filepath.Join(target.Path(), filename))
 	if errors.Is(err, os.ErrNotExist) {

@@ -1245,8 +1245,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 		Convey(
 			"sets serverDumpVersion from prelude.json in parent directory when file is used as target",
 			func() {
-				restore.TargetDirectory = "testdata/prelude_test/prelude_db_target/test/foo.bson"
-				restore.ToolOptions.Namespace.DB = "test"
+				restore.TargetDirectory = "testdata/prelude_test/prelude_top_level/test/foo.bson"
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
 
