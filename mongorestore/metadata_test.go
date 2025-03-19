@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -239,6 +240,32 @@ func TestGetDumpAuthVersion(t *testing.T) {
 				version, err := restore.GetDumpAuthVersion()
 				So(err, ShouldBeNil)
 				So(version, ShouldEqual, 5)
+			})
+
+			Convey("when system.version does not contain authSchema document", func() {
+				Convey("should return an error for dump server versions pre 8.1.0", func() {
+					restore.dumpServerVersion = db.Version{8, 0, 0}
+					restore.manager = intents.NewIntentManager()
+					intent := &intents.Intent{
+						DB:       "admin",
+						C:        "system.version",
+						Location: "testdata/system.version.no_auth_schema.bson",
+					}
+					intent.BSONFile = &realBSONFile{
+						path:   "testdata/system.version.no_auth_schema.bson",
+						intent: intent,
+					}
+					restore.manager.Put(intent)
+					_, err := restore.GetDumpAuthVersion()
+					So(err, ShouldNotBeNil)
+				})
+
+				Convey("auth version 5 should be detected for dump server version 8.1.0+", func() {
+					restore.dumpServerVersion = db.Version{8, 1, 0}
+					version, err := restore.GetDumpAuthVersion()
+					So(err, ShouldBeNil)
+					So(version, ShouldEqual, 5)
+				})
 			})
 		})
 	})

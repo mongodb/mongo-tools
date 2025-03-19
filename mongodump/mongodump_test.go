@@ -8,6 +8,7 @@ package mongodump
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
@@ -987,6 +988,139 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	})
 }
 
+func testPreludeMetadata(md *MongoDump, dir string, serverVersion string) {
+	So(fileDirExists(dir), ShouldBeFalse)
+	err := md.Init()
+	So(err, ShouldBeNil)
+
+	err = md.Dump()
+	So(err, ShouldBeNil)
+
+	preludeFilepath := filepath.Join(dir, "prelude.json")
+	if md.OutputOptions.Gzip {
+		preludeFilepath += ".gz"
+	}
+	So(fileDirExists(preludeFilepath), ShouldBeTrue)
+	var reader io.Reader
+	preludeFile, err := os.Open(util.ToUniversalPath(preludeFilepath))
+	So(err, ShouldBeNil)
+	reader = preludeFile
+	defer preludeFile.Close()
+	if md.OutputOptions.Gzip {
+		zipfile, err := gzip.NewReader(preludeFile)
+		So(err, ShouldBeNil)
+		defer zipfile.Close()
+		reader = zipfile
+	}
+	contents, err := io.ReadAll(reader)
+	So(err, ShouldBeNil)
+	var jsonResult map[string]string
+	err = json.Unmarshal(contents, &jsonResult)
+	So(err, ShouldBeNil)
+	So(jsonResult["ServerVersion"], ShouldEqual, serverVersion)
+}
+
+func TestDumpPreludeMetadataJson(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	Convey("With a MongoDump instance", t, func() {
+		path, err := os.Getwd()
+		So(err, ShouldBeNil)
+
+		err = setUpMongoDumpTestData()
+		So(err, ShouldBeNil)
+
+		sessionProvider, _, _ := testutil.GetBareSessionProvider()
+		So(sessionProvider, ShouldNotBeNil)
+		serverVersion, err := sessionProvider.ServerVersion()
+		So(err, ShouldBeNil)
+
+		Convey("when dumping all databases", func() {
+			md := simpleMongoDumpInstance()
+			md.ToolOptions.Namespace.DB = ""
+			md.ToolOptions.Namespace.Collection = ""
+
+			Convey("when dumping to the default directory", func() {
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+
+				Convey("writes prelude.json to dump directory", func() {
+					testPreludeMetadata(md, dumpDir, serverVersion)
+				})
+
+				Convey("writes prelude.json.gz to dump directory when --gzip is used", func() {
+					md.OutputOptions.Gzip = true
+					testPreludeMetadata(md, dumpDir, serverVersion)
+				})
+
+				Reset(func() {
+					So(os.RemoveAll(dumpDir), ShouldBeNil)
+				})
+			})
+
+			Convey("when output directory is specified", func() {
+				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump_output"))
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+
+				Convey("writes prelude.json to output directory", func() {
+					md.OutputOptions.Out = "dump_output"
+					testPreludeMetadata(md, dumpDir, serverVersion)
+				})
+
+				Reset(func() {
+					So(os.RemoveAll(dumpDir), ShouldBeNil)
+				})
+			})
+		})
+
+		Convey("when dumping one db", func() {
+			md := simpleMongoDumpInstance()
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			So(os.RemoveAll(dumpDir), ShouldBeNil)
+
+			Convey("writes prelude.json to dump directory", func() {
+				testPreludeMetadata(md, dumpDBDir, serverVersion)
+			})
+
+			Reset(func() {
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			})
+		})
+
+		Convey("when the dump directory is not created", func() {
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, "nottestdb"))
+
+			Convey("the dump does not fail and prelude.json should not be created", func() {
+				md := simpleMongoDumpInstance()
+				md.ToolOptions.Namespace.DB = "nonExistentDB"
+
+				err := md.Init()
+				So(err, ShouldBeNil)
+				err = md.Dump()
+				So(err, ShouldBeNil)
+
+				So(fileDirExists(dumpDir), ShouldBeFalse)
+				So(fileDirExists(dumpDBDir), ShouldBeFalse)
+				So(fileDirExists(filepath.Join(dumpDir, "prelude.json")), ShouldBeFalse)
+				So(fileDirExists(filepath.Join(dumpDBDir, "prelude.json")), ShouldBeFalse)
+			})
+
+			Reset(func() {
+				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			})
+		})
+
+		Reset(func() {
+			So(tearDownMongoDumpTestData(), ShouldBeNil)
+		})
+
+	})
+}
+
 func TestMongoDumpMetaData(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
@@ -1839,7 +1973,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				So(fileDirExists(metadataFile), ShouldBeTrue)
 				So(fileDirExists(bsonFile), ShouldBeTrue)
 
-				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
 				So(err, ShouldBeNil)
 				So(len(allFiles), ShouldEqual, 2)
 
@@ -1982,7 +2116,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				So(fileDirExists(metadataFile), ShouldBeTrue)
 				So(fileDirExists(bsonFile), ShouldBeTrue)
 
-				allFiles, err := getMatchingFiles(dumpDBDir, ".*")
+				allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
 				So(err, ShouldBeNil)
 				So(len(allFiles), ShouldEqual, 2)
 

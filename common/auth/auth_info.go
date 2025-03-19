@@ -9,12 +9,14 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // GetAuthVersion gets the authentication schema version of the connected server
@@ -60,7 +62,35 @@ func GetAuthVersion(sessionProvider *db.SessionProvider) (int, error) {
 func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 	session, err := sessionProvider.GetSession()
 	if err != nil {
-		return fmt.Errorf("error getting session from server: %v", err)
+		return fmt.Errorf("error getting session from server: %w", err)
+	}
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	// The authSchema document has been removed from system.version as of server 8.1+ (SERVER-83663) because the only auth version used is 5
+	// We check whether any users / roles exist instead, because that is the condition for the authSchema document to be created in previous versions.
+	if err != nil {
+		return fmt.Errorf("error getting server version: %w", err)
+	} else if serverVersion.GTE(db.Version{8, 1, 0}) {
+		usersExist := session.Database("admin").
+			Collection("system.users").
+			FindOne(context.Background(), bson.D{})
+		usersErr := usersExist.Err()
+		if usersErr != nil && !errors.Is(usersErr, mongo.ErrNoDocuments) {
+			return fmt.Errorf("error checking system.users: %w", usersErr)
+		}
+		rolesExist := session.Database("admin").
+			Collection("system.roles").
+			FindOne(context.Background(), bson.D{})
+		rolesErr := rolesExist.Err()
+		if rolesErr != nil && !errors.Is(rolesErr, mongo.ErrNoDocuments) {
+			return fmt.Errorf("error checking system.users: %w", rolesErr)
+		}
+
+		if errors.Is(usersErr, mongo.ErrNoDocuments) &&
+			errors.Is(rolesErr, mongo.ErrNoDocuments) {
+			return fmt.Errorf("no users / roles exist")
+		}
+		return nil
 	}
 
 	authSchemaQuery := bson.M{"_id": "authSchema"}
@@ -68,7 +98,7 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 		Collection("system.version").
 		CountDocuments(context.TODO(), authSchemaQuery)
 	if err != nil {
-		return fmt.Errorf("error checking pressence of auth version: %v", err)
+		return fmt.Errorf("error checking pressence of auth version: %w", err)
 	} else if count == 0 {
 		return fmt.Errorf("found no auth version")
 	}

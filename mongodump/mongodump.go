@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/auth"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -67,6 +69,7 @@ type MongoDump struct {
 	isMongos        bool
 	isAtlasProxy    bool
 	storageEngine   storageEngineType
+	serverVersion   string
 	authVersion     int
 	archive         *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
@@ -365,16 +368,17 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error dumping metadata: %v", err)
 	}
 
+	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
+		dump.serverVersion = common.ServerVersionUnknown
+	}
+
 	if dump.OutputOptions.Archive != "" {
-		serverVersion, err := dump.SessionProvider.ServerVersion()
-		if err != nil {
-			log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
-			serverVersion = "unknown"
-		}
 		dump.archive.Prelude, err = archive.NewPrelude(
 			dump.manager,
 			dump.OutputOptions.NumParallelCollections,
-			serverVersion,
+			dump.serverVersion,
 			dump.ToolOptions.VersionStr,
 		)
 		if err != nil {
@@ -468,6 +472,14 @@ func (dump *MongoDump) Dump() (err error) {
 			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
+	}
+
+	if dump.OutputOptions.Archive == "" && dump.OutputOptions.Out != "-" {
+		log.Logvf(log.DebugLow, "dump phase IV: top level metadata json")
+		err = dump.DumpPreludeMetadata()
+		if err != nil {
+			return fmt.Errorf("failed to dump top level metadata: %v", err)
+		}
 	}
 
 	log.Logvf(log.DebugLow, "finishing dump")
@@ -943,6 +955,63 @@ func (dump *MongoDump) DumpMetadata() error {
 			}
 		}
 	}
+	return nil
+}
+
+type PreludeData struct {
+	ServerVersion string `json:"ServerVersion"`
+	ToolVersion   string `json:"ToolVersion"`
+}
+
+// DumpPreludeMetadata dumps information about the server and the dump in json format
+// Currently only writes the server version and tool version, but we can use this to write other metadata about the dump in the future.
+func (dump *MongoDump) DumpPreludeMetadata() error {
+	preludeData := PreludeData{
+		ServerVersion: dump.serverVersion,
+		ToolVersion:   dump.ToolOptions.VersionStr,
+	}
+
+	filename := "prelude.json"
+
+	if dump.ToolOptions.Namespace.DB != "" {
+		filename = filepath.Join(dump.ToolOptions.Namespace.DB, filename)
+	}
+	if dump.OutputOptions.Out == "" {
+		filename = filepath.Join("dump", filename)
+	} else {
+		filename = filepath.Join(dump.OutputOptions.Out, filename)
+	}
+	if dump.OutputOptions.Gzip {
+		filename += ".gz"
+	}
+
+	log.Logvf(log.DebugLow, "dumping prelude metadata to file %#q", filename)
+
+	file, err := os.Create(filename)
+	if errors.Is(err, os.ErrNotExist) {
+		// if parent directory doesn't exist, there was no data to dump, don't write prelude.json
+		log.Logvf(log.DebugLow, "parent directory does not exist, not writing %#q", filename)
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to open file %#q: %w", filename, err)
+	}
+	defer file.Close()
+
+	var writer io.WriteCloser = file
+	if dump.OutputOptions.Gzip {
+		writer = gzip.NewWriter(file)
+		defer writer.Close()
+	}
+	bytes, err := json.Marshal(preludeData)
+	if err != nil {
+		return fmt.Errorf("error marshaling prelude data: %w", err)
+	}
+
+	_, err = writer.Write(bytes)
+	if err != nil {
+		return fmt.Errorf("failed to write prelude metadata to file %#q: %w", filename, err)
+	}
+
 	return nil
 }
 
