@@ -167,7 +167,7 @@ def mongo_shell_program(logger, executable=None, filename=None, process_kwargs=N
 
     mongo_version = _mongo_shell_version(executable)
 
-    if compare_semvers(mongo_version, '8.0') >= 0:
+    if compare_semvers(mongo_version, '8.1') >= 0:
         logger.info('mongo_version is "' + mongo_version +'"; pre-loading mongo shell modules from load_libs-' + mongo_version + '.js')
         eval_sb.append('await import("../shell_common/libs/load_libs-' + mongo_version + '.js");')
 

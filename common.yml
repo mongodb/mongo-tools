@@ -1563,7 +1563,6 @@ tasks:
           target: build
       - func: "run legacy tests"
         vars:
-          mongo_version: "8.0"
           test_path: "test/legacy42"
 
   - name: legacy-jstests-8.1 # The server jstests from the tools removal from server in 4.2
