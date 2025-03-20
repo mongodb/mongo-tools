@@ -3,7 +3,9 @@
  * 1. Comment out import of FeatureFlagUtil and its single use case
  * 2. Change import paths throughout file to correct location in shell_common/libs directory,
  *    assuming we're running the shell from test/qa-tests or test/legacy42
-*/
+ * 3. When setting maxTransactionLockRequestTimeoutMillis, don't initialize jsTest.options().setParameters because that will get reset every time
+ *    jsTest.options() is called. jsTest.options() is based on TestData, so initialize that instead.
+ */
 //import {FeatureFlagUtil} from "jstests/libs/feature_flag_util.js";
 import {Thread} from "../shell_common/libs/parallelTester-8.1.js";
 import {ReplSetTest} from "../shell_common/libs/replsettest-8.1.js";
@@ -1288,7 +1290,7 @@ export class ShardingTest {
             randomSeedAlreadySet = true;
         }
 
-        jsTest.options().setParameters = jsTest.options().setParameters || {};
+        TestData.setParameters = jsTest.options().setParameters || {};
         let setDefaultTransactionLockTimeout = false;
         if (jsTest.options().setParameters.maxTransactionLockRequestTimeoutMillis === undefined) {
             // Set a higher maxTransactionLockRequestTimeoutMillis. Tests written with ShardingTest

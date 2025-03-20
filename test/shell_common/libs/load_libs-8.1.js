@@ -1,7 +1,10 @@
 // All changes required to run JS tests in legacy / qa-tests directories should go in this file.
 // Assume that the shell is running from either test/legacy42/ or test/qa-tests directories for load paths.
 
-TestData = new Object();
+if (typeof TestData == "undefined") {
+  print('Initialising TestData in load_libs.8.1.js')
+  TestData = new Object();
+}
 
 const {ReplSetTest} = await import('../shell_common/libs/replsettest-8.1.js');
 globalThis.ReplSetTest = ReplSetTest
