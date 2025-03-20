@@ -4,6 +4,7 @@ var testName = 'mongofiles_get';
   jsTest.log('Testing mongofiles get command');
   load('jstests/files/util/mongofiles_common.js');
   load('jstests/libs/extended_assert.js');
+  load('jstests/common/check_version.js');
   var assert = extendedAssert;
 
   var runTests = function(topology, passthrough) {
@@ -47,7 +48,8 @@ var testName = 'mongofiles_get';
 
     // ensure tool runs get_id without error
     var idAsJSON = '{"$oid":"' + fileId.valueOf() + '"}';
-    if (_isWindows()) {
+    // no need to escape the string for windows in shell version 8.1.0
+    if (_isWindows() && !isAtLeastVersion(db.version(), "8.1.0")) {
       idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
     }
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
