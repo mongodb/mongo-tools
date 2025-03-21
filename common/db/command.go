@@ -104,7 +104,7 @@ func (sp *SessionProvider) ServerVersion() (string, error) {
 func (sp *SessionProvider) ServerVersionArray() (Version, error) {
 	var version Version
 	out := struct {
-		VersionArray []int32 `bson:"versionArray"`
+		VersionArray []int `bson:"versionArray"`
 	}{}
 	err := sp.RunString("buildInfo", &out, "admin")
 	if err != nil {
@@ -113,9 +113,17 @@ func (sp *SessionProvider) ServerVersionArray() (Version, error) {
 	if len(out.VersionArray) < 3 {
 		return version, fmt.Errorf("buildInfo.versionArray had fewer than 3 elements")
 	}
-	for i := 0; i <= 2; i++ {
-		version[i] = int(out.VersionArray[i])
+
+	copy(version[:], out.VersionArray[:len(version)])
+
+	// In development server builds `versionArray`’s 4th member is negative, and
+	// `versionArray`’s patch version exceeds `version`’s by 1. Since we have
+	// logic that compares this method’s output to `version` we need to subtract
+	// one from the patch value.
+	if len(out.VersionArray) > 3 && out.VersionArray[3] < 0 {
+		version[2]--
 	}
+
 	return version, nil
 }
 
