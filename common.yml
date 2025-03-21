@@ -36,6 +36,8 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
+  max_server_version: "8.1"
+
 parameters:
   - key: fake_tag_for_release_testing
     description: |
@@ -57,14 +59,15 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        if [ -n "${mongo_version}" ]; then
-          if [ "${mongo_version}" == "latest" ]; then
-            EVAL_REPLSETTEST="await import(\"../shell_common/libs/load_libs-8.1.js\");"
+        if [ -n "${load_libs_version}" ]; then
+          if [ "${load_libs_version}" == "latest" ]; then
+            # set to the maxServerVersion in download_server.go
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-8.1.js\");"
           else
-            EVAL_REPLSETTEST="await import(\"../shell_common/libs/load_libs-${mongo_version}.js\");"
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
           fi
         fi
-        ./mongo --nodb --eval "$EVAL_REPLSETTEST" lib/run_mongod.js jstests/tool/*.js
+        ./mongo --nodb --eval "$IMPORT_LOAD_LIBS" lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
     command: subprocess.exec
@@ -177,7 +180,7 @@ functions:
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
         MONGOD_ARGS="${mongod_args}"
-        if [ "${USE_TLS}" = "true" ]; then
+        if [ "$ name{USE_TLS}" = "true" ]; then
           MONGOD_ARGS="${mongod_args_tls}"
         elif [ "${AWS_AUTH}" = "true" ]; then
           MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
@@ -432,8 +435,20 @@ functions:
           elif [ "${USE_SSL}" = "true" ]; then
             NODE_OPTIONS="${replsettest_ssl_config}"
           fi
-
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval 'TestData = new Object(); TestData.minPort="${mongod_port}"; var repl = new ReplSetTest({nodes:1, name:"repltester", nodeOptions: {'"$NODE_OPTIONS"'}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}'
+          # if we need to use load_libs, we need to cd to test/<qa-tests/legacy42/shell_common>
+          # so save the location of the mongo executable.
+          MONGO_DIR=$(pwd)/bin
+          if [ -n "${load_libs_version}" ]; then
+            # TODO: load_libs works relative to the directory that mongo shell is run in, need to work around that.
+            cd test/qa-tests
+            if [ "${load_libs_version}" == "latest" ]; then
+              # set to the maxServerVersion in download_server.go
+              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-8.1.js\");"
+            else
+              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
+            fi
+          fi
+          PATH=./bin:$PATH $MONGO_DIR/mongo $MONGO_ARGS --nodb --eval "$IMPORT_LOAD_LIBS; TestData = new Object(); TestData.minPort=\"${mongod_port}\"; var repl = new ReplSetTest({nodes:1, name:'repltester', nodeOptions: {$NODE_OPTIONS}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}"
 
     - command: shell.exec
       params:
@@ -1313,6 +1328,7 @@ tasks:
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
+          load_libs_version: "8.1"
       - func: "run make target"
         vars:
           target: build
@@ -1402,6 +1418,8 @@ tasks:
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
+          # increase according to the current max server version supported in download_server.go
+          load_libs_version: "8.1"
       - func: "run make target"
         vars:
           target: build
@@ -1579,8 +1597,8 @@ tasks:
           target: build
       - func: "run legacy tests"
         vars:
-          mongo_version: "8.1"
           test_path: "test/legacy42"
+          load_libs_version: "8.1"
 
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
     tags: ["latest"]
@@ -1597,6 +1615,8 @@ tasks:
       - func: "run legacy tests"
         vars:
           test_path: "test/legacy42"
+          # increase according to the current max server version supported in download_server.go
+          load_libs_version: "8.1"
 
   - name: mod-tidy
     commands:
