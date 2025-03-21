@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
-    "github.com/pkg/errors"
+	"github.com/pkg/errors"
 )
 
 // Wait until a file exists and can be opened for reading
@@ -18,7 +18,11 @@ import (
 // test infrastructure.  The tests will create the barrier file when they have
 // finshed writes to the source cluster.
 func waitForSourceWritesDoneBarrier(barrierName string) {
-	log.Logvf(log.DebugHigh, "waitForSourceWritesDoneBarrier: initial check for existence of file %s", barrierName)
+	log.Logvf(
+		log.DebugHigh,
+		"waitForSourceWritesDoneBarrier: initial check for existence of file %s",
+		barrierName,
+	)
 	start := time.Now()
 	logInterval := time.Minute
 	prevLogTime := start
@@ -27,15 +31,22 @@ func waitForSourceWritesDoneBarrier(barrierName string) {
 		if err == nil {
 			// We opened the file for reading, so it does exist.
 			f.Close()
-	        log.Logvf(log.DebugHigh, "waitForSourceWritesDoneBarrier: barrier file %s exists - proceed past the barrier", barrierName)
+			log.Logvf(
+				log.DebugHigh,
+				"waitForSourceWritesDoneBarrier: barrier file %s exists - proceed past the barrier",
+				barrierName,
+			)
 			return
 		}
 		if os.IsNotExist(err) {
 			if time.Since(prevLogTime) >= logInterval {
 				prevLogTime = time.Now()
-				log.Logvf(log.DebugHigh, "waitForSourceWritesDoneBarrier: still waiting for existence of file %s after %.1f sec",
+				log.Logvf(
+					log.DebugHigh,
+					"waitForSourceWritesDoneBarrier: still waiting for existence of file %s after %.1f sec",
 					barrierName,
-					prevLogTime.Sub(start).Seconds())
+					prevLogTime.Sub(start).Seconds(),
+				)
 			}
 			// Poll for existence of the barrier file every 500msec
 			time.Sleep(500 * time.Millisecond)

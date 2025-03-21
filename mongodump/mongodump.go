@@ -230,8 +230,8 @@ func (dump *MongoDump) Dump() (err error) {
 		// Wait for tests to stop writes before dumping any collections.
 		//
 		// In resmoke testing, the barrier is used to ensure that mongodump captures the correct
-		// state of the source cluster.  Events that occur before the barrier file is created will 
-		// definitely be captured in the dumped collections.  Events that occur after the barrier 
+		// state of the source cluster.  Events that occur before the barrier file is created will
+		// definitely be captured in the dumped collections.  Events that occur after the barrier
 		// file is created may not be captured.
 		waitForSourceWritesDoneBarrier(dump.InputOptions.SourceWritesDoneBarrier)
 	}
@@ -444,7 +444,7 @@ func (dump *MongoDump) Dump() (err error) {
 			// Wait for tests to stop writes before choosing the oplogEnd time.
 			//
 			// In resmoke testing, the barrier is used to ensure that mongodump captures the correct
-			// state of the source cluster.  Events that occur before the barrier file is created will 
+			// state of the source cluster.  Events that occur before the barrier file is created will
 			// definitely be captured either in the dumped collections, or the dumped oplog.
 			// Events that occur after the barrier file is created may not be captured.
 			waitForSourceWritesDoneBarrier(dump.InputOptions.SourceWritesDoneBarrier)
