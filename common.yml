@@ -433,12 +433,9 @@ functions:
           elif [ "${USE_SSL}" = "true" ]; then
             NODE_OPTIONS="${replsettest_ssl_config}"
           fi
-          # if we need to use load_libs, we need to cd to test/<qa-tests/legacy42/shell_common>
-          # so save the location of the mongo executable.
-          MONGO_DIR=$(pwd)/bin
+          # use jsconfig.json to set baseUrl to find libs
+          mv test/shell_common/jsconfig.json ./
           if [ -n "${load_libs_version}" ]; then
-            # TODO: load_libs works relative to the directory that mongo shell is run in, need to work around that.
-            cd test/qa-tests
             if [ "${load_libs_version}" == "latest" ]; then
               # set to the maxServerVersion in download_server.go
               IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-8.1.js\");"
@@ -446,7 +443,7 @@ functions:
               IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
             fi
           fi
-          PATH=./bin:$PATH $MONGO_DIR/mongo $MONGO_ARGS --nodb --eval "$IMPORT_LOAD_LIBS; TestData = new Object(); TestData.minPort=\"${mongod_port}\"; var repl = new ReplSetTest({nodes:1, name:'repltester', nodeOptions: {$NODE_OPTIONS}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}"
+          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval "$IMPORT_LOAD_LIBS; TestData = new Object(); TestData.minPort=\"${mongod_port}\"; var repl = new ReplSetTest({nodes:1, name:'repltester', nodeOptions: {$NODE_OPTIONS}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}"
 
     - command: shell.exec
       params:
