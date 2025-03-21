@@ -3433,12 +3433,19 @@ func TestDumpAndRestoreConfigDB(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	_, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession()
 	require.NoError(err, "can connect to server")
+
+	isAuthn, err := util.IsConnectionAuthenticated(context.Background(), client)
+	require.NoError(err, "should query for authentication state")
 
 	t.Run(
 		"test dump and restore only config db includes all config collections",
 		func(t *testing.T) {
+			if isAuthn {
+				t.Skip("This test requires a non-authenticated connection.")
+			}
+
 			testDumpAndRestoreConfigDBIncludesAllCollections(t)
 		},
 	)
