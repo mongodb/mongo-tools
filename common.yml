@@ -36,6 +36,9 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
+  # equivalent of maxServerVersion in download_server.go
+  max_server_version: "8.1"
+
 parameters:
   - key: fake_tag_for_release_testing
     description: |
@@ -60,7 +63,7 @@ functions:
         if [ -n "${load_libs_version}" ]; then
           if [ "${load_libs_version}" == "latest" ]; then
             # set to the maxServerVersion in download_server.go
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-8.1.js\");"
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
           else
             IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
           fi
@@ -438,7 +441,7 @@ functions:
           if [ -n "${load_libs_version}" ]; then
             if [ "${load_libs_version}" == "latest" ]; then
               # set to the maxServerVersion in download_server.go
-              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-8.1.js\");"
+              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
             else
               IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
             fi
@@ -1269,7 +1272,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.1.0-alpha3"
+          mongo_version: "8.1.0"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1295,7 +1298,7 @@ tasks:
               concat: " --auth"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.1.0-alpha3"
+          mongo_version: "8.1.0"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1319,7 +1322,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.1.0-alpha3"
+          mongo_version: "8.1.0"
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
@@ -1339,7 +1342,7 @@ tasks:
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
-          mongo_version: "8.1.0-alpha3"
+          mongo_version: "8.1.0"
       - func: "start mongod"
         vars:
           AWS_AUTH: "true"
@@ -1586,7 +1589,7 @@ tasks:
       - func: "setup credentials"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.1.0-alpha3"
+          mongo_version: "8.1.0"
       - func: "run make target"
         vars:
           target: build
@@ -1721,7 +1724,7 @@ tasks:
       - func: "setup credentials"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.1.0-alpha3"
+          mongo_version: "8.1.0"
       - func: "run make target"
         vars:
           target: build

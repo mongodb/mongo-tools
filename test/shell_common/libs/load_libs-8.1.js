@@ -12,6 +12,7 @@ globalThis.ReplSetTest = ReplSetTest
 const {ShardingTest} = await import('../shell_common/libs/shardingtest-8.1.js');
 globalThis.ShardingTest = ShardingTest
 
-// in 8.1 shell rawMongoProgramOutput expects one parameter. Change it here specifically when running from 8.1 shell.
+// SERVER-95628 - In 8.1 shell rawMongoProgramOutput expects a regexp argument to match the program output.
+// Change it here specifically when running from 8.1 shell.
 var __origRawMongoProgramOutput = rawMongoProgramOutput;
 rawMongoProgramOutput = function() { return __origRawMongoProgramOutput('.*') };

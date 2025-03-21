@@ -1,3 +1,4 @@
+// parallelTester.js copied over from 10gen/mongo repo at commit 6d7a9ba952ab4a8428d83699ba26314efe55506c.
 export var Thread;
 
 if (typeof _threadInject != "undefined") {

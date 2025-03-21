@@ -48,7 +48,7 @@ var testName = 'mongofiles_get';
 
     // ensure tool runs get_id without error
     var idAsJSON = '{"$oid":"' + fileId.valueOf() + '"}';
-    // no need to escape the string for windows in shell version 8.1.0
+    // This escaping is required because of a bug with argument quoting pre 8.1, fixed by SERVER-96103
     if (_isWindows() && !isAtLeastVersion(db.version(), "8.1.0")) {
       idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
     }
