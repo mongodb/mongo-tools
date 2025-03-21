@@ -39,20 +39,6 @@ variables:
   # equivalent of maxServerVersion in download_server.go
   max_server_version: "8.1"
 
-  load_jstest_shell_libs:
-  - &load_jstest_shell_libs
-    command: shell.exec
-    params:
-      script: |
-        if [ -n "${load_libs_version}" ]; then
-          if [ "${load_libs_version}" == "latest" ]; then
-            # set to the maxServerVersion in download_server.go
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
-          else
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
-          fi
-        fi
-
 parameters:
   - key: fake_tag_for_release_testing
     description: |
@@ -74,7 +60,14 @@ functions:
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
-        *load_jstest_shell_libs
+        if [ -n "${load_libs_version}" ]; then
+          if [ "${load_libs_version}" == "latest" ]; then
+            # set to the maxServerVersion in download_server.go
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
+          else
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
+          fi
+        fi
         ./mongo --nodb --eval "$IMPORT_LOAD_LIBS" lib/run_mongod.js jstests/tool/*.js
 
   "run qa-tests":
@@ -445,7 +438,14 @@ functions:
           fi
           # use jsconfig.json to set baseUrl to find libs
           mv test/shell_common/jsconfig.json ./
-          *load_jstest_shell_libs
+          if [ -n "${load_libs_version}" ]; then
+            if [ "${load_libs_version}" == "latest" ]; then
+              # set to the maxServerVersion in download_server.go
+              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
+            else
+              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
+            fi
+          fi
           PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval "$IMPORT_LOAD_LIBS; TestData = new Object(); TestData.minPort=\"${mongod_port}\"; var repl = new ReplSetTest({nodes:1, name:'repltester', nodeOptions: {$NODE_OPTIONS}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}"
 
     - command: shell.exec
