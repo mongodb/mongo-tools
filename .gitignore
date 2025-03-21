@@ -37,6 +37,7 @@ testing_output/
 vendor/pkg
 !**/testdata/**
 test/**/*.json
+!test/shell_common/jsconfig.json
 test/qa-tests/[0-9]*
 test/qa-tests/install_compass
 test/qa-tests/mongo*
