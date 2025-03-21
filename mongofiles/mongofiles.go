@@ -110,6 +110,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		return fmt.Errorf("no command specified")
 	}
 
+	log.Logvf(log.Always, "SHYAM args in ValidateCommand '%s'", strings.Join(args, " "))
 	switch args[0] {
 	case List:
 		if len(args) > 2 {
@@ -344,6 +345,7 @@ func (mf *MongoFiles) handleDeleteID() error {
 // parse and convert input extended JSON _id. Generates a new ObjectID if no _id provided.
 func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	trimmed := strings.Trim(mf.Id, " ")
+	log.Logvf(log.Always, fmt.Sprintf("SHYAM trimmed variable: %v", trimmed))
 
 	if trimmed == "" {
 		return primitive.NewObjectID(), nil
@@ -357,6 +359,7 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	default:
 		wrapped = fmt.Sprintf(`{"_id":"%s"}`, trimmed)
 	}
+	log.Logvf(log.Always, fmt.Sprintf("SHYAM wrapped variable: %v", trimmed))
 	var idDoc bson.D
 	err := bson.UnmarshalExtJSON([]byte(wrapped), false, &idDoc)
 	if err != nil {

@@ -48,9 +48,12 @@ var testName = 'mongofiles_get';
 
     // ensure tool runs get_id without error
     var idAsJSON = '{"$oid":"' + fileId.valueOf() + '"}';
+    print("SHYAM original idAsJson" + idAsJSON)
     // no need to escape the string for windows in shell version 8.1.0
-    if (_isWindows() && !isAtLeastVersion(db.version(), "8.1.0")) {
+    //if (_isWindows() && !isAtLeastVersion(db.version(), "8.1.0")) {
+    if (_isWindows()) {
       idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
+      print("SHYAM idAsJson after escaping for windows" + idAsJSON)
     }
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
