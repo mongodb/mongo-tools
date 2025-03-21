@@ -32,7 +32,7 @@
     "--fields", "a,b,c"]
     .concat(commonToolArgs));
   db1.c.drop();
-  assert.eq(0, db1.c.count(), "after drop", "-d", toolTest.baseName, "-c", "foo");
+  assert.eq(0, db1.c.count(), `after drop -d ${toolTest.baseName} -c foo`);
 
   // verify that the normal sane case works
   var ret = toolTest.runTool.apply(toolTest, ["import",

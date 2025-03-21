@@ -1,0 +1,7 @@
+{
+    "compilerOptions": {
+        "baseUrl": "test/shell_common",
+        "disableSizeLimit": true,
+        "target": "ES2020"
+    }
+}

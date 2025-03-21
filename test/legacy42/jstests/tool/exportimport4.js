@@ -26,7 +26,7 @@ if (_isWindows()) {
 t.runTool("export", "--out", t.extFile, "-d", t.baseName, "-c", "foo", "-q", queryJSON);
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--file", t.extFile, "-d", t.baseName, "-c", "foo", "--drop");
 
@@ -42,7 +42,7 @@ if (_isWindows()) {
 t.runTool("export", "--out", t.extFile, "-d", t.baseName, "-c", "foo", "-q", queryJSON);
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--file", t.extFile, "-d", t.baseName, "-c", "foo", "--drop");
 
@@ -54,7 +54,7 @@ install_test_data();
 t.runTool("export", "--out", t.extFile, "-d", t.baseName, "-c", "foo");
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--file", t.extFile, "-d", t.baseName, "-c", "foo", "--drop");
 

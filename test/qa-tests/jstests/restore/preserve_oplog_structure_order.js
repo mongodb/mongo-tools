@@ -1,5 +1,6 @@
 (function() {
 
+  load('jstests/common/check_version.js');
   load("jstests/configs/standard_dump_targets.config.js");
 
   jsTest.log('Testing that the order of fields is preserved in the oplog');
@@ -18,6 +19,23 @@
 
   var testDb = toolTest.db.getSiblingDB('test');
   testDb.createCollection("foobar");
+
+  // this test is directly trying to apply the oplog. The document with _id that it's applying does not exist in the
+  // collection. After SERVER-88158, applyOps does not upsert by default, and therefore we need to insert the document
+  // into the collection first.
+  if (isAtLeastVersion(testDb.version(), "8.1.0")) {
+    testDb.foobar.insert({
+      "_id": {
+        "a": 1.0,
+        "b": 2.0,
+        "c": 3.0,
+        "d": 5.0,
+        "e": 6.0,
+        "f": 7.0,
+        "g": 8.0
+      }
+    });
+  }
 
   // run restore, with an "update" oplog with a _id field that is a subdocument with several fields
   // { "h":{"$numberLong":"7987029173745013482"},"ns":"test.foobar",

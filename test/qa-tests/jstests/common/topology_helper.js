@@ -185,6 +185,8 @@ var shardedClusterTopology = {
       startupArgs.keyFile = keyFile;
       if (TestData.useTLS) {
         startupArgs.other = {
+          // rsOptions replaces shardOptions in 8.1.0 mongo shell (SERVER-95434)
+          rsOptions: other,
           shardOptions: other,
           configOptions: TLS_CONFIG,
           mongosOptions: TLS_CONFIG,
@@ -197,6 +199,8 @@ var shardedClusterTopology = {
     } else {
       if (TestData.useTLS) {
         startupArgs.other = {
+          // rsOptions replaces shardOptions in 8.1.0 mongo shell (SERVER-95434)
+          rsOptions: other,
           shardOptions: other,
           configOptions: TLS_CONFIG,
           mongosOptions: TLS_CONFIG,
