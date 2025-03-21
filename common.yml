@@ -3,12 +3,12 @@
 #######################################
 
 include:
-  - filename: evergreen_passthrough/passthrough_variables.yml
-  - filename: evergreen_passthrough/passthrough_modules.yml
-  - filename: evergreen_passthrough/passthrough_parameters.yml
-  - filename: evergreen_passthrough/passthrough_functions.yml
-  - filename: evergreen_passthrough/passthrough_tasks.yml
-  - filename: evergreen_passthrough/passthrough_variants.yml
+  - filename: evergreen_passthrough/variables.yml
+  - filename: evergreen_passthrough/modules.yml
+  - filename: evergreen_passthrough/parameters.yml
+  - filename: evergreen_passthrough/functions.yml
+  - filename: evergreen_passthrough/tasks.yml
+  - filename: evergreen_passthrough/variants.yml
 
 # default command type
 command_type: system
