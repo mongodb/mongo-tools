@@ -7,8 +7,13 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -227,4 +232,30 @@ func ValidateCollectionGrammar(collection string) error {
 
 	// collection name is valid
 	return nil
+}
+
+func IsConnectionAuthenticated(ctx context.Context, conn *mongo.Client) (bool, error) {
+	res := conn.Database("admin").RunCommand(
+		ctx,
+		bson.D{{"connectionStatus", 1}},
+	)
+
+	if res.Err() != nil {
+		return false, errors.Wrap(res.Err(), "failed to query for connection information")
+	}
+
+	body := struct {
+		AuthInfo struct {
+			AuthenticatedUsers []bson.D `bson:"authenticatedUsers"`
+		} `bson:"authInfo"`
+	}{}
+
+	err := res.Decode(&body)
+	if err != nil {
+		raw, _ := res.Raw()
+
+		return false, errors.Wrapf(err, "failed to decode connection information (%+v)", raw)
+	}
+
+	return len(body.AuthInfo.AuthenticatedUsers) > 0, nil
 }
