@@ -404,7 +404,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No server available")
 	}
-
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 4.4 or later")
@@ -2269,7 +2268,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
-		t.Skipf("Found FCV %s; this test requires 5.0 or later", fcv)
+		t.Skip("Requires server with FCV 5.0 or later")
 	}
 
 	Convey("With a test MongoRestore instance", t, func() {
