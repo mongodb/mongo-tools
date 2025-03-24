@@ -12,7 +12,7 @@ var dumpRestoreAuth2 = function(backup_role, restore_role) {
 
     // authSchema document has been removed from server version 8.1.0+, no need to check for it
     // load isAtLeastVersion from qa tests for the time being.
-    var adminDbHasAuthSchemaDocument = !isAtLeastVersion(version, "8.1.0");
+    var adminDbHasAuthSchemaDocument = !isAtLeastVersion(admindb.version(), "8.1.0");
 
     // Create the relevant users and roles.
     admindb.createUser({user: "root", pwd: "pass", roles: ["root"]});
