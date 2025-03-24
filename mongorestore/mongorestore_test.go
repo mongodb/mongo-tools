@@ -404,6 +404,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("No server available")
 	}
+
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 4.4 or later")
@@ -2200,18 +2201,12 @@ func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
 	session, err := sessionProvider.GetSession()
 	require.NoError(t, err, "should find session")
 
-	fcv := testutil.GetFCV(session)
-	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
-		t.Skipf("Found FCV %s; this test requires 5.0 or later", fcv)
-	}
+	testutil.SkipUnlessFCVAtLeast(t, session, "7.0")
 
 	dbName := t.Name()
 
 	db := session.Database(dbName)
 	require.NoError(t, db.Drop(ctx), "should drop db")
-	defer func() {
-		_ = db.Drop(ctx)
-	}()
 
 	err = db.CreateCollection(
 		ctx,
@@ -2253,7 +2248,6 @@ func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
 		require.NoError(t, result.Err, "can run mongorestore (result: %+v)", result)
 		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
 	})
-
 }
 
 func TestRestoreTimeseriesCollections(t *testing.T) {

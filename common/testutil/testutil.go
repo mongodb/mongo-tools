@@ -18,6 +18,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -91,9 +92,11 @@ func GetBareArgs() []string {
 	return args
 }
 
-// GetFCV returns the featureCompatibilityVersion string for an mgo Session
+// GetFCVErr returns the featureCompatibilityVersion string for an mgo Session
 // or the empty string if it can't be found.
-func GetFCV(s *mongo.Client) string {
+//
+// See SkipUnlessFCVAtLeast() to simplify FCV checks.
+func GetFCVErr(s *mongo.Client) (string, error) {
 	coll := s.Database("admin").Collection("system.version")
 	var result struct {
 		Version string
@@ -102,13 +105,40 @@ func GetFCV(s *mongo.Client) string {
 
 	err := res.Decode(&result)
 	if err != nil {
-		panic(fmt.Sprintf("failed to get FCV: %v", err))
+		return "", errors.Wrap(err, "failed to get FCV")
 	}
 
-	return result.Version
+	return result.Version, nil
+}
+
+// GetFCV is like GetFCVErr but panicks instead of returning an error.
+// Avoid this function in new code.
+func GetFCV(s *mongo.Client) string {
+	version, err := GetFCVErr(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return version
+}
+
+// SkipUnlessFCVAtLeast skips the present test unless the server’s FCV
+// is at least minFCV.
+func SkipUnlessFCVAtLeast(t *testing.T, s *mongo.Client, minFCV string) {
+	fcv, err := GetFCVErr(s)
+	require.NoError(t, err, "should get FCV")
+
+	cmp, err := CompareFCV(fcv, minFCV)
+	require.NoError(t, err, "should compare FCVs (got %#q; want %#q)", fcv, minFCV)
+
+	if cmp < 0 {
+		t.Skipf("This test requires a server with FCV %#q or later", minFCV)
+	}
 }
 
 // CompareFCV compares two strings as dot-delimited tuples of integers.
+//
+// See SkipUnlessFCVAtLeast() to simplify FCV checks.
 func CompareFCV(x, y string) (int, error) {
 	left, err := dottedStringToSlice(x)
 	if err != nil {
