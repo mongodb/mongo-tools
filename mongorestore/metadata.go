@@ -569,6 +569,10 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 // present in the dump, we try to infer the authentication version based on its absence.
 // Returns the authentication version number and any errors that occur.
 func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
+	if restore.dumpServerVersion == db.Version{} {
+		panic("GetDumpAuthVersion() called with empty dump server version")
+	}
+
 	// authSchema doc has been removed from system.version from 8.1+ (SERVER-83663)
 	// The only auth version used by server 8.1+ is 5
 	if restore.dumpServerVersion.GTE(db.Version{8, 1, 0}) {
