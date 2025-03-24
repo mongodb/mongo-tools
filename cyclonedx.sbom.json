@@ -251,7 +251,7 @@
       "version": "v0.0.4"
     },
     {
-      "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1",
+      "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.2",
       "externalReferences": [
         {
           "type": "vcs",
@@ -259,7 +259,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/golang-jwt/jwt/v5@v5.2.1"
+          "url": "https://pkg.go.dev/github.com/golang-jwt/jwt/v5@v5.2.2"
         }
       ],
       "group": "github.com/golang-jwt/jwt",
@@ -271,9 +271,9 @@
         }
       ],
       "name": "v5",
-      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1",
+      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.2",
       "type": "library",
-      "version": "v5.2.1"
+      "version": "v5.2.2"
     },
     {
       "bom-ref": "pkg:golang/github.com/google/go-cmp@v0.6.0",
@@ -1291,17 +1291,17 @@
       "version": "v3.0.1"
     },
     {
-      "bom-ref": "pkg:golang/std@go1.22.12",
+      "bom-ref": "pkg:golang/std@go1.22.11",
       "externalReferences": [
         {
           "type": "website",
-          "url": "https://pkg.go.dev/None/std@go1.22.12"
+          "url": "https://pkg.go.dev/None/std@go1.22.11"
         }
       ],
       "name": "std",
-      "purl": "pkg:golang/std@go1.22.12",
+      "purl": "pkg:golang/std@go1.22.11",
       "type": "library",
-      "version": "go1.22.12"
+      "version": "go1.22.11"
     }
   ],
   "dependencies": [
@@ -1333,7 +1333,7 @@
       "ref": "pkg:golang/github.com/deckarep/golang-set/v2@v2.6.0"
     },
     {
-      "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1"
+      "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.2"
     },
     {
       "ref": "pkg:golang/github.com/golang/snappy@v0.0.4"
@@ -1465,11 +1465,11 @@
       "ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
     },
     {
-      "ref": "pkg:golang/std@go1.22.12"
+      "ref": "pkg:golang/std@go1.22.11"
     }
   ],
   "metadata": {
-    "timestamp": "2025-03-12T12:29:32.664815+00:00",
+    "timestamp": "2025-03-24T13:03:18.496251+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1513,7 +1513,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 22,
+  "version": 23,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
