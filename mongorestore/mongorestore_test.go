@@ -2202,7 +2202,7 @@ func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 5.0 or later")
+		t.Skipf("Found FCV %s; this test requires 5.0 or later", fcv)
 	}
 
 	dbName := t.Name()
@@ -2229,8 +2229,11 @@ func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
 		ctx,
 		mongo.IndexModel{
 			Keys: bson.D{{"time", 1}},
-			Options: mopt.Index().SetPartialFilterExpression(
-				bson.D{{"meta", 123123}},
+			Options: mopt.Index().
+				SetPartialFilterExpression(
+					bson.D{{"meta", 123123}},
+				).SetExpireAfterSeconds(
+				123123,
 			),
 		},
 	)
@@ -2250,6 +2253,7 @@ func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
 		require.NoError(t, result.Err, "can run mongorestore (result: %+v)", result)
 		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
 	})
+
 }
 
 func TestRestoreTimeseriesCollections(t *testing.T) {
@@ -2271,7 +2275,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
-		t.Skip("Requires server with FCV 5.0 or later")
+		t.Skipf("Found FCV %s; this test requires 5.0 or later", fcv)
 	}
 
 	Convey("With a test MongoRestore instance", t, func() {
