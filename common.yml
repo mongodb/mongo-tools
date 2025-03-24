@@ -36,9 +36,6 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
-  # equivalent of maxServerVersion in download_server.go
-  max_server_version: "8.1"
-
 parameters:
   - key: fake_tag_for_release_testing
     description: |
@@ -61,12 +58,7 @@ functions:
         mv bin/* ${test_path}/
         cd ${test_path}
         if [ -n "${load_libs_version}" ]; then
-          if [ "${load_libs_version}" == "latest" ]; then
-            # set to the maxServerVersion in download_server.go
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
-          else
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
-          fi
+          IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
         fi
         ./mongo --nodb --eval "$IMPORT_LOAD_LIBS" lib/run_mongod.js jstests/tool/*.js
 
@@ -439,12 +431,7 @@ functions:
           # use jsconfig.json to set baseUrl to find libs
           mv test/shell_common/jsconfig.json ./
           if [ -n "${load_libs_version}" ]; then
-            if [ "${load_libs_version}" == "latest" ]; then
-              # set to the maxServerVersion in download_server.go
-              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${max_server_version}.js\");"
-            else
-              IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
-            fi
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
           fi
           PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval "$IMPORT_LOAD_LIBS; TestData = new Object(); TestData.minPort=\"${mongod_port}\"; var repl = new ReplSetTest({nodes:1, name:'repltester', nodeOptions: {$NODE_OPTIONS}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}"
 
@@ -1416,7 +1403,7 @@ tasks:
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
-          # increase according to the current max server version supported in download_server.go
+          # increase according to the current maxServerVersion supported in download_server.go
           load_libs_version: "8.1"
       - func: "run make target"
         vars:
@@ -1613,7 +1600,7 @@ tasks:
       - func: "run legacy tests"
         vars:
           test_path: "test/legacy42"
-          # increase according to the current max server version supported in download_server.go
+          # increase according to the current maxServerVersion supported in download_server.go
           load_libs_version: "8.1"
 
   - name: mod-tidy
