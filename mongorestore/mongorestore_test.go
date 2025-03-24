@@ -2209,6 +2209,9 @@ func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
 
 	db := session.Database(dbName)
 	require.NoError(t, db.Drop(ctx), "should drop db")
+	defer func() {
+		_ = db.Drop(ctx)
+	}()
 
 	err = db.CreateCollection(
 		ctx,
