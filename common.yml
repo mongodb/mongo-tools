@@ -36,6 +36,10 @@ variables:
       mongo_args_tls: "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
       mongod_port: 33333
 
+  # Used to determine load_libs_version for *-latest builds.
+  # Same as maxServerVersion supported in download_server.go
+  max_server_version: &max_server_version "8.1"
+
 parameters:
   - key: fake_tag_for_release_testing
     description: |
@@ -1403,8 +1407,7 @@ tasks:
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
-          # increase according to the current maxServerVersion supported in download_server.go
-          load_libs_version: "8.1"
+          load_libs_version: *max_server_version
       - func: "run make target"
         vars:
           target: build
@@ -1600,8 +1603,7 @@ tasks:
       - func: "run legacy tests"
         vars:
           test_path: "test/legacy42"
-          # increase according to the current maxServerVersion supported in download_server.go
-          load_libs_version: "8.1"
+          load_libs_version: *max_server_version
 
   - name: mod-tidy
     commands:
