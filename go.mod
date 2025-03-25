@@ -2,8 +2,6 @@ module github.com/mongodb/mongo-tools
 
 go 1.23.0
 
-toolchain go1.22.12
-
 require (
 	github.com/aws/aws-sdk-go v1.53.11
 	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943
