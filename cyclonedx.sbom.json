@@ -251,7 +251,7 @@
       "version": "v0.0.4"
     },
     {
-      "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1",
+      "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.2",
       "externalReferences": [
         {
           "type": "vcs",
@@ -259,7 +259,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/golang-jwt/jwt/v5@v5.2.1"
+          "url": "https://pkg.go.dev/github.com/golang-jwt/jwt/v5@v5.2.2"
         }
       ],
       "group": "github.com/golang-jwt/jwt",
@@ -271,9 +271,9 @@
         }
       ],
       "name": "v5",
-      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1",
+      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.2",
       "type": "library",
-      "version": "v5.2.1"
+      "version": "v5.2.2"
     },
     {
       "bom-ref": "pkg:golang/github.com/google/go-cmp@v0.6.0",
@@ -1333,7 +1333,7 @@
       "ref": "pkg:golang/github.com/deckarep/golang-set/v2@v2.6.0"
     },
     {
-      "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1"
+      "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.2"
     },
     {
       "ref": "pkg:golang/github.com/golang/snappy@v0.0.4"
@@ -1469,7 +1469,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-03-26T15:44:23.147449+00:00",
+    "timestamp": "2025-03-26T19:47:21.554404+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1513,7 +1513,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 24,
+  "version": 25,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
