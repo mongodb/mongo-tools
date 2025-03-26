@@ -29,7 +29,7 @@ t.runTool("export",
           "1");
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 t.runTool("import", "--file", t.extFile, "-d", t.baseName, "-c", "foo");
 assert.eq(1, c.count(), "count should be 1");
 assert.eq(5, c.findOne().b, printjson(c.findOne()));

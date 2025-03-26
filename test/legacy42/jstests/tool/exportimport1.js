@@ -11,7 +11,7 @@ assert.eq(1, c.count(), "setup2");
 t.runTool("export", "--out", t.extFile, "-d", t.baseName, "-c", "foo");
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--file", t.extFile, "-d", t.baseName, "-c", "foo");
 assert.soon("c.findOne()", "no data after sleep");
@@ -27,7 +27,7 @@ for (var i = 0; i < arr.length; i++) {
 t.runTool("export", "--jsonArray", "--out", t.extFile, "-d", t.baseName, "-c", "foo");
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--jsonArray", "--file", t.extFile, "-d", t.baseName, "-c", "foo");
 assert.soon("c.findOne()", "no data after sleep");
@@ -35,14 +35,14 @@ assert.eq(1, c.count(), "after restore 2");
 assert.eq(22, c.findOne().a, "after restore 2");
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 arr = ["a", undefined, "c"];
 c.save({a: arr});
 assert.eq(1, c.count(), "setup2");
 t.runTool("export", "--out", t.extFile, "-d", t.baseName, "-c", "foo");
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--file", t.extFile, "-d", t.baseName, "-c", "foo");
 assert.soon("c.findOne()", "no data after sleep");

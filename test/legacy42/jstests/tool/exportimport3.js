@@ -15,7 +15,7 @@ assert.eq(5, c.count(), "setup2");
 t.runTool("export", "--jsonArray", "--out", t.extFile, "-d", t.baseName, "-c", "foo");
 
 c.drop();
-assert.eq(0, c.count(), "after drop", "-d", t.baseName, "-c", "foo");
+assert.eq(0, c.count(), `after drop -d ${t.baseName} -c foo`);
 
 t.runTool("import", "--jsonArray", "--file", t.extFile, "-d", t.baseName, "-c", "foo");
 
