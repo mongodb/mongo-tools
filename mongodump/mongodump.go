@@ -223,7 +223,10 @@ func (dump *MongoDump) Dump() (err error) {
 		// state of the source cluster.  Events that occur before the barrier file is created will
 		// definitely be captured in the dumped collections.  Events that occur after the barrier
 		// file is created may not be captured.
-		waitForSourceWritesDoneBarrier(dump.InputOptions.SourceWritesDoneBarrier)
+		barrier := dump.InputOptions.SourceWritesDoneBarrier
+		if err = waitForSourceWritesDoneBarrier(barrier); err != nil {
+			return err
+		}
 	}
 
 	// A test with the combination of
@@ -452,7 +455,10 @@ func (dump *MongoDump) Dump() (err error) {
 			// state of the source cluster.  Events that occur before the barrier file is created will
 			// definitely be captured either in the dumped collections, or the dumped oplog.
 			// Events that occur after the barrier file is created may not be captured.
-			waitForSourceWritesDoneBarrier(dump.InputOptions.SourceWritesDoneBarrier)
+			barrier := dump.InputOptions.SourceWritesDoneBarrier
+			if err = waitForSourceWritesDoneBarrier(barrier); err != nil {
+				return err
+			}
 		}
 		dump.oplogEnd, err = dump.getCurrentOplogTime()
 		if err != nil {

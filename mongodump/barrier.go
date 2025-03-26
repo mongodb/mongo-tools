@@ -17,7 +17,7 @@ import (
 // This is used only for testing mongodump/mongorestore with resmoke
 // test infrastructure.  The tests will create the barrier file when they have
 // finshed writes to the source cluster.
-func waitForSourceWritesDoneBarrier(barrierName string) {
+func waitForSourceWritesDoneBarrier(barrierName string) error {
 	// This code should only run in the resmoke testing environment. It's harmless and
 	// possibly useful to have verbose logging for testing; and if it accidentally runs
 	// in production, we want to see that in the logs so it's good to be verbose.
@@ -39,7 +39,7 @@ func waitForSourceWritesDoneBarrier(barrierName string) {
 				"waitForSourceWritesDoneBarrier: barrier file %#q exists - proceed past the barrier",
 				barrierName,
 			)
-			return
+			return nil
 		}
 		if os.IsNotExist(err) {
 			if time.Since(prevLogTime) >= logInterval {
@@ -56,7 +56,7 @@ func waitForSourceWritesDoneBarrier(barrierName string) {
 		} else {
 			// Any other error implies that the resmoke test environment is
 			// irretrievably confused, so it is appropriate to panic here.
-			panic(errors.Wrapf(err, "failed to open barrier file %#q", barrierName))
+			return errors.Wrapf(err, "failed to open barrier file %#q", barrierName)
 		}
 	}
 }
