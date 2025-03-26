@@ -18,9 +18,12 @@ import (
 // test infrastructure.  The tests will create the barrier file when they have
 // finshed writes to the source cluster.
 func waitForSourceWritesDoneBarrier(barrierName string) {
+	// This code should only run in the resmoke testing environment. It's harmless and
+	// possibly useful to have verbose logging for testing; and if it accidentally runs
+	// in production, we want to see that in the logs so it's good to be verbose.
 	log.Logvf(
-		log.DebugHigh,
-		"waitForSourceWritesDoneBarrier: initial check for existence of file %s",
+		log.Always,
+		"waitForSourceWritesDoneBarrier: initial check for existence of file %#q",
 		barrierName,
 	)
 	start := time.Now()
@@ -32,8 +35,8 @@ func waitForSourceWritesDoneBarrier(barrierName string) {
 			// We opened the file for reading, so it does exist.
 			f.Close()
 			log.Logvf(
-				log.DebugHigh,
-				"waitForSourceWritesDoneBarrier: barrier file %s exists - proceed past the barrier",
+				log.Always,
+				"waitForSourceWritesDoneBarrier: barrier file %#q exists - proceed past the barrier",
 				barrierName,
 			)
 			return
@@ -42,8 +45,8 @@ func waitForSourceWritesDoneBarrier(barrierName string) {
 			if time.Since(prevLogTime) >= logInterval {
 				prevLogTime = time.Now()
 				log.Logvf(
-					log.DebugHigh,
-					"waitForSourceWritesDoneBarrier: still waiting for existence of file %s after %.1f sec",
+					log.Always,
+					"waitForSourceWritesDoneBarrier: still waiting for existence of file %#q after %.1f sec",
 					barrierName,
 					prevLogTime.Sub(start).Seconds(),
 				)
@@ -51,7 +54,9 @@ func waitForSourceWritesDoneBarrier(barrierName string) {
 			// Poll for existence of the barrier file every 500msec
 			time.Sleep(500 * time.Millisecond)
 		} else {
-			panic(errors.Wrapf(err, "failed to open barrier file %s", barrierName))
+			// Any other error implies that the resmoke test environment is
+			// irretrievably confused, so it is appropriate to panic here.
+			panic(errors.Wrapf(err, "failed to open barrier file %#q", barrierName))
 		}
 	}
 }
