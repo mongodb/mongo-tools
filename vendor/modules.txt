@@ -125,7 +125,7 @@ github.com/davecgh/go-spew/spew
 # github.com/deckarep/golang-set/v2 v2.6.0
 ## explicit; go 1.18
 github.com/deckarep/golang-set/v2
-# github.com/golang-jwt/jwt/v5 v5.2.1
+# github.com/golang-jwt/jwt/v5 v5.2.2
 ## explicit; go 1.18
 github.com/golang-jwt/jwt/v5
 # github.com/golang/snappy v0.0.4
