@@ -55,7 +55,7 @@ func waitForSourceWritesDoneBarrier(barrierName string) error {
 			time.Sleep(500 * time.Millisecond)
 		} else {
 			// Any other error implies that the resmoke test environment is
-			// irretrievably confused, so it is appropriate to panic here.
+			// irretrievably confused.  The caller must check the error.
 			return errors.Wrapf(err, "failed to open barrier file %#q", barrierName)
 		}
 	}
