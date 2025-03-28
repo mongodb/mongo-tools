@@ -597,7 +597,6 @@ functions:
         file: kondukto_token.yml
         redact_file_expansions: true
 
-
 pre:
   - command: shell.exec
     params:
