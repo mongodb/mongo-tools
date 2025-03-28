@@ -583,7 +583,6 @@ functions:
     - command: shell.exec
       display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
       params:
-        silent: true
         shell: bash
         include_expansions_in_env:
           [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
@@ -592,7 +591,12 @@ functions:
           # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
           kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
           # set the KONDUKTO_TOKEN environment variable
-          export KONDUKTO_TOKEN=$kondukto_token
+          echo "KONDUKTO_TOKEN: ${kondukto_token}" > kondukto_token.yml
+    - command: expansions.update
+      params:
+        file: kondukto_token.yml
+        redact_file_expansions: true
+
 
 pre:
   - command: shell.exec
