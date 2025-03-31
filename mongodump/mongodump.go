@@ -219,6 +219,28 @@ func (dump *MongoDump) verifyCollectionExists() (bool, error) {
 func (dump *MongoDump) Dump() (err error) {
 	defer dump.SessionProvider.Close()
 
+	if !dump.OutputOptions.Oplog && (dump.InputOptions.SourceWritesDoneBarrier != "") {
+		// Wait for tests to stop writes before dumping any collections.
+		//
+		// In resmoke testing, the barrier is used to ensure that mongodump captures the correct
+		// state of the source cluster.  Events that occur before the barrier file is created will
+		// definitely be captured in the dumped collections.  Events that occur after the barrier
+		// file is created may not be captured.
+		barrier := dump.InputOptions.SourceWritesDoneBarrier
+		if err = waitForSourceWritesDoneBarrier(barrier); err != nil {
+			return err
+		}
+	}
+
+	// A test with the combination of
+	//    1. --oplog and
+	//    2. --internalSourceWritesOnly and
+	//    3. a specified collection
+	//    4. the collection didn't exist at the time mongodump was started but is
+	//       created later and possibly captured in the oplog
+	// would do this check too early and thus fail.
+	//
+	// That's out of scope for mongodump passthrough testing so we don't try to handle it.
 	exists, err := dump.verifyCollectionExists()
 	if err != nil {
 		return fmt.Errorf("error verifying collection info: %v", err)
@@ -429,16 +451,28 @@ func (dump *MongoDump) Dump() (err error) {
 	// TODO, either remove this debug or improve the language
 	log.Logvf(log.DebugLow, "dump phase III: the oplog")
 
-	// If we are capturing the oplog, we dump all oplog entries that occurred
-	// while dumping the database. Before and after dumping the oplog,
-	// we check to see if the oplog has rolled over (i.e. the most recent entry when
-	// we started still exist, so we know we haven't lost data)
 	if dump.OutputOptions.Oplog {
+		if dump.InputOptions.SourceWritesDoneBarrier != "" {
+			// Wait for tests to stop writes before choosing the oplogEnd time.
+			//
+			// In resmoke testing, the barrier is used to ensure that mongodump captures the correct
+			// state of the source cluster.  Events that occur before the barrier file is created will
+			// definitely be captured either in the dumped collections, or the dumped oplog.
+			// Events that occur after the barrier file is created may not be captured.
+			barrier := dump.InputOptions.SourceWritesDoneBarrier
+			if err = waitForSourceWritesDoneBarrier(barrier); err != nil {
+				return err
+			}
+		}
 		dump.oplogEnd, err = dump.getCurrentOplogTime()
 		if err != nil {
 			return fmt.Errorf("error getting oplog end: %v", err)
 		}
 
+		// If we are capturing the oplog, we dump all oplog entries that occurred
+		// while dumping the database. Before and after dumping the oplog,
+		// we check to see if the oplog has rolled over (i.e. the most recent entry when
+		// we started still exist, so we know we haven't lost data)
 		log.Logvf(log.DebugLow, "checking if oplog entry %v still exists", dump.oplogStart)
 		exists, err := dump.checkOplogTimestampExists(dump.oplogStart)
 		if !exists {
@@ -458,7 +492,7 @@ func (dump *MongoDump) Dump() (err error) {
 			return fmt.Errorf("error dumping oplog: %v", err)
 		}
 
-		// check the oplog for a rollover one last time, to avoid a race condition
+		// Check the oplog for a rollover one last time, to avoid a race condition
 		// wherein the oplog rolls over in the time after our first check, but before
 		// we copy it.
 		log.Logvf(log.DebugLow, "checking again if oplog entry %v still exists", dump.oplogStart)
