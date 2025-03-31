@@ -1469,7 +1469,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-03-31T21:02:00.179239+00:00",
+    "timestamp": "2025-03-26T19:47:21.554404+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1513,49 +1513,9 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 26,
-  "vulnerabilities": [
-    {
-      "affects": [
-        {
-          "ref": "pkg:golang/github.com/mongodb/mongo-tools"
-        }
-      ],
-      "analysis": {
-        "state": "in_triage"
-      },
-      "bom-ref": "679943c11241b228cf6f5d95",
-      "cwes": [
-        295
-      ],
-      "description": "Improper Certificate Validation - Please see 'source' and 'references' for additional information",
-      "id": "mongo-tools___CVE-2020-7924",
-      "ratings": [
-        {
-          "method": "CVSSv3",
-          "score": 6.0,
-          "severity": "medium"
-        }
-      ],
-      "references": [
-        {
-          "id": "679943c11241b228cf6f5d95",
-          "source": {
-            "name": "Kondukto",
-            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:679943c11241b228cf6f5d95"
-          }
-        },
-        {
-          "id": "VULN-387",
-          "source": {
-            "name": "Jira",
-            "url": "https://jira.mongodb.org/browse/VULN-387"
-          }
-        }
-      ]
-    }
-  ],
+  "version": 25,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5"
+  "specVersion": "1.5",
+  "vulnerabilities": []
 }
