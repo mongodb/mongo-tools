@@ -521,7 +521,7 @@ var platforms = []Platform{
 		),
 		ServerPlatform: "rhel80",
 	},
-	// MongoDB server only supports enterprise on RHEL 9, and only version 6.0+ is available.
+	// MongoDB server only supports enterprise on RHEL9 for s390x and ppc64le, and only version 7.0+ is available.
 	{
 		Name:                  "rhel9",
 		Arch:                  ArchPpc64le,
@@ -529,7 +529,7 @@ var platforms = []Platform{
 		Pkg:                   PkgRPM,
 		Repos:                 []Repo{RepoEnterprise},
 		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
+		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
 		Name:                  "rhel9",
@@ -538,14 +538,14 @@ var platforms = []Platform{
 		Pkg:                   PkgRPM,
 		Repos:                 []Repo{RepoEnterprise},
 		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
+		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
 		Name:                  "rhel93",
 		Arch:                  ArchAarch64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise},
+		Repos:                 []Repo{RepoOrg, RepoEnterprise},
 		BuildTags:             defaultBuildTags,
 		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
 	},
@@ -554,7 +554,7 @@ var platforms = []Platform{
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise},
+		Repos:                 []Repo{RepoOrg, RepoEnterprise},
 		BuildTags:             defaultBuildTags,
 		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
 	},
