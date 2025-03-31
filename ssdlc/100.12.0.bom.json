@@ -1469,7 +1469,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-03-27T20:14:04.573420+00:00",
+    "timestamp": "2025-03-26T19:47:21.554404+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1513,163 +1513,9 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 26,
-  "vulnerabilities": [
-    {
-      "affects": [
-        {
-          "ref": "pkg:golang/golang.org/x/crypto@v0.32.0"
-        }
-      ],
-      "analysis": {
-        "state": "in_triage"
-      },
-      "bom-ref": "67bf5861110ba874cbf974a7",
-      "description": "Please see 'source' and 'references' for additional information",
-      "id": "crypto___CVE-2025-22869",
-      "ratings": [
-        {
-          "method": "CVSSv3",
-          "score": 8.0,
-          "severity": "high"
-        }
-      ],
-      "references": [
-        {
-          "id": "67bf5861110ba874cbf974a7",
-          "source": {
-            "name": "Kondukto",
-            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:67bf5861110ba874cbf974a7"
-          }
-        },
-        {
-          "id": "VULN-385",
-          "source": {
-            "name": "Jira",
-            "url": "https://jira.mongodb.org/browse/VULN-385"
-          }
-        }
-      ]
-    },
-    {
-      "affects": [
-        {
-          "ref": "pkg:golang/github.com/mongodb/mongo-tools"
-        }
-      ],
-      "analysis": {
-        "state": "in_triage"
-      },
-      "bom-ref": "679943c11241b228cf6f5d95",
-      "cwes": [
-        295
-      ],
-      "description": "Improper Certificate Validation - Please see 'source' and 'references' for additional information",
-      "id": "mongo-tools___CVE-2020-7924",
-      "ratings": [
-        {
-          "method": "CVSSv3",
-          "score": 6.0,
-          "severity": "medium"
-        }
-      ],
-      "references": [
-        {
-          "id": "679943c11241b228cf6f5d95",
-          "source": {
-            "name": "Kondukto",
-            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:679943c11241b228cf6f5d95"
-          }
-        },
-        {
-          "id": "VULN-387",
-          "source": {
-            "name": "Jira",
-            "url": "https://jira.mongodb.org/browse/VULN-387"
-          }
-        }
-      ]
-    },
-    {
-      "affects": [
-        {
-          "ref": "pkg:golang/golang.org/x/net@v0.34.0"
-        }
-      ],
-      "analysis": {
-        "state": "in_triage"
-      },
-      "bom-ref": "67d259ce191264fcfc8d7205",
-      "cwes": [
-        115
-      ],
-      "description": "Misinterpretaion of Input - Please see 'source' and 'references' for additional information",
-      "id": "net___CVE-2025-22870",
-      "ratings": [
-        {
-          "method": "CVSSv3",
-          "score": 6.0,
-          "severity": "medium"
-        }
-      ],
-      "references": [
-        {
-          "id": "67d259ce191264fcfc8d7205",
-          "source": {
-            "name": "Kondukto",
-            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:67d259ce191264fcfc8d7205"
-          }
-        },
-        {
-          "id": "VULN-404",
-          "source": {
-            "name": "Jira",
-            "url": "https://jira.mongodb.org/browse/VULN-404"
-          }
-        }
-      ]
-    },
-    {
-      "affects": [
-        {
-          "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.2.1"
-        }
-      ],
-      "analysis": {
-        "state": "in_triage"
-      },
-      "bom-ref": "67de4c3586b8a04787ae332e",
-      "cwes": [
-        405
-      ],
-      "description": "Asymmetric Resource Consumption (Amplification) - Please see 'source' and 'references' for additional information",
-      "id": "v5___CVE-2025-30204",
-      "ratings": [
-        {
-          "method": "CVSSv3",
-          "score": 7.5,
-          "severity": "high"
-        }
-      ],
-      "references": [
-        {
-          "id": "67de4c3586b8a04787ae332e",
-          "source": {
-            "name": "Kondukto",
-            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:67de4c3586b8a04787ae332e"
-          }
-        },
-        {
-          "id": "VULN-436",
-          "source": {
-            "name": "Jira",
-            "url": "https://jira.mongodb.org/browse/VULN-436"
-          }
-        }
-      ]
-    }
-  ],
+  "version": 25,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5"
+  "specVersion": "1.5",
+  "vulnerabilities": []
 }
