@@ -758,6 +758,7 @@ tasks:
       - func: "fetch source"
       - command: expansions.update
       - func: "set silkbomb credentials"
+      - command: expansions.update
       - command: shell.exec
         params:
           working_dir: src/github.com/mongodb/mongo-tools
