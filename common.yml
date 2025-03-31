@@ -592,7 +592,11 @@ functions:
           # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
           kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
           # set the KONDUKTO_TOKEN environment variable
-          export KONDUKTO_TOKEN=$kondukto_token
+          echo "KONDUKTO_TOKEN: ${kondukto_token}" > kondukto_token.yml
+    - command: expansions.update
+      params:
+        file: kondukto_token.yml
+        redact_file_expansions: true
 
 pre:
   - command: shell.exec
@@ -758,7 +762,6 @@ tasks:
       - func: "fetch source"
       - command: expansions.update
       - func: "set silkbomb credentials"
-      - command: expansions.update
       - command: shell.exec
         params:
           working_dir: src/github.com/mongodb/mongo-tools
