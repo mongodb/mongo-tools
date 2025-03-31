@@ -523,7 +523,7 @@ var platforms = []Platform{
 	},
 	// MongoDB server only supports enterprise on RHEL9 for s390x and ppc64le, and only version 7.0+ is available.
 	{
-		Name:                  "rhel90",
+		Name:                  "rhel9",
 		Arch:                  ArchPpc64le,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -532,7 +532,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel90",
+		Name:                  "rhel9",
 		Arch:                  ArchS390x,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
