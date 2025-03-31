@@ -592,7 +592,7 @@ functions:
           # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
           kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
           # set the KONDUKTO_TOKEN environment variable
-          echo "KONDUKTO_TOKEN: ${kondukto_token}" > kondukto_token.yml
+          echo "KONDUKTO_TOKEN: $kondukto_token" > kondukto_token.yml
     - command: expansions.update
       params:
         file: kondukto_token.yml
