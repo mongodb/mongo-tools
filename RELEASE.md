@@ -77,7 +77,7 @@ level, but these can be deferred at the team's discretion.
 
 #### Create the Augmented SBOM File for the Upcoming Release
 
-You can generate this by running `go run build.go writeAugmentedSBOM`. This requires several
+You can generate this by running `go run build.go writeAugmentedSBOM`. Make sure to pull the latest changes from master before running this command. This requires several
 environment variables to be set:
 
 - `KONDUKTO_TOKEN` - available from 1Password.
@@ -90,6 +90,13 @@ KONDUKTO_TOKEN="$kondukto_token"\
 ```
 
 The Kondukto credentials are shared with our team via 1Password.
+
+To test, the check-augmented-sbom Evergreen task can be run locally with 
+```
+KONDUKTO_TOKEN="$kondukto_token"\
+    EVG_TRIGGERED_BY_TAG=100.9.5 \
+    scripts/regenerate-and-diff-augmented-sbom.sh
+```
 
 If there are recently fixed third-party vulnerabilities, make sure that these are reflected in the
 Augmented SBOM before the release.
@@ -175,6 +182,23 @@ Some evergreen variants (particularly zSeries and PowerPC variants) may have a l
 To speed up release tasks, you can set the task priority for any variant to 70 for release
 candidates and 99 for actual releases.
 
+#### Handling Release Task Failures
+
+Sometimes you may start the release process only to discover that some tasks that are part of the
+release, like `push`, fail. If the fix for these failures is to make changes in the repo, you need
+to partially restart the release process. Here are the steps to follow:
+
+1. Cancel the tasks still running for the release in Evergreen.
+2. Fix the issue in the repo and merge the fix to master.
+3. Delete the task from the `origin` remote (GitHub):
+   ```
+   $> git push origin --delete 100.5.4
+   ```
+4. Make a new tag and push it as you do for the normal release process.
+
+Evergreen should kick off a new set of tasks for the release. Then you can continue the normal
+release process from there.
+
 ### Post-Release Tasks
 
 Complete these tasks after the release builds have completed on evergreen.
@@ -190,7 +214,7 @@ new release is available there. Download the package for your OS and confirm tha
 In order to make the latest release available via our Homebrew tap, submit a pull request to
 [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew/blob/bb5b57095a892daeb2700f1a9440550f8e87505b/Formula/mongodb-database-tools.rb#L7-L13)
 for both `x86` and `arm64`. You can get the sha256 sum locally using
-`shasum -a 256 <tools zip file>`.
+`shasum -a 256 <tools zip file>`. Add 10gen/devprod-correctness as a reviewer or tag them in the PR.
 
 #### Update the changelog
 
@@ -290,20 +314,3 @@ The report template is at `ssdlc/ssdlc-compliance-report-template.md`. Copy this
 containing the tag that was released. The name should follow the pattern of
 `ssdlc-compliance-report.$tag.md`. There are various variables in this template. Search for `$` to
 find them. Replace them with the correct values as appropriate.
-
-### Handling Release Task Failures
-
-Sometimes you may start the release process only to discover that some tasks that are part of the
-release, like `push`, fail. If the fix for these failures is to make changes in the repo, you need
-to partially restart the release process. Here are the steps to follow:
-
-1. Cancel the tasks still running for the release in Evergreen.
-2. Fix the issue in the repo and merge the fix to master.
-3. Delete the task from the `origin` remote (GitHub):
-   ```
-   $> git push origin --delete 100.5.4
-   ```
-4. Make a new tag and push it as you do for the normal release process.
-
-Evergreen should kick off a new set of tasks for the release. Then you can continue the normal
-release process from there.
