@@ -77,8 +77,9 @@ level, but these can be deferred at the team's discretion.
 
 #### Create the Augmented SBOM File for the Upcoming Release
 
-You can generate this by running `go run build.go writeAugmentedSBOM`. Make sure to pull the latest changes from master before running this command. This requires several
-environment variables to be set:
+You can generate this by running `go run build.go writeAugmentedSBOM`. Make sure to pull the latest
+changes from master before running this command. This requires several environment variables to be
+set:
 
 - `KONDUKTO_TOKEN` - available from 1Password.
 - `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
@@ -91,7 +92,8 @@ KONDUKTO_TOKEN="$kondukto_token"\
 
 The Kondukto credentials are shared with our team via 1Password.
 
-To test, the check-augmented-sbom Evergreen task can be run locally with 
+To test, the check-augmented-sbom Evergreen task can be run locally with
+
 ```
 KONDUKTO_TOKEN="$kondukto_token"\
     EVG_TRIGGERED_BY_TAG=100.9.5 \
