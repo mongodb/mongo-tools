@@ -1,5 +1,69 @@
 # Database Tools Changelog
 
+## 100.12.0
+
+_Released 2025-04-01_
+
+We are pleased to announce version 100.12.0 of the MongoDB Database Tools.
+
+This version adds support for MongoDB Server 8.1, along with security updates and bug fixes.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Vulnerability
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3787'>TOOLS-3787</a>] -         Security Finding: Update package `crypto`
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3793'>TOOLS-3793</a>] -         Security Finding: Update package `net`
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3797'>TOOLS-3797</a>] -         Security Finding: Update package `jwt`
+</li>
+</ul>
+
+### Release
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3714'>TOOLS-3714</a>] -         Release Database Tools 100.12.0
+</li>
+</ul>
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3540'>TOOLS-3540</a>] -         Timestamp(0,0) is not replicated properly in mongorestore and mongoimport
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3697'>TOOLS-3697</a>] -         missing {_id: &quot;hashed&quot;} index  after running  mongorestore
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3708'>TOOLS-3708</a>] -         Mongorestore incorrectly converts small negative float64 index keys to 1 instead of -1
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3727'>TOOLS-3727</a>] -         Mongodump/mongorestore should not automatically upgrade unversioned 2dsphere indexes
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3719'>TOOLS-3719</a>] -         fail if --restoreDbUsersAndRoles used on wrong target
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3745'>TOOLS-3745</a>] -         mongorestore does not strip the &#39;system.buckets&#39; prefix when restoring a timeseries collection from a BSON file
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3762'>TOOLS-3762</a>] -         Switch to Silkbomb 2.0 / Kondukto
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3764'>TOOLS-3764</a>] -         Run integration tests for 8.1 server support
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3782'>TOOLS-3782</a>] -         Handle removal of `authSchema` document in system.version in server 8.1
+</li>
+</ul>
+
 ## 100.11.0
 
 _Released 2024-02-01_
