@@ -44,11 +44,9 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 
 ### Task
 <ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3719'>TOOLS-3719</a>] -         Investigate HELP-68274: fail if --restoreDbUsersAndRoles used on wrong target
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3719'>TOOLS-3719</a>] -         fail if --restoreDbUsersAndRoles used on wrong target
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3745'>TOOLS-3745</a>] -         mongorestore does not strip the &#39;system.buckets&#39; prefix when restoring a timeseries collection from a BSON file
-</li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3760'>TOOLS-3760</a>] -         Add new Evergreen project variable to mongo-tools project
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3762'>TOOLS-3762</a>] -         Switch to Silkbomb 2.0 / Kondukto
 </li>
