@@ -15,6 +15,7 @@ Please make sure to tag forum posts with `database-tools`.
 Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
 
 ### Vulnerability
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3787'>TOOLS-3787</a>] -         Security Finding: Update package `crypto`
 </li>
@@ -25,12 +26,14 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </ul>
 
 ### Release
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3714'>TOOLS-3714</a>] -         Release Database Tools 100.12.0
 </li>
 </ul>
 
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3540'>TOOLS-3540</a>] -         Timestamp(0,0) is not replicated properly in mongorestore and mongoimport
 </li>
@@ -43,6 +46,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </ul>
 
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3719'>TOOLS-3719</a>] -         fail if --restoreDbUsersAndRoles used on wrong target
 </li>
@@ -55,7 +59,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3782'>TOOLS-3782</a>] -         Handle removal of `authSchema` document in system.version in server 8.1
 </li>
 </ul>
-
 
 ## 100.11.0
 
