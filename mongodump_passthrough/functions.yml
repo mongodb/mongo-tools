@@ -17,7 +17,11 @@ variables:
   _resmoke_dir: &_resmoke_dir "src/resmoke"
   _src_dir: &src_dir src/mongosync
   # Added for mongodump_passthrough
+<<<<<<< HEAD
   _mongosync_pin: &_mongosync_pin 7f661ae42fb3d03a813c08654283ca51ff8e25f7
+=======
+  _mongosync_pin: &_mongosync_pin 6b18a97da5aa5a3ede27a2376a1d5c20dcaf986e
+>>>>>>> 3706d622 (snapshot)
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
@@ -33,12 +37,15 @@ variables:
       revisions:
         mongosync: *_mongosync_pin
 
+<<<<<<< HEAD
   f_set_up_logger_credentials: &f_set_up_logger_credentials
     command: subprocess.exec
     params:
       binary: "./src/mongosync/evergreen/logger_credentials_setup.sh"
       add_expansions_to_env: true
 
+=======
+>>>>>>> 3706d622 (snapshot)
   # Added for mongodump_passthrough
   f_link_to_mongo_tools: &f_link_to_mongo_tools
     command: shell.exec
@@ -47,6 +54,15 @@ variables:
       script: |
         ln -s ${workdir}/src/github.com/mongodb/mongo-tools src
 
+<<<<<<< HEAD
+=======
+  "set up logger credentials": &f_set_up_logger_credentials
+    command: subprocess.exec
+    params:
+      binary: "./src/mongosync/evergreen/logger_credentials_setup.sh"
+      add_expansions_to_env: true
+
+>>>>>>> 3706d622 (snapshot)
   f_resmoke_wheelhouse_setup: &f_resmoke_wheelhouse_setup
     command: subprocess.exec
     params:
@@ -97,9 +113,12 @@ variables:
 
         chmod +x migration_verifier
 
+<<<<<<< HEAD
   # This fetches the contents copied from mongosync/dist
   # We keep the same function name as in mongosync evergreen, but here that
   # directory contains the mongodump and mongorestore binaries.
+=======
+>>>>>>> 3706d622 (snapshot)
   f_mongosync_binary_fetch: &f_mongosync_binary_fetch
     command: s3.get
     params:
@@ -154,7 +173,11 @@ variables:
       binary: "./src/mongosync/evergreen/infrastructure_failure_check.sh"
       add_expansions_to_env: true
 
+<<<<<<< HEAD
   f_set_up_archive_credentials: &f_set_up_archive_credentials
+=======
+  "f_archive_credentials_setup_exec": &set_up_archive_credentials
+>>>>>>> 3706d622 (snapshot)
     command: subprocess.exec
     params:
       binary: "./src/mongosync/evergreen/archive_credentials_setup.sh"
@@ -162,7 +185,11 @@ variables:
         private_key_remote_bash_var: ${private_key_remote}
       add_expansions_to_env: true
 
+<<<<<<< HEAD
   get_buildnumber: &get_buildnumber
+=======
+  "get buildnumber": &get_buildnumber
+>>>>>>> 3706d622 (snapshot)
     command: keyval.inc
     params:
       key: "${build_variant}_v70"
@@ -197,8 +224,11 @@ functions:
     - command: expansions.update
       params:
         file: src/mongosync/mongosync_expansion.yml
+<<<<<<< HEAD
     # Tasks/functions that use the mongosync sources should use the same
     # mise-installed tools as when running from mongo-tools evergreen.
+=======
+>>>>>>> 3706d622 (snapshot)
     - command: shell.exec
       params:
         shell: bash
@@ -209,9 +239,14 @@ functions:
           set -o xtrace
 
           ${PREPARE_SHELL}
+<<<<<<< HEAD
           source "./etc/functions.sh"
 
           MISE_INSTALL_PATH='${workdir}/.local/bin/mise' retry sh ./etc/mise.run.sh
+=======
+
+          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ./etc/mise.run.sh
+>>>>>>> 3706d622 (snapshot)
           mise settings experimental=true
           # We only install Go here in order to get the system to a state where we can run mage. If
           # more dev tools are needed, those tasks should run "mise install".
@@ -230,24 +265,79 @@ functions:
           mise exec -- go version
           mise exec -- go env
 
+<<<<<<< HEAD
   # Added for mongodump_passthrough
   #
   # This builds the mongo-tools executables, then copies mongogump and mongorestore
   # into src/mongosync/dist. We use the same shell setup and go toolchain
   # as in mongo-tools/common.yml "run make target"
+=======
+  "run mise and npm install":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          mise install
+          mise exec -- npm install
+
+  # Added for mongodump_passthrough
+  #
+  # This build the mongo-tools executables, then copies mongogump and mongorestore
+  # into src/mongosync/dist.
+>>>>>>> 3706d622 (snapshot)
   "build mongodump and mongorestore":
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+<<<<<<< HEAD
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
           go run build.go -v build
+=======
+          ${PREPARE_SHELL}
+          PATH=$PATH:$HOME
+          echo $PATH 
+          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ${workdir}/src/mongosync/etc/mise.run.sh
+          mise settings experimental=true
+          mise activate --shims
+          PATH=$HOME/.local/share/mise/shims:$PATH
+          # We only install Go here in order to get the system to a state where we can run mage. If
+          # more dev tools are needed, those tasks should run `mise install`.
+          mise install go
+          mise use -g go@1.24.0
+          mise exec -- go run build.go build
+>>>>>>> 3706d622 (snapshot)
           # Copy mongodump and mongorestore to mongosync/dist
           mkdir -p ${workdir}/src/mongosync/dist
           cp -p bin/mongodump bin/mongorestore ${workdir}/src/mongosync/dist
 
+<<<<<<< HEAD
+=======
+  "install podman on ubuntu":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: .
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+>>>>>>> 3706d622 (snapshot)
   f_repo_with_modules_fetch:
     - command: git.get_project
       params:
@@ -390,7 +480,11 @@ functions:
     - *f_make_migration_verifier_binary_executable
 
   # This uploads everything in src/mongosync/dist/
+<<<<<<< HEAD
   # For mongodump, we don't need the mongosync binaries, but we have
+=======
+  # For mongodump, we don't need the mongosync bi9naries, but we have
+>>>>>>> 3706d622 (snapshot)
   # already built the mongodump and mongorestore binaries and copied
   # them into src/mongosync/dist/
   f_mongosync_binary_upload: &f_mongosync_binary_upload
@@ -412,6 +506,28 @@ functions:
         content_type: application/gzip
         display_name: ${mongosync_binary_folder}
 
+<<<<<<< HEAD
+=======
+  f_mongosync_heap_data_upload: &f_mongosync_heap_data_upload
+    - command: archive.targz_pack
+      params:
+        target: mongosync-heap-data.tgz
+        source_dir: "src/mongosync"
+        include:
+          - "./internal/mongosync/integration/*.heap"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosync-heap-data.tgz
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${version_id}/mongosync-heap-data/${version_id}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: mongosync-heap-data
+
+>>>>>>> 3706d622 (snapshot)
   "passthrough setup":
     - *f_repo_fetch
     # Added for mongodump_passthrough
@@ -423,6 +539,18 @@ functions:
     - *get_buildnumber
     - *f_set_up_logger_credentials
 
+<<<<<<< HEAD
+=======
+  "generate resmoke tasks":
+    - *f_expansions_write
+    - *f_evergreen_credentials_setup
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "./src/mongosync/evergreen/gen_tasks_activate.sh"
+        add_expansions_to_env: true
+
+>>>>>>> 3706d622 (snapshot)
   "run tests":
     - command: expansions.update
       params:
@@ -434,7 +562,11 @@ functions:
           - key: aws_secret_remote
             value: ${mongodatafiles_aws_secret}
     - *f_expansions_write
+<<<<<<< HEAD
     - *f_set_up_archive_credentials
+=======
+    - *set_up_archive_credentials
+>>>>>>> 3706d622 (snapshot)
     - *f_resmoke_jobs_determine
     - *f_resmoke_jobs_expansion_update
     - *f_resmoke_tests_execute
@@ -445,6 +577,15 @@ functions:
       params:
         file_location: src/resmoke/report.json
 
+<<<<<<< HEAD
+=======
+  f_gotest_report:
+    - command: gotest.parse_files
+      params:
+        files:
+          - "src/mongosync/*.suite"
+
+>>>>>>> 3706d622 (snapshot)
   f_mongo_coredumps_save:
     - command: subprocess.exec
       params:
@@ -462,7 +603,12 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongo-coredumps.tgz
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/coredumps/mongo-coredumps-${build_id}-${task_name}-${execution}.tgz
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/coredumps/mongo-coredumps-${build_id}-${task_name}-${execution}.tgz
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -488,7 +634,12 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: server-logs.tgz
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/mongo-logs/mongo-logs-${build_id}-${task_name}-${execution}.tgz
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/mongo-logs/mongo-logs-${build_id}-${task_name}-${execution}.tgz
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -507,7 +658,12 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongo-orchestration-logs.tgz
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/mongo-orchestration-logs/mongo-orchestration-logs.tgz
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/mongo-orchestration-logs/mongo-orchestration-logs.tgz
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -520,7 +676,12 @@ functions:
         aws_secret: ${aws_secret}
         local_files_include_filter:
           - src/mongosync/*.suite
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/${execution}/go-test-logs/
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${build_id}/${task_name}/${execution}/go-test-logs/
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: text/plain
@@ -531,7 +692,12 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/mongosync/server-binaries.tgz
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/mongo-binaries/mongo-binaries-${build_id}-${task_name}-${execution}.tgz
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/mongo-binaries/mongo-binaries-${build_id}-${task_name}-${execution}.tgz
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -544,7 +710,12 @@ functions:
         aws_secret: ${aws_secret}
         local_files_include_filter:
           - src/mongosync/mongosync-testing-server-data-files/archive/*.tgz
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/datafiles/
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${build_id}/${task_name}/datafiles/
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -561,7 +732,12 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: coverage.gz
+<<<<<<< HEAD
         remote_file: mongosync/${build_variant}/${revision}/coverage/${task_name}/coverage.gz
+=======
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/coverage/${task_name}/coverage.gz
+>>>>>>> 3706d622 (snapshot)
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -619,6 +795,42 @@ functions:
         content_type: application/gzip
         display_name: JS Fuzz Tests - Execution ${execution}
 
+<<<<<<< HEAD
+=======
+  "minimize jstestfuzz":
+    - *f_expansions_write
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "./src/mongosync/evergreen/minimize_jstestfuzz.sh"
+    - command: s3.put
+      params:
+        optional: true
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/minimizer-outputs.json
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/artifacts/minimizer-outputs-${build_id}.json
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: application/json
+        display_name: Minimizer Outputs - Execution ${execution}
+    - command: s3.put
+      params:
+        optional: true
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/jstestfuzz/out/minimizer-outputs-minimizedtest.js
+        # Changed for mongodump_passthrough
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/artifacts/minimizer-outputs-minimizedtest-${build_id}.js
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: text/javascript
+        display_name: Minimized jstestfuzz Test - Execution ${execution}
+
+>>>>>>> 3706d622 (snapshot)
   "generate mongodump evergreen tasks":
     # Note: This assumes you've already called "fetch source and install go", because you can't call
     # a function from another function.
@@ -640,8 +852,35 @@ functions:
         files:
           - ${json_filename}
 
+<<<<<<< HEAD
+=======
+  "run hang analyzer":
+    - *f_expansions_write
+    - command: subprocess.exec
+      display_name: "hang analyzer sh"
+      params:
+        binary: "./src/mongosync/evergreen/hang_analyzer.sh"
+        add_expansions_to_env: true
+
+>>>>>>> 3706d622 (snapshot)
   "wait for resmoke to shutdown":
     - command: subprocess.exec
       display_name: "wait for resmoke to shutdown"
       params:
         binary: "./src/mongosync/evergreen/wait_for_resmoke_to_shutdown.sh"
+<<<<<<< HEAD
+=======
+
+  "coveralls upload report":
+    - command: shell.exec
+      params:
+        working_dir: src/mongosync
+        script: |
+          ${PREPARE_SHELL}
+          mise exec -- go tool covdata textfmt -i=${covdata_path} -o="coverage.lcov"
+    - command: shell.exec
+      params:
+        working_dir: src/mongosync
+        script: |
+          coveralls report coverage.lcov --build-number ${version_id} --repo-token ${coveralls_repo_token}
+>>>>>>> 3706d622 (snapshot)
