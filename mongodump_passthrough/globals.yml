@@ -1,0 +1,3 @@
+# Copied from mongosync/evergreen, with changes to avoid conflicts.
+
+oom_tracker: true

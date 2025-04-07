@@ -40,7 +40,9 @@ func TestPlatformsMatchCI(t *testing.T) {
 	}
 
 	for _, v := range config.Variants {
-		if v.Name == "release" || v.Name == "static" || v.Name == "rhel88-race" {
+		// Variant "rhel80" has been added to support mongodump passthrough testing.
+		if v.Name == "release" || v.Name == "static" || v.Name == "rhel80" ||
+			v.Name == "rhel88-race" {
 			continue
 		}
 

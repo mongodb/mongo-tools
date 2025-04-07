@@ -1,0 +1,7 @@
+# Copied from mongosync/evergreen, with changes to avoid conflicts.
+
+parameters:
+  - key: src_server_version_for_patch
+    description: "Explicit version of the MongoDB server to use for the source cluster"
+  - key: dst_server_version_for_patch
+    description: "Explicit version of the MongoDB server to use for the destination cluster"

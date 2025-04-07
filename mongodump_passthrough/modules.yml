@@ -1,0 +1,35 @@
+# Copied from mongosync/evergreen, with mongosync added as a module.
+
+# The file tree looks like this:
+# src
+#  |---- resmoke
+#  |---- migration-verifier
+#  |---- mongosync
+
+# The modules used for performance testing and the migration-verifier are pinned to arbitrary commits.
+# It's okay to update the pins whenever we feel like it as long as tests pass.
+modules:
+  - name: migration-verifier
+    repo: git@github.com:mongodb-labs/migration-verifier.git
+    prefix: ${workdir}/src
+    branch: main
+  # TODO (REP-3977): This is used for the JS unit tests, which load JS code from the mongo repo's
+  # `jstests` dir. The exact revision doesn't matter too much, but once we fully generate the
+  # Evergreen config, we should use one of the pinned revisions we use for cases where we need
+  # something from the mongo repo.
+  - name: mongo
+    repo: git@github.com:10gen/mongo.git
+    prefix: ${workdir}/src
+    branch: v6.0
+  # Passthrough testing of mongodump+mongorestore uses various code in the mongosync repo:
+  #
+  #   - resmoke JS test code with slight tweaks
+  #   - resmoke python code with DumpRestoreFixture
+  #   - Go source code for mongodump-suite-gen
+  #   - Go source code for mongodump-task-gen
+  #
+  # We use git.get_project to load the mongosync as a module when necessary
+  - name: mongosync
+    repo: git@github.com:10gen/mongosync.git
+    prefix: ${workdir}/src
+    branch: rcownie/passthru3
