@@ -14,6 +14,7 @@ import (
 	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -24,6 +25,7 @@ var awsClient *AWS
 
 type AWS struct {
 	session *session.Session
+	acl     string
 }
 
 func initializeClient() error {
@@ -40,8 +42,26 @@ func initializeClient() error {
 
 	awsClient = &AWS{
 		session: s,
+		acl:     "public-read",
 	}
 	return nil
+}
+
+func NewClientFromCredentials(id, secret, token, acl string) (*AWS, error) {
+	s, err := session.NewSession(&aws.Config{
+		Region:      aws.String("us-east-1"),
+		Credentials: credentials.NewStaticCredentials(id, secret, token),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AWS session: %w", err)
+	}
+
+	c := &AWS{
+		session: s,
+		acl:     acl,
+	}
+
+	return c, nil
 }
 
 // GetClient returns the global AWS client.
@@ -75,7 +95,7 @@ func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) er
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
+		ACL:    aws.String(a.acl),
 		Body:   reader,
 	})
 	if err != nil {

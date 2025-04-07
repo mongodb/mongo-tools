@@ -953,13 +953,25 @@ func generateFullReleaseJSON(v version.Version) {
 		return
 	}
 
-	awsClient, err := aws.GetClient()
-	check(err, "get aws client")
+	awsClientOld, err := aws.GetClient()
+	check(err, "get aws client old")
 
-	feed, err := awsClient.GenerateFullReleaseFeedFromObjects()
+	newAccessKeyID := os.Getenv("NEW_AWS_ACCESS_KEY_ID")
+	newSecretAccessKey := os.Getenv("NEW_AWS_SECRET_ACCESS_KEY")
+	newSessionToken := os.Getenv("NEW_AWS_SESSION_TOKEN")
+
+	awsClientNew, err := aws.NewClientFromCredentials(
+		newAccessKeyID,
+		newSecretAccessKey,
+		newSessionToken,
+		"private",
+	)
+	check(err, "new aws client from credentials")
+
+	feed, err := awsClientOld.GenerateFullReleaseFeedFromObjects()
 	check(err, "generate full release feed from s3 objects")
 
-	uploadFeedFile("full.json", feed, awsClient)
+	uploadFeedFile("full.json", feed, awsClientOld, awsClientNew)
 }
 
 func uploadReleaseJSON(v version.Version) {
@@ -996,8 +1008,20 @@ func uploadReleaseJSON(v version.Version) {
 		log.Fatalf("found %d sign tasks, but expected %d", len(signTasks), pfCount)
 	}
 
-	awsClient, err := aws.GetClient()
-	check(err, "get aws client")
+	awsClientOld, err := aws.GetClient()
+	check(err, "get aws client old")
+
+	newAccessKeyID := os.Getenv("NEW_AWS_ACCESS_KEY_ID")
+	newSecretAccessKey := os.Getenv("NEW_AWS_SECRET_ACCESS_KEY")
+	newSessionToken := os.Getenv("NEW_AWS_SESSION_TOKEN")
+
+	awsClientNew, err := aws.NewClientFromCredentials(
+		newAccessKeyID,
+		newSecretAccessKey,
+		newSessionToken,
+		"private",
+	)
+	check(err, "new aws client from credentials")
 
 	// Accumulate all downloaded artifacts from sign tasks for JSON feed.
 	var dls []*download.ToolsDownload
@@ -1061,8 +1085,18 @@ func uploadReleaseJSON(v version.Version) {
 	}
 
 	// Download the current full.json
-	buff, err := awsClient.DownloadFile("downloads.mongodb.org", "tools/db/full.json")
-	check(err, "download full.json")
+	const addr = "https://downloads.mongodb.org/tools/db/full.json"
+	res, err := http.Get(addr)
+	check(err, "http get full.json")
+
+	defer res.Body.Close()
+
+	buff, err := io.ReadAll(res.Body)
+	check(err, "read full.json body")
+
+	if res.StatusCode != http.StatusOK {
+		panic(fmt.Errorf("get full.json status %d: %s", res.StatusCode, string(buff)))
+	}
 
 	var fullFeed download.JSONFeed
 
@@ -1074,7 +1108,7 @@ func uploadReleaseJSON(v version.Version) {
 		fullFeed.Versions,
 		&download.ToolsVersion{Version: v.String(), Downloads: dls},
 	)
-	uploadFeedFile("full.json", &fullFeed, awsClient)
+	uploadFeedFile("full.json", &fullFeed, awsClientOld, awsClientNew)
 
 	// Upload only the most recent version to release.json
 	var feed download.JSONFeed
@@ -1083,10 +1117,10 @@ func uploadReleaseJSON(v version.Version) {
 		&download.ToolsVersion{Version: v.String(), Downloads: dls},
 	)
 
-	uploadFeedFile("release.json", &feed, awsClient)
+	uploadFeedFile("release.json", &feed, awsClientOld, awsClientNew)
 }
 
-func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS) {
+func uploadFeedFile(filename string, feed *download.JSONFeed, awsClientOld, awsClientNew *aws.AWS) {
 	var feedBuffer bytes.Buffer
 
 	jsonEncoder := json.NewEncoder(&feedBuffer)
@@ -1094,12 +1128,31 @@ func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS
 	err := jsonEncoder.Encode(*feed)
 	check(err, "encode json feed")
 
+	feedBytes := feedBuffer.Bytes()
+
 	log.Printf(
 		"uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
 		filename,
 	)
-	err = awsClient.UploadBytes("downloads.mongodb.org", "/tools/db", filename, &feedBuffer)
-	check(err, "upload json feed")
+	err = awsClientOld.UploadBytes(
+		"downloads.mongodb.org",
+		"/tools/db",
+		filename,
+		bytes.NewReader(feedBytes),
+	)
+	check(err, "upload json feed old")
+
+	log.Printf(
+		"uploading download feed to s3://cdn-origin-db-tools/tools/db/%s\n",
+		filename,
+	)
+	err = awsClientNew.UploadBytes(
+		"cdn-origin-db-tools",
+		"/tools/db",
+		filename,
+		bytes.NewReader(feedBytes),
+	)
+	check(err, "upload json feed new")
 }
 
 func uploadRelease(v version.Version) {
@@ -1129,8 +1182,20 @@ func uploadRelease(v version.Version) {
 		log.Fatalf("found %d sign tasks, but expected one", len(signTasks))
 	}
 
-	awsClient, err := aws.GetClient()
-	check(err, "get aws client")
+	awsClientOld, err := aws.GetClient()
+	check(err, "get old aws client")
+
+	newAccessKeyID := os.Getenv("NEW_AWS_ACCESS_KEY_ID")
+	newSecretAccessKey := os.Getenv("NEW_AWS_SECRET_ACCESS_KEY")
+	newSessionToken := os.Getenv("NEW_AWS_SESSION_TOKEN")
+
+	awsClientNew, err := aws.NewClientFromCredentials(
+		newAccessKeyID,
+		newSecretAccessKey,
+		newSessionToken,
+		"private",
+	)
+	check(err, "new aws client from credentials")
 
 	for _, task := range signTasks {
 		log.Printf("\ngetting artifacts for %s\n", task.Variant)
@@ -1182,14 +1247,33 @@ func uploadRelease(v version.Version) {
 					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
 					stableFile,
 				)
-				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
+				err = awsClientOld.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
 				check(err, "uploading %q file to S3", stableFile)
 				log.Printf(
 					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
 					latestStableFile,
 				)
-				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
+
+				err = awsClientOld.UploadFile(
+					"downloads.mongodb.org",
+					"/tools/db",
+					latestStableFile,
+				)
 				check(err, "uploading %q file to S3", latestStableFile)
+
+				log.Printf(
+					"    uploading to s3://cdn-origin-db-tools/tools/db/%s\n",
+					stableFile,
+				)
+				err = awsClientNew.UploadFile("cdn-origin-db-tools", "/tools/db", stableFile)
+				check(err, "uploading %q file to S3 new", stableFile)
+				log.Printf(
+					"    uploading to s3://cdn-origin-db-tools/tools/db/%s\n",
+					latestStableFile,
+				)
+
+				err = awsClientNew.UploadFile("cdn-origin-db-tools", "/tools/db", latestStableFile)
+				check(err, "uploading %q file to S3 new", latestStableFile)
 			}
 		}
 	}
