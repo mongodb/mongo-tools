@@ -1,0 +1,14 @@
+# Passthrough testing of mongodump+mongorestore uses various code in the mongosync repo:
+#
+#   - resmoke JS test code with slight tweaks
+#   - resmoke python code with DumpRestoreFixture
+#   - Go source code for mongodump-suite-gen
+#   - Go source code for mongodump-task-gen
+#
+# We use git.get_project to load the mongosync as a module when necessary
+
+modules:
+  - name: mongosync 
+    repo: git@github.com:10gen/mongosync.git 
+    prefix: src
+    branch: rcownie/passthru3

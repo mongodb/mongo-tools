@@ -1,0 +1,201 @@
+# Evergreen functions and variables for mongodump+mongorestore passthrough tests.
+
+#
+# Our strategy is to make the src/mongosync dir look as much as possible
+# like it would in mongosync evergreen resmoke, except:
+#
+#   1. Copy the mongodump and mongorestore binaries into mongosync/bin/
+#
+#   2. Move the mongosync/mongodump-suite-config/ to mongosync/suite-config/
+#
+# But we have to do this with mongo-tools as the main repo, and mongosync
+# as an evergreen module, so the tasks and functions arre slightly tweaked.
+#
+
+variables:
+  _mongo_tools_dir: &_mongo_tools_dir "src/github.com/mongodb/mongo-tools"
+  _mongosync_pin: &_mongosync_pin "9dd9cd22562acb983ded688c5141794287c49144"
+  _mongosync_dir: &_mongosync_dir "src/mongosync"
+  _resmoke_dir: &_resmoke_dir "src/mongosync/resmoke"
+
+functions:
+
+  f_build_target:
+    - command: subprocess.exec
+      params:
+        binary: "./src/github.com/mongodb/mongo-tools/mongodump_passthrough/evergreen_credentials_setup.sh"
+        env:
+          evergreen_api_key: ${evergreen_api_key}
+          evergreen_api_user: ${evergreen_api_user}
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${_set_shell_env}
+          ${_maybe_enable_devtoolset_7}
+          # We add $HOME to $PATH because the evergreen client binary lives at ~/evergreen.
+          PATH=$PATH:$HOME
+          go run build.go -v ${target}
+
+  f_evergreen_credentials_setup: &f_evergreen_credentials_setup
+    command: subprocess.exec
+    params:
+      binary: "./src/github.com/mongo-tools/mongodump_passthrough/evergreen_credentials_setup.sh"
+      add_expansions_to_env: true
+
+  f_fetch_source:
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          set -v
+          set -x
+          mkdir -p src/github.com/mongodb
+    - command: git.get_project
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: git.apply_patch
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          set -v
+          set -x
+          mkdir -p src/github.com/mongodb/mongo-tools/bin
+
+  f_fetch_source_and_mongosync:
+    - command: shell.exec
+      params:
+        script: |
+          set -e
+          set -v
+          set -x
+          mkdir -p src/github.com/mongodb
+    - command: git.get_project
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+      revisions:
+        mongosync: *_mongosync_pin
+    - command: git.apply_patch
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -e
+          set -v
+          set -x
+          mkdir -p bin
+          # Create symbolic link mongo-tools/mongosync
+          ln -s ${workdir}/src/mongosync .
+          # Set up mise and tools for mongosync 
+          cd mongosync 
+          mise install
+          # Set up the suite directories for mongodump
+          mv resmoke/suite-config resmoke/mongosync-suite-config
+          mv resmoke/mongodump-suite-config resmoke/suite-config
+  
+  f_generate_mongodump_evergreen_tasks:
+    # Note: This assumes you've already called "f_fetch_source_and_mongosync",
+    # because you can't call a function from another function.
+    - command: shell.exec
+      params:
+        working_dir: src/mongosync
+        script: |
+          ${PREPARE_SHELL}
+          set -e
+          set -v
+          set -x
+          export aws_key=${aws_key}
+          export aws_secret=${aws_secret}
+          mise exec -- go run ./cmd/mongodump-task-gen ${generator_args} | tee ${json_filename}
+    - command: generate.tasks
+      params:
+        files:
+          - ${json_filename}
+
+  f_mongodump_binary_upload:
+    - command: archive.targz_pack
+      params:
+        target: ${binary_name}.tgz
+        source_dir: "src/github.com/mongodb/"
+        include:
+          - "./bin/*"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ${binary_name}.tgz
+        remote_file: mongo-tools/${build_variant}/${revision}/${version_id}/${binary_name}/${version_id}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/tar
+        display_name: ${binary_name}
+
+  # Function used to download Resmoke and compiled mongo* binaries from the server project.
+  f_resmoke_and_binaries_download:
+    - *f_evergreen_credentials_setup
+    - command: subprocess.exec
+      params:
+        binary: bash
+        args:
+          - "./src/mongosync/evergreen/resmoke_and_binaries_download.sh"
+        add_expansions_to_env: true
+  
+  f_resmoke_archive:
+    - command: archive.targz_pack
+      params:
+        target: resmoke-with-binaries.tgz
+        source_dir: "src/resmoke/${src_mongo_version}_${dst_mongo_version}"
+        include:
+          - "./buildscripts/**"
+          - "./${src_mongo_version}/**"
+          - "./${dst_mongo_version}/**"
+          - "./mongo-for-shell/**"
+          - "./etc/**"
+          - "./jstests/**"
+          - "./src/**"
+          - "./.resmoke_mongo_version.yml"
+          - "./.resmoke_mongo_release_values.yml"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: resmoke-with-binaries.tgz
+        remote_file: mongosync/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: application/tar
+        display_name: resmoke-with-binaries
+    - command: archive.targz_pack
+      params:
+        target: resmoke-python-wheelhouse.tgz
+        source_dir: "."
+        include:
+          - "./wheelhouse/**"
+          - "./poetry-requirements.txt"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: resmoke-python-wheelhouse.tgz
+        remote_file: mongosync/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: application/tar
+        display_name: resmoke-python-wheelhouse
+  
+  f_resmoke_wheelhouse_setup:
+    command: subprocess.exec
+    params:
+      binary: bash
+      args:
+        - "./src/mongosync/evergreen/resmoke_wheelhouse_setup.sh"
+      add_expansions_to_env: true
+

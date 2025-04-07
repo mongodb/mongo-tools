@@ -1,0 +1,69 @@
+ tasks:
+
+  # build mongodump+mongorestore and upload
+  - name: t_mongodump_build_and_upload
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source"
+      - func: f_build_target
+        vars:
+          target: build
+      - func: f_mongodump_binary_upload
+        vars:
+          binary_name: "mongodump-binary"
+
+  - name: t_generate_mongodump_resmoke_build_variants
+    tags: ["task_generator"]
+    depends_on:
+      - name: t_mongodump_build_and_upload
+        variant: rhel88
+    commands:
+      # The mongodump-task-gen is in the mongosync repo to maximize
+      # code-sharing, so we need to load mongosync as a module.
+      - func: f_fetch_source_and_mongosync
+      - func: f_generate_mongodump_evergreen_tasks
+        vars:
+          generator_args: "buildvariants"
+          json_filename: mongodump_build_variants.json
+
+  - name: t_generate_mongodump_fsm_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: t_generate_mongodump_resmoke_build_variants
+    commands:
+      - func: f_fetch_source_and_mongosync
+      - func: f_generate_mongodump_evergreen_tasks
+        vars:
+          generator_args: "mongodump_fsm"
+          json_filename: mongodump_fsm_tasks.json
+
+  - name: t_generate_mongodump_fuzz_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: t_generate_mongodump_resmoke_build_variants
+    commands:
+      - func: f_fetch_source_and_mongosync
+      - func: f_generate_mongodump_evergreen_tasks
+        vars:
+          generator_args: "mongodump_jstestfuzz"
+          json_filename: mongodump_fuzz_tasks.json
+
+  - name: t_generate_mongodump_passthrough_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: t_generate_mongodump_resmoke_build_variants
+    commands:
+      - func: f_fetch_source_and_mongosync
+      - func: f_generate_mongodump_evergreen_tasks
+        vars:
+          generator_args: "mongodump_passthrough"
+          json_filename: mongodump_passthrough_tasks.json
+
+  - name: t_resmoke_setup
+    commands:
+      - func: f_repo_with_modules_fetch
+      - func: f_resmoke_and_binaries_download
+        vars:
+          platform: rhel88
+      - func: f_resmoke_wheelhouse_setup
+      - func: f_resmoke_archive

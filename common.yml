@@ -1,3 +1,9 @@
+# Support for mongodump+mongorestore passthrough tests.
+include:
+  - filename: "mongodump_passthrough/modules.yml"
+  - filename: "mongodump_passthrough/functions.yml"
+  - filename: "mongodump_passthrough/tasks.yml"
+
 #######################################
 #    Tools Driver Config for MCI      #
 #######################################
@@ -2045,6 +2051,9 @@ buildvariants:
       edition: enterprise
       run_kinit: true
       resmoke_args: --jobs 4
+    modules:
+      # mongosync is used to run mongodump passthrough tests
+      - mongosync
     tasks:
       - name: "unit"
       - name: ".4.2"
