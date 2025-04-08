@@ -1,9 +1,9 @@
 mongo-tools/mongodump_passthrough contains evergreen .yml files to
 support resmoke passthrough testing of mongodump+mongorestore.
 
-This is split into separate files to match the file structure of the mongosync repo
-for this new code, but without refactoring the old top-level common.yml
-file for other mongo-tools testing.
+This started out as a copy of the files from mongosync/evergreen,
+but has minor changes to cope with running from mongo-tools,
+and to avoid conflicts with the mongo-tools/common.yml
 
 These files should be included from mongo-tools/common.yml
 

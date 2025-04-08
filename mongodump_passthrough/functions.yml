@@ -15,7 +15,16 @@ variables:
   f_repo_fetch: &f_repo_fetch
     command: git.get_project
     params:
-      directory: src/mongosync
+      directory: src/github.com/mongodb/mongo-tools
+      revisions:
+        mongosync: *_mongosync_pin
+
+  f_link_to_mongo_tools: &f_link_to_mongo_tools
+    command: shell.exec 
+    params:
+      shell: bash
+      script: |
+        ln -s ${workdir}/src/github.com/mongodb/mongo-tools src
 
   "set up logger credentials": &f_set_up_logger_credentials
     command: subprocess.exec
@@ -202,6 +211,26 @@ functions:
           mise install
           mise exec -- npm install
 
+  "build mongodump and mongorestore":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          ${PREPARE_SHELL}
+          PATH=$PATH:$HOME
+          echo $PATH 
+          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ../mongosync/etc/mise.run.sh
+          mise settings experimental=true
+          mise activate --shims
+          PATH=$HOME/.local/share/mise/shims:$PATH
+          # We only install Go here in order to get the system to a state where we can run mage. If
+          # more dev tools are needed, those tasks should run `mise install`.
+          mise install go
+          mise use -g go@1.24.0
+          mise exec -- go run build.go build
+          # Copy mongodump and mongorestore to mongosync/dist
+          cp -p bin/mongodump bin/mongorestore ${workdir}/src/mongosync/dist
+
   "run mage target":
     - command: subprocess.exec
       params:
@@ -283,9 +312,10 @@ functions:
   f_repo_with_modules_fetch:
     - command: git.get_project
       params:
-        directory: src/mongosync
+        directory: src/github.com/mongodb/mongo-tools
         revisions:
           migration-verifier: *_migration_verifier_pin
+          mongosync: *_mongosync_pin
 
   f_expansions_write:
     - *f_expansions_write
@@ -431,6 +461,7 @@ functions:
 
   "passthrough setup":
     - *f_repo_fetch
+    - *f_link_to_mongo_tools
     - *f_resmoke_with_binaries_fetch
     - *f_resmoke_wheelhouse_fetch
     - *f_mongosync_binary_fetch

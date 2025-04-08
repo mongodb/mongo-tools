@@ -4,8 +4,9 @@
 # and we try to set it up the same way.
 
 buildvariants:
+
   - name: rhel80
-    display_name: "rhel80 mongodump passthrough"
+    display_name: "rhel80 (mongodump passthrough)"
     tasks:
       - name: compile_coverage
       - name: compile_verifier
