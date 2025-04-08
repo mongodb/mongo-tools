@@ -1,69 +1,206 @@
- tasks:
+# Copied from mongosync/evergreen, with changes to fit in mongo-tools.
 
-  # build mongodump+mongorestore and upload
-  - name: t_mongodump_build_and_upload
+variables:
+  _modules: &_modules
+    - migration-verifier
+    - mongosync
+  _python: &_python /opt/mongodbtoolchain/v4/bin/python3
+  _resmoke_dir: &_resmoke_dir "src/resmoke"
+  _resmoke_venv_dir: &_resmoke_venv_dir "resmoke-venv"
+  _src_dir: &src_dir src/mongosync
+
+tasks:
+  - name: commit-queue-workaround
+    commands:
+      - command: shell.exec
+        params:
+          script: |
+            echo "This task is a no-op to work around evergreen's commit queue behavior"
+
+  - name: compile_coverage
     tags: ["git_tag"]
     commands:
-      - func: "fetch source"
-      - func: f_build_target
+      - func: "fetch source and install go"
+      - func: "run mage target"
         vars:
           target: build
-      - func: f_mongodump_binary_upload
+          MONGOSYNC_TEST_COVERAGE: "true"
+      - func: f_mongosync_binary_upload
         vars:
-          binary_name: "mongodump-binary"
+          mongosync_binary_folder: "mongosync-coverage-binary"
 
-  - name: t_generate_mongodump_resmoke_build_variants
-    tags: ["task_generator"]
-    depends_on:
-      - name: t_mongodump_build_and_upload
-        variant: rhel88
+  - name: compile
+    tags: ["git_tag"]
     commands:
-      # The mongodump-task-gen is in the mongosync repo to maximize
-      # code-sharing, so we need to load mongosync as a module.
-      - func: f_fetch_source_and_mongosync
-      - func: f_generate_mongodump_evergreen_tasks
+      - func: "fetch source and install go"
+      - func: "run mage target"
         vars:
-          generator_args: "buildvariants"
-          json_filename: mongodump_build_variants.json
+          target: build
+      - func: "create release artifacts"
+        vars:
+          isBeta: false
+      - func: f_mongosync_binary_upload
+        vars:
+          mongosync_binary_folder: "mongosync-binary"
 
-  - name: t_generate_mongodump_fsm_tasks
-    tags: ["task_generator"]
-    depends_on:
-      - name: t_generate_mongodump_resmoke_build_variants
+  - name: compile_verifier
+    tags: ["git_tag"]
     commands:
-      - func: f_fetch_source_and_mongosync
-      - func: f_generate_mongodump_evergreen_tasks
-        vars:
-          generator_args: "mongodump_fsm"
-          json_filename: mongodump_fsm_tasks.json
+      - func: "fetch source and install go"
+      - func: f_migration_verifier_compile_and_upload
 
-  - name: t_generate_mongodump_fuzz_tasks
-    tags: ["task_generator"]
-    depends_on:
-      - name: t_generate_mongodump_resmoke_build_variants
+  # We also run gosec in the lint task, but in this task we produce a SARIF
+  # report that is viewable in the Evergreen logs. I tried adding a mage
+  # target for this but it was a huge pain to get it to run precious with an
+  # env var set and with _stderr_ not captured so we can see the SARIF report.
+  - name: gosec
     commands:
-      - func: f_fetch_source_and_mongosync
-      - func: f_generate_mongodump_evergreen_tasks
-        vars:
-          generator_args: "mongodump_jstestfuzz"
-          json_filename: mongodump_fuzz_tasks.json
+      - func: "fetch source and install go"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/mongosync
+          script: |
+            ${PREPARE_SHELL}
+            set -evx
+            mise install
+            GOSEC_SARIF_REPORT=1 mise exec -- precious lint --command gosec --all
+            cat SARIF.json
 
-  - name: t_generate_mongodump_passthrough_tasks
-    tags: ["task_generator"]
-    depends_on:
-      - name: t_generate_mongodump_resmoke_build_variants
+  - name: generated-files
     commands:
-      - func: f_fetch_source_and_mongosync
-      - func: f_generate_mongodump_evergreen_tasks
+      - func: "fetch source and install go"
+      - func: "run mise and npm install"
+      - func: "run mage target"
         vars:
-          generator_args: "mongodump_passthrough"
-          json_filename: mongodump_passthrough_tasks.json
+          target: check:generatedfiles
+
+  - name: check-evergreen-config
+    commands:
+      - func: "fetch source and install go"
+      - func: "check evergreen config is up to date"
+
+  - name: test-js-code-unit
+    commands:
+      - func: "fetch source and install go"
+      - func: "run js tests with jest"
+
+  - name: test-js-code-integration-linux
+    commands:
+      - func: "fetch source and install go"
+      - func: "install mongosh on Linux"
+      - func: "run mage target"
+        vars:
+          target: test:setup latest rs latest rs false
+      - func: "run js tests with mongosh"
+
+  - name: check-vendored-code
+    commands:
+      - func: "fetch source and install go"
+      - func: "run mage target"
+        vars:
+          target: check:vendoredCode
 
   - name: t_resmoke_setup
     commands:
       - func: f_repo_with_modules_fetch
       - func: f_resmoke_and_binaries_download
         vars:
-          platform: rhel88
+          platform: rhel80
       - func: f_resmoke_wheelhouse_setup
       - func: f_resmoke_archive
+
+  # This task is meant for use in patches; you can run the generator, save the
+  # file to evergreen/manual-tasks.json, then run this task using evergreen patch.
+  - name: run_manual_generated_tasks
+    tags: ["task_generator"]
+    commands:
+      - func: "fetch source and install go"
+      - command: generate.tasks
+        params:
+          files:
+            - src/mongosync/evergreen/manual-tasks.json
+
+  - name: generate_resmoke_build_variants
+    tags: ["task_generator"]
+    depends_on:
+      - name: compile_coverage
+        variant: rhel88
+      - name: compile_verifier
+        variant: rhel88
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate evergreen tasks"
+        vars:
+          generator_args: "buildvariants"
+          json_filename: build_variants.json
+
+  - name: generate_passthrough_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: generate_resmoke_build_variants
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate evergreen tasks"
+        vars:
+          generator_args: "passthrough"
+          json_filename: passthrough_tasks.json
+
+  - name: generate_fsm_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: generate_resmoke_build_variants
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate evergreen tasks"
+        vars:
+          generator_args: "fsm"
+          json_filename: fsm_tasks.json
+
+  - name: generate_fuzz_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: generate_resmoke_build_variants
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate evergreen tasks"
+        vars:
+          generator_args: "jstestfuzz"
+          json_filename: fuzz_tasks.json
+
+  - name: generate_coverage_tasks
+    tags: ["task_generator"]
+    depends_on:
+      - name: generate_passthrough_tasks
+        status: "*"
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate evergreen tasks"
+        vars:
+          generator_args: "coverage"
+          json_filename: coverage_tasks.json
+
+  - name: assert-manual-tasks-unchanged
+    commands:
+      - func: "fetch source and install go"
+      - command: subprocess.exec
+        params:
+          working_dir: src/mongosync
+          binary: bash
+          args:
+            - "./evergreen/assert_manual_tasks_unchanged.sh"
+
+  - name: suites-up-to-date
+    commands:
+      - func: "fetch source and install go"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/mongosync
+          script: |
+            ${PREPARE_SHELL}
+            set -ex
+            rm resmoke/suite-config/*/suites/*
+            mise install
+            mise exec -- go run ./cmd/suite-generator/cmd write --all --quiet
+            git diff --name-status --exit-code resmoke/suite-config/*/suites

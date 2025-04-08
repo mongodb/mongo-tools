@@ -1,151 +1,315 @@
-# Evergreen functions and variables for mongodump+mongorestore passthrough tests.
-
-#
-# Our strategy is to make the src/mongosync dir look as much as possible
-# like it would in mongosync evergreen resmoke, except:
-#
-#   1. Copy the mongodump and mongorestore binaries into mongosync/bin/
-#
-#   2. Move the mongosync/mongodump-suite-config/ to mongosync/suite-config/
-#
-# But we have to do this with mongo-tools as the main repo, and mongosync
-# as an evergreen module, so the tasks and functions arre slightly tweaked.
-#
+# Copied from mongosync/evergreen, with slight changes.
 
 variables:
-  _mongo_tools_dir: &_mongo_tools_dir "src/github.com/mongodb/mongo-tools"
-  _mongosync_pin: &_mongosync_pin "9dd9cd22562acb983ded688c5141794287c49144"
-  _mongosync_dir: &_mongosync_dir "src/mongosync"
-  _resmoke_dir: &_resmoke_dir "src/mongosync/resmoke"
+  _migration_verifier_pin: &_migration_verifier_pin 9348607d61c4c865287828ce78b798a0f1b1cb89
+  _mongosync_pin: &_mongosync_pin "9dd9cd22562acb983ded688c5141794287c49144"  
+  _resmoke_dir: &_resmoke_dir "src/resmoke"
+  _src_dir: &src_dir src/mongosync
+
+  f_expansions_write: &f_expansions_write
+    command: expansions.write
+    params:
+      file: expansions.yml
+      redacted: true
+
+  f_repo_fetch: &f_repo_fetch
+    command: git.get_project
+    params:
+      directory: src/mongosync
+
+  "set up logger credentials": &f_set_up_logger_credentials
+    command: subprocess.exec
+    params:
+      binary: "./src/mongosync/evergreen/logger_credentials_setup.sh"
+      add_expansions_to_env: true
+
+  f_resmoke_wheelhouse_setup: &f_resmoke_wheelhouse_setup
+    command: subprocess.exec
+    params:
+      binary: "./src/mongosync/evergreen/resmoke_wheelhouse_setup.sh"
+      add_expansions_to_env: true
+
+  # Function used to download particular bits of resmoke and binaries uploaded previously.
+  f_resmoke_with_binaries_fetch: &f_resmoke_with_binaries_fetch
+    command: s3.get
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: mongosync/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
+      bucket: mciuploads
+      extract_to: *_resmoke_dir
+
+  f_resmoke_wheelhouse_fetch: &f_resmoke_wheelhouse_fetch
+    command: s3.get
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: mongosync/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
+      bucket: mciuploads
+      extract_to: "."
+
+  f_migration_verifier_binary_fetch: &f_migration_verifier_binary_fetch
+    command: s3.get
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: mongosync/${mongosync_compile_build_variant}/${revision}/${version_id}/migration_verifier
+      bucket: mciuploads
+      local_file: src/mongosync/migration_verifier
+
+  f_make_migration_verifier_binary_executable:
+    &f_make_migration_verifier_binary_executable
+    command: shell.exec
+    params:
+      shell: bash
+      working_dir: src/mongosync
+      script: |
+        set -o errexit
+        set -o pipefail
+        set -o xtrace
+
+        chmod +x migration_verifier
+
+  f_mongosync_binary_fetch: &f_mongosync_binary_fetch
+    command: s3.get
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: mongosync/${mongosync_compile_build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
+      bucket: mciuploads
+      extract_to: "src/mongosync"
+
+  f_generate_github_access_token: &f_generate_github_access_token
+    command: github.generate_token
+    params:
+      owner: 10gen
+      repo: mongo
+      expansion_name: generated_token_mongo
+      permissions:
+        contents: read
+
+  f_resmoke_jobs_determine: &f_resmoke_jobs_determine
+    command: subprocess.exec
+    params:
+      binary: "./src/mongosync/evergreen/resmoke_jobs_determine.sh"
+      add_expansions_to_env: true
+      env:
+        resmoke_jobs_factor: ${resmoke_jobs_factor|1}
+        resmoke_jobs_max: ${resmoke_jobs_max|12}
+
+  f_resmoke_jobs_expansion_update: &f_resmoke_jobs_expansion_update
+    command: expansions.update
+    params:
+      ignore_missing_file: true
+      file: src/resmoke/resmoke_jobs_expansion.yml
+
+  f_resmoke_tests_execute: &f_resmoke_tests_execute
+    command: subprocess.exec
+    type: test
+    params:
+      binary: "./src/mongosync/evergreen/resmoke_tests_execute.sh"
+      add_expansions_to_env: true
+      env:
+        resmoke_jobs: ${resmoke_jobs|1}
+        should_shuffle: ${should_shuffle|true}
+
+  f_infrastructure_failure_check: &f_infrastructure_failure_check
+    # The existence of the "infrastructure_failure" file indicates this failure isn't
+    # directly actionable. We use type=setup rather than type=system or type=test for this command
+    # because we don't intend for any human to look at this failure.
+    command: subprocess.exec
+    type: setup
+    params:
+      binary: "./src/mongosync/evergreen/infrastructure_failure_check.sh"
+      add_expansions_to_env: true
+
+  "f_archive_credentials_setup_exec": &set_up_archive_credentials
+    command: subprocess.exec
+    params:
+      binary: "./src/mongosync/evergreen/archive_credentials_setup.sh"
+      env:
+        private_key_remote_bash_var: ${private_key_remote}
+      add_expansions_to_env: true
+
+  "get buildnumber": &get_buildnumber
+    command: keyval.inc
+    params:
+      key: "${build_variant}_v70"
+      destination: "builder_num"
 
 functions:
-
-  f_build_target:
+  "fetch source and install go":
+    # This clones mongo-tools and mongosync.
+    - command: git.get_project
+      params:
+        directory: src/github.com/mongodb/mongo-tools
+        revisions:
+          mongosync: *_mongosync_pin
+          migration-verifier: *_migration_verifier_pin
+    # Make an evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
-        binary: "./src/github.com/mongodb/mongo-tools/mongodump_passthrough/evergreen_credentials_setup.sh"
+        binary: "./src/mongosync/evergreen/generate_mongosync_expansion.sh"
+        add_expansions_to_env: true
+        env:
+          mongosync_dir: "src/mongosync"
+    # Load the expansion file to make an evergreen variable with the current unique version
+    - command: expansions.update
+      params:
+        file: src/mongosync/mongosync_expansion.yml
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ./etc/mise.run.sh
+          mise settings experimental=true
+          # We only install Go here in order to get the system to a state where we can run mage. If
+          # more dev tools are needed, those tasks should run "mise install".
+          mise install go
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          mise exec -- go version
+          mise exec -- go env
+
+  "run mise and npm install":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          mise install
+          mise exec -- npm install
+
+  "run mage target":
+    - command: subprocess.exec
+      params:
+        binary: "./src/mongosync/evergreen/evergreen_credentials_setup.sh"
         env:
           evergreen_api_key: ${evergreen_api_key}
           evergreen_api_user: ${evergreen_api_user}
     - command: shell.exec
       type: test
       params:
-        working_dir: src/github.com/mongodb/mongo-tools
+        shell: bash
+        working_dir: src/mongosync
+        include_expansions_in_env:
+          - VERIFIER_TESTING_ENABLE_PERSISTENCE
+          - MONGOSYNC_TEST_COVERAGE
+          - MONGOSYNC_TEST_DOCFILTER_INTERNALAGGEXPR
         script: |
-          ${_set_shell_env}
-          ${_maybe_enable_devtoolset_7}
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          export MAGEFILE_CACHE=${workdir}/.mage
+          export MONGOSYNC_TEST_DEBUG=trace
+          export GENERATED_TOKEN_MONGO=${generated_token_mongo}
           # We add $HOME to $PATH because the evergreen client binary lives at ~/evergreen.
-          PATH=$PATH:$HOME
-          go run build.go -v ${target}
+          export PATH=$PATH:$HOME
+          mise exec -- go run mage.go -v ${target}
 
-  f_evergreen_credentials_setup: &f_evergreen_credentials_setup
-    command: subprocess.exec
-    params:
-      binary: "./src/github.com/mongo-tools/mongodump_passthrough/evergreen_credentials_setup.sh"
-      add_expansions_to_env: true
-
-  f_fetch_source:
+  "check third-party notices":
     - command: shell.exec
+      type: test
       params:
-        script: |
-          set -e
-          set -v
-          set -x
-          mkdir -p src/github.com/mongodb
-    - command: git.get_project
-      params:
-        directory: src/github.com/mongodb/mongo-tools
-    - command: git.apply_patch
-      params:
-        directory: src/github.com/mongodb/mongo-tools
-    - command: shell.exec
-      params:
-        script: |
-          set -e
-          set -v
-          set -x
-          mkdir -p src/github.com/mongodb/mongo-tools/bin
-
-  f_fetch_source_and_mongosync:
-    - command: shell.exec
-      params:
-        script: |
-          set -e
-          set -v
-          set -x
-          mkdir -p src/github.com/mongodb
-    - command: git.get_project
-      params:
-        directory: src/github.com/mongodb/mongo-tools
-      revisions:
-        mongosync: *_mongosync_pin
-    - command: git.apply_patch
-      params:
-        directory: src/github.com/mongodb/mongo-tools
-    - command: shell.exec
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -e
-          set -v
-          set -x
-          mkdir -p bin
-          # Create symbolic link mongo-tools/mongosync
-          ln -s ${workdir}/src/mongosync .
-          # Set up mise and tools for mongosync 
-          cd mongosync 
-          mise install
-          # Set up the suite directories for mongodump
-          mv resmoke/suite-config resmoke/mongosync-suite-config
-          mv resmoke/mongodump-suite-config resmoke/suite-config
-  
-  f_generate_mongodump_evergreen_tasks:
-    # Note: This assumes you've already called "f_fetch_source_and_mongosync",
-    # because you can't call a function from another function.
-    - command: shell.exec
-      params:
+        shell: bash
         working_dir: src/mongosync
         script: |
-          ${PREPARE_SHELL}
-          set -e
-          set -v
-          set -x
-          export aws_key=${aws_key}
-          export aws_secret=${aws_secret}
-          mise exec -- go run ./cmd/mongodump-task-gen ${generator_args} | tee ${json_filename}
-    - command: generate.tasks
-      params:
-        files:
-          - ${json_filename}
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
 
-  f_mongodump_binary_upload:
-    - command: archive.targz_pack
+          ${PREPARE_SHELL}
+
+          mise exec -- go run mage.go deps:WriteThirdPartyNotices
+          git diff --exit-code
+
+  "check evergreen config is up to date":
+    - command: shell.exec
+      type: test
       params:
-        target: ${binary_name}.tgz
-        source_dir: "src/github.com/mongodb/"
-        include:
-          - "./bin/*"
-    - command: s3.put
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          mise install
+          mise exec -- go run ./cmd/evergreen-generator
+          git diff --exit-code
+
+  "install podman on ubuntu":
+    - command: shell.exec
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: ${binary_name}.tgz
-        remote_file: mongo-tools/${build_variant}/${revision}/${version_id}/${binary_name}/${version_id}.tgz
-        bucket: mciuploads
-        permissions: public-read
-        content_type: application/tar
-        display_name: ${binary_name}
+        shell: bash
+        working_dir: .
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+  f_repo_with_modules_fetch:
+    - command: git.get_project
+      params:
+        directory: src/mongosync
+        revisions:
+          migration-verifier: *_migration_verifier_pin
+
+  f_expansions_write:
+    - *f_expansions_write
+
+  f_generate_github_access_token:
+    - *f_generate_github_access_token
+
+  "configure evergreen api credentials": &f_evergreen_credentials_setup
+    command: subprocess.exec
+    params:
+      binary: "./src/mongosync/evergreen/evergreen_credentials_setup.sh"
+      add_expansions_to_env: true
 
   # Function used to download Resmoke and compiled mongo* binaries from the server project.
   f_resmoke_and_binaries_download:
     - *f_evergreen_credentials_setup
     - command: subprocess.exec
       params:
-        binary: bash
-        args:
-          - "./src/mongosync/evergreen/resmoke_and_binaries_download.sh"
+        binary: "./src/mongosync/evergreen/resmoke_and_binaries_download.sh"
         add_expansions_to_env: true
-  
+
+  f_resmoke_wheelhouse_setup:
+    - *f_resmoke_wheelhouse_setup
+
   f_resmoke_archive:
     - command: archive.targz_pack
       params:
@@ -170,8 +334,9 @@ functions:
         bucket: mciuploads
         permissions: private
         visibility: signed
-        content_type: application/tar
+        content_type: application/gzip
         display_name: resmoke-with-binaries
+
     - command: archive.targz_pack
       params:
         target: resmoke-python-wheelhouse.tgz
@@ -188,14 +353,521 @@ functions:
         bucket: mciuploads
         permissions: private
         visibility: signed
-        content_type: application/tar
+        content_type: application/gzip
         display_name: resmoke-python-wheelhouse
-  
-  f_resmoke_wheelhouse_setup:
-    command: subprocess.exec
-    params:
-      binary: bash
-      args:
-        - "./src/mongosync/evergreen/resmoke_wheelhouse_setup.sh"
-      add_expansions_to_env: true
 
+  f_migration_verifier_compile_and_upload:
+    &f_migration_verifier_compile_and_upload # Compile the migration-verifier:
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/migration-verifier
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          # XXX - Since mise is scoped to the Mongosync repo root, we cannot easily use it to build things
+          # outside that root. It'd be nice if the migration-verifier also used mise too, but for now this
+          # works okay.
+          PATH=$PATH:$HOME:/opt/golang/go1.23/bin
+          GOROOT=/opt/golang/go1.23
+          ./build.sh
+    # upload the compiled verifier to S3.
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/migration-verifier/migration_verifier
+        remote_file: mongosync/${build_variant}/${revision}/${version_id}/migration_verifier
+        content_type: application/x-executable
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "migration_verifier release artifact (compiled)"
+
+  f_migration_verifier_binary_fetch:
+    - *f_migration_verifier_binary_fetch
+
+  f_make_migration_verifier_binary_executable:
+    - *f_make_migration_verifier_binary_executable
+
+  f_mongosync_binary_upload: &f_mongosync_binary_upload
+    - command: archive.targz_pack
+      params:
+        target: ${mongosync_binary_folder}.tgz
+        source_dir: "src/mongosync"
+        include:
+          - "./dist/*"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ${mongosync_binary_folder}.tgz
+        remote_file: mongosync/${build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: ${mongosync_binary_folder}
+
+  f_mongosync_heap_data_upload: &f_mongosync_heap_data_upload
+    - command: archive.targz_pack
+      params:
+        target: mongosync-heap-data.tgz
+        source_dir: "src/mongosync"
+        include:
+          - "./internal/mongosync/integration/*.heap"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosync-heap-data.tgz
+        remote_file: mongosync/${build_variant}/${revision}/${version_id}/mongosync-heap-data/${version_id}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: mongosync-heap-data
+
+  "passthrough setup":
+    - *f_repo_fetch
+    - *f_resmoke_with_binaries_fetch
+    - *f_resmoke_wheelhouse_fetch
+    - *f_mongosync_binary_fetch
+    - *get_buildnumber
+    - *f_set_up_logger_credentials
+
+  "generate resmoke tasks":
+    - *f_expansions_write
+    - *f_evergreen_credentials_setup
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "./src/mongosync/evergreen/gen_tasks_activate.sh"
+        add_expansions_to_env: true
+
+  "run tests":
+    - command: expansions.update
+      params:
+        updates:
+          - key: aws_key_remote
+            value: ${mongodatafiles_aws_key}
+          - key: aws_profile_remote
+            value: mongodata_aws
+          - key: aws_secret_remote
+            value: ${mongodatafiles_aws_secret}
+    - *f_expansions_write
+    - *set_up_archive_credentials
+    - *f_resmoke_jobs_determine
+    - *f_resmoke_jobs_expansion_update
+    - *f_resmoke_tests_execute
+    - *f_infrastructure_failure_check
+
+  f_resmoke_report_attach:
+    - command: attach.results
+      params:
+        file_location: src/resmoke/report.json
+
+  f_gotest_report:
+    - command: gotest.parse_files
+      params:
+        files:
+          - "src/mongosync/*.suite"
+
+  f_mongo_coredumps_save:
+    - command: subprocess.exec
+      params:
+        binary: "./src/mongosync/evergreen/mongo_coredumps_gather.sh"
+        add_expansions_to_env: true
+    - command: archive.targz_pack
+      params:
+        target: mongo-coredumps.tgz
+        source_dir: *_resmoke_dir
+        include:
+          - "./**.core"
+          - "./**.mdmp" # Windows: minidumps
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongo-coredumps.tgz
+        remote_file: mongosync/${build_variant}/${revision}/coredumps/mongo-coredumps-${build_id}-${task_name}-${execution}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: Core Dumps - Execution ${execution}
+        optional: true
+
+  "attach artifacts":
+    - command: attach.artifacts
+      params:
+        optional: true
+        files:
+          - src/resmoke/archive.json
+          - src/resmoke/archive-job*.json
+
+    - command: archive.targz_pack
+      params:
+        target: server-logs.tgz
+        source_dir: "src/mongosync/mongosync-testing-server-logs"
+        include:
+          - "./**"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: server-logs.tgz
+        remote_file: mongosync/${build_variant}/${revision}/mongo-logs/mongo-logs-${build_id}-${task_name}-${execution}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: Integration Test mongod / mongos logs ${execution}
+        optional: true
+
+    - command: archive.targz_pack
+      params:
+        target: mongo-orchestration-logs.tgz
+        source_dir: "src/mongosync"
+        include:
+          - "out.log"
+          - "server.log"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongo-orchestration-logs.tgz
+        remote_file: mongosync/${build_variant}/${revision}/mongo-orchestration-logs/mongo-orchestration-logs.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: mongo-orchestration logs
+        optional: true
+
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - src/mongosync/*.suite
+        remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/${execution}/go-test-logs/
+        bucket: mciuploads
+        permissions: public-read
+        content_type: text/plain
+        display_name: "Output from `go test` command"
+
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/mongosync/server-binaries.tgz
+        remote_file: mongosync/${build_variant}/${revision}/mongo-binaries/mongo-binaries-${build_id}-${task_name}-${execution}.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: Failed Integration Test mongod / mongos binaries ${execution}
+        optional: true
+
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - src/mongosync/mongosync-testing-server-data-files/archive/*.tgz
+        remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/datafiles/
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: Failed Integration Test Data Files ${execution}
+
+    - command: archive.targz_pack
+      params:
+        target: coverage.gz
+        source_dir: "src/mongosync/coverage"
+        include:
+          - "./**"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: coverage.gz
+        remote_file: mongosync/${build_variant}/${revision}/coverage/${task_name}/coverage.gz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: Coverage statistics
+
+  "setup jstestfuzz":
+    - *f_expansions_write
+    - command: github.generate_token
+      params:
+        owner: 10gen
+        repo: jstestfuzz
+        expansion_name: generated_token_jstestfuzz
+        permissions:
+          contents: read
+    - command: subprocess.exec
+      params:
+        binary: "./src/mongosync/evergreen/setup_jstestfuzz.sh"
+        add_expansions_to_env: true
+
+  "run jstestfuzz":
+    - *f_expansions_write
+    - *f_generate_github_access_token
+    - command: github.generate_token
+      params:
+        owner: 10gen
+        repo: qa
+        expansion_name: generated_token_qa
+        permissions:
+          contents: read
+    - command: subprocess.exec
+      params:
+        binary: "./src/mongosync/evergreen/clone_jstestfuzz_jstest_repos.sh"
+        add_expansions_to_env: true
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "./src/mongosync/evergreen/run_jstestfuzz.sh"
+        add_expansions_to_env: true
+    - command: archive.targz_pack
+      params:
+        target: "jstests.tgz"
+        source_dir: "src/jstestfuzz"
+        include:
+          - "out/*.js"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: jstests.tgz
+        remote_file: mongosync/${build_variant}/${revision}/jstestfuzz/${task_id}-${execution}.tgz
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: application/gzip
+        display_name: JS Fuzz Tests - Execution ${execution}
+
+  "minimize jstestfuzz":
+    - *f_expansions_write
+    - command: subprocess.exec
+      type: test
+      params:
+        binary: "./src/mongosync/evergreen/minimize_jstestfuzz.sh"
+    - command: s3.put
+      params:
+        optional: true
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/minimizer-outputs.json
+        remote_file: mongosync/${build_variant}/${revision}/artifacts/minimizer-outputs-${build_id}.json
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: application/json
+        display_name: Minimizer Outputs - Execution ${execution}
+    - command: s3.put
+      params:
+        optional: true
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/jstestfuzz/out/minimizer-outputs-minimizedtest.js
+        remote_file: mongosync/${build_variant}/${revision}/artifacts/minimizer-outputs-minimizedtest-${build_id}.js
+        bucket: mciuploads
+        permissions: private
+        visibility: signed
+        content_type: text/javascript
+        display_name: Minimized jstestfuzz Test - Execution ${execution}
+
+  "sign macos zip":
+    - command: subprocess.exec
+      params:
+        binary: "./evergreen/sign_macos_zip.sh"
+        working_dir: src/mongosync
+        add_expansions_to_env: true
+
+  "sign archives":
+    - command: subprocess.exec
+      params:
+        working_dir: src/mongosync
+        binary: "./evergreen/sign.sh"
+        env:
+          MONGO_OS: ${mongo_os}
+          ARTIFACTORY_PASSWORD: ${artifactory_password}
+          ARTIFACTORY_USERNAME: ${artifactory_username}
+          GARASIGN_PASSWORD: ${garasign_password}
+          GARASIGN_USERNAME: ${garasign_username}
+
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - src/mongosync/release.*
+        remote_file: mongosync/pkgs/${build_id}/
+        content_type: application/octet-stream
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Release Artifact Beta - "
+
+    # pack all release artifacts into a tarball and upload them to one
+    # place so that they can be more easily downloaded by the sign task
+    - command: archive.targz_pack
+      params:
+        target: src/mongosync/upload.tgz
+        source_dir: src/mongosync
+        include:
+          - "./release.*"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/mongosync/upload.tgz
+        remote_file: mongosync/task/dist/${build_id}/all-release-artifacts-beta.tgz
+        content_type: application/gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: All Release Artifacts Beta (.tgz)
+
+  "run js tests with jest":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          PATH=$PATH:$HOME
+          # Some files under "resmoke/jstests" expect the Server's "jstests" directory to be at the
+          # repo root. These files are loading JS files from that directory.
+          ln -s ../mongo/jstests jstests
+          mise install
+          mise exec -- npm run test -- resmoke
+
+  # As of this writing, the images don’t provide a recent enough node.js
+  # to install mongosh. So we install it via downloading.
+  "install mongosh on Linux":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          sudo mkdir -p /mongosh-2.2.3
+          export MSTEST_ARCH=$(
+              [ $(uname -m) = "aarch64" ] && echo "arm64" || \
+              [ $(uname -m) = "x86_64" ] && echo "x64" || \
+              uname -m
+          )
+          curl --location --fail https://downloads.mongodb.com/compass/mongosh-2.2.3-linux-$MSTEST_ARCH.tgz | \
+              sudo tar -xvzf - --directory /mongosh-2.2.3 --transform "s,.*$MSTEST_ARCH/,," && \
+              sudo chmod +x /mongosh-2.2.3/bin/mongosh
+
+  "run js tests with mongosh":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          mise install
+          export PATH=/mongosh-2.2.3/bin:$PATH
+          export MONGODB_URL=$(jq --raw-output '.SrcCluster.ConnString' test_clusters.json)
+          mise exec -- npm run shell-test
+
+  "generate evergreen tasks":
+    # Note: This assumes you've already called "fetch source and install go", because you can't call
+    # a function from another function.
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/mongosync
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          ${PREPARE_SHELL}
+
+          export aws_key=${aws_key}
+          export aws_secret=${aws_secret}
+          mise exec -- go run ./cmd/task-generator ${generator_args} | tee ${json_filename}
+    - command: generate.tasks
+      params:
+        files:
+          - ${json_filename}
+
+  "fetch ycsb":
+    - command: subprocess.exec
+      params:
+        working_dir: src/mongosync
+        binary: "./evergreen/download_ycsb.sh"
+  # This function keeps track of the number of YCSB test generations that have run using a file on s3.
+  "set and update ycsb counter":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosync/ycsb-test-count.yml
+        bucket: mciuploads
+        local_file: ycsb-test-count.yml
+    - command: expansions.update
+      params:
+        file: ycsb-test-count.yml
+    - command: shell.exec
+      params:
+        shell: bash
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o xtrace
+
+          echo "MONGOSYNC_YCSB_COUNTER: $((${MONGOSYNC_YCSB_COUNTER}+1))" | tee ycsb-test-count.yml
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ycsb-test-count.yml
+        remote_file: mongosync/ycsb-test-count.yml
+        bucket: mciuploads
+        permissions: public-read-write
+        content_type: application/yaml
+        display_name: "YCSB test counter"
+
+  "run hang analyzer":
+    - *f_expansions_write
+    - command: subprocess.exec
+      display_name: "hang analyzer sh"
+      params:
+        binary: "./src/mongosync/evergreen/hang_analyzer.sh"
+        add_expansions_to_env: true
+
+  "wait for resmoke to shutdown":
+    - command: subprocess.exec
+      display_name: "wait for resmoke to shutdown"
+      params:
+        binary: "./src/mongosync/evergreen/wait_for_resmoke_to_shutdown.sh"
+
+  "coveralls upload report":
+    - command: shell.exec
+      params:
+        working_dir: src/mongosync
+        script: |
+          ${PREPARE_SHELL}
+          mise exec -- go tool covdata textfmt -i=${covdata_path} -o="coverage.lcov"
+    - command: shell.exec
+      params:
+        working_dir: src/mongosync
+        script: |
+          coveralls report coverage.lcov --build-number ${version_id} --repo-token ${coveralls_repo_token}
