@@ -1,10 +1,10 @@
 # Copied from mongosync/evergreen, with slight changes.
 
 variables:
-  _migration_verifier_pin: &_migration_verifier_pin 9348607d61c4c865287828ce78b798a0f1b1cb89
-  _mongosync_pin: &_mongosync_pin "9dd9cd22562acb983ded688c5141794287c49144"  
+  _migration_verifier_pin: &_migration_verifier_pin "9348607d61c4c865287828ce78b798a0f1b1cb89"
+  _mongosync_pin: &_mongosync_pin "9dd9cd22562acb983ded688c5141794287c49144"
   _resmoke_dir: &_resmoke_dir "src/resmoke"
-  _src_dir: &src_dir src/mongosync
+  _src_dir: &src_dir "src/mongosync"
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
@@ -44,7 +44,7 @@ variables:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      remote_file: mongosync/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
+      remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
       bucket: mciuploads
       extract_to: *_resmoke_dir
 
@@ -53,7 +53,7 @@ variables:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      remote_file: mongosync/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
+      remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
       bucket: mciuploads
       extract_to: "."
 
@@ -62,7 +62,7 @@ variables:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      remote_file: mongosync/${mongosync_compile_build_variant}/${revision}/${version_id}/migration_verifier
+      remote_file: mongo-tools/mongodump_passthrough/${mongosync_compile_build_variant}/${revision}/${version_id}/migration_verifier
       bucket: mciuploads
       local_file: src/mongosync/migration_verifier
 
@@ -84,7 +84,7 @@ variables:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      remote_file: mongosync/${mongosync_compile_build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
+      remote_file: mongo-tools/mongodump_passthrough/${mongosync_compile_build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
       bucket: mciuploads
       extract_to: "src/mongosync"
 
@@ -147,6 +147,7 @@ variables:
       destination: "builder_num"
 
 functions:
+
   "fetch source and install go":
     # This clones mongo-tools and mongosync.
     - command: git.get_project
@@ -155,6 +156,12 @@ functions:
         revisions:
           mongosync: *_mongosync_pin
           migration-verifier: *_migration_verifier_pin
+    - *f_link_to_mongo_tools
+    - command: shell.exec
+      params:
+        shell: bash
+        script: |
+          ls -l src
     # Make an evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
@@ -360,7 +367,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: resmoke-with-binaries.tgz
-        remote_file: mongosync/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
         bucket: mciuploads
         permissions: private
         visibility: signed
@@ -379,7 +386,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: resmoke-python-wheelhouse.tgz
-        remote_file: mongosync/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
         bucket: mciuploads
         permissions: private
         visibility: signed
@@ -411,7 +418,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/migration-verifier/migration_verifier
-        remote_file: mongosync/${build_variant}/${revision}/${version_id}/migration_verifier
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${version_id}/migration_verifier
         content_type: application/x-executable
         bucket: mciuploads
         permissions: public-read
@@ -435,7 +442,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: ${mongosync_binary_folder}.tgz
-        remote_file: mongosync/${build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -453,7 +460,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosync-heap-data.tgz
-        remote_file: mongosync/${build_variant}/${revision}/${version_id}/mongosync-heap-data/${version_id}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${version_id}/mongosync-heap-data/${version_id}.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -522,7 +529,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongo-coredumps.tgz
-        remote_file: mongosync/${build_variant}/${revision}/coredumps/mongo-coredumps-${build_id}-${task_name}-${execution}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/coredumps/mongo-coredumps-${build_id}-${task_name}-${execution}.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -548,7 +555,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: server-logs.tgz
-        remote_file: mongosync/${build_variant}/${revision}/mongo-logs/mongo-logs-${build_id}-${task_name}-${execution}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/mongo-logs/mongo-logs-${build_id}-${task_name}-${execution}.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -567,7 +574,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongo-orchestration-logs.tgz
-        remote_file: mongosync/${build_variant}/${revision}/mongo-orchestration-logs/mongo-orchestration-logs.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/mongo-orchestration-logs/mongo-orchestration-logs.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -580,7 +587,7 @@ functions:
         aws_secret: ${aws_secret}
         local_files_include_filter:
           - src/mongosync/*.suite
-        remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/${execution}/go-test-logs/
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${build_id}/${task_name}/${execution}/go-test-logs/
         bucket: mciuploads
         permissions: public-read
         content_type: text/plain
@@ -591,7 +598,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/mongosync/server-binaries.tgz
-        remote_file: mongosync/${build_variant}/${revision}/mongo-binaries/mongo-binaries-${build_id}-${task_name}-${execution}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/mongo-binaries/mongo-binaries-${build_id}-${task_name}-${execution}.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -604,7 +611,7 @@ functions:
         aws_secret: ${aws_secret}
         local_files_include_filter:
           - src/mongosync/mongosync-testing-server-data-files/archive/*.tgz
-        remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/datafiles/
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${build_id}/${task_name}/datafiles/
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -621,7 +628,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: coverage.gz
-        remote_file: mongosync/${build_variant}/${revision}/coverage/${task_name}/coverage.gz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/coverage/${task_name}/coverage.gz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
@@ -671,7 +678,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: jstests.tgz
-        remote_file: mongosync/${build_variant}/${revision}/jstestfuzz/${task_id}-${execution}.tgz
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/jstestfuzz/${task_id}-${execution}.tgz
         bucket: mciuploads
         permissions: private
         visibility: signed
@@ -690,7 +697,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/minimizer-outputs.json
-        remote_file: mongosync/${build_variant}/${revision}/artifacts/minimizer-outputs-${build_id}.json
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/artifacts/minimizer-outputs-${build_id}.json
         bucket: mciuploads
         permissions: private
         visibility: signed
@@ -702,7 +709,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/jstestfuzz/out/minimizer-outputs-minimizedtest.js
-        remote_file: mongosync/${build_variant}/${revision}/artifacts/minimizer-outputs-minimizedtest-${build_id}.js
+        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/artifacts/minimizer-outputs-minimizedtest-${build_id}.js
         bucket: mciuploads
         permissions: private
         visibility: signed
@@ -734,7 +741,7 @@ functions:
         aws_secret: ${aws_secret}
         local_files_include_filter:
           - src/mongosync/release.*
-        remote_file: mongosync/pkgs/${build_id}/
+        remote_file: mongo-tools/mongodump_passthrough/pkgs/${build_id}/
         content_type: application/octet-stream
         bucket: mciuploads
         permissions: public-read
@@ -753,7 +760,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/mongosync/upload.tgz
-        remote_file: mongosync/task/dist/${build_id}/all-release-artifacts-beta.tgz
+        remote_file: mongo-tools/mongodump_passthrough/task/dist/${build_id}/all-release-artifacts-beta.tgz
         content_type: application/gzip
         bucket: mciuploads
         permissions: public-read
