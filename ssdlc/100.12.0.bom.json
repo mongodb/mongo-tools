@@ -586,19 +586,6 @@
       "version": "v1.0.1"
     },
     {
-      "bom-ref": "pkg:golang/github.com/mongodb/mongo-tools",
-      "externalReferences": [
-        {
-          "type": "website",
-          "url": "https://pkg.go.dev/github.com/mongodb/mongo-tools"
-        }
-      ],
-      "group": "github.com/mongodb",
-      "name": "mongo-tools",
-      "purl": "pkg:golang/github.com/mongodb/mongo-tools",
-      "type": "library"
-    },
-    {
       "bom-ref": "pkg:golang/github.com/montanaflynn/stats@v0.7.1",
       "externalReferences": [
         {
@@ -1375,9 +1362,6 @@
       "ref": "pkg:golang/github.com/mitchellh/go-wordwrap@v1.0.1"
     },
     {
-      "ref": "pkg:golang/github.com/mongodb/mongo-tools"
-    },
-    {
       "ref": "pkg:golang/github.com/montanaflynn/stats@v0.7.1"
     },
     {
@@ -1469,7 +1453,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-03-31T21:02:00.179239+00:00",
+    "timestamp": "2025-04-04T15:59:36.025190+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1513,7 +1497,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 26,
+  "version": 27,
   "vulnerabilities": [
     {
       "affects": [
@@ -1522,7 +1506,8 @@
         }
       ],
       "analysis": {
-        "state": "in_triage"
+        "detail": "[justification value]",
+        "state": "false_positive"
       },
       "bom-ref": "679943c11241b228cf6f5d95",
       "cwes": [
