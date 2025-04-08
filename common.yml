@@ -6,6 +6,7 @@ include:
   - filename: "mongodump_passthrough/modules.yml"
   - filename: "mongodump_passthrough/functions.yml"
   - filename: "mongodump_passthrough/tasks.yml"
+  - filename: "mongodump_passthrough/variants.yml"
 
 #######################################
 #    Tools Driver Config for MCI      #

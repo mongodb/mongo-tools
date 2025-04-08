@@ -786,7 +786,7 @@ functions:
           export MONGODB_URL=$(jq --raw-output '.SrcCluster.ConnString' test_clusters.json)
           mise exec -- npm run shell-test
 
-  "generate evergreen tasks":
+  "generate mongodump evergreen tasks":
     # Note: This assumes you've already called "fetch source and install go", because you can't call
     # a function from another function.
     - command: shell.exec
@@ -802,48 +802,11 @@ functions:
 
           export aws_key=${aws_key}
           export aws_secret=${aws_secret}
-          mise exec -- go run ./cmd/task-generator ${generator_args} | tee ${json_filename}
+          mise exec -- go run ./cmd/mongodump-task-gen ${generator_args} | tee ${json_filename}
     - command: generate.tasks
       params:
         files:
           - ${json_filename}
-
-  "fetch ycsb":
-    - command: subprocess.exec
-      params:
-        working_dir: src/mongosync
-        binary: "./evergreen/download_ycsb.sh"
-  # This function keeps track of the number of YCSB test generations that have run using a file on s3.
-  "set and update ycsb counter":
-    - command: s3.get
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        remote_file: mongosync/ycsb-test-count.yml
-        bucket: mciuploads
-        local_file: ycsb-test-count.yml
-    - command: expansions.update
-      params:
-        file: ycsb-test-count.yml
-    - command: shell.exec
-      params:
-        shell: bash
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o xtrace
-
-          echo "MONGOSYNC_YCSB_COUNTER: $((${MONGOSYNC_YCSB_COUNTER}+1))" | tee ycsb-test-count.yml
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: ycsb-test-count.yml
-        remote_file: mongosync/ycsb-test-count.yml
-        bucket: mciuploads
-        permissions: public-read-write
-        content_type: application/yaml
-        display_name: "YCSB test counter"
 
   "run hang analyzer":
     - *f_expansions_write
