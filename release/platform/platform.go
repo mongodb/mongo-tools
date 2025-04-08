@@ -483,6 +483,16 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
+		// Same variant name as mongosync passthrough tests to minimize
+		// difference in mongodump-task-gen for mongodump passthrough tests.
+		Name:      "rhel80",
+		Arch:      ArchAarch64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
 		Name:      "rhel81",
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,

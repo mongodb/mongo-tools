@@ -219,7 +219,7 @@ functions:
           ${PREPARE_SHELL}
           PATH=$PATH:$HOME
           echo $PATH 
-          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ../mongosync/etc/mise.run.sh
+          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ${workdir}/src/mongosync/etc/mise.run.sh
           mise settings experimental=true
           mise activate --shims
           PATH=$HOME/.local/share/mise/shims:$PATH
