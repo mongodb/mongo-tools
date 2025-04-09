@@ -1,5 +1,10 @@
 # Copied from mongosync/evergreen, with changes to fit in mongo-tools.
 
+# Tasks which differ from mongosync/evergreen/functions.yml are
+# marked as
+#   either: "Added for mongodump_passthrough" 
+#   or:     "Changed for mongodump_passthrough"
+
 variables:
   _modules: &_modules
     - migration-verifier
@@ -21,10 +26,10 @@ tasks:
     tags: ["git_tag"]
     commands:
       - func: "fetch source and install go"
-      - func: "run mage target"
-        vars:
-          target: build
-          MONGOSYNC_TEST_COVERAGE: "true"
+      #- func: "run mage target"
+      #  vars:
+      #    target: build
+      #    MONGOSYNC_TEST_COVERAGE: "true"
       - func: "build mongodump and mongorestore"
       - func: f_mongosync_binary_upload
         vars:
@@ -46,7 +51,7 @@ tasks:
       - func: f_resmoke_archive
 
   # This task is meant for use in patches; you can run the generator, save the
-  # file to evergreen/manual-tasks.json, then run this task using evergreen patch.
+  # file to mongo-tools/manual-tasks.json, then run this task using evergreen patch.
   - name: run_manual_generated_tasks
     tags: ["mongodump_passthrough_task_generator"]
     commands:
@@ -54,7 +59,7 @@ tasks:
       - command: generate.tasks
         params:
           files:
-            - src/mongosync/evergreen/manual-tasks.json
+            - src/github.com/mongodb/mongo-tools/manual-tasks.json
 
   - name: generate_mongodump_resmoke_build_variants
     tags: ["mongodump_passthrough_task_generator"]
