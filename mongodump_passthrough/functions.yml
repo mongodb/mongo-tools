@@ -2,7 +2,7 @@
 
 variables:
   _migration_verifier_pin: &_migration_verifier_pin "9348607d61c4c865287828ce78b798a0f1b1cb89"
-  _mongosync_pin: &_mongosync_pin "9dd9cd22562acb983ded688c5141794287c49144"
+  _mongosync_pin: &_mongosync_pin "be82575fb9cd9a25f051ff324e22997a4a3525af"
   _resmoke_dir: &_resmoke_dir "src/resmoke"
   _src_dir: &src_dir "src/mongosync"
 
@@ -324,6 +324,23 @@ functions:
           migration-verifier: *_migration_verifier_pin
           mongosync: *_mongosync_pin
 
+  # Under src/mongosync/resmoke we have separate directories suite-config
+  # and mongodump-suite-config. To run mongodump passthrough tests we delete
+  # mongosync-related suites directories and copy the mongodump_suite-config.
+  f_enable_mongodump_suite_config: &f_enable_mongodump_suite_config
+    command: shell.exec
+    params:
+      shell: bash
+      working_dir: src/mongosync/resmoke
+      script: |
+        set -o xtrace
+
+        find suite-config -name "suites" -exec rm -rf {} \;
+        cd mongodump-suite-config
+        tar cvf ../suite-config/a.tar .
+        cd ../suite-config
+        tar xvf a.tar
+
   f_expansions_write:
     - *f_expansions_write
 
@@ -333,7 +350,10 @@ functions:
   "configure evergreen api credentials": &f_evergreen_credentials_setup
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/evergreen_credentials_setup.sh"
+      binary: "./src/github.com/mongodb/mongo-tools/mongodump_passthrough/evergreen_credentials_setup.sh"
+      env:
+        evergreen_api_key: ${evergreen_api_key}
+        evergreen_api_user: ${evergreen_api_user}
       add_expansions_to_env: true
 
   # Function used to download Resmoke and compiled mongo* binaries from the server project.
@@ -469,6 +489,7 @@ functions:
   "passthrough setup":
     - *f_repo_fetch
     - *f_link_to_mongo_tools
+    - *f_enable_mongodump_suite_config
     - *f_resmoke_with_binaries_fetch
     - *f_resmoke_wheelhouse_fetch
     - *f_mongosync_binary_fetch

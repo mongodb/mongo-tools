@@ -1,9 +1,5 @@
 #!/bin/bash
 
-set -o errexit
-set -o pipefail
-set -o xtrace
-
 # These credentials are used allow the archiver to upload data files produced in the
 # passthroughs, etc. to AWS.
 

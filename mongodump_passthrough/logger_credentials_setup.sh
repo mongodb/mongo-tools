@@ -1,8 +1,7 @@
 #!/bin/bash
 
 set -o errexit
-set -o pipefail
-set -o xtrace
+set -o verbose
 
 echo "The current pwd: $(pwd)"
 cd src/resmoke

@@ -1,8 +1,10 @@
 #!/bin/bash
 
 set -o errexit
-set -o pipefail
-set -o xtrace
+set -o verbose
+
+evergreen_api_key=823845634ee1a616b7702cc1e24df96e
+evergreen_api_user=richard.cownie
 
 # Create the Evergreen API credentials
 # shellcheck disable=SC2154
@@ -11,3 +13,6 @@ api_server_host: https://evergreen.mongodb.com/api
 api_key: "$evergreen_api_key"
 user: "$evergreen_api_user"
 END_OF_CREDS
+
+cp .evergreen.yml src/mongosync
+
