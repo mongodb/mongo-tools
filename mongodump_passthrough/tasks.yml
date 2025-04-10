@@ -26,10 +26,8 @@ tasks:
     tags: ["git_tag"]
     commands:
       - func: "fetch source and install go"
-      #- func: "run mage target"
-      #  vars:
-      #    target: build
-      #    MONGOSYNC_TEST_COVERAGE: "true"
+      # We don't need to build any mongosync binaries, but we put mongodump
+      # and mongorestore in the src/mongosync/dist and upload that dir.
       - func: "build mongodump and mongorestore"
       - func: f_mongosync_binary_upload
         vars:
@@ -63,9 +61,6 @@ tasks:
 
   - name: generate_mongodump_resmoke_build_variants
     tags: ["mongodump_passthrough_task_generator"]
-    depends_on:
-      - name: compile_coverage
-        variant: rhel80
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
@@ -77,6 +72,8 @@ tasks:
     tags: ["mongodump_passthrough_task_generator"]
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
+      - name: compile_coverage
+        variant: rhel80
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
@@ -88,6 +85,8 @@ tasks:
     tags: ["mongodump_passthrough_task_generator"]
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
+      - name: compile_coverage
+        variant: rhel80
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
@@ -99,6 +98,8 @@ tasks:
     tags: ["mongodump_passthrough_task_generator"]
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
+      - name: compile_coverage
+        variant: rhel80
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
