@@ -118,7 +118,7 @@ func DetectLocal() (Platform, error) {
 	kernelName := pieces[0]
 	archName := Arch(pieces[1])
 
-	if strings.HasPrefix(kernelName, "CYGWIN") || strings.HasPrefix(kernelName, "MSYS_NT") {
+	if strings.HasPrefix(kernelName, "CYGWIN") || strings.HasPrefix(kernelName, "MSYS_NT") || strings.HasPrefix(kernelName, "MINGW64_NT") {
 		pf, ok := GetByVariant("windows")
 		if !ok {
 			panic("windows platform name changed")
