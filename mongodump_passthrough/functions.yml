@@ -303,12 +303,11 @@ functions:
   "configure evergreen api credentials": &f_evergreen_credentials_setup
     command: subprocess.exec
     params:
-      # This file is a temporary kludge until the mongo-tools evergreen project has its
-      # own private variables for ${evergreen_api_key} and ${evergreen_api_user}.
+      # The evergreen project variables in mongo-tools are ${evg_key} and ${evg_user}.
       binary: "./src/github.com/mongodb/mongo-tools/mongodump_passthrough/evergreen_credentials_setup.sh"
       env:
-        evergreen_api_key: ${evergreen_api_key}
-        evergreen_api_user: ${evergreen_api_user}
+        evergreen_api_key: ${evg_key}
+        evergreen_api_user: ${evg_user}
       add_expansions_to_env: true
 
   # Function used to download Resmoke and compiled mongo* binaries from the server project.
