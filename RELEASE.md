@@ -311,10 +311,3 @@ Copy your entry from CHANGELOG.md and post it to the
 [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools)
 in the "Developer Tools" section with the tag `database-tools`. Also post it in the #mongo-tools
 slack channel to announce it internally.
-
-#### Create a New SSDLC Compliance Report for the Release
-
-The report template is at `ssdlc/ssdlc-compliance-report-template.md`. Copy this to a new file
-containing the tag that was released. The name should follow the pattern of
-`ssdlc-compliance-report.$tag.md`. There are various variables in this template. Search for `$` to
-find them. Replace them with the correct values as appropriate.
