@@ -17,7 +17,7 @@ variables:
   _resmoke_dir: &_resmoke_dir "src/resmoke"
   _src_dir: &src_dir src/mongosync
   # Added for mongodump_passthrough
-  _mongosync_pin: &_mongosync_pin 6b18a97da5aa5a3ede27a2376a1d5c20dcaf986e
+  _mongosync_pin: &_mongosync_pin 7f661ae42fb3d03a813c08654283ca51ff8e25f7
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
@@ -97,6 +97,9 @@ variables:
 
         chmod +x migration_verifier
 
+  # This fetches the contents copied from mongosync/dist
+  # We keep the same function name as in mongosync evergreen, but here that
+  # directory contains the mongodump and mongorestore binaries.
   f_mongosync_binary_fetch: &f_mongosync_binary_fetch
     command: s3.get
     params:
@@ -204,8 +207,9 @@ functions:
           set -o xtrace
 
           ${PREPARE_SHELL}
+          source "./etc/functions.sh"
 
-          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ./etc/mise.run.sh
+          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' retry sh ./etc/mise.run.sh
           mise settings experimental=true
           # We only install Go here in order to get the system to a state where we can run mage. If
           # more dev tools are needed, those tasks should run "mise install".
@@ -504,12 +508,6 @@ functions:
       params:
         file_location: src/resmoke/report.json
 
-  f_gotest_report:
-    - command: gotest.parse_files
-      params:
-        files:
-          - "src/mongosync/*.suite"
-
   f_mongo_coredumps_save:
     - command: subprocess.exec
       params:
@@ -744,14 +742,6 @@ functions:
       params:
         files:
           - ${json_filename}
-
-  "run hang analyzer":
-    - *f_expansions_write
-    - command: subprocess.exec
-      display_name: "hang analyzer sh"
-      params:
-        binary: "./src/mongosync/evergreen/hang_analyzer.sh"
-        add_expansions_to_env: true
 
   "wait for resmoke to shutdown":
     - command: subprocess.exec
