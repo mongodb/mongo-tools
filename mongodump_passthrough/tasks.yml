@@ -113,7 +113,7 @@ tasks:
           generator_args: "mongodump_jstestfuzz"
           json_filename: mongodump_fuzz_tasks.json
 
-  - name: suites-up-to-date
+  - name: mongodump_suites_up_to_date
     commands:
       - func: "fetch source and install go"
       - command: shell.exec
@@ -123,7 +123,6 @@ tasks:
           script: |
             ${PREPARE_SHELL}
             set -ex
-            rm resmoke/mongodump-suite-config/*/suites/*
-            mise install
+            mise install go
             mise exec -- go run ./cmd/mongodump-suite-gen/cmd write --all --quiet
             git diff --name-status --exit-code resmoke/mongodump-suite-config/*/suites

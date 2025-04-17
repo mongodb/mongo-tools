@@ -197,6 +197,8 @@ functions:
     - command: expansions.update
       params:
         file: src/mongosync/mongosync_expansion.yml
+    # Tasks/functions that use the mongosync sources should use the same
+    # mise-installed tools as when running from mongo-tools evergreen.
     - command: shell.exec
       params:
         shell: bash
@@ -245,25 +247,18 @@ functions:
 
   # Added for mongodump_passthrough
   #
-  # This build the mongo-tools executables, then copies mongogump and mongorestore
-  # into src/mongosync/dist.
+  # This builds the mongo-tools executables, then copies mongogump and mongorestore
+  # into src/mongosync/dist. We use the same shell setup and go toolchain
+  # as in mongo-tools/common.yml "run make target"
   "build mongodump and mongorestore":
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          ${PREPARE_SHELL}
+          ${_set_shell_env}
+          ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
-          echo $PATH 
-          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' sh ${workdir}/src/mongosync/etc/mise.run.sh
-          mise settings experimental=true
-          mise activate --shims
-          PATH=$HOME/.local/share/mise/shims:$PATH
-          # We only install Go here in order to get the system to a state where we can run mage. If
-          # more dev tools are needed, those tasks should run `mise install`.
-          mise install go
-          mise use -g go@1.24.0
-          mise exec -- go run build.go build
+          go run build.go -v build
           # Copy mongodump and mongorestore to mongosync/dist
           mkdir -p ${workdir}/src/mongosync/dist
           cp -p bin/mongodump bin/mongorestore ${workdir}/src/mongosync/dist
@@ -748,16 +743,3 @@ functions:
       display_name: "wait for resmoke to shutdown"
       params:
         binary: "./src/mongosync/evergreen/wait_for_resmoke_to_shutdown.sh"
-
-  "coveralls upload report":
-    - command: shell.exec
-      params:
-        working_dir: src/mongosync
-        script: |
-          ${PREPARE_SHELL}
-          mise exec -- go tool covdata textfmt -i=${covdata_path} -o="coverage.lcov"
-    - command: shell.exec
-      params:
-        working_dir: src/mongosync
-        script: |
-          coveralls report coverage.lcov --build-number ${version_id} --repo-token ${coveralls_repo_token}

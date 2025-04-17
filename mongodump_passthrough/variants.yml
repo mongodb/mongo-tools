@@ -10,6 +10,7 @@ buildvariants:
     tasks:
       - name: compile_coverage
       - name: compile_verifier
+      - name: mongodump_suites_up_to_date
       - name: .mongodump_passthrough_task_generator
     run_on:
       - rhel80-xlarge
