@@ -420,7 +420,7 @@ functions:
     - *f_make_migration_verifier_binary_executable
 
   # This uploads everything in src/mongosync/dist/
-  # For mongodump, we don't need the mongosync bi9naries, but we have
+  # For mongodump, we don't need the mongosync binaries, but we have
   # already built the mongodump and mongorestore binaries and copied
   # them into src/mongosync/dist/
   f_mongosync_binary_upload: &f_mongosync_binary_upload
