@@ -1,0 +1,128 @@
+# Copied from mongosync/evergreen, with changes to fit in mongo-tools.
+
+# Tasks which differ from mongosync/evergreen/functions.yml are
+# marked as
+#   either: "Added for mongodump_passthrough"
+#   or:     "Changed for mongodump_passthrough"
+
+variables:
+  _modules: &_modules
+    - migration-verifier
+    - mongosync
+  _python: &_python /opt/mongodbtoolchain/v4/bin/python3
+  _resmoke_dir: &_resmoke_dir "src/resmoke"
+  _resmoke_venv_dir: &_resmoke_venv_dir "resmoke-venv"
+  _src_dir: &src_dir src/mongosync
+
+tasks:
+  - name: commit-queue-workaround
+    commands:
+      - command: shell.exec
+        params:
+          script: |
+            echo "This task is a no-op to work around evergreen's commit queue behavior"
+
+  # For mongodump passthrough, this builds and uploads the mongodump and mongorestore
+  # binaries (but without coverage), and uploads them.  The name "compile_coverage"
+  # is misleading, but that task name is used in the generated tasks from mongodump-task-gen
+  # so we keep it the same to minimize change.
+  - name: compile_coverage
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source and install go"
+      # We don't need to build any mongosync binaries, but we put mongodump
+      # and mongorestore in the src/mongosync/dist and upload that dir.
+      - func: "build mongodump and mongorestore"
+      - func: f_mongosync_binary_upload
+        vars:
+          binary_name: "mongosync-coverage-binary"
+
+  - name: compile_verifier
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source and install go"
+      - func: f_migration_verifier_compile_and_upload
+
+  - name: t_resmoke_setup
+    commands:
+      - func: f_repo_with_modules_fetch
+      - func: f_resmoke_and_binaries_download
+        vars:
+          platform: rhel80
+      - func: f_resmoke_wheelhouse_setup
+      - func: f_resmoke_archive
+
+  # This task is meant for use in patches; you can run the generator, save the
+  # file to mongo-tools/manual-tasks.json, then run this task using evergreen patch.
+  - name: run_manual_generated_tasks
+    tags: ["mongodump_passthrough_task_generator"]
+    commands:
+      - func: "fetch source and install go"
+      - command: generate.tasks
+        params:
+          files:
+            - src/github.com/mongodb/mongo-tools/manual-tasks.json
+
+  # Task dependencies have been changed slightly here, to allow this
+  # task to execute concurrently with "compile_coverage".
+  - name: generate_mongodump_resmoke_build_variants
+    tags: ["mongodump_passthrough_task_generator"]
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate mongodump evergreen tasks"
+        vars:
+          generator_args: "buildvariants"
+          json_filename: mongodump_build_variants.json
+
+  - name: generate_mongodump_passthrough_tasks
+    tags: ["mongodump_passthrough_task_generator"]
+    depends_on:
+      - name: generate_mongodump_resmoke_build_variants
+      - name: compile_coverage
+        variant: rhel80
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate mongodump evergreen tasks"
+        vars:
+          generator_args: "mongodump_passthrough"
+          json_filename: mongodump_passthrough_tasks.json
+
+  - name: generate_mongodump_fsm_tasks
+    tags: ["mongodump_passthrough_task_generator"]
+    depends_on:
+      - name: generate_mongodump_resmoke_build_variants
+      - name: compile_coverage
+        variant: rhel80
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate mongodump evergreen tasks"
+        vars:
+          generator_args: "mongodump_fsm"
+          json_filename: mongodump_fsm_tasks.json
+
+  - name: generate_mongodump_fuzz_tasks
+    tags: ["mongodump_passthrough_task_generator"]
+    depends_on:
+      - name: generate_mongodump_resmoke_build_variants
+      - name: compile_coverage
+        variant: rhel80
+    commands:
+      - func: "fetch source and install go"
+      - func: "generate mongodump evergreen tasks"
+        vars:
+          generator_args: "mongodump_jstestfuzz"
+          json_filename: mongodump_fuzz_tasks.json
+
+  - name: mongodump_suites_up_to_date
+    commands:
+      - func: "fetch source and install go"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: src/mongosync
+          script: |
+            ${PREPARE_SHELL}
+            set -ex
+            mise install
+            mise exec -- go run ./cmd/mongodump-suite-gen/cmd write --all --quiet
+            git diff --name-status --exit-code resmoke/mongodump-suite-config/*/suites

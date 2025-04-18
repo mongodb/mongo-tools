@@ -158,7 +158,7 @@ func oplogDocumentValidator(in []byte) error {
 	}
 
 	if ok && nsStr == "admin.system.version" {
-		return fmt.Errorf("cannot dump with oplog if admin.system.version is modified")
+		return fmt.Errorf("cannot dump with oplog if admin.system.version is modified by %v", raw)
 	}
 
 	if _, err := raw.LookupErr("o", "renameCollection"); err == nil {

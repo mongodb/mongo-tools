@@ -483,6 +483,24 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
+		// Same variant name as mongosync passthrough tests to minimize
+		// changes in mongodump-task-gen for mongodump passthrough tests.
+		Name:            "rhel80",
+		Arch:            ArchX86_64,
+		OS:              OSLinux,
+		Pkg:             PkgRPM,
+		Repos:           []Repo{RepoOrg, RepoEnterprise},
+		BuildTags:       defaultBuildTags,
+		SkipForJSONFeed: true,
+		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
+		// NB: Older builds are “rhel-80”, while newer ones are just “rhel-8”.
+		ServerVariantNames: mapset.NewSet(
+			"enterprise-rhel-80-64-bit",
+			"enterprise-rhel-8-64-bit",
+		),
+		ServerPlatform: "rhel80",
+	},
+	{
 		Name:      "rhel81",
 		Arch:      ArchPpc64le,
 		OS:        OSLinux,
