@@ -123,6 +123,6 @@ tasks:
           script: |
             ${PREPARE_SHELL}
             set -ex
-            mise install go
+            mise install
             mise exec -- go run ./cmd/mongodump-suite-gen/cmd write --all --quiet
             git diff --name-status --exit-code resmoke/mongodump-suite-config/*/suites
