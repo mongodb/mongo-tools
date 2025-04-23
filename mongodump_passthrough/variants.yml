@@ -7,6 +7,7 @@ buildvariants:
   - name: rhel80
     # Use this name to get it sorted near the top of the list in spruce UI.
     display_name: "# RHEL 8.x (mongodump passthrough)"
+    cron: 0 3 * * *
     tasks:
       - name: compile_coverage
       - name: compile_verifier

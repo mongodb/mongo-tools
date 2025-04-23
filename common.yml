@@ -2058,6 +2058,7 @@ buildvariants:
 
   - name: rhel88
     display_name: "# RHEL 8.8"
+    cron: 0 3 * * *
     run_on:
       - rhel8.8-large
     expansions:
