@@ -353,17 +353,31 @@ functions:
         content_type: application/octet-stream
 
   "upload release packages to s3":
+    - command: ec2.assume_role
+      params:
+        role_arn: "arn:aws:iam::119629040606:role/s3-access.cdn-origin-db-tools"
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          NEW_AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          NEW_AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          NEW_AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
         script: |
           ${_set_shell_env}
           go run release/release.go upload-release
 
   "upload release json feed to s3":
+    - command: ec2.assume_role
+      params:
+        role_arn: "arn:aws:iam::119629040606:role/s3-access.cdn-origin-db-tools"
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          NEW_AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          NEW_AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          NEW_AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
         script: |
           ${_set_shell_env}
           go run release/release.go upload-json
@@ -379,9 +393,16 @@ functions:
         permissions: public-read
 
   "generate full JSON feed":
+    - command: ec2.assume_role
+      params:
+        role_arn: "arn:aws:iam::119629040606:role/s3-access.cdn-origin-db-tools"
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          NEW_AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          NEW_AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          NEW_AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
         script: |
           ${_set_shell_env}
           go run release/release.go generate-full-json
