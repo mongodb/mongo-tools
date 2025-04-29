@@ -78,7 +78,7 @@ type MongoDump struct {
 	shutdownIntentsNotifier *notifier
 	// Writer to take care of BSON output when not writing to the local filesystem.
 	// This is initialized to os.Stdout if unset.
-	OutputWriter io.Writer
+	OutputWriter io.WriteCloser
 
 	// XXX Unused?!?
 	// readPrefMode mgo.Mode
@@ -1050,19 +1050,9 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 	return nil
 }
 
-// nopCloseWriter implements io.WriteCloser. It wraps up a io.Writer, and adds a no-op Close.
-type nopCloseWriter struct {
-	io.Writer
-}
-
-// Close does nothing on nopCloseWriters.
-func (*nopCloseWriter) Close() error {
-	return nil
-}
-
 func (dump *MongoDump) getArchiveOut() (out io.WriteCloser, err error) {
 	if dump.OutputOptions.Archive == "-" {
-		out = &nopCloseWriter{dump.OutputWriter}
+		out = dump.OutputWriter
 	} else {
 		targetStat, err := os.Stat(dump.OutputOptions.Archive)
 		if err == nil && targetStat.IsDir() {

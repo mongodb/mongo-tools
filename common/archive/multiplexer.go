@@ -113,7 +113,6 @@ func (mux *Multiplexer) Run() {
 				err = mux.formatEOF(mux.ins[index])
 				if err != nil {
 					mux.shutdownInputs.Notify()
-					mux.Out = &nopCloseNopWriter{}
 					completionErr = err
 				}
 				log.Logvf(log.DebugLow, "Mux close namespace %v", mux.ins[index].Intent.DataNamespace())
@@ -129,18 +128,12 @@ func (mux *Multiplexer) Run() {
 				err = mux.formatBody(mux.ins[index], bsonBytes)
 				if err != nil {
 					mux.shutdownInputs.Notify()
-					mux.Out = &nopCloseNopWriter{}
 					completionErr = err
 				}
 			}
 		}
 	}
 }
-
-type nopCloseNopWriter struct{}
-
-func (*nopCloseNopWriter) Close() error                { return nil }
-func (*nopCloseNopWriter) Write(p []byte) (int, error) { return len(p), nil }
 
 // formatBody writes the BSON in to the archive, potentially writing a new header
 // if the document belongs to a different namespace from the last header.

@@ -729,6 +729,14 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 	require.NoError(t, session.Database("admin").Collection("testcol").Drop(context.Background()))
 }
 
+type NopWriteCloser struct {
+	io.Writer
+}
+
+func (nwc NopWriteCloser) Close() error {
+	return nil
+}
+
 func TestMongoDumpBSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
@@ -759,7 +767,8 @@ func TestMongoDumpBSON(t *testing.T) {
 					Convey("it dumps to standard output", func() {
 						md.OutputOptions.Out = "-"
 						stdoutBuf := &bytes.Buffer{}
-						md.OutputWriter = stdoutBuf
+
+						md.OutputWriter = NopWriteCloser{stdoutBuf}
 						err = md.Dump()
 						So(err, ShouldBeNil)
 						var count int
