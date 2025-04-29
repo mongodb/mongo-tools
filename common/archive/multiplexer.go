@@ -13,6 +13,7 @@ import (
 	"hash/crc64"
 	"io"
 	"reflect"
+	"slices"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -280,7 +281,13 @@ func (muxIn *MuxIn) Write(buf []byte) (int, error) {
 	}
 	if bufferWrites {
 		if len(muxIn.buf)+len(buf) > cap(muxIn.buf) {
-			muxIn.writeChan <- muxIn.buf
+			// We’re about to zero out muxIn.buf and overwrite the stuff at its
+			// beginning. If we don’t clone muxIn.buf here, then we’ll have a
+			// race condition: whenever writeChan’s reader receives this slice,
+			// the slice’s underlying array may (or may not) have its first
+			// bytes overwritten.
+			muxIn.writeChan <- slices.Clone(muxIn.buf)
+
 			muxIn.buf = muxIn.buf[:0]
 		}
 		muxIn.buf = append(muxIn.buf, buf...)
