@@ -11,8 +11,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,6 +31,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,6 +41,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -3274,6 +3278,102 @@ func runMongodumpWithArgs(t *testing.T, args ...string) {
 
 func uniqueDBName() string {
 	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
+}
+
+func TestPipedDumpRestore(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	t.Logf("start %#q", t.Name())
+	// TODO: Make this t.Context() once we move to Go 1.24.
+	ctx := context.Background()
+
+	provider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "should get session provider")
+
+	t.Logf("getting session")
+	sess, err := provider.GetSession()
+	require.NoError(t, err, "should get session")
+
+	srcCollNames := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
+
+	db := sess.Database(uniqueDBName())
+	require.NoError(t, db.Drop(ctx), "should pre-drop DB %#q", db.Name())
+
+	t.Logf("creating collections")
+
+	for _, collName := range srcCollNames {
+		docs := lo.RepeatBy(
+			10_000,
+			func(_ int) bson.D {
+				return bson.D{
+					{"someNum", rand.Float64()},
+				}
+			},
+		)
+
+		require.NoError(
+			t,
+			db.Collection(collName).Drop(ctx),
+			"should drop %#q", collName,
+		)
+
+		_, err := db.Collection(collName).InsertMany(
+			ctx,
+			lo.ToAnySlice(docs),
+		)
+
+		require.NoError(t, err, "should insert docs into %#q", collName)
+	}
+
+	t.Log("Finished creating documents.")
+
+	reader, writer := io.Pipe()
+
+	eg, _ := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		defer writer.Close()
+
+		dump, err := GetArchiveMongoDump(writer)
+		if err != nil {
+			return errors.Wrap(err, "create mongodump")
+		}
+
+		dump.ToolOptions.DB = db.Name()
+
+		assert.NoError(t, dump.Dump(), "dump should work")
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		defer reader.Close()
+
+		restore, err := GetArchiveMongoRestore(reader)
+		if err != nil {
+			return errors.Wrap(err, "create mongorestore")
+		}
+
+		restore.NSOptions = &NSOptions{
+			NSFrom: lo.Map(
+				srcCollNames,
+				func(cn string, _ int) string {
+					return db.Name() + "." + cn
+				},
+			),
+			NSTo: lo.Map(
+				srcCollNames,
+				func(cn string, _ int) string {
+					return db.Name() + ".dst-" + cn
+				},
+			),
+		}
+
+		assert.NoError(t, restore.Restore().Err, "restore should work")
+
+		return nil
+	})
+
+	require.NoError(t, eg.Wait())
 }
 
 func TestRestoreMultipleIDIndexes(t *testing.T) {

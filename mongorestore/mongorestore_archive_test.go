@@ -18,6 +18,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/mongodump"
+	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
@@ -400,4 +402,53 @@ func runArchiveMongodump(t *testing.T, file string) string {
 	_, err := os.Stat(file)
 	require.NoError(err, "dump created archive data file")
 	return file
+}
+
+// GetArchiveMongoDump returns a MongoDump that’s ready to call Dump().
+func GetArchiveMongoDump(output io.WriteCloser) (*mongodump.MongoDump, error) {
+	provider, toolOpts, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return nil, errors.Wrap(err, "get session provider for dump")
+	}
+
+	dump := &mongodump.MongoDump{
+		InputOptions: &mongodump.InputOptions{},
+		OutputOptions: &mongodump.OutputOptions{
+			Archive:                "-",
+			NumParallelCollections: 4, // default
+		},
+		SessionProvider: provider,
+		ToolOptions:     toolOpts,
+		OutputWriter:    output,
+	}
+
+	err = dump.Init()
+	if err != nil {
+		return nil, errors.Wrap(err, "init mongodump")
+	}
+
+	return dump, nil
+}
+
+func GetArchiveMongoRestore(input io.ReadCloser) (*MongoRestore, error) {
+	_, toolOpts, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		return nil, errors.Wrap(err, "get session provider for dump")
+	}
+
+	restore, err := New(Options{
+		ToolOptions: toolOpts,
+		InputOptions: &InputOptions{
+			Archive: "-",
+		},
+		OutputOptions: &OutputOptions{
+			NumInsertionWorkers: 1,
+		},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "create mongorestore")
+	}
+	restore.InputReader = input
+
+	return restore, nil
 }
