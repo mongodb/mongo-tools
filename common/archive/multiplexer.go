@@ -72,6 +72,7 @@ func NewMultiplexer(out io.WriteCloser, shutdownInputs notifier) *Multiplexer {
 // Run multiplexes until its Control chan closes.
 func (mux *Multiplexer) Run() {
 	var err, completionErr error
+
 	for {
 		index, value, notEOF := reflect.Select(mux.selectCases)
 		EOF := !notEOF
@@ -91,7 +92,7 @@ func (mux *Multiplexer) Run() {
 			}
 			muxIn, ok := value.Interface().(*MuxIn)
 			if !ok {
-				mux.Completed <- fmt.Errorf("non MuxIn received on Control chan") // one for the MuxIn.Open
+				mux.Completed <- fmt.Errorf("non MuxIn errantly received %T instead of %T on Control chan", value.Interface(), muxIn) // one for the MuxIn.Open
 				return
 			}
 			log.Logvf(log.DebugLow, "Mux open namespace %v", muxIn.Intent.DataNamespace())
@@ -109,7 +110,7 @@ func (mux *Multiplexer) Run() {
 				// thread closes the mux's control chan and the mux
 				// processes the close on the control chan before it processes
 				// the close on the MuxIn chan
-				mux.ins[index].writeCloseFinishedChan <- struct{}{}
+				close(mux.ins[index].writeCloseFinishedChan)
 
 				err = mux.formatEOF(mux.ins[index])
 				if err != nil {

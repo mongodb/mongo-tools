@@ -372,8 +372,13 @@ func (receiver *RegularCollectionReceiver) Write(buf []byte) (int, error) {
 	select {
 	case receiver.readLenChan <- len(buf):
 		// do nothing other than send
-	case <-receiver.readBufChan:
+	case bufFromChan, stillOpen := <-receiver.readBufChan:
 		// Will only receive this if closed
+
+		if stillOpen {
+			panic(fmt.Sprintf("Got payload (%v) from readBufChan but expected close!", bufFromChan))
+		}
+
 		return 0, errInterrupted
 	}
 
