@@ -7,6 +7,7 @@
 package archive
 
 import (
+	"bytes"
 	"fmt"
 	"hash"
 	"hash/crc64"
@@ -16,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -144,20 +146,14 @@ func (*nopCloseNopWriter) Write(p []byte) (int, error) { return len(p), nil }
 // if the document belongs to a different namespace from the last header.
 func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 	var err error
-	var length int
-	defer func() {
-		in.writeLenChan <- length
-	}()
+
 	if in.Intent.DataNamespace() != mux.currentNamespace {
 		// Handle the change of which DB/Collection we're writing docs for
 		// If mux.currentNamespace then we need to terminate the current block
 		if mux.currentNamespace != "" {
-			l, err := mux.Out.Write(terminatorBytes)
+			err := util.WriteAll(mux.Out, terminatorBytes)
 			if err != nil {
 				return err
-			}
-			if l != len(terminatorBytes) {
-				return io.ErrShortWrite
 			}
 		}
 		header, err := bson.Marshal(NamespaceHeader{
@@ -167,16 +163,13 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 		if err != nil {
 			return err
 		}
-		l, err := mux.Out.Write(header)
+		err = util.WriteAll(mux.Out, header)
 		if err != nil {
 			return err
 		}
-		if l != len(header) {
-			return io.ErrShortWrite
-		}
 	}
 	mux.currentNamespace = in.Intent.DataNamespace()
-	length, err = mux.Out.Write(bsonBytes)
+	err = util.WriteAll(mux.Out, bsonBytes)
 	if err != nil {
 		return err
 	}
@@ -187,12 +180,9 @@ func (mux *Multiplexer) formatBody(in *MuxIn, bsonBytes []byte) error {
 func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 	var err error
 	if mux.currentNamespace != "" {
-		l, err := mux.Out.Write(terminatorBytes)
+		_, err := io.Copy(mux.Out, bytes.NewReader(terminatorBytes))
 		if err != nil {
 			return err
-		}
-		if l != len(terminatorBytes) {
-			return io.ErrShortWrite
 		}
 	}
 	eofHeader, err := bson.Marshal(NamespaceHeader{
@@ -204,20 +194,16 @@ func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 	if err != nil {
 		return err
 	}
-	l, err := mux.Out.Write(eofHeader)
+	err = util.WriteAll(mux.Out, eofHeader)
 	if err != nil {
 		return err
 	}
-	if l != len(eofHeader) {
-		return io.ErrShortWrite
-	}
-	l, err = mux.Out.Write(terminatorBytes)
+
+	err = util.WriteAll(mux.Out, terminatorBytes)
 	if err != nil {
 		return err
 	}
-	if l != len(terminatorBytes) {
-		return io.ErrShortWrite
-	}
+
 	return nil
 }
 
@@ -227,7 +213,6 @@ func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 // They are out the intents write data to the multiplexer.
 type MuxIn struct {
 	writeChan              chan []byte
-	writeLenChan           chan int
 	writeCloseFinishedChan chan struct{}
 	buf                    []byte
 	hash                   hash.Hash64
@@ -252,14 +237,9 @@ func (muxIn *MuxIn) Close() error {
 	log.Logvf(log.DebugHigh, "MuxIn close %v", muxIn.Intent.DataNamespace())
 	if bufferWrites {
 		muxIn.writeChan <- muxIn.buf
-		length := <-muxIn.writeLenChan
-		if length != len(muxIn.buf) {
-			return io.ErrShortWrite
-		}
 		muxIn.buf = nil
 	}
 	close(muxIn.writeChan)
-	close(muxIn.writeLenChan)
 	// We need to wait for the close on the writeChan to be processed before proceeding
 	// Otherwise we might assume that all work is finished and exit the program before
 	// the mux finishes writing the end of the archive
@@ -272,7 +252,6 @@ func (muxIn *MuxIn) Close() error {
 func (muxIn *MuxIn) Open() error {
 	log.Logvf(log.DebugHigh, "MuxIn open %v", muxIn.Intent.DataNamespace())
 	muxIn.writeChan = make(chan []byte)
-	muxIn.writeLenChan = make(chan int)
 	muxIn.writeCloseFinishedChan = make(chan struct{})
 	muxIn.buf = make([]byte, 0, bufferSize)
 	muxIn.hash = crc64.New(crc64.MakeTable(crc64.ECMA))
@@ -309,19 +288,11 @@ func (muxIn *MuxIn) Write(buf []byte) (int, error) {
 	if bufferWrites {
 		if len(muxIn.buf)+len(buf) > cap(muxIn.buf) {
 			muxIn.writeChan <- muxIn.buf
-			length := <-muxIn.writeLenChan
-			if length != len(muxIn.buf) {
-				return 0, io.ErrShortWrite
-			}
 			muxIn.buf = muxIn.buf[:0]
 		}
 		muxIn.buf = append(muxIn.buf, buf...)
 	} else {
 		muxIn.writeChan <- buf
-		length := <-muxIn.writeLenChan
-		if length != len(buf) {
-			return 0, io.ErrShortWrite
-		}
 	}
 	// Writes to the hash never return an error.
 	muxIn.hash.Write(buf)

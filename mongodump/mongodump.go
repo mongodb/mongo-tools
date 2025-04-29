@@ -901,7 +901,8 @@ func (dump *MongoDump) dumpValidatedIterToWriter(
 			}
 			break
 		}
-		_, err := writer.Write(buff)
+
+		err := util.WriteAll(writer, buff)
 		if err != nil {
 			return fmt.Errorf("error writing to file: %v", err)
 		}
