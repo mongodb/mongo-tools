@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -47,6 +48,8 @@ const (
 	ArchPpc64le Arch = "ppc64le"
 	ArchX86_64  Arch = "x86_64"
 )
+
+var arm64Archs = []Arch{ArchArm64, ArchAarch64}
 
 // Platform represents a platform (a combination of OS, distro,
 // version, and architecture) on which we may build/test the tools.
@@ -126,22 +129,23 @@ func DetectLocal() (Platform, error) {
 		return pf, nil
 	}
 
+	var os string
+
 	switch kernelName {
 	case "Linux":
-		pf, ok := GetByOsAndArch("ubuntu1804", archName)
-		if !ok {
-			panic("ubuntu1804 platform name changed")
-		}
-		return pf, nil
+		os = "ubuntu1804"
 	case "Darwin":
-		pf, ok := GetByOsAndArch("macos", archName)
-		if !ok {
-			panic("macos platform name changed")
-		}
-		return pf, nil
+		os = "macos"
+	default:
+		return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
 	}
 
-	return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
+	pf, ok := GetByOsAndArch(os, archName)
+	if !ok {
+		return Platform{}, fmt.Errorf("No platform %s/%s found; did %s’s platform name change?", os, archName, os)
+	}
+
+	return pf, nil
 }
 
 func GetByVariant(variant string) (Platform, bool) {
@@ -160,7 +164,22 @@ func GetByVariant(variant string) (Platform, bool) {
 }
 
 func GetByOsAndArch(os string, arch Arch) (Platform, bool) {
-	return GetByVariant(createVariantName(os, arch))
+	var archsToTry []Arch
+
+	if slices.Contains(arm64Archs, arch) {
+		archsToTry = arm64Archs
+	} else {
+		archsToTry = append(archsToTry, arch)
+	}
+
+	for _, arch := range archsToTry {
+		pf, found := GetByVariant(createVariantName(os, arch))
+		if found {
+			return pf, true
+		}
+	}
+
+	return Platform{}, false
 }
 
 func createVariantName(os string, arch Arch) string {

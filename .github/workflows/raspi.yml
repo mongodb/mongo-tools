@@ -1,0 +1,17 @@
+on:
+  push:
+    branches:
+      - '*'
+    tags-ignore:
+      - '*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: pguyot/arm-runner-action@v2
+      with:
+        commands: |
+            go run build.go build
