@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu22.04
     steps:
     - uses: actions/checkout@v4
     - uses: pguyot/arm-runner-action@v2
