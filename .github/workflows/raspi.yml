@@ -18,9 +18,6 @@ jobs:
             apt update
             apt install -y libkrb5-dev curl
 
-            curl -sL -o /bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
-            chmod +x /bin/gimme
-
-            gimme stable
+            eval "$(curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash)"
             go version
             go run build.go build
