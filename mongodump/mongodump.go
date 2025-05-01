@@ -68,7 +68,7 @@ type MongoDump struct {
 	oplogEnd        primitive.Timestamp
 	isMongos        bool
 	isAtlasProxy    bool
-	storageEngine   util.DataGuard[storageEngineType]
+	storageEngine   storageEngineType
 	serverVersion   string
 	authVersion     int
 	archive         *archive.Writer
@@ -150,9 +150,7 @@ func (dump *MongoDump) Init() error {
 
 	// this would be default, but explicit setting protects us from any
 	// redefinition of the constants.
-	dump.storageEngine.Store(func(set storageEngineType) storageEngineType {
-		return storageEngineUnknown
-	})
+	dump.storageEngine = storageEngineUnknown
 
 	pref, err := db.NewReadPreference(
 		dump.InputOptions.ReadPreference,
@@ -626,36 +624,29 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	} else if collInfo != nil {
 		isView = collInfo.IsView()
 	}
-
-	var storageEngine storageEngineType
-
-	dump.storageEngine.Store(func(seng storageEngineType) storageEngineType {
-		// The storage engine cannot change from namespace to namespace,
-		// so we set it the first time we reach here, using a namespace we
-		// know must exist. If the storage engine is not mmapv1, we assume it
-		// is some modern storage engine that does not need to use an index
-		// scan for correctness.
-		// We cannot determine the storage engine, if this collection is a view,
-		// so we skip attempting to deduce the storage engine.
-		if seng == storageEngineUnknown && !isView {
-
-			// storageEngineModern denotes any storage engine that is not MMAPV1. For such storage
-			// engines we assume that collection scans are consistent.
-			seng = storageEngineModern
-			isMMAPV1, err := db.IsMMAPV1(intendedDB, intent.C)
-			if err != nil {
-				log.Logvf(log.Always,
-					"failed to determine storage engine, an mmapv1 storage engine could result in"+
-						" inconsistent dump results, error was: %v", err)
-			} else if isMMAPV1 {
-				seng = storageEngineMMAPV1
-			}
+	// The storage engine cannot change from namespace to namespace,
+	// so we set it the first time we reach here, using a namespace we
+	// know must exist. If the storage engine is not mmapv1, we assume it
+	// is some modern storage engine that does not need to use an index
+	// scan for correctness.
+	// We cannot determine the storage engine, if this collection is a view,
+	// so we skip attempting to deduce the storage engine.
+	if dump.storageEngine == storageEngineUnknown && !isView {
+		if err != nil {
+			return err
 		}
-
-		storageEngine = seng
-
-		return seng
-	})
+		// storageEngineModern denotes any storage engine that is not MMAPV1. For such storage
+		// engines we assume that collection scans are consistent.
+		dump.storageEngine = storageEngineModern
+		isMMAPV1, err := db.IsMMAPV1(intendedDB, intent.C)
+		if err != nil {
+			log.Logvf(log.Always,
+				"failed to determine storage engine, an mmapv1 storage engine could result in"+
+					" inconsistent dump results, error was: %v", err)
+		} else if isMMAPV1 {
+			dump.storageEngine = storageEngineMMAPV1
+		}
+	}
 
 	findQuery := &db.DeferredQuery{Coll: coll}
 	switch {
@@ -694,7 +685,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		findQuery.Filter = dump.query
 	// we only want to hint _id when the storage engine is MMAPV1 and this isn't a view, a
 	// special collection, the oplog, and the user is not asking to force table scans.
-	case storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
+	case dump.storageEngine == storageEngineMMAPV1 && !dump.InputOptions.TableScan &&
 		!isView && !intent.IsSpecialCollection() && !intent.IsOplog():
 		autoIndexId, err := bsonutil.FindValueByKey("autoIndexId", &intent.Options)
 		if err != nil || autoIndexId == true {
