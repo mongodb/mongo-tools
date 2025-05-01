@@ -9,11 +9,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        base_image:
+          - raspios_lite
+          - raspi_4_bookworm:20231109
+
     steps:
     - uses: actions/checkout@v4
     - uses: pguyot/arm-runner-action@v2
       with:
-        base_image: raspi_4_bookworm:20231109
+        base_image: ${{ matrix.base_image }}
         image_additional_mb: 500
         commands: |
             apt update
