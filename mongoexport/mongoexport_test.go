@@ -229,8 +229,6 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		_, err = me.Export(out)
 		So(err, ShouldBeNil)
 
-		// If we are using mmapv1, we should be hinting an index or using a
-		// snapshot, depending on the version.
 		count, err := profileCollection.CountDocuments(context.Background(),
 			bson.D{
 				{"ns", ns},
