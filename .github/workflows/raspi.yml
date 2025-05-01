@@ -31,4 +31,5 @@ jobs:
             go version
 
             unset CI
+            go run release/release.go get-version
             go run build.go build
