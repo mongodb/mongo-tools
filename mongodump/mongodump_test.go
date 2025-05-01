@@ -1399,12 +1399,6 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		t.Fatalf("Error creating collection: %v", err)
 	}
 
-	// Check whether we are using MMAPV1.
-	isMMAPV1, err := db.IsMMAPV1(dbStruct, collName)
-	if err != nil {
-		t.Fatalf("Failed to determine storage engine %v", err)
-	}
-
 	// Turn on profiling.
 	if err = turnOnProfiling(dbName); err != nil {
 		t.Fatalf("Failed to turn on profiling: %v", err)
@@ -1424,13 +1418,9 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 
 		count, err := countSnapshotCmds(profileCollection, ns)
 		So(err, ShouldBeNil)
-		if isMMAPV1 {
-			// There should be exactly one query that matches.
-			So(count, ShouldEqual, 1)
-		} else {
-			// On modern storage engines, there should be no query that matches.
-			So(count, ShouldEqual, 0)
-		}
+
+		// On modern storage engines, there should be no query that matches.
+		So(count, ShouldEqual, 0)
 	})
 }
 
