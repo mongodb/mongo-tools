@@ -10,17 +10,17 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-    - run: df
     - uses: actions/checkout@v4
     - uses: pguyot/arm-runner-action@v2
       with:
         image_additional_mb: 500
         commands: |
-            df
-            mkdir tmp
-            export TMPDIR=$(realpath tmp)
             apt update
             apt install -y libkrb5-dev curl
-            curl https://raw.githubusercontent.com/canha/golang-tools-install-script/master/goinstall.sh | bash
+
+            curl -sL -o /bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
+            chmod +x /bin/gimme
+
+            gimme stable
             go version
             go run build.go build
