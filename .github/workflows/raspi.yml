@@ -14,6 +14,9 @@ jobs:
     - uses: pguyot/arm-runner-action@v2
       with:
         commands: |
+            df
+            mkdir tmp
+            export TMPDIR=$(realpath tmp)
             apt update
             apt install -y libkrb5-dev curl
             curl https://raw.githubusercontent.com/canha/golang-tools-install-script/master/goinstall.sh | bash
