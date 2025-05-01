@@ -30,4 +30,5 @@ jobs:
             eval "$(curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash)"
             go version
 
+            unset CI
             go run build.go build
