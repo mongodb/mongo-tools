@@ -15,6 +15,6 @@ jobs:
       with:
         base_image: raspi_4_bookworm:20231109
         commands: |
-            sudo apt update
-            sudo apt install libkrb5-dev
+            apt update
+            apt install libkrb5-dev golang
             go run build.go build
