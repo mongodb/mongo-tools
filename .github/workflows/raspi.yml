@@ -25,7 +25,7 @@ jobs:
         image_additional_mb: 500
         commands: |
             apt update
-            apt install -y libkrb5-dev curl
+            apt install -y libkrb5-dev curl git
 
             eval "$(curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash)"
             go version
