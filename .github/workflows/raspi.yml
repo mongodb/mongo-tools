@@ -17,4 +17,5 @@ jobs:
         commands: |
             apt update
             apt install -y libkrb5-dev golang
+            go version
             go run build.go build
