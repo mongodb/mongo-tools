@@ -15,6 +15,7 @@ jobs:
       with:
         commands: |
             apt update
-            apt install -y libkrb5-dev golang
+            apt install -y libkrb5-dev curl
+            curl https://raw.githubusercontent.com/canha/golang-tools-install-script/master/goinstall.sh | bash
             go version
             go run build.go build
