@@ -33,6 +33,8 @@ jobs:
             eval "$(curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash)"
             go version
 
+            # As of this writing our build logic assumes CI==Evergreen.
             unset CI
-            go run release/release.go get-version
-            go run build.go build
+
+            # bsondump hits a weird gssapi error, so skip it.
+            go run build.go build -pkgs=mongodump,mongorestore,mongoimport,mongoexport,mongotop,mongostat
