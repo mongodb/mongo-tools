@@ -10,9 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
+    - run: df
     - uses: actions/checkout@v4
     - uses: pguyot/arm-runner-action@v2
       with:
+        image_additional_mb: 500
         commands: |
             df
             mkdir tmp
