@@ -19,6 +19,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # fetch tags (& history)
+
     - uses: pguyot/arm-runner-action@v2
       with:
         base_image: ${{ matrix.base_image }}
