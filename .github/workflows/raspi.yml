@@ -16,7 +16,7 @@ jobs:
         base_image:
           #- raspios_lite:latest // armv6l
           #- rpi_armv7_bookworm:latest
-          - raspios_lite_arm64
+          - raspios_lite_arm64:latest
 
     steps:
     - uses: actions/checkout@v4
