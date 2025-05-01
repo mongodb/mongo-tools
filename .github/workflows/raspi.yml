@@ -14,8 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         base_image:
-          - raspios_lite:latest
-          - raspi_4_bookworm:20231109
+          #- raspios_lite:latest // armv6l
+          #- rpi_armv7_bookworm:latest
+          - raspios_lite_arm64
 
     steps:
     - uses: actions/checkout@v4
@@ -29,11 +30,11 @@ jobs:
         commands: |
             uname -a
 
-            eval "$(curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash)"
-            go version
-
             apt update
-            apt install -y libkrb5-dev git
+            apt install -y libkrb5-dev git curl
+
+            curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash
+            go version
 
             # As of this writing our build logic assumes CI==Evergreen.
             unset CI
