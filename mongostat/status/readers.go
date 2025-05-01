@@ -142,7 +142,7 @@ func diffOp(newStat, oldStat *ServerStatus, f func(*OpcountStats) int64, both bo
 }
 
 func getStorageEngine(stat *ServerStatus) string {
-	val := "unknown"
+	val := "mmapv1"
 	if stat.StorageEngine != nil && stat.StorageEngine.Name != "" {
 		val = stat.StorageEngine.Name
 	}
@@ -166,6 +166,10 @@ func IsReplSet(stat *ServerStatus) (res bool) {
 		res = (ok && isReplSet) || len(stat.Repl.SetName) > 0
 	}
 	return
+}
+
+func IsMMAP(stat *ServerStatus) bool {
+	return getStorageEngine(stat) == "mmapv1"
 }
 
 func IsWT(stat *ServerStatus) bool {
@@ -282,6 +286,11 @@ func ReadNonMapped(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 		val = formatMegabyteAmount(c.HumanReadable, newStat.Mem.Virtual-newStat.Mem.Mapped)
 	}
 	return
+}
+
+func ReadFaults(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
+	// This was here for MMAPv1.
+	return "n/a"
 }
 
 func ReadLRW(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {
