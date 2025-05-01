@@ -27,11 +27,13 @@ jobs:
         base_image: ${{ matrix.base_image }}
         image_additional_mb: 500
         commands: |
-            apt update
-            apt install -y libkrb5-dev curl git
+            uname -a
 
             eval "$(curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash)"
             go version
+
+            apt update
+            apt install -y libkrb5-dev git
 
             # As of this writing our build logic assumes CI==Evergreen.
             unset CI
