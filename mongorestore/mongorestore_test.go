@@ -30,6 +30,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1833,7 +1834,8 @@ func TestCreateIndexes(t *testing.T) {
 			"RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index",
 			func() {
 				destColl := session.Database("create_indexes").Collection("test")
-				indexes, _ := destColl.Indexes().List(context.Background())
+				indexes, err := destColl.Indexes().List(context.Background())
+				So(err, ShouldBeNil)
 
 				type indexSpec struct {
 					Name, NS                string
@@ -2202,7 +2204,14 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 	session, err := sessionProvider.GetSession()
 	if err != nil {
-		t.Fatalf("No client available")
+		t.Fatalf("No client available: %v", err)
+	}
+
+	isAuthn, err := util.IsConnectionAuthenticated(ctx, session)
+	require.NoError(t, err, "should query for authentication state")
+
+	if isAuthn {
+		t.Skip("This test requires a non-authenticated connection.")
 	}
 
 	fcv := testutil.GetFCV(session)
@@ -3424,12 +3433,19 @@ func TestDumpAndRestoreConfigDB(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	_, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession()
 	require.NoError(err, "can connect to server")
+
+	isAuthn, err := util.IsConnectionAuthenticated(context.Background(), client)
+	require.NoError(err, "should query for authentication state")
 
 	t.Run(
 		"test dump and restore only config db includes all config collections",
 		func(t *testing.T) {
+			if isAuthn {
+				t.Skip("This test requires a non-authenticated connection.")
+			}
+
 			testDumpAndRestoreConfigDBIncludesAllCollections(t)
 		},
 	)
