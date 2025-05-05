@@ -224,34 +224,35 @@ func getLdflags(ctx *task.Context) (string, error) {
 // getBuildFlags gets all the build flags that should be used when
 // building the tools on the current platform, including tags and ldflags.
 func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
+	flags := []string{}
+
 	ldflags, err := getLdflags(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ldflags: %w", err)
+	if err == nil {
+		flags = append(flags, "-ldflags", ldflags)
+	} else {
+		fmt.Fprintf(os.Stderr, "failed to get ldflags (error: %v); will still attempt build", err)
 	}
 
 	tags, err := getTags(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tags: %w", err)
-	}
-
-	flags := []string{
-		"-ldflags", ldflags,
-		"-tags", strings.Join(tags, " "),
+	if err == nil {
+		flags = append(flags, "-tags", strings.Join(tags, " "))
+	} else {
+		fmt.Fprintf(os.Stderr, "failed to get tags (error: %v); will still attempt build", err)
 	}
 
 	pf, err := getPlatform()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get platform: %w", err)
-	}
-
-	if pf.OS == platform.OSLinux {
-		// We don't want to enable -buildmode=pie for tests. This interferes with enabling the race
-		// detector.
-		if !forTests {
-			flags = append(flags, "-buildmode=pie")
+	if err == nil {
+		if pf.OS == platform.OSLinux {
+			// We don't want to enable -buildmode=pie for tests. This interferes with enabling the race
+			// detector.
+			if !forTests {
+				flags = append(flags, "-buildmode=pie")
+			}
+		} else if pf.OS == platform.OSWindows {
+			flags = append(flags, "-buildmode=exe")
 		}
-	} else if pf.OS == platform.OSWindows {
-		flags = append(flags, "-buildmode=exe")
+	} else {
+		fmt.Fprintf(os.Stderr, "failed to get platform (error: %v); will still attempt build", err)
 	}
 
 	return flags, nil
