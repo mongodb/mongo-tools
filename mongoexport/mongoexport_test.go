@@ -205,12 +205,6 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		t.Fatalf("Error creating collection: %v", err)
 	}
 
-	// Check whether we are using MMAPV1.
-	isMMAPV1, err := db.IsMMAPV1(dbStruct, collName)
-	if err != nil {
-		t.Fatalf("Failed to determine storage engine %v", err)
-	}
-
 	// Turn on profiling.
 	profileCmd := bson.D{
 		{"profile", 2},
@@ -235,8 +229,6 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		_, err = me.Export(out)
 		So(err, ShouldBeNil)
 
-		// If we are using mmapv1, we should be hinting an index or using a
-		// snapshot, depending on the version.
 		count, err := profileCollection.CountDocuments(context.Background(),
 			bson.D{
 				{"ns", ns},
@@ -255,13 +247,9 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 			},
 		)
 		So(err, ShouldBeNil)
-		if isMMAPV1 {
-			// There should be exactly one query that matches in MMAPV1
-			So(count, ShouldEqual, 1)
-		} else {
-			// In modern storage engines, there should be no hints, so there
-			// should be 0 matches.
-			So(count, ShouldEqual, 0)
-		}
+
+		// In modern storage engines, there should be no hints, so there
+		// should be 0 matches.
+		So(count, ShouldEqual, 0)
 	})
 }

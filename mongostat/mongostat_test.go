@@ -62,7 +62,6 @@ func TestStatLine(t *testing.T) {
 		So(statsLine.Fields["getmore"], ShouldEqual, "3")
 		command := strings.Split(statsLine.Fields["command"], "|")[0]
 		So(command, ShouldEqual, "669")
-		So(statsLine.Fields["faults"], ShouldEqual, "5")
 
 		locked := strings.Split(statsLine.Fields["locked_db"], ":")
 		So(locked[0], ShouldEqual, "test")
@@ -86,7 +85,7 @@ func TestStatLine(t *testing.T) {
 			defaultHeaders,
 			defaultConfig,
 		)
-		// Opcounters and faults are averaged over sample period
+		// Opcounters are averaged over sample period
 		So(statsLine.Fields["insert"], ShouldEqual, "3")
 		So(statsLine.Fields["query"], ShouldEqual, "1")
 		So(statsLine.Fields["update"], ShouldEqual, "2")
@@ -95,7 +94,6 @@ func TestStatLine(t *testing.T) {
 		So(statsLine.Fields["getmore"], ShouldEqual, "1")
 		command := strings.Split(statsLine.Fields["command"], "|")[0]
 		So(command, ShouldEqual, "223")
-		So(statsLine.Fields["faults"], ShouldEqual, "1")
 
 		locked := strings.Split(statsLine.Fields["locked_db"], ":")
 		So(locked[0], ShouldEqual, "test")

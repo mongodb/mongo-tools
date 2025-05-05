@@ -289,16 +289,8 @@ func ReadNonMapped(c *ReaderConfig, newStat, _ *ServerStatus) (val string) {
 }
 
 func ReadFaults(_ *ReaderConfig, newStat, oldStat *ServerStatus) string {
-	if !IsMMAP(newStat) {
-		return "n/a"
-	}
-	var val int64 = -1
-	if oldStat.ExtraInfo != nil && newStat.ExtraInfo != nil &&
-		oldStat.ExtraInfo.PageFaults != nil && newStat.ExtraInfo.PageFaults != nil {
-		sampleSecs := float64(newStat.SampleTime.Sub(oldStat.SampleTime).Seconds())
-		val = diff(*(newStat.ExtraInfo.PageFaults), *(oldStat.ExtraInfo.PageFaults), sampleSecs)
-	}
-	return fmt.Sprintf("%d", val)
+	// This was here for MMAPv1.
+	return "n/a"
 }
 
 func ReadLRW(_ *ReaderConfig, newStat, oldStat *ServerStatus) (val string) {

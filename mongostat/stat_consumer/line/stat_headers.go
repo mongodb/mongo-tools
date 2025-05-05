@@ -77,18 +77,21 @@ var (
 		"vsize":          {status.ReadVSize},
 		"res":            {status.ReadRes},
 		"nonmapped":      {status.ReadNonMapped},
-		"faults":         {status.ReadFaults},
-		"lrw":            {status.ReadLRW},
-		"lrwt":           {status.ReadLRWT},
-		"locked_db":      {status.ReadLockedDB},
-		"qrw":            {status.ReadQRW},
-		"arw":            {status.ReadARW},
-		"net_in":         {status.ReadNetIn},
-		"net_out":        {status.ReadNetOut},
-		"conn":           {status.ReadConn},
-		"set":            {status.ReadSet},
-		"repl":           {status.ReadRepl},
-		"time":           {status.ReadTime},
+
+		// This is left over from MMAPv1 support.
+		"faults": {status.ReadFaults},
+
+		"lrw":       {status.ReadLRW},
+		"lrwt":      {status.ReadLRWT},
+		"locked_db": {status.ReadLockedDB},
+		"qrw":       {status.ReadQRW},
+		"arw":       {status.ReadARW},
+		"net_in":    {status.ReadNetIn},
+		"net_out":   {status.ReadNetOut},
+		"conn":      {status.ReadConn},
+		"set":       {status.ReadSet},
+		"repl":      {status.ReadRepl},
+		"time":      {status.ReadTime},
 	}
 	CondHeaders = []struct {
 		Key  string
