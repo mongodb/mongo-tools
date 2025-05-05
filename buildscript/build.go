@@ -261,8 +261,9 @@ func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
 // returns the command's output as a trimmed string.
 func runCmd(ctx *task.Context, name string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Stderr = os.Stderr
 	sh.LogCmd(ctx, cmd)
-	output, err := cmd.CombinedOutput()
+	output, err := cmd.Output()
 	return string(bytes.TrimSpace(output)), err
 }
 

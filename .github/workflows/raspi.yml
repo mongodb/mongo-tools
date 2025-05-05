@@ -1,0 +1,43 @@
+on:
+  push:
+    branches:
+      - '*'
+    tags-ignore:
+      - '*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        base_image:
+          #- raspios_lite:latest // armv6l
+          #- rpi_armv7_bookworm:latest
+          - raspios_lite_arm64:latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # fetch tags (& history)
+
+    - uses: pguyot/arm-runner-action@v2
+      with:
+        base_image: ${{ matrix.base_image }}
+        image_additional_mb: 500
+        commands: |
+            uname -a
+
+            apt update
+            apt install -y libkrb5-dev git curl
+
+            curl -sL https://raw.githubusercontent.com/urfave/gimme/main/gimme | GIMME_GO_VERSION=stable bash
+            go version
+
+            # As of this writing our build logic assumes CI==Evergreen.
+            unset CI
+
+            # bsondump hits a weird gssapi error, so skip it.
+            go run build.go build -pkgs=mongodump,mongorestore,mongoimport,mongoexport,mongotop,mongostat
