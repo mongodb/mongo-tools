@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/version"
+	"github.com/samber/lo"
 )
 
 type OS string
@@ -63,7 +65,6 @@ type Platform struct {
 	Pkg                Pkg
 	Repos              []Repo
 	BuildTags          []string
-	BinaryExt          string
 	SkipForJSONFeed    bool
 	ServerVariantNames mapset.Set[string]
 	ServerPlatform     string
@@ -118,30 +119,31 @@ func DetectLocal() (Platform, error) {
 	kernelName := pieces[0]
 	archName := Arch(pieces[1])
 
+	var os string
+	var pf Platform
+	var foundPf bool
+
 	if strings.HasPrefix(kernelName, "CYGWIN") || strings.HasPrefix(kernelName, "MSYS_NT") {
-		pf, ok := GetByVariant("windows")
-		if !ok {
-			panic("windows platform name changed")
+		os = "windows"
+		pf, foundPf = GetByVariant("windows")
+	} else {
+		switch kernelName {
+		case "Linux":
+			os = "ubuntu1804"
+		case "Darwin":
+			os = "macos"
+		default:
+			return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
 		}
-		return pf, nil
+
+		pf, foundPf = GetByOsAndArch(os, archName)
 	}
 
-	switch kernelName {
-	case "Linux":
-		pf, ok := GetByOsAndArch("ubuntu1804", archName)
-		if !ok {
-			panic("ubuntu1804 platform name changed")
-		}
-		return pf, nil
-	case "Darwin":
-		pf, ok := GetByOsAndArch("macos", archName)
-		if !ok {
-			panic("macos platform name changed")
-		}
-		return pf, nil
+	if !foundPf {
+		return Platform{}, fmt.Errorf("no platform %s/%s found; did %s’s platform name change?", os, archName, os)
 	}
 
-	return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
+	return pf, nil
 }
 
 func GetByVariant(variant string) (Platform, bool) {
@@ -255,9 +257,9 @@ func (p Platform) asGolangString() string {
 		}
 	}
 
-	var binaryExt string
-	if p.BinaryExt != "" {
-		binaryExt = indentGolangField("BinaryExt", fmt.Sprintf(`"%s"`, p.BinaryExt))
+	binaryExt := GetBinaryExt()
+	if binaryExt != "" {
+		binaryExt = indentGolangField("BinaryExt", fmt.Sprintf(`"%s"`, binaryExt))
 	}
 
 	return fmt.Sprintf(
@@ -269,6 +271,14 @@ func (p Platform) asGolangString() string {
 		repos,
 		buildTags,
 		binaryExt,
+	)
+}
+
+func GetBinaryExt() string {
+	return lo.Ternary(
+		runtime.GOOS == "windows",
+		".exe",
+		"",
 	)
 }
 
@@ -684,7 +694,6 @@ var platforms = []Platform{
 		Arch:               ArchX86_64,
 		OS:                 OSWindows,
 		BuildTags:          defaultBuildTags,
-		BinaryExt:          ".exe",
 		ServerVariantNames: mapset.NewSet("enterprise-windows"),
 	},
 }
