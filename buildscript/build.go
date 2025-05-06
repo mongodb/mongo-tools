@@ -102,7 +102,7 @@ func TestAWSAuth(ctx *task.Context) error {
 // buildToolBinary builds the tool with the specified name, putting
 // the resulting binary into outDir.
 func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
-	outPath := filepath.Join(outDir, tool+platform.GetBinaryExt())
+	outPath := filepath.Join(outDir, tool+platform.GetLocalBinaryExt())
 	_ = sh.Remove(ctx, outPath)
 
 	mainFile := filepath.Join(tool, "main", fmt.Sprintf("%s.go", tool))

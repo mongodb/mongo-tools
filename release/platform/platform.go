@@ -1,8 +1,10 @@
 package platform
 
 import (
+	"bytes"
 	"cmp"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -105,6 +107,7 @@ func GetFromEnv() (Platform, error) {
 func DetectLocal() (Platform, error) {
 
 	cmd := exec.Command("uname", "-sm")
+	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
 		return Platform{}, fmt.Errorf("failed to run uname: %w", err)
@@ -129,7 +132,14 @@ func DetectLocal() (Platform, error) {
 	} else {
 		switch kernelName {
 		case "Linux":
-			os = "ubuntu1804"
+			var version string
+
+			os, version, err = GetLinuxDistroAndVersion()
+
+			os = strings.ToLower(os)
+			version = strings.ReplaceAll(version, ".", "")
+
+			os += version
 		case "Darwin":
 			os = "macos"
 		default:
@@ -144,6 +154,29 @@ func DetectLocal() (Platform, error) {
 	}
 
 	return pf, nil
+}
+
+func GetLinuxDistroAndVersion() (string, string, error) {
+	cmd := exec.Command("lsb_release", "--short", "--id")
+	cmd.Stderr = os.Stderr
+	distro, err := cmd.Output()
+
+	if err != nil {
+		return "", "", fmt.Errorf("fetching Linux distro name: %w", err)
+	}
+
+	cmd = exec.Command("lsb_release", "--short", "--release")
+	cmd.Stderr = os.Stderr
+	version, err := cmd.Output()
+
+	if err != nil {
+		return "", "", fmt.Errorf("fetching %#q version: %w", distro, err)
+	}
+
+	distroStr := string(bytes.TrimSpace(distro))
+	versionStr := string(bytes.TrimSpace(version))
+
+	return distroStr, versionStr, nil
 }
 
 func GetByVariant(variant string) (Platform, bool) {
@@ -257,7 +290,7 @@ func (p Platform) asGolangString() string {
 		}
 	}
 
-	binaryExt := GetBinaryExt()
+	binaryExt := GetLocalBinaryExt()
 	if binaryExt != "" {
 		binaryExt = indentGolangField("BinaryExt", fmt.Sprintf(`"%s"`, binaryExt))
 	}
@@ -274,7 +307,7 @@ func (p Platform) asGolangString() string {
 	)
 }
 
-func GetBinaryExt() string {
+func GetLocalBinaryExt() string {
 	return lo.Ternary(
 		runtime.GOOS == "windows",
 		".exe",
