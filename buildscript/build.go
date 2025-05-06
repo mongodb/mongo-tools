@@ -226,14 +226,14 @@ func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
 	if err == nil {
 		flags = append(flags, "-ldflags", ldflags)
 	} else {
-		ctx.Logf("failed to get ldflags (error: %v); will still attempt build", err)
+		ctx.Logf("failed to get ldflags (error: %v); will still attempt build\n", err)
 	}
 
 	tags, err := getTags(ctx)
 	if err == nil {
 		flags = append(flags, "-tags", strings.Join(tags, " "))
 	} else {
-		ctx.Logf("failed to get tags (error: %v); will still attempt build", err)
+		ctx.Logf("failed to get tags (error: %v); will still attempt build\n", err)
 	}
 
 	pf, err := getPlatform()
@@ -248,7 +248,7 @@ func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
 			flags = append(flags, "-buildmode=exe")
 		}
 	} else {
-		ctx.Logf("failed to get platform (error: %v); will still attempt build", err)
+		ctx.Logf("failed to get platform (error: %v); will still attempt build\n", err)
 	}
 
 	return flags, nil
