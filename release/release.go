@@ -79,7 +79,7 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					v, err := version.GetCurrent()
 					if err != nil {
-						return fmt.Errorf("Failed to get current version: %v", err)
+						return fmt.Errorf("Failed to get current version: %w", err)
 					}
 					fmt.Println(v.StringWithCommit())
 					return nil

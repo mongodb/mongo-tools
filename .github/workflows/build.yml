@@ -7,8 +7,10 @@ on:
   pull_request:
 
 jobs:
-  qemu-alpine:
+  build-alpine:
     runs-on: ubuntu-latest
+
+    name: Build on Alpine/${{ matrix.arch }}
 
     strategy:
       fail-fast: false
@@ -30,5 +32,5 @@ jobs:
           distro: alpine_latest
           run: |
             unset CI
-            apk add curl go
+            apk add git go
             go run build.go build
