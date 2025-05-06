@@ -135,6 +135,12 @@ func DetectLocal() (Platform, error) {
 			var version string
 
 			os, version, err = GetLinuxDistroAndVersion()
+			if err != nil {
+				return Platform{}, fmt.Errorf(
+					"detecting local Linux distro/version: %w",
+					err,
+				)
+			}
 
 			os = strings.ToLower(os)
 			version = strings.ReplaceAll(version, ".", "")
@@ -150,7 +156,12 @@ func DetectLocal() (Platform, error) {
 	}
 
 	if !foundPf {
-		return Platform{}, fmt.Errorf("no platform %s/%s found; did %s’s platform name change?", os, archName, os)
+		return Platform{}, fmt.Errorf(
+			"no platform %s/%s found; did %s’s platform name change?",
+			os,
+			archName,
+			os,
+		)
 	}
 
 	return pf, nil

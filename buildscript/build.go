@@ -107,10 +107,7 @@ func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
 
 	mainFile := filepath.Join(tool, "main", fmt.Sprintf("%s.go", tool))
 
-	buildFlags, err := getBuildFlags(ctx, false)
-	if err != nil {
-		return fmt.Errorf("failed to get build flags: %w", err)
-	}
+	buildFlags := getBuildFlags(ctx, false)
 
 	args := []string{
 		"build",
@@ -143,10 +140,7 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		}
 		defer outFile.Close()
 
-		buildFlags, err := getBuildFlags(ctx, true)
-		if err != nil {
-			return fmt.Errorf("failed to get build flags: %w", err)
-		}
+		buildFlags := getBuildFlags(ctx, true)
 
 		// Use the recursive wildcard (...) to run all tests
 		// of the provided testType for the current pkg.
@@ -219,7 +213,7 @@ func getLdflags(ctx *task.Context) (string, error) {
 
 // getBuildFlags gets all the build flags that should be used when
 // building the tools on the current platform, including tags and ldflags.
-func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
+func getBuildFlags(ctx *task.Context, forTests bool) []string {
 	flags := []string{}
 
 	ldflags, err := getLdflags(ctx)
@@ -251,7 +245,7 @@ func getBuildFlags(ctx *task.Context, forTests bool) ([]string, error) {
 		ctx.Logf("failed to get platform (error: %v); will still attempt build\n", err)
 	}
 
-	return flags, nil
+	return flags
 }
 
 // runCmd runs the command with the provided name and arguments, and
