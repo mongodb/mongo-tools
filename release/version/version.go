@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -143,6 +144,7 @@ func git(args ...string) (string, error) {
 	}
 
 	cmd := exec.Command("git", args...)
+	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
 		if exerr, ok := err.(*exec.ExitError); ok {
