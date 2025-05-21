@@ -38,7 +38,7 @@ setup_garasign_authentication() {
   set -x
 }
 
-macos_notarize_and_sign() {
+macos_sign_maybe_notarize() {
   set -o verbose
 
   tarball=$(ls mongodb-database-tools-*.tgz)
@@ -66,6 +66,11 @@ macos_notarize_and_sign() {
       exit 1
   esac
 
+  notary_mode=$( [ -n "${EVG_TRIGGERED_BY_TAG}" ] \
+    && echo "notarizeAndSign" \
+    || echo "sign" \
+  )
+
   macnotary_dir=darwin_${myarch}
   zip_filename=${macnotary_dir}.zip
 
@@ -81,7 +86,7 @@ macos_notarize_and_sign() {
       --task-comment "signing the mongo-database-tools release" \
       --task-id "$TASK_ID" \
       --file "$PWD/unsigned.zip" \
-      --mode notarizeAndSign \
+      --mode "${notary_mode}" \
       --url https://dev.macos-notary.build.10gen.cc/api \
       --bundleId com.mongodb.mongotools \
       --out-path "$PWD/$pkgname.zip"
@@ -89,7 +94,7 @@ macos_notarize_and_sign() {
 
 case $MONGO_OS in
   "osx")
-    macos_notarize_and_sign
+    macos_sign_maybe_notarize
     ;;
 
   "windows-64")
