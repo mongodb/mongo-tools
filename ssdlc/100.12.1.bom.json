@@ -1453,7 +1453,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-05-16T16:02:27.215705+00:00",
+    "timestamp": "2025-05-21T15:04:50.671663+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1497,9 +1497,733 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 28,
+  "version": 29,
+  "vulnerabilities": [
+    {
+      "affects": [
+        {
+          "ref": "pkg:npm/cross-spawn@7.0.3"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db3bf9e454a130f5d41a",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "cross-spawn___CVE-2024-21538",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 7.5,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db3bf9e454a130f5d41a",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db3bf9e454a130f5d41a"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com%2Fredis%2Fgo-redis%2Fv9@v9.6.1"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db352cc15988b2865584",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "github.com%2Fredis%2Fgo-redis%2Fv9___CVE-2025-29923",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 3.0,
+          "severity": "low"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db352cc15988b2865584",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db352cc15988b2865584"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d390",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2019-11840",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 6.0,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d390",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d390"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db36b6ef754ced083176",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2019-11841",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 6.0,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db36b6ef754ced083176",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db36b6ef754ced083176"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d388",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2021-43565",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 7.5,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d388",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d388"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20210921155107-089bfa567519"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35b6ef754ced08316c",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2021-43565",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 7.5,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35b6ef754ced08316c",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35b6ef754ced08316c"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d38c",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2022-27191",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d38c",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d38c"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20210921155107-089bfa567519"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d38a",
+      "cwes": [
+        327
+      ],
+      "description": "Use of a Broken or Risky Cryptographic Algorithm - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2022-27191",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 7.5,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d38a",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d38a"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35b6ef754ced083172",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2022-30636",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35b6ef754ced083172",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35b6ef754ced083172"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20210921155107-089bfa567519"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db352cc15988b286558e",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2022-30636",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db352cc15988b286558e",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db352cc15988b286558e"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d384",
+      "cwes": [
+        285
+      ],
+      "description": "Improper Authorization - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2024-45337",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 9.1,
+          "severity": "critical"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d384",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d384"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20210921155107-089bfa567519"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35b6ef754ced083168",
+      "cwes": [
+        285
+      ],
+      "description": "Improper Authorization - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2024-45337",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 9.1,
+          "severity": "critical"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35b6ef754ced083168",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35b6ef754ced083168"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20210921155107-089bfa567519"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db36f9e454a130f5d396",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___CVE-2025-22869",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db36f9e454a130f5d396",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db36f9e454a130f5d396"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d392",
+      "cwes": [
+        295
+      ],
+      "description": "Improper Certificate Validation - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___GHSA-cjjc-xp8v-855w",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 7.5,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d392",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d392"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20190308221718-c2843e01d9a2"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db352cc15988b2865590",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___GO-2023-2402",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 6.0,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db352cc15988b2865590",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db352cc15988b2865590"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.0.0-20210921155107-089bfa567519"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db35f9e454a130f5d38e",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fcrypto___GO-2023-2402",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 6.0,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db35f9e454a130f5d38e",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db35f9e454a130f5d38e"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20210226172049-e18ecbb05110"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db362cc15988b286559a",
+      "cwes": [
+        770
+      ],
+      "description": "Allocation of Resources Without Limits or Throtting - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___CVE-2024-45338",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db362cc15988b286559a",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db362cc15988b286559a"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20220127200216-cd36cc0744dd"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db362cc15988b286559e",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___CVE-2024-45338",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 6.0,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db362cc15988b286559e",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db362cc15988b286559e"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20220127200216-cd36cc0744dd"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db37b6ef754ced0831ca",
+      "cwes": [
+        400
+      ],
+      "description": "Uncontrolled Resource Consumption (Resource Exhaustion) - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___GHSA-qppj-fm5r-hxr3",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 5.3,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db37b6ef754ced0831ca",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db37b6ef754ced0831ca"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20210226172049-e18ecbb05110"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db37b6ef754ced0831c4",
+      "cwes": [
+        400
+      ],
+      "description": "Uncontrolled Resource Consumption (Resource Exhaustion) - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___GHSA-qppj-fm5r-hxr3",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 5.3,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db37b6ef754ced0831c4",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db37b6ef754ced0831c4"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20190620200207-3b0461eec859"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db37b6ef754ced0831c8",
+      "cwes": [
+        400
+      ],
+      "description": "Uncontrolled Resource Consumption (Resource Exhaustion) - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___GHSA-qppj-fm5r-hxr3",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 5.3,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db37b6ef754ced0831c8",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db37b6ef754ced0831c8"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20220722155237-a158d28d115b"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db37b6ef754ced0831c6",
+      "cwes": [
+        400
+      ],
+      "description": "Uncontrolled Resource Consumption (Resource Exhaustion) - Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___GHSA-qppj-fm5r-hxr3",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 5.3,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db37b6ef754ced0831c6",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db37b6ef754ced0831c6"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20190620200207-3b0461eec859"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db36f9e454a130f5d3c2",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___GO-2022-0288",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db36f9e454a130f5d3c2",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db36f9e454a130f5d3c2"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/golang.org%2Fx%2Fnet@v0.0.0-20210226172049-e18ecbb05110"
+        }
+      ],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "bom-ref": "6819db37f9e454a130f5d3c4",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "golang.org%2Fx%2Fnet___GO-2022-0288",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 8.0,
+          "severity": "high"
+        }
+      ],
+      "references": [
+        {
+          "id": "6819db37f9e454a130f5d3c4",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/67990793f5bd68edc6c5e900/vulns/appsec?page=1&perPage=15&id=eq:6819db37f9e454a130f5d3c4"
+          }
+        }
+      ]
+    }
+  ],
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5",
-  "vulnerabilities": []
+  "specVersion": "1.5"
 }
