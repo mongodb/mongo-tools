@@ -1,5 +1,40 @@
 # Database Tools Changelog
 
+## 100.12.1
+
+_Released 2025-05-21_
+
+We are pleased to announce version 100.12.1 of the MongoDB Database Tools.
+
+This version adds support for MacOS 14, along with security updates.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Vulnerability
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3819'>TOOLS-3819</a>] -         Security Finding: Update package net@v0.36.0
+</li>
+</ul>
+
+### Release
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3889'>TOOLS-3889</a>] -         Release Database Tools 100.12.1
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3682'>TOOLS-3682</a>] -         Move macOS support from macOS 11 to macOS 14
+</li>
+</ul>
+
 ## 100.12.0
 
 _Released 2025-04-01_
