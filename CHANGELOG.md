@@ -6,7 +6,7 @@ _Released 2025-05-21_
 
 We are pleased to announce version 100.12.1 of the MongoDB Database Tools.
 
-This version adds support for MacOS 14, along with security updates.
+This version includes a security updates.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
