@@ -28,13 +28,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 </li>
 </ul>
 
-### Task
-
-<ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3682'>TOOLS-3682</a>] -         Build mongo-tools on macOS 14
-</li>
-</ul>
-
 ## 100.12.0
 
 _Released 2025-04-01_
