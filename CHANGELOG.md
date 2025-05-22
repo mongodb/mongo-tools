@@ -31,7 +31,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 ### Task
 
 <ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3682'>TOOLS-3682</a>] -         Move macOS support from macOS 11 to macOS 14
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3682'>TOOLS-3682</a>] -         Build mongo-tools on macOS 14
 </li>
 </ul>
 
