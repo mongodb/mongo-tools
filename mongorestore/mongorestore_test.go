@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -3705,7 +3706,12 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 								ListCollectionNames(ctx, bson.D{})
 							require.NoError(err)
 
-							assert.ElementsMatch(t, myAllNames, colls, "all collections restored")
+							// We could use testify’s ElementsMatch() assertion,
+							// but that makes it harder to see the mismatches.
+							slices.Sort(myAllNames)
+							slices.Sort(colls)
+
+							assert.Equal(t, myAllNames, colls, "all collections restored")
 						},
 					)
 				}
