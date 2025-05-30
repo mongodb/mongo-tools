@@ -464,6 +464,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				}
 
 				checkSourceNS := db + "." + strings.TrimPrefix(collection, "system.buckets.")
+				fmt.Printf("\n==== checkSourceNS: %#q\n", checkSourceNS)
 
 				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)

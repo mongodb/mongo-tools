@@ -264,6 +264,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	if len(includes) == 0 {
 		includes = []string{"*"}
 	}
+	fmt.Printf("\n===== includes: %q\n\n", includes)
 	restore.includer, err = ns.NewMatcher(includes)
 	if err != nil {
 		return fmt.Errorf("invalid includes: %v", err)

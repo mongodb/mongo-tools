@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -3670,10 +3669,17 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 			},
 		)
 
+		fmt.Printf("======= myAllNames %+v\n", myAllNames)
+
 		t.Run(
 			variant.label,
 			func(t *testing.T) {
+				fmt.Printf("======= myAllNames %+v\n", myAllNames)
 				for _, dbname := range myAllNames {
+					dbname := dbname
+
+					fmt.Printf("======= dbname: %+v %+v (myAllNames=%v)\n", dbname, strconv.Quote(dbname), myAllNames)
+
 					t.Run(
 						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
 						func(t *testing.T) {
@@ -3684,36 +3690,37 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 								myAllNames,
 							)
 
-							withBSONMongodump(
-								t,
-								func(dir string) {
-									restore, err := getRestoreWithArgs(
-										DropOption,
-										dir,
-									)
-									require.NoError(err)
-									defer restore.Close()
+							withArchiveMongodump(t, func(archive string) {
+								require.NoError(session.Database(dbname).Drop(ctx))
 
-									result := restore.Restore()
-									require.NoError(result.Err, "can run mongorestore")
-									require.EqualValues(
-										0,
-										result.Failures,
-										"mongorestore reports 0 failures",
-									)
-								},
-							)
+								colls, err := session.Database(dbname).
+									ListCollectionNames(ctx, bson.D{})
+								require.NoError(err)
+								require.Empty(colls, "sanity: db drop should drop all collections")
+
+								restore, err := getRestoreWithArgs(
+									DBOption, dbname,
+									ArchiveOption+"="+archive,
+									"-vv",
+								)
+								require.NoError(err)
+								defer restore.Close()
+
+								result := restore.Restore()
+								require.NoError(result.Err, "can run mongorestore")
+								require.EqualValues(
+									0,
+									result.Failures,
+									"mongorestore reports 0 failures (result=%+v)",
+									result,
+								)
+							})
 
 							colls, err := session.Database(dbname).
 								ListCollectionNames(ctx, bson.D{})
 							require.NoError(err)
 
-							// We could use testify’s ElementsMatch() assertion,
-							// but that makes it harder to see the mismatches.
-							slices.Sort(myAllNames)
-							slices.Sort(colls)
-
-							assert.Equal(t, myAllNames, colls, "all collections restored")
+							assert.ElementsMatch(t, myAllNames, colls, "all collections restored")
 						},
 					)
 				}

@@ -9,6 +9,7 @@ package ns
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -50,9 +51,9 @@ func Unescape(in string) string {
 
 var (
 	// Finds non-escaped asterisks.
-	wildCardRE = regexp.MustCompile(`^(|.*[^\\])\*(.*)$`)
+	wildCardRE = regexp.MustCompile(`(?s)^(|.*[^\\])\*(.*)$`)
 	// Finds $variables$ at the beginning of a string.
-	variableRE = regexp.MustCompile(`^\$([^\$]*)\$(.*)$`)
+	variableRE = regexp.MustCompile(`(?s)^\$([^\$]*)\$(.*)$`)
 	// List of control characters that a regexp can use.
 	escapedChars = `*[](){}\?$^+!.|`
 )
@@ -151,7 +152,7 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 	}
 	matcher = fmt.Sprintf("^%s$", matcher)
 	// The regexp we generated should always compile (it's not the user's fault)
-	re = regexp.MustCompile(matcher)
+	re = regexp.MustCompile("(?s)" + matcher)
 
 	for len(to) > 0 {
 		varName, rest, ok := peelLeadingVariable(to)
@@ -224,6 +225,7 @@ func NewMatcher(patterns []string) (m *Matcher, err error) {
 			err = fmt.Errorf("'$' is not allowed in include/exclude patternsj")
 		}
 		re, _, e := processReplacement(pattern, pattern)
+		fmt.Printf("new matcher: %q -> %q\n", patterns, re)
 		if e != nil {
 			err = fmt.Errorf("%s processing include/exclude pattern: '%s'", err, pattern)
 			return
@@ -236,6 +238,7 @@ func NewMatcher(patterns []string) (m *Matcher, err error) {
 // Has returns whether the given namespace matches any of the matcher's patterns.
 func (m *Matcher) Has(name string) bool {
 	for _, re := range m.matchers {
+		fmt.Printf("\n========== matcher: %s\n\n", strconv.Quote(re.String()))
 		if re.MatchString(name) {
 			return true
 		}
