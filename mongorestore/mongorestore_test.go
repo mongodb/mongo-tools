@@ -3647,10 +3647,10 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 	allNames := []string{
 		"no-nl",
 		"\ninitial-nl",
-		"mid\nnl",
+		"mid-\n-nl",
 		"final-nl\n",
 		"\ninitial-and-final-nl\n",
-		"\nnl\neverywhere\n",
+		"\nnl-\n-everywhere\n",
 	}
 
 	nlVariants := []struct {
