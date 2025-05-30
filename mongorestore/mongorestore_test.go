@@ -3692,11 +3692,16 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 
 									result := restore.Restore()
 									require.NoError(result.Err, "can run mongorestore")
-									require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+									require.EqualValues(
+										0,
+										result.Failures,
+										"mongorestore reports 0 failures",
+									)
 								},
 							)
 
-							colls, err := session.Database(dbname).ListCollectionNames(ctx, bson.D{})
+							colls, err := session.Database(dbname).
+								ListCollectionNames(ctx, bson.D{})
 							require.NoError(err)
 
 							assert.ElementsMatch(t, myAllNames, colls, "all collections restored")
