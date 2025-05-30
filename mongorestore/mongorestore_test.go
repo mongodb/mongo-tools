@@ -3075,7 +3075,6 @@ func testRestoreClusteredIndexFromOplog(t *testing.T, indexName string) {
 func createClusteredIndex(t *testing.T, testDB *mongo.Database, indexName string) int {
 	require := require.New(t)
 
-	fmt.Printf("creating index in %s db\n", testDB.Name())
 	indexOpts := bson.M{
 		"key":    bson.M{"_id": 1},
 		"unique": true,
@@ -3669,16 +3668,11 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 			},
 		)
 
-		fmt.Printf("======= myAllNames %+v\n", myAllNames)
-
 		t.Run(
 			variant.label,
 			func(t *testing.T) {
-				fmt.Printf("======= myAllNames %+v\n", myAllNames)
 				for _, dbname := range myAllNames {
 					dbname := dbname
-
-					fmt.Printf("======= dbname: %+v %+v (myAllNames=%v)\n", dbname, strconv.Quote(dbname), myAllNames)
 
 					t.Run(
 						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
