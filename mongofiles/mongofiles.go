@@ -336,7 +336,7 @@ func (mf *MongoFiles) handleDeleteID() error {
 	if err := file.Delete(); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, fmt.Sprintf("successfully deleted file with _id %v from GridFS", mf.Id))
+	log.Logvf(log.Always, "successfully deleted file with _id %v from GridFS", mf.Id)
 
 	return nil
 }
@@ -392,7 +392,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
 	}
 
-	log.Logvf(log.Always, fmt.Sprintf("finished writing to %s\n", localFileName))
+	log.Logvf(log.Always, "finished writing to %s\n", localFileName)
 	return nil
 }
 

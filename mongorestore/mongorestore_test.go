@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -3631,6 +3632,81 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 
 		},
 	)
+}
+
+func TestFinalNewlinesInNamespaces(t *testing.T) {
+	ctx := t.Context()
+	require := require.New(t)
+
+	session, err := testutil.GetBareSession()
+	require.NoError(err, "can connect to server")
+
+	allNames := []string{
+		"no-nl",
+		"\ninitial-nl",
+		"mid\nnl",
+		"final-nl\n",
+		"\ninitial-and-final-nl\n",
+		"\nnl\neverywhere\n",
+	}
+
+	nlVariants := []struct {
+		label string
+		nl    string
+	}{
+		{"LF", "\n"},
+		{"CR", "\r"},
+		{"CRLF", "\r\n"},
+	}
+
+	for _, variant := range nlVariants {
+		myAllNames := lo.Map(
+			allNames,
+			func(name string, _ int) string {
+				return strings.ReplaceAll(name, "\n", variant.nl)
+			},
+		)
+
+		t.Run(
+			variant.label,
+			func(t *testing.T) {
+				for _, dbname := range myAllNames {
+					t.Run(
+						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
+						func(t *testing.T) {
+							createCollectionsWithTestDocuments(
+								t,
+								session.Database(dbname),
+								myAllNames,
+							)
+
+							withBSONMongodump(
+								t,
+								func(dir string) {
+									restore, err := getRestoreWithArgs(
+										DropOption,
+										dir,
+									)
+									require.NoError(err)
+									defer restore.Close()
+
+									result := restore.Restore()
+									require.NoError(result.Err, "can run mongorestore")
+									require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+								},
+							)
+
+							colls, err := session.Database(dbname).ListCollectionNames(ctx, bson.D{})
+							require.NoError(err)
+
+							assert.ElementsMatch(t, myAllNames, colls, "all collections restored")
+						},
+					)
+				}
+			},
+		)
+	}
+
 }
 
 func createCollectionsWithTestDocuments(
