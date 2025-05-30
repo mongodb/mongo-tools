@@ -3674,6 +3674,7 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 					t.Run(
 						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
 						func(t *testing.T) {
+							require.NoError(session.Database(dbname).Drop(ctx))
 							createCollectionsWithTestDocuments(
 								t,
 								session.Database(dbname),
