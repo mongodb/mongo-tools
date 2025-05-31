@@ -330,6 +330,8 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
 	cs := opts.URI.ParsedConnString()
 
+	clientopt.Hosts = cs.Hosts
+
 	if opts.RetryWrites != nil {
 		clientopt.SetRetryWrites(*opts.RetryWrites)
 	}
@@ -501,12 +503,6 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			cred.AuthMechanismProperties = props
 		}
 		clientopt.SetAuth(cred)
-	}
-
-	if opts.Kerberos != nil && opts.Kerberos.ServiceHost != "" {
-		clientopt.Hosts = cs.Hosts
-	} else {
-		clientopt.ApplyURI(cs.String())
 	}
 
 	if opts.SSL != nil && opts.UseSSL {
