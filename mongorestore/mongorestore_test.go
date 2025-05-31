@@ -3636,7 +3636,7 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 func TestFinalNewlinesInNamespaces(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	ctx := t.Context()
+	ctx := context.Background()
 	require := require.New(t)
 
 	session, err := testutil.GetBareSession()
