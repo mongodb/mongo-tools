@@ -38,8 +38,8 @@ var (
 
 // Escape escapes instances of '\' and '*' with a backslash.
 func Escape(in string) string {
-	in = strings.Replace(in, `\`, `\\`, -1)
-	in = strings.Replace(in, "*", `\*`, -1)
+	in = strings.ReplaceAll(in, `\`, `\\`)
+	in = strings.ReplaceAll(in, "*", `\*`)
 	return in
 }
 
