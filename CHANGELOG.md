@@ -1,5 +1,38 @@
 # Database Tools Changelog
 
+## 100.12.2
+
+_Released 2025-06-04_
+
+We are pleased to announce version 100.12.2 of the MongoDB Database Tools.
+
+This release fixes a longstanding mongorestore bug that caused namespaces that contain newlines to
+be silently excluded from restorations.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3822'>TOOLS-3822</a>] -         Mongorestore misses collection names with newlines
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3820'>TOOLS-3820</a>] -         Change our use of the macOS service to only notarize releases
+</li>
+</ul>
+
 ## 100.12.1
 
 _Released 2025-05-21_
