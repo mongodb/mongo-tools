@@ -19,11 +19,13 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/release/aws"
 	"github.com/mongodb/mongo-tools/release/download"
 	"github.com/mongodb/mongo-tools/release/env"
@@ -146,6 +148,22 @@ func main() {
 					&cli.StringFlag{
 						Name: "server-version",
 					},
+				},
+			},
+			{
+				Name: "print-binary-paths",
+				Action: func(cCtx *cli.Context) error {
+					for _, b := range binaries {
+						fmt.Printf("./%s\n", b)
+					}
+					return nil
+				},
+			},
+			{
+				Name: "print-os-arch-combos",
+				Action: func(cCtx *cli.Context) error {
+					printOsArchCombos()
+					return nil
 				},
 			},
 		},
@@ -1703,4 +1721,17 @@ func mostRecentAugmentedSBOM(repoRoot string) string {
 	}
 
 	return mostRecentFile
+}
+
+func printOsArchCombos() {
+	combos := mapset.NewSet[string]()
+	for _, p := range platform.Platforms() {
+		combos.Add(fmt.Sprintf("%s/%s", p.OS.GoOS(), p.Arch.GoArch()))
+	}
+	slice := combos.ToSlice()
+	slices.Sort(slice)
+
+	for _, c := range slice {
+		fmt.Println(c)
+	}
 }

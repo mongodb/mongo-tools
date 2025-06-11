@@ -25,6 +25,15 @@ const (
 	OSMac     OS = "mac"
 )
 
+func (o OS) GoOS() string {
+	switch o {
+	case OSMac:
+		return "darwin"
+	default:
+		return string(o)
+	}
+}
+
 type Pkg string
 
 const (
@@ -51,6 +60,18 @@ const (
 	ArchPpc64le Arch = "ppc64le"
 	ArchX86_64  Arch = "x86_64"
 )
+
+// GoArch returns the GOARCH value for a given architecture.
+func (a Arch) GoArch() string {
+	switch a {
+	case ArchAarch64:
+		return "arm64"
+	case ArchX86_64:
+		return "amd64"
+	default:
+		return string(a)
+	}
+}
 
 // Platform represents a platform (a combination of OS, distro,
 // version, and architecture) on which we may build/test the tools.
