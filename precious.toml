@@ -123,3 +123,15 @@ cmd = "$PRECIOUS_ROOT/node_modules/.bin/eslint"
 tidy-flags = "--fix"
 ok-exit-codes = [0]
 lint-failure-exit-codes = [1]
+
+[commands.github-codeowners]
+type = "lint"
+invoke = "once"
+path-args = "none"
+# We need to run this whenever new files are added to make sure they have an owner, so it's easiest
+# to just apply this linter to all files.
+include = "**/*"
+cmd = [ "$PRECIOUS_ROOT/etc/github-codeowners-wrapper.sh" ]
+ok_exit_codes = 0
+lint_failure_exit_codes = 1
+labels = [ "default", "fast-tidy" ]
