@@ -28,13 +28,14 @@ const (
 
 	// This is the latest version to support a YAML config file. Updating to
 	// the new config file syntax did not seem trivial.
-	eslintVersion       = "8.57.0"
-	golangCILintVersion = "1.64.5"
-	golinesVersion      = "0.12.2"
-	gosecVersion        = "2.20.0"
-	preciousVersion     = "0.7.3"
-	ubiVersion          = "0.4.2"
-	prettierVersion     = "3.4.2"
+	eslintVersion           = "8.57.0"
+	gitHubCodeownersVersion = "0.2.1"
+	golangCILintVersion     = "1.64.5"
+	golinesVersion          = "0.12.2"
+	gosecVersion            = "2.20.0"
+	preciousVersion         = "0.7.3"
+	ubiVersion              = "0.4.2"
+	prettierVersion         = "3.4.2"
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
@@ -268,12 +269,36 @@ func installBinaryTool(
 // execution wipes the entire `node_modules` directory, so we only end up with one tool (the last
 // one) installed.
 func installJSTools(ctx *task.Context) error {
-	eslint, err := eslintPath()
+	eslint, err := npmPath("eslint")
 	if err != nil {
 		return err
 	}
 
-	exists, err := executableExistsWithVersion(ctx, eslint, eslintVersion)
+	prettier, err := npmPath("prettier")
+	if err != nil {
+		return err
+	}
+
+	for _, tool := range [][]string{
+		{eslint, eslintVersion},
+		{prettier, prettierVersion},
+	} {
+		exists, err := executableExistsWithVersion(ctx, tool[0], tool[1])
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return runNPMInstall(ctx)
+		}
+	}
+
+	gitHubCodeowners, err := npmPath("github-codeowners")
+	if err != nil {
+		return err
+	}
+
+	// This program doesn't have any way to print its version. :(
+	exists, err := fileExists(gitHubCodeowners)
 	if err != nil {
 		return err
 	}
@@ -281,20 +306,7 @@ func installJSTools(ctx *task.Context) error {
 		return runNPMInstall(ctx)
 	}
 
-	prettier, err := prettierPath()
-	if err != nil {
-		return err
-	}
-
-	exists, err = executableExistsWithVersion(ctx, prettier, prettierVersion)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-
-	return runNPMInstall(ctx)
+	return nil
 }
 
 func runNPMInstall(ctx *task.Context) error {
@@ -304,22 +316,13 @@ func runNPMInstall(ctx *task.Context) error {
 	)
 }
 
-func eslintPath() (string, error) {
+func npmPath(exe string) (string, error) {
 	root, err := repoRoot()
 	if err != nil {
 		return "", err
 	}
 
-	return filepath.Join(root, "node_modules", ".bin", "eslint"), nil
-}
-
-func prettierPath() (string, error) {
-	root, err := repoRoot()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(root, "node_modules", ".bin", "prettier"), nil
+	return filepath.Join(root, "node_modules", ".bin", exe), nil
 }
 
 func SAPreciousLint(ctx *task.Context) error {
