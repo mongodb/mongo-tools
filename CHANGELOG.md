@@ -6,7 +6,7 @@ _Released 2025-06-04_
 
 We are pleased to announce version 100.12.2 of the MongoDB Database Tools.
 
-This release fixes a longstanding mongorestore bug that caused namespaces that contain newlines to
+This release fixes a mongorestore bug that caused namespaces that contain newlines to
 be silently excluded from restorations.
 
 The Database Tools are available on the
