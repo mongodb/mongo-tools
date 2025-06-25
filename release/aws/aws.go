@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -13,17 +14,18 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/mongodb/mongo-tools/release/download"
 )
 
 var awsClient *AWS
 
 type AWS struct {
-	session *session.Session
+	client *s3.Client
 }
 
 func initializeClient() error {
@@ -31,15 +33,15 @@ func initializeClient() error {
 		panic("called initializeClient twice")
 	}
 
-	s, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
-	})
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to create AWS session: %w", err)
+		return fmt.Errorf("failed to create AWS config: %w", err)
 	}
 
 	awsClient = &AWS{
-		session: s,
+		client: s3.NewFromConfig(cfg),
 	}
 	return nil
 }
@@ -71,11 +73,11 @@ func (a *AWS) UploadFile(bucket, objPath, filename string) error {
 func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) error {
 	key := path.Join(objPath, filename)
 
-	uploader := s3manager.NewUploader(a.session)
-	_, err := uploader.Upload(&s3manager.UploadInput{
+	uploader := manager.NewUploader(a.client)
+	_, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
+		ACL:    types.ObjectCannedACLPublicRead,
 		Body:   reader,
 	})
 	if err != nil {
@@ -87,16 +89,16 @@ func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) er
 
 // DownloadFile downloads filename from bucket and.
 func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
-	downloader := s3manager.NewDownloader(a.session)
+	downloader := manager.NewDownloader(a.client)
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(filename),
 	}
 
-	buff := &aws.WriteAtBuffer{}
+	buff := &manager.WriteAtBuffer{}
 
-	_, err := downloader.Download(buff, input)
+	_, err := downloader.Download(context.TODO(), buff, input)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +110,7 @@ func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
 // the tools s3 bucket, calculate their md5, sha1, and sha256 digests, and create
 // a download.JSONFeed object representing every artifact for every tools version.
 func (a *AWS) GenerateFullReleaseFeedFromObjects() (*download.JSONFeed, error) {
-	svc := s3.New(a.session)
-	downloader := s3manager.NewDownloader(a.session)
+	downloader := manager.NewDownloader(a.client)
 	// It is vital that we set the downloader Concurrency to 1 so that
 	// HashWriterAt can safely convert WriteAt calls to Write calls.
 	// This is necessary because hash.Hash is a Writer, but not a WriterAt.
@@ -122,11 +123,17 @@ func (a *AWS) GenerateFullReleaseFeedFromObjects() (*download.JSONFeed, error) {
 
 	feed := &download.JSONFeed{}
 
-	handlePage := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
+	paginator := s3.NewListObjectsV2Paginator(a.client, input)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+
 		for _, obj := range page.Contents {
 			fmt.Printf("\nWorking on object: %v\n", *obj.Key)
 
-			artifactMetadata := extractArtifactMetadata(obj)
+			artifactMetadata := extractArtifactMetadata(&obj)
 			if artifactMetadata == nil {
 				fmt.Printf("Could not match regex for filename, skipping...\n")
 				continue
@@ -142,13 +149,6 @@ func (a *AWS) GenerateFullReleaseFeedFromObjects() (*download.JSONFeed, error) {
 
 			addDownloadToFeed(feed, artifactMetadata, hashes)
 		}
-
-		return *page.IsTruncated
-	}
-
-	err := svc.ListObjectsV2Pages(input, handlePage)
-	if err != nil {
-		return nil, err
 	}
 
 	feed.Sort()
@@ -195,7 +195,7 @@ type ArtifactMetadata struct {
 	Ext      string
 }
 
-func extractArtifactMetadata(obj *s3.Object) *ArtifactMetadata {
+func extractArtifactMetadata(obj *types.Object) *ArtifactMetadata {
 	name := *obj.Key
 
 	artifactParts := regexp.MustCompile(
@@ -217,14 +217,14 @@ func extractArtifactMetadata(obj *s3.Object) *ArtifactMetadata {
 }
 
 // downloadAndGenerateHashes will exit if the download fails.
-func downloadAndGenerateHashes(downloader *s3manager.Downloader, name string) HashWriterAt {
+func downloadAndGenerateHashes(downloader *manager.Downloader, name string) HashWriterAt {
 	input := &s3.GetObjectInput{
 		Bucket: aws.String("downloads.mongodb.org"),
 		Key:    aws.String(name),
 	}
 	hashWriter := newHashWriterAt()
 
-	_, err := downloader.Download(hashWriter, input)
+	_, err := downloader.Download(context.TODO(), hashWriter, input)
 	if err != nil {
 		log.Fatal(err)
 	}
