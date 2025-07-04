@@ -30,6 +30,7 @@ import (
 	"github.com/mongodb/mongo-tools/release/download"
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/evergreen"
+	"github.com/mongodb/mongo-tools/release/notarize"
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
 	"github.com/urfave/cli/v2"
@@ -823,6 +824,12 @@ func downloadFile(url, dst string) {
 	check(err, "download release file")
 	defer resp.Body.Close()
 
+	if resp.StatusCode > 299 || resp.StatusCode < 200 {
+		body := strings.Builder{}
+		_, _ = io.Copy(&body, resp.Body)
+		log.Panicf("Download %#q: %s %s", url, resp.Status, body.String())
+	}
+
 	_, err = io.Copy(out, resp.Body)
 	check(err, "write release file from http body")
 }
@@ -1191,6 +1198,18 @@ func uploadRelease(v version.Version) {
 			log.Printf("  downloading %s\n", a.URL)
 			downloadFile(a.URL, unstableFile)
 			if canPerformStableRelease(v) {
+				if pf.OS == platform.OSMac {
+					log.Printf("Verifying notarizations in %#q", unstableFile)
+
+					unnotarized, err := notarize.FindInvalidNotarizations(unstableFile)
+					check(err, "verifying archive notarizations")
+					if len(unnotarized) != 0 {
+						log.Fatalf("Found unnotarized macOS: %v", unnotarized)
+					}
+
+					log.Printf("Notarization confirmed for all binaries in %#q.", unstableFile)
+				}
+
 				err = copyFile(unstableFile, stableFile)
 				check(err, "copying %s to %s", unstableFile, stableFile)
 				err = copyFile(unstableFile, latestStableFile)
