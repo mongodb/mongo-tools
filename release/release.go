@@ -1232,9 +1232,6 @@ func uploadRelease(v version.Version) {
 	}
 }
 
-func assertNotarization(archivePath string) {
-}
-
 type LinuxRepo struct {
 	name               string
 	mongoVersionNumber string
