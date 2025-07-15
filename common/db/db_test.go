@@ -77,6 +77,20 @@ func TestNewSessionProvider(t *testing.T) {
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
 	Convey("When initializing a session provider", t, func() {
+		Convey(
+			"the error should return when there’s only a host",
+			func() {
+				opts := options.ToolOptions{
+					Connection: &options.Connection{
+						Host: "localhost:12345",
+					},
+					SSL: &ssl,
+				}
+
+				_, err := NewSessionProvider(opts)
+				So(err, ShouldNotBeNil)
+			},
+		)
 
 		Convey("with the standard options, a provider with a standard"+
 			" connector should be returned", func() {
@@ -110,7 +124,6 @@ func TestNewSessionProvider(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
 		})
-
 	})
 }
 
