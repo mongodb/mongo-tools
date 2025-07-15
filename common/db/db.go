@@ -123,7 +123,7 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	}
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to server (opts: %s): %v", opts, err)
+		return nil, fmt.Errorf("failed to connect to server (opts: %+v): %v", opts, err)
 	}
 
 	// create the provider
