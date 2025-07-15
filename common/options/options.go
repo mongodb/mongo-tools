@@ -695,12 +695,8 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		return err
 	}
 
-	if opts.Auth == nil {
-		opts.Auth = &Auth{}
-	}
-
 	// finalize auth options, filling in missing passwords
-	if opts.Auth.ShouldAskForPassword() {
+	if opts.Auth != nil && opts.Auth.ShouldAskForPassword() {
 		pass, err := password.Prompt("mongo user")
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
@@ -1071,10 +1067,6 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 		} else if !opts.UseSSL && cs.SSL {
 			opts.UseSSL = cs.SSL
 		}
-	}
-
-	if opts.SSL == nil {
-		opts.SSL = &SSL{}
 	}
 
 	// ignore opts.UseSSL being false due to zero-value problem (TOOLS-2459 PR for details)
