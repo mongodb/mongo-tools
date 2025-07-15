@@ -66,10 +66,14 @@ macos_sign_maybe_notarize() {
       exit 1
   esac
 
-  notary_mode=$( [ -n "${EVG_TRIGGERED_BY_TAG}" ] \
-    && echo "notarizeAndSign" \
-    || echo "sign" \
-  )
+  if [ -n "$EVG_TRIGGERED_BY_TAG" ]
+  then
+    echo "This build was triggered by a Git tag ($EVG_TRIGGERED_BY_TAG). Will sign & notarize."
+    notary_mode="notarizeAndSign"
+  else
+    echo "This build was not triggered by a Git tag. Will sign but not notarize."
+    notary_mode="sign"
+  fi
 
   macnotary_dir=darwin_${myarch}
   zip_filename=${macnotary_dir}.zip
