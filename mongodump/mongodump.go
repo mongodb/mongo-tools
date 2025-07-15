@@ -88,36 +88,36 @@ func newNotifier() *notifier { return &notifier{notified: make(chan struct{})} }
 // ValidateOptions checks for any incompatible sets of options.
 func (dump *MongoDump) ValidateOptions() error {
 	switch {
-	case dump.OutputOptions.Out == "-" && dump.ToolOptions.Namespace.Collection == "":
+	case dump.OutputOptions.Out == "-" && dump.ToolOptions.Collection == "":
 		return fmt.Errorf("can only dump a single collection to stdout")
-	case dump.ToolOptions.Namespace.DB == "" && dump.ToolOptions.Namespace.Collection != "":
+	case dump.ToolOptions.DB == "" && dump.ToolOptions.Collection != "":
 		return fmt.Errorf("cannot dump a collection without a specified database")
-	case dump.InputOptions.Query != "" && dump.ToolOptions.Namespace.Collection == "":
+	case dump.InputOptions.Query != "" && dump.ToolOptions.Collection == "":
 		return fmt.Errorf("cannot dump using a query without a specified collection")
-	case dump.InputOptions.QueryFile != "" && dump.ToolOptions.Namespace.Collection == "":
+	case dump.InputOptions.QueryFile != "" && dump.ToolOptions.Collection == "":
 		return fmt.Errorf("cannot dump using a queryFile without a specified collection")
 	case dump.InputOptions.Query != "" && dump.InputOptions.QueryFile != "":
 		return fmt.Errorf("either query or queryFile can be specified as a query option, not both")
 	case dump.InputOptions.Query != "" && dump.InputOptions.TableScan:
 		return fmt.Errorf("cannot use --forceTableScan when specifying --query")
-	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.DB == "":
+	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.DB == "":
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
-	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Namespace.Collection != "":
+	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Collection != "":
 		return fmt.Errorf("cannot specify a collection when running with dumpDbUsersAndRoles")
-	case strings.HasPrefix(dump.ToolOptions.Namespace.Collection, "system.buckets."):
+	case strings.HasPrefix(dump.ToolOptions.Collection, "system.buckets."):
 		return fmt.Errorf("cannot specify a system.buckets collection in --collection. " +
 			"Specifying the timeseries collection will dump the system.buckets collection")
-	case dump.OutputOptions.Oplog && dump.ToolOptions.Namespace.DB != "":
+	case dump.OutputOptions.Oplog && dump.ToolOptions.DB != "":
 		return fmt.Errorf("--oplog mode only supported on full dumps")
-	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.Collection != "":
+	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Collection != "":
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
-	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.Collection != "":
+	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Collection != "":
 		return fmt.Errorf(
 			"--collection is not allowed when --excludeCollectionsWithPrefix is specified",
 		)
-	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.Namespace.DB == "":
+	case len(dump.OutputOptions.ExcludedCollections) > 0 && dump.ToolOptions.DB == "":
 		return fmt.Errorf("--db is required when --excludeCollection is specified")
-	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.Namespace.DB == "":
+	case len(dump.OutputOptions.ExcludedCollectionPrefixes) > 0 && dump.ToolOptions.DB == "":
 		return fmt.Errorf("--db is required when --excludeCollectionsWithPrefix is specified")
 	case dump.OutputOptions.Out != "" && dump.OutputOptions.Archive != "":
 		return fmt.Errorf("--out not allowed when --archive is specified")
@@ -141,7 +141,7 @@ func (dump *MongoDump) Init() error {
 
 	pref, err := db.NewReadPreference(
 		dump.InputOptions.ReadPreference,
-		dump.ToolOptions.URI.ParsedConnString(),
+		dump.ToolOptions.ParsedConnString(),
 	)
 	if err != nil {
 		return fmt.Errorf("error parsing --readPreference : %v", err)
@@ -188,12 +188,12 @@ func (dump *MongoDump) Init() error {
 func (dump *MongoDump) verifyCollectionExists() (bool, error) {
 	// Running MongoDump against a DB with no collection specified works. In this case, return true so the process
 	// can continue.
-	if dump.ToolOptions.Namespace.Collection == "" {
+	if dump.ToolOptions.Collection == "" {
 		return true, nil
 	}
 
 	coll := dump.SessionProvider.DB(dump.ToolOptions.Namespace.DB).
-		Collection(dump.ToolOptions.Namespace.Collection)
+		Collection(dump.ToolOptions.Collection)
 	collInfo, err := db.GetCollectionInfo(coll)
 	if err != nil {
 		return false, err
@@ -234,7 +234,7 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 	if !exists {
 		log.Logvf(log.Always, "namespace with DB %s and collection %s does not exist",
-			dump.ToolOptions.Namespace.DB, dump.ToolOptions.Namespace.Collection)
+			dump.ToolOptions.DB, dump.ToolOptions.Collection)
 		return nil
 	}
 
@@ -951,8 +951,8 @@ func (dump *MongoDump) DumpPreludeMetadata() error {
 
 	filename := "prelude.json"
 
-	if dump.ToolOptions.Namespace.DB != "" {
-		filename = filepath.Join(dump.ToolOptions.Namespace.DB, filename)
+	if dump.ToolOptions.DB != "" {
+		filename = filepath.Join(dump.ToolOptions.DB, filename)
 	}
 	if dump.OutputOptions.Out == "" {
 		filename = filepath.Join("dump", filename)

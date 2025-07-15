@@ -426,8 +426,8 @@ func TestStringBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	enc := es.Buffer.String()
-	encBytes := esBytes.Buffer.String()
+	enc := es.String()
+	encBytes := esBytes.String()
 	if enc != encBytes {
 		i := 0
 		for i < len(enc) && i < len(encBytes) && enc[i] == encBytes[i] {

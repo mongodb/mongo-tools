@@ -163,5 +163,4 @@ func TestParsing(t *testing.T) {
 			So(tc.bodies, ShouldBeNil)
 		})
 	})
-	return
 }

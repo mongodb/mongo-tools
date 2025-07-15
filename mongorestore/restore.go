@@ -693,7 +693,6 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 			}
 			result.combineWith(NewResultFromBulkResult(bwResult, bwErr))
 			resultChan <- result.withErr(db.FilterError(restore.OutputOptions.StopOnError, result.Err))
-			return
 		}()
 
 		// sleep to prevent all threads from inserting at the same time at start

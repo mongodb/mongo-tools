@@ -169,7 +169,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	log.SetVerbosity(opts.Verbosity)
 
 	// verify uri options and log them
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
 	targetDir, err := getTargetDirFromArgs(extraArgs, inputOpts.Directory)
 	if err != nil {
@@ -177,7 +177,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 	targetDir = util.ToUniversalPath(targetDir)
 
-	wc, err := db.NewMongoWriteConcern(outputOpts.WriteConcern, opts.URI.ParsedConnString())
+	wc, err := db.NewMongoWriteConcern(outputOpts.WriteConcern, opts.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing write concern: %v", err)
 	}

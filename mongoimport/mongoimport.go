@@ -145,9 +145,9 @@ func (imp *MongoImport) validateSettings() error {
 	if imp.InputOptions.Type == "" {
 		imp.InputOptions.Type = JSON
 	} else {
-		if !(imp.InputOptions.Type == TSV ||
-			imp.InputOptions.Type == JSON ||
-			imp.InputOptions.Type == CSV) {
+		if imp.InputOptions.Type != TSV &&
+			imp.InputOptions.Type != JSON &&
+			imp.InputOptions.Type != CSV {
 			return fmt.Errorf("unknown type %v", imp.InputOptions.Type)
 		}
 	}
@@ -205,15 +205,16 @@ func (imp *MongoImport) validateSettings() error {
 	}
 
 	// deprecated
-	if imp.IngestOptions.Upsert == true {
+	if imp.IngestOptions.Upsert {
 		imp.IngestOptions.Mode = modeUpsert
 	}
 
 	// parse UpsertFields, may set default mode to modeUpsert
 	if imp.IngestOptions.UpsertFields != "" {
-		if imp.IngestOptions.Mode == "" {
+		switch imp.IngestOptions.Mode {
+		case "":
 			imp.IngestOptions.Mode = modeUpsert
-		} else if imp.IngestOptions.Mode == modeInsert {
+		case modeInsert:
 			return fmt.Errorf("cannot use --upsertFields with --mode=insert")
 		}
 		imp.upsertFields = strings.Split(imp.IngestOptions.UpsertFields, ",")
@@ -230,10 +231,10 @@ func (imp *MongoImport) validateSettings() error {
 	}
 
 	// double-check mode choices
-	if !(imp.IngestOptions.Mode == modeInsert ||
-		imp.IngestOptions.Mode == modeUpsert ||
-		imp.IngestOptions.Mode == modeDelete ||
-		imp.IngestOptions.Mode == modeMerge) {
+	if imp.IngestOptions.Mode != modeInsert &&
+		imp.IngestOptions.Mode != modeUpsert &&
+		imp.IngestOptions.Mode != modeDelete &&
+		imp.IngestOptions.Mode != modeMerge {
 		return fmt.Errorf("invalid --mode argument: %v", imp.IngestOptions.Mode)
 	}
 
@@ -312,7 +313,7 @@ type fileSizeProgressor struct {
 }
 
 func (fsp *fileSizeProgressor) Progress() (int64, int64) {
-	return fsp.sizeTracker.Size(), fsp.max
+	return fsp.Size(), fsp.max
 }
 
 // ImportDocuments is used to write input data to the database. It returns the
@@ -367,12 +368,12 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 	log.Logvf(
 		log.Always,
 		"connected to: %v",
-		util.SanitizeURI(imp.ToolOptions.URI.ConnectionString),
+		util.SanitizeURI(imp.ToolOptions.ConnectionString),
 	)
 
 	log.Logvf(log.Info, "ns: %v.%v",
-		imp.ToolOptions.Namespace.DB,
-		imp.ToolOptions.Namespace.Collection)
+		imp.ToolOptions.DB,
+		imp.ToolOptions.Collection)
 
 	// check if the server is a replica set, mongos, or standalone
 	imp.nodeType, err = imp.SessionProvider.GetNodeType()
@@ -512,28 +513,33 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 
 	selector := constructUpsertDocument(imp.upsertFields, document)
 
-	if imp.IngestOptions.Mode == modeInsert {
+	switch imp.IngestOptions.Mode {
+	case modeInsert:
 		result, err = inserter.Insert(document)
-	} else if imp.IngestOptions.Mode == modeUpsert {
+	case modeUpsert:
 		if selector == nil {
 			result, err = imp.fallbackToInsert(inserter, document)
 		} else {
 			result, err = inserter.Replace(selector, document)
 		}
-	} else if imp.IngestOptions.Mode == modeMerge {
+	case modeMerge:
 		if selector == nil {
 			result, err = imp.fallbackToInsert(inserter, document)
 		} else {
 			updateDoc := bson.D{{"$set", document}}
 			result, err = inserter.Update(selector, updateDoc)
 		}
-	} else if imp.IngestOptions.Mode == modeDelete {
+	case modeDelete:
 		if selector == nil {
-			log.Logvf(log.Info, "Could not construct selector from %v, skipping document", imp.upsertFields)
+			log.Logvf(
+				log.Info,
+				"Could not construct selector from %v, skipping document",
+				imp.upsertFields,
+			)
 		} else {
 			result, err = inserter.Delete(selector, document)
 		}
-	} else {
+	default:
 		err = fmt.Errorf("Invalid mode: %v", imp.IngestOptions.Mode)
 	}
 
@@ -608,7 +614,8 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 	out := os.Stdout
 
 	ignoreBlanks := imp.IngestOptions.IgnoreBlanks && imp.InputOptions.Type != JSON
-	if imp.InputOptions.Type == CSV {
+	switch imp.InputOptions.Type {
+	case CSV:
 		return NewCSVInputReader(
 			colSpecs,
 			in,
@@ -617,8 +624,15 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 			ignoreBlanks,
 			imp.InputOptions.UseArrayIndexFields,
 		), nil
-	} else if imp.InputOptions.Type == TSV {
-		return NewTSVInputReader(colSpecs, in, out, imp.IngestOptions.NumDecodingWorkers, ignoreBlanks, imp.InputOptions.UseArrayIndexFields), nil
+	case TSV:
+		return NewTSVInputReader(
+			colSpecs,
+			in,
+			out,
+			imp.IngestOptions.NumDecodingWorkers,
+			ignoreBlanks,
+			imp.InputOptions.UseArrayIndexFields,
+		), nil
 	}
 	return NewJSONInputReader(
 		imp.InputOptions.JSONArray,

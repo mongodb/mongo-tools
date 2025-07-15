@@ -108,11 +108,11 @@ func stopPodmanMachine(ctx *task.Context) error {
 var (
 	// This matches a file that starts with "license" or "licence", in any
 	// case, with an optional extension.
-	licenseRegexp1 = regexp.MustCompile("(?i)^licen[cs]e(?:\\..+)?$")
+	licenseRegexp1 = regexp.MustCompile(`(?i)^licen[cs]e(?:\..+)?$`)
 	// This matches a file that has an extension of "license" or "licence", in
 	// any case.
-	licenseRegexp2      = regexp.MustCompile("(?i)\\.licen[cs]e$")
-	trailingSpaceRegexp = regexp.MustCompile("(?m)[^\\n\\S]+$")
+	licenseRegexp2      = regexp.MustCompile(`(?i)\.licen[cs]e$`)
+	trailingSpaceRegexp = regexp.MustCompile(`(?m)[^\\n\\S]+$`)
 
 	horizontalLine = strings.Repeat("-", 70)
 )

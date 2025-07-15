@@ -61,7 +61,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	ctx := context.Background()
 
 	md := simpleMongoDumpInstance()
-	md.ToolOptions.Namespace.DB = ""
+	md.ToolOptions.DB = ""
 	md.OutputOptions.Oplog = true
 	md.OutputOptions.Out = "vectored_inserts"
 

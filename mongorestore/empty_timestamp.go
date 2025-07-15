@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var nineNuls = make([]byte, 9, 9)
+var nineNuls = make([]byte, 9)
 
 // FindZeroTimestamps returns all document paths (each represented as
 // a []string) that contain a zero-value timestamp.

@@ -123,7 +123,7 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	}
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %s: %v", opts.URI.ParsedConnString(), err)
+		return nil, fmt.Errorf("failed to connect to %s: %v", opts.ParsedConnString(), err)
 	}
 
 	// create the provider
@@ -279,7 +279,7 @@ func addCACertsFromFile(cfg *tls.Config, file string) error {
 		cfg.RootCAs = x509.NewCertPool()
 	}
 
-	if cfg.RootCAs.AppendCertsFromPEM(data) == false {
+	if !cfg.RootCAs.AppendCertsFromPEM(data) {
 		return fmt.Errorf(
 			"SSL trusted server certificates file does not contain any valid certificates. File: `%v`",
 			file,
@@ -317,7 +317,7 @@ func AKSCallback(
 
 // configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
-	if opts.URI == nil || opts.URI.ConnectionString == "" {
+	if opts.URI == nil || opts.ConnectionString == "" {
 		// XXX Normal operations shouldn't ever reach here because a URI should
 		// be created in options parsing, but tests still manually construct
 		// options and generally don't construct a URI, so we invoke the URI
@@ -328,7 +328,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	clientopt := mopt.Client()
-	cs := opts.URI.ParsedConnString()
+	cs := opts.ParsedConnString()
 
 	clientopt.Hosts = cs.Hosts
 
@@ -338,9 +338,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
 	clientopt.SetSocketTimeout(time.Duration(opts.SocketTimeout) * time.Second)
-	if opts.Connection.ServerSelectionTimeout > 0 {
+	if opts.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(
-			time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second,
+			time.Duration(opts.ServerSelectionTimeout) * time.Second,
 		)
 	}
 	if opts.ReplicaSetName != "" {
@@ -453,20 +453,21 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetWriteConcern(writeconcern.New(opts...))
 	}
 
-	if opts.Auth != nil && opts.Auth.IsSet() {
+	if opts.Auth != nil && opts.IsSet() {
 		cred := mopt.Credential{
-			Username:      opts.Auth.Username,
-			Password:      opts.Auth.Password,
+			Username:      opts.Username,
+			Password:      opts.Password,
 			AuthSource:    opts.GetAuthenticationDatabase(),
-			AuthMechanism: opts.Auth.Mechanism,
+			AuthMechanism: opts.Mechanism,
 		}
-		if cs.AuthMechanism == "MONGODB-AWS" {
+		switch cs.AuthMechanism {
+		case "MONGODB-AWS":
 			cred.Username = cs.Username
 			cred.Password = cs.Password
 			cred.AuthSource = cs.AuthSource
 			cred.AuthMechanism = cs.AuthMechanism
 			cred.AuthMechanismProperties = cs.AuthMechanismProperties
-		} else if cs.AuthMechanism == "MONGODB-OIDC" {
+		case "MONGODB-OIDC":
 			if env, ok := cs.AuthMechanismProperties["ENVIRONMENT"]; ok && env == "azure" {
 				_, okApp := os.LookupEnv("AZURE_APP_CLIENT_ID")
 				_, okClient := os.LookupEnv("AZURE_IDENTITY_CLIENT_ID")
@@ -496,8 +497,8 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		}
 		if opts.Kerberos != nil && cred.AuthMechanism == "GSSAPI" {
 			props := make(map[string]string)
-			if opts.Kerberos.Service != "" {
-				props["SERVICE_NAME"] = opts.Kerberos.Service
+			if opts.Service != "" {
+				props["SERVICE_NAME"] = opts.Service
 			}
 			// XXX How do we use opts.Kerberos.ServiceHost if at all?
 			cred.AuthMechanismProperties = props
@@ -523,7 +524,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		}
 
 		var x509Subject string
-		keyPasswd := opts.SSL.SSLPEMKeyPassword
+		keyPasswd := opts.SSLPEMKeyPassword
 		var err error
 		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
 			keyPasswd = cs.SSLClientCertificateKeyPassword()

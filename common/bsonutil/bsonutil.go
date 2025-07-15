@@ -38,7 +38,7 @@ func IsEqual(left, right bson.D) (bool, error) {
 		return false, err
 	}
 
-	return bytes.Compare(leftBytes, rightBytes) == 0, nil
+	return bytes.Equal(leftBytes, rightBytes), nil
 }
 
 // ConvertLegacyExtJSONDocumentToBSON iterates through the document map and converts JSON

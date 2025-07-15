@@ -14,7 +14,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
@@ -35,7 +34,7 @@ func newMongoRestore() *MongoRestore {
 	return &MongoRestore{
 		manager:      intents.NewIntentManager(),
 		InputOptions: &InputOptions{},
-		ToolOptions:  &commonOpts.ToolOptions{},
+		ToolOptions:  &options.ToolOptions{},
 		NSOptions:    &NSOptions{},
 		renamer:      renamer,
 		includer:     includer,
@@ -321,8 +320,8 @@ func TestHandlingBSON(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "db1")
-				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "c2")
+				So(mr.ToolOptions.DB, ShouldEqual, "db1")
+				So(mr.ToolOptions.Collection, ShouldEqual, "c2")
 			})
 		})
 
@@ -333,27 +332,27 @@ func TestHandlingBSON(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "db1")
-				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, longCollectionName)
+				So(mr.ToolOptions.DB, ShouldEqual, "db1")
+				So(mr.ToolOptions.Collection, ShouldEqual, longCollectionName)
 			})
 		})
 
 		Convey("but pre-existing settings should not be overwritten", func() {
-			mr.ToolOptions.Namespace.DB = "a"
+			mr.ToolOptions.DB = "a"
 
 			Convey("either collection settings", func() {
-				mr.ToolOptions.Namespace.Collection = "b"
+				mr.ToolOptions.Collection = "b"
 				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
 				So(err, ShouldBeNil)
-				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "a")
-				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "b")
+				So(mr.ToolOptions.DB, ShouldEqual, "a")
+				So(mr.ToolOptions.Collection, ShouldEqual, "b")
 			})
 
 			Convey("or db settings", func() {
 				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
 				So(err, ShouldBeNil)
-				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "a")
-				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "c1")
+				So(mr.ToolOptions.DB, ShouldEqual, "a")
+				So(mr.ToolOptions.Collection, ShouldEqual, "c1")
 			})
 		})
 	})
@@ -369,7 +368,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 		buff = bytes.Buffer{}
 		mr = &MongoRestore{
 			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{},
+			ToolOptions:  &options.ToolOptions{},
 			InputOptions: &InputOptions{},
 		}
 		log.SetWriter(&buff)
@@ -469,7 +468,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 		buff = bytes.Buffer{}
 		mr = &MongoRestore{
 			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{},
+			ToolOptions:  &options.ToolOptions{},
 			InputOptions: &InputOptions{},
 		}
 		log.SetWriter(&buff)
@@ -483,17 +482,17 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 					),
 				)
 				So(err, ShouldBeNil)
-				mr.ToolOptions.Namespace = &commonOpts.Namespace{}
+				mr.ToolOptions.Namespace = &options.Namespace{}
 
 				err = mr.handleBSONInsteadOfDirectory(ddl.Path())
 				So(err, ShouldBeNil)
-				So(mr.ToolOptions.Namespace.DB, ShouldEqual, "timeseries_test")
-				So(mr.ToolOptions.Namespace.Collection, ShouldEqual, "system.buckets.foo_ts")
+				So(mr.ToolOptions.DB, ShouldEqual, "timeseries_test")
+				So(mr.ToolOptions.Collection, ShouldEqual, "system.buckets.foo_ts")
 
 				Convey("should create one intent with inferred fields from BSON name", func() {
 					err = mr.CreateIntentForCollection(
-						mr.ToolOptions.Namespace.DB,
-						mr.ToolOptions.Namespace.Collection,
+						mr.ToolOptions.DB,
+						mr.ToolOptions.Collection,
 						ddl,
 					)
 					mr.manager.Finalize(intents.Legacy)
@@ -501,7 +500,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 
 					i0 := mr.manager.Pop()
 					So(i0, ShouldNotBeNil)
-					So(i0.DB, ShouldEqual, mr.ToolOptions.Namespace.DB)
+					So(i0.DB, ShouldEqual, mr.ToolOptions.DB)
 					So(i0.C, ShouldEqual, "foo_ts")
 					So(i0.Location, ShouldEqual, util.ToUniversalPath(ddl.Path()))
 					i1 := mr.manager.Pop()
@@ -565,7 +564,7 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 		buff = bytes.Buffer{}
 		mr = &MongoRestore{
 			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{},
+			ToolOptions:  &options.ToolOptions{},
 			InputOptions: &InputOptions{},
 		}
 		log.SetWriter(&buff)

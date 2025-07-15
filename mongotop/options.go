@@ -35,7 +35,7 @@ type Output struct {
 }
 
 // Name returns a human-readable group name for output options.
-func (_ *Output) Name() string {
+func (*Output) Name() string {
 	return "output"
 }
 

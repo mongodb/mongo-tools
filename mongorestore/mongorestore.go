@@ -43,7 +43,7 @@ const (
 )
 
 var (
-	NoUsersOrRolesInDumpError = errors.New(
+	ErrNoUsersOrRolesInDump = errors.New(
 		"No users or roles found in restore target. Please omit --restoreDbUsersAndRoles, or use a dump created with --dumpDbUsersAndRoles.",
 	)
 )
@@ -172,30 +172,30 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		log.Logv(log.DebugHigh, "\tdumping with object check disabled")
 	}
 
-	if restore.ToolOptions.Namespace.DB == "" && restore.ToolOptions.Namespace.Collection != "" {
+	if restore.ToolOptions.DB == "" && restore.ToolOptions.Collection != "" {
 		return fmt.Errorf("cannot restore a collection without a specified database")
 	}
 
-	if restore.ToolOptions.Namespace.DB != "" {
-		if err := util.ValidateDBName(restore.ToolOptions.Namespace.DB); err != nil {
+	if restore.ToolOptions.DB != "" {
+		if err := util.ValidateDBName(restore.ToolOptions.DB); err != nil {
 			return fmt.Errorf("invalid db name: %v", err)
 		}
 	}
-	if restore.ToolOptions.Namespace.Collection != "" {
-		if err := util.ValidateCollectionGrammar(restore.ToolOptions.Namespace.Collection); err != nil {
+	if restore.ToolOptions.Collection != "" {
+		if err := util.ValidateCollectionGrammar(restore.ToolOptions.Collection); err != nil {
 			return fmt.Errorf("invalid collection name: %v", err)
 		}
 	}
-	if restore.InputOptions.RestoreDBUsersAndRoles && restore.ToolOptions.Namespace.DB == "" {
+	if restore.InputOptions.RestoreDBUsersAndRoles && restore.ToolOptions.DB == "" {
 		return fmt.Errorf("cannot use --restoreDbUsersAndRoles without a specified database")
 	}
-	if restore.InputOptions.RestoreDBUsersAndRoles && restore.ToolOptions.Namespace.DB == "admin" {
+	if restore.InputOptions.RestoreDBUsersAndRoles && restore.ToolOptions.DB == "admin" {
 		return fmt.Errorf("cannot use --restoreDbUsersAndRoles with the admin database")
 	}
 
 	if restore.isAtlasProxy {
 		if restore.InputOptions.RestoreDBUsersAndRoles ||
-			restore.ToolOptions.Namespace.DB == "admin" {
+			restore.ToolOptions.DB == "admin" {
 			return fmt.Errorf(
 				"cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster",
 			)
@@ -231,7 +231,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	log.Logvf(log.DebugLow, "connected to node type: %v", nodeType)
 
 	// deprecations with --nsInclude --nsExclude
-	if restore.ToolOptions.Namespace.DB != "" || restore.ToolOptions.Namespace.Collection != "" {
+	if restore.ToolOptions.DB != "" || restore.ToolOptions.Collection != "" {
 		if filepath.Ext(restore.TargetDirectory) != ".bson" {
 			log.Logvf(log.Always, deprecatedDBAndCollectionsOptionsWarning)
 		}
@@ -242,7 +242,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			"are deprecated and will not exist in the future; use --nsExclude instead")
 	}
 	if restore.InputOptions.OplogReplay {
-		if len(restore.NSOptions.NSInclude) > 0 || restore.ToolOptions.Namespace.DB != "" {
+		if len(restore.NSOptions.NSInclude) > 0 || restore.ToolOptions.DB != "" {
 			return fmt.Errorf("cannot use --oplogReplay with includes specified")
 		}
 		if len(restore.NSOptions.NSExclude) > 0 || len(restore.NSOptions.ExcludedCollections) > 0 ||
@@ -255,11 +255,11 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 
 	includes := restore.NSOptions.NSInclude
-	if restore.ToolOptions.Namespace.DB != "" && restore.ToolOptions.Namespace.Collection != "" {
-		includes = append(includes, ns.Escape(restore.ToolOptions.Namespace.DB)+"."+
-			restore.ToolOptions.Namespace.Collection)
-	} else if restore.ToolOptions.Namespace.DB != "" {
-		includes = append(includes, ns.Escape(restore.ToolOptions.Namespace.DB)+".*")
+	if restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "" {
+		includes = append(includes, ns.Escape(restore.ToolOptions.DB)+"."+
+			restore.ToolOptions.Collection)
+	} else if restore.ToolOptions.DB != "" {
+		includes = append(includes, ns.Escape(restore.ToolOptions.DB)+".*")
 	}
 	if len(includes) == 0 {
 		includes = []string{"*"}
@@ -270,11 +270,11 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 
 	if len(restore.NSOptions.ExcludedCollections) > 0 &&
-		restore.ToolOptions.Namespace.Collection != "" {
+		restore.ToolOptions.Collection != "" {
 		return fmt.Errorf("--collection is not allowed when --excludeCollection is specified")
 	}
 	if len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 &&
-		restore.ToolOptions.Namespace.Collection != "" {
+		restore.ToolOptions.Collection != "" {
 		return fmt.Errorf(
 			"--collection is not allowed when --excludeCollectionsWithPrefix is specified",
 		)
@@ -321,7 +321,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 			return fmt.Errorf(
 				"cannot restore from \"-\" when --archive is specified")
 		}
-		if restore.ToolOptions.Namespace.Collection == "" {
+		if restore.ToolOptions.Collection == "" {
 			return fmt.Errorf("cannot restore from stdin without a specified collection")
 		}
 	}
@@ -416,7 +416,7 @@ func (restore *MongoRestore) Restore() Result {
 			log.Logv(log.DebugLow, "mongorestore target is a directory, not a file")
 		}
 	}
-	if restore.ToolOptions.Namespace.Collection != "" &&
+	if restore.ToolOptions.Collection != "" &&
 		restore.OutputOptions.NumParallelCollections > 1 &&
 		restore.OutputOptions.NumInsertionWorkers == 1 &&
 		!restore.OutputOptions.MaintainInsertionOrder {
@@ -456,25 +456,25 @@ func (restore *MongoRestore) Restore() Result {
 	case restore.InputOptions.Archive != "":
 		log.Logvf(log.Always, "preparing collections to restore from")
 		err = restore.CreateAllIntents(target)
-	case restore.ToolOptions.Namespace.DB != "" && restore.ToolOptions.Namespace.Collection == "":
+	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection == "":
 		log.Logvf(log.Always,
 			"building a list of collections to restore from %v dir",
 			target.Path())
 		err = restore.CreateIntentsForDB(
-			restore.ToolOptions.Namespace.DB,
+			restore.ToolOptions.DB,
 			target,
 		)
-	case restore.ToolOptions.Namespace.DB != "" && restore.ToolOptions.Namespace.Collection != "" && restore.TargetDirectory == "-":
+	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "" && restore.TargetDirectory == "-":
 		log.Logvf(log.Always, "setting up a collection to be read from standard input")
 		err = restore.CreateStdinIntentForCollection(
-			restore.ToolOptions.Namespace.DB,
-			restore.ToolOptions.Namespace.Collection,
+			restore.ToolOptions.DB,
+			restore.ToolOptions.Collection,
 		)
-	case restore.ToolOptions.Namespace.DB != "" && restore.ToolOptions.Namespace.Collection != "":
+	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "":
 		log.Logvf(log.Always, "checking for collection data in %v", target.Path())
 		err = restore.CreateIntentForCollection(
-			restore.ToolOptions.Namespace.DB,
-			restore.ToolOptions.Namespace.Collection,
+			restore.ToolOptions.DB,
+			restore.ToolOptions.Collection,
 			target,
 		)
 	default:
@@ -486,7 +486,7 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	if restore.isMongos && restore.manager.HasConfigDBIntent() &&
-		restore.ToolOptions.Namespace.DB == "" {
+		restore.ToolOptions.DB == "" {
 		return Result{Err: fmt.Errorf("cannot do a full restore on a sharded system - " +
 			"remove the 'config' directory from the dump directory first")}
 	}
@@ -494,10 +494,10 @@ func (restore *MongoRestore) Restore() Result {
 	// if --restoreDbUsersAndRoles is used then db specific users and roles ($admin.system.users.bson / $admin.system.roles.bson)
 	// should exist in target directory / archive
 	if restore.InputOptions.RestoreDBUsersAndRoles &&
-		restore.ToolOptions.Namespace.DB != "" &&
+		restore.ToolOptions.DB != "" &&
 		(restore.manager.Users() == nil && restore.manager.Roles() == nil) {
 		return Result{
-			Err: NoUsersOrRolesInDumpError,
+			Err: ErrNoUsersOrRolesInDump,
 		}
 	}
 

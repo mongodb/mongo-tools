@@ -209,7 +209,7 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 		return false, err
 	}
 
-	isContentSame := bytes.Compare(file1ContentsBytes, file2ContentsBytes) == 0
+	isContentSame := bytes.Equal(file1ContentsBytes, file2ContentsBytes)
 	return isContentSame, nil
 
 }
