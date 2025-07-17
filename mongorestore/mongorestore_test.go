@@ -3333,7 +3333,7 @@ func TestNamespaceFilterWithBulkWriteAndTxn(t *testing.T) {
 			func(sc mongo.SessionContext) error {
 				_, err := sc.WithTransaction(
 					sc,
-					func(ctx mongo.SessionContext) (interface{}, error) {
+					func(ctx mongo.SessionContext) (any, error) {
 						_, err = coll.InsertMany(
 							ctx,
 							lo.RepeatBy(
