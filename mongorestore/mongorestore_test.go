@@ -3375,7 +3375,7 @@ func TestNamespaceFilterWithBulkWriteAndTxn(t *testing.T) {
 
 	assert.NoError(t, restore.Restore().Err, "restore should work")
 
-	docs, err := coll.CountDocuments(ctx, nil)
+	docs, err := coll.CountDocuments(ctx, bson.D{})
 	require.NoError(t, err, "should count documents")
 
 	assert.Equal(t, 200, docs, "all inserted docs should be archived & restored")
