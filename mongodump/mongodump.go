@@ -206,6 +206,16 @@ func (dump *MongoDump) verifyCollectionExists() (bool, error) {
 func (dump *MongoDump) Dump() (err error) {
 	defer dump.SessionProvider.Close()
 
+	err = dump.DumpUntilOplog()
+	if err != nil {
+		return
+	}
+
+	return dump.DumpOplogAndAfter()
+}
+
+// Dump handles some final options checking and executes MongoDump.
+func (dump *MongoDump) DumpUntilOplog() (err error) {
 	if !dump.OutputOptions.Oplog && (dump.InputOptions.SourceWritesDoneBarrier != "") {
 		// Wait for tests to stop writes before dumping any collections.
 		//
@@ -432,6 +442,10 @@ func (dump *MongoDump) Dump() (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func (dump *MongoDump) DumpOplogAndAfter() (err error) {
 	// IO Phase III
 	// oplog
 
