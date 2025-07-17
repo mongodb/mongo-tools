@@ -3313,7 +3313,10 @@ func TestNamespaceFilterWithBulkWriteAndTxn(t *testing.T) {
 
 	dump.OutputOptions.Oplog = true
 
-	assert.NoError(t, dump.DumpUntilOplog(), "dump until oplog should work")
+	dumpErr := dump.DumpUntilOplog()
+	defer dump.CloseMuxIfNeeded(dumpErr)
+
+	require.NoError(t, dumpErr, "dump until oplog should work")
 
 	_, err = coll.InsertMany(
 		ctx,
@@ -3353,7 +3356,9 @@ func TestNamespaceFilterWithBulkWriteAndTxn(t *testing.T) {
 		"should do txn",
 	)
 
-	assert.NoError(t, dump.DumpOplogAndAfter(), "finishing dump should work")
+	dumpErr = dump.DumpOplogAndAfter()
+	require.NoError(t, dumpErr, "finishing dump should work")
+	dump.CloseMuxIfNeeded(dumpErr)
 
 	// ------------------------------------------
 

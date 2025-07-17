@@ -203,15 +203,39 @@ func (dump *MongoDump) verifyCollectionExists() (bool, error) {
 }
 
 // Dump handles some final options checking and executes MongoDump.
-func (dump *MongoDump) Dump() (err error) {
+func (dump *MongoDump) Dump() (dumpErr error) {
 	defer dump.SessionProvider.Close()
+	defer dump.CloseMuxIfNeeded(dumpErr)
 
-	err = dump.DumpUntilOplog()
-	if err != nil {
+	dumpErr = dump.DumpUntilOplog()
+	if dumpErr != nil {
 		return
 	}
 
-	return dump.DumpOplogAndAfter()
+	dumpErr = dump.DumpOplogAndAfter()
+
+	return
+}
+
+func (dump *MongoDump) CloseMuxIfNeeded(dumpErr error) {
+	if dump.archive == nil {
+		return
+	}
+
+	// The Mux runs until its Control is closed
+	close(dump.archive.Mux.Control)
+	muxErr := <-dump.archive.Mux.Completed
+	dump.archive.Out.Close()
+	if muxErr != nil {
+		if dumpErr != nil {
+			dumpErr = fmt.Errorf("archive writer: %v / %v", dumpErr, muxErr)
+		} else {
+			dumpErr = fmt.Errorf("archive writer: %v", muxErr)
+		}
+		log.Logvf(log.DebugLow, "%v", dumpErr)
+	} else {
+		log.Logvf(log.DebugLow, "mux completed successfully")
+	}
 }
 
 // Dump handles some final options checking and executes MongoDump.
@@ -297,22 +321,6 @@ func (dump *MongoDump) DumpUntilOplog() (err error) {
 			Mux: archive.NewMultiplexer(archiveOut, dump.shutdownIntentsNotifier),
 		}
 		go dump.archive.Mux.Run()
-		defer func() {
-			// The Mux runs until its Control is closed
-			close(dump.archive.Mux.Control)
-			muxErr := <-dump.archive.Mux.Completed
-			archiveOut.Close()
-			if muxErr != nil {
-				if err != nil {
-					err = fmt.Errorf("archive writer: %v / %v", err, muxErr)
-				} else {
-					err = fmt.Errorf("archive writer: %v", muxErr)
-				}
-				log.Logvf(log.DebugLow, "%v", err)
-			} else {
-				log.Logvf(log.DebugLow, "mux completed successfully")
-			}
-		}()
 	}
 
 	// Confirm connectivity
