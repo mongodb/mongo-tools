@@ -48,7 +48,7 @@ variables:
 
   # Used to determine load_libs_version for *-latest builds.
   # Same as maxServerVersion supported in download_server.go
-  max_server_version: &max_server_version "8.1"
+  max_server_version: &max_server_version "8.2"
 
 parameters:
   - key: fake_tag_for_release_testing
@@ -1392,6 +1392,96 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
+  - name: integration-8.2
+    tags: ["8.2"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.2.0-rc1"
+      - func: "start mongod"
+        vars:
+          USE_TLS: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true ${testArgs}
+
+  - name: integration-8.2-auth
+    tags: ["8.2", "auth"]
+    commands:
+      - func: "fetch source"
+      # Concat auth args
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args_tls"
+              concat: " --auth"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.2.0"
+      - func: "start mongod"
+        vars:
+          USE_TLS: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: "true"
+      - func: "create mongod users"
+        vars:
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true -auth=true ${testArgs}
+
+  - name: integration-8.2-cluster
+    tags: ["8.2", "cluster"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.2.0"
+      - func: "create repl_set"
+        vars:
+          USE_TLS: "true"
+          load_libs_version: "8.2"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true -topology=replSet ${testArgs}
+
+  - name: aws-auth-8.2
+    tags: ["8.2", "aws-auth"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          edition: "enterprise"
+          mongo_version: "8.2.0"
+      - func: "start mongod"
+        vars:
+          AWS_AUTH: "true"
+      - func: "wait for mongod to be ready"
+        vars:
+          AWS_AUTH: "true"
+      - func: "add-aws-auth-variables-to-file"
+      - func: "setup-aws-auth-test-with-assume-role-credentials"
+      - func: "run make target"
+        vars:
+          target: test:awsauth ${testArgs}
+
   - name: integration-latest
     tags: ["latest"]
     commands:
@@ -1634,6 +1724,23 @@ tasks:
           test_path: "test/legacy42"
           load_libs_version: "8.1"
 
+  - name: legacy-jstests-8.2 # The server jstests from the tools removal from server in 4.2
+    tags: ["8.2"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.2.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run legacy tests"
+        vars:
+          test_path: "test/legacy42"
+          load_libs_version: "8.2"
+
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
     tags: ["latest"]
     commands:
@@ -1760,6 +1867,23 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run qa-tests"
+        vars:
+          resmoke_suite: "core${resmoke_use_tls}"
+          excludes: "requires_unstable,${excludes}"
+
+  - name: qa-tests-8.2
+    tags: ["8.2"]
+    commands:
+      - func: "fetch source"
+      - func: "get buildnumber"
+      - func: "setup credentials"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.2.0"
       - func: "run make target"
         vars:
           target: build
@@ -2102,6 +2226,7 @@ buildvariants:
       - name: ".7.0"
       - name: ".8.0"
       - name: ".8.1"
+      - name: ".8.2"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
@@ -2138,6 +2263,7 @@ buildvariants:
       - name: ".7.0"
       - name: ".8.0"
       - name: ".8.1"
+      - name: ".8.2"
       - name: ".latest"
       - name: ".kerberos"
 
@@ -2285,6 +2411,7 @@ buildvariants:
       - name: ".7.0"
       - name: ".8.0"
       - name: ".8.1"
+      - name: ".8.2"
       - name: ".latest"
       - name: ".kerberos"
       - name: "dist"
