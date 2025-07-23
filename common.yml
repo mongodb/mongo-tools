@@ -320,7 +320,6 @@ functions:
         MONGO_OS: ${mongo_os}
         MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
         MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
-        EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
         ARTIFACTORY_PASSWORD: ${artifactory_password}
         ARTIFACTORY_USERNAME: ${artifactory_username}
         GARASIGN_PASSWORD: ${garasign_password}
