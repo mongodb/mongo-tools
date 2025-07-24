@@ -88,7 +88,7 @@ macos_sign_maybe_notarize() {
   # vars so we don't need to pass the credentials as CLI options.
   "./$macnotary_dir/macnotary" \
       --task-comment "signing the mongo-database-tools release" \
-      --task-id "$TASK_ID" \
+      --task-id "$EVG_TASK_ID" \
       --file "$PWD/unsigned.zip" \
       --mode "${notary_mode}" \
       --url https://dev.macos-notary.build.10gen.cc/api \
