@@ -59,7 +59,6 @@ func (legacy *legacyPrioritizer) Get() *Intent {
 
 func (legacy *legacyPrioritizer) Finish(*Intent) {
 	// no-op
-	return
 }
 
 //===== Longest Task First =====
@@ -95,7 +94,6 @@ func (ltf *longestTaskFirstPrioritizer) Get() *Intent {
 
 func (ltf *longestTaskFirstPrioritizer) Finish(*Intent) {
 	// no-op
-	return
 }
 
 // BySizeAndView attaches the methods for sort.Interface for sorting intents

@@ -135,7 +135,7 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
 		var commandErr mongo.CommandError
-		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+		if !errors.As(err, &commandErr) || commandErr.Code != 26 {
 			t.Fatalf("Failed to run drop: %v", err)
 		}
 	}
@@ -190,7 +190,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
 		var commandErr mongo.CommandError
-		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+		if !errors.As(err, &commandErr) || commandErr.Code != 26 {
 			t.Fatalf("Failed to run drop: %v", err)
 		}
 	}

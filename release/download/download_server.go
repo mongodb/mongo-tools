@@ -35,7 +35,7 @@ type ServerArchive struct {
 }
 
 var (
-	ServerURLMissingError = fmt.Errorf(
+	ErrServerURLMissing = fmt.Errorf(
 		"Unable to find download URL for the server in the json feed",
 	)
 )
@@ -103,5 +103,5 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 		}
 	}
 
-	return "", "", versionGuess, ServerURLMissingError
+	return "", "", versionGuess, ErrServerURLMissing
 }

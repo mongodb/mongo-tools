@@ -26,7 +26,7 @@ func (q *DeferredQuery) Count(isView bool) (int, error) {
 		filter = bson.D{}
 	} else if val, ok := q.Filter.(bson.D); ok && (val == nil || len(val.Map()) == 0) {
 		emptyFilter = true
-	} else if val, ok := q.Filter.(bson.M); ok && (val == nil || len(val) == 0) {
+	} else if val, ok := q.Filter.(bson.M); ok && (len(val) == 0) {
 		emptyFilter = true
 	}
 

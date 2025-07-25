@@ -288,7 +288,7 @@ func (receiver *RegularCollectionReceiver) Sum64() (uint64, bool) {
 
 // Read() runs in the restoring goroutine.
 func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
-	if receiver.partialReadBuf != nil && len(receiver.partialReadBuf) > 0 {
+	if len(receiver.partialReadBuf) > 0 {
 		wLen := len(receiver.partialReadBuf)
 		copyLen := copy(r, receiver.partialReadBuf)
 		if wLen == copyLen {
@@ -552,7 +552,6 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 }
 
 // Finish is part of the IntentPrioritizer interface, and does nothing.
-func (prioritizer *Prioritizer) Finish(*intents.Intent) {
+func (*Prioritizer) Finish(*intents.Intent) {
 	// no-op
-	return
 }

@@ -35,8 +35,6 @@ func runNonTxnMetaCase(t *testing.T, c *TestData) {
 	if meta.IsTxn() {
 		t.Errorf("case %s: non-txn meta looks like transaction", c.name)
 	}
-
-	return
 }
 
 func runTxnMetaCase(t *testing.T, c *TestData) {

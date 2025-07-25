@@ -55,7 +55,7 @@ type InputOptions struct {
 }
 
 // Name returns a description of the InputOptions struct.
-func (_ *InputOptions) Name() string {
+func (*InputOptions) Name() string {
 	return "input"
 }
 
@@ -107,7 +107,7 @@ type IngestOptions struct {
 }
 
 // Name returns a description of the IngestOptions struct.
-func (_ *IngestOptions) Name() string {
+func (*IngestOptions) Name() string {
 	return "ingest"
 }
 
@@ -141,9 +141,9 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 
 	log.SetVerbosity(opts.Verbosity)
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
-	wc, err := db.NewMongoWriteConcern(ingestOpts.WriteConcern, opts.URI.ParsedConnString())
+	wc, err := db.NewMongoWriteConcern(ingestOpts.WriteConcern, opts.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error constructing write concern: %v", err)
 	}

@@ -216,8 +216,8 @@ func TestMongorestore(t *testing.T) {
 			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
 			So(err, ShouldBeNil)
 
-			restore.ToolOptions.Namespace.Collection = "c1"
-			restore.ToolOptions.Namespace.DB = "db1"
+			restore.ToolOptions.Collection = "c1"
+			restore.ToolOptions.DB = "db1"
 			restore.InputReader = bsonFile
 			restore.TargetDirectory = "-"
 
@@ -450,8 +450,8 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			longBsonFile, err := os.Open("testdata/longcollectionname/db1/" + longBsonName)
 			So(err, ShouldBeNil)
 
-			restore.ToolOptions.Namespace.Collection = longCollectionName
-			restore.ToolOptions.Namespace.DB = "db1"
+			restore.ToolOptions.Collection = longCollectionName
+			restore.ToolOptions.DB = "db1"
 			restore.InputReader = longBsonFile
 			restore.TargetDirectory = "-"
 			result := restore.Restore()
@@ -1095,7 +1095,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 				defer restore.Close()
 
 				result := restore.Restore()
-				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+				So(errors.Is(result.Err, ErrNoUsersOrRolesInDump), ShouldBeTrue)
 			})
 
 			Convey("Restoring from base dump directory should not be allowed", func() {
@@ -1112,7 +1112,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 				defer restore.Close()
 
 				result := restore.Restore()
-				So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+				So(errors.Is(result.Err, ErrNoUsersOrRolesInDump), ShouldBeTrue)
 			})
 
 			Convey("Restoring from archive of entire dump should not be allowed", func() {
@@ -1130,7 +1130,7 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 					defer restore.Close()
 
 					result := restore.Restore()
-					So(errors.Is(result.Err, NoUsersOrRolesInDumpError), ShouldBeTrue)
+					So(errors.Is(result.Err, ErrNoUsersOrRolesInDump), ShouldBeTrue)
 
 				})
 			})
@@ -1239,7 +1239,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 			"sets serverDumpVersion from prelude.json from the db's directory",
 			func() {
 				restore.TargetDirectory = "testdata/prelude_test/prelude_db_target/test"
-				restore.ToolOptions.Namespace.DB = "test"
+				restore.ToolOptions.DB = "test"
 				result := restore.Restore()
 				So(result.Err, ShouldBeNil)
 

@@ -80,7 +80,7 @@ func TestFindEmptyTimestampFields_ShouldNotFind(t *testing.T) {
 		{{"faux", primitive.Binary{
 			Data: append(
 				[]byte{0x11, 0x42, 0x42, 0x00},
-				make([]byte, 8, 8)...,
+				make([]byte, 8)...,
 			),
 		}}},
 	}

@@ -227,14 +227,12 @@ func getUpsertValue(field string, document bson.D) interface{} {
 		log.Logvf(log.DebugHigh, "no subdoc found for '%v'", left)
 		return nil
 	}
-	switch subDoc.(type) {
+	switch subDoc := subDoc.(type) {
 	case bson.D:
-		//nolint:errcheck
-		subDocD := subDoc.(bson.D)
+		subDocD := subDoc
 		return getUpsertValue(field[index+1:], subDocD)
 	case *bson.D:
-		//nolint:errcheck
-		subDocD := subDoc.(*bson.D)
+		subDocD := subDoc
 		return getUpsertValue(field[index+1:], *subDocD)
 	default:
 		log.Logvf(log.DebugHigh, "subdoc found for '%v', but couldn't coerce to bson.D", left)

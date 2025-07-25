@@ -126,7 +126,6 @@ func TestBasicMux(t *testing.T) {
 			})
 		})
 	})
-	return
 }
 
 func TestParallelMux(t *testing.T) {
@@ -193,7 +192,6 @@ func TestParallelMux(t *testing.T) {
 		wg.Wait()
 		So(demuxErr, ShouldBeNil)
 	})
-	return
 }
 
 func makeIns(
@@ -386,6 +384,4 @@ func TestTOOLS2403(t *testing.T) {
 
 	wg.Wait()
 	require.NoError(demuxErr)
-
-	return
 }
