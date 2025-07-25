@@ -312,9 +312,8 @@ functions:
         bucket: mciuploads
 
   "sign artifacts":
-    command: subprocess.exec
+    command: shell.exec
     params:
-      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
       env:
         MONGO_OS: ${mongo_os}
@@ -325,9 +324,9 @@ functions:
         GARASIGN_PASSWORD: ${garasign_password}
         GARASIGN_USERNAME: ${garasign_username}
         AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
-        TASK_ID: ${task_id}
-      args:
-        - "./scripts/sign_artifacts.sh"
+      script: |
+        ${_set_shell_env}
+        ./scripts/sign_artifacts.sh
 
   "upload signed release artifacts":
     # temporary workaround for TOOLS-2606
