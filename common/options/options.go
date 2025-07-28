@@ -696,7 +696,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 	}
 
 	// finalize auth options, filling in missing passwords
-	if opts.Auth.ShouldAskForPassword() {
+	if opts.Auth != nil && opts.Auth.ShouldAskForPassword() {
 		pass, err := password.Prompt("mongo user")
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
