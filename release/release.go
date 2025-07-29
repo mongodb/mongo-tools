@@ -456,8 +456,10 @@ func buildRPM() {
 		content = strings.Replace(content, "@TOOLS_VERSION@", rpmVersion, -1)
 		content = strings.Replace(content, "@TOOLS_RELEASE@", rpmRelease, -1)
 		static := getStaticFiles("..", rpmFilename)
-		bomFilename := filepath.Base(static[len(static)-1])
+		bomFilename := filepath.Base(static[len(static)-2])
+		sarifFilename := filepath.Base(static[len(static)-1])
 		content = strings.Replace(content, "@TOOLS_BOM_FILE@", bomFilename, -1)
+		content = strings.Replace(content, "@TOOLS_SARIF_FILE@", sarifFilename, -1)
 		content = strings.Replace(content, "@ARCHITECTURE@", pf.RPMArch(), -1)
 		_, err = f.WriteString(content)
 		check(err, "write content to spec file")
@@ -670,8 +672,9 @@ func buildMSI() {
 		"THIRD-PARTY-NOTICES",
 	}
 	static := getStaticFiles(".", msiFilename)
-	augmentedSBOMFilename := static[len(static)-1]
-	msiStaticFiles = append(msiStaticFiles, augmentedSBOMFilename)
+	augmentedSBOMFilename := static[len(static)-2]
+	sarifReportFilename := static[len(static)-1]
+	msiStaticFiles = append(msiStaticFiles, augmentedSBOMFilename, sarifReportFilename)
 
 	// location of the necessary data files to build the msi.
 	var msiFiles = []string{
@@ -759,6 +762,7 @@ func buildMSI() {
 		`-dVersionLabel=`+versionLabel,
 		`-dProjectName=`+projectName,
 		`-dAugmentedSBOMFilename=`+augmentedSBOMFilename,
+		`-dSARIFReportFilename=`+sarifReportFilename,
 		`-dSourceDir=`+sourceDir,
 		`-dResourceDir=`+resourceDir,
 		`-dSslDir=`+binDir,
@@ -1672,7 +1676,8 @@ func getMongoReleaseAccessToken() string {
 
 func getStaticFiles(repoRoot, releaseFilename string) []string {
 	sbomFile := maybeCopyAugmentedSBOMToRoot(repoRoot, releaseFilename)
-	return append(staticFiles, sbomFile)
+	sarifFile := maybeCopySARIFReportToRoot(repoRoot, releaseFilename)
+	return append(staticFiles, sbomFile, sarifFile)
 }
 
 // This is used to trim the repo root off the SBOM file name.
@@ -1701,6 +1706,29 @@ func maybeCopyAugmentedSBOMToRoot(repoRoot, releaseFilename string) string {
 	return prefixRE.ReplaceAllString(targetFile, "")
 }
 
+func maybeCopySARIFReportToRoot(repoRoot, releaseFilename string) string {
+	// This is the naming convention recommended by the OASIS per
+	// https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.pdf
+	targetFile := filepath.Join(repoRoot, releaseFilename+".sarif.json")
+	if fileExists(targetFile) {
+		return prefixRE.ReplaceAllString(targetFile, "")
+	}
+
+	var (
+		sourceFile string
+		tag        = os.Getenv("EVG_TRIGGERED_BY_TAG")
+	)
+	if tag != "" {
+		sourceFile = filepath.Join(repoRoot, "ssdlc", tag+".sarif.json")
+	} else {
+		sourceFile = mostRecentSARIFReport(repoRoot)
+	}
+	err := copyFile(sourceFile, targetFile)
+	check(err, "copying %s to %s", sourceFile, targetFile)
+
+	return prefixRE.ReplaceAllString(targetFile, "")
+}
+
 func fileExists(file string) bool {
 	_, err := os.Stat(file)
 	if os.IsNotExist(err) {
@@ -1711,10 +1739,18 @@ func fileExists(file string) bool {
 	return true
 }
 
-var sbomFileVersionRE = regexp.MustCompile(`(\d+\.\d+\.\d+)\.bom\.json`)
+var ssdlcFileVersionRE = regexp.MustCompile(`(\d+\.\d+\.\d+)\.(?:bom|sarif)\.json`)
 
 func mostRecentAugmentedSBOM(repoRoot string) string {
-	glob := filepath.Join(repoRoot, "ssdlc", "*.bom.json")
+	return mostRecentSSDLCFileForGlob(repoRoot, "*.bom.json")
+}
+
+func mostRecentSARIFReport(repoRoot string) string {
+	return mostRecentSSDLCFileForGlob(repoRoot, "*.sarif.json")
+}
+
+func mostRecentSSDLCFileForGlob(repoRoot string, glob string) string {
+	glob = filepath.Join(repoRoot, "ssdlc", glob)
 	paths, err := filepath.Glob(glob)
 	check(err, "glob of %q", glob)
 
@@ -1722,7 +1758,7 @@ func mostRecentAugmentedSBOM(repoRoot string) string {
 	mostRecentVersion, err := version.Parse("0.0.0")
 	check(err, "parsing version 0.0.0")
 	for _, path := range paths {
-		matches := sbomFileVersionRE.FindStringSubmatch(path)
+		matches := ssdlcFileVersionRE.FindStringSubmatch(path)
 		if len(matches) < 2 {
 			log.Fatalf("could not extract version from filename %q", path)
 		}
@@ -1736,7 +1772,7 @@ func mostRecentAugmentedSBOM(repoRoot string) string {
 	}
 
 	if mostRecentFile == "" {
-		log.Fatal("could not find any Augmented SBOM files!")
+		log.Fatalf("could not find any files matching %#q!", glob)
 	}
 
 	return mostRecentFile

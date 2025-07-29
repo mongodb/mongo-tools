@@ -59,6 +59,7 @@ rm -rf %{buildroot}
 %attr(0644,root,root) /usr/share/doc/mongodb-database-tools/README.md
 %attr(0644,root,root) /usr/share/doc/mongodb-database-tools/THIRD-PARTY-NOTICES
 %attr(0644,root,root) /usr/share/doc/mongodb-database-tools/@TOOLS_BOM_FILE@
+%attr(0644,root,root) /usr/share/doc/mongodb-database-tools/@TOOLS_SARIF_FILE@
 
 %pre
 # On install

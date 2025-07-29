@@ -559,6 +559,15 @@ functions:
         ${_set_shell_env}
         ./scripts/regenerate-and-diff-sbom-lite.sh
 
+  "check sarif report":
+    command: shell.exec
+    type: test
+    params:
+      working_dir: src/github.com/mongodb/mongo-tools
+      script: |
+        ${_set_shell_env}
+        ./scripts/regenerate-and-diff-sarif-report.sh
+
   "generate gosec SARIF report":
     - command: shell.exec
       type: test
@@ -774,7 +783,7 @@ tasks:
           filenames:
             - "./src/github.com/mongodb/mongo-tools/mongodb-database-tools*"
 
-  - name: gosec-SARIF-report
+  - name: check-SARIF-report
     tags: ["git_tag"]
     commands:
       - func: "fetch source"
@@ -782,7 +791,12 @@ tasks:
       - func: "run make target"
         vars:
           target: sa:installdevtools
-      - func: "generate gosec SARIF report"
+      - command: shell.exec
+        params:
+          working_dir: src/github.com/mongodb/mongo-tools
+          script: |
+            ${_set_shell_env}
+            ./scripts/regenerate-and-diff-sarif-report.sh
 
   - name: check-augmented-sbom
     tags: ["git_tag"]
@@ -1897,6 +1911,11 @@ tasks:
     commands:
       - func: "fetch source"
       - func: "check sbom lite"
+
+  - name: check-sarif-report
+    commands:
+      - func: "fetch source"
+      - func: "check sarif report"
 
 buildvariants:
   #######################################
