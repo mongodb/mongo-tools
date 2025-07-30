@@ -27,6 +27,12 @@
               Source="$(var.SourceDir)\$(var.AugmentedSBOMFilename)"
               DiskId ="1"/>
       </Component>
+      <Component Id="c_SARIFReport" Guid="c263be8b-4243-41a7-8403-69288812cd6e">
+        <File Id="f_SARIFReport"
+              Name="$(var.SARIFReportFilename)"
+              Source="$(var.SourceDir)\$(var.SARIFReportFilename)"
+              DiskId ="1"/>
+      </Component>
     </DirectoryRef>
 
     <ComponentGroup Id="cg_License">
@@ -34,6 +40,7 @@
       <ComponentRef Id="c_Readme"/>
       <ComponentRef Id="c_License"/>
       <ComponentRef Id="c_AugmentedSBOM"/>
+      <ComponentRef Id="c_SARIFReport"/>
     </ComponentGroup>
 
     <WixVariable Id="WixUILicenseRtf" Value="$(var.ResourceDir)\LICENSE.rtf" />

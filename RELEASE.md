@@ -106,6 +106,15 @@ Augmented SBOM before the release.
 See our [documentation on contributing](./CONTRIBUTING.md) for more details on how we handle
 dependency scanning and vulnerabilities.
 
+You must commit this file before you can do a release.
+
+#### Create the SARIF Report File for the Upcoming Release
+
+You can do this by copying the `SARIF.json` file in the repo root to a filename like
+`ssdlc/100.12.2.sarif.json`, replacing `100.12.2` with the tag for this release.
+
+You must commit this file before you can do a release.
+
 #### Ensure All Static Analysis Checks Pass
 
 The easiest way to do this is to run our linting, which includes `gosec`:
