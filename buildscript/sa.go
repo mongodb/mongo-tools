@@ -408,9 +408,9 @@ func SAEvergreenValidate(ctx *task.Context) error {
 	// See ticket for more details.
 	if strings.HasSuffix(output, "is valid with warnings") {
 		for _, line := range strings.Split(output, "\n") {
-			if !(strings.HasSuffix(line, "unmarshal errors:") ||
-				strings.HasSuffix(line, "already set in map") ||
-				strings.HasSuffix(line, "is valid with warnings")) {
+			if !strings.HasSuffix(line, "unmarshal errors:") &&
+				!strings.HasSuffix(line, "already set in map") &&
+				!strings.HasSuffix(line, "is valid with warnings") {
 				return fmt.Errorf("error from `evergreen validate`: %s", output)
 			}
 		}

@@ -506,7 +506,7 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		log.Logvf(
 			log.Always,
 			"connected to: %v",
-			util.SanitizeURI(mf.ToolOptions.URI.ConnectionString),
+			util.SanitizeURI(mf.ToolOptions.ConnectionString),
 		)
 	}
 

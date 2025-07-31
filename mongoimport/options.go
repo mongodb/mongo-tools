@@ -83,8 +83,6 @@ type IngestOptions struct {
 	// "merge": Insert new documents or modify existing ones; Preserve values in the database that are not overwritten.
 	// "delete": Skip new documents or delete existing ones that match --upsertFields.
 	// We don't set `default: insert` here since we need to be able to set mode to upsert if --mode isn't set and --upsertFields is set.
-	//
-	//nolint:staticcheck
 	Mode string `long:"mode" choice:"insert" choice:"upsert" choice:"merge" choice:"delete" description:"insert: insert only, skips matching documents. upsert: insert new documents or replace existing documents. merge: insert new documents or modify existing documents. delete: deletes matching documents only. If upsert fields match more than one document, only one document is deleted. (default: insert)"`
 
 	Upsert bool `long:"upsert" hidden:"true" description:"(deprecated; same as --mode=upsert) insert or update objects that already exist"`
@@ -141,9 +139,9 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	}
 
 	log.SetVerbosity(opts.Verbosity)
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
-	wc, err := db.NewMongoWriteConcern(ingestOpts.WriteConcern, opts.URI.ParsedConnString())
+	wc, err := db.NewMongoWriteConcern(ingestOpts.WriteConcern, opts.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error constructing write concern: %v", err)
 	}

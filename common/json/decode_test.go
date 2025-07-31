@@ -824,8 +824,7 @@ type All struct {
 	Float32 float32
 	Float64 float64
 
-	Foo string `json:"bar"`
-	//nolint:staticcheck
+	Foo  string `json:"bar"`
 	Foo2 string `json:"bar2,dummyopt"`
 
 	IntStr int64 `json:",string"`

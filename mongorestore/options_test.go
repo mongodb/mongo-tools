@@ -87,7 +87,7 @@ func TestURIParsing(t *testing.T) {
 		opts, err := ParseOptions(args, "", "")
 
 		So(err, ShouldBeNil)
-		So(opts.ToolOptions.DB, ShouldEqual, "test")
+		So(opts.DB, ShouldEqual, "test")
 	})
 }
 
@@ -263,24 +263,37 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				So(opts.TargetDirectory, ShouldEqual, tc.ExpectedOpts.TargetDirectory)
 				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
 			}
-			if tc.AuthType == "aws" {
-				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
-				So(opts.Auth.Password, ShouldEqual, tc.ExpectedOpts.Auth.Password)
-				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
-				So(opts.Auth.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.Auth.AWSSessionToken)
+			switch tc.AuthType {
+			case "aws":
+				So(opts.Username, ShouldEqual, tc.ExpectedOpts.Username)
+				So(opts.Password, ShouldEqual, tc.ExpectedOpts.Password)
+				So(opts.Mechanism, ShouldEqual, tc.ExpectedOpts.Mechanism)
+				So(opts.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.AWSSessionToken)
 				So(
-					opts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
+					opts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
 					ShouldEqual,
-					tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
 				)
-			} else if tc.AuthType == "kerberos" {
-				So(opts.Auth.Username, ShouldEqual, tc.ExpectedOpts.Auth.Username)
-				So(opts.Auth.Mechanism, ShouldEqual, tc.ExpectedOpts.Auth.Mechanism)
-				So(opts.Auth.Source, ShouldEqual, tc.ExpectedOpts.Auth.Source)
-				So(opts.URI.ConnString.AuthMechanismProperties["SERVICE_NAME"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["SERVICE_NAME"])
-				So(opts.URI.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"])
-				So(opts.URI.ConnString.AuthMechanismProperties["SERVICE_REALM"], ShouldEqual, tc.ExpectedOpts.URI.ConnString.AuthMechanismProperties["SERVICE_REALM"])
-				So(opts.Kerberos.Service, ShouldEqual, tc.ExpectedOpts.Kerberos.Service)
+			case "kerberos":
+				So(opts.Username, ShouldEqual, tc.ExpectedOpts.Username)
+				So(opts.Mechanism, ShouldEqual, tc.ExpectedOpts.Mechanism)
+				So(opts.Source, ShouldEqual, tc.ExpectedOpts.Source)
+				So(
+					opts.ConnString.AuthMechanismProperties["SERVICE_NAME"],
+					ShouldEqual,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_NAME"],
+				)
+				So(
+					opts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"],
+					ShouldEqual,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"],
+				)
+				So(
+					opts.ConnString.AuthMechanismProperties["SERVICE_REALM"],
+					ShouldEqual,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_REALM"],
+				)
+				So(opts.Service, ShouldEqual, tc.ExpectedOpts.Service)
 			}
 		}
 	})

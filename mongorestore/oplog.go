@@ -589,13 +589,14 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 				indexSpec.Options = bson.M{}
 				//nolint:errcheck
 				for _, elem := range index.(bson.D) {
-					if elem.Key == "key" {
+					switch elem.Key {
+					case "key":
 						//nolint:errcheck
 						indexSpec.Key = elem.Value.(bson.D)
-					} else if elem.Key == "partialFilterExpression" {
+					case "partialFilterExpression":
 						//nolint:errcheck
 						indexSpec.PartialFilterExpression = elem.Value.(bson.D)
-					} else {
+					default:
 						indexSpec.Options[elem.Key] = elem.Value
 					}
 				}
@@ -615,16 +616,17 @@ func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocum
 	collectionName := ""
 	indexDocument := &idx.IndexDocument{Options: bson.M{}}
 	for _, elem := range op.Object {
-		if elem.Key == "createIndexes" {
+		switch elem.Key {
+		case "createIndexes":
 			//nolint:errcheck
 			collectionName = elem.Value.(string)
-		} else if elem.Key == "key" {
+		case "key":
 			//nolint:errcheck
 			indexDocument.Key = elem.Value.(bson.D)
-		} else if elem.Key == "partialFilterExpression" {
+		case "partialFilterExpression":
 			//nolint:errcheck
 			indexDocument.PartialFilterExpression = elem.Value.(bson.D)
-		} else {
+		default:
 			indexDocument.Options[elem.Key] = elem.Value
 		}
 	}

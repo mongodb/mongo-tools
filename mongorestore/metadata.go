@@ -278,7 +278,7 @@ func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
 	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 		for i, elem := range options {
 			if elem.Key == "autoIndexId" && elem.Value == false &&
-				restore.ToolOptions.Namespace.DB != "local" {
+				restore.ToolOptions.DB != "local" {
 				options[i].Value = true
 				log.Logvf(
 					log.Always,
@@ -590,7 +590,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			log.Logvf(
 				log.Always,
 				"no system.version bson file found in '%v' database dump",
-				restore.ToolOptions.Namespace.DB,
+				restore.ToolOptions.DB,
 			)
 			log.Logv(
 				log.Always,
@@ -713,8 +713,8 @@ func (restore *MongoRestore) ShouldRestoreUsersAndRoles() bool {
 	// then we check if users or roles BSON files actually exist in the dump
 	// dir. If they do, return true.
 	if (restore.InputOptions.RestoreDBUsersAndRoles ||
-		restore.ToolOptions.Namespace.DB == "" ||
-		restore.ToolOptions.Namespace.DB == "admin") &&
+		restore.ToolOptions.DB == "" ||
+		restore.ToolOptions.DB == "admin") &&
 		!restore.isAtlasProxy {
 		if restore.manager.Users() != nil || restore.manager.Roles() != nil {
 			return true

@@ -154,9 +154,9 @@ func getImportWithArgs(additionalArgs ...string) (*MongoImport, error) {
 
 	// Some OSes take longer than others. The test will time itself
 	// out anyway, so we disable timeouts here.
-	if opts.ToolOptions.Timeout > 0 {
-		fmt.Printf("getImportWithArgs zeroing timeout (was %v)\n", opts.ToolOptions.Timeout)
-		opts.ToolOptions.Timeout = 0
+	if opts.Timeout > 0 {
+		fmt.Printf("getImportWithArgs zeroing timeout (was %v)\n", opts.Timeout)
+		opts.Timeout = 0
 	}
 
 	imp, err := New(opts)
@@ -198,8 +198,8 @@ func TestMongoImportValidateSettings(t *testing.T) {
 	Convey("Given a mongoimport instance for validation, ", t, func() {
 		Convey("an error should be thrown if no collection is given", func() {
 			imp := NewMockMongoImport()
-			imp.ToolOptions.Namespace.DB = ""
-			imp.ToolOptions.Namespace.Collection = ""
+			imp.ToolOptions.DB = ""
+			imp.ToolOptions.Collection = ""
 			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
@@ -389,7 +389,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			fieldFile := "test.csv"
 			imp.InputOptions.FieldFile = &fieldFile
 			imp.InputOptions.Type = CSV
-			imp.ToolOptions.Namespace.Collection = ""
+			imp.ToolOptions.Collection = ""
 			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
@@ -399,9 +399,9 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.File = "input"
 			imp.InputOptions.HeaderLine = true
 			imp.InputOptions.Type = CSV
-			imp.ToolOptions.Namespace.Collection = ""
+			imp.ToolOptions.Collection = ""
 			So(imp.validateSettings(), ShouldBeNil)
-			So(imp.ToolOptions.Namespace.Collection, ShouldEqual,
+			So(imp.ToolOptions.Collection, ShouldEqual,
 				imp.InputOptions.File)
 		})
 
@@ -411,9 +411,9 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.File = "/path/to/input/file/dot/input.txt"
 			imp.InputOptions.HeaderLine = true
 			imp.InputOptions.Type = CSV
-			imp.ToolOptions.Namespace.Collection = ""
+			imp.ToolOptions.Collection = ""
 			So(imp.validateSettings(), ShouldBeNil)
-			So(imp.ToolOptions.Namespace.Collection, ShouldEqual, "input")
+			So(imp.ToolOptions.Collection, ShouldEqual, "input")
 		})
 
 		Convey(
@@ -439,7 +439,7 @@ func TestGetSourceReader(t *testing.T) {
 				imp := NewMockMongoImport()
 				imp.InputOptions.File = "/path/to/input/file/dot/input.txt"
 				imp.InputOptions.Type = CSV
-				imp.ToolOptions.Namespace.Collection = ""
+				imp.ToolOptions.Collection = ""
 				_, _, err := imp.getSourceReader()
 				So(err, ShouldNotBeNil)
 			})
@@ -1377,20 +1377,20 @@ func generateTestData() error {
 
 	// 10k unique _id's
 	for i := 1; i < 10001; i++ {
-		_, err = w.WriteString(fmt.Sprintf("{\"_id\": %v }\n", i))
+		_, err = fmt.Fprintf(w, "{\"_id\": %v }\n", i)
 		if err != nil {
 			return err
 		}
 	}
 	// 1 duplicate _id
-	_, err = w.WriteString(fmt.Sprintf("{\"_id\": %v }\n", 5))
+	_, err = fmt.Fprintf(w, "{\"_id\": %v }\n", 5)
 	if err != nil {
 		return err
 	}
 
 	// 10k unique _id's
 	for i := 10001; i < 20001; i++ {
-		_, err = w.WriteString(fmt.Sprintf("{\"_id\": %v }\n", i))
+		_, err = fmt.Fprintf(w, "{\"_id\": %v }\n", i)
 		if err != nil {
 			return err
 		}

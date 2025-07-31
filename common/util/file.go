@@ -93,7 +93,7 @@ func (dc *DeferredCloser) CloseWithErrorCapture(deferredErr *error) {
 		return
 	}
 
-	err := dc.Closer.Close()
+	err := dc.Close()
 	dc.closed = true
 	if err != nil && *deferredErr == nil {
 		*deferredErr = err

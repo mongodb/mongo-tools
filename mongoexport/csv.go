@@ -110,7 +110,7 @@ func (csvExporter *CSVExportOutput) ExportDocument(document bson.D) error {
 // It will also handle dot-delimited field names for nested arrays or documents.
 func extractFieldByName(fieldName string, document interface{}) interface{} {
 	dotParts := strings.Split(fieldName, ".")
-	var subdoc interface{} = document
+	var subdoc = document
 
 	for _, path := range dotParts {
 		docValue := reflect.ValueOf(subdoc)
@@ -119,13 +119,14 @@ func extractFieldByName(fieldName string, document interface{}) interface{} {
 		}
 		docType := docValue.Type()
 		docKind := docType.Kind()
-		if docKind == reflect.Map {
+		switch docKind {
+		case reflect.Map:
 			subdocVal := docValue.MapIndex(reflect.ValueOf(path))
 			if subdocVal.Kind() == reflect.Invalid {
 				return ""
 			}
 			subdoc = subdocVal.Interface()
-		} else if docKind == reflect.Slice {
+		case reflect.Slice:
 			if docType == marshalDType {
 				// dive into a D as a document
 				//nolint:errcheck
@@ -151,7 +152,7 @@ func extractFieldByName(fieldName string, document interface{}) interface{} {
 				}
 				subdoc = subdocVal.Interface()
 			}
-		} else {
+		default:
 			// trying to index into a non-compound type - just return blank.
 			return ""
 		}
