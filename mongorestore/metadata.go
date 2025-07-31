@@ -274,19 +274,29 @@ func (restore *MongoRestore) CreateCollection(
 
 // UpdateAutoIndexId updates {autoIndexId: false} to {autoIndexId: true} if the server version is
 // >= 4.0 and the database is not `local`.
-func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) {
+func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) bson.D {
 	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
 		for i, elem := range options {
-			if elem.Key == "autoIndexId" && elem.Value == false &&
-				restore.ToolOptions.DB != "local" {
-				options[i].Value = true
-				log.Logvf(
-					log.Always,
-					"{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.",
-				)
+			if elem.Key == "autoIndexId" {
+				if restore.serverVersion.GTE(db.Version{8, 2, 0}) {
+					options = append(options[:i], options[i+1:]...)
+					log.Logvf(
+						log.Always,
+						"autoIndexId is not allowed in server versions >= 8.2.0. Removing.",
+					)
+				} else if elem.Value == false &&
+					restore.ToolOptions.DB != "local" {
+					options[i].Value = true
+					log.Logvf(
+						log.Always,
+						"{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.",
+					)
+				}
 			}
 		}
 	}
+
+	return options
 }
 
 func (restore *MongoRestore) createCollectionWithCommand(
@@ -294,7 +304,7 @@ func (restore *MongoRestore) createCollectionWithCommand(
 	intent *intents.Intent,
 	options bson.D,
 ) error {
-	restore.UpdateAutoIndexId(options)
+	options = restore.UpdateAutoIndexId(options)
 
 	command := createCollectionCommand(intent, options)
 
@@ -321,7 +331,7 @@ func (restore *MongoRestore) createCollectionWithApplyOps(
 	options bson.D,
 	uuidHex string,
 ) error {
-	restore.UpdateAutoIndexId(options)
+	options = restore.UpdateAutoIndexId(options)
 
 	command := createCollectionCommand(intent, options)
 	uuid, err := hex.DecodeString(uuidHex)
