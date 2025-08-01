@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -34,6 +35,10 @@ func (v1 Version) GT(v2 Version) bool {
 
 func (v1 Version) GTE(v2 Version) bool {
 	return v1.Cmp(v2) != -1
+}
+
+func (v Version) String() string {
+	return fmt.Sprintf("%d.%d.%d", v[0], v[1], v[2])
 }
 
 func StrToVersion(v string) (Version, error) {

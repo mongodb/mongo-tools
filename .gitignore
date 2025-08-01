@@ -1,4 +1,5 @@
 /*.cdx.json
+/data
 /deb_build
 /dev-bin
 /mise.toml

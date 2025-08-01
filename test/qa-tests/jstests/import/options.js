@@ -7,7 +7,7 @@
 
   jsTest.log('Testing running import with bad command line options');
 
-  var toolTest = getToolTest('bad_options');
+  var toolTest = getToolTest('options');
   var commonToolArgs = getCommonToolArguments();
   var db1 = toolTest.db;
 

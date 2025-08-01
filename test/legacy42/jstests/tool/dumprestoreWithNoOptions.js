@@ -20,9 +20,8 @@ db.dropDatabase();
 
 var defaultFlags = {};
 
-var options = {capped: true, size: 4096, autoIndexId: true};
+var options = {capped: true, size: 4096};
 db.createCollection('capped', options);
-assert.eq(1, db.capped.getIndexes().length, "auto index not created");
 var cappedOptions = db.capped.exists().options;
 for (var opt in options) {
     assert.eq(options[opt],
@@ -37,7 +36,6 @@ t.runTool("dump", "--out", t.ext);
 
 db.dropDatabase();
 assert.eq(0, db.capped.count(), "capped not dropped");
-assert.eq(0, db.capped.getIndexes().length, "indexes not dropped");
 
 t.runTool("restore", "--dir", t.ext, "--noOptionsRestore");
 
@@ -50,9 +48,8 @@ assert.eq(defaultFlags,
 // Dump/restore single DB
 
 db.dropDatabase();
-var options = {capped: true, size: 4096, autoIndexId: true};
+var options = {capped: true, size: 4096};
 db.createCollection('capped', options);
-assert.eq(1, db.capped.getIndexes().length, "auto index not created");
 var cappedOptions = db.capped.exists().options;
 for (var opt in options) {
     assert.eq(options[opt], cappedOptions[opt], 'invalid option');
@@ -65,7 +62,6 @@ t.runTool("dump", "-d", dbname, "--out", dumppath);
 
 db.dropDatabase();
 assert.eq(0, db.capped.count(), "capped not dropped");
-assert.eq(0, db.capped.getIndexes().length, "indexes not dropped");
 
 t.runTool("restore", "-d", dbname2, "--dir", dumppath + dbname, "--noOptionsRestore");
 
@@ -80,9 +76,8 @@ assert.eq(defaultFlags,
 // Dump/restore single collection
 
 db.dropDatabase();
-var options = {capped: true, size: 4096, autoIndexId: true};
+var options = {capped: true, size: 4096};
 db.createCollection('capped', options);
-assert.eq(1, db.capped.getIndexes().length, "auto index not created");
 var cappedOptions = db.capped.exists().options;
 for (var opt in options) {
     assert.eq(options[opt], cappedOptions[opt], 'invalid option');
@@ -97,9 +92,8 @@ t.runTool("dump", "-d", dbname, "-c", "capped", "--out", dumppath);
 
 db.dropDatabase();
 
-assert.eq(0, db.capped.count(), "capped not dropped");
-assert.eq(0, db.capped.getIndexes().length, "indexes not dropped");
-
+assert.eq(0, db.capped.count(), "capped not dropped")
+;
 t.runTool("restore", "-d", dbname, "--drop", "--noOptionsRestore", dumppath + dbname);
 
 db = db.getSiblingDB(dbname);

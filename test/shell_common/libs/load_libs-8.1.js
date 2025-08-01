@@ -2,7 +2,7 @@
 // Assume that the shell is running from either test/legacy42/ or test/qa-tests directories for load paths.
 
 if (typeof TestData == "undefined") {
-  print('Initialising TestData in load_libs.8.1.js')
+  print('Initialising TestData in load_libs.8.2.js')
   TestData = new Object();
 }
 
