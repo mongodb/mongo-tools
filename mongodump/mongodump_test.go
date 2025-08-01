@@ -1480,7 +1480,11 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
 		go func() {
 			time.Sleep(2 * time.Second)
-			session, _ := md.SessionProvider.GetSession()
+			session, err := md.SessionProvider.GetSession()
+			if err != nil {
+				t.Fatalf("Error from GetSession: %v", err)
+				return
+			}
 			disconnectErr = session.Disconnect(context.Background())
 		}()
 
