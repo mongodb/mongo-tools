@@ -17,7 +17,7 @@ variables:
   _resmoke_dir: &_resmoke_dir "src/resmoke"
   _src_dir: &src_dir src/mongosync
   # Added for mongodump_passthrough
-  _mongosync_pin: &_mongosync_pin 211f4a427f5eb57271efe8625269d4ea0d052037
+  _mongosync_pin: &_mongosync_pin 55b77da9db675c8f92e288b684617ad8a6c158b3
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
