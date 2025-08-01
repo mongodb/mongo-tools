@@ -1333,6 +1333,7 @@ func linuxRelease(v version.Version) {
 
 		for _, linuxRepo := range versionsToRelease {
 			for _, mongoEdition := range editionsToRelease {
+				linuxRepoToPush := linuxRepo
 				if canPerformStableRelease(v) {
 					mongoVer, err := version.Parse(linuxRepo.mongoVersionNumber)
 					check(err, "failed to parse mongoDB version: "+linuxRepo.mongoVersionNumber)
@@ -1347,6 +1348,18 @@ func linuxRelease(v version.Version) {
 						mongoVer.GreaterThan(*pf.MaxLinuxServerVersion) {
 						log.Printf("skip to push a linux release to server version %s", mongoVer)
 						continue
+					}
+				}
+
+				// for development releases we don't want to push to the repo of every available server version, just one is good.
+				// rather than use the default, just use the min / max server versions (if any) to ensure that the repo being pushed to exists
+				if !canPerformStableRelease(v) {
+					if pf.MinLinuxServerVersion != nil {
+						linuxRepoToPush.mongoVersionNumber = pf.MinLinuxServerVersion.String()
+					}
+
+					if pf.MaxLinuxServerVersion != nil {
+						linuxRepoToPush.mongoVersionNumber = pf.MaxLinuxServerVersion.String()
 					}
 				}
 
@@ -1415,7 +1428,7 @@ func linuxRelease(v version.Version) {
 						}
 					}
 					check(err, "run curator for %s", prefix)
-				}(mongoEdition.String(), linuxRepo)
+				}(mongoEdition.String(), linuxRepoToPush)
 
 				// We need to sleep briefly between curator
 				// invocations because of an auth race condition in
