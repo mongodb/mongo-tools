@@ -13,6 +13,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -22,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -263,4 +265,85 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		// should be 0 matches.
 		So(count, ShouldEqual, 0)
 	})
+}
+
+func TestBadOptions(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	log.SetWriter(io.Discard)
+
+	dbName := "test"
+	collName := "mongoexport-bad-options"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	type optionsTestCase struct {
+		name          string
+		optionsFunc   func(Options) Options
+		errorTestFunc func(*testing.T, error)
+	}
+
+	testCases := []optionsTestCase{
+		{
+			name: "missing collection",
+			optionsFunc: func(o Options) Options {
+				o.Collection = ""
+				return o
+			},
+			errorTestFunc: func(t *testing.T, err error) {
+				require.Contains(t, err.Error(), "must specify a collection")
+			},
+		},
+		{
+			name: "bad JSON in query",
+			optionsFunc: func(o Options) Options {
+				o.Query = "{ hello }"
+				return o
+			},
+			errorTestFunc: func(t *testing.T, err error) {
+				require.Regexp(t, `query.+is not valid JSON`, err.Error())
+			},
+		},
+		{
+			name: "invalid sort",
+			optionsFunc: func(o Options) Options {
+				o.Sort = "{ hello }"
+				return o
+			},
+			errorTestFunc: func(t *testing.T, err error) {
+				require.Regexp(t, `query.+is not valid JSON`, err.Error())
+			},
+		},
+		{
+			name: "query file does not exist",
+			optionsFunc: func(o Options) Options {
+				o.QueryFile = "does/not/exist.json"
+				return o
+			},
+			errorTestFunc: func(t *testing.T, err error) {
+				if runtime.GOOS == "windows" {
+					require.Contains(t, err.Error(), "cannot find the path specified")
+				} else {
+					require.Contains(t, err.Error(), "no such file or directory")
+				}
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		require.NoError(t, sessionProvider.DropCollection(dbName, collName))
+
+		require.NoError(t, sessionProvider.CreateCollection(dbName, collName))
+
+		opts := testCase.optionsFunc(simpleMongoExportOpts())
+
+		_, err := New(opts)
+		require.Error(t, err)
+		if testCase.errorTestFunc != nil {
+			testCase.errorTestFunc(t, err)
+		}
+	}
 }
