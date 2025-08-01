@@ -72,9 +72,7 @@ func TestPlatformsAreSorted(t *testing.T) {
 
 	current := Platforms()
 	var sorted []Platform
-	for _, p := range current {
-		sorted = append(sorted, p)
-	}
+	sorted = append(sorted, current...)
 	sort.SliceStable(sorted, func(i, j int) bool {
 		if sorted[i].Name != sorted[j].Name {
 			return sorted[i].Name < sorted[j].Name

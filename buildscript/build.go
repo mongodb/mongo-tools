@@ -39,7 +39,7 @@ func CheckMinimumGoVersion(ctx *task.Context) error {
 		return fmt.Errorf("failed to get current go version: %w", err)
 	}
 
-	_, _ = ctx.Write([]byte(fmt.Sprintf("Found Go version \"%s\"\n", goVersionStr)))
+	_, _ = fmt.Fprintf(ctx, "Found Go version \"%s\"\n", goVersionStr)
 
 	versionPattern := `go(\d+\.\d+\.*\d*)`
 
@@ -232,13 +232,14 @@ func getBuildFlags(ctx *task.Context, forTests bool) []string {
 
 	pf, err := getPlatform()
 	if err == nil {
-		if pf.OS == platform.OSLinux {
+		switch pf.OS {
+		case platform.OSLinux:
 			// We don't want to enable -buildmode=pie for tests. This interferes with enabling the race
 			// detector.
 			if !forTests {
 				flags = append(flags, "-buildmode=pie")
 			}
-		} else if pf.OS == platform.OSWindows {
+		case platform.OSWindows:
 			flags = append(flags, "-buildmode=exe")
 		}
 	} else {

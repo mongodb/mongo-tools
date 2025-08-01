@@ -30,7 +30,7 @@ const (
 	// the new config file syntax did not seem trivial.
 	eslintVersion           = "8.57.0"
 	gitHubCodeownersVersion = "0.2.1"
-	golangCILintVersion     = "1.64.5"
+	golangCILintVersion     = "2.3.0"
 	golinesVersion          = "0.12.2"
 	gosecVersion            = "2.20.0"
 	preciousVersion         = "0.7.3"
@@ -408,9 +408,9 @@ func SAEvergreenValidate(ctx *task.Context) error {
 	// See ticket for more details.
 	if strings.HasSuffix(output, "is valid with warnings") {
 		for _, line := range strings.Split(output, "\n") {
-			if !(strings.HasSuffix(line, "unmarshal errors:") ||
-				strings.HasSuffix(line, "already set in map") ||
-				strings.HasSuffix(line, "is valid with warnings")) {
+			if !strings.HasSuffix(line, "unmarshal errors:") &&
+				!strings.HasSuffix(line, "already set in map") &&
+				!strings.HasSuffix(line, "is valid with warnings") {
 				return fmt.Errorf("error from `evergreen validate`: %s", output)
 			}
 		}

@@ -443,7 +443,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
 				// If these special files manage to be included in a dump directory during a full
 				// (multi-db) restore, we should ignore them.
-				if restore.ToolOptions.Namespace != nil && restore.ToolOptions.Namespace.DB == "" && strings.HasPrefix(collection, "$") {
+				if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" && strings.HasPrefix(collection, "$") {
 					log.Logvf(log.DebugLow, "not restoring special collection %v.%v", db, collection)
 					skip = true
 				}
@@ -708,7 +708,7 @@ func hasMetadataFiles(files []archive.DirLike) bool {
 func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 	// we know we have been given a non-directory, so we should handle it
 	// like a bson file and infer as much as we can
-	if restore.ToolOptions.Namespace.Collection == "" {
+	if restore.ToolOptions.Collection == "" {
 		// if the user did not set -c, get the collection name from the bson file
 		newCollectionName, fileType, err := restore.getInfoFromFile(path)
 		if err != nil {
@@ -718,14 +718,14 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 		if fileType != BSONFileType {
 			return fmt.Errorf("file %v does not have .bson extension", path)
 		}
-		restore.ToolOptions.Namespace.Collection = newCollectionName
+		restore.ToolOptions.Collection = newCollectionName
 		log.Logvf(
 			log.DebugLow,
 			"inferred collection '%v' from file",
-			restore.ToolOptions.Namespace.Collection,
+			restore.ToolOptions.Collection,
 		)
 	}
-	if restore.ToolOptions.Namespace.DB == "" {
+	if restore.ToolOptions.DB == "" {
 		// if the user did not set -d, use the directory containing the target
 		// file as the db name (as it would be in a dump directory). If
 		// we cannot determine the directory name, use "test"
@@ -733,11 +733,11 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 		if dirForFile == "." || dirForFile == ".." {
 			dirForFile = "test"
 		}
-		restore.ToolOptions.Namespace.DB = dirForFile
+		restore.ToolOptions.DB = dirForFile
 		log.Logvf(
 			log.DebugLow,
 			"inferred db '%v' from the file's directory",
-			restore.ToolOptions.Namespace.DB,
+			restore.ToolOptions.DB,
 		)
 	}
 	return nil

@@ -452,12 +452,12 @@ func (uri *URI) LogUnsupportedOptions() {
 // --authenticationDatabase if it's provided, otherwise, the database that's
 // specified in the tool's --db arg.
 func (opts *ToolOptions) GetAuthenticationDatabase() string {
-	if opts.Auth.Source != "" {
-		return opts.Auth.Source
-	} else if opts.Auth.RequiresExternalDB() {
+	if opts.Source != "" {
+		return opts.Source
+	} else if opts.RequiresExternalDB() {
 		return "$external"
-	} else if opts.Namespace != nil && opts.Namespace.DB != "" {
-		return opts.Namespace.DB
+	} else if opts.Namespace != nil && opts.DB != "" {
+		return opts.DB
 	}
 	return ""
 }
@@ -478,7 +478,7 @@ func (opts *ToolOptions) AddOptions(extraOpts ExtraOptions) {
 // AddToExtraOptionsRegistry appends an additional options group to the extra options
 // registry found in opts.URI.
 func (opts *ToolOptions) AddToExtraOptionsRegistry(extraOpts ExtraOptions) {
-	opts.URI.extraOptionsRegistry = append(opts.URI.extraOptionsRegistry, extraOpts)
+	opts.extraOptionsRegistry = append(opts.extraOptionsRegistry, extraOpts)
 }
 
 func (opts *ToolOptions) CallArgParser(args []string) ([]string, error) {
@@ -563,12 +563,12 @@ func LogSensitiveOptionWarnings(args []string) {
 	}
 
 	// Log a message for --password, if specified.
-	if tempOpts.Auth.Password != "" {
+	if tempOpts.Password != "" {
 		log.Logvf(log.Always, passwordMsg)
 	}
 
 	// Log a message for --uri or a positional connection string, if either is specified.
-	uri := tempOpts.URI.ConnectionString
+	uri := tempOpts.ConnectionString
 	if uri != "" {
 		if cs, err := connstring.Parse(uri); err == nil && cs.Password != "" {
 			log.Logvf(log.Always, uriMsg)
@@ -576,7 +576,7 @@ func LogSensitiveOptionWarnings(args []string) {
 	}
 
 	// Log a message for --sslPEMKeyPassword, if specified.
-	if tempOpts.SSL.SSLPEMKeyPassword != "" {
+	if tempOpts.SSLPEMKeyPassword != "" {
 		log.Logvf(log.Always, sslMsg)
 	}
 }
@@ -594,12 +594,12 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	}
 
 	// No --config option was specified.
-	if opts.General.ConfigPath == "" {
+	if opts.ConfigPath == "" {
 		return nil
 	}
 
 	// --config option specifies a file path.
-	configBytes, err := os.ReadFile(opts.General.ConfigPath)
+	configBytes, err := os.ReadFile(opts.ConfigPath)
 	if err != nil {
 		return errors.Wrapf(err, "error opening file with --config")
 	}
@@ -613,16 +613,16 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 	}
 	err = yaml.UnmarshalStrict(configBytes, &config)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing config file %s", opts.General.ConfigPath)
+		return errors.Wrapf(err, "error parsing config file %s", opts.ConfigPath)
 	}
 
 	// Assign each parsed value to its respective ToolOptions field.
-	opts.Auth.Password = config.Password
-	opts.URI.ConnectionString = config.ConnectionString
-	opts.SSL.SSLPEMKeyPassword = config.SSLPEMKeyPassword
+	opts.Password = config.Password
+	opts.ConnectionString = config.ConnectionString
+	opts.SSLPEMKeyPassword = config.SSLPEMKeyPassword
 
 	// Mongomirror has an extra option to set.
-	for _, extraOpt := range opts.URI.extraOptionsRegistry {
+	for _, extraOpt := range opts.extraOptionsRegistry {
 		if destinationAuth, ok := extraOpt.(DestinationAuthOptions); ok {
 			destinationAuth.SetDestinationPassword(config.DestinationPassword)
 			break
@@ -676,7 +676,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 // connection string. If a value is set on the connection string, but not the options,
 // that value is added to the options.
 func (opts *ToolOptions) NormalizeOptionsAndURI() error {
-	if opts.URI == nil || opts.URI.ConnectionString == "" {
+	if opts.URI == nil || opts.ConnectionString == "" {
 		// If URI not provided, get replica set name and generate connection string
 		_, opts.ReplicaSetName = util.SplitHostArg(opts.Host)
 		uri, err := NewURI(util.BuildURI(opts.Host, opts.Port))
@@ -686,7 +686,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		opts.URI = uri
 	}
 
-	cs, err := connstring.Parse(opts.URI.ConnectionString)
+	cs, err := connstring.Parse(opts.ConnectionString)
 	if err != nil {
 		return err
 	}
@@ -701,7 +701,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
 		}
-		opts.Auth.Password = pass
+		opts.Password = pass
 		opts.ConnString.Password = pass
 	}
 
@@ -714,7 +714,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		if err != nil {
 			return fmt.Errorf("error reading password: %v", err)
 		}
-		opts.SSL.SSLPEMKeyPassword = pass
+		opts.SSLPEMKeyPassword = pass
 	}
 
 	err = opts.ConnString.Validate()
@@ -757,7 +757,7 @@ func (opts *ToolOptions) handleUnknownOption(
 // we check that it is not equal to its default value. To check that a URI option is set,
 // some options have an "OptionSet" field.
 func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
-	opts.URI.ConnString = cs
+	opts.ConnString = cs
 
 	if opts.enabledOptions.Connection {
 		// Port can be set in --port, --host, or URI
@@ -765,7 +765,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 		if opts.Port != "" {
 			// if --port is set, check that each host:port pair in the URI the port defined in --port
 			for i, host := range cs.Hosts {
-				if strings.Index(host, ":") != -1 {
+				if strings.Contains(host, ":") {
 					hostPort := strings.Split(host, ":")[1]
 					if hostPort != opts.Port {
 						return ConflictingArgsErrorFormat(
@@ -789,7 +789,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 
 			if opts.Port != "" {
 				for i := range seedlist {
-					if strings.Index(seedlist[i], ":") == -1 { // no port
+					if !strings.Contains(seedlist[i], ":") { // no port
 						seedlist[i] = seedlist[i] + ":" + opts.Port
 					}
 				}
@@ -862,76 +862,76 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 			return fmt.Errorf("loadBalanced cannot be set to true if multiple hosts are specified")
 		}
 
-		if opts.Connection.ServerSelectionTimeout != 0 && cs.ServerSelectionTimeoutSet {
-			if (time.Duration(opts.Connection.ServerSelectionTimeout) * time.Millisecond) != cs.ServerSelectionTimeout {
+		if opts.ServerSelectionTimeout != 0 && cs.ServerSelectionTimeoutSet {
+			if (time.Duration(opts.ServerSelectionTimeout) * time.Millisecond) != cs.ServerSelectionTimeout {
 				return ConflictingArgsErrorFormat(
 					"serverSelectionTimeout",
 					strconv.Itoa(int(cs.ServerSelectionTimeout/time.Millisecond)),
-					strconv.Itoa(opts.Connection.ServerSelectionTimeout),
+					strconv.Itoa(opts.ServerSelectionTimeout),
 					"--serverSelectionTimeout",
 				)
 			}
 		}
-		if opts.Connection.ServerSelectionTimeout != 0 && !cs.ServerSelectionTimeoutSet {
+		if opts.ServerSelectionTimeout != 0 && !cs.ServerSelectionTimeoutSet {
 			cs.ServerSelectionTimeout = time.Duration(
-				opts.Connection.ServerSelectionTimeout,
+				opts.ServerSelectionTimeout,
 			) * time.Millisecond
 			cs.ServerSelectionTimeoutSet = true
 		}
-		if opts.Connection.ServerSelectionTimeout == 0 && cs.ServerSelectionTimeoutSet {
-			opts.Connection.ServerSelectionTimeout = int(
+		if opts.ServerSelectionTimeout == 0 && cs.ServerSelectionTimeoutSet {
+			opts.ServerSelectionTimeout = int(
 				cs.ServerSelectionTimeout / time.Millisecond,
 			)
 		}
 
-		if opts.Connection.Timeout != 3 && cs.ConnectTimeoutSet {
-			if (time.Duration(opts.Connection.Timeout) * time.Millisecond) != cs.ConnectTimeout {
+		if opts.Timeout != 3 && cs.ConnectTimeoutSet {
+			if (time.Duration(opts.Timeout) * time.Millisecond) != cs.ConnectTimeout {
 				return ConflictingArgsErrorFormat(
 					"connectTimeout",
 					strconv.Itoa(int(cs.ConnectTimeout/time.Millisecond)),
-					strconv.Itoa(opts.Connection.Timeout),
+					strconv.Itoa(opts.Timeout),
 					"--dialTimeout",
 				)
 			}
 		}
-		if opts.Connection.Timeout != 3 && !cs.ConnectTimeoutSet {
-			cs.ConnectTimeout = time.Duration(opts.Connection.Timeout) * time.Millisecond
+		if opts.Timeout != 3 && !cs.ConnectTimeoutSet {
+			cs.ConnectTimeout = time.Duration(opts.Timeout) * time.Millisecond
 			cs.ConnectTimeoutSet = true
 		}
-		if opts.Connection.Timeout == 3 && cs.ConnectTimeoutSet {
-			opts.Connection.Timeout = int(cs.ConnectTimeout / time.Millisecond)
+		if opts.Timeout == 3 && cs.ConnectTimeoutSet {
+			opts.Timeout = int(cs.ConnectTimeout / time.Millisecond)
 		}
 
-		if opts.Connection.SocketTimeout != 0 && cs.SocketTimeoutSet {
-			if (time.Duration(opts.Connection.SocketTimeout) * time.Millisecond) != cs.SocketTimeout {
+		if opts.SocketTimeout != 0 && cs.SocketTimeoutSet {
+			if (time.Duration(opts.SocketTimeout) * time.Millisecond) != cs.SocketTimeout {
 				return ConflictingArgsErrorFormat(
 					"SocketTimeout",
 					strconv.Itoa(int(cs.SocketTimeout/time.Millisecond)),
-					strconv.Itoa(opts.Connection.SocketTimeout),
+					strconv.Itoa(opts.SocketTimeout),
 					"--socketTimeout",
 				)
 			}
 		}
-		if opts.Connection.SocketTimeout != 0 && !cs.SocketTimeoutSet {
-			cs.SocketTimeout = time.Duration(opts.Connection.SocketTimeout) * time.Millisecond
+		if opts.SocketTimeout != 0 && !cs.SocketTimeoutSet {
+			cs.SocketTimeout = time.Duration(opts.SocketTimeout) * time.Millisecond
 			cs.SocketTimeoutSet = true
 		}
-		if opts.Connection.SocketTimeout == 0 && cs.SocketTimeoutSet {
-			opts.Connection.SocketTimeout = int(cs.SocketTimeout / time.Millisecond)
+		if opts.SocketTimeout == 0 && cs.SocketTimeoutSet {
+			opts.SocketTimeout = int(cs.SocketTimeout / time.Millisecond)
 		}
 
 		if len(cs.Compressors) != 0 {
-			if opts.Connection.Compressors != "none" &&
-				opts.Connection.Compressors != strings.Join(cs.Compressors, ",") {
+			if opts.Compressors != "none" &&
+				opts.Compressors != strings.Join(cs.Compressors, ",") {
 				return ConflictingArgsErrorFormat(
 					"compressors",
 					strings.Join(cs.Compressors, ","),
-					opts.Connection.Compressors,
+					opts.Compressors,
 					"--compressors",
 				)
 			}
 		} else {
-			cs.Compressors = strings.Split(opts.Connection.Compressors, ",")
+			cs.Compressors = strings.Split(opts.Compressors, ",")
 		}
 	}
 
@@ -1179,32 +1179,32 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 			)
 		}
 
-		gssapiServiceName, _ := cs.AuthMechanismProperties["SERVICE_NAME"]
+		gssapiServiceName := cs.AuthMechanismProperties["SERVICE_NAME"]
 
-		if opts.Kerberos.Service != "" && cs.AuthMechanismPropertiesSet {
-			if opts.Kerberos.Service != gssapiServiceName {
+		if opts.Service != "" && cs.AuthMechanismPropertiesSet {
+			if opts.Service != gssapiServiceName {
 				return ConflictingArgsErrorFormat(
 					"Kerberos service name",
 					gssapiServiceName,
-					opts.Kerberos.Service,
+					opts.Service,
 					"--gssapiServiceName",
 				)
 			}
 		}
-		if opts.Kerberos.Service != "" && !cs.AuthMechanismPropertiesSet {
+		if opts.Service != "" && !cs.AuthMechanismPropertiesSet {
 			if cs.AuthMechanismProperties == nil {
 				cs.AuthMechanismProperties = make(map[string]string)
 			}
-			cs.AuthMechanismProperties["SERVICE_NAME"] = opts.Kerberos.Service
+			cs.AuthMechanismProperties["SERVICE_NAME"] = opts.Service
 			cs.AuthMechanismPropertiesSet = true
 		}
-		if opts.Kerberos.Service == "" && cs.AuthMechanismPropertiesSet {
-			opts.Kerberos.Service = gssapiServiceName
+		if opts.Service == "" && cs.AuthMechanismPropertiesSet {
+			opts.Service = gssapiServiceName
 		}
 	}
 
 	if strings.ToLower(cs.AuthMechanism) == "mongodb-aws" {
-		awsSessionToken, _ := cs.AuthMechanismProperties["AWS_SESSION_TOKEN"]
+		awsSessionToken := cs.AuthMechanismProperties["AWS_SESSION_TOKEN"]
 
 		if opts.AWSSessionToken != "" && cs.AuthMechanismPropertiesSet {
 			if opts.AWSSessionToken != awsSessionToken {
@@ -1227,7 +1227,7 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 			opts.AWSSessionToken = awsSessionToken
 		}
 	}
-	for _, extraOpts := range opts.URI.extraOptionsRegistry {
+	for _, extraOpts := range opts.extraOptionsRegistry {
 		if uriSetter, ok := extraOpts.(URISetter); ok {
 			err := uriSetter.SetOptionsFromURI(cs)
 			if err != nil {

@@ -77,7 +77,7 @@ func BuildURI(host, port string) string {
 	// host part is empty string, make it localhost
 	if port != "" {
 		for i := range seedlist {
-			if strings.Index(seedlist[i], ":") == -1 {
+			if !strings.Contains(seedlist[i], ":") {
 				seedlist[i] = seedlist[i] + ":" + port
 			}
 		}

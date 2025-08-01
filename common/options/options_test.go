@@ -580,15 +580,15 @@ func TestParseAndSetOptions(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Log("Test Case:", testCase.Name)
 
-		testCase.OptsIn.URI.ConnectionString = "mongodb://dummy"
-		testCase.OptsExpected.URI.ConnectionString = "mongodb://dummy"
+		testCase.OptsIn.ConnectionString = "mongodb://dummy"
+		testCase.OptsExpected.ConnectionString = "mongodb://dummy"
 
 		BuiltWithGSSAPI = testCase.WithGSSAPI
 		defer func() {
 			BuiltWithGSSAPI = true
 		}()
 
-		testCase.OptsIn.URI.ConnString = testCase.CS
+		testCase.OptsIn.ConnString = testCase.CS
 
 		err := testCase.OptsIn.setOptionsFromURI(testCase.CS)
 
@@ -600,31 +600,31 @@ func TestParseAndSetOptions(t *testing.T) {
 
 		require.Equal(
 			t,
-			testCase.OptsExpected.Connection.Timeout,
-			testCase.OptsIn.Connection.Timeout,
+			testCase.OptsExpected.Timeout,
+			testCase.OptsIn.Timeout,
 		)
 		require.Equal(
 			t,
-			testCase.OptsExpected.Connection.SocketTimeout,
-			testCase.OptsIn.Connection.SocketTimeout,
+			testCase.OptsExpected.SocketTimeout,
+			testCase.OptsIn.SocketTimeout,
 		)
 		require.Equal(t, testCase.OptsExpected.Username, testCase.OptsIn.Username)
 		require.Equal(t, testCase.OptsExpected.Password, testCase.OptsIn.Password)
 		require.Equal(t, testCase.OptsExpected.Source, testCase.OptsIn.Source)
-		require.Equal(t, testCase.OptsExpected.Auth.Mechanism, testCase.OptsIn.Auth.Mechanism)
+		require.Equal(t, testCase.OptsExpected.Mechanism, testCase.OptsIn.Mechanism)
 		require.Equal(
 			t,
-			testCase.OptsExpected.Auth.AWSSessionToken,
-			testCase.OptsIn.Auth.AWSSessionToken,
+			testCase.OptsExpected.AWSSessionToken,
+			testCase.OptsIn.AWSSessionToken,
 		)
 		require.Equal(t, testCase.OptsExpected.Direct, testCase.OptsIn.Direct)
 		require.Equal(t, testCase.OptsExpected.ReplicaSetName, testCase.OptsIn.ReplicaSetName)
-		require.Equal(t, testCase.OptsExpected.SSL.UseSSL, testCase.OptsIn.SSL.UseSSL)
-		require.Equal(t, testCase.OptsExpected.Kerberos.Service, testCase.OptsIn.Kerberos.Service)
+		require.Equal(t, testCase.OptsExpected.UseSSL, testCase.OptsIn.UseSSL)
+		require.Equal(t, testCase.OptsExpected.Service, testCase.OptsIn.Service)
 		require.Equal(
 			t,
-			testCase.OptsExpected.Kerberos.ServiceHost,
-			testCase.OptsIn.Kerberos.ServiceHost,
+			testCase.OptsExpected.ServiceHost,
+			testCase.OptsIn.ServiceHost,
 		)
 		require.Equal(t, testCase.OptsExpected.RetryWrites, testCase.OptsIn.RetryWrites)
 		require.Equal(
@@ -657,16 +657,16 @@ func runConfigFileTestCases(t *testing.T, testCases []configTester) {
 
 			if testCase.outcome == ShouldSucceed {
 				require.NoError(t, err)
-				require.Equal(t, testCase.expectedOpts.Auth.Password, opts.Auth.Password)
+				require.Equal(t, testCase.expectedOpts.Password, opts.Password)
 				require.Equal(
 					t,
-					testCase.expectedOpts.URI.ConnectionString,
-					opts.URI.ConnectionString,
+					testCase.expectedOpts.ConnectionString,
+					opts.ConnectionString,
 				)
 				require.Equal(
 					t,
-					testCase.expectedOpts.SSL.SSLPEMKeyPassword,
-					opts.SSL.SSLPEMKeyPassword,
+					testCase.expectedOpts.SSLPEMKeyPassword,
+					opts.SSLPEMKeyPassword,
 				)
 			} else {
 				require.Error(t, err)
@@ -677,9 +677,9 @@ func runConfigFileTestCases(t *testing.T, testCases []configTester) {
 
 func createExpectedOpts(pw string, uri string, ssl string) *ToolOptions {
 	opts := New("test", "", "", "", false, EnabledOptions{true, true, true, true})
-	opts.Auth.Password = pw
-	opts.URI.ConnectionString = uri
-	opts.SSL.SSLPEMKeyPassword = ssl
+	opts.Password = pw
+	opts.ConnectionString = uri
+	opts.SSLPEMKeyPassword = ssl
 	return opts
 }
 
@@ -777,7 +777,7 @@ func TestParseConfigFile(t *testing.T) {
 			opts := New("test", "", "", "", false, EnabledOptions{Auth: true})
 			_, err := opts.ParseArgs(args)
 			require.NoError(t, err)
-			require.Equal(t, "def456", opts.Auth.Password)
+			require.Equal(t, "def456", opts.Password)
 		})
 
 		t.Run("with --password followed by --config", func(t *testing.T) {
@@ -785,7 +785,7 @@ func TestParseConfigFile(t *testing.T) {
 			opts := New("test", "", "", "", false, EnabledOptions{Auth: true})
 			_, err := opts.ParseArgs(args)
 			require.NoError(t, err)
-			require.Equal(t, "ghi789", opts.Auth.Password)
+			require.Equal(t, "ghi789", opts.Password)
 		})
 	})
 }
@@ -1223,7 +1223,7 @@ func TestPasswordPrompt(t *testing.T) {
 		defer cleanup()
 
 		opts := newTestOpts(t)
-		opts.Auth.Username = "someuser"
+		opts.Username = "someuser"
 		err := opts.NormalizeOptionsAndURI()
 		require.NoError(t, err)
 
@@ -1241,7 +1241,7 @@ func TestPasswordPrompt(t *testing.T) {
 		defer cleanup()
 
 		opts := newTestOpts(t)
-		opts.Auth.Username = "someuser"
+		opts.Username = "someuser"
 		opts.Host = "localhost"
 		opts.Port = "12345"
 		opts.URI = nil
@@ -1262,9 +1262,9 @@ func TestPasswordPrompt(t *testing.T) {
 		defer cleanup()
 
 		opts := newTestOpts(t)
-		opts.Auth.Username = "someuser"
-		opts.Auth.Mechanism = "PLAIN"
-		opts.SSL.UseSSL = true
+		opts.Username = "someuser"
+		opts.Mechanism = "PLAIN"
+		opts.UseSSL = true
 		err := opts.NormalizeOptionsAndURI()
 		require.NoError(t, err)
 

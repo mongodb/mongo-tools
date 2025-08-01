@@ -114,7 +114,7 @@ func NewPrelude(
 			prelude.AddMetadata(&CollectionMetadata{
 				Database:   intent.DB,
 				Collection: intent.C,
-				Metadata:   archiveMetadata.Buffer.String(),
+				Metadata:   archiveMetadata.String(),
 				Type:       intent.Type,
 			})
 		} else {

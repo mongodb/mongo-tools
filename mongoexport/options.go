@@ -125,7 +125,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	log.SetVerbosity(opts.Verbosity)
 
 	// verify URI options and log them
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
 	if inputOpts.SlaveOk {
 		if inputOpts.ReadPreference != "" {
@@ -143,7 +143,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 
 	opts.ReadPreference, err = db.NewReadPreference(
 		inputOpts.ReadPreference,
-		opts.URI.ParsedConnString(),
+		opts.ParsedConnString(),
 	)
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)

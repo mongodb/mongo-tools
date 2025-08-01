@@ -236,8 +236,8 @@ func (cluster *AsyncClusterMonitor) Monitor(sleep time.Duration) error {
 func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, error) {
 	optsCopy := opts
 	host, port := parseHostPort(fullHost)
-	optsCopy.Connection.Host = host
-	optsCopy.Connection.Port = port
+	optsCopy.Host = host
+	optsCopy.Port = port
 	uriCopy := *opts.URI
 	newCS, err := rewriteURI(uriCopy.ConnectionString, fullHost)
 	if err != nil {

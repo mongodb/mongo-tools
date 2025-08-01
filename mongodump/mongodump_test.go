@@ -562,7 +562,7 @@ func testQuery(md *MongoDump, session *mongo.Client) string {
 
 	// we can only dump using query per collection
 	for _, testCollName := range testCollectionNames {
-		md.ToolOptions.Namespace.Collection = testCollName
+		md.ToolOptions.Collection = testCollName
 
 		err := md.Init()
 		So(err, ShouldBeNil)
@@ -622,10 +622,10 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 	So(err, ShouldBeNil)
 	So(countColls, ShouldEqual, 1)
 
-	collOriginal := session.Database(testDB).Collection(md.ToolOptions.Namespace.Collection)
+	collOriginal := session.Database(testDB).Collection(md.ToolOptions.Collection)
 
 	So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
-	collRestore := session.Database(testRestoreDB).Collection(md.ToolOptions.Namespace.Collection)
+	collRestore := session.Database(testRestoreDB).Collection(md.ToolOptions.Collection)
 
 	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
 	So(err, ShouldBeNil)
@@ -663,8 +663,8 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 		md := simpleMongoDumpInstance()
 
 		Convey("we cannot dump a collection when a database specified", func() {
-			md.ToolOptions.Namespace.Collection = "some_collection"
-			md.ToolOptions.Namespace.DB = ""
+			md.ToolOptions.Collection = "some_collection"
+			md.ToolOptions.DB = ""
 
 			err := md.ValidateOptions()
 			So(err, ShouldNotBeNil)
@@ -676,7 +676,7 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 		})
 
 		Convey("we have to specify a collection name if using a query", func() {
-			md.ToolOptions.Namespace.Collection = ""
+			md.ToolOptions.Collection = ""
 			md.OutputOptions.Out = ""
 			md.InputOptions.Query = "{_id:\"\"}"
 
@@ -744,7 +744,7 @@ func TestMongoDumpBSON(t *testing.T) {
 				md.InputOptions.Query = ""
 
 				Convey("and that for a particular collection", func() {
-					md.ToolOptions.Namespace.Collection = testCollectionNames[0]
+					md.ToolOptions.Collection = testCollectionNames[0]
 					err = md.Init()
 					So(err, ShouldBeNil)
 
@@ -783,7 +783,7 @@ func TestMongoDumpBSON(t *testing.T) {
 				})
 
 				Convey("and that it dumps a collection with a slash in its name", func() {
-					md.ToolOptions.Namespace.Collection = testCollectionNames[2]
+					md.ToolOptions.Collection = testCollectionNames[2]
 
 					Convey("to the filesystem", func() {
 						err = md.Init()
@@ -799,7 +799,7 @@ func TestMongoDumpBSON(t *testing.T) {
 				})
 
 				Convey("for an entire database", func() {
-					md.ToolOptions.Namespace.Collection = ""
+					md.ToolOptions.Collection = ""
 					err = md.Init()
 					So(err, ShouldBeNil)
 
@@ -832,7 +832,7 @@ func TestMongoDumpBSON(t *testing.T) {
 						"that does not exist. The dumped directory shouldn't be created",
 						func() {
 							md.OutputOptions.Out = "dump"
-							md.ToolOptions.Namespace.DB = "nottestdb"
+							md.ToolOptions.DB = "nottestdb"
 							err = md.Dump()
 							So(err, ShouldBeNil)
 
@@ -867,7 +867,7 @@ func TestMongoDumpBSON(t *testing.T) {
 
 				Convey("using --query for all the collections in the database", func() {
 					md.InputOptions.Query = string(jsonQueryBytes)
-					md.ToolOptions.Namespace.DB = testDB
+					md.ToolOptions.DB = testDB
 					md.OutputOptions.Out = "dump"
 					dumpDir := testQuery(md, session)
 
@@ -882,7 +882,7 @@ func TestMongoDumpBSON(t *testing.T) {
 					err = os.WriteFile("example.json", jsonQueryBytes, 0777)
 					So(err, ShouldBeNil)
 					md.InputOptions.QueryFile = "example.json"
-					md.ToolOptions.Namespace.DB = testDB
+					md.ToolOptions.DB = testDB
 					md.OutputOptions.Out = "dump"
 					dumpDir := testQuery(md, session)
 
@@ -898,8 +898,8 @@ func TestMongoDumpBSON(t *testing.T) {
 
 		Convey("using MongoDump against a collection that doesn't exist succeeds", func() {
 			md := simpleMongoDumpInstance()
-			md.ToolOptions.Namespace.DB = "nonExistentDB"
-			md.ToolOptions.Namespace.Collection = "nonExistentColl"
+			md.ToolOptions.DB = "nonExistentDB"
+			md.ToolOptions.Collection = "nonExistentColl"
 
 			err := md.Init()
 			So(err, ShouldBeNil)
@@ -945,7 +945,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 				//nolint:errcheck
 				defer coll.Drop(context.Background())
 
-				md.ToolOptions.Namespace.Collection = longCollectionName
+				md.ToolOptions.Collection = longCollectionName
 				err = md.Init()
 				So(err, ShouldBeNil)
 
@@ -1038,8 +1038,8 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 
 		Convey("when dumping all databases", func() {
 			md := simpleMongoDumpInstance()
-			md.ToolOptions.Namespace.DB = ""
-			md.ToolOptions.Namespace.Collection = ""
+			md.ToolOptions.DB = ""
+			md.ToolOptions.Collection = ""
 
 			Convey("when dumping to the default directory", func() {
 				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
@@ -1096,7 +1096,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 
 			Convey("the dump does not fail and prelude.json should not be created", func() {
 				md := simpleMongoDumpInstance()
-				md.ToolOptions.Namespace.DB = "nonExistentDB"
+				md.ToolOptions.DB = "nonExistentDB"
 
 				err := md.Init()
 				So(err, ShouldBeNil)
@@ -1167,7 +1167,6 @@ func TestMongoDumpMetaData(t *testing.T) {
 					oneMetaFile, err := os.Open(
 						util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])),
 					)
-					//nolint:staticcheck
 					defer oneMetaFile.Close()
 					So(err, ShouldBeNil)
 					contents, err := io.ReadAll(oneMetaFile)
@@ -1284,7 +1283,6 @@ func TestMongoDumpOplog(t *testing.T) {
 			So(fileDirExists(dumpOplogFile), ShouldBeTrue)
 
 			oplogFile, err := os.Open(dumpOplogFile)
-			//nolint:staticcheck
 			defer oplogFile.Close()
 			So(err, ShouldBeNil)
 
@@ -1332,7 +1330,7 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
 		var commandErr mongo.CommandError
-		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+		if !errors.As(err, &commandErr) || commandErr.Code != 26 {
 			t.Fatalf("Failed to run drop: %v", err)
 		}
 	}
@@ -1349,8 +1347,8 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 
 	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
 		md := simpleMongoDumpInstance()
-		md.ToolOptions.Namespace.Collection = collName
-		md.ToolOptions.Namespace.DB = dbName
+		md.ToolOptions.Collection = collName
+		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
 		err = md.Init()
 		So(err, ShouldBeNil)
@@ -1385,7 +1383,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
 		var commandErr mongo.CommandError
-		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+		if !errors.As(err, &commandErr) || commandErr.Code != 26 {
 			t.Fatalf("Failed to run drop: %v", err)
 		}
 	}
@@ -1408,8 +1406,8 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 
 	Convey("testing dumping a collection query hints", t, func() {
 		md := simpleMongoDumpInstance()
-		md.ToolOptions.Namespace.Collection = collName
-		md.ToolOptions.Namespace.DB = dbName
+		md.ToolOptions.Collection = collName
+		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
 		err = md.Init()
 		So(err, ShouldBeNil)
@@ -1441,7 +1439,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 	err = sessionProvider.Run(bson.D{{"drop", collName}}, &r1, dbName)
 	if err != nil {
 		var commandErr mongo.CommandError
-		if !(errors.As(err, &commandErr) && commandErr.Code == 26) {
+		if !errors.As(err, &commandErr) || commandErr.Code != 26 {
 			t.Fatalf("Failed to run drop: %v", err)
 		}
 	}
@@ -1457,8 +1455,8 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 
 	Convey("failing to get collection info should error, but not panic", t, func() {
 		md := simpleMongoDumpInstance()
-		md.ToolOptions.Namespace.Collection = collName
-		md.ToolOptions.Namespace.DB = dbName
+		md.ToolOptions.Collection = collName
+		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
 		err = md.Init()
 		So(err, ShouldBeNil)
@@ -1503,8 +1501,8 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 
 				md := simpleMongoDumpInstance()
 				md.InputOptions.Query = `{"coords":{"x":0,"y":1}}`
-				md.ToolOptions.Namespace.Collection = testCollectionNames[0]
-				md.ToolOptions.Namespace.DB = testDB
+				md.ToolOptions.Collection = testCollectionNames[0]
+				md.ToolOptions.DB = testDB
 				md.OutputOptions.Out = "dump"
 				err = md.Init()
 				So(err, ShouldBeNil)
@@ -1559,7 +1557,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
 			md := simpleMongoDumpInstance()
-			md.ToolOptions.Namespace.DB = testDB
+			md.ToolOptions.DB = testDB
 			md.OutputOptions.Out = "dump"
 			md.OutputOptions.ViewsAsCollections = true
 
@@ -1630,7 +1628,7 @@ func TestMongoDumpViews(t *testing.T) {
 		Convey("testing that the dumped directory contains information about metadata", func() {
 
 			md := simpleMongoDumpInstance()
-			md.ToolOptions.Namespace.DB = testDB
+			md.ToolOptions.DB = testDB
 			md.OutputOptions.Out = "dump"
 
 			err = md.Init()
@@ -1833,7 +1831,7 @@ func TestTimeseriesCollections(t *testing.T) {
 	Convey("With a MongoDump instance", t, func() {
 
 		md := simpleMongoDumpInstance()
-		md.ToolOptions.Namespace.DB = dbName
+		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
 
 		Convey("a timeseries collection should produce a well-formatted dump", func() {
@@ -2195,7 +2193,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, colName))
 
 	md := simpleMongoDumpInstance()
-	md.ToolOptions.Namespace.DB = dbName
+	md.ToolOptions.DB = dbName
 	md.OutputOptions.Out = "dump"
 	md.OutputOptions.Out = ""
 	md.OutputOptions.Archive = "dump.archive"
@@ -2460,7 +2458,7 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 	md := simpleMongoDumpInstance()
 
-	md.ToolOptions.Namespace.DB = testDB
+	md.ToolOptions.DB = testDB
 	md.OutputOptions.Out = "dump"
 
 	require.NoError(t, md.Init())

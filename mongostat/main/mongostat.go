@@ -77,12 +77,12 @@ func main() {
 	}
 
 	// verify uri options and log them
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
-	if opts.Auth.Username != "" && opts.GetAuthenticationDatabase() == "" &&
-		!opts.Auth.RequiresExternalDB() {
+	if opts.Username != "" && opts.GetAuthenticationDatabase() == "" &&
+		!opts.RequiresExternalDB() {
 		// add logic to have different error if using uri
-		if opts.URI != nil && opts.URI.ConnectionString != "" {
+		if opts.URI != nil && opts.ConnectionString != "" {
 			log.Logvf(
 				log.Always,
 				"authSource is required when authenticating against a non $external database",
@@ -128,7 +128,7 @@ func main() {
 			log.Logvf(log.Always, "Failed: %v", err)
 			os.Exit(util.ExitFailure)
 		}
-		opts.Auth.Password = pass
+		opts.Password = pass
 	}
 
 	var factory stat_consumer.FormatterConstructor

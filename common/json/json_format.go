@@ -24,7 +24,7 @@ func (b BinData) MarshalJSON() ([]byte, error) {
 }
 
 func (d128 Decimal128) MarshalJSON() ([]byte, error) {
-	s := d128.Decimal128.String()
+	s := d128.String()
 	return []byte(fmt.Sprintf(`{ "$numberDecimal" : "%s" }`, s)), nil
 }
 

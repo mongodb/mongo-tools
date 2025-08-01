@@ -332,7 +332,7 @@ func TestServerCertificateVerification(t *testing.T) {
 					SSL:  &ssl,
 					Auth: &auth,
 				}
-				opts.URI.ConnString.SSLCaFile = "../db/testdata/ia.pem"
+				opts.ConnString.SSLCaFile = "../db/testdata/ia.pem"
 				provider, err := NewSessionProvider(opts)
 				So(err, ShouldBeNil)
 				So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
@@ -366,7 +366,7 @@ func TestServerPKCS8Verification(t *testing.T) {
 				SSL:  &ssl,
 				Auth: &auth,
 			}
-			opts.URI.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+			opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
 			provider, err := NewSessionProvider(opts)
 			So(err, ShouldBeNil)
 			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
@@ -387,7 +387,7 @@ func TestServerPKCS8Verification(t *testing.T) {
 				SSL:  &ssl,
 				Auth: &auth,
 			}
-			opts.URI.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+			opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
 			provider, err := NewSessionProvider(opts)
 			So(err, ShouldBeNil)
 			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
@@ -481,7 +481,7 @@ func TestConfigureClientAKS(t *testing.T) {
 
 			_, err = configureClient(*toolOptions)
 			So(err, ShouldBeNil)
-			So(toolOptions.Auth.Mechanism, ShouldEqual, "MONGODB-OIDC")
+			So(toolOptions.Mechanism, ShouldEqual, "MONGODB-OIDC")
 			os.Unsetenv("AZURE_APP_CLIENT_ID")
 			os.Unsetenv("AZURE_IDENTITY_CLIENT_ID")
 			os.Unsetenv("AZURE_TENANT_ID")

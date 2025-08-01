@@ -60,13 +60,13 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	log.SetVerbosity(opts.Verbosity)
 
 	// verify uri options and log them
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
 	// add the specified database to the namespace options struct
-	opts.Namespace.DB = storageOpts.DB
+	opts.DB = storageOpts.DB
 
 	// set WriteConcern
-	wc, err := db.NewMongoWriteConcern(storageOpts.WriteConcern, opts.URI.ParsedConnString())
+	wc, err := db.NewMongoWriteConcern(storageOpts.WriteConcern, opts.ParsedConnString())
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --writeConcern: %v", err)
 	}
@@ -75,7 +75,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	// set ReadPreference
 	opts.ReadPreference, err = db.NewReadPreference(
 		inputOpts.ReadPreference,
-		opts.URI.ParsedConnString(),
+		opts.ParsedConnString(),
 	)
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing --readPreference: %v", err)
