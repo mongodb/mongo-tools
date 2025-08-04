@@ -272,7 +272,7 @@ func TestBsondumpMaxBSONSize(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	// 16mb + 16kb
-	maxSize := int(16*float64(1024*1024)) + sixteenKB
+	maxSize := (16 * 1024 * 1024) + sixteenKB
 
 	t.Run("bsondump with file at exactly max size of 16mb + 16kb", func(t *testing.T) {
 		_, err := runBsondumpWithLargeFile(t, maxSize)
