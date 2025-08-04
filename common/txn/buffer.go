@@ -137,9 +137,7 @@ LOOP:
 					break LOOP
 				}
 				// store it
-				for _, op := range innerOps {
-					state.buffer = append(state.buffer, op)
-				}
+				state.buffer = append(state.buffer, innerOps...)
 			}
 			if t.meta.IsFinal() {
 				break LOOP

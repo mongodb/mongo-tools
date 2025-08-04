@@ -242,10 +242,10 @@ func (r *JSONInputReader) readJSONArraySeparator() error {
 
 		// this will catch any invalid inter JSON object byte that occurs in the
 		// input source
-		if !(readByte == json.ArraySep ||
-			strings.TrimSpace(string(readByte)) == "" ||
-			readByte == json.ArrayStart ||
-			readByte == json.ArrayEnd) {
+		if readByte != json.ArraySep &&
+			strings.TrimSpace(string(readByte)) != "" &&
+			readByte != json.ArrayStart &&
+			readByte != json.ArrayEnd {
 			if r.expectedByte == json.ArrayStart {
 				return ErrNoOpeningBracket
 			}

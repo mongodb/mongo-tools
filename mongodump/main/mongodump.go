@@ -51,7 +51,7 @@ func main() {
 	log.SetVerbosity(opts.Verbosity)
 
 	// verify uri options and log them
-	opts.URI.LogUnsupportedOptions()
+	opts.LogUnsupportedOptions()
 
 	// kick off the progress bar manager
 	progressManager := progress.NewBarWriter(

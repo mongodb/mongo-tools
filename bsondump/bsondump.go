@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"strings"
 	"time"
@@ -96,7 +95,7 @@ func New(opts Options) (*BSONDump, error) {
 
 	// 16kb + 16mb - This is the maximum size we would get when dumping the
 	// oplog itself. See https://jira.mongodb.org/browse/TOOLS-3001.
-	maxBSONSize := (16 * 1024) + (16 * math.Pow(1024, 2))
+	maxBSONSize := (16 * 1024) + (16 * 1024 * 1024)
 	dumper.InputSource.SetMaxBSONSize(int32(maxBSONSize))
 
 	writer, err := opts.GetWriter()

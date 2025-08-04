@@ -1,12 +1,11 @@
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - dupword
     - errcheck
-    - gci
     - gocheckcompilerdirectives
     - godot
-    - goimports
     - ineffassign
     - misspell
     - nolintlint
@@ -14,36 +13,63 @@ linters:
     - unconvert
     - unparam
     - unused
-  fast: false
 
-linters-settings:
-  errcheck:
-    check-type-assertions: true
+  settings:
+    errcheck:
+      check-type-assertions: true
 
-  gci:
-    sections:
-      - standard
-      - default
+    misspell:
+      locale: US
+      extra-words:
+        - typo: cancelation
+          correction: cancellation
+        - typo: cancelations
+          correction: cancellations
+        - typo: cancelling
+          correction: canceling
+        - typo: cancelled
+          correction: canceled
 
-  misspell:
-    locale: US
-    extra-words:
-      - typo: "cancelation"
-        correction: "cancellation"
-      - typo: "cancelations"
-        correction: "cancellations"
-      - typo: "cancelling"
-        correction: "canceling"
-      - typo: "cancelled"
-        correction: "canceled"
+    staticcheck:
+      # Default: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022"]
+      checks:
+        - "-S1007"
+        - "-ST1005"
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        path: \.go$
+        text: is deprecated
+      - path: (.+)\.go$
+        text: "composites: .+(primitive.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+formatters:
+  enable:
+    - gci
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 
 issues:
   max-same-issues: 0
-  exclude:
-    - "composites: .+(primitive.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
-  # TODO (TOOLS-3633): Remove this exclusion and actually fix the issues.
-  exclude-rules:
-    - path: '\.go$'
-      linters:
-        - staticcheck
-      text: "is deprecated"

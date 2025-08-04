@@ -21,7 +21,6 @@ cmd = [
     "--allow-parallel-runners",
     "--build-tags", "failpoints",
     "--color", "always",
-    "--sort-results",
     "--timeout", "5m",
 ]
 tidy-flags = "--fix"

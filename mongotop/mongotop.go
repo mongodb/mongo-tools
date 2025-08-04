@@ -142,7 +142,7 @@ func (mt *MongoTop) Run() error {
 			log.Logvf(
 				log.Always,
 				"connected to: %v\n",
-				util.SanitizeURI(mt.Options.URI.ConnectionString),
+				util.SanitizeURI(mt.Options.ConnectionString),
 			)
 		}
 
