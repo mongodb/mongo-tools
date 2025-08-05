@@ -378,27 +378,11 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 		return createRes.Err()
 	}
 
-	// SERVER-84531 was only backported to 7.3.
-	// TODO: Run collMod command on 6.0 and 7.0 (TOOLS-3597).
-	clientFCV := testutil.GetFCV(client)
-
-	shouldAccommodateMixedSchema := clientFCV == "6.0" || clientFCV == "7.0"
-	if !shouldAccommodateMixedSchema {
-		cmp, err := testutil.CompareFCV(clientFCV, "7.3")
-		if err != nil {
-			return errors.Wrapf(err, "failed to compare client FCV (%s)", clientFCV)
-		}
-
-		shouldAccommodateMixedSchema = cmp >= 0
-	}
-
-	if shouldAccommodateMixedSchema {
-		if res := sessionProvider.DB(dbName).RunCommand(context.Background(), bson.D{
-			{"collMod", collName},
-			{"timeseriesBucketsMayHaveMixedSchemaData", true},
-		}); res.Err() != nil {
-			return res.Err()
-		}
+	if res := sessionProvider.DB(dbName).RunCommand(context.Background(), bson.D{
+		{"collMod", collName},
+		{"timeseriesBucketsMayHaveMixedSchemaData", true},
+	}); res.Err() != nil {
+		return res.Err()
 	}
 
 	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
