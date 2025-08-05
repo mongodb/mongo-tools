@@ -1323,6 +1323,17 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 		t.Fatalf("No cluster available: %v", err)
 	}
 
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	if err != nil {
+		t.Fatalf("Could not get Server version: %v", err)
+	}
+	if serverVersion.GTE(db.Version{8, 2, 0}) {
+		t.Skipf(
+			"createCollection no longer accepts autoIndexID as of Server version 8.2.0; testing with %s",
+			serverVersion.String(),
+		)
+	}
+
 	collName := "tools-2174"
 	dbName := "local"
 

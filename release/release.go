@@ -1246,6 +1246,7 @@ var linuxRepoVersionsStable = []LinuxRepo{
 	{"6.0", "6.0.0"}, // any 6.0 stable release version will send the package to the "6.0" repo
 	{"7.0", "7.0.0"}, // any 7.0 stable release version will send the package to the "7.0" repo
 	{"8.0", "8.0.0"}, // any 8.0 stable release version will send the package to the "8.0" repo
+	{"8.2", "8.2.0"}, // any 8.2 stable release version will send the package to the "8.2" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
@@ -1511,8 +1512,13 @@ func downloadBinaries(url string) {
 		log.Fatalf("Expected artifact filename to end in .zip or .tgz, instead got %s", filename)
 	}
 
-	binFiles, err := filepath.Glob(path.Join(tempDir, "mongodb-*", "bin", "*"))
-	check(err, "getting glob of files in temp dir %q", tempDir)
+	var binFiles []string
+	// The directory structure of the Jstestshell artifact tarball changed as of Server 8.2.
+	for _, dirGlob := range []string{"mongodb-*", "dist-test"} {
+		files, err := filepath.Glob(path.Join(tempDir, dirGlob, "bin", "*"))
+		check(err, "getting glob of files in temp dir %q", tempDir)
+		binFiles = append(binFiles, files...)
+	}
 
 	for _, f := range binFiles {
 		if filepath.Ext(f) != ".pdb" {

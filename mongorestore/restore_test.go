@@ -12,11 +12,14 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/idx"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func Test_removeDefaultIdIndex(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
 	cases := []struct {
 		Label            string
 		Input            []*idx.IndexDocument

@@ -85,6 +85,10 @@ func (sp *SessionProvider) DropDatabase(dbName string) error {
 	return sp.DB(dbName).Drop(context.Background())
 }
 
+func (sp *SessionProvider) DropCollection(dbName, collName string) error {
+	return sp.DB(dbName).Collection(collName).Drop(context.Background())
+}
+
 func (sp *SessionProvider) CreateCollection(dbName, collName string) error {
 	command := &bson.M{"create": collName}
 	out := &bson.Raw{}

@@ -1387,6 +1387,22 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
 
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	if err != nil {
+		t.Fatalf("Could not get Server version: %v", err)
+	}
+	if serverVersion.GTE(db.Version{8, 2, 0}) {
+		t.Skipf(
+			"createCollection no longer accepts autoIndexID as of Server version 8.2.0; testing with %s",
+			serverVersion.String(),
+		)
+	}
+
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
@@ -1441,6 +1457,22 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 func TestAutoIndexIdNonLocalDB(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No cluster available: %v", err)
+	}
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	if err != nil {
+		t.Fatalf("Could not get Server version: %v", err)
+	}
+	if serverVersion.GTE(db.Version{8, 2, 0}) {
+		t.Skipf(
+			"createCollection no longer accepts autoIndexID as of Server version 8.2.0; testing with %s",
+			serverVersion.String(),
+		)
+	}
 
 	session, err := testutil.GetBareSession()
 	if err != nil {

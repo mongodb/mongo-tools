@@ -9,7 +9,7 @@ import (
 )
 
 // Increase this as needed for new server versions.
-var maxServerVersion = version.Version{8, 1, 999, ""}
+var maxServerVersion = version.Version{8, 2, 999, ""}
 
 // JSONFeed represents the structure of the JSON
 // document consumed by the MongoDB downloads center.

@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
@@ -307,6 +308,93 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 		result := restore.Restore()
 		So(result.Err, ShouldBeNil)
 	})
+}
+
+func TestAutoIndexIdHandling(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	type testCase struct {
+		version                  db.Version
+		isLocalDB                bool
+		expectAutoIndexIDPresent bool
+	}
+
+	testCases := []testCase{
+		{
+			version:                  db.Version{7, 0, 0},
+			isLocalDB:                false,
+			expectAutoIndexIDPresent: true,
+		},
+		{
+			version:                  db.Version{7, 0, 0},
+			isLocalDB:                true,
+			expectAutoIndexIDPresent: true,
+		},
+		{
+			version:                  db.Version{8, 1, 0},
+			expectAutoIndexIDPresent: true,
+		},
+		{
+			version:                  db.Version{8, 2, 0},
+			expectAutoIndexIDPresent: false,
+		},
+		{
+			version:                  db.Version{9, 0, 0},
+			expectAutoIndexIDPresent: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(
+			fmt.Sprintf("autoIndexId handling with version %s", tc.version.String()),
+			func(t *testing.T) {
+				dbName := "foo"
+				if tc.isLocalDB {
+					dbName = "local"
+				}
+				restore := &MongoRestore{
+					ToolOptions: &commonOpts.ToolOptions{
+						Namespace: &commonOpts.Namespace{
+							DB: dbName,
+						},
+					},
+					serverVersion: tc.version,
+				}
+
+				origCollation := "en"
+				options := bson.D{
+					{"collation", "en"},
+					{"autoIndexId", false},
+				}
+
+				options = restore.UpdateAutoIndexId(options)
+
+				newCollation, err := bsonutil.FindStringValueByKey("collation", &options)
+				require.NoError(t, err)
+
+				require.Equal(
+					t,
+					origCollation,
+					newCollation,
+					"collation is preserved regardless of changes to `autoIndexId` field",
+				)
+
+				if tc.expectAutoIndexIDPresent {
+					autoIndexId, err := bsonutil.FindValueByKey("autoIndexId", &options)
+					require.NoError(t, err)
+
+					if tc.isLocalDB {
+						require.Equal(t, false, autoIndexId)
+					} else {
+						require.Equal(t, true, autoIndexId)
+					}
+				} else {
+					_, err := bsonutil.FindValueByKey("autoIndexId", &options)
+					require.Error(t, err)
+				}
+			},
+		)
+	}
 }
 
 func readCollationTestData(filename string) (bson.D, error) {
