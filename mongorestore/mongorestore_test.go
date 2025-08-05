@@ -2055,18 +2055,11 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	fcv := testutil.GetFCV(session)
 	// TODO: Enable tests for 6.0, 7.0 and 8.0 (TOOLS-3597).
 	// The server fix for SERVER-84531 was only backported to 7.3.
-	if cmp, err := testutil.CompareFCV(fcv, "7.3"); cmp < 0 {
+	if cmp, err := testutil.CompareFCV(fcv, "6.0"); cmp < 0 {
 		if err != nil {
 			t.Fatalf("Failed to get FCV: %v", err)
 		}
-		t.Skip("Requires server with FCV 7.3 or later")
-	}
-
-	if cmp, err := testutil.CompareFCV(fcv, "8.0"); cmp >= 0 {
-		if err != nil {
-			t.Fatalf("Failed to get FCV: %v", err)
-		}
-		t.Skip("The test currently fails on v8.0 because of SERVER-92222")
+		t.Skip("Requires server with FCV 6.0 or later")
 	}
 
 	dbName := "timeseries_test_DB"
