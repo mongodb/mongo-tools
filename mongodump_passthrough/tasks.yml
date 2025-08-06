@@ -22,6 +22,15 @@ tasks:
           script: |
             echo "This task is a no-op to work around evergreen's commit queue behavior"
 
+  - name: deliberate_fail_to_test_build_baron_context_rules
+    commands:
+      - command: shell.exec
+        params:
+          script: |
+            echo "Deliberate fail test should give BF on mongodump_passthrough context"
+            echo "exit 1"
+            exit 1
+
   # For mongodump passthrough, this builds and uploads the mongodump and mongorestore
   # binaries (but without coverage), and uploads them.  The name "compile_coverage"
   # is misleading, but that task name is used in the generated tasks from mongodump-task-gen
@@ -46,7 +55,7 @@ tasks:
       - func: f_repo_with_modules_fetch
       - func: f_resmoke_and_binaries_download
         vars:
-          platform: rhel80
+          platform: mongodump_passthru_v
       - func: f_resmoke_wheelhouse_setup
       - func: f_resmoke_archive
 
@@ -77,7 +86,7 @@ tasks:
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
       - name: compile_coverage
-        variant: rhel80
+        variant: mongodump_passthru_v
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
@@ -90,7 +99,7 @@ tasks:
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
       - name: compile_coverage
-        variant: rhel80
+        variant: mongodump_passthru_v
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
@@ -99,11 +108,13 @@ tasks:
           json_filename: mongodump_fsm_tasks.json
 
   - name: generate_mongodump_fuzz_tasks
+    # mongodump_fuzz_tasks not yet working against recent mongosync.
+    # Enabling this to test it.
     tags: ["mongodump_passthrough_task_generator"]
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
       - name: compile_coverage
-        variant: rhel80
+        variant: mongodump_passthru_v
     commands:
       - func: "fetch source and install go"
       - func: "generate mongodump evergreen tasks"
@@ -121,6 +132,6 @@ tasks:
           script: |
             ${PREPARE_SHELL}
             set -ex
-            mise install
+            mise install go
             mise exec -- go run ./cmd/mongodump-suite-gen/cmd write --all --quiet
             git diff --name-status --exit-code resmoke/mongodump-suite-config/*/suites
