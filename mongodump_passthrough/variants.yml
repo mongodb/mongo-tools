@@ -1,22 +1,28 @@
-# buildvariant "rhel80" is used only for mongodump passthrough testing
+# buildvariant "mongodump_passthrough_v" is used only for mongodump passthrough testing
 #
-# This is the same variant name used for mongosync passthrough testing,
-# and we try to set it up the same way.
+# This maps to the same amazon2-arm64 platform used for mongosync passthrough testing.
 
 buildvariants:
-  - name: rhel80
+  # We use a strange name here so that the Build Baron context rules can steer
+  # the mongodump passthrough tests, and only those tests, to context "mongodump_passthrough".
+  #
+  # This name must also match some name in mongo-tools/release/platform/platform.go,
+  # so if you change the name here you also need to change that.
+  - name: mongodump_passthru_v
     # Use this name to get it sorted near the top of the list in spruce UI.
-    display_name: "# RHEL 8.x (mongodump passthrough)"
+    display_name: "# V mongodump_passthru_v (arm64)"
     cron: 0 3 * * *
     tasks:
+      - name: deliberate_fail_to_test_build_baron_context_rules
       - name: compile_coverage
       - name: compile_verifier
       - name: mongodump_suites_up_to_date
       - name: .mongodump_passthrough_task_generator
     run_on:
-      - rhel80-xlarge
+      - amazon2-arm64-latest-small
     expansions:
       python_override: /opt/mongodbtoolchain/v4/bin/python3
     modules:
+      # git.get_project will only fetch modules that are declared in the variant.
       - migration-verifier
       - mongosync
