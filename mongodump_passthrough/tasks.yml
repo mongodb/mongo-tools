@@ -108,9 +108,10 @@ tasks:
           json_filename: mongodump_fsm_tasks.json
 
   - name: generate_mongodump_fuzz_tasks
-    # mongodump_fuzz_tasks not yet working against recent mongosync.
-    # Enabling this to test it.
-    tags: ["mongodump_passthrough_task_generator"]
+    # TOOLS-3951 mongodump_fuzz_tasks not yet working against recent mongosync.
+    # The "run jstestfuzz" function is failing, so I'm temporarily disabling
+    # the jstestfuzz tests on the waterfall by commenting out this tag.
+    # tags: ["mongodump_passthrough_task_generator"]
     depends_on:
       - name: generate_mongodump_resmoke_build_variants
       - name: compile_coverage
