@@ -1,7 +1,6 @@
-# buildvariant "amazon-arm2-passthrough" is used only for mongodump passthrough testing
+# buildvariant "mongodump_passthrough_v" is used only for mongodump passthrough testing
 #
-# This is the same variant name used for mongosync passthrough testing,
-# and we try to set it up the same way.
+# This maps to the same amazon2-arm64 platform used for mongosync passthrough testing.
 
 buildvariants:
   # We use a strange name here so that the Build Baron context rules can steer
