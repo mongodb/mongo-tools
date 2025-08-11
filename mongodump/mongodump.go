@@ -534,6 +534,8 @@ func (dump *MongoDump) getResettableOutputBuffer() resettableOutputBuffer {
 // DumpIntents iterates through the previously-created intents and
 // dumps all of the found collections.
 func (dump *MongoDump) DumpIntents() error {
+	resultChan := make(chan error)
+
 	jobs := dump.OutputOptions.NumParallelCollections
 	if numIntents := len(dump.manager.Intents()); jobs > numIntents {
 		jobs = numIntents
@@ -545,7 +547,6 @@ func (dump *MongoDump) DumpIntents() error {
 		dump.manager.Finalize(intents.Legacy)
 	}
 
-	resultChan := make(chan error, jobs)
 	log.Logvf(log.Info, "dumping up to %v collections in parallel", jobs)
 
 	// start a goroutine for each job thread
