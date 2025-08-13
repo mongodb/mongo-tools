@@ -568,19 +568,6 @@ functions:
         ${_set_shell_env}
         ./scripts/regenerate-and-diff-sarif-report.sh
 
-  "generate gosec SARIF report":
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          ${_set_shell_env}
-          set -x
-          set -v
-          set -e
-          GOSEC_SARIF_REPORT=1 ./dev-bin/precious lint --all --command gosec
-          cat SARIF.json
-
   "create evergreen config file":
     - command: shell.exec
       type: test
@@ -782,21 +769,6 @@ tasks:
           version: ${release_tag}
           filenames:
             - "./src/github.com/mongodb/mongo-tools/mongodb-database-tools*"
-
-  - name: check-SARIF-report
-    tags: ["git_tag"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "run make target"
-        vars:
-          target: sa:installdevtools
-      - command: shell.exec
-        params:
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            ${_set_shell_env}
-            ./scripts/regenerate-and-diff-sarif-report.sh
 
   - name: check-augmented-sbom
     tags: ["git_tag"]
@@ -2039,6 +2011,9 @@ tasks:
   - name: check-sarif-report
     commands:
       - func: "fetch source"
+      - func: "run make target"
+        vars:
+          target: sa:installdevtools
       - func: "check sarif report"
 
 buildvariants:
@@ -2059,7 +2034,7 @@ buildvariants:
       - name: vet
       - name: check-third-party-notices
       - name: check-sbom-lite
-      - name: gosec-SARIF-report
+      - name: check-sarif-report
 
   #######################################
   #     Release Manager Buildvariant    #
