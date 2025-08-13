@@ -55,15 +55,15 @@ We want to make sure that we have taken action on all reported vulnerabities in 
 dependencies before release. To find these, we should look for
 [TOOLS tickets linked to VULN tickets](<https://jira.mongodb.org/issues/?jql=project%20%3D%20TOOLS%20and%20issue%20in%20linkedTo(%22project%20%3D%20VULN%22)>).
 
-Ideally, all of these tickets should have the "Remediation Completed" status. However, in some
+Ideally, all of these tickets should have the "Remediation Pending Release" status. However, in some
 cases, there may not be a version of the dependency available that addresses the vulnerability. In
 that case, it's okay to do a release with the vulnerability still present in the dependency we use.
 
-We have an SLA for releasing an updated version of the Database Tools to address _applicable_
-vulnerabilities in dependencies, based on the issue's severity. It's possible that a vulnerability
-is not applicable because the Database Tools code does not use the code path that leads to the
-vulnerability. This timeline **starts when the upstream fix is available, not when the issue is
-discovered**. The timeline for each severity level is as follows:
+We have an informal SLA for releasing an updated version of the Database Tools to address
+_applicable_ vulnerabilities in dependencies, based on the issue's severity. It's possible that a
+vulnerability is not applicable because the Database Tools code does not use the code path that
+leads to the vulnerability. This timeline **starts when the upstream fix is available, not when the
+issue is discovered**. The timeline for each severity level is as follows:
 
 - Critical or High severity - 30 days
 - Medium - 90 days
@@ -143,7 +143,8 @@ If you are releasing a patch version but a ticket needs a minor bump, update the
 minor version bump. If you are releasing a patch or minor version but a ticket needs a major bump,
 stop the release process immediately.
 
-The only uncompleted ticket in the release should be the release ticket. If there are any remaining
+The only uncompleted tickets in the release should be the release ticket and third-party
+vulnerability tickets in the "Remediation Pending Release" status. If there are any remaining
 tickets that will not be included in this release, remove the fixVersion and assign them a new one
 if appropriate.
 
