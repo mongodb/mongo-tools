@@ -1223,13 +1223,13 @@ func uploadRelease(v version.Version) {
 					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
 					stableFile,
 				)
-				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", stableFile)
+				err = awsClient.UploadFile("downloads.mongodb.org", "tools/db", stableFile)
 				check(err, "uploading %q file to S3", stableFile)
 				log.Printf(
 					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
 					latestStableFile,
 				)
-				err = awsClient.UploadFile("downloads.mongodb.org", "/tools/db", latestStableFile)
+				err = awsClient.UploadFile("downloads.mongodb.org", "tools/db", latestStableFile)
 				check(err, "uploading %q file to S3", latestStableFile)
 			}
 		}

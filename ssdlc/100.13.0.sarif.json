@@ -12,13 +12,13 @@
 								},
 								"region": {
 									"endColumn": 17,
-									"endLine": 520,
+									"endLine": 518,
 									"snippet": {
 										"text": "tlsConfig := \u0026tls.Config{}"
 									},
 									"sourceLanguage": "go",
 									"startColumn": 17,
-									"startLine": 520
+									"startLine": 518
 								}
 							}
 						}
