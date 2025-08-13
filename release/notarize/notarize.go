@@ -70,7 +70,7 @@ func FindInvalidNotarizations(zipPath string) ([]string, error) {
 		}
 
 		cmdPieces := []string{
-			"spctl",
+			"/usr/sbin/spctl",
 			"-vvvvv",
 			"--assess",
 			"--type", "install",
