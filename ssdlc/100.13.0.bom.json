@@ -931,7 +931,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2025-07-18T17:11:37.182995+00:00",
+    "timestamp": "2025-08-14T15:42:55.208031+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -975,9 +975,81 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 33,
+  "version": 34,
+  "vulnerabilities": [
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com/aws/aws-sdk-go@v1.53.11"
+        }
+      ],
+      "analysis": {
+        "response": [
+          "can_not_fix"
+        ],
+        "state": "in_triage"
+      },
+      "bom-ref": "682e1569bc29860e93402db3",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "CVE-2020-8911",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 6.0,
+          "severity": "medium"
+        }
+      ],
+      "references": [
+        {
+          "id": "682e1569bc29860e93402db3",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/682e0e2b66b5cb756f8aee48/vulns/appsec?page=1&perPage=15&id=eq:682e1569bc29860e93402db3"
+          }
+        },
+        {
+          "id": "VULN-686",
+          "source": {
+            "name": "Jira",
+            "url": "https://jira.mongodb.org/browse/VULN-686"
+          }
+        }
+      ]
+    },
+    {
+      "affects": [
+        {
+          "ref": "pkg:golang/github.com/aws/aws-sdk-go@v1.53.11"
+        }
+      ],
+      "analysis": {
+        "response": [
+          "can_not_fix"
+        ],
+        "state": "in_triage"
+      },
+      "bom-ref": "682e1567f934887da5d2849a",
+      "description": "Please see 'source' and 'references' for additional information",
+      "id": "CVE-2020-8912",
+      "ratings": [
+        {
+          "method": "CVSSv3",
+          "score": 3.0,
+          "severity": "low"
+        }
+      ],
+      "references": [
+        {
+          "id": "682e1567f934887da5d2849a",
+          "source": {
+            "name": "Kondukto",
+            "url": "https://arcticglow.kondukto.io/projects/682e0e2b66b5cb756f8aee48/vulns/appsec?page=1&perPage=15&id=eq:682e1567f934887da5d2849a"
+          }
+        }
+      ]
+    }
+  ],
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5",
-  "vulnerabilities": []
+  "specVersion": "1.5"
 }

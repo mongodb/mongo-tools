@@ -1126,7 +1126,7 @@ func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS
 		"uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
 		filename,
 	)
-	err = awsClient.UploadBytes("downloads.mongodb.org", "/tools/db", filename, &feedBuffer)
+	err = awsClient.UploadBytes("downloads.mongodb.org", "tools/db", filename, &feedBuffer)
 	check(err, "upload json feed")
 }
 
