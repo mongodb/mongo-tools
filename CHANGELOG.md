@@ -1,5 +1,87 @@
 # Database Tools Changelog
 
+## 100.13.0
+
+_Released 2025-08-14_
+
+We are pleased to announce version 100.13.0 of the MongoDB Database Tools.
+
+The highlight for this release is Server 8.2.0 support. Starting with 8.2.0, when restoring
+collections with `mongorestore`, the `autoIndexId` collection creation option will be ignored, since
+this is no longer supported with 8.2.0+.
+
+This release also addresses a few reported security vulnerabilities. Previous releases incorrectly
+included development-only library dependencies in the SBOM, which accounts for the `aws-sdk-go`
+vulnerability report. This package is still included in the released SBOM because of a bug in our
+SSDLC tooling. However, it has never been included in the actual tools code. In addition, this
+release was built with Go 1.23.11, which includes a fix for CVE-2025-22874, present in Go 1.23.8 and
+earlier. However, this particular vulnerability did not impact the tools, because they do not use
+the impacted API.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+
+Please make sure to tag forum posts with `database-tools`.
+
+Bugs and feature requests can be reported in the
+[Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be
+found.
+
+<h3>        Investigation
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3825'>TOOLS-3825</a>] -         Investigate changes in SERVER-103887: Introduce QueryRecord IDL type
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+<h3>        Vulnerability
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3907'>TOOLS-3907</a>] -         Security Finding: Update package aws-sdk-go@v1.53.11
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3920'>TOOLS-3920</a>] -         MacOS binaries are not notarized properly starting from release 100.12.1
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3931'>TOOLS-3931</a>] -         Goroutine may leak in `DumpIntents` function 
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3934'>TOOLS-3934</a>] -         CVE-2025-22874 in mongoexport and mongoimport
+</li>
+</ul>
+    
+<h3>        Epic
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3454'>TOOLS-3454</a>] -         Mongodump/mongorestore passthrough tests
+</li>
+</ul>
+            
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3571'>TOOLS-3571</a>] -         Add support for RHEL9 on zSeries/s390x and PowerPC
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3610'>TOOLS-3610</a>] -         Add build.go targets for adding/updating deps
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3903'>TOOLS-3903</a>] -         Our SBOM file should only include deps for the tools binaries and be OS-insensitive
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3911'>TOOLS-3911</a>] -         Add a CODEOWNERS file
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3927'>TOOLS-3927</a>] -         Add tests with Server 8.2
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3928'>TOOLS-3928</a>] -         Fix failing CI tasks
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3933'>TOOLS-3933</a>] -         Add the gosec report to our release artifacts
+</li>
+</ul>
+
 ## 100.12.2
 
 _Released 2025-06-04_
