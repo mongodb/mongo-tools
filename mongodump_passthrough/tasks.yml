@@ -27,7 +27,6 @@ tasks:
   # is misleading, but that task name is used in the generated tasks from mongodump-task-gen
   # so we keep it the same to minimize change.
   - name: compile_coverage
-    tags: ["git_tag"]
     commands:
       - func: "fetch source and install go"
       # We don't need to build any mongosync binaries, but we put mongodump
@@ -38,7 +37,6 @@ tasks:
           binary_name: "mongosync-coverage-binary"
 
   - name: compile_verifier
-    tags: ["git_tag"]
     commands:
       - func: "fetch source and install go"
       - func: f_migration_verifier_compile_and_upload
