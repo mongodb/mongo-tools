@@ -40,9 +40,10 @@ func TestPlatformsMatchCI(t *testing.T) {
 	}
 
 	for _, v := range config.Variants {
-		// Variant "rhel80" has been added to support mongodump passthrough testing.
-		if v.Name == "release" || v.Name == "static" || v.Name == "rhel80" ||
-			v.Name == "rhel88-race" {
+		// Variant "mongodump_passthru_v" has been added to support mongodump
+		// passthrough testing.
+		if v.Name == "release" || v.Name == "static" || v.Name == "rhel88-race" ||
+			v.Name == "mongodump_passthru_v" {
 			continue
 		}
 
@@ -63,6 +64,9 @@ func TestPlatformsMatchCI(t *testing.T) {
 	}
 
 	for name, seen := range releasePlatforms {
+		if name == "mongodump_passthru_v" {
+			continue
+		}
 		assert.True(seen, "%s from the list of known platforms is in the evergreen config", name)
 	}
 }
