@@ -13,11 +13,21 @@
 # is changed here to point at the new mongosync commit hash.
 
 variables:
-  _migration_verifier_pin: &_migration_verifier_pin 9348607d61c4c865287828ce78b798a0f1b1cb89
+  _migration_verifier_pin: &_migration_verifier_pin "9431222bdc602e21b3cf2a64ee45d5eaceac6060"
   _resmoke_dir: &_resmoke_dir "src/resmoke"
   _src_dir: &src_dir src/mongosync
-  # Added for mongodump_passthrough
-  _mongosync_pin: &_mongosync_pin 55b77da9db675c8f92e288b684617ad8a6c158b3
+  #
+  # WARNING:
+  #
+  # There is a delicate relationship between the mongodump_passthrough evergreen
+  # configuration files, and the pinned mongosync which it fetches as an evergreen module.
+  # When you update this pin, you may need to make other changes to get mongodump_passthrough
+  # working again.
+  #
+  # And when you change the _mongosync_pin, you also need to update other pins
+  # which get passed as environment variables to scripts in mongosync/evergreen/scripts.
+  #
+  _mongosync_pin: &_mongosync_pin "7126c03d3f87950824b393b5b1157065767c6d44"
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
@@ -36,7 +46,7 @@ variables:
   f_set_up_logger_credentials: &f_set_up_logger_credentials
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/logger_credentials_setup.sh"
+      binary: "./src/mongosync/evergreen/scripts/logger_credentials_setup.sh"
       add_expansions_to_env: true
 
   # Added for mongodump_passthrough
@@ -50,7 +60,7 @@ variables:
   f_resmoke_wheelhouse_setup: &f_resmoke_wheelhouse_setup
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/resmoke_wheelhouse_setup.sh"
+      binary: "./src/mongosync/evergreen/scripts/resmoke_wheelhouse_setup.sh"
       add_expansions_to_env: true
 
   # Function used to download particular bits of resmoke and binaries uploaded previously.
@@ -122,7 +132,7 @@ variables:
   f_resmoke_jobs_determine: &f_resmoke_jobs_determine
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/resmoke_jobs_determine.sh"
+      binary: "./src/mongosync/evergreen/scripts/resmoke_jobs_determine.sh"
       add_expansions_to_env: true
       env:
         resmoke_jobs_factor: ${resmoke_jobs_factor|1}
@@ -138,7 +148,7 @@ variables:
     command: subprocess.exec
     type: test
     params:
-      binary: "./src/mongosync/evergreen/resmoke_tests_execute.sh"
+      binary: "./src/mongosync/evergreen/scripts/resmoke_tests_execute.sh"
       add_expansions_to_env: true
       env:
         resmoke_jobs: ${resmoke_jobs|1}
@@ -151,13 +161,13 @@ variables:
     command: subprocess.exec
     type: setup
     params:
-      binary: "./src/mongosync/evergreen/infrastructure_failure_check.sh"
+      binary: "./src/mongosync/evergreen/scripts/infrastructure_failure_check.sh"
       add_expansions_to_env: true
 
   f_set_up_archive_credentials: &f_set_up_archive_credentials
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/archive_credentials_setup.sh"
+      binary: "./src/mongosync/evergreen/scripts/archive_credentials_setup.sh"
       env:
         private_key_remote_bash_var: ${private_key_remote}
       add_expansions_to_env: true
@@ -181,15 +191,27 @@ functions:
     # The mongo-tools repo is cloned into src/github.com/mongodb/mongo-tools, but
     # we also create a symbolic link at src/mongo-tools.
     - *f_link_to_mongo_tools
+    # Check that mongo-tools and mongosync both got cloned to the right place.
     - command: shell.exec
       params:
         shell: bash
         script: |
-          ls -l src
+          if [ ! -d "src/github.com/mongodb/mongo-tools" ]; then
+            echo "ERROR: git.get_project did not clone mongo-tools as required."
+            find . -name "mongo-tools"
+            exit 1
+          fi
+          if [ ! -d "src/mongosync" ]; then
+            echo "ERROR: git.get_project did not clone mongosync as required."
+            echo "       Check that buildvariant ${build_variant} lists module mongosync."
+            find . -name "mongosync"
+            exit 1
+          fi
+
     # Make an evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/generate_mongosync_expansion.sh"
+        binary: "./src/mongosync/evergreen/scripts/generate_mongosync_expansion.sh"
         add_expansions_to_env: true
         env:
           mongosync_dir: "src/mongosync"
@@ -253,8 +275,23 @@ functions:
       params:
         directory: src/github.com/mongodb/mongo-tools
         revisions:
-          migration-verifier: *_migration_verifier_pin
           mongosync: *_mongosync_pin
+          migration-verifier: *_migration_verifier_pin
+    # Check that mongo-tools and mongosync both got cloned to the right place.
+    - command: shell.exec
+      params:
+        shell: bash
+        script: |
+          if [ ! -d "src/github.com/mongodb/mongo-tools" ]; then
+            echo "ERROR: git.get_project did not clone mongo-tools as required."
+            exit 1
+          fi
+          ln -s ${workdir}/src/github.com/mongodb/mongo-tools ${workdir}/src/mongo-tools
+          if [ ! -d "src/mongosync" ]; then
+            echo "ERROR: git.get_project did not clone mongosync as required."
+            echo "       Check that buildvariant ${build_variant} lists module mongosync."
+            exit 1
+          fi
 
   # Under src/mongosync/resmoke we have separate directories "suite-config"
   # and "mongodump-suite-config". To run mongodump passthrough tests we delete
@@ -286,7 +323,7 @@ functions:
     command: subprocess.exec
     params:
       # The evergreen project variables in mongo-tools are ${evg_key} and ${evg_user}.
-      binary: "./src/mongosync/evergreen/evergreen_credentials_setup.sh"
+      binary: "./src/mongosync/evergreen/scripts/evergreen_credentials_setup.sh"
       env:
         evergreen_api_key: ${evg_key}
         evergreen_api_user: ${evg_user}
@@ -297,7 +334,7 @@ functions:
     - *f_evergreen_credentials_setup
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/resmoke_and_binaries_download.sh"
+        binary: "./src/mongosync/evergreen/scripts/resmoke_and_binaries_download.sh"
         add_expansions_to_env: true
 
   f_resmoke_wheelhouse_setup:
@@ -448,7 +485,7 @@ functions:
   f_mongo_coredumps_save:
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/mongo_coredumps_gather.sh"
+        binary: "./src/mongosync/evergreen/scripts/mongo_coredumps_gather.sh"
         add_expansions_to_env: true
     - command: archive.targz_pack
       params:
@@ -578,7 +615,7 @@ functions:
           contents: read
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/setup_jstestfuzz.sh"
+        binary: "./src/mongosync/evergreen/scripts/setup_jstestfuzz.sh"
         add_expansions_to_env: true
 
   "run jstestfuzz":
@@ -593,12 +630,12 @@ functions:
           contents: read
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/clone_jstestfuzz_jstest_repos.sh"
+        binary: "./src/mongosync/evergreen/scripts/clone_jstestfuzz_jstest_repos.sh"
         add_expansions_to_env: true
     - command: subprocess.exec
       type: test
       params:
-        binary: "./src/mongosync/evergreen/run_jstestfuzz.sh"
+        binary: "./src/mongosync/evergreen/scripts/run_jstestfuzz.sh"
         add_expansions_to_env: true
     - command: archive.targz_pack
       params:
@@ -644,4 +681,4 @@ functions:
     - command: subprocess.exec
       display_name: "wait for resmoke to shutdown"
       params:
-        binary: "./src/mongosync/evergreen/wait_for_resmoke_to_shutdown.sh"
+        binary: "./src/mongosync/evergreen/scripts/wait_for_resmoke_to_shutdown.sh"
