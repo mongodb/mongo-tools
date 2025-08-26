@@ -13,6 +13,8 @@ OS_ARCH_COMBOS="$( go run release/release.go print-os-arch-combos )"
 # (https://github.com/package-url/purl-spec), one per line. This is used as input for the `silkbomb`
 # tool to generate an SBOM. We do this for each OS/architecture combination we support to make sure
 # this is the superset of all our dependencies.
+# We skip the mongo-tools module in the jq query so that it's not listed as a
+# dependency of itself (.Module.Main is set to true for mongo-tools)
 #
 # shellcheck disable=SC2086 # we intentionally don't quote `$OS_ARCH_COMBOS` so we split on the
 # whitespace.
