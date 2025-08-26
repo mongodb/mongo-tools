@@ -21,7 +21,7 @@ for c in $OS_ARCH_COMBOS; do
     arch="$(echo $c | cut -f2 -d/)"
     # shellcheck disable=SC2086 # we don't want to quote `$BINARY_DIRS` for the same reason.
     GOOS="$os" GOARCH="$arch" go list -json -mod=mod -deps $BINARY_DIRS |
-        jq -r '.Module // empty | "pkg:golang/" + .Path + "@" + .Version // empty' >> \
+        jq -r '.Module // empty | select((.Main // false) == false) | "pkg:golang/" + .Path + "@" + .Version // empty' >> \
             purls.txt
 done
 
