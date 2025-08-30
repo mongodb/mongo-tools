@@ -265,6 +265,14 @@ func setUpMongoDumpTestData() error {
 	for i, collectionName := range testCollectionNames {
 		coll := session.Database(testDB).Collection(collectionName)
 
+		idx := mongo.IndexModel{
+			Keys: bson.M{`"`: 1},
+		}
+		_, err = coll.Indexes().CreateOne(context.Background(), idx)
+		if err != nil {
+			return err
+		}
+
 		for j := 0; j < 10*(i+1); j++ {
 			_, err = coll.InsertOne(
 				context.Background(),
@@ -279,13 +287,6 @@ func setUpMongoDumpTestData() error {
 				return err
 			}
 
-			idx := mongo.IndexModel{
-				Keys: bson.M{`"`: 1},
-			}
-			_, err = coll.Indexes().CreateOne(context.Background(), idx)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
