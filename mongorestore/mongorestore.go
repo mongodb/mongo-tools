@@ -368,17 +368,29 @@ func (restore *MongoRestore) Restore() Result {
 			`archive format version "%v"`,
 			restore.archive.Prelude.Header.FormatVersion,
 		)
+
+		dumpServerVersionStr := restore.archive.Prelude.Header.ServerVersion
 		log.Logvf(
 			log.DebugLow,
 			`archive server version "%v"`,
-			restore.archive.Prelude.Header.ServerVersion,
+			dumpServerVersionStr,
 		)
-		restore.dumpServerVersion, _ = db.StrToVersion(restore.archive.Prelude.Header.ServerVersion)
+		restore.dumpServerVersion, _ = db.StrToVersion(dumpServerVersionStr)
 		log.Logvf(
 			log.DebugLow,
 			`archive tool version "%v"`,
 			restore.archive.Prelude.Header.ToolVersion,
 		)
+
+		if restore.dumpServerVersion[0] != restore.serverVersion[0] || restore.dumpServerVersion[1] != restore.serverVersion[1] {
+			log.Logvf(
+				log.Always,
+				"WARNING: This archive came from MongoDB %s, and you are restoring to %s. Cross-version dump & restore is unsupported. The restored data may be corrupted.",
+				dumpServerVersionStr,
+				restore.serverVersion.String(),
+			)
+		}
+
 		target, err = restore.archive.Prelude.NewPreludeExplorer()
 		if err != nil {
 			return Result{Err: err}
