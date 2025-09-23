@@ -1,6 +1,7 @@
 package db
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"strconv"
@@ -19,6 +20,17 @@ func (v1 Version) Cmp(v2 Version) int {
 		}
 	}
 	return 0
+}
+
+// CmpMinor is like Cmp but only compares up to the minor version.
+// It ignores the patch release version. For example, this function
+// considers 4.4.0 and 4.4.1 to be “equivalent”, while 4.2.0 and 4.4.0
+// differ.
+func (v1 Version) CmpMinor(v2 Version) int {
+	return cmp.Or(
+		cmp.Compare(v1[0], v2[0]),
+		cmp.Compare(v1[1], v2[1]),
+	)
 }
 
 func (v1 Version) LT(v2 Version) bool {
