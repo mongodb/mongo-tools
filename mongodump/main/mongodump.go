@@ -33,7 +33,7 @@ func main() {
 	opts, err := mongodump.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Always, util.ShortUsage("mongodump"))
+		log.Logvf(log.Always, "%v", util.ShortUsage("mongodump"))
 		os.Exit(util.ExitFailure)
 	}
 

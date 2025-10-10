@@ -26,7 +26,7 @@ func main() {
 
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Always, util.ShortUsage("mongorestore"))
+		log.Logvf(log.Always, "%v", util.ShortUsage("mongorestore"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -41,7 +41,7 @@ func main() {
 
 	restore, err := mongorestore.New(opts)
 	if err != nil {
-		log.Logvf(log.Always, err.Error())
+		log.Logvf(log.Always, "%v", err.Error())
 		os.Exit(util.ExitFailure)
 	}
 	defer restore.Close()
