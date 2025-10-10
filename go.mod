@@ -1,8 +1,8 @@
 module github.com/mongodb/mongo-tools
 
-go 1.23.0
+go 1.25.0
 
-toolchain go1.23.8
+toolchain go1.25.1
 
 require (
 	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943

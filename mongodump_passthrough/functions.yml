@@ -404,8 +404,8 @@ functions:
           # XXX - Since mise is scoped to the Mongosync repo root, we cannot easily use it to build things
           # outside that root. It'd be nice if the migration-verifier also used mise too, but for now this
           # works okay.
-          PATH=$PATH:$HOME:/opt/golang/go1.23/bin
-          GOROOT=/opt/golang/go1.23
+          PATH=$PATH:$HOME:/opt/golang/go1.25/bin
+          GOROOT=/opt/golang/go1.25
           ./build.sh
     # upload the compiled verifier to S3.
     - command: s3.put

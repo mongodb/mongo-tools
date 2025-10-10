@@ -800,17 +800,17 @@
       "version": "v2.4.0"
     },
     {
-      "bom-ref": "pkg:golang/std@go1.23.12",
+      "bom-ref": "pkg:golang/std@go1.25.1",
       "externalReferences": [
         {
           "type": "website",
-          "url": "https://pkg.go.dev/None/std@go1.23.12"
+          "url": "https://pkg.go.dev/None/std@go1.25.1"
         }
       ],
       "name": "std",
-      "purl": "pkg:golang/std@go1.23.12",
+      "purl": "pkg:golang/std@go1.25.1",
       "type": "library",
-      "version": "go1.23.12"
+      "version": "go1.25.1"
     }
   ],
   "dependencies": [
