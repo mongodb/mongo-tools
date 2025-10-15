@@ -32,7 +32,7 @@ const (
 	gitHubCodeownersVersion = "0.2.1"
 	golangCILintVersion     = "2.5.0"
 	golinesVersion          = "0.12.2"
-	gosecVersion            = "2.20.0"
+	gosecVersion            = "2.22.10"
 	preciousVersion         = "0.7.3"
 	ubiVersion              = "0.4.2"
 	prettierVersion         = "3.4.2"
