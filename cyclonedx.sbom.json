@@ -911,7 +911,7 @@
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
     },
     {
-      "ref": "pkg:golang/std@go1.23.12"
+      "ref": "pkg:golang/std@go1.25.1"
     }
   ],
   "metadata": {
