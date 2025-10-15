@@ -577,7 +577,7 @@ func LogSensitiveOptionWarnings(args []string) {
 
 	// Log a message for --sslPEMKeyPassword, if specified.
 	if tempOpts.SSLPEMKeyPassword != "" {
-		log.Logvf(log.Always, "%v", sslMsg)
+		log.Logv(log.Always, sslMsg)
 	}
 }
 
