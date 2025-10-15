@@ -564,7 +564,7 @@ func LogSensitiveOptionWarnings(args []string) {
 
 	// Log a message for --password, if specified.
 	if tempOpts.Password != "" {
-		log.Logvf(log.Always, "%v", passwordMsg)
+		log.Logv(log.Always, passwordMsg)
 	}
 
 	// Log a message for --uri or a positional connection string, if either is specified.
