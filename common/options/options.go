@@ -571,7 +571,7 @@ func LogSensitiveOptionWarnings(args []string) {
 	uri := tempOpts.ConnectionString
 	if uri != "" {
 		if cs, err := connstring.Parse(uri); err == nil && cs.Password != "" {
-			log.Logvf(log.Always, "%v", uriMsg)
+			log.Logv(log.Always, uriMsg)
 		}
 	}
 
