@@ -30,7 +30,7 @@ const (
 	// the new config file syntax did not seem trivial.
 	eslintVersion           = "8.57.0"
 	gitHubCodeownersVersion = "0.2.1"
-	golangCILintVersion     = "2.3.0"
+	golangCILintVersion     = "2.5.0"
 	golinesVersion          = "0.12.2"
 	gosecVersion            = "2.20.0"
 	preciousVersion         = "0.7.3"
