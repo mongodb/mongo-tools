@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
+	"github.com/ccoveille/go-safecast"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
@@ -95,12 +96,16 @@ func NewPrelude(
 	concurrentColls int,
 	serverVersion, toolVersion string,
 ) (*Prelude, error) {
+	concurrentCollsi32, err := safecast.ToInt32(concurrentColls)
+	if err != nil {
+		return nil, fmt.Errorf("concurrentColls overflows when cast to int32")
+	}
 	prelude := Prelude{
 		Header: &Header{
 			FormatVersion:         archiveFormatVersion,
 			ServerVersion:         serverVersion,
 			ToolVersion:           toolVersion,
-			ConcurrentCollections: int32(concurrentColls),
+			ConcurrentCollections: concurrentCollsi32,
 		},
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),
 	}

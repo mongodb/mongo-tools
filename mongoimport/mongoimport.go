@@ -17,6 +17,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ccoveille/go-safecast"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -488,18 +489,14 @@ readLoop:
 }
 
 func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {
+	i, _ := safecast.ToUint64(result.InsertedCount)
+	m, _ := safecast.ToUint64(result.ModifiedCount)
+	u, _ := safecast.ToUint64(result.UpsertedCount)
+	d, _ := safecast.ToUint64(result.DeletedCount)
+
 	if result != nil {
 		atomic.AddUint64(
-			&imp.processedCount,
-			uint64(
-				result.InsertedCount,
-			)+uint64(
-				result.ModifiedCount,
-			)+uint64(
-				result.UpsertedCount,
-			)+uint64(
-				result.DeletedCount,
-			),
+			&imp.processedCount, i+m+u+d,
 		)
 	}
 	if bwe, ok := err.(mongo.BulkWriteException); ok {
