@@ -25,7 +25,7 @@ func main() {
 	opts, err := mongoimport.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %v", err)
-		log.Logvf(log.Always, util.ShortUsage("mongoimport"))
+		log.Logv(log.Always, util.ShortUsage("mongoimport"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -43,7 +43,7 @@ func main() {
 
 	m, err := mongoimport.New(opts)
 	if err != nil {
-		log.Logvf(log.Always, err.Error())
+		log.Logv(log.Always, err.Error())
 		os.Exit(util.ExitFailure)
 	}
 	defer m.Close()

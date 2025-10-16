@@ -564,20 +564,20 @@ func LogSensitiveOptionWarnings(args []string) {
 
 	// Log a message for --password, if specified.
 	if tempOpts.Password != "" {
-		log.Logvf(log.Always, passwordMsg)
+		log.Logv(log.Always, passwordMsg)
 	}
 
 	// Log a message for --uri or a positional connection string, if either is specified.
 	uri := tempOpts.ConnectionString
 	if uri != "" {
 		if cs, err := connstring.Parse(uri); err == nil && cs.Password != "" {
-			log.Logvf(log.Always, uriMsg)
+			log.Logv(log.Always, uriMsg)
 		}
 	}
 
 	// Log a message for --sslPEMKeyPassword, if specified.
 	if tempOpts.SSLPEMKeyPassword != "" {
-		log.Logvf(log.Always, sslMsg)
+		log.Logv(log.Always, sslMsg)
 	}
 }
 

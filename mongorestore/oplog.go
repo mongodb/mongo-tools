@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ccoveille/go-safecast"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -467,8 +468,13 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 			increment = 0
 		}
 	}
+	t, err := safecast.ToUint32(seconds)
+	if err != nil {
+		return primitive.Timestamp{}, err
+	}
+	i, err2 := safecast.ToUint32(increment)
 
-	return primitive.Timestamp{T: uint32(seconds), I: uint32(increment)}, nil
+	return primitive.Timestamp{T: t, I: i}, err2
 }
 
 // Server versions 3.6.0-3.6.8 and 4.0.0-4.0.2 require a 'ui' field

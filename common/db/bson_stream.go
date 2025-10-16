@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ccoveille/go-safecast"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -103,7 +104,7 @@ func (bs *BSONSource) LoadNext() []byte {
 		return nil
 	}
 
-	bsonSize := int32(
+	bsonSize, _ := safecast.ToInt32(
 		(uint32(into[0]) << 0) |
 			(uint32(into[1]) << 8) |
 			(uint32(into[2]) << 16) |

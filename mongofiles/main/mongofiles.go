@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		log.Logv(log.Always, err.Error())
 		if setupErr, ok := err.(util.SetupError); ok && setupErr.Message != "" {
-			log.Logvf(log.Always, setupErr.Message)
+			log.Logv(log.Always, setupErr.Message)
 		}
 		os.Exit(util.ExitFailure)
 	}
