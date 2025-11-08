@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/pkg/errors"
 )
 
 // "empty" prevOpTime is {ts: Timestamp(0, 0), t: NumberLong(-1)} as BSON.
@@ -72,8 +73,19 @@ func NewMeta(op db.Oplog) (Meta, error) {
 
 	// Inspect command to confirm a transaction command and identify parameters.
 	var isRealTxn bool
-	for _, e := range op.Object {
-		switch e.Key {
+
+	oElems, err := op.Object.Elements()
+	if err != nil {
+		return Meta{}, errors.Wrap(err, "parsing o")
+	}
+
+	for _, e := range oElems {
+		key, err := e.KeyErr()
+		if err != nil {
+			return Meta{}, errors.Wrap(err, "parsing o field")
+		}
+
+		switch key {
 		case "applyOps":
 			isRealTxn = true
 		case "commitTransaction":
