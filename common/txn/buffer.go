@@ -9,14 +9,12 @@
 package txn
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var ErrBufferClosed = errors.New("transaction buffer already closed")
@@ -297,78 +295,25 @@ const extractErrorFmt = "error extracting transaction ops: %s: %v"
 
 func extractInnerOps(tranOp *db.Oplog) ([]db.Oplog, error) {
 	doc := tranOp.Object
-	rawAO, err := bsonutil.FindValueByKey("applyOps", &doc)
+	rawAO, err := doc.LookupErr("applyOps")
 	if err != nil {
 		return nil, fmt.Errorf(extractErrorFmt, "applyOps field", err)
 	}
 
-	ao, ok := rawAO.(bson.A)
-	if !ok {
-		return nil, fmt.Errorf(extractErrorFmt, "applyOps field", "not a BSON array")
+	var ops []db.Oplog
+	err = bson.UnmarshalValue(rawAO.Type, rawAO.Value, &ops)
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing applyOps")
 	}
 
-	ops := make([]db.Oplog, len(ao))
-	for i, v := range ao {
-		opDoc, ok := v.(bson.D)
-		if !ok {
-			return nil, fmt.Errorf(extractErrorFmt, "applyOps op", "not a BSON document")
-		}
-		op, err := bsonDocToOplog(opDoc)
-		if err != nil {
-			return nil, fmt.Errorf(extractErrorFmt, "applyOps op", err)
-		}
+	for i := range ops {
 
 		// The inner ops doesn't have these fields and they are required by lastAppliedTime.Latest in Mongomirror,
 		// so we are assigning them from the parent transaction op
-		op.Timestamp = tranOp.Timestamp
-		op.Term = tranOp.Term
-		op.Hash = tranOp.Hash
-
-		ops[i] = *op
+		ops[i].Timestamp = tranOp.Timestamp
+		ops[i].Term = tranOp.Term
+		ops[i].Hash = tranOp.Hash
 	}
 
 	return ops, nil
-}
-
-const opConvertErrorFmt = "error converting bson.D to op: %s: %v"
-
-func bsonDocToOplog(doc bson.D) (*db.Oplog, error) {
-	op := db.Oplog{}
-
-	for _, v := range doc {
-		switch v.Key {
-		case "op":
-			s, ok := v.Value.(string)
-			if !ok {
-				return nil, fmt.Errorf(opConvertErrorFmt, "op field", "not a string")
-			}
-			op.Operation = s
-		case "ns":
-			s, ok := v.Value.(string)
-			if !ok {
-				return nil, fmt.Errorf(opConvertErrorFmt, "ns field", "not a string")
-			}
-			op.Namespace = s
-		case "o":
-			d, ok := v.Value.(bson.D)
-			if !ok {
-				return nil, fmt.Errorf(opConvertErrorFmt, "o field", "not a BSON Document")
-			}
-			op.Object = d
-		case "o2":
-			d, ok := v.Value.(bson.D)
-			if !ok {
-				return nil, fmt.Errorf(opConvertErrorFmt, "o2 field", "not a BSON Document")
-			}
-			op.Query = d
-		case "ui":
-			u, ok := v.Value.(primitive.Binary)
-			if !ok {
-				return nil, fmt.Errorf(opConvertErrorFmt, "ui field", "not binary data")
-			}
-			op.UI = &u
-		}
-	}
-
-	return &op, nil
 }
