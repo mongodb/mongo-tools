@@ -1,0 +1,101 @@
+command_type: test
+stepback: false
+ignore:
+  - "*.md"
+  - "*.rst"
+  - ".github/*"
+
+#######################################
+#         YAML Templates              #
+#######################################
+variables:
+  - &run-build
+    # runs a build operation. The task name in evergreen should
+    # correspond to a make target for the build operation.
+    name: test
+    must_have_test_results: true
+    commands:
+      - func: get-project-and-modules
+      - func: run-make
+        vars: { target: "${task_name}" }
+
+#######################################
+#              Functions              #
+#######################################
+functions:
+  get-project-and-modules:
+    - command: git.get_project
+      type: system
+      params:
+        directory: shrub
+    - command: subprocess.exec
+      type: setup
+      params:
+        working_dir: shrub
+        binary: make
+        args: ["mod-tidy"]
+        include_expansions_in_env: ["GOROOT"]
+  run-make:
+    command: subprocess.exec
+    type: test
+    params:
+      working_dir: shrub
+      binary: make
+      args: ["${target}"]
+      include_expansions_in_env: ["GOROOT", "RACE_DETECTOR"]
+  parse-results:
+    command: gotest.parse_files
+    type: setup
+    params:
+      files:
+        - "shrub/build/output.*"
+
+#######################################
+#                Post                 #
+#######################################
+post:
+  - func: parse-results
+
+#######################################
+#                Tasks                #
+#######################################
+tasks:
+  - <<: *run-build
+    tags: ["test"]
+    name: test-shrub
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-shrub
+
+  - name: verify-mod-tidy
+    tags: ["report"]
+    commands:
+      - command: git.get_project
+        type: system
+        params:
+          directory: shrub
+      - func: run-make
+        vars: { target: "${task_name}" }
+
+#######################################
+#           Buildvariants             #
+#######################################
+buildvariants:
+  - name: lint
+    display_name: Lint
+    expansions:
+      GOROOT: /opt/golang/go1.24
+    run_on:
+      - ubuntu2204-small
+    tasks: 
+      - name: ".report"
+
+  - name: ubuntu
+    display_name: Ubuntu 22.04
+    expansions:
+      GOROOT: /opt/golang/go1.24
+    run_on:
+      - ubuntu2204-small
+    tasks:
+      - name: ".test"
