@@ -21,9 +21,11 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/txn"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"golang.org/x/exp/slices"
 )
 
@@ -159,10 +161,21 @@ func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error
 	}
 
 	if op.Operation == "c" && len(op.Object) > 0 {
-		entryName := op.Object[0].Key
-		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
-			log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
-			return nil
+		els, err := op.Object.Elements()
+		if err != nil {
+			return errors.Wrap(err, "parsing op:c o")
+		}
+
+		if len(els) > 0 {
+			entryName, err := els[0].KeyErr()
+			if err != nil {
+				return errors.Wrap(err, "parsing op:c o’s first element")
+			}
+
+			if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+				log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+				return nil
+			}
 		}
 	}
 
@@ -216,7 +229,17 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		if len(op.Object) == 0 {
 			return fmt.Errorf("Empty object value for op: %v", op)
 		}
-		cmdName := op.Object[0].Key
+
+		var objD bson.D
+		if err := bson.Unmarshal(op.Object, &objD); err != nil {
+			return fmt.Errorf("parsing objecting value for op: %v", op)
+		}
+
+		if len(op.Object) == 0 {
+			return fmt.Errorf("BSON object value for op has no fields: %v", op)
+		}
+
+		cmdName := objD[0].Key
 
 		if !knownCommands[cmdName] {
 			return fmt.Errorf("unknown oplog command name %v: %v", cmdName, op)
@@ -242,7 +265,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 				indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
 			}
 
-			collName, ok := op.Object[0].Value.(string)
+			collName, ok := objD[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
@@ -266,7 +289,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 				indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
 			}
 
-			collName, ok := op.Object[0].Value.(string)
+			collName, ok := objD[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
@@ -278,14 +301,14 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			restore.indexCatalog.DropDatabase(dbName)
 
 		case "drop":
-			collName, ok := op.Object[0].Value.(string)
+			collName, ok := objD[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
 			restore.indexCatalog.DropCollection(dbName, collName)
 
 		case "applyOps":
-			rawOps, ok := op.Object[0].Value.(bson.A)
+			rawOps, ok := objD[0].Value.(bson.A)
 			if !ok {
 				return fmt.Errorf("unknown format for applyOps: %#v", op.Object)
 			}
@@ -310,25 +333,31 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			return nil
 
 		case "deleteIndex", "deleteIndexes", "dropIndex", "dropIndexes":
-			collName, ok := op.Object[0].Value.(string)
+			collName, ok := objD[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
-			if err := restore.indexCatalog.DeleteIndexes(dbName, collName, op.Object); err != nil {
+			if err := restore.indexCatalog.DeleteIndexes(dbName, collName, objD); err != nil {
 				return fmt.Errorf("error deleting indexes: %v", err)
 			}
 			return nil
 		case "collMod":
 			if restore.serverVersion.GTE(db.Version{4, 1, 11}) {
-				_, _ = bsonutil.RemoveKey("noPadding", &op.Object)
-				_, _ = bsonutil.RemoveKey("usePowerOf2Sizes", &op.Object)
+				_, _ = bsonutil.RemoveKey("noPadding", &objD)
+				_, _ = bsonutil.RemoveKey("usePowerOf2Sizes", &objD)
 			}
 
-			indexModValue, found := bsonutil.RemoveKey("index", &op.Object)
+			indexModValue, found := bsonutil.RemoveKey("index", &objD)
+
+			op.Object, err = bson.Marshal(objD)
+			if err != nil {
+				return errors.Wrap(err, "re-marshaling op object")
+			}
+
 			if !found {
 				break
 			}
-			collName, ok := op.Object[0].Value.(string)
+			collName, ok := objD[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
@@ -341,17 +370,27 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 				return nil
 			}
 		case "create":
-			collName, ok := op.Object[0].Value.(string)
+			collName, ok := objD[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
 			}
-			collation, err := bsonutil.FindSubdocumentByKey("collation", &op.Object)
-			if err != nil {
-				restore.indexCatalog.SetCollation(dbName, collName, true)
-			}
-			localeValue, _ := bsonutil.FindValueByKey("locale", &collation)
-			if localeValue == "simple" {
-				restore.indexCatalog.SetCollation(dbName, collName, true)
+
+			collationRV, err := op.Object.LookupErr("collation")
+			if err == nil {
+				restore.indexCatalog.SetCollation(dbName, collName, false)
+
+				localeValue, err := collationRV.Document().LookupErr("locale")
+				if err != nil {
+					return errors.Wrapf(err, "extracting collation.locale")
+				}
+
+				if localeStr, ok := localeValue.StringValueOK(); ok {
+					if localeStr == "simple" {
+						restore.indexCatalog.SetCollation(dbName, collName, true)
+					}
+				}
+			} else if !errors.Is(err, bsoncore.ErrElementNotFound) {
+				return errors.Wrapf(err, "extracting collation")
 			}
 		}
 	}
