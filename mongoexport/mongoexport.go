@@ -123,7 +123,7 @@ func New(opts Options) (*MongoExport, error) {
 	// warn if we are trying to export from a secondary in a sharded cluster
 	pref := opts.ToolOptions.ReadPreference
 	if isMongos && pref != nil && pref.Mode() != readpref.PrimaryMode {
-		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
+		log.Logv(log.Always, db.WarningNonPrimaryMongosConnection)
 	}
 
 	progressManager := progress.NewBarWriter(

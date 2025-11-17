@@ -59,7 +59,7 @@ func main() {
 	opts, err := mongostat.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Always, util.ShortUsage("mongostat"))
+		log.Logv(log.Always, util.ShortUsage("mongostat"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -83,14 +83,14 @@ func main() {
 		!opts.RequiresExternalDB() {
 		// add logic to have different error if using uri
 		if opts.URI != nil && opts.ConnectionString != "" {
-			log.Logvf(
+			log.Logv(
 				log.Always,
 				"authSource is required when authenticating against a non $external database",
 			)
 			os.Exit(util.ExitFailure)
 		}
 
-		log.Logvf(
+		log.Logv(
 			log.Always,
 			"--authenticationDatabase is required when authenticating against a non $external database",
 		)
@@ -98,12 +98,12 @@ func main() {
 	}
 
 	if opts.Interactive && opts.Json {
-		log.Logvf(log.Always, "cannot use output formats --json and --interactive together")
+		log.Logv(log.Always, "cannot use output formats --json and --interactive together")
 		os.Exit(util.ExitFailure)
 	}
 
 	if opts.Deprecated && !opts.Json {
-		log.Logvf(
+		log.Logv(
 			log.Always,
 			"--useDeprecatedJsonKeys can only be used when --json is also specified",
 		)
@@ -111,12 +111,12 @@ func main() {
 	}
 
 	if opts.Columns != "" && opts.AppendColumns != "" {
-		log.Logvf(log.Always, "-O cannot be used if -o is also specified")
+		log.Logv(log.Always, "-O cannot be used if -o is also specified")
 		os.Exit(util.ExitFailure)
 	}
 
 	if opts.HumanReadable != "true" && opts.HumanReadable != "false" {
-		log.Logvf(log.Always, "--humanReadable must be set to either 'true' or 'false'")
+		log.Logv(log.Always, "--humanReadable must be set to either 'true' or 'false'")
 		os.Exit(util.ExitFailure)
 	}
 

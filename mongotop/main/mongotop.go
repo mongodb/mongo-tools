@@ -29,7 +29,7 @@ func main() {
 	opts, err := mongotop.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Always, util.ShortUsage("mongotop"))
+		log.Logv(log.Always, util.ShortUsage("mongotop"))
 		os.Exit(util.ExitFailure)
 	}
 
@@ -56,13 +56,13 @@ func main() {
 
 	if opts.Username != "" && opts.Source == "" && !opts.RequiresExternalDB() {
 		if opts.URI != nil && opts.ConnectionString != "" {
-			log.Logvf(
+			log.Logv(
 				log.Always,
 				"authSource is required when authenticating against a non $external database",
 			)
 			os.Exit(util.ExitFailure)
 		}
-		log.Logvf(
+		log.Logv(
 			log.Always,
 			"--authenticationDatabase is required when authenticating against a non $external database",
 		)
@@ -87,7 +87,7 @@ func main() {
 		os.Exit(util.ExitFailure)
 	}
 	if isMongos {
-		log.Logvf(log.Always, "cannot run mongotop against a mongos")
+		log.Logv(log.Always, "cannot run mongotop against a mongos")
 		os.Exit(util.ExitFailure)
 	}
 

@@ -266,7 +266,7 @@ func (imp *MongoImport) validateSettings() error {
 
 	// ensure we have a valid string to use for the collection
 	if imp.ToolOptions.Collection == "" {
-		log.Logvf(log.Always, "no collection specified")
+		log.Logv(log.Always, "no collection specified")
 		fileBaseName := filepath.Base(imp.InputOptions.File)
 		lastDotIndex := strings.LastIndex(fileBaseName, ".")
 		if lastDotIndex != -1 {
@@ -299,7 +299,7 @@ func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 		return file, fileStat.Size(), err
 	}
 
-	log.Logvf(log.Info, "reading from stdin")
+	log.Logv(log.Info, "reading from stdin")
 
 	// Stdin has undefined max size, so return 0
 	return os.Stdin, 0, nil

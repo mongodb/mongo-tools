@@ -137,7 +137,7 @@ func (dump *MongoDump) ValidateOptions() error {
 
 // Init performs preliminary setup operations for MongoDump.
 func (dump *MongoDump) Init() error {
-	log.Logvf(log.DebugHigh, "initializing mongodump object")
+	log.Logv(log.DebugHigh, "initializing mongodump object")
 
 	pref, err := db.NewReadPreference(
 		dump.InputOptions.ReadPreference,
@@ -177,7 +177,7 @@ func (dump *MongoDump) Init() error {
 
 	// warn if we are trying to dump from a secondary in a sharded cluster
 	if dump.isMongos && pref != readpref.Primary() {
-		log.Logvf(log.Always, db.WarningNonPrimaryMongosConnection)
+		log.Logv(log.Always, db.WarningNonPrimaryMongosConnection)
 	}
 
 	dump.manager = intents.NewIntentManager()
@@ -238,7 +238,7 @@ func (dump *MongoDump) Dump() (err error) {
 		return nil
 	}
 
-	log.Logvf(log.DebugHigh, "starting Dump()")
+	log.Logv(log.DebugHigh, "starting Dump()")
 
 	dump.shutdownIntentsNotifier = newNotifier()
 
@@ -300,7 +300,7 @@ func (dump *MongoDump) Dump() (err error) {
 				}
 				log.Logvf(log.DebugLow, "%v", err)
 			} else {
-				log.Logvf(log.DebugLow, "mux completed successfully")
+				log.Logv(log.DebugLow, "mux completed successfully")
 			}
 		}()
 	}
@@ -324,7 +324,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if err != nil {
 			return fmt.Errorf("error finding oplog: %v", err)
 		}
-		log.Logvf(log.Info, "getting most recent oplog timestamp")
+		log.Logv(log.Info, "getting most recent oplog timestamp")
 		dump.oplogStart, err = dump.getOplogCopyStartTime()
 		if err != nil {
 			return fmt.Errorf("error getting oplog start: %v", err)
@@ -332,7 +332,7 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 
 	if failpoint.Enabled(failpoint.PauseBeforeDumping) {
-		log.Logvf(log.Info, "failpoint.PauseBeforeDumping: sleeping 15 sec")
+		log.Logv(log.Info, "failpoint.PauseBeforeDumping: sleeping 15 sec")
 		time.Sleep(15 * time.Second)
 	}
 
@@ -370,7 +370,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// metadata, users, roles, and versions
 
 	// TODO, either remove this debug or improve the language
-	log.Logvf(log.DebugHigh, "dump phase I: metadata, indexes, users, roles, version")
+	log.Logv(log.DebugHigh, "dump phase I: metadata, indexes, users, roles, version")
 
 	err = dump.DumpMetadata()
 	if err != nil {
@@ -411,7 +411,7 @@ func (dump *MongoDump) Dump() (err error) {
 		if dump.OutputOptions.DumpDBUsersAndRoles {
 			log.Logvf(log.Always, "dumping users and roles for %v", dump.ToolOptions.DB)
 			if dump.ToolOptions.DB == "admin" {
-				log.Logvf(log.Always, "skipping users/roles dump, already dumped admin database")
+				log.Logv(log.Always, "skipping users/roles dump, already dumped admin database")
 			} else {
 				err = dump.DumpUsersAndRolesForDB(dump.ToolOptions.DB)
 				if err != nil {
@@ -425,7 +425,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// regular collections
 
 	// TODO, either remove this debug or improve the language
-	log.Logvf(log.DebugHigh, "dump phase II: regular collections")
+	log.Logv(log.DebugHigh, "dump phase II: regular collections")
 
 	// begin dumping intents
 	if err := dump.DumpIntents(); err != nil {
@@ -436,7 +436,7 @@ func (dump *MongoDump) Dump() (err error) {
 	// oplog
 
 	// TODO, either remove this debug or improve the language
-	log.Logvf(log.DebugLow, "dump phase III: the oplog")
+	log.Logv(log.DebugLow, "dump phase III: the oplog")
 
 	if dump.OutputOptions.Oplog {
 		if dump.InputOptions.SourceWritesDoneBarrier != "" {
@@ -496,14 +496,14 @@ func (dump *MongoDump) Dump() (err error) {
 	}
 
 	if dump.OutputOptions.Archive == "" && dump.OutputOptions.Out != "-" {
-		log.Logvf(log.DebugLow, "dump phase IV: top level metadata json")
+		log.Logv(log.DebugLow, "dump phase IV: top level metadata json")
 		err = dump.DumpPreludeMetadata()
 		if err != nil {
 			return fmt.Errorf("failed to dump top level metadata: %v", err)
 		}
 	}
 
-	log.Logvf(log.DebugLow, "finishing dump")
+	log.Logv(log.DebugLow, "finishing dump")
 
 	return err
 }
@@ -806,7 +806,7 @@ func (dump *MongoDump) dumpValidatedIterToWriter(
 		for {
 			select {
 			case <-dump.shutdownIntentsNotifier.notified:
-				log.Logvf(log.DebugHigh, "terminating writes")
+				log.Logv(log.DebugHigh, "terminating writes")
 				termErr = util.ErrTerminated
 				close(buffChan)
 				return

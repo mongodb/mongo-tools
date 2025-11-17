@@ -327,7 +327,7 @@ func (node *NodeMonitor) Poll(
 	node.alias = stat.Host
 	stat.Host = node.host
 	if discover != nil && stat != nil && status.IsMongos(stat) && checkShards {
-		log.Logvf(log.DebugLow, "checking config database to discover shards")
+		log.Logv(log.DebugLow, "checking config database to discover shards")
 		shardCursor, err := session.Database("config").
 			Collection("shards").
 			Find(context.TODO(), bson.M{}, nil)

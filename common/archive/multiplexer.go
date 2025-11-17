@@ -74,7 +74,7 @@ func (mux *Multiplexer) Run() {
 		EOF := !notEOF
 		if index == 0 { //Control index
 			if EOF {
-				log.Logvf(log.DebugLow, "Mux finish")
+				log.Logv(log.DebugLow, "Mux finish")
 				mux.Out.Close()
 				if completionErr != nil {
 					mux.Completed <- completionErr
