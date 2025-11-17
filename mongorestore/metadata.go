@@ -280,14 +280,14 @@ func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) bson.D {
 			if elem.Key == "autoIndexId" {
 				if restore.serverVersion.GTE(db.Version{8, 2, 0}) {
 					options = append(options[:i], options[i+1:]...)
-					log.Logvf(
+					log.Logv(
 						log.Always,
 						"autoIndexId is not allowed in server versions >= 8.2.0. Removing.",
 					)
 				} else if elem.Value == false &&
 					restore.ToolOptions.DB != "local" {
 					options[i].Value = true
-					log.Logvf(
+					log.Logv(
 						log.Always,
 						"{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.",
 					)
@@ -559,7 +559,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		command = append(command, bson.E{Key: "writeConcern", Value: writeConcern})
 	}
 
-	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
+	log.Logv(log.DebugLow, "merging users/roles from temp collections")
 	resSingle := adminDB.RunCommand(context.TODO(), command)
 	if err = resSingle.Err(); err != nil {
 		return fmt.Errorf("error running merge command: %v", err)

@@ -1969,7 +1969,7 @@ tasks:
             set -x
             set -v
             set -e
-            go vet -composites=false ./bsondump ./mongo*
+            go vet -composites=false ./bsondump ./mongodump ./mongodump_passthrough ./mongoexport ./mongofiles ./mongoimport ./mongorestore ./mongostat ./mongotop
 
   - name: check-third-party-notices
     commands:

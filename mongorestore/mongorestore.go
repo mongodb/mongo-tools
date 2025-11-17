@@ -233,12 +233,12 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	// deprecations with --nsInclude --nsExclude
 	if restore.ToolOptions.DB != "" || restore.ToolOptions.Collection != "" {
 		if filepath.Ext(restore.TargetDirectory) != ".bson" {
-			log.Logvf(log.Always, deprecatedDBAndCollectionsOptionsWarning)
+			log.Logv(log.Always, deprecatedDBAndCollectionsOptionsWarning)
 		}
 	}
 	if len(restore.NSOptions.ExcludedCollections) > 0 ||
 		len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 {
-		log.Logvf(log.Always, "the --excludeCollections and --excludeCollectionPrefixes options "+
+		log.Logv(log.Always, "the --excludeCollections and --excludeCollectionPrefixes options "+
 			"are deprecated and will not exist in the future; use --nsExclude instead")
 	}
 	if restore.InputOptions.OplogReplay {
@@ -412,7 +412,7 @@ func (restore *MongoRestore) Restore() Result {
 		preludeFileExists, err := restore.ReadPreludeMetadata(target)
 		if !preludeFileExists {
 			// don't error out here because mongodump versions before 100.12.0 will not include prelude.json
-			log.Logvf(log.DebugLow, "no prelude metadata found in target directory or parent, skipping")
+			log.Logv(log.DebugLow, "no prelude metadata found in target directory or parent, skipping")
 		} else if err != nil {
 			return Result{Err: fmt.Errorf("error reading dump metadata: %w", err)}
 		}
@@ -466,7 +466,7 @@ func (restore *MongoRestore) Restore() Result {
 
 	switch {
 	case restore.InputOptions.Archive != "":
-		log.Logvf(log.Always, "preparing collections to restore from")
+		log.Logv(log.Always, "preparing collections to restore from")
 		err = restore.CreateAllIntents(target)
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection == "":
 		log.Logvf(log.Always,
@@ -477,7 +477,7 @@ func (restore *MongoRestore) Restore() Result {
 			target,
 		)
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "" && restore.TargetDirectory == "-":
-		log.Logvf(log.Always, "setting up a collection to be read from standard input")
+		log.Logv(log.Always, "setting up a collection to be read from standard input")
 		err = restore.CreateStdinIntentForCollection(
 			restore.ToolOptions.DB,
 			restore.ToolOptions.Collection,
@@ -490,7 +490,7 @@ func (restore *MongoRestore) Restore() Result {
 			target,
 		)
 	default:
-		log.Logvf(log.Always, "preparing collections to restore from")
+		log.Logv(log.Always, "preparing collections to restore from")
 		err = restore.CreateAllIntents(target)
 	}
 	if err != nil {
@@ -542,7 +542,7 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	if restore.OutputOptions.DryRun {
-		log.Logvf(log.Always, "dry run completed")
+		log.Logv(log.Always, "dry run completed")
 		return Result{}
 	}
 

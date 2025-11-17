@@ -199,7 +199,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 
 // End is part of the ParserConsumer interface and receives the end of archive notification.
 func (demux *Demultiplexer) End() error {
-	log.Logvf(log.DebugHigh, "demux End")
+	log.Logv(log.DebugHigh, "demux End")
 	var err error
 	if len(demux.outs) != 0 {
 		openNss := []string{}

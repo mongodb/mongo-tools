@@ -30,18 +30,18 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 		return fmt.Errorf("error running command: %v", err)
 	}
 	if _, ok := masterDoc["hosts"]; ok {
-		log.Logvf(log.DebugLow, "determined cluster to be a replica set")
-		log.Logvf(log.DebugHigh, "oplog located in local.oplog.rs")
+		log.Logv(log.DebugLow, "determined cluster to be a replica set")
+		log.Logv(log.DebugHigh, "oplog located in local.oplog.rs")
 		dump.oplogCollection = "oplog.rs"
 		return nil
 	}
 	if isMaster := masterDoc["ismaster"]; util.IsFalsy(isMaster) {
-		log.Logvf(log.Info, "mongodump is not connected to a master")
+		log.Logv(log.Info, "mongodump is not connected to a master")
 		return fmt.Errorf("not connected to master")
 	}
 
-	log.Logvf(log.DebugLow, "not connected to a replica set, assuming master/slave")
-	log.Logvf(log.DebugHigh, "oplog located in local.oplog.$main")
+	log.Logv(log.DebugLow, "not connected to a replica set, assuming master/slave")
+	log.Logv(log.DebugHigh, "oplog located in local.oplog.$main")
 	dump.oplogCollection = "oplog.$main"
 	return nil
 

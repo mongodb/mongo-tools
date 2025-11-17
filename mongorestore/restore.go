@@ -228,7 +228,7 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 		if intent.MetadataFile == nil {
 			if _, ok := restore.dbCollectionIndexes[intent.DB]; ok {
 				if indexes, ok := restore.dbCollectionIndexes[intent.DB][intent.C]; ok {
-					log.Logvf(log.Always, "no metadata; falling back to system.indexes")
+					log.Logv(log.Always, "no metadata; falling back to system.indexes")
 					for _, indexDefinition := range indexes {
 						restore.indexCatalog.AddIndex(intent.DB, intent.C, indexDefinition)
 					}
