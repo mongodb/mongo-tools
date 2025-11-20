@@ -29,7 +29,7 @@ func main() {
 	opts, err := mongotop.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "error parsing command line options: %s", err.Error())
-		log.Logvf(log.Always, util.ShortUsage("mongotop"))
+		log.Logv(log.Always, util.ShortUsage("mongotop"))
 		os.Exit(util.ExitFailure)
 	}
 
