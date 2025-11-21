@@ -584,7 +584,7 @@ func buildDeb() {
 		for _, path := range md5sumsOrder {
 			md5sum, ok := md5sums[path]
 			if !ok {
-				log.Fatalf("could not find md5sum for " + path)
+				log.Fatal("could not find md5sum for " + path)
 			}
 			_, err = f.WriteString(md5sum + " ")
 			check(err, "write md5sum to md5sums")
