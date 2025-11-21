@@ -84,7 +84,9 @@ func (sa SimpleArchive) Marshal() ([]byte, error) {
 
 		eol := header
 		eol.EOF = true
-		eol.CRC = crc.Sum64()
+
+		// #nosec G115 - The overflow is good & expected.
+		eol.CRC = int64(crc.Sum64())
 
 		eolBytes, err := bson.Marshal(eol)
 		if err != nil {

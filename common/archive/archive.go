@@ -18,7 +18,7 @@ type NamespaceHeader struct {
 	Database   string `bson:"db"`
 	Collection string `bson:"collection"`
 	EOF        bool   `bson:"EOF"`
-	CRC        uint64 `bson:"CRC"`
+	CRC        int64  `bson:"CRC"`
 }
 
 // CollectionMetadata is a data structure that, as BSON, is found in the prelude of the archive.
