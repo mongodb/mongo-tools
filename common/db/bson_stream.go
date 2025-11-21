@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ccoveille/go-safecast/v2"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -21,7 +20,7 @@ type BSONSource struct {
 	reusableBuf []byte
 	Stream      io.ReadCloser
 	err         error
-	MaxBSONSize int32
+	MaxBSONSize uint32
 }
 
 // DecodedBSONSource reads documents from the underlying io.ReadCloser, Stream which
@@ -105,7 +104,7 @@ func (bs *BSONSource) LoadNext() []byte {
 		return nil
 	}
 
-	bsonSize := safecast.MustConvert[int32](binary.LittleEndian.Uint32(into))
+	bsonSize := binary.LittleEndian.Uint32(into)
 
 	// Verify that the size of the BSON object we are about to read can
 	// actually fit into the buffer that was provided. If not, either the BSON is
@@ -154,6 +153,6 @@ func (bs *BSONSource) Err() error {
 	return bs.err
 }
 
-func (bs *BSONSource) SetMaxBSONSize(size int32) {
+func (bs *BSONSource) SetMaxBSONSize(size uint32) {
 	bs.MaxBSONSize = size
 }
