@@ -41,7 +41,7 @@ func (nh NamespaceHeader) MarshalBSON() ([]byte, error) {
 			"CRC",
 			bsoncore.Value{
 				Type: bson.TypeInt64,
-				Data: binary.LittleEndian.AppendUint64(nil, nh.CRC),
+				Data: binary.BigEndian.AppendUint64(nil, nh.CRC),
 			},
 		).Build()
 
@@ -100,7 +100,7 @@ func (nh *NamespaceHeader) UnmarshalBSON(in []byte) error {
 				)
 			}
 
-			nh.CRC = binary.LittleEndian.Uint64(val.Value)
+			nh.CRC = binary.BigEndian.Uint64(val.Value)
 		default:
 			return fmt.Errorf("unknown BSON %T: %#q", *nh, el.Key())
 		}
