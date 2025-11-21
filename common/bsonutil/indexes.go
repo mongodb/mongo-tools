@@ -125,7 +125,7 @@ func ConvertLegacyIndexKeyValue(value any) (any, bool) {
 		}
 	case float64:
 		if math.Abs(v) < epsilon {
-			return int32(lo.Ternary(v >= 0, 1, -1)), true
+			return lo.Ternary[int32](v >= 0, 1, -1), true
 		}
 	case primitive.Decimal128:
 		if bi, _, err := v.BigInt(); err == nil {

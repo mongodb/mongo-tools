@@ -101,6 +101,31 @@
       "version": "v1.3.2"
     },
     {
+      "bom-ref": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/ccoveille/go-safecast"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/ccoveille/go-safecast/v2@v2.0.0"
+        }
+      ],
+      "group": "github.com/ccoveille/go-safecast",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "name": "v2",
+      "purl": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.0",
+      "type": "library",
+      "version": "v2.0.0"
+    },
+    {
       "bom-ref": "pkg:golang/github.com/deckarep/golang-set/v2@v2.6.0",
       "externalReferences": [
         {
@@ -800,17 +825,17 @@
       "version": "v2.4.0"
     },
     {
-      "bom-ref": "pkg:golang/std@go1.23.12",
+      "bom-ref": "pkg:golang/std@go1.25.0",
       "externalReferences": [
         {
           "type": "website",
-          "url": "https://pkg.go.dev/None/std@go1.23.12"
+          "url": "https://pkg.go.dev/None/std@go1.25.0"
         }
       ],
       "name": "std",
-      "purl": "pkg:golang/std@go1.23.12",
+      "purl": "pkg:golang/std@go1.25.0",
       "type": "library",
-      "version": "go1.23.12"
+      "version": "go1.25.0"
     }
   ],
   "dependencies": [
@@ -825,6 +850,9 @@
     },
     {
       "ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.3.2"
+    },
+    {
+      "ref": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.0"
     },
     {
       "ref": "pkg:golang/github.com/deckarep/golang-set/v2@v2.6.0"
@@ -911,11 +939,11 @@
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
     },
     {
-      "ref": "pkg:golang/std@go1.23.12"
+      "ref": "pkg:golang/std@go1.25.0"
     }
   ],
   "metadata": {
-    "timestamp": "2025-08-26T21:16:45.957053+00:00",
+    "timestamp": "2025-11-21T13:43:29.845903+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -959,7 +987,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 34,
+  "version": 35,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",

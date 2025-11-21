@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -21,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/txn"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -468,7 +470,17 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 		}
 	}
 
-	return primitive.Timestamp{T: uint32(seconds), I: uint32(increment)}, nil
+	secsU32, err := safecast.Convert[uint32](seconds)
+	if err != nil {
+		return primitive.Timestamp{}, errors.Wrapf(err, "secs (%d) to %T", seconds, secsU32)
+	}
+
+	incU32, err := safecast.Convert[uint32](increment)
+	if err != nil {
+		return primitive.Timestamp{}, errors.Wrapf(err, "increment (%d) to %T", increment, incU32)
+	}
+
+	return primitive.Timestamp{T: secsU32, I: incU32}, nil
 }
 
 // Server versions 3.6.0-3.6.8 and 4.0.0-4.0.2 require a 'ui' field

@@ -1,8 +1,6 @@
 module github.com/mongodb/mongo-tools
 
-go 1.23.0
-
-toolchain go1.23.8
+go 1.25
 
 require (
 	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943
@@ -35,6 +33,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.17
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.81
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.81.0
+	github.com/ccoveille/go-safecast/v2 v2.0.0
 	github.com/google/uuid v1.6.0
 	github.com/samber/lo v1.49.1
 	golang.org/x/sync v0.14.0

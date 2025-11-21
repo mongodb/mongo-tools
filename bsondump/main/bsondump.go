@@ -26,7 +26,7 @@ func main() {
 	opts, err := bsondump.ParseOptions(os.Args[1:], VersionStr, GitCommit)
 	if err != nil {
 		log.Logvf(log.Always, "%v", err)
-		log.Logvf(log.Always, util.ShortUsage("bsondump"))
+		log.Logv(log.Always, util.ShortUsage("bsondump"))
 		os.Exit(util.ExitFailure)
 	}
 

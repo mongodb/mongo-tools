@@ -7,6 +7,7 @@
 package db
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 
@@ -19,7 +20,7 @@ type BSONSource struct {
 	reusableBuf []byte
 	Stream      io.ReadCloser
 	err         error
-	MaxBSONSize int32
+	MaxBSONSize uint32
 }
 
 // DecodedBSONSource reads documents from the underlying io.ReadCloser, Stream which
@@ -103,12 +104,7 @@ func (bs *BSONSource) LoadNext() []byte {
 		return nil
 	}
 
-	bsonSize := int32(
-		(uint32(into[0]) << 0) |
-			(uint32(into[1]) << 8) |
-			(uint32(into[2]) << 16) |
-			(uint32(into[3]) << 24),
-	)
+	bsonSize := binary.LittleEndian.Uint32(into)
 
 	// Verify that the size of the BSON object we are about to read can
 	// actually fit into the buffer that was provided. If not, either the BSON is
@@ -157,6 +153,6 @@ func (bs *BSONSource) Err() error {
 	return bs.err
 }
 
-func (bs *BSONSource) SetMaxBSONSize(size int32) {
+func (bs *BSONSource) SetMaxBSONSize(size uint32) {
 	bs.MaxBSONSize = size
 }
