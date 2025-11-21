@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/db"
 )
 
@@ -87,7 +86,7 @@ func (parse *Parser) readBSONOrTerminator() (isTerminator bool, err error) {
 	if err != nil {
 		return false, newParserWrappedError("I/O error reading length or terminator", err)
 	}
-	size := safecast.MustConvert[int32](binary.LittleEndian.Uint32(parse.buf[:]))
+	size := binary.LittleEndian.Uint32(parse.buf[:])
 
 	if size == terminator {
 		return true, nil

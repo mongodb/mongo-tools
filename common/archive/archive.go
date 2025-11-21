@@ -6,7 +6,10 @@
 
 package archive
 
-import "io"
+import (
+	"encoding/binary"
+	"io"
+)
 
 // NamespaceHeader is a data structure that, as BSON, is found in archives where it indicates
 // that either the subsequent stream of BSON belongs to this new namespace, or that the
@@ -42,8 +45,9 @@ type Header struct {
 
 const minBSONSize = 4 + 1 // an empty BSON document should be exactly five bytes long
 
-var terminator int32 = -1
-var terminatorBytes = []byte{0xFF, 0xFF, 0xFF, 0xFF} // TODO, rectify this with terminator
+const terminator = 0xff_ff_ff_ff
+
+var terminatorBytes = binary.LittleEndian.AppendUint32(nil, terminator)
 
 // MagicNumber is four bytes that are found at the beginning of the archive that indicate that
 // the byte stream is an archive, as opposed to anything else, including a stream of BSON documents.
