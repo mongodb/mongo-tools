@@ -7,9 +7,11 @@
 package db
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 
+	"github.com/ccoveille/go-safecast/v2"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -103,12 +105,7 @@ func (bs *BSONSource) LoadNext() []byte {
 		return nil
 	}
 
-	bsonSize := int32(
-		(uint32(into[0]) << 0) |
-			(uint32(into[1]) << 8) |
-			(uint32(into[2]) << 16) |
-			(uint32(into[3]) << 24),
-	)
+	bsonSize := safecast.MustConvert[int32](binary.LittleEndian.Uint32(into))
 
 	// Verify that the size of the BSON object we are about to read can
 	// actually fit into the buffer that was provided. If not, either the BSON is

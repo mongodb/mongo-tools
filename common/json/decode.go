@@ -26,6 +26,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
+	safecast "github.com/ccoveille/go-safecast/v2"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -238,7 +239,12 @@ func (n Number) Float64() (float64, error) {
 // Int32 returns the number as an int32.
 func (n Number) Int32() (int32, error) {
 	x, err := n.Int64()
-	return int32(x), err
+
+	if err != nil {
+		return 0, err
+	}
+
+	return safecast.Convert[int32](x)
 }
 
 // Int64 returns the number as an int64.
@@ -253,13 +259,23 @@ func (n Number) Int64() (int64, error) {
 // Uint8 returns the number as an uint8.
 func (n Number) Uint8() (uint8, error) {
 	x, err := n.Uint64()
-	return uint8(x), err
+
+	if err != nil {
+		return 0, err
+	}
+
+	return safecast.Convert[uint8](x)
 }
 
 // Uint32 returns the number as an uint32.
 func (n Number) Uint32() (uint32, error) {
 	x, err := n.Uint64()
-	return uint32(x), err
+
+	if err != nil {
+		return 0, err
+	}
+
+	return safecast.Convert[uint32](x)
 }
 
 // Uint64 returns the number as an uint64.

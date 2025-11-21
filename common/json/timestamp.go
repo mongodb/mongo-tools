@@ -9,6 +9,8 @@ package json
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/ccoveille/go-safecast/v2"
 )
 
 // Transition functions for recognizing Timestamp.
@@ -36,8 +38,8 @@ func (d *decodeState) storeTimestamp(v reflect.Value) {
 	}
 	switch kind := v.Kind(); kind {
 	case reflect.Interface:
-		arg0 := uint32(args[0].Uint())
-		arg1 := uint32(args[1].Uint())
+		arg0 := safecast.MustConvert[uint32](args[0].Uint())
+		arg1 := safecast.MustConvert[uint32](args[1].Uint())
 		v.Set(reflect.ValueOf(Timestamp{arg0, arg1}))
 	default:
 		d.error(fmt.Errorf("cannot store %v value into %v type", timestampType, kind))

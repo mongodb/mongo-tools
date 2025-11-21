@@ -17,6 +17,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -491,14 +492,11 @@ func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {
 	if result != nil {
 		atomic.AddUint64(
 			&imp.processedCount,
-			uint64(
-				result.InsertedCount,
-			)+uint64(
-				result.ModifiedCount,
-			)+uint64(
-				result.UpsertedCount,
-			)+uint64(
-				result.DeletedCount,
+			safecast.MustConvert[uint64](
+				result.InsertedCount+
+					result.ModifiedCount+
+					result.UpsertedCount+
+					result.DeletedCount,
 			),
 		)
 	}
