@@ -185,7 +185,7 @@ func installPrecious(ctx *task.Context) error {
 		preciousVersion,
 		"houseabsolute/precious",
 		fmt.Sprintf(
-			"https://github.com/houseabsolute/precious/releases/download/v%s/precious-Linux-x86_64-musl.tar.gz",
+			"https://github.com/houseabsolute/precious/releases/download/v%s/precious-Linux-musl-x86_64.tar.gz",
 			preciousVersion,
 		),
 	)
