@@ -31,7 +31,7 @@ const (
 	eslintVersion           = "8.57.0"
 	gitHubCodeownersVersion = "0.2.1"
 	golangCILintVersion     = "2.6.2"
-	golinesVersion          = "0.13.0"
+	golinesVersion          = "0.12.2" // 0.13.0 fails w/ libc errors
 	gosecVersion            = "2.22.10"
 	preciousVersion         = "0.10.1"
 	ubiVersion              = "0.8.4"
