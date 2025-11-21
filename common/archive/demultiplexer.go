@@ -172,9 +172,7 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		length := demux.lengths[demux.currentNamespace]
 		crcUInt64, ok := demux.outs[demux.currentNamespace].Sum64()
 		if ok {
-
-			// #nosec G115 - The overflow is good & expected.
-			crc := int64(crcUInt64)
+			crc := int64(crcUInt64) // #nosec G115 - The overflow is good & expected.
 
 			if crc != colHeader.CRC {
 				return fmt.Errorf("CRC mismatch for namespace %v, %v!=%v",
