@@ -27,7 +27,7 @@ variables:
   # And when you change the _mongosync_pin, you also need to update other pins
   # which get passed as environment variables to scripts in mongosync/evergreen/scripts.
   #
-  _mongosync_pin: &_mongosync_pin "7126c03d3f87950824b393b5b1157065767c6d44"
+  _mongosync_pin: &_mongosync_pin "d515c3f79ec965ee65d936c701215f10696e2b73"
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
@@ -46,7 +46,7 @@ variables:
   f_set_up_logger_credentials: &f_set_up_logger_credentials
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/scripts/logger_credentials_setup.sh"
+      binary: "./src/mongo-tools/mongodump_passthrough/scripts/logger_credentials_setup.sh"
       add_expansions_to_env: true
 
   # Added for mongodump_passthrough
@@ -60,7 +60,7 @@ variables:
   f_resmoke_wheelhouse_setup: &f_resmoke_wheelhouse_setup
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/scripts/resmoke_wheelhouse_setup.sh"
+      binary: "./src/mongo-tools/mongodump_passthrough/scripts/resmoke_wheelhouse_setup.sh"
       add_expansions_to_env: true
 
   # Function used to download particular bits of resmoke and binaries uploaded previously.
@@ -132,7 +132,8 @@ variables:
   f_resmoke_jobs_determine: &f_resmoke_jobs_determine
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/scripts/resmoke_jobs_determine.sh"
+      working_dir: src/github.com/mongodb/mongo-tools
+      binary: "./mongodump_passthrough/scripts/resmoke_jobs_determine.sh"
       add_expansions_to_env: true
       env:
         resmoke_jobs_factor: ${resmoke_jobs_factor|1}
@@ -148,7 +149,8 @@ variables:
     command: subprocess.exec
     type: test
     params:
-      binary: "./src/mongosync/evergreen/scripts/resmoke_tests_execute.sh"
+      working_dir: src/github.com/mongodb/mongo-tools
+      binary: "./mongodump_passthrough/scripts/resmoke_tests_execute.sh"
       add_expansions_to_env: true
       env:
         resmoke_jobs: ${resmoke_jobs|1}
@@ -161,13 +163,15 @@ variables:
     command: subprocess.exec
     type: setup
     params:
-      binary: "./src/mongosync/evergreen/scripts/infrastructure_failure_check.sh"
+      working_dir: src/github.com/mongodb/mongo-tools
+      binary: "./mongodump_passthrough/scripts/infrastructure_failure_check.sh"
       add_expansions_to_env: true
 
   f_set_up_archive_credentials: &f_set_up_archive_credentials
     command: subprocess.exec
     params:
-      binary: "./src/mongosync/evergreen/scripts/archive_credentials_setup.sh"
+      working_dir: src/github.com/mongodb/mongo-tools
+      binary: "./mongodump_passthrough/scripts/archive_credentials_setup.sh"
       env:
         private_key_remote_bash_var: ${private_key_remote}
       add_expansions_to_env: true
@@ -211,46 +215,57 @@ functions:
     # Make an evergreen expansion file with dynamic values
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/scripts/generate_mongosync_expansion.sh"
+        working_dir: src/github.com/mongodb/mongo-tools
+        # TODO: RENAME
+        # TODO: These expansions are mongosync specific, what are they used for? And can we get rid of them? At least partially
+        # common.yml's pre: step does something similar
+        binary: "./mongodump_passthrough/scripts/generate_mongosync_expansion.sh"
         add_expansions_to_env: true
-        env:
-          mongosync_dir: "src/mongosync"
     # Load the expansion file to make an evergreen variable with the current unique version
     - command: expansions.update
       params:
-        file: src/mongosync/mongosync_expansion.yml
+        file: src/github.com/mongodb/mongo-tools/mongotools_expansion.yml
     # Tasks/functions that use the mongosync sources should use the same
     # mise-installed tools as when running from mongo-tools evergreen.
+    # Get rid of mise and use whatever mongo-tools is using?
     - command: shell.exec
       params:
+        working_dir: src/github.com/mongodb/mongo-tools
         shell: bash
-        working_dir: src/mongosync
         script: |
-          set -o errexit
-          set -o pipefail
-          set -o xtrace
-
-          ${PREPARE_SHELL}
-          source "./etc/functions.sh"
-
-          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' retry sh ./etc/mise.run.sh
-          mise settings experimental=true
-          # We only install Go here in order to get the system to a state where we can run mage. If
-          # more dev tools are needed, those tasks should run "mise install".
-          mise install go
-    - command: shell.exec
-      params:
-        shell: bash
-        working_dir: src/mongosync
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o xtrace
-
-          ${PREPARE_SHELL}
-
-          mise exec -- go version
-          mise exec -- go env
+          ${_set_shell_env}
+          go version
+          go env
+#    - command: shell.exec
+#      params:
+#        shell: bash
+#        working_dir: src/mongosync
+#        script: |
+#          set -o errexit
+#          set -o pipefail
+#          set -o xtrace
+#
+#          ${PREPARE_SHELL}
+#          source "./etc/functions.sh"
+#
+#          MISE_INSTALL_PATH='${workdir}/.local/bin/mise' retry sh ./etc/mise.run.sh
+#          mise settings experimental=true
+#          # We only install Go here in order to get the system to a state where we can run mage. If
+#          # more dev tools are needed, those tasks should run "mise install".
+#          mise install go
+#    - command: shell.exec
+#      params:
+#        shell: bash
+#        working_dir: src/mongosync
+#        script: |
+#          set -o errexit
+#          set -o pipefail
+#          set -o xtrace
+#
+#          ${PREPARE_SHELL}
+#
+#          mise exec -- go version
+#          mise exec -- go env
 
   # Added for mongodump_passthrough
   #
@@ -275,7 +290,7 @@ functions:
       params:
         directory: src/github.com/mongodb/mongo-tools
         revisions:
-          mongosync: *_mongosync_pin
+#          mongosync: *_mongosync_pin
           migration-verifier: *_migration_verifier_pin
     # Check that mongo-tools and mongosync both got cloned to the right place.
     - command: shell.exec
@@ -287,6 +302,7 @@ functions:
             exit 1
           fi
           ln -s ${workdir}/src/github.com/mongodb/mongo-tools ${workdir}/src/mongo-tools
+          mkdir -p ${workdir}/src/mongosync
           if [ ! -d "src/mongosync" ]; then
             echo "ERROR: git.get_project did not clone mongosync as required."
             echo "       Check that buildvariant ${build_variant} lists module mongosync."
@@ -323,7 +339,7 @@ functions:
     command: subprocess.exec
     params:
       # The evergreen project variables in mongo-tools are ${evg_key} and ${evg_user}.
-      binary: "./src/mongosync/evergreen/scripts/evergreen_credentials_setup.sh"
+      binary: "./src/mongo-tools/mongodump_passthrough/scripts/evergreen_credentials_setup.sh"
       env:
         evergreen_api_key: ${evg_key}
         evergreen_api_user: ${evg_user}
@@ -334,7 +350,7 @@ functions:
     - *f_evergreen_credentials_setup
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/scripts/resmoke_and_binaries_download.sh"
+        binary: "./src/mongo-tools/mongodump_passthrough/scripts/resmoke_and_binaries_download.sh"
         add_expansions_to_env: true
 
   f_resmoke_wheelhouse_setup:
@@ -343,6 +359,7 @@ functions:
   f_resmoke_archive:
     - command: archive.targz_pack
       params:
+        # TODO: shyam - rather than add working_dir to everything, maybe fix how the scripts are called and do these thigns in src
         target: resmoke-with-binaries.tgz
         source_dir: "src/resmoke/${src_mongo_version}_${dst_mongo_version}"
         include:
@@ -355,8 +372,30 @@ functions:
           - "./src/**"
           - "./.resmoke_mongo_version.yml"
           - "./.resmoke_mongo_release_values.yml"
+
+    - command: archive.targz_pack
+      params:
+        target: resmoke-python-wheelhouse.tgz
+        source_dir: "."
+        include:
+          - "./wheelhouse/**"
+          - "./poetry-requirements.txt"
+
+    - command: shell.exec
+      params:
+        script: |
+          echo "BASE DIR"
+          ls -lah
+          echo "WHEELHOUSE DIR"
+          ls -lah ./wheelhouse/**
+          echo "IN src/resmoke"
+          ls -lah src/resmoke/**
+          echo "IN MONGOTOOLS"
+          ls -lah src/github.com/mongodb/mongo-tools
+
     - command: s3.put
       params:
+        # TODO: shyam - can we set working_dir for all tasks?
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: resmoke-with-binaries.tgz
@@ -368,13 +407,6 @@ functions:
         content_type: application/gzip
         display_name: resmoke-with-binaries
 
-    - command: archive.targz_pack
-      params:
-        target: resmoke-python-wheelhouse.tgz
-        source_dir: "."
-        include:
-          - "./wheelhouse/**"
-          - "./poetry-requirements.txt"
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -430,6 +462,7 @@ functions:
   # For mongodump, we don't need the mongosync binaries, but we have
   # already built the mongodump and mongorestore binaries and copied
   # them into src/mongosync/dist/
+  # TODO: why would we do this? Need to fix. But does not need to be done to detach mongosync
   f_mongosync_binary_upload: &f_mongosync_binary_upload
     - command: archive.targz_pack
       params:
@@ -485,7 +518,8 @@ functions:
   f_mongo_coredumps_save:
     - command: subprocess.exec
       params:
-        binary: "./src/mongosync/evergreen/scripts/mongo_coredumps_gather.sh"
+        working_dir: src/github.com/mongodb/mongo-tools
+        binary: "./mongodump_passthrough/scripts/mongo_coredumps_gather.sh"
         add_expansions_to_env: true
     - command: archive.targz_pack
       params:
@@ -514,6 +548,7 @@ functions:
           - src/resmoke/archive.json
           - src/resmoke/archive-job*.json
 
+    # TODO: remove mongosync reference here - this doesn't matter for now, it's just log file location.
     - command: archive.targz_pack
       params:
         target: server-logs.tgz
@@ -604,57 +639,58 @@ functions:
         content_type: application/gzip
         display_name: Coverage statistics
 
-  "setup jstestfuzz":
-    - *f_expansions_write
-    - command: github.generate_token
-      params:
-        owner: 10gen
-        repo: jstestfuzz
-        expansion_name: generated_token_jstestfuzz
-        permissions:
-          contents: read
-    - command: subprocess.exec
-      params:
-        binary: "./src/mongosync/evergreen/scripts/setup_jstestfuzz.sh"
-        add_expansions_to_env: true
-
-  "run jstestfuzz":
-    - *f_expansions_write
-    - *f_generate_github_access_token
-    - command: github.generate_token
-      params:
-        owner: 10gen
-        repo: qa
-        expansion_name: generated_token_qa
-        permissions:
-          contents: read
-    - command: subprocess.exec
-      params:
-        binary: "./src/mongosync/evergreen/scripts/clone_jstestfuzz_jstest_repos.sh"
-        add_expansions_to_env: true
-    - command: subprocess.exec
-      type: test
-      params:
-        binary: "./src/mongosync/evergreen/scripts/run_jstestfuzz.sh"
-        add_expansions_to_env: true
-    - command: archive.targz_pack
-      params:
-        target: "jstests.tgz"
-        source_dir: "src/jstestfuzz"
-        include:
-          - "out/*.js"
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: jstests.tgz
-        # Changed for mongodump_passthrough
-        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/jstestfuzz/${task_id}-${execution}.tgz
-        bucket: mciuploads
-        permissions: private
-        visibility: signed
-        content_type: application/gzip
-        display_name: JS Fuzz Tests - Execution ${execution}
+# NOTE: Removing because jstestfuzz tests don't give that much value. Same reason as mongosync has removed it
+#  "setup jstestfuzz":
+#    - *f_expansions_write
+#    - command: github.generate_token
+#      params:
+#        owner: 10gen
+#        repo: jstestfuzz
+#        expansion_name: generated_token_jstestfuzz
+#        permissions:
+#          contents: read
+#    - command: subprocess.exec
+#      params:
+#        binary: "./src/mongosync/evergreen/scripts/setup_jstestfuzz.sh"
+#        add_expansions_to_env: true
+#
+#  "run jstestfuzz":
+#    - *f_expansions_write
+#    - *f_generate_github_access_token
+#    - command: github.generate_token
+#      params:
+#        owner: 10gen
+#        repo: qa
+#        expansion_name: generated_token_qa
+#        permissions:
+#          contents: read
+#    - command: subprocess.exec
+#      params:
+#        binary: "./src/mongosync/evergreen/scripts/clone_jstestfuzz_jstest_repos.sh"
+#        add_expansions_to_env: true
+#    - command: subprocess.exec
+#      type: test
+#      params:
+#        binary: "./src/mongosync/evergreen/scripts/run_jstestfuzz.sh"
+#        add_expansions_to_env: true
+#    - command: archive.targz_pack
+#      params:
+#        target: "jstests.tgz"
+#        source_dir: "src/jstestfuzz"
+#        include:
+#          - "out/*.js"
+#    - command: s3.put
+#      params:
+#        aws_key: ${aws_key}
+#        aws_secret: ${aws_secret}
+#        local_file: jstests.tgz
+#        # Changed for mongodump_passthrough
+#        remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/jstestfuzz/${task_id}-${execution}.tgz
+#        bucket: mciuploads
+#        permissions: private
+#        visibility: signed
+#        content_type: application/gzip
+#        display_name: JS Fuzz Tests - Execution ${execution}
 
   "generate mongodump evergreen tasks":
     # Note: This assumes you've already called "fetch source and install go", because you can't call
@@ -662,16 +698,19 @@ functions:
     - command: shell.exec
       params:
         shell: bash
-        working_dir: src/mongosync
+        working_dir: src/github.com/mongodb/mongo-tools
         script: |
           set -o errexit
           set -o pipefail
           set -o xtrace
+          
 
-          ${PREPARE_SHELL}
+          ${_set_shell_env}
+          
           export aws_key=${aws_key}
           export aws_secret=${aws_secret}
-          mise exec -- go run ./cmd/mongodump-task-gen ${generator_args} | tee ${json_filename}
+          go run ./mongodump_passthrough/task-generator ${generator_args} | tee ${json_filename}
+
     - command: generate.tasks
       params:
         files:
@@ -681,4 +720,5 @@ functions:
     - command: subprocess.exec
       display_name: "wait for resmoke to shutdown"
       params:
-        binary: "./src/mongosync/evergreen/scripts/wait_for_resmoke_to_shutdown.sh"
+        working_dir: src/github.com/mongodb/mongo-tools
+        binary: "./mongodump_passthrough/scripts/wait_for_resmoke_to_shutdown.sh"

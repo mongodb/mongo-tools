@@ -2,7 +2,6 @@ package generate
 
 import (
 	"github.com/evergreen-ci/shrub"
-	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/versions"
 )
 
 const Amazon2ARMGraviton = "amazon2-arm64-graviton3"
@@ -56,7 +55,6 @@ func (gen *Generator) AddResmokeBuildVariants() {
 			Expansion("resmoke_platform", compileVariant).
 			Expansion("server_architecture", "aarch64").
 			Expansion("server_platform", "amazon2").
-			Expansion("pinned_jstestfuzz_version", versions.JstestfuzzPin).
 			Expansion("mongosync_compile_build_variant", compileVariant)
 
 		bv.TaskSpec(shrub.TaskSpec{

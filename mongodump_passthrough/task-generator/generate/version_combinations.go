@@ -60,7 +60,7 @@ var MongodumpVersionCombinations = []VersionCombination{
 	//{versions.V60, versions.V80},
 	//
 	//{versions.V70, versions.V70},
-	//{versions.V70, versions.V80},
+	{versions.V70, versions.V80},
 	//
 	{versions.V80, versions.V80},
 }
@@ -80,7 +80,7 @@ var MongodumpWithOplogVersionCombinations = []VersionCombination{
 	//{versions.V60, versions.V70},
 	//
 	//{versions.V70, versions.V70},
-	//{versions.V70, versions.V80},
+	{versions.V70, versions.V80},
 
 	{versions.V80, versions.V80},
 }

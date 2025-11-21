@@ -123,16 +123,17 @@ tasks:
           generator_args: "mongodump_jstestfuzz"
           json_filename: mongodump_fuzz_tasks.json
 
-  - name: mongodump_suites_up_to_date
-    commands:
-      - func: "fetch source and install go"
-      - command: shell.exec
-        type: test
-        params:
-          working_dir: src/mongosync
-          script: |
-            ${PREPARE_SHELL}
-            set -ex
-            mise install go
-            mise exec -- go run ./cmd/mongodump-suite-gen/cmd write --all --quiet
-            git diff --name-status --exit-code resmoke/mongodump-suite-config/*/suites
+# TODO: why is this the only task that uses suite generator?
+#  - name: mongodump_suites_up_to_date
+#    commands:
+#      - func: "fetch source and install go"
+#      - command: shell.exec
+#        type: test
+#        params:
+#          working_dir: src/mongosync
+#          script: |
+#            ${PREPARE_SHELL}
+#            set -ex
+#            mise install go
+#            mise exec -- go run ./cmd/mongodump-suite-gen/cmd write --all --quiet
+#            git diff --name-status --exit-code resmoke/mongodump-suite-config/*/suites

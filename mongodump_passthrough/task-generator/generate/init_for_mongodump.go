@@ -1,5 +1,7 @@
 package generate
 
+// TODO: shyam - edit comments
+// TODO: shyam - remove mention of mongodump-task-gen
 // Package "generate" is used for both mongosync task-generator and
 // mongodump-suite-gen. The default behavior is appropriate for mongosync,
 // but we can change some variables to get the mongodump-task-gen behavior.

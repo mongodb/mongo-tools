@@ -6,16 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/option"
-	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/versions"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/evergreen-ci/shrub"
+	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/option"
+	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/versions"
 )
 
 func (gen *Generator) AddMongodumpResmokeTasks() {
 	gen.addResmokeTasks(MongodumpPassthrough)
 	gen.addResmokeTasks(MongodumpFSM)
-	gen.addMongodumpFuzzTasks()
 }
 
 func (gen *Generator) addResmokeTasks(kind TaskKind) {
@@ -32,12 +31,6 @@ func (gen *Generator) addResmokeTasks(kind TaskKind) {
 		skipRand option.Option[*rand.Rand]
 	)
 	switch kind {
-	case Passthrough:
-		suites = passthroughSuites
-		skipRand = gen.spec.SkipSuitesRand
-	case FSM:
-		suites = fsmSuites
-		skipRand = gen.spec.SkipSuitesRand
 	case MongodumpPassthrough:
 		suites = mongodumpPassthroughSuites
 	case MongodumpFSM:

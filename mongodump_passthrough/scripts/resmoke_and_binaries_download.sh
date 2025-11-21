@@ -8,7 +8,7 @@ resmoke_dir="$(pwd)/$resmoke_dir"
 
 SCRIPT_DIR=$(dirname "$0")
 # shellcheck source=etc/find-recent-python.sh
-. "$SCRIPT_DIR/../../etc/find-recent-python.sh"
+. "$SCRIPT_DIR/find-recent-python.sh"
 
 python3 -m venv venv
 
@@ -82,7 +82,7 @@ db-contrib-tool setup-repro-env \
     --architecture x86_64 \
     --installDir "repro_envs/$resmoke_version" \
     "$db_contrib_tool_server_version"
-
+# TODO: shyam - confirm whether the above is right.
 # Separately, the mongosync Evergreen task structure expects server items, both resmoke and compiled
 # binaries, to live  within "$resmoke_dir" (this translates to "resmoke_src/resmoke" at the time of writing
 # this comment, but that "$resmoke_dir" will be translated to "resmoke_src/resmoke" is something we cannot
@@ -181,3 +181,7 @@ elif [ "$mongo_shell_server_version" == "$destination_server_version" ]; then
 else
     downloadBinaries "$mongo_shell_server_version" mongo-for-shell
 fi
+
+echo "RESULT OF RESMOKE AND BINARIES DOWNLOAD"
+echo $(pwd)
+ls -lah

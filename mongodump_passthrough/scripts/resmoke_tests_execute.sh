@@ -2,14 +2,14 @@
 
 SCRIPT_DIR=$(dirname "$0")
 
-# shellcheck source=evergreen/scripts/resmoke_venv_activate.sh
+# shellcheck source=mongodump_passthrough/scripts/resmoke_venv_activate.sh
 . "$SCRIPT_DIR/resmoke_venv_activate.sh"
 
-# shellcheck source=etc/functions.sh
-. "$SCRIPT_DIR/../../etc/functions.sh"
+# shellcheck source=mongodump_passthrough/scripts/functions.sh
+. "$SCRIPT_DIR/functions.sh"
 
-# shellcheck source=etc/find-recent-python.sh
-. "$SCRIPT_DIR/../../etc/find-recent-python.sh"
+# shellcheck source=mongodump_passthrough/scripts/find-recent-python.sh
+. "$SCRIPT_DIR/find-recent-python.sh"
 
 set -o errexit
 set -o verbose

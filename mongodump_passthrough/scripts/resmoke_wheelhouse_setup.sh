@@ -6,11 +6,11 @@ set -o verbose
 mkdir -p wheelhouse
 
 SCRIPT_DIR=$(dirname "$0")
-# shellcheck source=etc/functions.sh
-source "$SCRIPT_DIR/../../etc/functions.sh"
+# shellcheck source=mongodump_passthrough/scripts/functions.sh
+source "$SCRIPT_DIR/functions.sh"
 
-# shellcheck source=etc/find-recent-python.sh
-. "$SCRIPT_DIR/../../etc/find-recent-python.sh"
+# shellcheck source=mongodump_passthrough/scripts/find-recent-python.sh
+. "$SCRIPT_DIR/find-recent-python.sh"
 
 echo "Installing pip ..."
 python3 -m pip --disable-pip-version-check install "pip==21.0.1" "wheel==0.37.0" || exit 1

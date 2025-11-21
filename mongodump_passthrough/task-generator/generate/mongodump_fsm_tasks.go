@@ -1,9 +1,12 @@
 package generate
 
 import (
-	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/versions"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/mongodb/mongo-tools/mongodump_passthrough/mongo-go/versions"
+	"time"
 )
+
+const defaultFSMTimeout = 75 * time.Minute
 
 func mongodumpFSM(name string) *resmokeSuite {
 	return &resmokeSuite{

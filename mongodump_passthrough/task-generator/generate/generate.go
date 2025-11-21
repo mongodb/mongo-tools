@@ -40,16 +40,7 @@ func New(spec *Spec) *Generator {
 func (gen *Generator) Generate() error {
 	gen.AddResmokeBuildVariants()
 
-	if IsMongodumpTaskGen() {
-		gen.AddMongodumpResmokeTasks()
-	} else {
-		gen.AddResmokeTasks()
-		gen.AddUpgradeTasks()
-		gen.AddYCSBTasks()
-		gen.AddCoverageTasks()
-		gen.AddE2ETasks()
-		gen.AddIntegrationTasks()
-	}
+	gen.AddMongodumpResmokeTasks()
 
 	if gen.err != nil {
 		return gen.err
