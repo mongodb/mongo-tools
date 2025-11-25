@@ -26,8 +26,8 @@ type Oplog struct {
 	Version     int                 `bson:"v"`
 	Operation   string              `bson:"op"`
 	Namespace   string              `bson:"ns"`
-	Object      bson.D              `bson:"o"`
-	Query       bson.D              `bson:"o2,omitempty"`
+	Object      bson.Raw            `bson:"o"`
+	Query       bson.Raw            `bson:"o2,omitempty"`
 	UI          *primitive.Binary   `bson:"ui,omitempty"`
 	LSID        bson.Raw            `bson:"lsid,omitempty"`
 	TxnNumber   *int64              `bson:"txnNumber,omitempty"`
