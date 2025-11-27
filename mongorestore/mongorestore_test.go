@@ -32,6 +32,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
@@ -3662,6 +3663,74 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 
 		},
 	)
+}
+
+func TestIgnoreMongoDBInternal(t *testing.T) {
+	ctx := t.Context()
+
+	dbName := util.MongoDBInternalDBPrefix + t.Name()
+
+	client, err := testutil.GetBareSession()
+	require.NoError(t, err, "must connect to server")
+
+	internalColl := client.Database(dbName).Collection(t.Name())
+
+	_, err = internalColl.InsertOne(ctx, bson.D{{"_id", 1}})
+	require.NoError(t, err, "must write to the internal DB")
+
+	_, err = client.Database(t.Name()).Collection(t.Name()).InsertOne(ctx, bson.D{})
+	require.NoError(t, err, "must write to the user DB")
+
+	// Send repeated updates to the internal DB in a background thread.
+	writesCtx, writesCancel := context.WithCancelCause(ctx)
+	updatesDone := make(chan struct{})
+	go func() {
+		defer close(updatesDone)
+
+		for writesCtx.Err() == nil {
+			_, err := internalColl.InsertOne(
+				writesCtx,
+				bson.D{},
+			)
+
+			if !errors.Is(err, context.Canceled) {
+				require.NoError(t, err, "must write to the internal DB")
+			}
+		}
+
+		t.Logf("Updates canceled: %v", context.Cause(writesCtx))
+	}()
+
+	withArchiveMongodump(t, func(archive string) {
+		writesCancel(fmt.Errorf("archive is finished"))
+		<-updatesDone
+
+		require.NoError(t, client.Database(internalColl.Database().Name()).Drop(ctx))
+		require.NoError(t, client.Database(t.Name()).Drop(ctx))
+
+		restore, err := getRestoreWithArgs(
+			ArchiveOption+"="+archive,
+			"-vv",
+		)
+		require.NoError(t, err)
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "can run mongorestore")
+		require.EqualValues(
+			t,
+			0,
+			result.Failures,
+			"mongorestore reports 0 failures (result=%+v)",
+			result,
+		)
+	})
+
+	dbNames, err := client.ListDatabaseNames(ctx, bson.D{})
+	require.NoError(t, err)
+
+	assert.Contains(t, dbNames, t.Name(), "user DB restored")
+	assert.NotContains(t, dbNames, internalColl.Database().Name(), "internal DB ignored")
 }
 
 func TestFinalNewlinesInNamespaces(t *testing.T) {
