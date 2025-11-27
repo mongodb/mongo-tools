@@ -60,6 +60,10 @@ var errorTimestampBeforeLimit = fmt.Errorf("timestamp before limit")
 
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
+	if strings.HasPrefix(ns, util.MongoDBInternalDBPrefix) {
+		return true
+	}
+
 	if strings.HasPrefix(ns, "config.") {
 		collName := ns[7:]
 		if !slices.Contains(dumprestore.ConfigCollectionsToKeep, collName) {
