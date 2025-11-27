@@ -467,6 +467,10 @@ func (dump *MongoDump) GetValidDbs() ([]string, error) {
 			continue
 		}
 
+		if strings.HasPrefix(dbName, util.MongoDBInternalDBPrefix) {
+			continue
+		}
+
 		validDbs = append(validDbs, dbName)
 	}
 
