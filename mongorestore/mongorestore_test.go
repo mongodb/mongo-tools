@@ -3306,6 +3306,9 @@ func runMongodumpWithArgs(t *testing.T, args ...string) {
 		"running [%s] does not tell us the namespace does not exist",
 		cmdStr,
 	)
+
+	// So we can see dump’s output when debugging test failures:
+	fmt.Print(string(out))
 }
 
 func uniqueDBName() string {
@@ -3739,6 +3742,7 @@ func TestIgnoreMongoDBInternal(t *testing.T) {
 			)
 		},
 		"--oplog",
+		"-vv",
 	)
 
 	dbNames, err := client.ListDatabaseNames(ctx, bson.D{})
