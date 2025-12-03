@@ -382,7 +382,7 @@ func (restore *MongoRestore) Restore() Result {
 			restore.archive.Prelude.Header.ToolVersion,
 		)
 
-		if restore.dumpServerVersion.CmpMinor(restore.serverVersion) == 0 {
+		if restore.dumpServerVersion.CmpMinor(restore.serverVersion) != 0 {
 			log.Logvf(
 				log.Always,
 				"WARNING: This archive came from MongoDB %s, but you are restoring to %s. Cross-version dump & restore is unsupported. The restored data may be corrupted.",
