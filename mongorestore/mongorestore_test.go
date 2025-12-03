@@ -3666,6 +3666,8 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 }
 
 func TestIgnoreMongoDBInternal(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
 	ctx := t.Context()
 
 	dbName := util.MongoDBInternalDBPrefix + t.Name()
@@ -3701,30 +3703,36 @@ func TestIgnoreMongoDBInternal(t *testing.T) {
 		t.Logf("Updates canceled: %v", context.Cause(writesCtx))
 	}()
 
-	withArchiveMongodump(t, func(archive string) {
-		writesCancel(fmt.Errorf("archive is finished"))
-		<-updatesDone
+	withArchiveMongodump(
+		t,
+		func(archive string) {
+			writesCancel(fmt.Errorf("archive is finished"))
+			<-updatesDone
 
-		require.NoError(t, client.Database(internalColl.Database().Name()).Drop(ctx))
-		require.NoError(t, client.Database(t.Name()).Drop(ctx))
+			require.NoError(t, client.Database(internalColl.Database().Name()).Drop(ctx))
+			require.NoError(t, client.Database(t.Name()).Drop(ctx))
 
-		restore, err := getRestoreWithArgs(
-			ArchiveOption+"="+archive,
-			"-vv",
-		)
-		require.NoError(t, err)
-		defer restore.Close()
+			restore, err := getRestoreWithArgs(
+				ArchiveOption+"="+archive,
+				"-vv",
+				"--oplogReplay",
+				"--drop", // prevent dupe-key errors from other tests’ namespaces
+			)
+			require.NoError(t, err)
+			defer restore.Close()
 
-		result := restore.Restore()
-		require.NoError(t, result.Err, "can run mongorestore")
-		require.EqualValues(
-			t,
-			0,
-			result.Failures,
-			"mongorestore reports 0 failures (result=%+v)",
-			result,
-		)
-	})
+			result := restore.Restore()
+			require.NoError(t, result.Err, "can run mongorestore")
+			require.EqualValues(
+				t,
+				0,
+				result.Failures,
+				"mongorestore reports 0 failures (result=%+v)",
+				result,
+			)
+		},
+		"--oplog",
+	)
 
 	dbNames, err := client.ListDatabaseNames(ctx, bson.D{})
 	require.NoError(t, err)
