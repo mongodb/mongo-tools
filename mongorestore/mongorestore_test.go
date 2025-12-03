@@ -3668,6 +3668,13 @@ func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
 func TestIgnoreMongoDBInternal(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+
+	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
+		t.Skip("replica set required")
+	}
+
 	ctx := t.Context()
 
 	dbName := util.MongoDBInternalDBPrefix + t.Name()
