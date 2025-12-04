@@ -410,7 +410,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		} else {
 			localFile, err = os.OpenFile(
 				localFileName,
-				os.O_CREATE|os.O_EXCL|os.O_WRONLY,
+				os.O_CREATE|os.O_EXCL|os.O_RDWR,
 				0o666,
 			)
 		}
