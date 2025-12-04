@@ -416,6 +416,10 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		}
 
 		if err != nil {
+			if errors.Is(err, os.ErrExist) {
+				err = fmt.Errorf("%w (to allow this, set --overwriteLocal)", err)
+			}
+
 			return fmt.Errorf("opening local file %#q: %w", localFileName, err)
 		}
 
