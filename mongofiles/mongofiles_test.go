@@ -592,7 +592,9 @@ func TestMongoFilesCommands(t *testing.T) {
 
 			err = os.Chdir(subdir)
 			So(err, ShouldBeNil)
-			defer So(os.Chdir(cwd), ShouldBeNil)
+			defer func() {
+				So(os.Chdir(cwd), ShouldBeNil)
+			}()
 
 			err = os.Mkdir("deepdir", 0o755)
 			So(err, ShouldBeNil)
