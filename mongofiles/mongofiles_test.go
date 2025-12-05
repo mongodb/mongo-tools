@@ -696,6 +696,7 @@ func TestMongoFilesCommands(t *testing.T) {
 						So(mf, ShouldNotBeNil)
 
 						mfAfter.StorageOptions.LocalFileName = localFileName
+						mfAfter.StorageOptions.OverwriteLocal = true
 						str, err = mfAfter.Run(false)
 						So(err, ShouldBeNil)
 						So(str, ShouldBeEmpty)
