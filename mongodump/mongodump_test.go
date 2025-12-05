@@ -265,6 +265,14 @@ func setUpMongoDumpTestData() error {
 	for i, collectionName := range testCollectionNames {
 		coll := session.Database(testDB).Collection(collectionName)
 
+		idx := mongo.IndexModel{
+			Keys: bson.M{`"`: 1},
+		}
+		_, err = coll.Indexes().CreateOne(context.Background(), idx)
+		if err != nil {
+			return err
+		}
+
 		for j := 0; j < 10*(i+1); j++ {
 			_, err = coll.InsertOne(
 				context.Background(),
@@ -279,13 +287,6 @@ func setUpMongoDumpTestData() error {
 				return err
 			}
 
-			idx := mongo.IndexModel{
-				Keys: bson.M{`"`: 1},
-			}
-			_, err = coll.Indexes().CreateOne(context.Background(), idx)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -1480,7 +1481,11 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
 		go func() {
 			time.Sleep(2 * time.Second)
-			session, _ := md.SessionProvider.GetSession()
+			session, err := md.SessionProvider.GetSession()
+			if err != nil {
+				t.Fatalf("Error from GetSession: %v", err)
+				return
+			}
 			disconnectErr = session.Disconnect(context.Background())
 		}()
 
