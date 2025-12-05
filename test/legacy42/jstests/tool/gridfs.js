@@ -38,7 +38,8 @@ function testGridFS(name) {
                                             "get",
                                             filename,
                                             "--local",
-                                            dlFilename);
+                                            dlFilename,
+                                            "--overwriteLocal");
     assert.eq(0, exitCode, "mongofiles failed to download '" + filename);
 
     assert.eq(md5sumFile(filename), md5sumFile(dlFilename), "the downloaded file has same content as the original");
