@@ -2226,6 +2226,67 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 	return nil
 }
 
+func TestRestoreTimeseriesCollectionsWithTTL(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	ctx := context.Background()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "should find cluster")
+
+	defer sessionProvider.Close()
+
+	session, err := sessionProvider.GetSession()
+	require.NoError(t, err, "should find session")
+
+	testutil.SkipUnlessFCVAtLeast(t, session, "7.0")
+
+	dbName := t.Name()
+
+	db := session.Database(dbName)
+	require.NoError(t, db.Drop(ctx), "should drop db")
+
+	err = db.CreateCollection(
+		ctx,
+		"coll",
+		mopt.CreateCollection().
+			SetTimeSeriesOptions(
+				mopt.TimeSeries().
+					SetTimeField("time").
+					SetMetaField("meta"),
+			),
+	)
+	require.NoError(t, err, "should create collection")
+
+	_, err = db.Collection("coll").Indexes().CreateOne(
+		ctx,
+		mongo.IndexModel{
+			Keys: bson.D{{"time", 1}},
+			Options: mopt.Index().
+				SetPartialFilterExpression(
+					bson.D{{"meta", 123123}},
+				).SetExpireAfterSeconds(
+				123123,
+			),
+		},
+	)
+	require.NoError(t, err, "should create index")
+
+	withArchiveMongodump(t, func(file string) {
+		args := []string{
+			DropOption,
+			ArchiveOption + "=" + file,
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "restore should run")
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "can run mongorestore (result: %+v)", result)
+		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
+	})
+}
+
 func TestRestoreTimeseriesCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := context.Background()
