@@ -35,7 +35,7 @@ var testName = 'mongofiles_get';
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       '--local', getFile,
-      'get', filesToInsert[0]]
+      'get', filesToInsert[0], "--overwriteLocal"]
       .concat(passthrough.args)
       .concat(sslOptions)),
     0, 'get failed');
@@ -55,7 +55,7 @@ var testName = 'mongofiles_get';
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       '--local', getFile,
-      'get_id', idAsJSON]
+      'get_id', idAsJSON, "--overwriteLocal"]
       .concat(passthrough.args)
       .concat(sslOptions)),
     0, 'get_id failed');
@@ -69,7 +69,7 @@ var testName = 'mongofiles_get';
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       '--local', '-',
-      'get', filesToInsert[0]]
+      'get', filesToInsert[0], "--overwriteLocal"]
       .concat(passthrough.args)
       .concat(sslOptions)),
     0, 'get stdout failed');
