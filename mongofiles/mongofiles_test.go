@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -570,6 +571,144 @@ func TestMongoFilesCommands(t *testing.T) {
 			})
 		})
 
+		Convey("Testing the 'get_regex' command with path separators should", func() {
+			tmpdir, err := os.MkdirTemp("", "")
+			So(err, ShouldBeNil)
+
+			err = os.WriteFile(
+				filepath.Join(tmpdir, "hi.txt"),
+				[]byte("hi"),
+				0o644,
+			)
+			So(err, ShouldBeNil)
+
+			subdir := filepath.Join(tmpdir, "subdir")
+
+			err = os.Mkdir(subdir, 0o755)
+			So(err, ShouldBeNil)
+
+			cwd, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			err = os.Chdir(subdir)
+			So(err, ShouldBeNil)
+			defer func() {
+				So(os.Chdir(cwd), ShouldBeNil)
+			}()
+
+			err = os.Mkdir("deepdir", 0o755)
+			So(err, ShouldBeNil)
+
+			err = os.WriteFile(
+				filepath.Join("deepdir", "deep-hi.txt"),
+				[]byte("deep-hi"),
+				0o644,
+			)
+			So(err, ShouldBeNil)
+
+			sessionProvider, err := db.NewSessionProvider(*toolOptions)
+			So(err, ShouldBeNil)
+
+			paths := []string{
+				filepath.Join("..", "hi.txt"),
+				filepath.Join("deepdir", "deep-hi.txt"),
+			}
+
+			for _, path := range paths {
+				putMF := MongoFiles{
+					ToolOptions:     toolOptions,
+					InputOptions:    &InputOptions{},
+					StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+					SessionProvider: sessionProvider,
+					Command:         "put",
+					FileName:        path,
+				}
+				out, err := putMF.Run(false)
+				So(err, ShouldBeNil)
+				So(out, ShouldBeEmpty)
+
+				So(os.Remove(path), ShouldBeNil)
+			}
+
+			Convey(
+				"forbid unsafe traversals by default",
+				func() {
+					getMF := MongoFiles{
+						ToolOptions:     toolOptions,
+						InputOptions:    &InputOptions{},
+						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+						SessionProvider: sessionProvider,
+						Command:         "get_regex",
+						FileNameRegex:   ".*",
+					}
+
+					_, err := getMF.Run(false)
+					So(err, ShouldNotBeNil)
+					So(fmt.Sprint(err), ShouldContainSubstring, "--allowUnsafeTraversal")
+
+					for _, path := range paths {
+						_, err := os.Stat(path)
+						So(err, ShouldNotBeNil)
+						So(err, ShouldWrap, os.ErrNotExist)
+					}
+				},
+			)
+
+			Convey(
+				"allow deep restores under the current directory",
+				func() {
+					defer So(os.RemoveAll(paths[1]), ShouldBeNil)
+
+					getMF := MongoFiles{
+						ToolOptions:     toolOptions,
+						InputOptions:    &InputOptions{},
+						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+						SessionProvider: sessionProvider,
+						Command:         "get_regex",
+						FileNameRegex:   "deep*",
+					}
+					out, err := getMF.Run(false)
+					So(err, ShouldBeNil)
+					So(out, ShouldBeEmpty)
+
+					_, err = os.Stat(paths[1])
+					So(err, ShouldBeNil)
+				},
+			)
+
+			Convey(
+				"allow unsafe traversals by opt-in",
+				func() {
+					defer func() {
+						for _, path := range paths {
+							So(os.RemoveAll(path), ShouldBeNil)
+						}
+					}()
+					getMF := MongoFiles{
+						ToolOptions:  toolOptions,
+						InputOptions: &InputOptions{},
+						StorageOptions: &StorageOptions{
+							GridFSPrefix:         "fs",
+							DB:                   testDB,
+							AllowUnsafeTraversal: true,
+						},
+						SessionProvider: sessionProvider,
+						Command:         "get_regex",
+						FileNameRegex:   ".*",
+					}
+
+					out, err := getMF.Run(false)
+					So(err, ShouldBeNil)
+					So(out, ShouldBeEmpty)
+
+					for _, path := range paths {
+						_, err := os.Stat(path)
+						So(err, ShouldBeNil)
+					}
+				},
+			)
+		})
+
 		Convey("Testing the 'get_regex' command should", func() {
 			mf, err := simpleMongoFilesInstanceCommandOnly(GetRegex)
 			So(err, ShouldBeNil)
@@ -690,12 +829,20 @@ func TestMongoFilesCommands(t *testing.T) {
 				func() {
 					const localFileName = "lorem_ipsum_copy.txt"
 					buff.Truncate(0)
-					for _, testFile := range localTestFiles {
+					for i, testFile := range localTestFiles {
 						mfAfter, err := simpleMongoFilesInstanceWithFilename("get", testFile)
 						So(err, ShouldBeNil)
 						So(mf, ShouldNotBeNil)
 
 						mfAfter.StorageOptions.LocalFileName = localFileName
+
+						if i > 0 {
+							str, err = mfAfter.Run(false)
+							So(err, ShouldNotBeNil)
+							So(err, ShouldWrap, os.ErrExist)
+						}
+
+						mfAfter.StorageOptions.OverwriteLocal = true
 						str, err = mfAfter.Run(false)
 						So(err, ShouldBeNil)
 						So(str, ShouldBeEmpty)
@@ -865,6 +1012,7 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	So(mfAfter, ShouldNotBeNil)
 
 	mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
+	mfAfter.StorageOptions.OverwriteLocal = true
 	buff.Truncate(0)
 	str, err = mfAfter.Run(false)
 	So(err, ShouldBeNil)

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
@@ -301,6 +303,36 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 		return nil, err
 	}
 
+	if len(mf.FileNameList) == 0 {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, errors.Wrapf(err, "getting working directory")
+		}
+
+		dirPrefix := cwd + string(filepath.Separator)
+
+		for _, gf := range gridFiles {
+			if strings.ContainsRune(gf.Name, filepath.Separator) {
+				absPath, err := filepath.Abs(gf.Name)
+				if err != nil {
+					return nil, errors.Wrapf(err, "determining %#q’s absolute path", gf.Name)
+				}
+
+				if !strings.HasPrefix(absPath, dirPrefix) {
+					if mf.StorageOptions.AllowUnsafeTraversal {
+						log.Logvf(
+							log.Always,
+							"WARNING: %#q lies outside the current directory. Restoring anyway per configuration.",
+							gf.Name,
+						)
+					} else {
+						return nil, fmt.Errorf("%#q lies outside the current directory; set --allowUnsafeTraversal if you really want to write to that path", gf.Name)
+					}
+				}
+			}
+		}
+	}
+
 	if len(gridFiles) < minimumExpectedDocs {
 		return nil, minimumExpectedDocsError
 	}
@@ -373,13 +405,29 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 	if localFileName == "-" {
 		localFile = os.Stdout
 	} else {
-		if localFile, err = os.Create(localFileName); err != nil {
-			return fmt.Errorf("error while opening local file '%v': %v", localFileName, err)
+		if mf.StorageOptions.OverwriteLocal {
+			localFile, err = os.Create(localFileName)
+		} else {
+			localFile, err = os.OpenFile(
+				localFileName,
+				os.O_CREATE|os.O_EXCL|os.O_RDWR,
+				0o666,
+			)
 		}
+
+		if err != nil {
+			if errors.Is(err, os.ErrExist) {
+				err = fmt.Errorf("%w (to allow this, set --overwriteLocal)", err)
+			}
+
+			return fmt.Errorf("opening local file %#q: %w", localFileName, err)
+		}
+
 		dc := util.DeferredCloser{Closer: localFile}
 		defer dc.CloseWithErrorCapture(&err)
-		log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 	}
+
+	log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
 
 	stream, err := gridFile.OpenStreamForReading()
 	if err != nil {
