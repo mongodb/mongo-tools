@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb-labs/migration-tools/bsontools"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -23,11 +22,9 @@ import (
 	"github.com/mongodb/mongo-tools/common/txn"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	bson2 "go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"golang.org/x/exp/slices"
 )
@@ -615,30 +612,26 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
 // returns collection name and index spec.
 func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocument) {
+	var obj bson.D
+	if err := bson.Unmarshal(op.Object, &obj); err != nil {
+		panic("raw to D: " + err.Error())
+	}
+
 	collectionName := ""
 	indexDocument := &idx.IndexDocument{Options: bson.M{}}
-
-	o := bson2.Raw(op.Object)
-
-	for elem, err := range bsontools.RawElements(o) {
-		if err != nil {
-			panic(fmt.Sprintf("failed to iterate BSON: %v", err))
-		}
-
-		key := lo.Must(elem.KeyErr())
-		val := lo.Must(elem.ValueErr())
-
-		switch key {
+	for _, elem := range obj {
+		switch elem.Key {
 		case "createIndexes":
-			collectionName = lo.Must(bsontools.RawValueTo[string](val))
+			//nolint:errcheck
+			collectionName = elem.Value.(string)
 		case "key":
-			doc := lo.Must(bsontools.RawValueTo[bson2.Raw](val))
-			lo.Must0(bson2.Unmarshal(doc, &indexDocument.Key))
+			//nolint:errcheck
+			indexDocument.Key = elem.Value.(bson.D)
 		case "partialFilterExpression":
-			doc := lo.Must(bsontools.RawValueTo[bson2.Raw](val))
-			lo.Must0(bson2.Unmarshal(doc, &indexDocument.PartialFilterExpression))
+			//nolint:errcheck
+			indexDocument.PartialFilterExpression = elem.Value.(bson.D)
 		default:
-			indexDocument.Options[key] = elem.Value
+			indexDocument.Options[elem.Key] = elem.Value
 		}
 	}
 
