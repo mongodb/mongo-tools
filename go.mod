@@ -1,8 +1,6 @@
 module github.com/mongodb/mongo-tools
 
-go 1.23.0
-
-toolchain go1.23.8
+go 1.25.4
 
 require (
 	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943
@@ -13,7 +11,7 @@ require (
 	github.com/nsf/termbox-go v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	// Later versions remove a package the tools use, so we're sticking with
@@ -36,7 +34,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.81
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.81.0
 	github.com/google/uuid v1.6.0
-	github.com/samber/lo v1.49.1
+	github.com/samber/lo v1.52.0
 	golang.org/x/sync v0.14.0
 )
 

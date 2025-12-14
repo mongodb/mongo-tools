@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	//"github.com/mongodb-labs/migration-tools/bsontools"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -611,6 +612,7 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 // returns collection name and index specs.
 func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.IndexDocument) {
 	collectionName := ""
+
 	for _, elem := range op.Object {
 		if elem.Key == "commitIndexBuild" {
 			//nolint:errcheck
@@ -654,7 +656,8 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocument) {
 	collectionName := ""
 	indexDocument := &idx.IndexDocument{Options: bson.M{}}
-	for _, elem := range op.Object {
+
+	for elem, err := range bsontools.RawElements(op.Object) {
 		switch elem.Key {
 		case "createIndexes":
 			//nolint:errcheck
@@ -674,18 +677,20 @@ func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocum
 }
 
 // isApplyOpsCmd returns true if a document seems to be an applyOps command.
-func isApplyOpsCmd(cmd bson.D) bool {
-	for _, v := range cmd {
-		if v.Key == "applyOps" {
-			return true
-		}
+func isApplyOpsCmd(cmd bson.Raw) bool {
+	_, err := cmd.LookupErr("applyOps")
+	if err == nil {
+		return true
+	} else if errors.Is(err, bsoncore.ErrElementNotFound) {
+		return false
 	}
-	return false
+
+	panic(fmt.Sprintf("bad cmd (err: %v): %+v", err, cmd))
 }
 
 // newFilteredApplyOps iterates over nested ops in an applyOps document and
 // returns a new applyOps document that omits the 'ui' field from nested ops.
-func (restore *MongoRestore) newFilteredApplyOps(cmd bson.D) (bson.D, error) {
+func (restore *MongoRestore) newFilteredApplyOps(cmd bson.D) (bson.Raw, error) {
 	ops, err := unwrapNestedApplyOps(cmd)
 	if err != nil {
 		return nil, err
@@ -735,7 +740,7 @@ func unwrapNestedApplyOps(doc bson.D) ([]db.Oplog, error) {
 // wrapNestedApplyOps converts a typed data structure to a bson.D.
 // Unfortunately, we're forced to convert by marshaling to bytes and
 // unmarshalling.
-func wrapNestedApplyOps(ops []db.Oplog) (bson.D, error) {
+func wrapNestedApplyOps(ops []db.Oplog) (bson.Raw, error) {
 	cmd := &nestedApplyOps{ApplyOps: ops}
 
 	// Typed data to bytes
@@ -744,12 +749,5 @@ func wrapNestedApplyOps(ops []db.Oplog) (bson.D, error) {
 		return nil, fmt.Errorf("cannot rewrap nested applyOps op: %s", err)
 	}
 
-	// Bytes to doc
-	var doc bson.D
-	err = bson.Unmarshal(raw, &doc)
-	if err != nil {
-		return nil, fmt.Errorf("cannot reunmarshal nested applyOps op: %s", err)
-	}
-
-	return doc, nil
+	return raw, nil
 }
