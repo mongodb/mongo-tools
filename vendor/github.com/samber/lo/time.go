@@ -1,17 +1,13 @@
 package lo
 
-import (
-	"time"
-)
+import "time"
 
 // Duration returns the time taken to execute a function.
-// Play: https://go.dev/play/p/HQfbBbAXaFP
 func Duration(cb func()) time.Duration {
 	return Duration0(cb)
 }
 
 // Duration0 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/HQfbBbAXaFP
 func Duration0(cb func()) time.Duration {
 	start := time.Now()
 	cb()
@@ -19,7 +15,6 @@ func Duration0(cb func()) time.Duration {
 }
 
 // Duration1 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/HQfbBbAXaFP
 func Duration1[A any](cb func() A) (A, time.Duration) {
 	start := time.Now()
 	a := cb()
@@ -27,7 +22,6 @@ func Duration1[A any](cb func() A) (A, time.Duration) {
 }
 
 // Duration2 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/HQfbBbAXaFP
 func Duration2[A, B any](cb func() (A, B)) (A, B, time.Duration) {
 	start := time.Now()
 	a, b := cb()
@@ -35,7 +29,6 @@ func Duration2[A, B any](cb func() (A, B)) (A, B, time.Duration) {
 }
 
 // Duration3 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/xr863iwkAxQ
 func Duration3[A, B, C any](cb func() (A, B, C)) (A, B, C, time.Duration) {
 	start := time.Now()
 	a, b, c := cb()
@@ -43,7 +36,6 @@ func Duration3[A, B, C any](cb func() (A, B, C)) (A, B, C, time.Duration) {
 }
 
 // Duration4 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/xr863iwkAxQ
 func Duration4[A, B, C, D any](cb func() (A, B, C, D)) (A, B, C, D, time.Duration) {
 	start := time.Now()
 	a, b, c, d := cb()
@@ -51,7 +43,6 @@ func Duration4[A, B, C, D any](cb func() (A, B, C, D)) (A, B, C, D, time.Duratio
 }
 
 // Duration5 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/xr863iwkAxQ
 func Duration5[A, B, C, D, E any](cb func() (A, B, C, D, E)) (A, B, C, D, E, time.Duration) {
 	start := time.Now()
 	a, b, c, d, e := cb()
@@ -59,7 +50,6 @@ func Duration5[A, B, C, D, E any](cb func() (A, B, C, D, E)) (A, B, C, D, E, tim
 }
 
 // Duration6 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/mR4bTQKO-Tf
 func Duration6[A, B, C, D, E, F any](cb func() (A, B, C, D, E, F)) (A, B, C, D, E, F, time.Duration) {
 	start := time.Now()
 	a, b, c, d, e, f := cb()
@@ -67,7 +57,6 @@ func Duration6[A, B, C, D, E, F any](cb func() (A, B, C, D, E, F)) (A, B, C, D, 
 }
 
 // Duration7 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/jgIAcBWWInS
 func Duration7[A, B, C, D, E, F, G any](cb func() (A, B, C, D, E, F, G)) (A, B, C, D, E, F, G, time.Duration) {
 	start := time.Now()
 	a, b, c, d, e, f, g := cb()
@@ -75,7 +64,6 @@ func Duration7[A, B, C, D, E, F, G any](cb func() (A, B, C, D, E, F, G)) (A, B, 
 }
 
 // Duration8 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/T8kxpG1c5Na
 func Duration8[A, B, C, D, E, F, G, H any](cb func() (A, B, C, D, E, F, G, H)) (A, B, C, D, E, F, G, H, time.Duration) {
 	start := time.Now()
 	a, b, c, d, e, f, g, h := cb()
@@ -83,7 +71,6 @@ func Duration8[A, B, C, D, E, F, G, H any](cb func() (A, B, C, D, E, F, G, H)) (
 }
 
 // Duration9 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/bg9ix2VrZ0j
 func Duration9[A, B, C, D, E, F, G, H, I any](cb func() (A, B, C, D, E, F, G, H, I)) (A, B, C, D, E, F, G, H, I, time.Duration) {
 	start := time.Now()
 	a, b, c, d, e, f, g, h, i := cb()
@@ -91,7 +78,6 @@ func Duration9[A, B, C, D, E, F, G, H, I any](cb func() (A, B, C, D, E, F, G, H,
 }
 
 // Duration10 returns the time taken to execute a function.
-// Play: https://go.dev/play/p/Y3n7oJXqJbk
 func Duration10[A, B, C, D, E, F, G, H, I, J any](cb func() (A, B, C, D, E, F, G, H, I, J)) (A, B, C, D, E, F, G, H, I, J, time.Duration) {
 	start := time.Now()
 	a, b, c, d, e, f, g, h, i, j := cb()

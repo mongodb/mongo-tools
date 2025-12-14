@@ -1,9 +1,8 @@
 package lo
 
-// Ternary is a single line if/else statement.
-// Take care to avoid dereferencing potentially nil pointers in your A/B expressions, because they are both evaluated. See TernaryF to avoid this problem.
+// Ternary is a 1 line if/else statement.
 // Play: https://go.dev/play/p/t-D7WBL44h2
-func Ternary[T any](condition bool, ifOutput, elseOutput T) T {
+func Ternary[T any](condition bool, ifOutput T, elseOutput T) T {
 	if condition {
 		return ifOutput
 	}
@@ -11,9 +10,9 @@ func Ternary[T any](condition bool, ifOutput, elseOutput T) T {
 	return elseOutput
 }
 
-// TernaryF is a single line if/else statement whose options are functions.
+// TernaryF is a 1 line if/else statement whose options are functions
 // Play: https://go.dev/play/p/AO4VW20JoqM
-func TernaryF[T any](condition bool, ifFunc, elseFunc func() T) T {
+func TernaryF[T any](condition bool, ifFunc func() T, elseFunc func() T) T {
 	if condition {
 		return ifFunc()
 	}
@@ -26,9 +25,9 @@ type ifElse[T any] struct {
 	done   bool
 }
 
-// If is a single line if/else statement.
+// If.
 // Play: https://go.dev/play/p/WSw3ApMxhyW
-func If[T any](condition bool, result T) *ifElse[T] { //nolint:revive
+func If[T any](condition bool, result T) *ifElse[T] {
 	if condition {
 		return &ifElse[T]{result, true}
 	}
@@ -37,9 +36,9 @@ func If[T any](condition bool, result T) *ifElse[T] { //nolint:revive
 	return &ifElse[T]{t, false}
 }
 
-// IfF is a single line if/else statement whose options are functions.
+// IfF.
 // Play: https://go.dev/play/p/WSw3ApMxhyW
-func IfF[T any](condition bool, resultF func() T) *ifElse[T] { //nolint:revive
+func IfF[T any](condition bool, resultF func() T) *ifElse[T] {
 	if condition {
 		return &ifElse[T]{resultF(), true}
 	}
@@ -98,7 +97,7 @@ type switchCase[T comparable, R any] struct {
 
 // Switch is a pure functional switch/case/default statement.
 // Play: https://go.dev/play/p/TGbKUMAeRUd
-func Switch[T comparable, R any](predicate T) *switchCase[T, R] { //nolint:revive
+func Switch[T comparable, R any](predicate T) *switchCase[T, R] {
 	var result R
 
 	return &switchCase[T, R]{
