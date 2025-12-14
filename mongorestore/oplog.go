@@ -238,7 +238,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			return fmt.Errorf("parsing objecting value for op: %v", op)
 		}
 
-		if len(op.Object) == 0 {
+		if len(objD) == 0 {
 			return fmt.Errorf("BSON object value for op has no fields: %v", op)
 		}
 
@@ -380,16 +380,21 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 
 			collationRV, err := op.Object.LookupErr("collation")
 			if err == nil {
-				restore.indexCatalog.SetCollation(dbName, collName, false)
+				restore.indexCatalog.SetSimpleCollation(dbName, collName, false)
 
-				localeValue, err := collationRV.Document().LookupErr("locale")
+				collationDoc, ok := collationRV.DocumentOK()
+				if !ok {
+					return fmt.Errorf("collation is BSON %s but should be document", collationRV.Type)
+				}
+
+				localeValue, err := collationDoc.LookupErr("locale")
 				if err != nil {
 					return errors.Wrapf(err, "extracting collation.locale")
 				}
 
 				if localeStr, ok := localeValue.StringValueOK(); ok {
 					if localeStr == "simple" {
-						restore.indexCatalog.SetCollation(dbName, collName, true)
+						restore.indexCatalog.SetSimpleCollation(dbName, collName, true)
 					}
 				}
 			} else if !errors.Is(err, bsoncore.ErrElementNotFound) {
