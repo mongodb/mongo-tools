@@ -161,21 +161,19 @@ func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error
 	}
 
 	if op.Operation == "c" && len(op.Object) > 0 {
-		els, err := op.Object.Elements()
+		el0, err := op.Object.IndexErr(0)
 		if err != nil {
 			return errors.Wrap(err, "parsing op:c o")
 		}
 
-		if len(els) > 0 {
-			entryName, err := els[0].KeyErr()
-			if err != nil {
-				return errors.Wrap(err, "parsing op:c o’s first element")
-			}
+		entryName, err := el0.KeyErr()
+		if err != nil {
+			return errors.Wrap(err, "parsing op:c o’s first element")
+		}
 
-			if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
-				log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
-				return nil
-			}
+		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+			log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+			return nil
 		}
 	}
 
