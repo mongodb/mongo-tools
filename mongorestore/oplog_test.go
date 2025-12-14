@@ -578,15 +578,11 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 
 	// Creating the oplog document with the above 16 MiB document will allow
 	// the oplog document to exceed 16 MiB with the additional metadata.
-	var doc bson.D
-	if err := bson.Unmarshal(rawdoc, &doc); err != nil {
-		return nil, err
-	}
 	oplog := db.Oplog{
 		Version:   2,
 		Operation: "i",
 		Namespace: "db1.c1",
-		Object:    doc,
+		Object:    rawdoc,
 	}
 
 	return bson.Marshal(oplog)

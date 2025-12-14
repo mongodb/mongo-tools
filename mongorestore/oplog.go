@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	//"github.com/mongodb-labs/migration-tools/bsontools"
+	"github.com/mongodb-labs/migration-tools/bsontools"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -23,9 +23,11 @@ import (
 	"github.com/mongodb/mongo-tools/common/txn"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	bson2 "go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"golang.org/x/exp/slices"
 )
@@ -511,30 +513,12 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 	return primitive.Timestamp{T: uint32(seconds), I: uint32(increment)}, nil
 }
 
-// Server versions 3.6.0-3.6.8 and 4.0.0-4.0.2 require a 'ui' field
-// in the createIndexes command.
-func (restore *MongoRestore) needsCreateIndexWorkaround() bool {
-	sv := restore.serverVersion
-	if (sv.GTE(db.Version{3, 6, 0}) && sv.LTE(db.Version{3, 6, 8})) ||
-		(sv.GTE(db.Version{4, 0, 0}) && sv.LTE(db.Version{4, 0, 2})) {
-		return true
-	}
-	return false
-}
-
 // filterUUIDs removes 'ui' entries from ops, including nested applyOps ops.
 // It also modifies ops that rely on 'ui'.
 func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 	// Remove UUIDs from oplog entries
 	if !restore.OutputOptions.PreserveUUID {
 		op.UI = nil
-
-		// The createIndexes oplog command requires 'ui' for some server versions, so
-		// in that case we fall back to an old-style system.indexes insert.
-		if op.Operation == "c" && op.Object[0].Key == "createIndexes" &&
-			restore.needsCreateIndexWorkaround() {
-			return convertCreateIndexToIndexInsert(op)
-		}
 	}
 
 	// Check for and filter nested applyOps ops
@@ -580,47 +564,24 @@ func (restore *MongoRestore) filterHs(op db.Oplog) (db.Oplog, error) {
 	return op, nil
 }
 
-// convertCreateIndexToIndexInsert converts from new-style create indexes
-// command to old style special index insert.
-func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
-	dbName, _ := util.SplitNamespace(op.Namespace)
-
-	cmdValue := op.Object[0].Value
-	collName, ok := cmdValue.(string)
-	if !ok {
-		return db.Oplog{}, fmt.Errorf("unknown format for createIndexes")
-	}
-
-	indexSpec := op.Object[1:]
-	if len(indexSpec) < 3 {
-		return db.Oplog{}, fmt.Errorf("unknown format for createIndexes, index spec " +
-			"must have at least \"v\", \"key\", and \"name\" fields")
-	}
-
-	// createIndexes does not include the "ns" field but index inserts
-	// do. Add it as the third field, after "v", "key", and "name".
-	ns := bson.D{{"ns", fmt.Sprintf("%s.%s", dbName, collName)}}
-	indexSpec = append(indexSpec[:3], append(ns, indexSpec[3:]...)...)
-	op.Object = indexSpec
-	op.Namespace = fmt.Sprintf("%s.system.indexes", dbName)
-	op.Operation = "i"
-
-	return op, nil
-}
-
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
 // returns collection name and index specs.
 func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.IndexDocument) {
 	collectionName := ""
 
-	for _, elem := range op.Object {
+	var obj bson.D
+	if err := bson.Unmarshal(op.Object, &obj); err != nil {
+		panic("raw to D: " + err.Error())
+	}
+
+	for _, elem := range obj {
 		if elem.Key == "commitIndexBuild" {
 			//nolint:errcheck
 			collectionName = elem.Value.(string)
 		}
 	}
 	// We need second iteration to split the indexes into single createIndex command
-	for _, elem := range op.Object {
+	for _, elem := range obj {
 		if elem.Key == "indexes" {
 			//nolint:errcheck
 			indexes := elem.Value.(bson.A)
@@ -657,19 +618,27 @@ func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocum
 	collectionName := ""
 	indexDocument := &idx.IndexDocument{Options: bson.M{}}
 
-	for elem, err := range bsontools.RawElements(op.Object) {
-		switch elem.Key {
+	o := bson2.Raw(op.Object)
+
+	for elem, err := range bsontools.RawElements(o) {
+		if err != nil {
+			panic(fmt.Sprintf("failed to iterate BSON: %v", err))
+		}
+
+		key := lo.Must(elem.KeyErr())
+		val := lo.Must(elem.ValueErr())
+
+		switch key {
 		case "createIndexes":
-			//nolint:errcheck
-			collectionName = elem.Value.(string)
+			collectionName = lo.Must(bsontools.RawValueTo[string](val))
 		case "key":
-			//nolint:errcheck
-			indexDocument.Key = elem.Value.(bson.D)
+			doc := lo.Must(bsontools.RawValueTo[bson2.Raw](val))
+			lo.Must0(bson2.Unmarshal(doc, &indexDocument.Key))
 		case "partialFilterExpression":
-			//nolint:errcheck
-			indexDocument.PartialFilterExpression = elem.Value.(bson.D)
+			doc := lo.Must(bsontools.RawValueTo[bson2.Raw](val))
+			lo.Must0(bson2.Unmarshal(doc, &indexDocument.PartialFilterExpression))
 		default:
-			indexDocument.Options[elem.Key] = elem.Value
+			indexDocument.Options[key] = elem.Value
 		}
 	}
 
@@ -690,7 +659,7 @@ func isApplyOpsCmd(cmd bson.Raw) bool {
 
 // newFilteredApplyOps iterates over nested ops in an applyOps document and
 // returns a new applyOps document that omits the 'ui' field from nested ops.
-func (restore *MongoRestore) newFilteredApplyOps(cmd bson.D) (bson.Raw, error) {
+func (restore *MongoRestore) newFilteredApplyOps(cmd bson.Raw) (bson.Raw, error) {
 	ops, err := unwrapNestedApplyOps(cmd)
 	if err != nil {
 		return nil, err
@@ -720,7 +689,7 @@ type nestedApplyOps struct {
 // unwrapNestedApplyOps converts a bson.D to a typed data structure.
 // Unfortunately, we're forced to convert by marshaling to bytes and
 // unmarshalling.
-func unwrapNestedApplyOps(doc bson.D) ([]db.Oplog, error) {
+func unwrapNestedApplyOps(doc bson.Raw) ([]db.Oplog, error) {
 	// Doc to bytes
 	bs, err := bson.Marshal(doc)
 	if err != nil {
