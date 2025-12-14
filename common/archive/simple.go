@@ -84,7 +84,8 @@ func (sa SimpleArchive) Marshal() ([]byte, error) {
 
 		eol := header
 		eol.EOF = true
-		eol.CRC = int64(crc.Sum64())
+		eol.CRC = crc.Sum64()
+
 		eolBytes, err := bson.Marshal(eol)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to marshal namespace EOL (%+v)", eol)

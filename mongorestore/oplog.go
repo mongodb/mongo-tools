@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -60,6 +61,10 @@ var errorTimestampBeforeLimit = fmt.Errorf("timestamp before limit")
 
 // shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
 func shouldIgnoreNamespace(ns string) bool {
+	if strings.HasPrefix(ns, util.MongoDBInternalDBPrefix) {
+		return true
+	}
+
 	if strings.HasPrefix(ns, "config.") {
 		collName := ns[7:]
 		if !slices.Contains(dumprestore.ConfigCollectionsToKeep, collName) {
@@ -505,7 +510,17 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 		}
 	}
 
-	return primitive.Timestamp{T: uint32(seconds), I: uint32(increment)}, nil
+	secsU32, err := safecast.Convert[uint32](seconds)
+	if err != nil {
+		return primitive.Timestamp{}, errors.Wrapf(err, "secs (%d) to %T", seconds, secsU32)
+	}
+
+	incU32, err := safecast.Convert[uint32](increment)
+	if err != nil {
+		return primitive.Timestamp{}, errors.Wrapf(err, "increment (%d) to %T", increment, incU32)
+	}
+
+	return primitive.Timestamp{T: secsU32, I: incU32}, nil
 }
 
 // filterUUIDs removes 'ui' entries from ops, including nested applyOps ops.

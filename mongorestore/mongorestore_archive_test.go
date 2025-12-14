@@ -388,17 +388,23 @@ func getAtlasProxyRestoreWithArgs(args ...string) (*MongoRestore, error) {
 	return restore, nil
 }
 
-func withArchiveMongodump(t *testing.T, testCase func(string)) {
+func withArchiveMongodump(t *testing.T, testCase func(string), dumpArgs ...string) {
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
 	file := filepath.Join(dir, "archive")
-	runArchiveMongodump(t, file)
+	runArchiveMongodump(t, file, dumpArgs...)
 	testCase(file)
 }
 
-func runArchiveMongodump(t *testing.T, file string) string {
+func runArchiveMongodump(t *testing.T, file string, dumpArgs ...string) string {
 	require := require.New(t)
-	runMongodumpWithArgs(t, ArchiveOption+"="+file)
+	runMongodumpWithArgs(
+		t,
+		append(
+			[]string{ArchiveOption + "=" + file},
+			dumpArgs...,
+		)...,
+	)
 	_, err := os.Stat(file)
 	require.NoError(err, "dump created archive data file")
 	return file

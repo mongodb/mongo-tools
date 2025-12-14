@@ -25,6 +25,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// 16kb + 16mb - This is the maximum size we would get when dumping the
+// oplog itself. See https://jira.mongodb.org/browse/TOOLS-3001.
+const maxBSONSize = (16 * 1024) + (16 * 1024 * 1024)
+
 // BSONDump is a container for the user-specified options and
 // internal state used for running bsondump.
 type BSONDump struct {
@@ -93,10 +97,7 @@ func New(opts Options) (*BSONDump, error) {
 	}
 	dumper.InputSource = db.NewBSONSource(reader)
 
-	// 16kb + 16mb - This is the maximum size we would get when dumping the
-	// oplog itself. See https://jira.mongodb.org/browse/TOOLS-3001.
-	maxBSONSize := (16 * 1024) + (16 * 1024 * 1024)
-	dumper.InputSource.SetMaxBSONSize(int32(maxBSONSize))
+	dumper.InputSource.SetMaxBSONSize(maxBSONSize)
 
 	writer, err := opts.GetWriter()
 	if err != nil {

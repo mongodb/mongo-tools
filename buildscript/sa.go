@@ -30,12 +30,12 @@ const (
 	// the new config file syntax did not seem trivial.
 	eslintVersion           = "8.57.0"
 	gitHubCodeownersVersion = "0.2.1"
-	golangCILintVersion     = "2.3.0"
-	golinesVersion          = "0.12.2"
-	gosecVersion            = "2.20.0"
-	preciousVersion         = "0.7.3"
-	ubiVersion              = "0.4.2"
-	prettierVersion         = "3.4.2"
+	golangCILintVersion     = "2.6.2"
+	golinesVersion          = "0.12.2" // 0.13.0 fails w/ libc errors
+	gosecVersion            = "2.22.10"
+	preciousVersion         = "0.10.1"
+	ubiVersion              = "0.8.4"
+	prettierVersion         = "3.6.2"
 )
 
 func SAInstallDevTools(ctx *task.Context) error {
@@ -185,7 +185,7 @@ func installPrecious(ctx *task.Context) error {
 		preciousVersion,
 		"houseabsolute/precious",
 		fmt.Sprintf(
-			"https://github.com/houseabsolute/precious/releases/download/v%s/precious-Linux-x86_64-musl.tar.gz",
+			"https://github.com/houseabsolute/precious/releases/download/v%s/precious-Linux-musl-x86_64.tar.gz",
 			preciousVersion,
 		),
 	)

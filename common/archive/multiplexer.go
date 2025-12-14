@@ -199,7 +199,7 @@ func (mux *Multiplexer) formatEOF(in *MuxIn) error {
 		Database:   in.Intent.DB,
 		Collection: in.Intent.DataCollection(),
 		EOF:        true,
-		CRC:        int64(in.hash.Sum64()),
+		CRC:        in.hash.Sum64(),
 	})
 	if err != nil {
 		return err

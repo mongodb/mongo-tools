@@ -8,11 +8,13 @@ package archive
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"path/filepath"
 	"sync/atomic"
 
+	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
@@ -100,7 +102,7 @@ func NewPrelude(
 			FormatVersion:         archiveFormatVersion,
 			ServerVersion:         serverVersion,
 			ToolVersion:           toolVersion,
-			ConcurrentCollections: int32(concurrentColls),
+			ConcurrentCollections: safecast.MustConvert[int32](concurrentColls),
 		},
 		NamespaceMetadatasByDB: make(map[string][]*CollectionMetadata, 0),
 	}
@@ -147,10 +149,8 @@ func (prelude *Prelude) AddMetadata(cm *CollectionMetadata) {
 
 // Write writes the archive header.
 func (prelude *Prelude) Write(out io.Writer) error {
-	magicNumberBytes := make([]byte, 4)
-	for i := range magicNumberBytes {
-		magicNumberBytes[i] = byte(MagicNumber >> uint(i*8))
-	}
+	magicNumberBytes := binary.LittleEndian.AppendUint32(nil, MagicNumber)
+
 	_, err := out.Write(magicNumberBytes)
 	if err != nil {
 		return err

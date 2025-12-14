@@ -24,6 +24,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/samber/lo"
 	"golang.org/x/exp/slices"
 )
 
@@ -455,6 +456,24 @@ func (dump *MongoDump) GetValidDbs() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting database names: %v", err)
 	}
+
+	internalDBs := lo.Filter(
+		dbs,
+		func(dbName string, _ int) bool {
+			return strings.HasPrefix(dbName, util.MongoDBInternalDBPrefix)
+		},
+	)
+
+	for _, dbName := range internalDBs {
+		log.Logvf(
+			log.Always,
+			"excluding MongoDB internal database %#q",
+			dbName,
+		)
+	}
+
+	dbs = lo.Without(dbs, internalDBs...)
+
 	log.Logvf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
 
 	for _, dbName := range dbs {

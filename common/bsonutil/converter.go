@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -189,7 +190,7 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		return v, nil // require no conversion
 
 	case int:
-		return json.NumberInt(v), nil
+		return safecast.Convert[json.NumberInt](v)
 
 	case primitive.ObjectID: // ObjectId
 		return json.ObjectId(v.Hex()), nil
@@ -319,7 +320,7 @@ func GetBSONValueAsLegacyExtJSON(x interface{}) (interface{}, error) {
 		return v, nil // require no conversion
 
 	case int:
-		return json.NumberInt(v), nil
+		return safecast.Convert[json.NumberInt](v)
 
 	case primitive.ObjectID: // ObjectId
 		return json.ObjectId(v.Hex()), nil

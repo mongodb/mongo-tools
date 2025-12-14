@@ -106,6 +106,10 @@ type StorageOptions struct {
 	// if set, 'Replace' will remove other files with same name after 'put'
 	Replace bool `long:"replace" short:"r" description:"remove other files with same name after put"`
 
+	OverwriteLocal bool `long:"overwriteLocal" description:"make get overwrite local files"`
+
+	AllowUnsafeTraversal bool `long:"allowUnsafeTraversal" description:"allow get_regex to download files with path separators"`
+
 	// GridFSPrefix specifies what GridFS prefix to use; defaults to 'fs'
 	GridFSPrefix string `long:"prefix" value-name:"<prefix>" default:"fs" default-mask:"-" description:"GridFS prefix to use"`
 

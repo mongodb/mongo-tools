@@ -7,6 +7,7 @@
 package archive
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -85,12 +86,8 @@ func (parse *Parser) readBSONOrTerminator() (isTerminator bool, err error) {
 	if err != nil {
 		return false, newParserWrappedError("I/O error reading length or terminator", err)
 	}
-	size := int32(
-		(uint32(parse.buf[0]) << 0) |
-			(uint32(parse.buf[1]) << 8) |
-			(uint32(parse.buf[2]) << 16) |
-			(uint32(parse.buf[3]) << 24),
-	)
+	size := binary.LittleEndian.Uint32(parse.buf[:])
+
 	if size == terminator {
 		return true, nil
 	}
