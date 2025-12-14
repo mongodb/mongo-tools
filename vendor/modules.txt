@@ -311,9 +311,6 @@ github.com/mgutz/ansi
 # github.com/mitchellh/go-wordwrap v1.0.1
 ## explicit; go 1.14
 github.com/mitchellh/go-wordwrap
-# github.com/mongodb-labs/migration-tools v0.0.0-20251214031234-3e5451207890
-## explicit; go 1.25.4
-github.com/mongodb-labs/migration-tools/bsontools
 # github.com/montanaflynn/stats v0.7.1
 ## explicit; go 1.13
 github.com/montanaflynn/stats
@@ -426,12 +423,6 @@ go.mongodb.org/mongo-driver/x/mongo/driver/operation
 go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
-# go.mongodb.org/mongo-driver/v2 v2.4.0
-## explicit; go 1.19
-go.mongodb.org/mongo-driver/v2/bson
-go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil
-go.mongodb.org/mongo-driver/v2/internal/decimal128
-go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore
 # golang.org/x/crypto v0.38.0
 ## explicit; go 1.23.0
 golang.org/x/crypto/ocsp
