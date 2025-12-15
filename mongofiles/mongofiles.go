@@ -392,7 +392,7 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	var idDoc bson.D
 	err := bson.UnmarshalExtJSON([]byte(wrapped), false, &idDoc)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing id as Extended JSON: %v", err)
+		return nil, fmt.Errorf("error parsing id (%#q) as Extended JSON: %v", wrapped, err)
 	}
 
 	return idDoc[0].Value, nil
