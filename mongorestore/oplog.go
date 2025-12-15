@@ -384,7 +384,10 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 
 				collationDoc, ok := collationRV.DocumentOK()
 				if !ok {
-					return fmt.Errorf("collation is BSON %s but should be document", collationRV.Type)
+					return fmt.Errorf(
+						"collation is BSON %s but should be document",
+						collationRV.Type,
+					)
 				}
 
 				localeValue, err := collationDoc.LookupErr("locale")
