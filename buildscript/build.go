@@ -31,6 +31,28 @@ var pkgNames = []string{
 	"release",
 }
 
+func getMinimumGoVersion(ctx *task.Context) (string, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return "", fmt.Errorf("get repo root: %w", err)
+	}
+
+	modFileBuf, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return "", fmt.Errorf("read modfile: %w", err)
+	}
+
+	parsedMod, err := modfile.Parse("go.mod", modFileBuf, nil)
+	if err != nil {
+		return "", fmt.Errorf("parse modfile: %w", err)
+	}
+
+	foundGoVersion := parsedMod.Go.Version
+	_, _ = fmt.Fprintf(ctx, "Go module version: %q\n", foundGoVersion)
+
+	return foundGoVersion, nil
+}
+
 func CheckMinimumGoVersion(ctx *task.Context) error {
 	goVersionStr, err := runCmd(ctx, "go", "version")
 	if err != nil {
@@ -39,23 +61,10 @@ func CheckMinimumGoVersion(ctx *task.Context) error {
 
 	_, _ = fmt.Fprintf(ctx, "Running Go version %q\n", goVersionStr)
 
-	root, err := repoRoot()
+	foundGoVersion, err := getMinimumGoVersion(ctx)
 	if err != nil {
-		return fmt.Errorf("get repo root: %w")
+		return fmt.Errorf("reading minimum Go version: %w", err)
 	}
-
-	modFileBuf, err := os.ReadFile(filepath.Join(root, "go.mod"))
-	if err != nil {
-		return fmt.Errorf("read modfile: %w", err)
-	}
-
-	parsedMod, err := modfile.Parse("go.mod", modFileBuf, nil)
-	if err != nil {
-		return fmt.Errorf("parse modfile: %w", err)
-	}
-
-	foundGoVersion := parsedMod.Go.Version
-	_, _ = fmt.Fprintf(ctx, "Go module version: %q\n", foundGoVersion)
 
 	minimumGoVersion := "v" + foundGoVersion
 
