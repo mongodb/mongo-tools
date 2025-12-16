@@ -542,6 +542,7 @@ var platforms = []Platform{
 		Pkg:                   PkgRPM,
 		Repos:                 []Repo{RepoEnterprise, RepoOrg},
 		BuildTags:             defaultBuildTags,
+		SkipForJSONFeed:       true,
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
