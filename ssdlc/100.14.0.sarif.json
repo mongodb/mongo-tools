@@ -1,0 +1,127 @@
+{
+	"runs": [
+		{
+			"results": [
+				{
+					"level": "error",
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "db.go"
+								},
+								"region": {
+									"endColumn": 17,
+									"endLine": 518,
+									"snippet": {
+										"text": "tlsConfig := \u0026tls.Config{}"
+									},
+									"sourceLanguage": "go",
+									"startColumn": 17,
+									"startLine": 518
+								}
+							}
+						}
+					],
+					"message": {
+						"text": "TLS MinVersion too low."
+					},
+					"ruleId": "G402",
+					"suppressions": [
+						{
+							"justification": "We intentionally allow known-insecure TLS options when certain CLI flags\nare set. These are `--tlsInsecure`, `--sslAllowInvalidCertificates`, and\n`--sslAllowInvalidHostnames`. When these are not set, we use secure TLS settings.",
+							"kind": "inSource"
+						}
+					]
+				}
+			],
+			"taxonomies": [
+				{
+					"downloadUri": "https://cwe.mitre.org/data/xml/cwec_v4.4.xml.zip",
+					"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
+					"informationUri": "https://cwe.mitre.org/data/published/cwe_v4.4.pdf/",
+					"isComprehensive": true,
+					"language": "en",
+					"minimumRequiredLocalizedDataSemanticVersion": "4.4",
+					"name": "CWE",
+					"organization": "MITRE",
+					"releaseDateUtc": "2021-03-15",
+					"shortDescription": {
+						"text": "The MITRE Common Weakness Enumeration"
+					},
+					"taxa": [
+						{
+							"fullDescription": {
+								"text": "The software does not validate, or incorrectly validates, a certificate."
+							},
+							"guid": "09e885ea-951b-3143-801a-241b3aa9e6c9",
+							"helpUri": "https://cwe.mitre.org/data/definitions/295.html",
+							"id": "295",
+							"shortDescription": {
+								"text": "Improper Certificate Validation"
+							}
+						}
+					],
+					"version": "4.4"
+				}
+			],
+			"tool": {
+				"driver": {
+					"guid": "8b518d5f-906d-39f9-894b-d327b1a421c5",
+					"informationUri": "https://github.com/securego/gosec/",
+					"name": "gosec",
+					"rules": [
+						{
+							"defaultConfiguration": {
+								"level": "error"
+							},
+							"fullDescription": {
+								"text": "TLS MinVersion too low."
+							},
+							"help": {
+								"text": "TLS MinVersion too low.\nSeverity: HIGH\nConfidence: HIGH\n"
+							},
+							"id": "G402",
+							"name": "Improper Certificate Validation",
+							"properties": {
+								"precision": "high",
+								"tags": [
+									"security",
+									"HIGH"
+								]
+							},
+							"relationships": [
+								{
+									"kinds": [
+										"superset"
+									],
+									"target": {
+										"guid": "09e885ea-951b-3143-801a-241b3aa9e6c9",
+										"id": "295",
+										"toolComponent": {
+											"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
+											"name": "CWE"
+										}
+									}
+								}
+							],
+							"shortDescription": {
+								"text": "TLS MinVersion too low."
+							}
+						}
+					],
+					"semanticVersion": "2.22.10",
+					"supportedTaxonomies": [
+						{
+							"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
+							"name": "CWE"
+						}
+					],
+					"version": "2.22.10"
+				}
+			}
+		}
+	],
+	"$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+	"version": "2.1.0"
+}
