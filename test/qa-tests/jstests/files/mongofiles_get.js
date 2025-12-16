@@ -48,10 +48,18 @@ var testName = 'mongofiles_get';
 
     // ensure tool runs get_id without error
     var idAsJSON = '{"$oid":"' + fileId.valueOf() + '"}';
+
     // This escaping is required because of a bug with argument quoting pre 8.1, fixed by SERVER-96103
-    if (_isWindows() && !isAtLeastVersion(db.version(), "8.1.0")) {
-      idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
+    if (_isWindows()) {
+      if (isAtLeastVersion(db.version(), "8.0.16")) {
+        // no escaping needed
+      } else if (!isAtLeastVersion(db.version(), "8.0.0") && isAtLeastVersion(db.version(), "7.0.27")) {
+        // no escaping needed for 7.0.27 & later 7.0 releases
+      } else {
+        idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
+      }
     }
+
     assert.eq(runMongoProgram.apply(this, ['mongofiles',
       '--port', conn.port,
       '--local', getFile,
