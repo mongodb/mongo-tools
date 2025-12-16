@@ -387,6 +387,10 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	case '{':
 		wrapped = fmt.Sprintf(`{"_id":%s}`, trimmed)
 	default:
+		if trimmed[0] == '"' {
+			return nil, fmt.Errorf("id %#q is already quoted .. this should not happen")
+		}
+
 		wrapped = fmt.Sprintf(`{"_id":"%s"}`, trimmed)
 	}
 	var idDoc bson.D
