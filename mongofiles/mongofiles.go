@@ -387,12 +387,16 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	case '{':
 		wrapped = fmt.Sprintf(`{"_id":%s}`, trimmed)
 	default:
+		if trimmed[0] == '"' {
+			return nil, fmt.Errorf("id %#q is already quoted .. this should not happen", trimmed)
+		}
+
 		wrapped = fmt.Sprintf(`{"_id":"%s"}`, trimmed)
 	}
 	var idDoc bson.D
 	err := bson.UnmarshalExtJSON([]byte(wrapped), false, &idDoc)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing id as Extended JSON: %v", err)
+		return nil, fmt.Errorf("error parsing id (%#q) as Extended JSON: %v", wrapped, err)
 	}
 
 	return idDoc[0].Value, nil

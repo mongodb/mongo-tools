@@ -16,6 +16,7 @@ import (
 	"github.com/craiggwilson/goke/task"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/release/platform"
+	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/semver"
 )
 
@@ -30,8 +31,27 @@ var pkgNames = []string{
 	"release",
 }
 
-// minimumGoVersion must be prefixed with v to be parsed by golang.org/x/mod/semver.
-const minimumGoVersion = "v1.22.3"
+func getMinimumGoVersion(ctx *task.Context) (string, error) {
+	root, err := repoRoot()
+	if err != nil {
+		return "", fmt.Errorf("get repo root: %w", err)
+	}
+
+	modFileBuf, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return "", fmt.Errorf("read modfile: %w", err)
+	}
+
+	parsedMod, err := modfile.Parse("go.mod", modFileBuf, nil)
+	if err != nil {
+		return "", fmt.Errorf("parse modfile: %w", err)
+	}
+
+	foundGoVersion := parsedMod.Go.Version
+	_, _ = fmt.Fprintf(ctx, "Go module version: %q\n", foundGoVersion)
+
+	return foundGoVersion, nil
+}
 
 func CheckMinimumGoVersion(ctx *task.Context) error {
 	goVersionStr, err := runCmd(ctx, "go", "version")
@@ -39,7 +59,14 @@ func CheckMinimumGoVersion(ctx *task.Context) error {
 		return fmt.Errorf("failed to get current go version: %w", err)
 	}
 
-	_, _ = fmt.Fprintf(ctx, "Found Go version \"%s\"\n", goVersionStr)
+	_, _ = fmt.Fprintf(ctx, "Running Go version %q\n", goVersionStr)
+
+	foundGoVersion, err := getMinimumGoVersion(ctx)
+	if err != nil {
+		return fmt.Errorf("reading minimum Go version: %w", err)
+	}
+
+	minimumGoVersion := "v" + foundGoVersion
 
 	versionPattern := `go(\d+\.\d+\.*\d*)`
 
