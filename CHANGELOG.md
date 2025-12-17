@@ -19,20 +19,10 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <h3>        Vulnerability
 </h3>
 <ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3964'>TOOLS-3964</a>] -         Security Finding: Update package mongo-tools
-</li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4010'>TOOLS-4010</a>] -         Security Finding: Update package crypto@v0.38.0
 </li>
 </ul>
                                                                                                                                                                                                                                                                                                                                                                                                             
-<h3>        Build Failure
-</h3>
-<ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3974'>TOOLS-3974</a>] -         failed: check-sbom-lite on static [mongo-tools @ fedbd7f8]
-</li>
-</ul>
-
-                            
 <h3>        Bug
 </h3>
 <ul>
@@ -43,10 +33,6 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 <h3>        Task
 </h3>
 <ul>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3941'>TOOLS-3941</a>] -         get mongodump_passthrough back in step with recent mongosync CI changes
-</li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3960'>TOOLS-3960</a>] -         Fix qa-tests-latest timeout error
-</li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3983'>TOOLS-3983</a>] -         Make mongorestore warn when restoring archive from a different server version
 </li>
 </ul>
