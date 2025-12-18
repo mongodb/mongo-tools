@@ -1,5 +1,45 @@
 # Database Tools Changelog
 
+## 100.14.0
+
+_Released 2025-12-16_
+
+We are pleased to announce version 100.14.0 of the MongoDB Database Tools.
+
+This version adds important fixes to upstream dependencies. It also adds new safety restrictions to
+`mongofiles` that help protect your data.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+<h3>        Vulnerability
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4010'>TOOLS-4010</a>] -         Security Finding: Update package crypto@v0.38.0
+</li>
+</ul>
+                                                                                                                                                                                                                                                                                                                                                                                                            
+<h3>        Bug
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4019'>TOOLS-4019</a>] -         Fix path traversal in mongofiles
+</li>
+</ul>
+                
+<h3>        Task
+</h3>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3983'>TOOLS-3983</a>] -         Make mongorestore warn when restoring archive from a different server version
+</li>
+</ul>
+
 ## 100.13.0
 
 _Released 2025-08-14_
