@@ -262,7 +262,7 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 					intent.Type = "timeseries"
 				}
 
-				restore.indexCatalog.SetCollation(intent.DB, intent.C, intent.HasSimpleCollation())
+				restore.indexCatalog.SetSimpleCollation(intent.DB, intent.C, intent.HasSimpleCollation())
 
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
