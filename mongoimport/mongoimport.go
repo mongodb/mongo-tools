@@ -323,7 +323,7 @@ func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 	return os.Stdin, 0, nil
 }
 
-// getJSONFilesFromDir returns a list of JSON files from the specified directory
+// getJSONFilesFromDir returns a list of JSON files from the specified directory.
 func (imp *MongoImport) getJSONFilesFromDir(dirPath string) ([]string, error) {
 	var jsonFiles []string
 
@@ -417,7 +417,12 @@ func (imp *MongoImport) importFromDirectoryBatched() (uint64, uint64, error) {
 		return 0, 0, err
 	}
 
-	log.Logvf(log.Always, "importing %v JSON file(s) from directory: %v", len(jsonFiles), imp.InputOptions.Dir)
+	log.Logvf(
+		log.Always,
+		"importing %v JSON file(s) from directory: %v",
+		len(jsonFiles),
+		imp.InputOptions.Dir,
+	)
 
 	// Connect once for all files
 	session, err := imp.SessionProvider.GetSession()
@@ -470,7 +475,12 @@ func (imp *MongoImport) importFromDirectoryBatched() (uint64, uint64, error) {
 
 	// Progress bar for entire directory
 	bar := &progress.Bar{
-		Name:      fmt.Sprintf("%v.%v [%v files]", imp.ToolOptions.DB, imp.ToolOptions.Collection, len(jsonFiles)),
+		Name: fmt.Sprintf(
+			"%v.%v [%v files]",
+			imp.ToolOptions.DB,
+			imp.ToolOptions.Collection,
+			len(jsonFiles),
+		),
 		Watching:  &fileSizeProgressor{totalSize, combinedTracker},
 		Writer:    log.Writer(0),
 		BarLength: progressBarLength,
@@ -486,7 +496,13 @@ func (imp *MongoImport) importFromDirectoryBatched() (uint64, uint64, error) {
 		defer close(readDocs)
 
 		for i, filePath := range jsonFiles {
-			log.Logvf(log.Info, "streaming file %v/%v: %v", i+1, len(jsonFiles), filepath.Base(filePath))
+			log.Logvf(
+				log.Info,
+				"streaming file %v/%v: %v",
+				i+1,
+				len(jsonFiles),
+				filepath.Base(filePath),
+			)
 
 			file, err := os.Open(util.ToUniversalPath(filePath))
 			if err != nil {
@@ -565,11 +581,16 @@ func (imp *MongoImport) importFromDirectoryBatched() (uint64, uint64, error) {
 	processedCount := atomic.LoadUint64(&imp.processedCount)
 	failureCount := atomic.LoadUint64(&imp.failureCount)
 
-	log.Logvf(log.Always, "directory import complete: %v documents imported, %v failed", processedCount, failureCount)
+	log.Logvf(
+		log.Always,
+		"directory import complete: %v documents imported, %v failed",
+		processedCount,
+		failureCount,
+	)
 	return processedCount, failureCount, err
 }
 
-// multiFileSizeTracker tracks bytes read across multiple files for progress reporting
+// multiFileSizeTracker tracks bytes read across multiple files for progress reporting.
 type multiFileSizeTracker struct {
 	mu              sync.Mutex
 	currentFile     *os.File
