@@ -14,9 +14,11 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 )
 
-var Usage = `<options> <connection-string> <file> 
+var Usage = `<options> <connection-string> [<file>]
 
 Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport reads from stdin.
+
+To import all .json files in a directory (JSON input only), use --dir.
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
