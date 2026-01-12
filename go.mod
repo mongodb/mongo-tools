@@ -1,6 +1,6 @@
 module github.com/mongodb/mongo-tools
 
-go 1.24.0
+go 1.25.5
 
 require (
 	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943

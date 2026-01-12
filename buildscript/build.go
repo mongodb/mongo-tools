@@ -235,6 +235,19 @@ func getLdflags(ctx *task.Context) (string, error) {
 	}
 
 	ldflags := fmt.Sprintf("-X main.VersionStr=%s -X main.GitCommit=%s", versionStr, gitCommit)
+
+	pf, err := getPlatform()
+	if err == nil {
+		switch pf.OS {
+		case platform.OSWindows:
+			// Remove debug info, which is broken on Windows due to
+			// https://github.com/golang/go/issues/75077
+			ldflags += " -s -w"
+		}
+	} else {
+		ctx.Logf("failed to get platform (error: %v); will still attempt build\n", err)
+	}
+
 	return ldflags, nil
 }
 
