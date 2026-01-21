@@ -24,9 +24,9 @@ import (
 	"github.com/mongodb/mongo-tools/common/password"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 )

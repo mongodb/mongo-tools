@@ -14,8 +14,8 @@ import (
 	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 )
 
 // ConvertLegacyExtJSONValueToBSON walks through a document or an array and

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/json"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 // readPrefDoc is a struct corresponding to the json object passed in for the --readPreference command line arg.
