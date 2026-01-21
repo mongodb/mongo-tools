@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
@@ -29,7 +30,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 				So(
 					opts.ToolOptions.WriteConcern,
 					ShouldResemble,
-					writeconcern.New(writeconcern.WMajority()),
+					writeconcern.Majority(),
 				)
 			},
 		)
@@ -46,7 +47,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 				So(
 					opts.ToolOptions.WriteConcern,
 					ShouldResemble,
-					writeconcern.New(writeconcern.WMajority()),
+					writeconcern.Majority(),
 				)
 			},
 		)
@@ -59,7 +60,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 
 			So(err, ShouldBeNil)
 			So(opts.StorageOptions.WriteConcern, ShouldEqual, "")
-			So(opts.ToolOptions.WriteConcern, ShouldResemble, writeconcern.New(writeconcern.W(2)))
+			So(opts.ToolOptions.WriteConcern, ShouldResemble, &writeconcern.WriteConcern{W: 2})
 		})
 
 		Convey("Parsing with writeconcern only in command line should set it correctly", func() {
@@ -72,7 +73,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 			So(
 				opts.ToolOptions.WriteConcern,
 				ShouldResemble,
-				writeconcern.New(writeconcern.W(2), writeconcern.J(true)),
+				&writeconcern.WriteConcern{W: 2, Journal: lo.ToPtr(true)},
 			)
 		})
 	})
