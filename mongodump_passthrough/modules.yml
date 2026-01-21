@@ -32,4 +32,4 @@ modules:
   - name: mongosync
     repo: git@github.com:10gen/mongosync.git
     prefix: ${workdir}/src
-    branch: rcownie/md_passthru6
+    branch: md_passthru8
