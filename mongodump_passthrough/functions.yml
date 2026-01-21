@@ -27,7 +27,7 @@ variables:
   # And when you change the _mongosync_pin, you also need to update other pins
   # which get passed as environment variables to scripts in mongosync/evergreen/scripts.
   #
-  _mongosync_pin: &_mongosync_pin "7126c03d3f87950824b393b5b1157065767c6d44"
+  _mongosync_pin: &_mongosync_pin "e000f89b29ab012835465a6f8b462b2b6035639c"
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
