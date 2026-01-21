@@ -23,7 +23,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
@@ -46,11 +45,11 @@ var (
 		Verbosity:  &options.Verbosity{},
 		URI:        &options.URI{},
 	}
-	testFiles = map[string]primitive.ObjectID{
-		"testfile1": primitive.NewObjectID(),
-		"testfile2": primitive.NewObjectID(),
-		"testfile3": primitive.NewObjectID(),
-		"testfile4": primitive.NewObjectID(),
+	testFiles = map[string]bson.ObjectID{
+		"testfile1": bson.NewObjectID(),
+		"testfile2": bson.NewObjectID(),
+		"testfile3": bson.NewObjectID(),
+		"testfile4": bson.NewObjectID(),
 	}
 )
 

@@ -39,7 +39,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -1639,12 +1638,12 @@ func TestSkipSystemCollections(t *testing.T) {
 				queryObj := bson.D{
 					{"$and",
 						bson.A{
-							bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
+							bson.D{{"ts", bson.M{"$gte": bson.Timestamp{T: currentTS, I: 1}}}},
 							bson.D{{"$or", bson.A{
 								bson.D{
-									{"ns", primitive.Regex{Pattern: "^config.system.sessions*"}},
+									{"ns", bson.Regex{Pattern: "^config.system.sessions*"}},
 								},
-								bson.D{{"ns", primitive.Regex{Pattern: "^config.cache.*"}}},
+								bson.D{{"ns", bson.Regex{Pattern: "^config.cache.*"}}},
 							}}},
 						},
 					},
@@ -2900,7 +2899,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 
 	coll := testDB.Collection("mycoll")
 
-	docID := primitive.Timestamp{}
+	docID := bson.Timestamp{}
 
 	_, err = coll.UpdateOne(
 		ctx,
@@ -2911,7 +2910,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 			{{"$replaceRoot", bson.D{
 				{"newRoot", bson.D{
 					{"$literal", bson.D{
-						{"empty_time", primitive.Timestamp{}},
+						{"empty_time", bson.Timestamp{}},
 						{"other", "$$ROOT"},
 					}},
 				}},
@@ -2944,7 +2943,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 		t,
 		bson.M{
 			"_id":        docID,
-			"empty_time": primitive.Timestamp{},
+			"empty_time": bson.Timestamp{},
 			"other":      "$$ROOT",
 		},
 		docs[0],
@@ -2983,7 +2982,7 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 		mongo.Pipeline{
 			{{"$replaceRoot", bson.D{
 				{"newRoot", bson.D{
-					{"empty_time", primitive.Timestamp{}},
+					{"empty_time", bson.Timestamp{}},
 				}},
 			}}},
 		},
@@ -3000,7 +2999,7 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 			mongo.Pipeline{
 				{{"$replaceRoot", bson.D{
 					{"newRoot", bson.D{
-						{"nonempty_time", primitive.Timestamp{1, 2}},
+						{"nonempty_time", bson.Timestamp{1, 2}},
 					}},
 				}}},
 			},

@@ -33,7 +33,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
@@ -56,8 +55,8 @@ type MongoDump struct {
 	manager         *intents.Manager
 	query           bson.D
 	oplogCollection string
-	oplogStart      primitive.Timestamp
-	oplogEnd        primitive.Timestamp
+	oplogStart      bson.Timestamp
+	oplogEnd        bson.Timestamp
 	isMongos        bool
 	isAtlasProxy    bool
 	serverVersion   string

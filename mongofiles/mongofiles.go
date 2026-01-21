@@ -22,7 +22,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo/gridfs"
 	driverOptions "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -378,7 +377,7 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	trimmed := strings.Trim(mf.Id, " ")
 
 	if trimmed == "" {
-		return primitive.NewObjectID(), nil
+		return bson.NewObjectID(), nil
 	}
 
 	// Wrap JSON bytes into a document for unmarshaling, then pick out the value after.

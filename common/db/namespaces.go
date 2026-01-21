@@ -13,7 +13,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -42,7 +41,7 @@ func (ci *CollectionInfo) GetUUID() string {
 	}
 	if v, ok := ci.Info["uuid"]; ok {
 		switch x := v.(type) {
-		case primitive.Binary:
+		case bson.Binary:
 			if x.Subtype == 4 {
 				return hex.EncodeToString(x.Data)
 			}
@@ -66,7 +65,7 @@ func GetIndexes(coll *mongo.Collection) (*mongo.Cursor, error) {
 func GetCollections(database *mongo.Database, name string) (*mongo.Cursor, error) {
 	filter := bson.D{}
 	if len(name) > 0 {
-		filter = append(filter, primitive.E{"name", name})
+		filter = append(filter, bson.E{"name", name})
 	}
 
 	cursor, err := database.ListCollections(context.Background(), filter)
