@@ -1,3 +1,13 @@
+# Support for mongodump+mongorestore passthrough tests.
+
+include:
+  - filename: "mongodump_passthrough/globals.yml"
+  - filename: "mongodump_passthrough/parameters.yml"
+  - filename: "mongodump_passthrough/modules.yml"
+  - filename: "mongodump_passthrough/functions.yml"
+  - filename: "mongodump_passthrough/tasks.yml"
+  - filename: "mongodump_passthrough/variants.yml"
+
 #######################################
 #    Tools Driver Config for MCI      #
 #######################################
@@ -680,6 +690,10 @@ post:
           set -v
         rm -rf /data/db/*
         exit 0
+  # Extra post steps needed for mongodump passthrough.
+  - func: f_resmoke_report_attach
+  - func: "attach artifacts"
+  - func: f_mongo_coredumps_save
 
 timeout:
   - command: shell.exec
@@ -697,6 +711,9 @@ timeout:
           # git the processes a second or two to dump their stacks
           sleep 10
         fi
+  # Extra timeout steps needed for mongodump passthrough.
+  - func: f_expansions_write
+  - func: "wait for resmoke to shutdown"
 
 tasks:
   - name: dist
