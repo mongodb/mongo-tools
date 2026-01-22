@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -101,7 +102,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	var oplog bson.D
 	require.NoError(t, bson.Unmarshal(contents, &oplog))
 
-	require.Equal(t, int32(1), oplog.Map()["multiOpType"])
+	require.Equal(t, int32(1), bsonutil.ToMap(oplog)["multiOpType"])
 }
 
 func vectoredInsert(ctx context.Context) error {

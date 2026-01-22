@@ -164,6 +164,15 @@ func RemoveKey(key string, document *bson.D) (interface{}, bool) {
 	return nil, false
 }
 
+// ToMap converts a bson.D to a bson.M.
+func ToMap(in bson.D) bson.M {
+	m := make(bson.M, len(in))
+	for _, e := range in {
+		m[e.Key] = e.Value
+	}
+	return m
+}
+
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON
 // type (e.g $numberLong) and replaces any such values with the corresponding
 // BSON type. (uses legacy extJSON parser).
@@ -172,7 +181,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 	var doc map[string]interface{}
 	switch v := special.(type) {
 	case bson.D:
-		doc = v.Map()
+		doc = ToMap(v)
 	case map[string]interface{}:
 		doc = v
 	default:
@@ -186,7 +195,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			case string:
 				return util.FormatDate(v)
 			case bson.D:
-				asMap := v.Map()
+				asMap := ToMap(v)
 				if jsonValue, ok := asMap["$numberLong"]; ok {
 					n, err := parseNumberLongField(jsonValue)
 					if err != nil {
@@ -267,7 +276,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			case map[string]interface{}:
 				tsDoc = internalDoc
 			case bson.D:
-				tsDoc = internalDoc.Map()
+				tsDoc = ToMap(internalDoc)
 			default:
 				return nil, errors.New("expected $timestamp key to have internal document")
 			}
