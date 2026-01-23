@@ -100,8 +100,8 @@ func (i *IndexCatalog) AddIndex(database, collection string, index *IndexDocumen
 	i.addIndex(database, collection, indexName, index)
 }
 
-// SetSimpleCollation sets if a collection has a simple collation.
-func (i *IndexCatalog) SetSimpleCollation(database, collection string, simpleCollation bool) {
+// SetCollation sets if a collection has a simple collation.
+func (i *IndexCatalog) SetCollation(database, collection string, simpleCollation bool) {
 	i.Lock()
 	defer i.Unlock()
 	collIndexCatalog := i.getCollectionIndexCatalog(database, collection)

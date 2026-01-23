@@ -6,7 +6,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -142,10 +141,10 @@ func TestOldestTimestamp(t *testing.T) {
 			TxnNumber: &txnN[0],
 			Operation: "c",
 			Namespace: "admin.$cmd",
-			Object: lo.Must(bson.Marshal(bson.D{
+			Object: bson.D{
 				{"applyOps", bson.A{bson.D{{"op", "n"}}}},
 				{"partialTxn", true},
-			})),
+			},
 		},
 		{
 			Timestamp: primitive.Timestamp{T: 1235, I: 1},
@@ -153,10 +152,10 @@ func TestOldestTimestamp(t *testing.T) {
 			TxnNumber: &txnN[1],
 			Operation: "c",
 			Namespace: "admin.$cmd",
-			Object: lo.Must(bson.Marshal(bson.D{
+			Object: bson.D{
 				{"applyOps", bson.A{bson.D{{"op", "n"}}}},
 				{"partialTxn", true},
-			})),
+			},
 		},
 		{
 			Timestamp: primitive.Timestamp{T: 1236, I: 1},
@@ -164,10 +163,10 @@ func TestOldestTimestamp(t *testing.T) {
 			TxnNumber: &txnN[0],
 			Operation: "c",
 			Namespace: "admin.$cmd",
-			Object: lo.Must(bson.Marshal(bson.D{
+			Object: bson.D{
 				{"applyOps", bson.A{bson.D{{"op", "n"}}}},
 				{"partialTxn", true},
-			})),
+			},
 		},
 	}
 
@@ -212,10 +211,10 @@ func TestExtractInnerOps(t *testing.T) {
 				TxnNumber: &txnN[0],
 				Operation: "c",
 				Namespace: "admin.$cmd",
-				Object: lo.Must(bson.Marshal(bson.D{
+				Object: bson.D{
 					{"applyOps", bson.A{bson.D{{"op", "n"}}}},
 					{"partialTxn", true},
-				})),
+				},
 			}
 
 			innerOps, err := extractInnerOps(&op)
