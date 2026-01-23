@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
@@ -286,28 +285,17 @@ func (sp *SessionProvider) RunApplyOpsCreateIndex(
 	if UUID != nil {
 		o := append(bson.D{{Key: "createIndexes", Value: C}}, index...)
 
-		oRaw, err := bson.Marshal(o)
-		if err != nil {
-			return errors.Wrapf(err, "marshaling index spec (%+v)", o)
-		}
-
 		op = Oplog{
 			Operation: "c",
 			Namespace: fmt.Sprintf("%s.$cmd", DB),
-			Object:    oRaw,
+			Object:    o,
 			UI:        UUID,
 		}
 	} else {
-
-		indexRaw, err := bson.Marshal(index)
-		if err != nil {
-			return errors.Wrapf(err, "marshaling index spec (%+v)", index)
-		}
-
 		op = Oplog{
 			Operation: "i",
 			Namespace: fmt.Sprintf("%s.system.indexes", DB),
-			Object:    indexRaw,
+			Object:    index,
 		}
 	}
 
