@@ -33,6 +33,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 type (
@@ -116,10 +117,6 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	client, err := configureClient(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring the connector: %v", err)
-	}
-	err = client.Connect(context.Background())
-	if err != nil {
-		return nil, err
 	}
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
@@ -334,7 +331,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
-	clientopt.SetSocketTimeout(time.Duration(opts.SocketTimeout) * time.Second)
+	clientopt.SetTimeout(time.Duration(opts.SocketTimeout) * time.Second)
 	if opts.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(
 			time.Duration(opts.ServerSelectionTimeout) * time.Second,
@@ -347,8 +344,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetAppName(opts.AppName)
 	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
-		t := true
-		clientopt.AuthenticateToAnything = &t
+		xoptions.SetInternalClientOptions(clientopt, "authenticateToAnything", true)
 	}
 
 	if opts.ReadPreference != nil {
@@ -397,7 +393,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	if cs.ReadConcernLevel != "" {
-		rc := readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+		rc := &readconcern.ReadConcern{Level: cs.ReadConcernLevel}
 		clientopt.SetReadConcern(rc)
 	}
 
@@ -430,24 +426,26 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetRetryReads(cs.RetryReads)
 	}
 
-	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
-		opts := make([]writeconcern.Option, 0, 1)
+	// TODO cs.WTimeoutSet
+	if cs.JSet || cs.WString != "" || cs.WNumberSet {
+		wc := new(writeconcern.WriteConcern)
 
 		if len(cs.WString) > 0 {
-			opts = append(opts, writeconcern.WTagSet(cs.WString))
+			wc.W = cs.WString
 		} else if cs.WNumberSet {
-			opts = append(opts, writeconcern.W(cs.WNumber))
+			wc.W = cs.WNumber
 		}
 
 		if cs.JSet {
-			opts = append(opts, writeconcern.J(cs.J))
+			wc.Journal = &cs.J
 		}
 
-		if cs.WTimeoutSet {
-			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
-		}
+		// TODO WTimeout
+		// if cs.WTimeoutSet {
+		// 	opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+		// }
 
-		clientopt.SetWriteConcern(writeconcern.New(opts...))
+		clientopt.SetWriteConcern(wc)
 	}
 
 	if opts.Auth != nil && opts.IsSet() {
@@ -564,7 +562,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetDisableOCSPEndpointCheck(cs.SSLDisableOCSPEndpointCheck)
 	}
 
-	return mongo.NewClient(clientopt)
+	return mongo.Connect(clientopt)
 }
 
 // FilterError determines whether an error needs to be propagated back to the user or can be continued through. If an
