@@ -9,11 +9,11 @@ package db
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
@@ -55,7 +55,7 @@ func NewMongoWriteConcern(
 // extracts values from it. If the ConnString has no write concern value, it defaults
 // to 'majority'.
 func constructWCFromConnString(cs *connstring.ConnString) (*writeconcern.WriteConcern, error) {
-	var opts []writeconcern.Option
+	wc := new(writeconcern.WriteConcern)
 
 	switch {
 	case cs.WNumberSet:
@@ -63,17 +63,21 @@ func constructWCFromConnString(cs *connstring.ConnString) (*writeconcern.WriteCo
 			return nil, fmt.Errorf("invalid 'w' argument: %v", cs.WNumber)
 		}
 
-		opts = append(opts, writeconcern.W(cs.WNumber))
+		wc.W = cs.WNumber
 	case cs.WString != "":
-		opts = append(opts, writeconcern.WTagSet(cs.WString))
+		wc.W = cs.WString
 	default:
-		opts = append(opts, writeconcern.WMajority())
+		wc.W = writeconcern.WCMajority
 	}
 
-	opts = append(opts, writeconcern.J(cs.J))
-	opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+	if cs.J {
+		wc.Journal = &cs.J
+	}
 
-	return writeconcern.New(opts...), nil
+	// TODO WTimeout?
+	// opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+
+	return wc, nil
 }
 
 // constructWCFromString takes in a write concern and attempts to
@@ -83,7 +87,7 @@ func constructWCFromString(writeConcern string) (*writeconcern.WriteConcern, err
 
 	// Default case
 	if writeConcern == "" {
-		return writeconcern.New(writeconcern.WMajority()), nil
+		return writeconcern.Majority(), nil
 	}
 
 	// Try to unmarshal as JSON document
@@ -102,46 +106,49 @@ func constructWCFromString(writeConcern string) (*writeconcern.WriteConcern, err
 		return nil, err
 	}
 
-	return writeconcern.New(wOpt), err
+	return &writeconcern.WriteConcern{W: wOpt}, err
 }
 
 // parseJSONWriteConcern converts a JSON map representing a write concern object into a WriteConcern.
 func parseJSONWriteConcern(
 	jsonWriteConcern map[string]interface{},
 ) (*writeconcern.WriteConcern, error) {
-	var opts []writeconcern.Option
+	wc := new(writeconcern.WriteConcern)
 
 	// Construct new options from 'w', if it exists; otherwise default to 'majority'
 	if wVal, ok := jsonWriteConcern[w]; ok {
-		opt, err := parseWField(wVal)
+		rawW, err := parseWField(wVal)
 		if err != nil {
 			return nil, err
 		}
 
-		opts = append(opts, opt)
+		wc.W = rawW
 	} else {
-		opts = append(opts, writeconcern.WMajority())
+		wc.W = writeconcern.WCMajority
 	}
 
 	// Journal option
 	if jVal, ok := jsonWriteConcern[j]; ok && util.IsTruthy(jVal) {
-		opts = append(opts, writeconcern.J(true))
+		wc.Journal = lo.ToPtr(true)
 	}
 
+	// TODO WTimeout
 	// Wtimeout option
-	if wtimeout, ok := jsonWriteConcern[wTimeout]; ok {
-		timeoutVal, err := util.ToInt(wtimeout)
-		if err != nil {
-			return nil, fmt.Errorf("invalid '%v' argument: %v", wTimeout, wtimeout)
+	/*
+		if wtimeout, ok := jsonWriteConcern[wTimeout]; ok {
+			timeoutVal, err := util.ToInt(wtimeout)
+			if err != nil {
+				return nil, fmt.Errorf("invalid '%v' argument: %v", wTimeout, wtimeout)
+			}
+			// Previous implementation assumed passed in string was milliseconds
+			opts = append(opts, writeconcern.WTimeout(time.Duration(timeoutVal)*time.Millisecond))
 		}
-		// Previous implementation assumed passed in string was milliseconds
-		opts = append(opts, writeconcern.WTimeout(time.Duration(timeoutVal)*time.Millisecond))
-	}
+	*/
 
-	return writeconcern.New(opts...), nil
+	return wc, nil
 }
 
-func parseWField(wValue interface{}) (writeconcern.Option, error) {
+func parseWField(wValue interface{}) (any, error) {
 	// Try parsing as int
 	if wNumber, err := util.ToInt(wValue); err == nil {
 		return parseModeNumber(wNumber)
@@ -156,19 +163,19 @@ func parseWField(wValue interface{}) (writeconcern.Option, error) {
 }
 
 // Given an integer, returns a write concern object or error.
-func parseModeNumber(wNumber int) (writeconcern.Option, error) {
+func parseModeNumber(wNumber int) (any, error) {
 	if wNumber < 0 {
 		return nil, fmt.Errorf("invalid 'w' argument: %v", wNumber)
 	}
 
-	return writeconcern.W(wNumber), nil
+	return wNumber, nil
 }
 
 // Given a string, returns a write concern object or error.
-func parseModeString(wString string) (writeconcern.Option, error) {
+func parseModeString(wString string) (any, error) {
 	// Default case
 	if wString == "" {
-		return writeconcern.WMajority(), nil
+		return writeconcern.WCMajority, nil
 	}
 
 	// Try parsing as number before treating as just a string
@@ -176,5 +183,5 @@ func parseModeString(wString string) (writeconcern.Option, error) {
 		return parseModeNumber(wNumber)
 	}
 
-	return writeconcern.WTagSet(wString), nil
+	return wString, nil
 }
