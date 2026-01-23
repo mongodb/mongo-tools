@@ -68,8 +68,11 @@ func GetOpTimeFromRawOplogEntry(rawOplogEntry bson.Raw) (OpTime, error) {
 	}
 
 	// Look up the term and (if it exists) assign it to the opTime.
+	// Skip this if the value exists but is nil. (This is important because a
+	// nil Term serializes as BSON null, so if we want to parse a doc that
+	// started out as db.Oplog, we need the null check.)
 	rawTerm, err := rawOplogEntry.LookupErr("t")
-	if err == nil {
+	if err == nil && rawTerm.Type != bson.TypeNull {
 		term, ok := rawTerm.Int64OK()
 		if !ok {
 			return OpTime{}, fmt.Errorf("raw oplog entry `t` field was not a BSON int64")
