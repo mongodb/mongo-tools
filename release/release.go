@@ -55,6 +55,10 @@ var staticFiles = []string{
 	"THIRD-PARTY-NOTICES",
 }
 
+const (
+	uploadBucket = "cdn-origin-mongo-tools"
+)
+
 func main() {
 	// don't prefix log messages with anything
 	log.SetFlags(0)
@@ -837,6 +841,23 @@ func downloadFile(url, dst string) {
 	check(err, "write release file from http body")
 }
 
+func downloadFileBuffer(url string) []byte {
+	resp, err := http.Get(url)
+	check(err, "download release file")
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 || resp.StatusCode < 200 {
+		body := strings.Builder{}
+		_, _ = io.Copy(&body, resp.Body)
+		log.Panicf("Download %#q: %s %s", url, resp.Status, body.String())
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	check(err, "read release file from http body")
+
+	return b
+}
+
 func computeMD5(filename string) string {
 	content, err := os.ReadFile(filename)
 	check(err, "reading file during md5 summing")
@@ -1089,8 +1110,7 @@ func uploadReleaseJSON(v version.Version) {
 	}
 
 	// Download the current full.json
-	buff, err := awsClient.DownloadFile("downloads.mongodb.org", "tools/db/full.json")
-	check(err, "download full.json")
+	buff := downloadFileBuffer("https://downloads.mongodb.org/tools/db/full.json")
 
 	var fullFeed download.JSONFeed
 
@@ -1123,10 +1143,10 @@ func uploadFeedFile(filename string, feed *download.JSONFeed, awsClient *aws.AWS
 	check(err, "encode json feed")
 
 	log.Printf(
-		"uploading download feed to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
+		"uploading download feed to https://s3.amazonaws.com/cdn-origin-mongo-tools/tools/db/%s\n",
 		filename,
 	)
-	err = awsClient.UploadBytes("downloads.mongodb.org", "tools/db", filename, &feedBuffer)
+	err = awsClient.UploadBytes(uploadBucket, "tools/db", filename, &feedBuffer)
 	check(err, "upload json feed")
 }
 
@@ -1207,16 +1227,16 @@ func uploadRelease(v version.Version) {
 				check(err, "copying %s to %s", unstableFile, latestStableFile)
 
 				log.Printf(
-					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
+					"    uploading to https://s3.amazonaws.com/cdn-origin-mongo-tools/tools/db/%s\n",
 					stableFile,
 				)
-				err = awsClient.UploadFile("downloads.mongodb.org", "tools/db", stableFile)
+				err = awsClient.UploadFile(uploadBucket, "tools/db", stableFile)
 				check(err, "uploading %q file to S3", stableFile)
 				log.Printf(
-					"    uploading to https://s3.amazonaws.com/downloads.mongodb.org/tools/db/%s\n",
+					"    uploading to https://s3.amazonaws.com/cdn-origin-mongo-tools/tools/db/%s\n",
 					latestStableFile,
 				)
-				err = awsClient.UploadFile("downloads.mongodb.org", "tools/db", latestStableFile)
+				err = awsClient.UploadFile(uploadBucket, "tools/db", latestStableFile)
 				check(err, "uploading %q file to S3", latestStableFile)
 			}
 		}
