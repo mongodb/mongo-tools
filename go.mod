@@ -11,7 +11,7 @@ require (
 	github.com/nsf/termbox-go v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	// Later versions remove a package the tools use, so we're sticking with
@@ -35,7 +35,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.81.0
 	github.com/ccoveille/go-safecast/v2 v2.0.0
 	github.com/google/uuid v1.6.0
-	github.com/samber/lo v1.49.1
+	github.com/mongodb-labs/migration-tools v0.0.0-20260123134423-2bee4253e7d8
+	github.com/samber/lo v1.52.0
+	go.mongodb.org/mongo-driver/v2 v2.4.0
 	golang.org/x/sync v0.18.0
 )
 
@@ -61,7 +63,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jtolds/gls v4.20.0+incompatible // indirect

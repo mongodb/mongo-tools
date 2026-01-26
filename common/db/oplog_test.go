@@ -9,17 +9,37 @@ package db
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestGetOpTimeFromRawOplogEntry_RoundTripEmpty(t *testing.T) {
-	raw, err := bson.Marshal(Oplog{})
-	require.NoError(t, err)
+func TestGetOpTimeFromRawOplogEntry_RoundTrip(t *testing.T) {
+	ops := []Oplog{
+		{},
+		{
+			Timestamp: primitive.Timestamp{1, 2},
+		},
+		{
+			Timestamp: primitive.Timestamp{1, 2},
+			Term:      lo.ToPtr(int64(234)),
+		},
+		{
+			Timestamp: primitive.Timestamp{1, 2},
+			Term:      lo.ToPtr(int64(234)),
+			Hash:      lo.ToPtr(int64(345)),
+		},
+	}
 
-	optime, err := GetOpTimeFromRawOplogEntry(raw)
-	require.NoError(t, err)
+	for _, op := range ops {
+		raw, err := bson.Marshal(op)
+		require.NoError(t, err)
 
-	assert.Equal(t, OpTime{}, optime)
+		optime, err := GetOpTimeFromRawOplogEntry(raw)
+		require.NoError(t, err)
+
+		assert.Equal(t, GetOpTimeFromOplogEntry(&op), optime)
+	}
 }

@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mongodb-labs/migration-tools/bsontools"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopts "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	bson2 "go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // ApplyOpsResponse represents the response from an 'applyOps' command.
@@ -50,44 +53,70 @@ type OplogTailTime struct {
 // If the Timestamp can't be found or is an invalid format, it throws an error.
 // If the Term or Hash fields can't be found, it returns the OpTime without them.
 func GetOpTimeFromRawOplogEntry(rawOplogEntry bson.Raw) (OpTime, error) {
-	// Look up the timestamp and store it in an opTime.
-	rawTS, err := rawOplogEntry.LookupErr("ts")
-	if err != nil {
+	// NB: This is hot code in downstream tooling, so this is optimized.
+
+	var opTime OpTime
+	var foundTs bool
+
+	for elem, err := range bsontools.RawElements(bson2.Raw(rawOplogEntry)) {
+		if err != nil {
+			return OpTime{}, fmt.Errorf("iterating raw oplog entry: %w", err)
+		}
+
+		// Getting the key as a []byte avoids allocation.
+		keyBytes, err := bsoncore.Element(elem).KeyBytesErr()
+		if err != nil {
+			return OpTime{}, fmt.Errorf("reading raw oplog entry field name: %w", err)
+		}
+
+		switch string(keyBytes) {
+		case "ts":
+			rv, err := elem.ValueErr()
+			if err != nil {
+				return OpTime{}, fmt.Errorf("raw oplog entry `ts`: %w", err)
+			}
+
+			foundTs = true
+
+			ts, err := bsontools.RawValueTo[bson2.Timestamp](rv)
+			if err != nil {
+				return OpTime{}, fmt.Errorf("raw oplog entry `ts`: %w", err)
+			}
+
+			opTime.Timestamp = primitive.Timestamp{T: ts.T, I: ts.I}
+		case "t":
+			rv, err := elem.ValueErr()
+			if err != nil {
+				return OpTime{}, fmt.Errorf("raw oplog entry `ts`: %w", err)
+			}
+
+			if elem[0] != byte(bson.TypeNull) {
+				t, err := bsontools.RawValueTo[int64](rv)
+
+				if err != nil {
+					return OpTime{}, fmt.Errorf("raw oplog entry `t`: %w", err)
+				}
+
+				opTime.Term = &t
+			}
+		case "h":
+			rv, err := elem.ValueErr()
+			if err != nil {
+				return OpTime{}, fmt.Errorf("raw oplog entry `ts`: %w", err)
+			}
+
+			h, err := bsontools.RawValueTo[int64](rv)
+
+			if err != nil {
+				return OpTime{}, fmt.Errorf("raw oplog entry `h`: %w", err)
+			}
+
+			opTime.Hash = &h
+		}
+	}
+
+	if !foundTs {
 		return OpTime{}, fmt.Errorf("raw oplog entry had no `ts` field")
-	}
-
-	t, i, ok := rawTS.TimestampOK()
-	if !ok {
-		return OpTime{}, fmt.Errorf("raw oplog entry `ts` field was not a BSON timestamp")
-	}
-
-	opTime := OpTime{
-		Timestamp: primitive.Timestamp{T: t, I: i},
-		Term:      nil,
-		Hash:      nil,
-	}
-
-	// Look up the term and (if it exists) assign it to the opTime.
-	// Skip this if the value exists but is nil. (This is important because a
-	// nil Term serializes as BSON null, so if we want to parse a doc that
-	// started out as db.Oplog, we need the null check.)
-	rawTerm, err := rawOplogEntry.LookupErr("t")
-	if err == nil && rawTerm.Type != bson.TypeNull {
-		term, ok := rawTerm.Int64OK()
-		if !ok {
-			return OpTime{}, fmt.Errorf("raw oplog entry `t` field was not a BSON int64")
-		}
-		opTime.Term = &term
-	}
-
-	// Look up the hash and (if it exists) assign it to the opTime.
-	rawHash, err := rawOplogEntry.LookupErr("h")
-	if err == nil {
-		hash, ok := rawHash.Int64OK()
-		if !ok {
-			return OpTime{}, fmt.Errorf("raw oplog entry `h` field  was not a BSON int64")
-		}
-		opTime.Hash = &hash
 	}
 
 	return opTime, nil

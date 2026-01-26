@@ -261,7 +261,7 @@ github.com/deckarep/golang-set/v2
 # github.com/golang-jwt/jwt/v5 v5.2.2
 ## explicit; go 1.18
 github.com/golang-jwt/jwt/v5
-# github.com/golang/snappy v0.0.4
+# github.com/golang/snappy v1.0.0
 ## explicit
 github.com/golang/snappy
 # github.com/google/go-cmp v0.6.0
@@ -314,6 +314,9 @@ github.com/mgutz/ansi
 # github.com/mitchellh/go-wordwrap v1.0.1
 ## explicit; go 1.14
 github.com/mitchellh/go-wordwrap
+# github.com/mongodb-labs/migration-tools v0.0.0-20260123134423-2bee4253e7d8
+## explicit; go 1.25.4
+github.com/mongodb-labs/migration-tools/bsontools
 # github.com/montanaflynn/stats v0.7.1
 ## explicit; go 1.13
 github.com/montanaflynn/stats
@@ -335,11 +338,12 @@ github.com/rivo/uniseg
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/samber/lo v1.49.1
+# github.com/samber/lo v1.52.0
 ## explicit; go 1.18
 github.com/samber/lo
 github.com/samber/lo/internal/constraints
-github.com/samber/lo/internal/rand
+github.com/samber/lo/internal/xrand
+github.com/samber/lo/internal/xtime
 github.com/samber/lo/mutable
 # github.com/smarty/assertions v1.15.0
 ## explicit; go 1.18
@@ -352,7 +356,7 @@ github.com/smarty/assertions/internal/oglematchers
 github.com/smartystreets/goconvey/convey
 github.com/smartystreets/goconvey/convey/gotest
 github.com/smartystreets/goconvey/convey/reporting
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
@@ -425,6 +429,12 @@ go.mongodb.org/mongo-driver/x/mongo/driver/operation
 go.mongodb.org/mongo-driver/x/mongo/driver/session
 go.mongodb.org/mongo-driver/x/mongo/driver/topology
 go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
+# go.mongodb.org/mongo-driver/v2 v2.4.0
+## explicit; go 1.19
+go.mongodb.org/mongo-driver/v2/bson
+go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil
+go.mongodb.org/mongo-driver/v2/internal/decimal128
+go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore
 # golang.org/x/crypto v0.45.0
 ## explicit; go 1.24.0
 golang.org/x/crypto/ocsp
