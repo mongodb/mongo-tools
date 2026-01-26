@@ -841,21 +841,26 @@ func downloadFile(url, dst string) {
 	check(err, "write release file from http body")
 }
 
-func downloadFileBuffer(url string) []byte {
+func downloadFileBuffer(url string) ([]byte, error) {
 	resp, err := http.Get(url)
-	check(err, "download release file")
+	if err != nil {
+		return nil, fmt.Errorf("downloading release file %#q: %w", url, err)
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode > 299 || resp.StatusCode < 200 {
 		body := strings.Builder{}
 		_, _ = io.Copy(&body, resp.Body)
-		log.Panicf("Download %#q: %s %s", url, resp.Status, body.String())
+		return nil, fmt.Errorf("download %#q: %s %s", url, resp.Status, body.String())
 	}
 
 	b, err := io.ReadAll(resp.Body)
-	check(err, "read release file from http body")
+	if err != nil {
+		return nil, fmt.Errorf("reading %#q response: %w", url, err)
+	}
 
-	return b
+	return b, nil
 }
 
 func computeMD5(filename string) string {
@@ -1110,7 +1115,8 @@ func uploadReleaseJSON(v version.Version) {
 	}
 
 	// Download the current full.json
-	buff := downloadFileBuffer("https://downloads.mongodb.org/tools/db/full.json")
+	buff, err := downloadFileBuffer("https://downloads.mongodb.org/tools/db/full.json")
+	check(err, "download full.json")
 
 	var fullFeed download.JSONFeed
 
