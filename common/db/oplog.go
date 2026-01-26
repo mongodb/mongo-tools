@@ -69,6 +69,7 @@ func GetOpTimeFromRawOplogEntry(rawOplogEntry bson.Raw) (OpTime, error) {
 			return OpTime{}, fmt.Errorf("reading raw oplog entry field name: %w", err)
 		}
 
+		// NB: Go optimizes the string conversion internally.
 		switch string(keyBytes) {
 		case "ts":
 			rv, err := elem.ValueErr()
