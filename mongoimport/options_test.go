@@ -40,28 +40,28 @@ func TestWriteConcernWithURIParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With an IngestOptions and ToolsOptions", t, func() {
 		Convey("Parsing with no value should set a majority write concern",
-			validateParseOptions([]string{}, "", writeconcern.New(writeconcern.WMajority())))
+			validateParseOptions([]string{}, "", writeconcern.Majority()))
 
 		Convey("Parsing with no writeconcern in URI should set a majority write concern",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test",
-			}, "", writeconcern.New(writeconcern.WMajority())))
+			}, "", writeconcern.Majority()))
 
 		Convey("Parsing with writeconcern only in URI should set it correctly",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
-			}, "", writeconcern.New(writeconcern.W(2))))
+			}, "", &writeconcern.WriteConcern{W: 2}))
 
 		Convey("Parsing with writeconcern only in command line should set it correctly",
 			validateParseOptions([]string{
 				"--writeConcern", "{w: 2}",
-			}, "{w: 2}", writeconcern.New(writeconcern.W(2))))
+			}, "{w: 2}", &writeconcern.WriteConcern{W: 2}))
 
 		Convey("Parsing with writeconcern in URI and command line should set to command line",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
 				"--writeConcern", "{w: 3}",
-			}, "{w: 3}", writeconcern.New(writeconcern.W(3))))
+			}, "{w: 3}", &writeconcern.WriteConcern{W: 3}))
 	})
 }
 
