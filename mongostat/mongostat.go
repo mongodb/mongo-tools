@@ -295,7 +295,7 @@ func (node *NodeMonitor) Poll(
 		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
-	tempBson, err := result.DecodeBytes()
+	tempBson, err := result.Raw()
 	if err != nil {
 		log.Logvf(log.Always, "Encountered error decoding serverStatus: %v\n", err)
 		return nil, fmt.Errorf("Error decoding serverStatus: %v\n", err)
