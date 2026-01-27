@@ -14,21 +14,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestMaxInt(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	Convey("When finding the maximum of two ints", t, func() {
-
-		Convey("the larger int should be returned", func() {
-
-			So(MaxInt(1, 2), ShouldEqual, 2)
-			So(MaxInt(2, 1), ShouldEqual, 2)
-
-		})
-
-	})
-}
-
 func TestNumberConverter(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 

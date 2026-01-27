@@ -87,25 +87,6 @@ func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) er
 	return nil
 }
 
-// DownloadFile downloads filename from bucket and.
-func (a *AWS) DownloadFile(bucket, filename string) ([]byte, error) {
-	downloader := manager.NewDownloader(a.client)
-
-	input := &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(filename),
-	}
-
-	buff := &manager.WriteAtBuffer{}
-
-	_, err := downloader.Download(context.TODO(), buff, input)
-	if err != nil {
-		return nil, err
-	}
-
-	return buff.Bytes(), nil
-}
-
 // GenerateFullReleaseFeedFromObjects will download all release artifacts from
 // the tools s3 bucket, calculate their md5, sha1, and sha256 digests, and create
 // a download.JSONFeed object representing every artifact for every tools version.

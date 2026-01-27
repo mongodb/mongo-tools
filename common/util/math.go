@@ -11,14 +11,6 @@ import (
 	"reflect"
 )
 
-// Return the max of two ints.
-func MaxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // Numeric Conversion Tools
 
 type converterFunc func(interface{}) (interface{}, error)

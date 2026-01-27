@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -43,24 +42,4 @@ func (md MarshalD) MarshalJSON() ([]byte, error) {
 	}
 	buff.WriteString("}")
 	return buff.Bytes(), nil
-}
-
-// MakeSortString takes a bson.D object and converts it to a slice of strings
-// that can be used as the input args to mgo's .Sort(...) function.
-// For example:
-// {a:1, b:-1} -> ["+a", "-b"].
-func MakeSortString(sortObj bson.D) ([]string, error) {
-	sortStrs := make([]string, 0, len(sortObj))
-	for _, docElem := range sortObj {
-		valueAsNumber, err := util.ToFloat64(docElem.Value)
-		if err != nil {
-			return nil, err
-		}
-		prefix := "+"
-		if valueAsNumber < 0 {
-			prefix = "-"
-		}
-		sortStrs = append(sortStrs, fmt.Sprintf("%v%v", prefix, docElem.Key))
-	}
-	return sortStrs, nil
 }
