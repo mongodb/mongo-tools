@@ -22,7 +22,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -111,11 +110,10 @@ func vectoredInsert(ctx context.Context) error {
 		return err
 	}
 
-	f := false
 	if sessionErr := client.UseSessionWithOptions(
 		ctx,
-		&options.SessionOptions{CausalConsistency: &f},
-		func(sessionContext mongo.SessionContext) error {
+		options.Session().SetCausalConsistency(false),
+		func(sessionContext context.Context) error {
 			docs := []interface{}{
 				bson.D{{"_id", 100}, {"a", 1}},
 				bson.D{{"_id", 200}, {"a", 2}},
