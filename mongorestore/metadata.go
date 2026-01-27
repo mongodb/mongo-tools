@@ -539,18 +539,21 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		bson.E{Key: "db", Value: userTargetDB})
 
 	if restore.ToolOptions.WriteConcern != nil {
-		_, wcBson, err := restore.ToolOptions.WriteConcern.MarshalBSONValue()
-		if err != nil {
-			return fmt.Errorf("error parsing write concern: %v", err)
-		}
+		// TODO writeconcern?
+		/*
+			_, wcBson, err := restore.ToolOptions.WriteConcern.MarshalBSONValue()
+			if err != nil {
+				return fmt.Errorf("error parsing write concern: %v", err)
+			}
 
-		writeConcern := bson.M{}
-		err = bson.Unmarshal(wcBson, &writeConcern)
-		if err != nil {
-			return fmt.Errorf("error parsing write concern: %v", err)
-		}
+			writeConcern := bson.M{}
+			err = bson.Unmarshal(wcBson, &writeConcern)
+			if err != nil {
+				return fmt.Errorf("error parsing write concern: %v", err)
+			}
+		*/
 
-		command = append(command, bson.E{Key: "writeConcern", Value: writeConcern})
+		command = append(command, bson.E{Key: "writeConcern", Value: restore.ToolOptions.WriteConcern})
 	}
 
 	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
