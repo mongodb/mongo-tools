@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -53,8 +54,10 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 
 	var docs []bson.M
 	for cursor.Next(context.Background()) {
+		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(cursor.Current)))
+		decoder.DefaultDocumentM()
 		var doc bson.M
-		if err = cursor.Decode(&doc); err != nil {
+		if err := decoder.Decode(&doc); err != nil {
 			return err
 		}
 

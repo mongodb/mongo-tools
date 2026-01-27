@@ -3155,7 +3155,9 @@ func assertClusteredIndex(t *testing.T, testDB *mongo.Database, indexName string
 	// two Indexes should be created in addition to the _id, foo and foo_2
 	for c.Next(context.Background()) {
 		var res collectionRes
-		err = c.Decode(&res)
+		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(c.Current)))
+		decoder.DefaultDocumentM()
+		err = decoder.Decode(&res)
 		require.NoError(err, "can decode collection result")
 		collections = append(collections, res)
 	}

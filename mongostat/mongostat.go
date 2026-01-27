@@ -8,6 +8,7 @@
 package mongostat
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -307,7 +308,9 @@ func (node *NodeMonitor) Poll(
 	}
 	// The flattened version is required by some lookup functions
 	statMap := make(map[string]interface{})
-	err = result.Decode(&statMap)
+	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(tempBson)))
+	decoder.DefaultDocumentMap()
+	err = decoder.Decode(&statMap)
 	if err != nil {
 		return nil, fmt.Errorf("Error flattening serverStatus: %v\n", err)
 	}
