@@ -515,7 +515,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		// #nosec G402 -- We intentionally allow known-insecure TLS options when certain CLI flags
 		// are set. These are `--tlsInsecure`, `--sslAllowInvalidCertificates`, and
 		// `--sslAllowInvalidHostnames`. When these are not set, we use secure TLS settings.
-		tlsConfig := &tls.Config{}
+		tlsConfig := &tls.Config{
+			MinVersion: tls.VersionTLS12, // for compat back to MongoDB 4.2
+		}
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
 			tlsConfig.InsecureSkipVerify = true
 		}
