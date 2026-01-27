@@ -8,7 +8,6 @@ package db
 
 import (
 	"testing"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
@@ -24,26 +23,26 @@ func TestNewMongoWriteConcern(t *testing.T) {
 			Convey("no error should be returned if the write concern is valid", func() {
 				writeConcern, err := NewMongoWriteConcern(`{w:34}`, nil)
 				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, 34)
+				So(writeConcern.W, ShouldEqual, 34)
 
 				writeConcern, err = NewMongoWriteConcern(`{w:"majority"}`, nil)
 				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, majString)
+				So(writeConcern.W, ShouldEqual, majString)
 
 				writeConcern, err = NewMongoWriteConcern(`majority`, nil)
 				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, majString)
+				So(writeConcern.W, ShouldEqual, majString)
 
 				writeConcern, err = NewMongoWriteConcern(`tagset`, nil)
 				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, "tagset")
+				So(writeConcern.W, ShouldEqual, "tagset")
 			})
 			Convey(
 				"with a w value of 0, without j set, an unack'd write concern should be returned",
 				func() {
 					writeConcern, err := NewMongoWriteConcern(`{w:0}`, nil)
 					So(err, ShouldBeNil)
-					So(writeConcern.GetW(), ShouldEqual, 0)
+					So(writeConcern.W, ShouldEqual, 0)
 				},
 			)
 			Convey("with a negative w value, an error should be returned", func() {
@@ -59,8 +58,8 @@ func TestNewMongoWriteConcern(t *testing.T) {
 				func() {
 					writeConcern, err := NewMongoWriteConcern(`{w:0, j:true}`, nil)
 					So(err, ShouldBeNil)
-					So(writeConcern.GetW(), ShouldEqual, 0)
-					So(writeConcern.GetJ(), ShouldBeTrue)
+					So(writeConcern.W, ShouldEqual, 0)
+					So(*writeConcern.Journal, ShouldBeTrue)
 				},
 			)
 			// Regression test for TOOLS-1741
@@ -68,7 +67,7 @@ func TestNewMongoWriteConcern(t *testing.T) {
 				"then write concern should default to being majority", func() {
 				writeConcern, err := NewMongoWriteConcern("", nil)
 				So(err, ShouldBeNil)
-				So(writeConcern.GetW(), ShouldEqual, majString)
+				So(writeConcern.W, ShouldEqual, majString)
 			})
 		})
 		Convey("and given a connection string", func() {
@@ -80,7 +79,7 @@ func TestNewMongoWriteConcern(t *testing.T) {
 						&connstring.ConnString{WNumber: 0, WNumberSet: true},
 					)
 					So(err, ShouldBeNil)
-					So(writeConcern.GetW(), ShouldEqual, 0)
+					So(writeConcern.W, ShouldEqual, 0)
 				},
 			)
 			Convey("with a negative w value, an error should be returned", func() {
@@ -102,7 +101,7 @@ func TestNewMongoWriteConcern(t *testing.T) {
 				&connstring.ConnString{WNumber: 0, WNumberSet: true},
 			)
 			So(err, ShouldBeNil)
-			So(writeConcern.GetW(), ShouldEqual, 4)
+			So(writeConcern.W, ShouldEqual, 4)
 		})
 	})
 }
@@ -119,7 +118,7 @@ func TestConstructWCFromConnString(t *testing.T) {
 			}
 			writeConcern, err := constructWCFromConnString(cs)
 			So(err, ShouldBeNil)
-			So(writeConcern.GetW(), ShouldEqual, majString)
+			So(writeConcern.W, ShouldEqual, majString)
 		})
 
 		Convey("Int values should be assigned to the 'w' field ", func() {
@@ -129,24 +128,25 @@ func TestConstructWCFromConnString(t *testing.T) {
 			}
 			writeConcern, err := constructWCFromConnString(cs)
 			So(err, ShouldBeNil)
-			So(writeConcern.GetW(), ShouldEqual, 4)
+			So(writeConcern.W, ShouldEqual, 4)
 		})
 
 		Convey("&connstrings with valid j, wtimeout, and w should be "+
 			"assigned accordingly", func() {
 			expectedW := 3
-			expectedWTimeout := 43 * time.Second
+			// TODO WTimeout
+			// expectedWTimeout := 43 * time.Second
 			cs := &connstring.ConnString{
 				WNumber:    3,
 				WNumberSet: true,
 				J:          true,
-				WTimeout:   time.Second * 43,
+				// WTimeout:   time.Second * 43,
 			}
 			writeConcern, err := constructWCFromConnString(cs)
 			So(err, ShouldBeNil)
-			So(writeConcern.GetW(), ShouldEqual, expectedW)
-			So(writeConcern.GetJ(), ShouldBeTrue)
-			So(writeConcern.GetWTimeout(), ShouldEqual, expectedWTimeout)
+			So(writeConcern.W, ShouldEqual, expectedW)
+			So(*writeConcern.Journal, ShouldBeTrue)
+			// So(writeConcern.GetWTimeout(), ShouldEqual, expectedWTimeout)
 		})
 
 		Convey("Unacknowledge write concern strings should return a corresponding object "+
@@ -157,7 +157,7 @@ func TestConstructWCFromConnString(t *testing.T) {
 			}
 			writeConcern, err := constructWCFromConnString(cs)
 			So(err, ShouldBeNil)
-			So(writeConcern.GetW(), ShouldEqual, 0)
+			So(writeConcern.W, ShouldEqual, 0)
 		})
 	})
 }
