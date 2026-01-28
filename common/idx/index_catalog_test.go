@@ -82,16 +82,16 @@ func newTestIndexCatalog(t *testing.T) *IndexCatalog {
 
 	i := NewIndexCatalog()
 
-	fooBarIdDoc, err := NewIndexDocumentFromD(bson.D{{"key", bson.D{{"_id", 1}}}})
+	fooBarIdDoc, err := newIndexDocumentFromD(bson.D{{"key", bson.D{{"_id", 1}}}})
 	require.NoError(err, "no error creating index document for foo.bar._id index")
 
-	fooBarField1Doc, err := NewIndexDocumentFromD(bson.D{{"key", bson.D{{"field1", 1}}}})
+	fooBarField1Doc, err := newIndexDocumentFromD(bson.D{{"key", bson.D{{"field1", 1}}}})
 	require.NoError(err, "no error creating index document for foo.bar.field1 index")
 
-	fooBazIdDoc, err := NewIndexDocumentFromD(bson.D{{"key", bson.D{{"_id", 1}}}})
+	fooBazIdDoc, err := newIndexDocumentFromD(bson.D{{"key", bson.D{{"_id", 1}}}})
 	require.NoError(err, "no error creating index document for foo.baz._id index")
 
-	fooBazField2Doc, err := NewIndexDocumentFromD(bson.D{{"key", bson.D{{"field2", 1}}}})
+	fooBazField2Doc, err := newIndexDocumentFromD(bson.D{{"key", bson.D{{"field2", 1}}}})
 	require.NoError(err, "no error creating index document for foo.baz.field2 index")
 
 	i.addIndex("foo", "bar", "_id_", fooBarIdDoc)

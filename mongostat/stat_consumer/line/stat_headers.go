@@ -138,10 +138,6 @@ func DefaultKeyMap() map[string]string {
 	return defaultKeyMap(0)
 }
 
-func LongKeyMap() map[string]string {
-	return defaultKeyMap(1)
-}
-
 func DeprecatedKeyMap() map[string]string {
 	return defaultKeyMap(2)
 }

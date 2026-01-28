@@ -9,7 +9,6 @@ package db
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -102,18 +101,4 @@ func GetCollectionInfo(coll *mongo.Collection) (*CollectionInfo, error) {
 		return nil, err
 	}
 	return foundCollInfo, nil
-}
-
-func StripDBFromNamespace(namespace string, dbName string) (string, error) {
-	namespacePrefix := dbName + "."
-	// if the collection info came from querying system.indexes (2.6 or earlier) then the
-	// "name" we get includes the db name as well, so we must remove it
-	if strings.HasPrefix(namespace, namespacePrefix) {
-		return namespace[len(namespacePrefix):], nil
-	}
-	return "", fmt.Errorf(
-		"namespace '%v' format is invalid - expected to start with '%v'",
-		namespace,
-		namespacePrefix,
-	)
 }

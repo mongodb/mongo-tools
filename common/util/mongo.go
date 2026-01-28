@@ -110,20 +110,6 @@ func SplitNamespace(namespace string) (string, string) {
 	return database, collection
 }
 
-// SplitAndValidateNamespace splits a namespace path into a database and collection,
-// returned in that order. An error is returned if the namespace is invalid.
-func SplitAndValidateNamespace(namespace string) (string, string, error) {
-
-	// first, run validation checks
-	if err := ValidateFullNamespace(namespace); err != nil {
-		return "", "", fmt.Errorf("namespace '%v' is not valid: %v",
-			namespace, err)
-	}
-
-	database, collection := SplitNamespace(namespace)
-	return database, collection, nil
-}
-
 // ValidateFullNamespace validates a full mongodb namespace (database +
 // collection), returning an error if it is invalid.
 func ValidateFullNamespace(namespace string) error {

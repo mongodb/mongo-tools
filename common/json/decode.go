@@ -86,20 +86,6 @@ func Unmarshal(data []byte, v interface{}) error {
 	return d.unmarshal(v)
 }
 
-func UnmarshalMap(data []byte) (map[string]interface{}, error) {
-	// Check for well-formedness.
-	// Avoids filling out half a data structure
-	// before discovering a JSON syntax error.
-	var d decodeState
-	err := checkValid(data, &d.scan)
-	if err != nil {
-		return nil, err
-	}
-
-	d.init(data)
-	return d.unmarshalMap()
-}
-
 func UnmarshalBsonD(data []byte) (bson.D, error) {
 	// Check for well-formedness.
 	// Avoids filling out half a data structure

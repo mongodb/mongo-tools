@@ -464,15 +464,6 @@ func Bson2Float64(data interface{}) (float64, bool) {
 	return 0, false
 }
 
-// MtoD converts a bson.M to a bson.D.
-func MtoD(m bson.M) bson.D {
-	doc := make(bson.D, 0, len(m))
-	for key, value := range m {
-		doc = append(doc, bson.E{key, value})
-	}
-	return doc
-}
-
 // MarshalExtJSONReversible is a wrapper around bson.MarshalExtJSON function,
 // but would return an error if it cannot be reversed by bson.UnmarshalExtJSON.
 //
