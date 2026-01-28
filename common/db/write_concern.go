@@ -9,6 +9,7 @@ package db
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -75,8 +76,8 @@ func constructWCFromConnString(cs *connstring.ConnString) (*wcwrapper.WriteConce
 		wc.Journal = &cs.J
 	}
 
-	// TODO WTimeout?
-	// opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+	// We cannot set WTimeout from the connstring, because the driver v2 connstring package won't
+	// parse them.
 
 	return wc, nil
 }
@@ -133,18 +134,15 @@ func parseJSONWriteConcern(
 		wc.Journal = lo.ToPtr(true)
 	}
 
-	// TODO WTimeout
 	// Wtimeout option
-	/*
-		if wtimeout, ok := jsonWriteConcern[wTimeout]; ok {
-			timeoutVal, err := util.ToInt(wtimeout)
-			if err != nil {
-				return nil, fmt.Errorf("invalid '%v' argument: %v", wTimeout, wtimeout)
-			}
-			// Previous implementation assumed passed in string was milliseconds
-			opts = append(opts, writeconcern.WTimeout(time.Duration(timeoutVal)*time.Millisecond))
+	if wtimeout, ok := jsonWriteConcern[wTimeout]; ok {
+		timeoutVal, err := util.ToInt(wtimeout)
+		if err != nil {
+			return nil, fmt.Errorf("invalid '%v' argument: %v", wTimeout, wtimeout)
 		}
-	*/
+		// Previous implementation assumed passed in string was milliseconds
+		wc.WTimeout = time.Duration(timeoutVal) * time.Millisecond
+	}
 
 	return wc, nil
 }

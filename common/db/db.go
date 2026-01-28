@@ -432,7 +432,6 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetRetryReads(cs.RetryReads)
 	}
 
-	// TODO cs.WTimeoutSet
 	if cs.JSet || cs.WString != "" || cs.WNumberSet {
 		wc := new(writeconcern.WriteConcern)
 
@@ -446,10 +445,8 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			wc.Journal = &cs.J
 		}
 
-		// TODO WTimeout
-		// if cs.WTimeoutSet {
-		// 	opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
-		// }
+		// Note that we don't/can't deal with WTimeout here, because the v2 connstring package won't
+		// parse it, nor does the v2 writeconcern struct support it. We deal with this elsewhere.
 
 		clientopt.SetWriteConcern(wc)
 	}
