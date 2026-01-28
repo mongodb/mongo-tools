@@ -344,7 +344,13 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetAppName(opts.AppName)
 	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
-		xoptions.SetInternalClientOptions(clientopt, "authenticateToAnything", true)
+		err := xoptions.SetInternalClientOptions(clientopt, "authenticateToAnything", true)
+
+		// This can only error if the call is malformed, which means we should never hit this in
+		// production, so it's ok to panic here.
+		if err != nil {
+			panic("SetInternalClientOptions failed: " + err.Error())
+		}
 	}
 
 	if opts.ReadPreference != nil {

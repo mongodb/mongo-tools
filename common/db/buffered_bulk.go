@@ -47,9 +47,15 @@ func newBufferedBulkInserter(
 
 	if MongoCanAcceptLiteralZeroTimestamp(serverVersion) {
 		zeroTimestampOk = true
-		xoptions.SetInternalBulkWriteOptions(bulkOpts, "addCommandFields", bson.D{
+		err := xoptions.SetInternalBulkWriteOptions(bulkOpts, "addCommandFields", bson.D{
 			{"bypassEmptyTsReplacement", true},
 		})
+
+		// This can only error if the call is malformed, which means we should never hit this in
+		// production, so it's ok to panic here.
+		if err != nil {
+			panic("SetInternalBulkWriteOptions failed: " + err.Error())
+		}
 	}
 
 	bb := &BufferedBulkInserter{
