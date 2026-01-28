@@ -357,7 +357,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetReadPreference(opts.ReadPreference)
 	}
 	if opts.WriteConcern != nil {
-		clientopt.SetWriteConcern(opts.WriteConcern)
+		clientopt.SetWriteConcern(opts.WriteConcern.WriteConcern)
 	} else {
 		// If no write concern was specified, default to majority
 		clientopt.SetWriteConcern(writeconcern.Majority())

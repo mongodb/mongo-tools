@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
@@ -32,7 +33,7 @@ const (
 func NewMongoWriteConcern(
 	writeConcern string,
 	cs *connstring.ConnString,
-) (wc *writeconcern.WriteConcern, err error) {
+) (wc *wcwrapper.WriteConcern, err error) {
 
 	// Log whatever write concern was generated
 	defer func() {
@@ -54,8 +55,8 @@ func NewMongoWriteConcern(
 // constructWCFromConnString takes in a parsed connection string and
 // extracts values from it. If the ConnString has no write concern value, it defaults
 // to 'majority'.
-func constructWCFromConnString(cs *connstring.ConnString) (*writeconcern.WriteConcern, error) {
-	wc := new(writeconcern.WriteConcern)
+func constructWCFromConnString(cs *connstring.ConnString) (*wcwrapper.WriteConcern, error) {
+	wc := wcwrapper.New()
 
 	switch {
 	case cs.WNumberSet:
@@ -83,11 +84,11 @@ func constructWCFromConnString(cs *connstring.ConnString) (*writeconcern.WriteCo
 // constructWCFromString takes in a write concern and attempts to
 // extract values from it. It returns an error if it is unable to parse the
 // string or if a parsed write concern field value is invalid.
-func constructWCFromString(writeConcern string) (*writeconcern.WriteConcern, error) {
+func constructWCFromString(writeConcern string) (*wcwrapper.WriteConcern, error) {
 
 	// Default case
 	if writeConcern == "" {
-		return writeconcern.Majority(), nil
+		return wcwrapper.Majority(), nil
 	}
 
 	// Try to unmarshal as JSON document
@@ -106,14 +107,14 @@ func constructWCFromString(writeConcern string) (*writeconcern.WriteConcern, err
 		return nil, err
 	}
 
-	return &writeconcern.WriteConcern{W: wOpt}, err
+	return wcwrapper.Wrap(&writeconcern.WriteConcern{W: wOpt}), nil
 }
 
 // parseJSONWriteConcern converts a JSON map representing a write concern object into a WriteConcern.
 func parseJSONWriteConcern(
 	jsonWriteConcern map[string]interface{},
-) (*writeconcern.WriteConcern, error) {
-	wc := new(writeconcern.WriteConcern)
+) (*wcwrapper.WriteConcern, error) {
+	wc := wcwrapper.New()
 
 	// Construct new options from 'w', if it exists; otherwise default to 'majority'
 	if wVal, ok := jsonWriteConcern[w]; ok {
