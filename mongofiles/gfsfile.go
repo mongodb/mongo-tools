@@ -66,11 +66,11 @@ func newGfsFileFromCursor(cursor *mongo.Cursor, mf *MongoFiles) (*gfsFile, error
 }
 
 // OpenStreamForWriting opens a stream for uploading data to a GridFS file that must be closed.
-func (file *gfsFile) OpenStreamForWriting() (*mongo.GridFSUploadStream, error) {
+func (file *gfsFile) OpenStreamForWriting(ctx context.Context) (*mongo.GridFSUploadStream, error) {
 	uploadOpts := options.GridFSUpload()
 	uploadOpts.SetMetadata(file.Metadata)
 	stream, err := file.mf.bucket.OpenUploadStreamWithID(
-		context.TODO(),
+		ctx,
 		file.ID,
 		file.Name,
 		uploadOpts,
@@ -94,8 +94,8 @@ func (file *gfsFile) OpenStreamForReading() (*mongo.GridFSDownloadStream, error)
 
 // Deletes the corresponding GridFS file in the database and its chunks.
 // Note: this file must be closed if it had been written to before being deleted. Any download streams will be closed as part of this deletion.
-func (file *gfsFile) Delete() error {
-	if err := file.mf.bucket.Delete(context.TODO(), file.ID); err != nil {
+func (file *gfsFile) Delete(ctx context.Context) error {
+	if err := file.mf.bucket.Delete(ctx, file.ID); err != nil {
 		return fmt.Errorf("error while removing '%v' from GridFS: %v", file.Name, err)
 	}
 

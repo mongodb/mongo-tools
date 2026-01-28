@@ -340,16 +340,26 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 }
 
 // Delete all files with the given filename.
-func (mf *MongoFiles) deleteAll(filename string) error {
+func (mf *MongoFiles) deleteAll(baseCtx context.Context, filename string) error {
 	gridFiles, err := mf.findGFSFiles(bson.M{"filename": filename})
 	if err != nil {
 		return err
 	}
 
 	for _, gridFile := range gridFiles {
-		if err := gridFile.Delete(); err != nil {
+		// We don't defer this cancel because there might be a bunch of files and we want to do it at
+		// the bottom of the loop, not at the end of the function.
+		ctx, cancel := context.WithCancel(baseCtx)
+		if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+			ctx, cancel = context.WithTimeout(baseCtx, wtimeout)
+		}
+
+		if err := gridFile.Delete(ctx); err != nil {
+			cancel()
 			return err
 		}
+
+		cancel()
 	}
 	log.Logvf(log.Always, "successfully deleted all instances of '%v' from GridFS\n", mf.FileName)
 
@@ -357,14 +367,20 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 }
 
 // handleDeleteID contains the logic for the 'delete_id' command.
-func (mf *MongoFiles) handleDeleteID() error {
+func (mf *MongoFiles) handleDeleteID(baseCtx context.Context) error {
 	files, err := mf.getTargetGFSFiles()
 	if err != nil {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(baseCtx)
+	if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		ctx, cancel = context.WithTimeout(baseCtx, wtimeout)
+	}
+	defer cancel()
+
 	file := files[0]
-	if err := file.Delete(); err != nil {
+	if err := file.Delete(ctx); err != nil {
 		return err
 	}
 	log.Logvf(log.Always, "successfully deleted file with _id %v from GridFS", mf.Id)
@@ -448,7 +464,11 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 }
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
-func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err error) {
+func (mf *MongoFiles) put(
+	ctx context.Context,
+	id interface{},
+	name string,
+) (bytesWritten int64, err error) {
 	gridFile, err := newGfsFile(id, name, mf)
 	if err != nil {
 		return 0, err
@@ -471,7 +491,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 
 	// check if --replace flag turned on
 	if mf.StorageOptions.Replace {
-		if err = mf.deleteAll(gridFile.Name); err != nil {
+		if err = mf.deleteAll(ctx, gridFile.Name); err != nil {
 			return 0, err
 		}
 	}
@@ -480,7 +500,13 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
 
-	stream, err := gridFile.OpenStreamForWriting()
+	if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, wtimeout)
+		defer cancel()
+	}
+
+	stream, err := gridFile.OpenStreamForWriting(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -496,7 +522,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 }
 
 // handlePut contains the logic for the 'put' and 'put_id' commands.
-func (mf *MongoFiles) handlePut() error {
+func (mf *MongoFiles) handlePut(ctx context.Context) error {
 	if len(mf.FileNameList) == 0 {
 		mf.FileNameList = []string{mf.FileName}
 	}
@@ -509,7 +535,7 @@ func (mf *MongoFiles) handlePut() error {
 
 		log.Logvf(log.Always, "adding gridFile: %v\n", filename)
 
-		n, err := mf.put(id, filename)
+		n, err := mf.put(ctx, id, filename)
 		if err != nil {
 			log.Logvf(log.Always, "error adding gridFile: %v\n", err)
 			return err
@@ -567,6 +593,8 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 
 	log.Logvf(log.Info, "handling mongofiles '%v' command...", mf.Command)
 
+	ctx := context.Background()
+
 	switch mf.Command {
 
 	case List:
@@ -587,13 +615,13 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		err = mf.handleGet()
 
 	case Put, PutID:
-		err = mf.handlePut()
+		err = mf.handlePut(ctx)
 
 	case DeleteID:
-		err = mf.handleDeleteID()
+		err = mf.handleDeleteID(ctx)
 
 	case Delete:
-		err = mf.deleteAll(mf.FileName)
+		err = mf.deleteAll(ctx, mf.FileName)
 	}
 
 	return output, err

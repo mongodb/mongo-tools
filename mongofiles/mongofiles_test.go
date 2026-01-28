@@ -22,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -39,11 +40,12 @@ var (
 		Port: testPort,
 	}
 	toolOptions = &options.ToolOptions{
-		SSL:        &ssl,
-		Connection: connection,
-		Auth:       &auth,
-		Verbosity:  &options.Verbosity{},
-		URI:        &options.URI{},
+		SSL:          &ssl,
+		Connection:   connection,
+		Auth:         &auth,
+		Verbosity:    &options.Verbosity{},
+		URI:          &options.URI{},
+		WriteConcern: wcwrapper.Majority(),
 	}
 	testFiles = map[string]bson.ObjectID{
 		"testfile1": bson.NewObjectID(),
