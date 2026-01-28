@@ -648,11 +648,13 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 							)
 						}
 
+						ctx, cancel := restore.WriteContext()
 						err := insertDocWithEmptyTimestamps(
-							context.Background(),
+							ctx,
 							collection,
 							rawDoc,
 						)
+						cancel()
 
 						if err != nil {
 							newResult = Result{0, 1, err}

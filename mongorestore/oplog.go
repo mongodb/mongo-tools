@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -432,8 +431,11 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 		log.Logv(log.DebugLow, opDetails)
 	}
 
+	ctx, cancel := restore.WriteContext()
+	defer cancel()
+
 	singleRes := session.Database("admin").
-		RunCommand(context.TODO(), bson.D{{"applyOps", []db.Oplog{op}}})
+		RunCommand(ctx, bson.D{{"applyOps", []db.Oplog{op}}})
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}

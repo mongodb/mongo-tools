@@ -9,6 +9,7 @@ package mongorestore
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -858,4 +859,13 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 
 func (restore *MongoRestore) HandleInterrupt() {
 	restore.terminate.Store(true)
+}
+
+func (restore *MongoRestore) WriteContext() (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.TODO())
+	if wtimeout := restore.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		ctx, cancel = context.WithTimeout(context.TODO(), wtimeout)
+	}
+
+	return ctx, cancel
 }
