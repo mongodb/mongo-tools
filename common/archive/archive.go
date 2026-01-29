@@ -40,7 +40,7 @@ func (nh NamespaceHeader) MarshalBSON() ([]byte, error) {
 		AppendValue(
 			"CRC",
 			bsoncore.Value{
-				Type: bson.TypeInt64,
+				Type: bsoncore.Type(bson.TypeInt64),
 				Data: binary.LittleEndian.AppendUint64(nil, nh.CRC),
 			},
 		).Build()

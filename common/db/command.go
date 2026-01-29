@@ -235,7 +235,7 @@ func (sp *SessionProvider) FindOne(
 }
 
 // ApplyFlags applies flags to the given query session.
-func ApplyFlags(opts *mopt.FindOneOptions, flags int) {
+func ApplyFlags(opts *mopt.FindOneOptionsBuilder, flags int) {
 	if flags&Snapshot > 0 {
 		opts.SetHint(bson.D{{"_id", 1}})
 	}

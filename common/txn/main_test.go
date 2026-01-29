@@ -32,7 +32,7 @@ func getOpsForCase(name string, data bson.Raw) ([]db.Oplog, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't find ops for case %s: %v", name, err)
 	}
-	rawOps, err := rawArray.Array().Elements()
+	rawOps, err := bson.Raw(rawArray.Array()).Elements()
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't extract array elements for case %s: %v", name, err)
 	}
