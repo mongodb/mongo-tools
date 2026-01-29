@@ -77,7 +77,7 @@ func (a *AWS) UploadBytes(bucket, objPath, filename string, reader io.Reader) er
 	_, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		ACL:    types.ObjectCannedACLPublicRead,
+		ACL:    types.ObjectCannedACLPrivate,
 		Body:   reader,
 	})
 	if err != nil {
