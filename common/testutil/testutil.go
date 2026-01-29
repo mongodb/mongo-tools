@@ -18,6 +18,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -94,12 +95,13 @@ func GetToolOptions() (*options.ToolOptions, error) {
 			Port: db.DefaultTestPort,
 		}
 		toolOptions = &options.ToolOptions{
-			SSL:        &ssl,
-			Connection: connection,
-			Auth:       &auth,
-			Verbosity:  &options.Verbosity{},
-			URI:        &options.URI{},
-			Namespace:  &options.Namespace{},
+			SSL:          &ssl,
+			Connection:   connection,
+			Auth:         &auth,
+			Verbosity:    &options.Verbosity{},
+			URI:          &options.URI{},
+			Namespace:    &options.Namespace{},
+			WriteConcern: wcwrapper.Majority(),
 		}
 	}
 
