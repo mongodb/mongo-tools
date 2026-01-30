@@ -6,7 +6,7 @@ _Released 2026-01-29_
 
 We are pleased to announce version 100.14.1 of the MongoDB Database Tools.
 
-This release fixes a number of reported security issues with 100.14.0.
+This release updates dependencies with the latest security fixes.
 
 The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
 Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
