@@ -40,12 +40,14 @@ func GetBareSession() (*mongo.Client, error) {
 // GetBareSessionProvider returns a session provider from the environment or
 // from a default host and port.
 func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error) {
+	fmt.Printf("-- GetBareSessionProvider ...\n")
 	var toolOptions *options.ToolOptions
 
 	// get ToolOptions from URI or defaults
 	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
+		fmt.Printf("-- GetBareSessionProvider --uri=%s ...\n", uri)
 		fakeArgs := []string{"--uri=" + uri}
-		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
+		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{Auth: true, URI: true})
 		_, err := toolOptions.ParseArgs(fakeArgs)
 		if err != nil {
 			panic(fmt.Sprintf("Could not parse TOOLS_TESTING_MONGOD environment variable: %v", err))
@@ -70,10 +72,12 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Printf("-- db.NewSessionProvider ...\n")
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Printf("-- db.NewSessionProvider done\n")
 	return sessionProvider, toolOptions, nil
 }
 
