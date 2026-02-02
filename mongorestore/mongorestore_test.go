@@ -33,6 +33,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
@@ -178,8 +179,11 @@ func TestMongorestore(t *testing.T) {
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
-			// TODO db no longer has a WriteConcern() method
-			// So(db.WriteConcern(), ShouldResemble, writeconcern.Majority())
+			So(
+				restore.ToolOptions.WriteConcern,
+				ShouldResemble,
+				wcwrapper.Majority(),
+			)
 		})
 
 		c1 := db.Collection("c1") // 100 documents
@@ -426,8 +430,11 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
-			// TODO db no longer has a WriteConcern() method
-			// So(db.WriteConcern(), ShouldResemble, writeconcern.Majority())
+			So(
+				restore.ToolOptions.WriteConcern,
+				ShouldResemble,
+				wcwrapper.Majority(),
+			)
 		})
 
 		longCollection := db.Collection(longCollectionName)

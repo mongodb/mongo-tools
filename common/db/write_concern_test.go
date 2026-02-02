@@ -131,22 +131,19 @@ func TestConstructWCFromConnString(t *testing.T) {
 			So(writeConcern.W, ShouldEqual, 4)
 		})
 
-		Convey("&connstrings with valid j, wtimeout, and w should be "+
-			"assigned accordingly", func() {
+		Convey("&connstrings with valid j and w should be assigned accordingly", func() {
+			// Note: this used to test WTImeout as well, but the upgrade to Go driver v2 removed wtimeout
+			// support from connstring parsing, so we can't/don't do it here any more.
 			expectedW := 3
-			// TODO WTimeout
-			// expectedWTimeout := 43 * time.Second
 			cs := &connstring.ConnString{
 				WNumber:    3,
 				WNumberSet: true,
 				J:          true,
-				// WTimeout:   time.Second * 43,
 			}
 			writeConcern, err := constructWCFromConnString(cs)
 			So(err, ShouldBeNil)
 			So(writeConcern.W, ShouldEqual, expectedW)
 			So(*writeConcern.Journal, ShouldBeTrue)
-			// So(writeConcern.GetWTimeout(), ShouldEqual, expectedWTimeout)
 		})
 
 		Convey("Unacknowledge write concern strings should return a corresponding object "+
