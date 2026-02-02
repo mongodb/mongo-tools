@@ -331,7 +331,10 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
-	clientopt.SetTimeout(time.Duration(opts.SocketTimeout) * time.Second)
+
+	// NOTE: We used to set the socket timeout here, but it changed significantly in driver v2, and
+	// setting clientopt.Timeout() to causes very strange action-at-a-distance breakage. (2026-02-02)
+
 	if opts.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(
 			time.Duration(opts.ServerSelectionTimeout) * time.Second,
