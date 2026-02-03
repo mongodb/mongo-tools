@@ -98,6 +98,10 @@ type MongoRestore struct {
 	// Server versions for version-specific behavior
 	dumpServerVersion db.Version
 	serverVersion     db.Version
+
+	// recordIdsReplicatedEnabled is true if the target server has the
+	// featureFlagRecordIdsReplicated feature flag enabled.
+	recordIdsReplicatedEnabled bool
 }
 
 type collectionIndexes map[string][]*idx.IndexDocument
@@ -145,6 +149,14 @@ func New(opts Options) (*MongoRestore, error) {
 	restore.isAtlasProxy = restore.SessionProvider.IsAtlasProxy()
 	if restore.isAtlasProxy {
 		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
+	}
+
+	restore.recordIdsReplicatedEnabled, err = restore.SessionProvider.HasRecordIdsReplicated()
+	if err != nil {
+		return nil, err
+	}
+	if restore.recordIdsReplicatedEnabled {
+		log.Logv(log.DebugLow, "target server has recordIdsReplicated feature enabled")
 	}
 
 	return restore, nil

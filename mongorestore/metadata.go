@@ -299,12 +299,33 @@ func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) bson.D {
 	return options
 }
 
+// filterRecordIdsReplicatedOption removes the `recordIdsReplicated` option from the collection
+// options if the target server doesn't have the `featureFlagRecordIdsReplicated` feature enabled.
+func (restore *MongoRestore) filterRecordIdsReplicatedOption(options bson.D) bson.D {
+	if restore.recordIdsReplicatedEnabled {
+		return options
+	}
+
+	for i, elem := range options {
+		if elem.Key == "recordIdsReplicated" {
+			log.Logvf(
+				log.DebugLow,
+				"removing recordIdsReplicated option (target server does not support this feature)",
+			)
+			return append(options[:i], options[i+1:]...)
+		}
+	}
+
+	return options
+}
+
 func (restore *MongoRestore) createCollectionWithCommand(
 	session *mongo.Client,
 	intent *intents.Intent,
 	options bson.D,
 ) error {
 	options = restore.UpdateAutoIndexId(options)
+	options = restore.filterRecordIdsReplicatedOption(options)
 
 	command := createCollectionCommand(intent, options)
 
@@ -332,6 +353,7 @@ func (restore *MongoRestore) createCollectionWithApplyOps(
 	uuidHex string,
 ) error {
 	options = restore.UpdateAutoIndexId(options)
+	options = restore.filterRecordIdsReplicatedOption(options)
 
 	command := createCollectionCommand(intent, options)
 	uuid, err := hex.DecodeString(uuidHex)

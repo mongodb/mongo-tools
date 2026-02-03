@@ -218,6 +218,20 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		}
 	}
 
+	// These operations are seen when replicated record IDs are enabled. They are related to
+	// internal bookkeeping for the cluster and do not need to be replicated on restore.
+	if op.Operation == "ci" || op.Operation == "cd" {
+		return nil
+	}
+
+	// Record IDs show up in oplog entries if the replicated record IDs feature is enabled, but we
+	// do not need to pass them when applying the op. The cluster we're restoring into will generate
+	// the record ID.
+	op, err = restore.filterRecordIds(op)
+	if err != nil {
+		return fmt.Errorf("error filtering recordId from oplog entries: %v", err)
+	}
+
 	if op.Operation == "c" {
 		if len(op.Object) == 0 {
 			return fmt.Errorf("Empty object value for op: %v", op)
@@ -557,6 +571,39 @@ func (restore *MongoRestore) filterHs(op db.Oplog) (db.Oplog, error) {
 		filtered := make([]db.Oplog, len(ops))
 		for i, v := range ops {
 			filtered[i], err = restore.filterUUIDs(v)
+			if err != nil {
+				return db.Oplog{}, err
+			}
+		}
+
+		doc, err := wrapNestedApplyOps(filtered)
+		if err != nil {
+			return db.Oplog{}, err
+		}
+
+		op.Object = doc
+	}
+
+	return op, nil
+}
+
+// filterRecordIds removes 'recordId' entries from ops, including nested `applyOps` ops. This is
+// needed when restoring to a server that does not have the `featureFlagRecordIdsReplicated` feature
+// enabled.
+func (restore *MongoRestore) filterRecordIds(op db.Oplog) (db.Oplog, error) {
+	// Remove recordId from oplog entries
+	op.RecordId = nil
+
+	// Check for and filter nested applyOps ops
+	if op.Operation == "c" && isApplyOpsCmd(op.Object) {
+		ops, err := unwrapNestedApplyOps(op.Object)
+		if err != nil {
+			return db.Oplog{}, err
+		}
+
+		filtered := make([]db.Oplog, len(ops))
+		for i, v := range ops {
+			filtered[i], err = restore.filterRecordIds(v)
 			if err != nil {
 				return db.Oplog{}, err
 			}
