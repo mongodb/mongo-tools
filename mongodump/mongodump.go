@@ -935,16 +935,26 @@ func (dump *MongoDump) DumpMetadata() error {
 }
 
 type PreludeData struct {
-	ServerVersion string `json:"ServerVersion"`
-	ToolVersion   string `json:"ToolVersion"`
+	ServerVersion              string `json:"ServerVersion"`
+	ToolVersion                string `json:"ToolVersion"`
+	RecordIdsReplicatedEnabled bool   `json:"RecordIdsReplicatedEnabled"`
 }
 
 // DumpPreludeMetadata dumps information about the server and the dump in json format
 // Currently only writes the server version and tool version, but we can use this to write other metadata about the dump in the future.
 func (dump *MongoDump) DumpPreludeMetadata() error {
+	recordIdsReplicatedEnabled, err := dump.SessionProvider.HasRecordIdsReplicated()
+	if err != nil {
+		return fmt.Errorf(
+			"error checking whether the server has the recordIdsReplicated feature flag enabled: %w",
+			err,
+		)
+	}
+
 	preludeData := PreludeData{
-		ServerVersion: dump.serverVersion,
-		ToolVersion:   dump.ToolOptions.VersionStr,
+		ServerVersion:              dump.serverVersion,
+		ToolVersion:                dump.ToolOptions.VersionStr,
+		RecordIdsReplicatedEnabled: recordIdsReplicatedEnabled,
 	}
 
 	filename := "prelude.json"

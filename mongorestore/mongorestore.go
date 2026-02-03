@@ -99,6 +99,14 @@ type MongoRestore struct {
 	// Server versions for version-specific behavior
 	dumpServerVersion db.Version
 	serverVersion     db.Version
+
+	// recordIdsReplicatedEnabled is true if the target server has the
+	// featureFlagRecordIdsReplicated feature flag enabled.
+	recordIdsReplicatedEnabled bool
+
+	// dumpRecordIdsReplicatedEnabled is true if the source server that produced the dump
+	// had the featureFlagRecordIdsReplicated feature flag enabled, as recorded in prelude.json.
+	dumpRecordIdsReplicatedEnabled bool
 }
 
 type collectionIndexes map[string][]*idx.IndexDocument
@@ -107,12 +115,12 @@ type collectionIndexes map[string][]*idx.IndexDocument
 func New(opts Options) (*MongoRestore, error) {
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to host: %v", err)
+		return nil, fmt.Errorf("error connecting to host: %w", err)
 	}
 
 	serverVersion, err := provider.ServerVersionArray()
 	if err != nil {
-		return nil, fmt.Errorf("error getting server version: %v", err)
+		return nil, fmt.Errorf("error getting server version: %w", err)
 	}
 
 	// start up the progress bar manager
@@ -138,7 +146,7 @@ func New(opts Options) (*MongoRestore, error) {
 
 	restore.isMongos, err = restore.SessionProvider.IsMongos()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error checking whether we are talking to mongos: %w", err)
 	}
 	if restore.isMongos {
 		log.Logv(log.DebugLow, "restoring to a sharded system")
@@ -146,6 +154,17 @@ func New(opts Options) (*MongoRestore, error) {
 	restore.isAtlasProxy = restore.SessionProvider.IsAtlasProxy()
 	if restore.isAtlasProxy {
 		log.Logv(log.DebugLow, "restoring to a MongoDB Atlas free or shared cluster")
+	}
+
+	restore.recordIdsReplicatedEnabled, err = restore.SessionProvider.HasRecordIdsReplicated()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"error checking whether the Server has the recordIdsReplicated feature flag enabled: %w",
+			err,
+		)
+	}
+	if restore.recordIdsReplicatedEnabled {
+		log.Logv(log.DebugLow, "target server has recordIdsReplicated feature enabled")
 	}
 
 	return restore, nil
@@ -534,6 +553,12 @@ func (restore *MongoRestore) Restore() Result {
 		}
 	}
 
+	if restore.InputOptions.OplogReplay {
+		if err := restore.checkOplogRecordIdsCompatibility(); err != nil {
+			return Result{Err: err}
+		}
+	}
+
 	conflicts := restore.manager.GetDestinationConflicts()
 	if len(conflicts) > 0 {
 		for _, conflict := range conflicts {
@@ -735,16 +760,26 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 		return true, fmt.Errorf("failed to read prelude metadata from %#q: %w", filePath, err)
 	}
 
-	var prelude map[string]string
+	var prelude struct {
+		ServerVersion              string `json:"ServerVersion"`
+		RecordIdsReplicatedEnabled bool   `json:"RecordIdsReplicatedEnabled"`
+	}
 	err = json.Unmarshal(bytes, &prelude)
 	if err != nil {
 		return true, fmt.Errorf("failed to unmarshal prelude metadata from %#q: %w", filePath, err)
 	}
 
-	dumpVersion, ok := prelude["ServerVersion"]
-	if !ok {
+	dumpVersion := prelude.ServerVersion
+	if dumpVersion == "" {
 		return true, fmt.Errorf("ServerVersion key not found in %#q", filePath)
 	}
+
+	restore.dumpRecordIdsReplicatedEnabled = prelude.RecordIdsReplicatedEnabled
+	log.Logvf(
+		log.DebugLow,
+		"dump recordIdsReplicated enabled: %v",
+		restore.dumpRecordIdsReplicatedEnabled,
+	)
 
 	// mongodump sets server version to unknown if it can't get the server version
 	if dumpVersion == common.ServerVersionUnknown {
