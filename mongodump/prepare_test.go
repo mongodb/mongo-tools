@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSkipCollection(t *testing.T) {
@@ -200,7 +201,8 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		})
 	}
 
-	md := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
 
 	for _, testVals := range tests {
 		md.ToolOptions.DB = testVals.dbOption

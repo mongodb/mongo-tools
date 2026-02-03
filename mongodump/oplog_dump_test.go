@@ -60,7 +60,9 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	ctx := context.Background()
 
-	md := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
 	md.ToolOptions.DB = ""
 	md.OutputOptions.Oplog = true
 	md.OutputOptions.Out = "vectored_inserts"

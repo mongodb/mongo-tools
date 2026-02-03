@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -35,38 +36,13 @@ var (
 	testCollectionName = "coll1"
 )
 
-func simpleMongoExportOpts() Options {
-	var toolOptions *options.ToolOptions
-
-	// get ToolOptions from URI or defaults
-	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
-		fakeArgs := []string{"--uri=" + uri}
-		toolOptions = options.New(
-			"mongoexport",
-			"",
-			"",
-			"",
-			true,
-			options.EnabledOptions{URI: true},
+func simpleMongoExportOpts() (Options, error) {
+	toolOptions, err := testutil.GetToolOptions()
+	if err != nil {
+		return Options{}, fmt.Errorf(
+			"error getting tool options to create a mongoexport instance: %w",
+			err,
 		)
-		_, err := toolOptions.ParseArgs(fakeArgs)
-		if err != nil {
-			panic("Could not parse TOOLS_TESTING_MONGOD environment variable")
-		}
-	} else {
-		ssl := testutil.GetSSLOptions()
-		auth := testutil.GetAuthOptions()
-		connection := &options.Connection{
-			Host: "localhost",
-			Port: db.DefaultTestPort,
-		}
-		toolOptions = &options.ToolOptions{
-			SSL:        &ssl,
-			Connection: connection,
-			Auth:       &auth,
-			Verbosity:  &options.Verbosity{},
-			URI:        &options.URI{},
-		}
 	}
 
 	// Limit ToolOptions to test database
@@ -82,7 +58,8 @@ func simpleMongoExportOpts() Options {
 	}
 
 	log.SetVerbosity(toolOptions.Verbosity)
-	return opts
+
+	return opts, nil
 }
 
 func TestExtendedJSON(t *testing.T) {
@@ -164,7 +141,9 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	}
 
 	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
-		opts := simpleMongoExportOpts()
+		opts, err := simpleMongoExportOpts()
+		So(err, ShouldBeNil)
+
 		opts.Collection = collName
 		opts.DB = dbName
 
@@ -231,7 +210,9 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	profileCollection := dbStruct.Collection("system.profile")
 
 	Convey("testing exporting a collection", t, func() {
-		opts := simpleMongoExportOpts()
+		opts, err := simpleMongoExportOpts()
+		So(err, ShouldBeNil)
+
 		opts.Collection = collName
 		opts.DB = dbName
 
@@ -338,9 +319,12 @@ func TestBadOptions(t *testing.T) {
 
 		require.NoError(t, sessionProvider.CreateCollection(dbName, collName))
 
-		opts := testCase.optionsFunc(simpleMongoExportOpts())
+		opts, err := simpleMongoExportOpts()
+		require.NoError(t, err)
 
-		_, err := New(opts)
+		opts = testCase.optionsFunc(opts)
+
+		_, err = New(opts)
 		require.Error(t, err)
 		if testCase.errorTestFunc != nil {
 			testCase.errorTestFunc(t, err)
