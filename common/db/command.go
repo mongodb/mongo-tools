@@ -151,11 +151,11 @@ func (sp *SessionProvider) GetNodeType() (NodeType, error) {
 		&bson.M{"ismaster": 1},
 	)
 	if result.Err() != nil {
-		return Unknown, result.Err()
+		return Unknown, fmt.Errorf("running `ismaster` command: %w", result.Err())
 	}
 	err = result.Decode(&masterDoc)
 	if err != nil {
-		return Unknown, err
+		return Unknown, fmt.Errorf("decoding `ismaster` response: %w", err)
 	}
 	if masterDoc.SetName != nil || masterDoc.Hosts != nil {
 		return ReplSet, nil
@@ -181,7 +181,7 @@ func (sp *SessionProvider) IsReplicaSet() (bool, error) {
 func (sp *SessionProvider) IsMongos() (bool, error) {
 	nodeType, err := sp.GetNodeType()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("getting node type: %w", err)
 	}
 	return nodeType == Mongos, nil
 }

@@ -107,12 +107,12 @@ type collectionIndexes map[string][]*idx.IndexDocument
 func New(opts Options) (*MongoRestore, error) {
 	provider, err := db.NewSessionProvider(*opts.ToolOptions)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to host: %v", err)
+		return nil, fmt.Errorf("error connecting to host: %w", err)
 	}
 
 	serverVersion, err := provider.ServerVersionArray()
 	if err != nil {
-		return nil, fmt.Errorf("error getting server version: %v", err)
+		return nil, fmt.Errorf("error getting server version: %w", err)
 	}
 
 	// start up the progress bar manager
@@ -138,7 +138,7 @@ func New(opts Options) (*MongoRestore, error) {
 
 	restore.isMongos, err = restore.SessionProvider.IsMongos()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error checking whether we are talking to mongos: %w", err)
 	}
 	if restore.isMongos {
 		log.Logv(log.DebugLow, "restoring to a sharded system")
@@ -735,14 +735,16 @@ func (restore *MongoRestore) ReadPreludeMetadata(target archive.DirLike) (bool, 
 		return true, fmt.Errorf("failed to read prelude metadata from %#q: %w", filePath, err)
 	}
 
-	var prelude map[string]string
+	var prelude struct {
+		ServerVersion string `json:"ServerVersion"`
+	}
 	err = json.Unmarshal(bytes, &prelude)
 	if err != nil {
 		return true, fmt.Errorf("failed to unmarshal prelude metadata from %#q: %w", filePath, err)
 	}
 
-	dumpVersion, ok := prelude["ServerVersion"]
-	if !ok {
+	dumpVersion := prelude.ServerVersion
+	if dumpVersion == "" {
 		return true, fmt.Errorf("ServerVersion key not found in %#q", filePath)
 	}
 
