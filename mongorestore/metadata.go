@@ -339,19 +339,14 @@ func (restore *MongoRestore) createCollectionWithApplyOps(
 		return fmt.Errorf("Couldn't restore UUID because UUID was invalid: %s", err)
 	}
 
-	createOp := struct {
-		Operation string            `bson:"op"`
-		Namespace string            `bson:"ns"`
-		Object    bson.D            `bson:"o"`
-		UI        *primitive.Binary `bson:"ui,omitempty"`
-	}{
+	createOp := db.Oplog{
 		Operation: "c",
 		Namespace: intent.DB + ".$cmd",
 		Object:    command,
 		UI:        &primitive.Binary{Subtype: 0x04, Data: uuid},
 	}
 
-	return restore.ApplyOps(session, []interface{}{createOp})
+	return restore.ApplyOp(session, createOp)
 }
 
 func createCollectionCommand(intent *intents.Intent, options bson.D) bson.D {
