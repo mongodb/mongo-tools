@@ -4,8 +4,10 @@
 package wcwrapper
 
 import (
+	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
@@ -37,4 +39,25 @@ func Wrap(base *writeconcern.WriteConcern) *WriteConcern {
 // Majority is a convenience function that returns a wrapped majority write concern.
 func Majority() *WriteConcern {
 	return Wrap(writeconcern.Majority())
+}
+
+// MarshalBSON implements the bson.Marshaler interface.
+func (wc *WriteConcern) MarshalBSON() ([]byte, error) {
+	if wc == nil || wc.WriteConcern == nil {
+		return nil, fmt.Errorf("cannot marshal an empty WriteConcern")
+	}
+
+	concernDoc := bson.D{{"w", wc.W}}
+	if wc.Journal != nil {
+		concernDoc = append(concernDoc, bson.E{Key: "j", Value: *wc.Journal})
+	}
+
+	if wc.WTimeout > 0 {
+		concernDoc = append(
+			concernDoc,
+			bson.E{Key: "wtimeout", Value: wc.WTimeout.Milliseconds()},
+		)
+	}
+
+	return bson.Marshal(concernDoc)
 }

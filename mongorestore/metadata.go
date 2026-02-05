@@ -553,19 +553,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		bson.E{Key: "db", Value: userTargetDB})
 
 	if wc := restore.ToolOptions.WriteConcern; wc != nil {
-		concernDoc := bson.D{{"w", wc.W}}
-		if wc.Journal != nil {
-			concernDoc = append(concernDoc, bson.E{Key: "j", Value: *wc.Journal})
-		}
-
-		if wc.WTimeout > 0 {
-			concernDoc = append(
-				concernDoc,
-				bson.E{Key: "wtimeout", Value: wc.WTimeout.Milliseconds()},
-			)
-		}
-
-		command = append(command, bson.E{Key: "writeConcern", Value: concernDoc})
+		command = append(command, bson.E{Key: "writeConcern", Value: wc})
 	}
 
 	ctx, cancel := restore.writeContext()
