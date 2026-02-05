@@ -861,11 +861,10 @@ func (restore *MongoRestore) HandleInterrupt() {
 	restore.terminate.Store(true)
 }
 
-func (restore *MongoRestore) WriteContext() (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.TODO())
+func (restore *MongoRestore) writeContext() (context.Context, context.CancelFunc) {
 	if wtimeout := restore.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
-		ctx, cancel = context.WithTimeout(context.TODO(), wtimeout)
+		return context.WithTimeout(context.TODO(), wtimeout)
 	}
 
-	return ctx, cancel
+	return context.WithCancel(context.TODO())
 }

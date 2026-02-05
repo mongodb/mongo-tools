@@ -349,10 +349,7 @@ func (mf *MongoFiles) deleteAll(baseCtx context.Context, filename string) error 
 	for _, gridFile := range gridFiles {
 		// We don't defer this cancel because there might be a bunch of files and we want to do it at
 		// the bottom of the loop, not at the end of the function.
-		ctx, cancel := context.WithCancel(baseCtx)
-		if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
-			ctx, cancel = context.WithTimeout(baseCtx, wtimeout)
-		}
+		ctx, cancel := mf.writeContext(baseCtx)
 
 		if err := gridFile.Delete(ctx); err != nil {
 			cancel()
@@ -373,10 +370,7 @@ func (mf *MongoFiles) handleDeleteID(baseCtx context.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(baseCtx)
-	if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
-		ctx, cancel = context.WithTimeout(baseCtx, wtimeout)
-	}
+	ctx, cancel := mf.writeContext(baseCtx)
 	defer cancel()
 
 	file := files[0]
@@ -465,7 +459,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
 func (mf *MongoFiles) put(
-	ctx context.Context,
+	baseCtx context.Context,
 	id interface{},
 	name string,
 ) (bytesWritten int64, err error) {
@@ -491,7 +485,7 @@ func (mf *MongoFiles) put(
 
 	// check if --replace flag turned on
 	if mf.StorageOptions.Replace {
-		if err = mf.deleteAll(ctx, gridFile.Name); err != nil {
+		if err = mf.deleteAll(baseCtx, gridFile.Name); err != nil {
 			return 0, err
 		}
 	}
@@ -500,11 +494,8 @@ func (mf *MongoFiles) put(
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
 
-	if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, wtimeout)
-		defer cancel()
-	}
+	ctx, cancel := mf.writeContext(baseCtx)
+	defer cancel()
 
 	stream, err := gridFile.OpenStreamForWriting(ctx)
 	if err != nil {
@@ -625,4 +616,14 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	}
 
 	return output, err
+}
+
+func (mf *MongoFiles) writeContext(
+	baseCtx context.Context,
+) (context.Context, context.CancelFunc) {
+	if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		return context.WithTimeout(baseCtx, wtimeout)
+	}
+
+	return context.WithCancel(baseCtx)
 }

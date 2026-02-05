@@ -484,7 +484,7 @@ readLoop:
 		}
 	}
 
-	ctx, cancel := imp.WriteContext()
+	ctx, cancel := imp.writeContext()
 	defer cancel()
 
 	result, err := inserter.Flush(ctx)
@@ -515,7 +515,7 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 
 	selector := constructUpsertDocument(imp.upsertFields, document)
 
-	ctx, cancel := imp.WriteContext()
+	ctx, cancel := imp.writeContext()
 	defer cancel()
 
 	switch imp.IngestOptions.Mode {
@@ -648,11 +648,10 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 	), nil
 }
 
-func (imp *MongoImport) WriteContext() (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.TODO())
+func (imp *MongoImport) writeContext() (context.Context, context.CancelFunc) {
 	if wtimeout := imp.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
-		ctx, cancel = context.WithTimeout(context.TODO(), wtimeout)
+		return context.WithTimeout(context.TODO(), wtimeout)
 	}
 
-	return ctx, cancel
+	return context.WithCancel(context.TODO())
 }

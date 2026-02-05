@@ -648,7 +648,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 							)
 						}
 
-						ctx, cancel := restore.WriteContext()
+						ctx, cancel := restore.writeContext()
 						err := insertDocWithEmptyTimestamps(
 							ctx,
 							collection,
@@ -662,7 +662,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 							newResult = Result{1, 0, nil}
 						}
 					} else {
-						ctx, cancel := restore.WriteContext()
+						ctx, cancel := restore.writeContext()
 						newResult = NewResultFromBulkResult(bulk.InsertRaw(ctx, rawDoc))
 						cancel()
 					}
@@ -678,7 +678,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 				watchProgressor.Set(file.Pos())
 			}
 			// flush the remaining docs
-			ctx, cancel := restore.WriteContext()
+			ctx, cancel := restore.writeContext()
 			bwResult, bwErr := bulk.TryFlush(ctx)
 			cancel()
 			defer bulk.ResetBulk()
@@ -695,7 +695,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 					resultChan <- result.withErr(errors.Wrap(collModErr, "failed to enable mixed schema in a timeseries bucket"))
 					return
 				}
-				ctx, cancel := restore.WriteContext()
+				ctx, cancel := restore.writeContext()
 				bwResult, bwErr = bulk.TryFlush(ctx)
 				cancel()
 			}

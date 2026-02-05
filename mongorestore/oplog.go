@@ -431,7 +431,7 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 		log.Logv(log.DebugLow, opDetails)
 	}
 
-	ctx, cancel := restore.WriteContext()
+	ctx, cancel := restore.writeContext()
 	defer cancel()
 
 	singleRes := session.Database("admin").
