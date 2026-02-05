@@ -332,8 +332,10 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
 
-	// NOTE: We used to set the socket timeout here, but it changed significantly in driver v2, and
-	// setting clientopt.Timeout() to causes very strange action-at-a-distance breakage. (2026-02-02)
+	// TODO (TOOLS-4079): We used to set the socket timeout here, but it changed significantly in
+	// driver v2, and setting clientopt.Timeout() to zero causes code that, in driver v1, used to get
+	// NotWritablePrimary errors to instead, in v2, hang forever. Not setting a timeout at all fixes
+	// that, but it would be good to come up with a more permanent solution here.
 
 	if opts.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(
