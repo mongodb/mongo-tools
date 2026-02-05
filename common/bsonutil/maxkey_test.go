@@ -12,7 +12,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestMaxKeyValue(t *testing.T) {
@@ -28,7 +28,7 @@ func TestMaxKeyValue(t *testing.T) {
 
 			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, primitive.MaxKey{})
+			So(jsonMap[key], ShouldResemble, bson.MaxKey{})
 		})
 
 		Convey(`works for MaxKey document ('{ "$maxKey": 1 }')`, func() {
@@ -41,7 +41,7 @@ func TestMaxKeyValue(t *testing.T) {
 
 			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, primitive.MaxKey{})
+			So(jsonMap[key], ShouldResemble, bson.MaxKey{})
 		})
 	})
 }

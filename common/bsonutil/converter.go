@@ -14,8 +14,7 @@ import (
 	"github.com/ccoveille/go-safecast/v2"
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // ConvertLegacyExtJSONValueToBSON walks through a document or an array and
@@ -60,7 +59,7 @@ func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
 
 	case json.ObjectId: // ObjectId
 		s := string(v)
-		return primitive.ObjectIDFromHex(s)
+		return bson.ObjectIDFromHex(s)
 
 	case json.Decimal128:
 		return v.Decimal128, nil
@@ -86,31 +85,31 @@ func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return primitive.Binary{v.Type, data}, nil
+		return bson.Binary{v.Type, data}, nil
 
 	case json.DBPointer: // DBPointer, for backwards compatibility
-		return primitive.DBPointer{v.Namespace, v.Id}, nil
+		return bson.DBPointer{v.Namespace, v.Id}, nil
 
 	case json.RegExp: // RegExp
-		return primitive.Regex{v.Pattern, v.Options}, nil
+		return bson.Regex{v.Pattern, v.Options}, nil
 
 	case json.Timestamp: // Timestamp
-		return primitive.Timestamp{T: v.Seconds, I: v.Increment}, nil
+		return bson.Timestamp{T: v.Seconds, I: v.Increment}, nil
 
 	case json.JavaScript: // Javascript
 		if v.Scope != nil {
-			return primitive.CodeWithScope{Code: primitive.JavaScript(v.Code), Scope: v.Scope}, nil
+			return bson.CodeWithScope{Code: bson.JavaScript(v.Code), Scope: v.Scope}, nil
 		}
-		return primitive.JavaScript(v.Code), nil
+		return bson.JavaScript(v.Code), nil
 
 	case json.MinKey: // MinKey
-		return primitive.MinKey{}, nil
+		return bson.MinKey{}, nil
 
 	case json.MaxKey: // MaxKey
-		return primitive.MaxKey{}, nil
+		return bson.MaxKey{}, nil
 
 	case json.Undefined: // undefined
-		return primitive.Undefined{}, nil
+		return bson.Undefined{}, nil
 
 	default:
 		return nil, fmt.Errorf("conversion of JSON value '%v' of type '%T' not supported", v, v)
@@ -180,13 +179,13 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 	case int:
 		return safecast.Convert[json.NumberInt](v)
 
-	case primitive.ObjectID: // ObjectId
+	case bson.ObjectID: // ObjectId
 		return json.ObjectId(v.Hex()), nil
 
-	case primitive.Decimal128:
+	case bson.Decimal128:
 		return json.Decimal128{v}, nil
 
-	case primitive.DateTime: // Date
+	case bson.DateTime: // Date
 		return json.Date(v), nil
 
 	case time.Time: // Date
@@ -208,26 +207,26 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		data := base64.StdEncoding.EncodeToString(v)
 		return json.BinData{0x00, data}, nil
 
-	case primitive.Binary: // BinData
+	case bson.Binary: // BinData
 		data := base64.StdEncoding.EncodeToString(v.Data)
 		return json.BinData{v.Subtype, data}, nil
 
-	case primitive.DBPointer: // DBPointer
+	case bson.DBPointer: // DBPointer
 		return json.DBPointer{v.DB, v.Pointer}, nil
 
-	case primitive.Regex: // RegExp
+	case bson.Regex: // RegExp
 		return json.RegExp{v.Pattern, v.Options}, nil
 
-	case primitive.Timestamp: // Timestamp
+	case bson.Timestamp: // Timestamp
 		return json.Timestamp{
 			Seconds:   v.T,
 			Increment: v.I,
 		}, nil
 
-	case primitive.JavaScript: // JavaScript Code
+	case bson.JavaScript: // JavaScript Code
 		return json.JavaScript{Code: string(v), Scope: nil}, nil
 
-	case primitive.CodeWithScope: // JavaScript Code w/ Scope
+	case bson.CodeWithScope: // JavaScript Code w/ Scope
 		var scope interface{}
 		var err error
 		if v.Scope != nil {
@@ -238,16 +237,16 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		}
 		return json.JavaScript{string(v.Code), scope}, nil
 
-	case primitive.MaxKey: // MaxKey
+	case bson.MaxKey: // MaxKey
 		return json.MaxKey{}, nil
 
-	case primitive.MinKey: // MinKey
+	case bson.MinKey: // MinKey
 		return json.MinKey{}, nil
 
-	case primitive.Undefined: // undefined
+	case bson.Undefined: // undefined
 		return json.Undefined{}, nil
 
-	case primitive.Null: // Null
+	case bson.Null: // Null
 		return nil, nil
 	}
 

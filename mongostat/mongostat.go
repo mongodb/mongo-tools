@@ -8,6 +8,7 @@
 package mongostat
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -21,7 +22,7 @@ import (
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // MongoStat is a container for the user-specified options and
@@ -295,7 +296,7 @@ func (node *NodeMonitor) Poll(
 		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
 		return nil, err
 	}
-	tempBson, err := result.DecodeBytes()
+	tempBson, err := result.Raw()
 	if err != nil {
 		log.Logvf(log.Always, "Encountered error decoding serverStatus: %v\n", err)
 		return nil, fmt.Errorf("Error decoding serverStatus: %v\n", err)
@@ -307,7 +308,9 @@ func (node *NodeMonitor) Poll(
 	}
 	// The flattened version is required by some lookup functions
 	statMap := make(map[string]interface{})
-	err = result.Decode(&statMap)
+	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(tempBson)))
+	decoder.DefaultDocumentMap()
+	err = decoder.Decode(&statMap)
 	if err != nil {
 		return nil, fmt.Errorf("Error flattening serverStatus: %v\n", err)
 	}

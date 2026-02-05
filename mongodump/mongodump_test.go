@@ -36,9 +36,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 var (
@@ -316,7 +315,7 @@ func setUpTimeseries(dbName string, colName string) error {
 		_, err = coll.InsertOne(
 			context.Background(),
 			bson.M{
-				"ts":          primitive.NewDateTimeFromTime(time.Now()),
+				"ts":          bson.NewDateTimeFromTime(time.Now()),
 				"my_meta":     metadata,
 				"measurement": i,
 			},

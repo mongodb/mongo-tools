@@ -14,8 +14,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 // var block and functions copied from testutil to avoid import cycle.

@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Represents base-64 encoded binary data.
@@ -38,7 +37,7 @@ type DBRef struct {
 // and the objectId in which the _id of the document is contained.
 type DBPointer struct {
 	Namespace string
-	Id        primitive.ObjectID
+	Id        bson.ObjectID
 }
 
 // Represents the literal MinKey.
@@ -57,7 +56,7 @@ type NumberLong int64
 type NumberFloat float64
 
 type Decimal128 struct {
-	primitive.Decimal128
+	bson.Decimal128
 }
 
 // Represents a regular expression.

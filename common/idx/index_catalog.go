@@ -9,7 +9,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // CollectionIndexCatalog stores the current view of all indexes of a single collection.
@@ -212,7 +212,7 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 			var idIndexName string
 			var idIndex *IndexDocument
 			for name, doc := range catalog.indexes {
-				keyMap := doc.Key.Map()
+				keyMap := bsonutil.ToMap(doc.Key)
 				if len(keyMap) == 1 {
 					if _, isId := keyMap["_id"]; isId {
 						idIndexName = name

@@ -23,10 +23,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/password"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 )
@@ -88,7 +88,7 @@ type ToolOptions struct {
 	ReadPreference *readpref.ReadPref
 
 	// WriteConcern, if specified, sets the client default
-	WriteConcern *writeconcern.WriteConcern
+	WriteConcern *wcwrapper.WriteConcern
 
 	// RetryWrites, if specified, sets the client default.
 	RetryWrites *bool

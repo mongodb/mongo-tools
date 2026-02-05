@@ -23,8 +23,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"gopkg.in/tomb.v2"
 )
 
@@ -483,7 +483,11 @@ readLoop:
 			return nil
 		}
 	}
-	result, err := inserter.Flush()
+
+	ctx, cancel := imp.writeContext()
+	defer cancel()
+
+	result, err := inserter.Flush(ctx)
 	imp.updateCounts(result, err)
 	return db.FilterError(imp.IngestOptions.StopOnError, err)
 }
@@ -511,21 +515,24 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 
 	selector := constructUpsertDocument(imp.upsertFields, document)
 
+	ctx, cancel := imp.writeContext()
+	defer cancel()
+
 	switch imp.IngestOptions.Mode {
 	case modeInsert:
-		result, err = inserter.Insert(document)
+		result, err = inserter.Insert(ctx, document)
 	case modeUpsert:
 		if selector == nil {
-			result, err = imp.fallbackToInsert(inserter, document)
+			result, err = imp.fallbackToInsert(ctx, inserter, document)
 		} else {
-			result, err = inserter.Replace(selector, document)
+			result, err = inserter.Replace(ctx, selector, document)
 		}
 	case modeMerge:
 		if selector == nil {
-			result, err = imp.fallbackToInsert(inserter, document)
+			result, err = imp.fallbackToInsert(ctx, inserter, document)
 		} else {
 			updateDoc := bson.D{{"$set", document}}
-			result, err = inserter.Update(selector, updateDoc)
+			result, err = inserter.Update(ctx, selector, updateDoc)
 		}
 	case modeDelete:
 		if selector == nil {
@@ -535,7 +542,7 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 				imp.upsertFields,
 			)
 		} else {
-			result, err = inserter.Delete(selector, document)
+			result, err = inserter.Delete(ctx, selector, document)
 		}
 	default:
 		err = fmt.Errorf("Invalid mode: %v", imp.IngestOptions.Mode)
@@ -548,6 +555,7 @@ func (imp *MongoImport) importDocument(inserter *db.BufferedBulkInserter, docume
 }
 
 func (imp *MongoImport) fallbackToInsert(
+	ctx context.Context,
 	inserter *db.BufferedBulkInserter,
 	document bson.D,
 ) (result *mongo.BulkWriteResult, err error) {
@@ -556,7 +564,7 @@ func (imp *MongoImport) fallbackToInsert(
 		"Could not construct selector from %v, falling back to insert mode",
 		imp.upsertFields,
 	)
-	result, err = inserter.Insert(document)
+	result, err = inserter.Insert(ctx, document)
 	return
 }
 
@@ -638,4 +646,12 @@ func (imp *MongoImport) getInputReader(in io.Reader) (InputReader, error) {
 		in,
 		imp.IngestOptions.NumDecodingWorkers,
 	), nil
+}
+
+func (imp *MongoImport) writeContext() (context.Context, context.CancelFunc) {
+	if wtimeout := imp.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		return context.WithTimeout(context.TODO(), wtimeout)
+	}
+
+	return context.WithCancel(context.TODO())
 }

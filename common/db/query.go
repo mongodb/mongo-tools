@@ -3,9 +3,10 @@ package db
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // DeferredQuery represents a deferred query.
@@ -24,7 +25,7 @@ func (q *DeferredQuery) Count(isView bool) (int, error) {
 	if q.Filter == nil {
 		emptyFilter = true
 		filter = bson.D{}
-	} else if val, ok := q.Filter.(bson.D); ok && (val == nil || len(val.Map()) == 0) {
+	} else if val, ok := q.Filter.(bson.D); ok && (val == nil || len(bsonutil.ToMap(val)) == 0) {
 		emptyFilter = true
 	} else if val, ok := q.Filter.(bson.M); ok && (val == nil || len(val) == 0) {
 		emptyFilter = true

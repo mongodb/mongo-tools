@@ -14,7 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // GetFieldsFromFile fetches the first line from the contents of the file

@@ -12,12 +12,12 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestObjectIdValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	oid, _ := primitive.ObjectIDFromHex("0123456789abcdef01234567")
+	oid, _ := bson.ObjectIDFromHex("0123456789abcdef01234567")
 
 	Convey("When converting JSON with ObjectId values", t, func() {
 

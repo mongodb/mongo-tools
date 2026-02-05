@@ -14,11 +14,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 )
 
 // determineOplogCollectionName uses a command to infer
@@ -48,7 +47,7 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 }
 
 // getOplogCurrentTime returns the most recent oplog entry.
-func (dump *MongoDump) getCurrentOplogTime() (primitive.Timestamp, error) {
+func (dump *MongoDump) getCurrentOplogTime() (bson.Timestamp, error) {
 	mostRecentOplogEntry := db.Oplog{}
 	var tempBSON bson.Raw
 
@@ -62,21 +61,21 @@ func (dump *MongoDump) getCurrentOplogTime() (primitive.Timestamp, error) {
 		0,
 	)
 	if err != nil {
-		return primitive.Timestamp{}, fmt.Errorf("error getting recent oplog entry: %v", err)
+		return bson.Timestamp{}, fmt.Errorf("error getting recent oplog entry: %v", err)
 	}
 	err = bson.Unmarshal(tempBSON, &mostRecentOplogEntry)
 	if err != nil {
-		return primitive.Timestamp{}, err
+		return bson.Timestamp{}, err
 	}
 	return mostRecentOplogEntry.Timestamp, nil
 }
 
 // getOplogCopyStartTime returns either the oldest active transaction timestamp or the
 // current oplog time if there are no active transactions.
-func (dump *MongoDump) getOplogCopyStartTime() (primitive.Timestamp, error) {
+func (dump *MongoDump) getOplogCopyStartTime() (bson.Timestamp, error) {
 	client, err := dump.SessionProvider.GetSession()
 	if err != nil {
-		return primitive.Timestamp{}, fmt.Errorf("error getting client: %v", err)
+		return bson.Timestamp{}, fmt.Errorf("error getting client: %v", err)
 	}
 
 	coll := client.Database("config").
@@ -91,31 +90,31 @@ func (dump *MongoDump) getOplogCopyStartTime() (primitive.Timestamp, error) {
 		if err == mongo.ErrNoDocuments {
 			return dump.getCurrentOplogTime()
 		}
-		return primitive.Timestamp{}, fmt.Errorf("config.transactions.findOne error: %v", err)
+		return bson.Timestamp{}, fmt.Errorf("config.transactions.findOne error: %v", err)
 	}
 
 	rawTS, err := result.LookupErr("startOpTime", "ts")
 	if err != nil {
-		return primitive.Timestamp{}, fmt.Errorf(
+		return bson.Timestamp{}, fmt.Errorf(
 			"config.transactions row had no startOpTime.ts field",
 		)
 	}
 
 	t, i, ok := rawTS.TimestampOK()
 	if !ok {
-		return primitive.Timestamp{}, fmt.Errorf(
+		return bson.Timestamp{}, fmt.Errorf(
 			"config.transactions startOpTime.ts was not a BSON timestamp",
 		)
 	}
 
-	return primitive.Timestamp{T: t, I: i}, nil
+	return bson.Timestamp{T: t, I: i}, nil
 }
 
 // checkOplogTimestampExists checks to make sure the oplog hasn't rolled over
 // since mongodump started. It does this by checking the oldest oplog entry
 // still in the database and making sure it happened at or before the timestamp
 // captured at the start of the dump.
-func (dump *MongoDump) checkOplogTimestampExists(ts primitive.Timestamp) (bool, error) {
+func (dump *MongoDump) checkOplogTimestampExists(ts bson.Timestamp) (bool, error) {
 	oldestOplogEntry := db.Oplog{}
 	var tempBSON bson.Raw
 
@@ -187,7 +186,7 @@ func oplogDocumentValidator(in []byte) error {
 
 // DumpOplogBetweenTimestamps takes two timestamps and writer and dumps all oplog
 // entries between the given timestamp to the writer. Returns any errors that occur.
-func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end primitive.Timestamp) error {
+func (dump *MongoDump) DumpOplogBetweenTimestamps(start, end bson.Timestamp) error {
 	session, err := dump.SessionProvider.GetSession()
 	if err != nil {
 		return err

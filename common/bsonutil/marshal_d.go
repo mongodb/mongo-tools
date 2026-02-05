@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-tools/common/json"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // MarshalD is a wrapper for bson.D that allows unmarshalling

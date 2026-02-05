@@ -7,8 +7,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestBson2Float64(t *testing.T) {
@@ -16,7 +15,7 @@ func TestBson2Float64(t *testing.T) {
 
 	assert := assert.New(t)
 
-	decimalVal, _ := primitive.ParseDecimal128("-1")
+	decimalVal, _ := bson.ParseDecimal128("-1")
 	tests := []struct {
 		in          interface{}
 		expected    float64
@@ -76,14 +75,14 @@ func TestIsEqual(t *testing.T) {
 			"document has same key/value pairs but in different order",
 		},
 		{
-			bson.D{{"hello", primitive.DateTime(42)}},
-			bson.D{{"hello", primitive.DateTime(42)}},
+			bson.D{{"hello", bson.DateTime(42)}},
+			bson.D{{"hello", bson.DateTime(42)}},
 			true,
 			"identical documents with datetime keys",
 		},
 		{
-			bson.D{{"hello", primitive.DateTime(42)}},
-			bson.D{{"hello", primitive.DateTime(999)}},
+			bson.D{{"hello", bson.DateTime(42)}},
+			bson.D{{"hello", bson.DateTime(999)}},
 			false,
 			"same key but different datetime value",
 		},

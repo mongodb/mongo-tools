@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // BSONSource reads documents from the underlying io.ReadCloser, Stream which

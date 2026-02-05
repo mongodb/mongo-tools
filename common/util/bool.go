@@ -9,7 +9,7 @@ package util
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // IsTruthy returns true for values the server will interpret as "true".
@@ -18,7 +18,7 @@ func IsTruthy(val interface{}) bool {
 	if val == nil {
 		return false
 	}
-	if val == (primitive.Undefined{}) {
+	if val == (bson.Undefined{}) {
 		return false
 	}
 

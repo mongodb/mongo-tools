@@ -12,7 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestJSTruthyValues(t *testing.T) {
@@ -51,7 +51,7 @@ func TestJSTruthyValues(t *testing.T) {
 				So(IsTruthy(nil), ShouldBeFalse)
 			})
 			Convey("undefined -> false", func() {
-				So(IsTruthy(primitive.Undefined{}), ShouldBeFalse)
+				So(IsTruthy(bson.Undefined{}), ShouldBeFalse)
 			})
 		})
 

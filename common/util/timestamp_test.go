@@ -10,22 +10,22 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestTimestampComparisons(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	t.Run("TestTimestampGreaterThan", func(t *testing.T) {
-		reference := primitive.Timestamp{T: 5, I: 5}
+		reference := bson.Timestamp{T: 5, I: 5}
 
 		cases := []struct {
 			name     string
-			lhs, rhs primitive.Timestamp
+			lhs, rhs bson.Timestamp
 			expected bool
 		}{
-			{"different T", primitive.Timestamp{T: 1000, I: 0}, reference, true},
-			{"equal T", primitive.Timestamp{T: 5, I: 1}, reference, false},
+			{"different T", bson.Timestamp{T: 1000, I: 0}, reference, true},
+			{"equal T", bson.Timestamp{T: 5, I: 1}, reference, false},
 			{"equal T and I", reference, reference, false},
 		}
 
@@ -39,15 +39,15 @@ func TestTimestampComparisons(t *testing.T) {
 	})
 
 	t.Run("TestTimestampGreaterThan", func(t *testing.T) {
-		reference := primitive.Timestamp{T: 1000, I: 5}
+		reference := bson.Timestamp{T: 1000, I: 5}
 
 		cases := []struct {
 			name     string
-			lhs, rhs primitive.Timestamp
+			lhs, rhs bson.Timestamp
 			expected bool
 		}{
-			{"different T", primitive.Timestamp{T: 5, I: 0}, reference, true},
-			{"equal T", primitive.Timestamp{T: 1000, I: 10}, reference, false},
+			{"different T", bson.Timestamp{T: 5, I: 0}, reference, true},
+			{"equal T", bson.Timestamp{T: 1000, I: 10}, reference, false},
 			{"equal T and I", reference, reference, false},
 		}
 

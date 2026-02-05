@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-tools/common/util"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // OpTime represents the values to uniquely identify an oplog entry.
@@ -12,9 +12,9 @@ import (
 // The hash is set uniquely up until (and including) version 4.0, but is set
 // to zero in version 4.2+ with plans to remove it soon (see SERVER-36334).
 type OpTime struct {
-	Timestamp primitive.Timestamp `json:"timestamp"`
-	Term      *int64              `json:"term"`
-	Hash      *int64              `json:"hash"`
+	Timestamp bson.Timestamp `json:"timestamp"`
+	Term      *int64         `json:"term"`
+	Hash      *int64         `json:"hash"`
 }
 
 // GetOpTimeFromOplogEntry returns an OpTime struct from the relevant fields in an Oplog struct.

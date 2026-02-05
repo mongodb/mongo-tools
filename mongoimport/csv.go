@@ -12,7 +12,7 @@ import (
 	"io"
 
 	"github.com/mongodb/mongo-tools/mongoimport/csv"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // CSVInputReader implements the InputReader interface for CSV input types.

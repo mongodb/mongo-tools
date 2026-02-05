@@ -19,10 +19,9 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestTimestampStringParsing(t *testing.T) {
@@ -33,49 +32,49 @@ func TestTimestampStringParsing(t *testing.T) {
 		Convey("123:456 [should pass]", func() {
 			ts, err := ParseTimestampFlag("123:456")
 			So(err, ShouldBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{T: 123, I: 456})
+			So(ts, ShouldResemble, bson.Timestamp{T: 123, I: 456})
 		})
 
 		Convey("123 [should pass]", func() {
 			ts, err := ParseTimestampFlag("123")
 			So(err, ShouldBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{T: 123, I: 0})
+			So(ts, ShouldResemble, bson.Timestamp{T: 123, I: 0})
 		})
 
 		Convey("123: [should pass]", func() {
 			ts, err := ParseTimestampFlag("123:")
 			So(err, ShouldBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{T: 123, I: 0})
+			So(ts, ShouldResemble, bson.Timestamp{T: 123, I: 0})
 		})
 
 		Convey("123.123 [should fail]", func() {
 			ts, err := ParseTimestampFlag("123.123")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{})
+			So(ts, ShouldResemble, bson.Timestamp{})
 		})
 
 		Convey(": [should fail]", func() {
 			ts, err := ParseTimestampFlag(":")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{})
+			So(ts, ShouldResemble, bson.Timestamp{})
 		})
 
 		Convey("1:1:1 [should fail]", func() {
 			ts, err := ParseTimestampFlag("1:1:1")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{})
+			So(ts, ShouldResemble, bson.Timestamp{})
 		})
 
 		Convey("cats [should fail]", func() {
 			ts, err := ParseTimestampFlag("cats")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{})
+			So(ts, ShouldResemble, bson.Timestamp{})
 		})
 
 		Convey("[empty string] [should fail]", func() {
 			ts, err := ParseTimestampFlag("")
 			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, primitive.Timestamp{})
+			So(ts, ShouldResemble, bson.Timestamp{})
 		})
 	})
 }
@@ -86,31 +85,31 @@ func TestValidOplogLimitChecking(t *testing.T) {
 
 	Convey("With a MongoRestore instance with oplogLimit of 5:0", t, func() {
 		mr := &MongoRestore{
-			oplogLimit: primitive.Timestamp{T: 5, I: 0},
+			oplogLimit: bson.Timestamp{T: 5, I: 0},
 		}
 
 		Convey("an oplog entry with ts=1000:0 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 1000, I: 0}), ShouldBeFalse)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 1000, I: 0}), ShouldBeFalse)
 		})
 
 		Convey("an oplog entry with ts=5:1 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 1}), ShouldBeFalse)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 1}), ShouldBeFalse)
 		})
 
 		Convey("an oplog entry with ts=5:0 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 0}), ShouldBeFalse)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 0}), ShouldBeFalse)
 		})
 
 		Convey("an oplog entry with ts=4:9 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 4, I: 9}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 4, I: 9}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=4:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 4, I: 0}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 4, I: 0}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=0:1 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 0, I: 1}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 0, I: 1}), ShouldBeTrue)
 		})
 	})
 
@@ -118,15 +117,15 @@ func TestValidOplogLimitChecking(t *testing.T) {
 		mr := &MongoRestore{}
 
 		Convey("an oplog entry with ts=1000:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 1000, I: 0}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 1000, I: 0}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=5:1 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 1}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 1}), ShouldBeTrue)
 		})
 
 		Convey("an oplog entry with ts=5:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(primitive.Timestamp{T: 5, I: 0}), ShouldBeTrue)
+			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 0}), ShouldBeTrue)
 		})
 	})
 
@@ -572,7 +571,7 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 	size := 1024*1024*16 - 32
 
 	idx, rawdoc := bsoncore.AppendDocumentStart(nil)
-	rawdoc = bsoncore.AppendObjectIDElement(rawdoc, "_id", primitive.NewObjectID())
+	rawdoc = bsoncore.AppendObjectIDElement(rawdoc, "_id", bson.NewObjectID())
 	rawdoc = bsoncore.AppendStringElement(rawdoc, "key", strings.Repeat("A", size))
 	rawdoc, _ = bsoncore.AppendDocumentEnd(rawdoc, idx)
 

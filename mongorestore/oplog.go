@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -23,9 +22,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/txn"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/exp/slices"
 )
 
@@ -433,8 +431,11 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 		log.Logv(log.DebugLow, opDetails)
 	}
 
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+
 	singleRes := session.Database("admin").
-		RunCommand(context.TODO(), bson.D{{"applyOps", []db.Oplog{op}}})
+		RunCommand(ctx, bson.D{{"applyOps", []db.Oplog{op}}})
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}
@@ -451,7 +452,7 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 
 // TimestampBeforeLimit returns true if the given timestamp is allowed to be
 // applied to mongorestore's target database.
-func (restore *MongoRestore) TimestampBeforeLimit(ts primitive.Timestamp) bool {
+func (restore *MongoRestore) TimestampBeforeLimit(ts bson.Timestamp) bool {
 	if restore.oplogLimit.T == 0 && restore.oplogLimit.I == 0 {
 		// always valid if there is no --oplogLimit set
 		return true
@@ -463,16 +464,16 @@ func (restore *MongoRestore) TimestampBeforeLimit(ts primitive.Timestamp) bool {
 // where <time_t> is the seconds since the UNIX epoch, and <ordinal> represents
 // a counter of operations in the oplog that occurred in the specified second.
 // It parses this timestamp string and returns a bson.MongoTimestamp type.
-func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
+func ParseTimestampFlag(ts string) (bson.Timestamp, error) {
 	var seconds, increment int
 	timestampFields := strings.Split(ts, ":")
 	if len(timestampFields) > 2 {
-		return primitive.Timestamp{}, fmt.Errorf("too many : characters")
+		return bson.Timestamp{}, fmt.Errorf("too many : characters")
 	}
 
 	seconds, err := strconv.Atoi(timestampFields[0])
 	if err != nil {
-		return primitive.Timestamp{}, fmt.Errorf("error parsing timestamp seconds: %v", err)
+		return bson.Timestamp{}, fmt.Errorf("error parsing timestamp seconds: %v", err)
 	}
 
 	// parse the increment field if it exists
@@ -480,7 +481,7 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 		if len(timestampFields[1]) > 0 {
 			increment, err = strconv.Atoi(timestampFields[1])
 			if err != nil {
-				return primitive.Timestamp{}, fmt.Errorf(
+				return bson.Timestamp{}, fmt.Errorf(
 					"error parsing timestamp increment: %v",
 					err,
 				)
@@ -493,15 +494,15 @@ func ParseTimestampFlag(ts string) (primitive.Timestamp, error) {
 
 	secsU32, err := safecast.Convert[uint32](seconds)
 	if err != nil {
-		return primitive.Timestamp{}, errors.Wrapf(err, "secs (%d) to %T", seconds, secsU32)
+		return bson.Timestamp{}, errors.Wrapf(err, "secs (%d) to %T", seconds, secsU32)
 	}
 
 	incU32, err := safecast.Convert[uint32](increment)
 	if err != nil {
-		return primitive.Timestamp{}, errors.Wrapf(err, "increment (%d) to %T", increment, incU32)
+		return bson.Timestamp{}, errors.Wrapf(err, "increment (%d) to %T", increment, incU32)
 	}
 
-	return primitive.Timestamp{T: secsU32, I: incU32}, nil
+	return bson.Timestamp{T: secsU32, I: incU32}, nil
 }
 
 // Server versions 3.6.0-3.6.8 and 4.0.0-4.0.2 require a 'ui' field

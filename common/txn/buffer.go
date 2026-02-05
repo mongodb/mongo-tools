@@ -15,8 +15,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var ErrBufferClosed = errors.New("transaction buffer already closed")
@@ -362,7 +361,7 @@ func bsonDocToOplog(doc bson.D) (*db.Oplog, error) {
 			}
 			op.Query = d
 		case "ui":
-			u, ok := v.Value.(primitive.Binary)
+			u, ok := v.Value.(bson.Binary)
 			if !ok {
 				return nil, fmt.Errorf(opConvertErrorFmt, "ui field", "not binary data")
 			}

@@ -7,15 +7,15 @@
 package util
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // TimestampGreaterThan returns true if lhs comes after rhs, false otherwise.
-func TimestampGreaterThan(lhs, rhs primitive.Timestamp) bool {
+func TimestampGreaterThan(lhs, rhs bson.Timestamp) bool {
 	return lhs.T > rhs.T || lhs.T == rhs.T && lhs.I > rhs.I
 }
 
 // TimestampLessThan returns true if lhs comes before rhs, false otherwise.
-func TimestampLessThan(lhs, rhs primitive.Timestamp) bool {
+func TimestampLessThan(lhs, rhs bson.Timestamp) bool {
 	return lhs.T < rhs.T || lhs.T == rhs.T && lhs.I < rhs.I
 }
