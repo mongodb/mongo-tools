@@ -362,7 +362,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		}
 	}
 
-	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
+	return restore.ApplyOp(oplogCtx.session, op)
 }
 
 func (restore *MongoRestore) HandleTxnOp(oplogCtx *oplogContext, meta txn.Meta, op db.Oplog) error {
@@ -414,10 +414,27 @@ Loop:
 	return nil
 }
 
-// ApplyOps is a wrapper for the applyOps database command, we pass in
-// a session to avoid opening a new connection for a few inserts at a time.
-func (restore *MongoRestore) ApplyOps(session *mongo.Client, entries []interface{}) error {
-	singleRes := session.Database("admin").RunCommand(context.TODO(), bson.D{{"applyOps", entries}})
+// ApplyOp is a wrapper for the applyOps database command, we pass in
+// a session to avoid opening a new connection for each op applied.
+func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
+	if log.IsInVerbosity(log.DebugLow) {
+		opDetails := fmt.Sprintf("%#q to %#q", op.Operation, op.Namespace)
+		if op.Operation == "c" {
+			var cmd string
+			// This should be impossible but we don't want to crash when logging.
+			if len(op.Object) == 0 {
+				cmd = "op.Object is empty"
+			} else {
+				cmd = op.Object[0].Key
+			}
+
+			opDetails = fmt.Sprintf("%s with command %#q", opDetails, cmd)
+		}
+		log.Logv(log.DebugLow, opDetails)
+	}
+
+	singleRes := session.Database("admin").
+		RunCommand(context.TODO(), bson.D{{"applyOps", []db.Oplog{op}}})
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}
