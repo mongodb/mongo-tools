@@ -458,9 +458,9 @@ func (d *decodeState) indirect(
 		}
 		if v.Type().NumMethod() > 0 {
 			// This check for *bson.D here is sort of a hack, but does exactly what we need it to. The
-			// whole reason this custom JSON stuff exists is so that we can have "sloppy" JSON parsing for
+			// whole reason this custom JSON stuff exists is so that we can have "lax" JSON parsing for
 			// backcompat with the old tools, so that {a:1} works even though it's not valid JSON. This
-			// broke when upgrading the Go driver to v2, because it provides a custom UnmarshalJSON method
+			// broke when upgrading the Go driver to v2, because v2 provides a custom UnmarshalJSON method
 			// for bson.D. We explicitly _don't_ want to use that here, so we check if it's bson.D and
 			// skip this return if it is. (2026-02-02)
 			if u, ok := v.Interface().(Unmarshaler); ok && v.Type() != reflect.TypeFor[*bson.D]() {
