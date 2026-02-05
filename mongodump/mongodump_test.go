@@ -1476,12 +1476,14 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		defer failpoint.Reset()
 
 		var disconnectErr error
+		canCheckErr := make(chan struct{})
 		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
 		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
 		go func() {
 			time.Sleep(2 * time.Second)
 			session, _ := md.SessionProvider.GetSession()
 			disconnectErr = session.Disconnect(context.Background())
+			close(canCheckErr)
 		}()
 
 		err = md.Dump()
@@ -1489,6 +1491,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "client is disconnected")
 
+		<-canCheckErr
 		So(disconnectErr, ShouldBeNil)
 	})
 }
