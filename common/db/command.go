@@ -187,6 +187,40 @@ func (sp *SessionProvider) IsMongos() (bool, error) {
 	return nodeType == Mongos, nil
 }
 
+// HasRecordIdsReplicated checks if the connected server has the featureFlagRecordIdsReplicated
+// feature flag enabled.
+func (sp *SessionProvider) HasRecordIdsReplicated() (bool, error) {
+	session, err := sp.GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	result := session.Database("admin").RunCommand(
+		context.Background(),
+		bson.D{
+			{"getParameter", 1},
+			{"featureFlagRecordIdsReplicated", 1},
+		},
+	)
+	if result.Err() != nil {
+		// If the command fails, the feature flag doesn't exist or isn't enabled. Or maybe something
+		// is totally broken, in which case we will find that out when we attempt other DB
+		// operations.
+		return false, nil
+	}
+
+	var doc struct {
+		FeatureFlagRecordIdsReplicated struct {
+			Value bool `bson:"value"`
+		} `bson:"featureFlagRecordIdsReplicated"`
+	}
+	if err := result.Decode(&doc); err != nil {
+		return false, nil
+	}
+
+	return doc.FeatureFlagRecordIdsReplicated.Value, nil
+}
+
 //
 // // SupportsWriteCommands returns true if the connected server supports write
 // // commands, returns false otherwise.
