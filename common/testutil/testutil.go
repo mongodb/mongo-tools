@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
 // GetBareSession returns an mgo.Session from the environment or
@@ -40,15 +41,50 @@ func GetBareSession() (*mongo.Client, error) {
 // GetBareSessionProvider returns a session provider from the environment or
 // from a default host and port.
 func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error) {
-	var toolOptions *options.ToolOptions
+	toolOptions, err := GetToolOptions()
+	if err != nil {
+		return nil, nil, fmt.Errorf(
+			"error getting tool options to create a bare session provider: %w",
+			err,
+		)
+	}
 
+	sessionProvider, err := db.NewSessionProvider(*toolOptions)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sessionProvider, toolOptions, nil
+}
+
+const uriEnvVar = "TOOLS_TESTING_MONGOD"
+
+func GetToolOptions() (*options.ToolOptions, error) {
+	var toolOptions *options.ToolOptions
 	// get ToolOptions from URI or defaults
-	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
-		fakeArgs := []string{"--uri=" + uri}
-		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
-		_, err := toolOptions.ParseArgs(fakeArgs)
+	if uri := os.Getenv(uriEnvVar); uri != "" {
+		parse, err := connstring.ParseAndValidate(uri)
 		if err != nil {
-			panic(fmt.Sprintf("Could not parse TOOLS_TESTING_MONGOD environment variable: %v", err))
+			return nil, fmt.Errorf(
+				"%#q from the %#q env var is not a valid connection string: %w",
+				uri,
+				uriEnvVar,
+				err,
+			)
+		}
+
+		fakeArgs := []string{"--uri=" + uri}
+		opts := options.EnabledOptions{Auth: parse.UsernameSet, URI: true}
+		toolOptions = options.New("mongodump", "", "", "", true, opts)
+
+		_, err = toolOptions.ParseArgs(fakeArgs)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"could not create toolOptions with %#q from the %#q env var: %w",
+				uri,
+				uriEnvVar,
+				err,
+			)
 		}
 	} else {
 		ssl := GetSSLOptions()
@@ -66,15 +102,13 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 			Namespace:  &options.Namespace{},
 		}
 	}
+
 	err := toolOptions.NormalizeOptionsAndURI()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	sessionProvider, err := db.NewSessionProvider(*toolOptions)
-	if err != nil {
-		return nil, nil, err
-	}
-	return sessionProvider, toolOptions, nil
+
+	return toolOptions, nil
 }
 
 func GetBareArgs() []string {
@@ -82,7 +116,7 @@ func GetBareArgs() []string {
 
 	args = append(args, GetSSLArgs()...)
 	args = append(args, GetAuthArgs()...)
-	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
+	if uri := os.Getenv(uriEnvVar); uri != "" {
 		args = append(args, "--uri", uri)
 	} else {
 		args = append(args, "--host", "localhost", "--port", db.DefaultTestPort)
@@ -207,4 +241,35 @@ func MakeTempDir(t *testing.T) (string, func()) {
 		}
 	}
 	return dir, cleanup
+}
+
+var atlasDomains = []string{
+	".mongo.com",
+	".mongodb.net",
+	".mongodb-qa.net",
+	".mongodb-dev.net",
+	".mmscloudteam.com",
+	".mmscloudtest.com",
+	".mongodbgov.net",
+	".mongodbgov-local.net",
+	".mongodbgov-dev.net",
+	".mongodbgov-qa.net",
+}
+
+// SkipForAtlasCluster will skip the test if `TOOLS_TESTING_MONGOD` is an Atlas URI.
+func SkipForAtlasCluster(t *testing.T, reason string) {
+	uri := os.Getenv(uriEnvVar)
+	if uri == "" {
+		return
+	}
+
+	for _, d := range atlasDomains {
+		if strings.Contains(uri, d) {
+			t.Skipf(
+				"The %#q env var is for an Atlas cluster: %s",
+				uriEnvVar,
+				reason,
+			)
+		}
+	}
 }

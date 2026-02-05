@@ -58,31 +58,10 @@ const (
 	longMetadataName   = longPrefix + "%2FLong%2FCollection%2FName%24FUVlwTrb2eHN1RUE1swI1fFzWmA.metadata.json"
 )
 
-func simpleMongoDumpInstance() *MongoDump {
-	var toolOptions *options.ToolOptions
-
-	// get ToolOptions from URI or defaults
-	if uri := os.Getenv("TOOLS_TESTING_MONGOD"); uri != "" {
-		fakeArgs := []string{"--uri=" + uri}
-		toolOptions = options.New("mongodump", "", "", "", true, options.EnabledOptions{URI: true})
-		_, err := toolOptions.ParseArgs(fakeArgs)
-		if err != nil {
-			panic("Could not parse MONGOD environment variable")
-		}
-	} else {
-		ssl := testutil.GetSSLOptions()
-		auth := testutil.GetAuthOptions()
-		connection := &options.Connection{
-			Host: "localhost",
-			Port: db.DefaultTestPort,
-		}
-		toolOptions = &options.ToolOptions{
-			SSL:        &ssl,
-			Connection: connection,
-			Auth:       &auth,
-			Verbosity:  &options.Verbosity{},
-			URI:        &options.URI{},
-		}
+func simpleMongoDumpInstance() (*MongoDump, error) {
+	toolOptions, err := testutil.GetToolOptions()
+	if err != nil {
+		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)
 	}
 
 	// Limit ToolOptions to test database
@@ -99,7 +78,7 @@ func simpleMongoDumpInstance() *MongoDump {
 		ToolOptions:   toolOptions,
 		InputOptions:  inputOptions,
 		OutputOptions: outputOptions,
-	}
+	}, nil
 }
 
 // returns the number of .bson files in a directory
@@ -660,7 +639,8 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a MongoDump instance", t, func() {
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
 
 		Convey("we cannot dump a collection when a database specified", func() {
 			md.ToolOptions.Collection = "some_collection"
@@ -694,13 +674,16 @@ func TestMongoDumpValidateOptions(t *testing.T) {
 
 func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	require.NoError(t, err)
 	defer sessionProvider.Close()
 
-	md := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
 	md.isAtlasProxy = true
 	md.OutputOptions.DumpDBUsersAndRoles = false
 	md.SessionProvider = sessionProvider
@@ -740,7 +723,9 @@ func TestMongoDumpBSON(t *testing.T) {
 		Convey(
 			"testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection",
 			func() {
-				md := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance()
+				So(err, ShouldBeNil)
+
 				md.InputOptions.Query = ""
 
 				Convey("and that for a particular collection", func() {
@@ -856,7 +841,8 @@ func TestMongoDumpBSON(t *testing.T) {
 			func() {
 				session, err := testutil.GetBareSession()
 				So(err, ShouldBeNil)
-				md := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance()
+				So(err, ShouldBeNil)
 
 				// expect 10 documents per collection
 				bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
@@ -897,11 +883,13 @@ func TestMongoDumpBSON(t *testing.T) {
 		)
 
 		Convey("using MongoDump against a collection that doesn't exist succeeds", func() {
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			md.ToolOptions.DB = "nonExistentDB"
 			md.ToolOptions.Collection = "nonExistentColl"
 
-			err := md.Init()
+			err = md.Init()
 			So(err, ShouldBeNil)
 			err = md.Dump()
 			So(err, ShouldBeNil)
@@ -934,7 +922,8 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 		err = setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
 
 		Convey(
 			"testing that it dumps a collection with a name >238 bytes in the right format",
@@ -1037,7 +1026,9 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("when dumping all databases", func() {
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			md.ToolOptions.DB = ""
 			md.ToolOptions.Collection = ""
 
@@ -1075,7 +1066,9 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		})
 
 		Convey("when dumping one db", func() {
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
 			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
 			So(os.RemoveAll(dumpDir), ShouldBeNil)
@@ -1095,10 +1088,12 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, "nottestdb"))
 
 			Convey("the dump does not fail and prelude.json should not be created", func() {
-				md := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance()
+				So(err, ShouldBeNil)
+
 				md.ToolOptions.DB = "nonExistentDB"
 
-				err := md.Init()
+				err = md.Init()
 				So(err, ShouldBeNil)
 				err = md.Dump()
 				So(err, ShouldBeNil)
@@ -1135,7 +1130,9 @@ func TestMongoDumpMetaData(t *testing.T) {
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
 
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			md.OutputOptions.Out = "dump"
 			err = md.Init()
 			So(err, ShouldBeNil)
@@ -1256,7 +1253,9 @@ func TestMongoDumpOplog(t *testing.T) {
 			So(tearDownMongoDumpTestData(), ShouldBeNil)
 
 			// Prepare mongodump with options
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			md.OutputOptions.Oplog = true
 			md.ToolOptions.Namespace = &options.Namespace{}
 			err = md.Init()
@@ -1357,7 +1356,9 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 	}
 
 	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
+
 		md.ToolOptions.Collection = collName
 		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
@@ -1416,7 +1417,9 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	profileCollection := dbStruct.Collection("system.profile")
 
 	Convey("testing dumping a collection query hints", t, func() {
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
+
 		md.ToolOptions.Collection = collName
 		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
@@ -1465,7 +1468,9 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 	}
 
 	Convey("failing to get collection info should error, but not panic", t, func() {
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
+
 		md.ToolOptions.Collection = collName
 		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
@@ -1513,7 +1518,9 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
-				md := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance()
+				So(err, ShouldBeNil)
+
 				md.InputOptions.Query = `{"coords":{"x":0,"y":1}}`
 				md.ToolOptions.Collection = testCollectionNames[0]
 				md.ToolOptions.DB = testDB
@@ -1570,7 +1577,9 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			md.ToolOptions.DB = testDB
 			md.OutputOptions.Out = "dump"
 			md.OutputOptions.ViewsAsCollections = true
@@ -1641,7 +1650,9 @@ func TestMongoDumpViews(t *testing.T) {
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
 
-			md := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance()
+			So(err, ShouldBeNil)
+
 			md.ToolOptions.DB = testDB
 			md.OutputOptions.Out = "dump"
 
@@ -1702,7 +1713,8 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("testing output paths for collection names of varying lengths", t, func() {
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
 
 		Convey("don't change a collection name that results in an output path <255 bytes", func() {
 			md.OutputOptions.Out = "dump"
@@ -1844,7 +1856,9 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	Convey("With a MongoDump instance", t, func() {
 
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
+
 		md.ToolOptions.DB = dbName
 		md.OutputOptions.Out = "dump"
 
@@ -2206,7 +2220,9 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 
 	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, colName))
 
-	md := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
 	md.ToolOptions.DB = dbName
 	md.OutputOptions.Out = "dump"
 	md.OutputOptions.Out = ""
@@ -2266,6 +2282,10 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 
 func TestFailDuringResharding(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForAtlasCluster(
+		t,
+		"this test requires permissions that may not be available for an Atlas cluster",
+	)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
@@ -2292,7 +2312,9 @@ func TestFailDuringResharding(t *testing.T) {
 		err := setUpMongoDumpTestData()
 		So(err, ShouldBeNil)
 
-		md := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance()
+		So(err, ShouldBeNil)
+
 		md.OutputOptions.Oplog = true
 		md.ToolOptions.Namespace = &options.Namespace{}
 		err = md.Init()
@@ -2470,7 +2492,8 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 }
 
 func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
-	md := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
 
 	md.ToolOptions.DB = testDB
 	md.OutputOptions.Out = "dump"

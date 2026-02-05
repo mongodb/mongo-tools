@@ -1,3 +1,6 @@
+!/RELEASE.md
+!**/testdata/**
+!test/shell_common/jsconfig.json
 /*.cdx.json
 /data
 /deb_build
@@ -11,7 +14,9 @@
 /rpm_build
 /silkbomb.env
 /temp*
+/mongodump/*/mongodump_test_db
 /mongorestore/testdata/txntest/oplog.bson
+/mongorestore/testdata/index_collation/test/*
 *.bson
 *.deb
 *.dump
@@ -35,11 +40,8 @@ bin/
 node_modules
 tags
 testing_output/
-!/RELEASE.md
 vendor/pkg
-!**/testdata/**
 test/**/*.json
-!test/shell_common/jsconfig.json
 test/qa-tests/[0-9]*
 test/qa-tests/install_compass
 test/qa-tests/mongo*
