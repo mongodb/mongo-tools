@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -574,6 +575,13 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 // present in the dump, we try to infer the authentication version based on its absence.
 // Returns the authentication version number and any errors that occur.
 func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
+	if lo.EveryBy(
+		restore.dumpServerVersion[:],
+		func(v int) bool { return v == 0 },
+	) {
+		panic("GetDumpAuthVersion() called with empty dump server version")
+	}
+
 	// authSchema doc has been removed from system.version from 8.1+ (SERVER-83663)
 	// The only auth version used by server 8.1+ is 5
 	if restore.dumpServerVersion.GTE(db.Version{8, 1, 0}) {
