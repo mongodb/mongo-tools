@@ -21,10 +21,9 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
-	driverOptions "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	driverOptions "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // List of possible commands for mongofiles.
@@ -73,7 +72,7 @@ type MongoFiles struct {
 	FileNameRegex string
 
 	// GridFS bucket to operate on
-	bucket *gridfs.Bucket
+	bucket *mongo.GridFSBucket
 }
 
 // New constructs a new mongofiles instance from the provided options. Will fail if cannot connect to server or if the
@@ -242,7 +241,7 @@ func (mf *MongoFiles) handleGet() (err error) {
 
 // Gets all GridFS files that match the given query.
 func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
-	cursor, err := mf.bucket.Find(query)
+	cursor, err := mf.bucket.Find(context.TODO(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -341,16 +340,23 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 }
 
 // Delete all files with the given filename.
-func (mf *MongoFiles) deleteAll(filename string) error {
+func (mf *MongoFiles) deleteAll(baseCtx context.Context, filename string) error {
 	gridFiles, err := mf.findGFSFiles(bson.M{"filename": filename})
 	if err != nil {
 		return err
 	}
 
 	for _, gridFile := range gridFiles {
-		if err := gridFile.Delete(); err != nil {
+		// We don't defer this cancel because there might be a bunch of files and we want to do it at
+		// the bottom of the loop, not at the end of the function.
+		ctx, cancel := mf.writeContext(baseCtx)
+
+		if err := gridFile.Delete(ctx); err != nil {
+			cancel()
 			return err
 		}
+
+		cancel()
 	}
 	log.Logvf(log.Always, "successfully deleted all instances of '%v' from GridFS\n", mf.FileName)
 
@@ -358,14 +364,17 @@ func (mf *MongoFiles) deleteAll(filename string) error {
 }
 
 // handleDeleteID contains the logic for the 'delete_id' command.
-func (mf *MongoFiles) handleDeleteID() error {
+func (mf *MongoFiles) handleDeleteID(baseCtx context.Context) error {
 	files, err := mf.getTargetGFSFiles()
 	if err != nil {
 		return err
 	}
 
+	ctx, cancel := mf.writeContext(baseCtx)
+	defer cancel()
+
 	file := files[0]
-	if err := file.Delete(); err != nil {
+	if err := file.Delete(ctx); err != nil {
 		return err
 	}
 	log.Logvf(log.Always, "successfully deleted file with _id %v from GridFS", mf.Id)
@@ -378,7 +387,7 @@ func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
 	trimmed := strings.Trim(mf.Id, " ")
 
 	if trimmed == "" {
-		return primitive.NewObjectID(), nil
+		return bson.NewObjectID(), nil
 	}
 
 	// Wrap JSON bytes into a document for unmarshaling, then pick out the value after.
@@ -449,7 +458,11 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 }
 
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
-func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err error) {
+func (mf *MongoFiles) put(
+	baseCtx context.Context,
+	id interface{},
+	name string,
+) (bytesWritten int64, err error) {
 	gridFile, err := newGfsFile(id, name, mf)
 	if err != nil {
 		return 0, err
@@ -472,7 +485,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 
 	// check if --replace flag turned on
 	if mf.StorageOptions.Replace {
-		if err = mf.deleteAll(gridFile.Name); err != nil {
+		if err = mf.deleteAll(baseCtx, gridFile.Name); err != nil {
 			return 0, err
 		}
 	}
@@ -481,7 +494,10 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 		gridFile.Metadata.ContentType = mf.StorageOptions.ContentType
 	}
 
-	stream, err := gridFile.OpenStreamForWriting()
+	ctx, cancel := mf.writeContext(baseCtx)
+	defer cancel()
+
+	stream, err := gridFile.OpenStreamForWriting(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -497,7 +513,7 @@ func (mf *MongoFiles) put(id interface{}, name string) (bytesWritten int64, err 
 }
 
 // handlePut contains the logic for the 'put' and 'put_id' commands.
-func (mf *MongoFiles) handlePut() error {
+func (mf *MongoFiles) handlePut(ctx context.Context) error {
 	if len(mf.FileNameList) == 0 {
 		mf.FileNameList = []string{mf.FileName}
 	}
@@ -510,7 +526,7 @@ func (mf *MongoFiles) handlePut() error {
 
 		log.Logvf(log.Always, "adding gridFile: %v\n", filename)
 
-		n, err := mf.put(id, filename)
+		n, err := mf.put(ctx, id, filename)
 		if err != nil {
 			log.Logvf(log.Always, "error adding gridFile: %v\n", err)
 			return err
@@ -546,13 +562,9 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	}
 
 	database := client.Database(mf.StorageOptions.DB)
-	mf.bucket, err = gridfs.NewBucket(
-		database,
-		&driverOptions.BucketOptions{Name: &mf.StorageOptions.GridFSPrefix},
+	mf.bucket = database.GridFSBucket(
+		driverOptions.GridFSBucket().SetName(mf.StorageOptions.GridFSPrefix),
 	)
-	if err != nil {
-		return "", fmt.Errorf("error getting GridFS bucket: %v", err)
-	}
 
 	if displayHost {
 		log.Logvf(
@@ -571,6 +583,8 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 	}
 
 	log.Logvf(log.Info, "handling mongofiles '%v' command...", mf.Command)
+
+	ctx := context.Background()
 
 	switch mf.Command {
 
@@ -592,14 +606,24 @@ func (mf *MongoFiles) Run(displayHost bool) (output string, finalErr error) {
 		err = mf.handleGet()
 
 	case Put, PutID:
-		err = mf.handlePut()
+		err = mf.handlePut(ctx)
 
 	case DeleteID:
-		err = mf.handleDeleteID()
+		err = mf.handleDeleteID(ctx)
 
 	case Delete:
-		err = mf.deleteAll(mf.FileName)
+		err = mf.deleteAll(ctx, mf.FileName)
 	}
 
 	return output, err
+}
+
+func (mf *MongoFiles) writeContext(
+	baseCtx context.Context,
+) (context.Context, context.CancelFunc) {
+	if wtimeout := mf.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		return context.WithTimeout(baseCtx, wtimeout)
+	}
+
+	return context.WithCancel(baseCtx)
 }

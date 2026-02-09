@@ -9,6 +9,7 @@ package mongorestore
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,7 +32,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/progress"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const (
@@ -68,7 +69,7 @@ type MongoRestore struct {
 	manager *intents.Manager
 
 	objCheck     bool
-	oplogLimit   primitive.Timestamp
+	oplogLimit   bson.Timestamp
 	isMongos     bool
 	isAtlasProxy bool
 	authVersions authVersionPair
@@ -858,4 +859,12 @@ func (restore *MongoRestore) getArchiveReader() (rc io.ReadCloser, err error) {
 
 func (restore *MongoRestore) HandleInterrupt() {
 	restore.terminate.Store(true)
+}
+
+func (restore *MongoRestore) writeContext() (context.Context, context.CancelFunc) {
+	if wtimeout := restore.ToolOptions.WriteConcern.WTimeout; wtimeout > 0 {
+		return context.WithTimeout(context.TODO(), wtimeout)
+	}
+
+	return context.WithCancel(context.TODO())
 }

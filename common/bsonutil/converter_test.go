@@ -15,8 +15,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestObjectIdBSONToJSON(t *testing.T) {
@@ -24,7 +23,7 @@ func TestObjectIdBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON ObjectId", t, func() {
 		Convey("that is valid to JSON should produce a json.ObjectId", func() {
-			bsonObjId := primitive.NewObjectID()
+			bsonObjId := bson.NewObjectID()
 			jsonObjId := json.ObjectId(bsonObjId.Hex())
 
 			_jObjId, err := ConvertBSONValueToLegacyExtJSON(bsonObjId)
@@ -50,7 +49,7 @@ func TestArraysBSONToJSON(t *testing.T) {
 		})
 
 		Convey("should work for one-level deep arrays", func() {
-			objId := primitive.NewObjectID()
+			objId := bson.NewObjectID()
 			bsonArr := []interface{}{objId, 28, 0.999, "plain"}
 			_jArr, err := ConvertBSONValueToLegacyExtJSON(bsonArr)
 			So(err, ShouldBeNil)
@@ -70,7 +69,7 @@ func TestArraysBSONToJSON(t *testing.T) {
 				bson.M{
 					"a": int64(20),
 					"b": bson.M{
-						"c": primitive.Regex{Pattern: "hi", Options: "i"},
+						"c": bson.Regex{Pattern: "hi", Options: "i"},
 					},
 				},
 			}
@@ -142,7 +141,7 @@ func TestMaxKeyBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON Maxkey to JSON", t, func() {
 		Convey("should produce a json.MaxKey", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(primitive.MaxKey{})
+			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MaxKey{})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.MaxKey)
 			So(ok, ShouldBeTrue)
@@ -157,7 +156,7 @@ func TestMinKeyBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON Maxkey to JSON", t, func() {
 		Convey("should produce a json.MinKey", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(primitive.MinKey{})
+			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MinKey{})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.MinKey)
 			So(ok, ShouldBeTrue)
@@ -204,7 +203,7 @@ func TestRegExBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON Regular Expression (= /decision/gi) to JSON", t, func() {
 		Convey("should produce a json.RegExp", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(primitive.Regex{"decision", "gi"})
+			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Regex{"decision", "gi"})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.RegExp)
 			So(ok, ShouldBeTrue)
@@ -220,7 +219,7 @@ func TestUndefinedValueBSONToJSON(t *testing.T) {
 
 	Convey("Converting a BSON Undefined type to JSON", t, func() {
 		Convey("should produce a json.Undefined", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(primitive.Undefined{})
+			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Undefined{})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.Undefined)
 			So(ok, ShouldBeTrue)
@@ -236,7 +235,7 @@ func TestTimestampBSONToJSON(t *testing.T) {
 	Convey("Converting a BSON Timestamp to JSON", t, func() {
 		Convey("should produce a json.Timestamp", func() {
 			// {t:803434343, i:9} == bson.MongoTimestamp(803434343*2**32 + 9)
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(primitive.Timestamp{T: 803434343, I: 9})
+			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Timestamp{T: 803434343, I: 9})
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.Timestamp)
 			So(ok, ShouldBeTrue)
@@ -253,7 +252,7 @@ func TestBinaryBSONToJSON(t *testing.T) {
 	Convey("Converting BSON Binary data to JSON", t, func() {
 		Convey("should produce a json.BinData", func() {
 			_jObj, err := ConvertBSONValueToLegacyExtJSON(
-				primitive.Binary{'\x01', []byte("\x05\x20\x02\xae\xf7")},
+				bson.Binary{'\x01', []byte("\x05\x20\x02\xae\xf7")},
 			)
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.BinData)
@@ -300,9 +299,9 @@ func TestDBPointerBSONToJSON(t *testing.T) {
 
 	Convey("Converting BSON DBPointer to JSON", t, func() {
 		Convey("should produce a json.DBPointer", func() {
-			objId := primitive.NewObjectID()
+			objId := bson.NewObjectID()
 			_jObj, err := ConvertBSONValueToLegacyExtJSON(
-				primitive.DBPointer{"dbrefnamespace", objId},
+				bson.DBPointer{"dbrefnamespace", objId},
 			)
 			So(err, ShouldBeNil)
 			jObj, ok := _jObj.(json.DBPointer)
@@ -320,7 +319,7 @@ func TestJSCodeBSONToJSON(t *testing.T) {
 		Convey("should produce a json.Javascript", func() {
 			Convey("without scope if the scope for the BSON Javascript code is nil", func() {
 				_jObj, err := ConvertBSONValueToLegacyExtJSON(
-					primitive.CodeWithScope{"function() { return null; }", nil},
+					bson.CodeWithScope{"function() { return null; }", nil},
 				)
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)
@@ -331,7 +330,7 @@ func TestJSCodeBSONToJSON(t *testing.T) {
 
 			Convey("with scope if the scope for the BSON Javascript code is non-nil", func() {
 				_jObj, err := ConvertBSONValueToLegacyExtJSON(
-					primitive.CodeWithScope{"function() { return x; }", bson.M{"x": 2}},
+					bson.CodeWithScope{"function() { return x; }", bson.M{"x": 2}},
 				)
 				So(err, ShouldBeNil)
 				jObj, ok := _jObj.(json.JavaScript)

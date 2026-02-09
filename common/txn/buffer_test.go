@@ -7,8 +7,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // test each type of transaction individually and serially.
@@ -126,7 +125,7 @@ func TestOldestTimestamp(t *testing.T) {
 
 	// With no transactions, oldest active is zero value
 	oldest := buffer.OldestOpTime()
-	zeroTimestamp := primitive.Timestamp{}
+	zeroTimestamp := bson.Timestamp{}
 	if oldest.Timestamp != zeroTimestamp {
 		t.Errorf("expected zero timestamp, but got %v", oldest.Timestamp)
 	}
@@ -136,7 +135,7 @@ func TestOldestTimestamp(t *testing.T) {
 
 	ops := []db.Oplog{
 		{
-			Timestamp: primitive.Timestamp{T: 1234, I: 1},
+			Timestamp: bson.Timestamp{T: 1234, I: 1},
 			LSID:      bson.Raw{0, 0, 0, 0, 1},
 			TxnNumber: &txnN[0],
 			Operation: "c",
@@ -147,7 +146,7 @@ func TestOldestTimestamp(t *testing.T) {
 			},
 		},
 		{
-			Timestamp: primitive.Timestamp{T: 1235, I: 1},
+			Timestamp: bson.Timestamp{T: 1235, I: 1},
 			LSID:      bson.Raw{0, 0, 0, 0, 2},
 			TxnNumber: &txnN[1],
 			Operation: "c",
@@ -158,7 +157,7 @@ func TestOldestTimestamp(t *testing.T) {
 			},
 		},
 		{
-			Timestamp: primitive.Timestamp{T: 1236, I: 1},
+			Timestamp: bson.Timestamp{T: 1236, I: 1},
 			LSID:      bson.Raw{0, 0, 0, 0, 1},
 			TxnNumber: &txnN[0],
 			Operation: "c",
@@ -183,7 +182,7 @@ func TestOldestTimestamp(t *testing.T) {
 
 	// With uncommitted transactions, we should see the oldest among them.
 	oldest = buffer.OldestOpTime()
-	expect := primitive.Timestamp{T: 1234, I: 1}
+	expect := bson.Timestamp{T: 1234, I: 1}
 	if oldest.Timestamp != expect {
 		t.Fatalf("expected timestamp %v, but got %v", expect, oldest)
 	}
@@ -197,14 +196,14 @@ func TestExtractInnerOps(t *testing.T) {
 	term := []int64{1}
 	hash := []int64{2}
 
-	timestamp := primitive.Timestamp{T: 1234, I: 1}
+	timestamp := bson.Timestamp{T: 1234, I: 1}
 
 	Convey(
 		"extracted oplogs from transaction oplog should have the same timestamp, term and hash",
 		t,
 		func() {
 			op := db.Oplog{
-				Timestamp: primitive.Timestamp{T: 1234, I: 1},
+				Timestamp: bson.Timestamp{T: 1234, I: 1},
 				Term:      &term[0],
 				Hash:      &hash[0],
 				LSID:      bson.Raw{0, 0, 0, 0, 1},

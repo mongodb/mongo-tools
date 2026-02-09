@@ -33,16 +33,15 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -180,7 +179,11 @@ func TestMongorestore(t *testing.T) {
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
-			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
+			So(
+				restore.ToolOptions.WriteConcern,
+				ShouldResemble,
+				wcwrapper.Majority(),
+			)
 		})
 
 		c1 := db.Collection("c1") // 100 documents
@@ -427,7 +430,11 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 		db := session.Database("db1")
 		Convey("and majority is used as the default write concern", func() {
-			So(db.WriteConcern(), ShouldResemble, writeconcern.New(writeconcern.WMajority()))
+			So(
+				restore.ToolOptions.WriteConcern,
+				ShouldResemble,
+				wcwrapper.Majority(),
+			)
 		})
 
 		longCollection := db.Collection(longCollectionName)
@@ -1639,12 +1646,12 @@ func TestSkipSystemCollections(t *testing.T) {
 				queryObj := bson.D{
 					{"$and",
 						bson.A{
-							bson.D{{"ts", bson.M{"$gte": primitive.Timestamp{T: currentTS, I: 1}}}},
+							bson.D{{"ts", bson.M{"$gte": bson.Timestamp{T: currentTS, I: 1}}}},
 							bson.D{{"$or", bson.A{
 								bson.D{
-									{"ns", primitive.Regex{Pattern: "^config.system.sessions*"}},
+									{"ns", bson.Regex{Pattern: "^config.system.sessions*"}},
 								},
-								bson.D{{"ns", primitive.Regex{Pattern: "^config.cache.*"}}},
+								bson.D{{"ns", bson.Regex{Pattern: "^config.cache.*"}}},
 							}}},
 						},
 					},
@@ -2900,7 +2907,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 
 	coll := testDB.Collection("mycoll")
 
-	docID := primitive.Timestamp{}
+	docID := bson.Timestamp{}
 
 	_, err = coll.UpdateOne(
 		ctx,
@@ -2911,13 +2918,13 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 			{{"$replaceRoot", bson.D{
 				{"newRoot", bson.D{
 					{"$literal", bson.D{
-						{"empty_time", primitive.Timestamp{}},
+						{"empty_time", bson.Timestamp{}},
 						{"other", "$$ROOT"},
 					}},
 				}},
 			}}},
 		},
-		mopt.Update().SetUpsert(true),
+		mopt.UpdateOne().SetUpsert(true),
 	)
 	require.NoError(err, "should insert (via update/upsert)")
 
@@ -2944,7 +2951,7 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 		t,
 		bson.M{
 			"_id":        docID,
-			"empty_time": primitive.Timestamp{},
+			"empty_time": bson.Timestamp{},
 			"other":      "$$ROOT",
 		},
 		docs[0],
@@ -2983,11 +2990,11 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 		mongo.Pipeline{
 			{{"$replaceRoot", bson.D{
 				{"newRoot", bson.D{
-					{"empty_time", primitive.Timestamp{}},
+					{"empty_time", bson.Timestamp{}},
 				}},
 			}}},
 		},
-		mopt.Update().SetUpsert(true),
+		mopt.UpdateOne().SetUpsert(true),
 	)
 	require.NoError(err, "should insert (via update/upsert)")
 
@@ -3000,7 +3007,7 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 			mongo.Pipeline{
 				{{"$replaceRoot", bson.D{
 					{"newRoot", bson.D{
-						{"nonempty_time", primitive.Timestamp{1, 2}},
+						{"nonempty_time", bson.Timestamp{1, 2}},
 					}},
 				}}},
 			},
@@ -3155,7 +3162,9 @@ func assertClusteredIndex(t *testing.T, testDB *mongo.Database, indexName string
 	// two Indexes should be created in addition to the _id, foo and foo_2
 	for c.Next(context.Background()) {
 		var res collectionRes
-		err = c.Decode(&res)
+		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(c.Current)))
+		decoder.DefaultDocumentM()
+		err = decoder.Decode(&res)
 		require.NoError(err, "can decode collection result")
 		collections = append(collections, res)
 	}

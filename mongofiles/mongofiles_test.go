@@ -22,10 +22,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 var (
@@ -40,17 +40,18 @@ var (
 		Port: testPort,
 	}
 	toolOptions = &options.ToolOptions{
-		SSL:        &ssl,
-		Connection: connection,
-		Auth:       &auth,
-		Verbosity:  &options.Verbosity{},
-		URI:        &options.URI{},
+		SSL:          &ssl,
+		Connection:   connection,
+		Auth:         &auth,
+		Verbosity:    &options.Verbosity{},
+		URI:          &options.URI{},
+		WriteConcern: wcwrapper.Majority(),
 	}
-	testFiles = map[string]primitive.ObjectID{
-		"testfile1": primitive.NewObjectID(),
-		"testfile2": primitive.NewObjectID(),
-		"testfile3": primitive.NewObjectID(),
-		"testfile4": primitive.NewObjectID(),
+	testFiles = map[string]bson.ObjectID{
+		"testfile1": bson.NewObjectID(),
+		"testfile2": bson.NewObjectID(),
+		"testfile3": bson.NewObjectID(),
+		"testfile4": bson.NewObjectID(),
 	}
 )
 
@@ -68,14 +69,11 @@ func setUpGridFSTestData() (map[string]int, error) {
 	bytesExpected := map[string]int{}
 
 	testDb := session.Database(testDB)
-	bucket, err := gridfs.NewBucket(testDb)
-	if err != nil {
-		return nil, err
-	}
+	bucket := testDb.GridFSBucket()
 
 	i := 0
 	for item, id := range testFiles {
-		stream, err := bucket.OpenUploadStreamWithID(id, item)
+		stream, err := bucket.OpenUploadStreamWithID(context.TODO(), id, item)
 		if err != nil {
 			return nil, err
 		}
@@ -960,9 +958,9 @@ func TestDefaultWriteConcern(t *testing.T) {
 		mf, err := getMongofilesWithArgs("get", "filename", "--uri", "mongodb://localhost:33333")
 		So(err, ShouldBeNil)
 		So(
-			mf.SessionProvider.DB("test").WriteConcern(),
+			mf.ToolOptions.WriteConcern,
 			ShouldResemble,
-			writeconcern.New(writeconcern.WMajority()),
+			writeconcern.Majority(),
 		)
 	})
 
@@ -970,9 +968,9 @@ func TestDefaultWriteConcern(t *testing.T) {
 		mf, err := getMongofilesWithArgs("get", "filename", "--port", "33333")
 		So(err, ShouldBeNil)
 		So(
-			mf.SessionProvider.DB("test").WriteConcern(),
+			mf.ToolOptions.WriteConcern,
 			ShouldResemble,
-			writeconcern.New(writeconcern.WMajority()),
+			writeconcern.Majority(),
 		)
 	})
 }

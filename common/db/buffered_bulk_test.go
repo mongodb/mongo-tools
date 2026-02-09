@@ -13,7 +13,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestBufferedBulkInserterInserts(t *testing.T) {
@@ -52,7 +52,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
 				flushCount := 0
 				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(bson.D{})
+					result, err := bufBulk.Insert(context.Background(), bson.D{})
 					So(err, ShouldBeNil)
 					if bufBulk.docCount%3 == 0 {
 						flushCount++
@@ -77,12 +77,12 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 			Convey("inserting 10 documents into the BufferedBulkInserter and flushing", func() {
 				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(bson.D{})
+					result, err := bufBulk.Insert(context.Background(), bson.D{})
 					So(err, ShouldBeNil)
 					So(result, ShouldNotBeNil)
 					So(result.InsertedCount, ShouldEqual, 1)
 				}
-				result, err := bufBulk.Flush()
+				result, err := bufBulk.Flush(context.Background())
 				So(err, ShouldBeNil)
 				So(result, ShouldBeNil)
 
@@ -103,7 +103,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 					errCnt := 0
 					for i := 0; i < 1000000; i++ {
-						result, err := bufBulk.Insert(bson.M{"_id": i})
+						result, err := bufBulk.Insert(context.Background(), bson.M{"_id": i})
 						if err != nil {
 							errCnt++
 						}
@@ -113,7 +113,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 						}
 					}
 					So(errCnt, ShouldEqual, 0)
-					_, err := bufBulk.Flush()
+					_, err := bufBulk.Flush(context.Background())
 					So(err, ShouldBeNil)
 
 					Convey("should have inserted all of the documents", func() {
@@ -149,7 +149,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
 				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(bson.D{{"foo", "bar"}})
+					result, err := bufBulk.Insert(context.Background(), bson.D{{"foo", "bar"}})
 					So(err, ShouldBeNil)
 					So(result, ShouldNotBeNil)
 					So(result.InsertedCount, ShouldEqual, 1)

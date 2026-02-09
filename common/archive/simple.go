@@ -6,7 +6,7 @@ import (
 	"hash/crc64"
 
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // SimpleArchive represents an entire archive. This is useful for synthesizing

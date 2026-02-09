@@ -5,8 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
@@ -16,7 +15,7 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 	}{
 		{
 			doc: bson.D{
-				{"foo", primitive.Timestamp{}},
+				{"foo", bson.Timestamp{}},
 			},
 			fields: [][]string{{"foo"}},
 		},
@@ -24,7 +23,7 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 			doc: bson.D{
 				{"foo", bson.A{
 					"123",
-					primitive.Timestamp{},
+					bson.Timestamp{},
 				}},
 			},
 			fields: [][]string{{"foo", "1"}},
@@ -33,7 +32,7 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 			doc: bson.D{
 				{"foo", bson.A{
 					"123",
-					bson.M{"bar": primitive.Timestamp{}},
+					bson.M{"bar": bson.Timestamp{}},
 				}},
 			},
 			fields: [][]string{{"foo", "1", "bar"}},
@@ -42,12 +41,12 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 			doc: bson.D{
 				{"foo", bson.A{
 					"123",
-					bson.M{"bar": primitive.Timestamp{}},
-					primitive.Timestamp{},
+					bson.M{"bar": bson.Timestamp{}},
+					bson.Timestamp{},
 				}},
-				{"baz", primitive.Timestamp{}},
-				{"", primitive.Timestamp{}},
-				{"not", primitive.Timestamp{1, 0}},
+				{"baz", bson.Timestamp{}},
+				{"", bson.Timestamp{}},
+				{"not", bson.Timestamp{1, 0}},
 			},
 			fields: [][]string{
 				{"foo", "1", "bar"},
@@ -77,7 +76,7 @@ func TestFindEmptyTimestampFields_ShouldFind(t *testing.T) {
 func TestFindEmptyTimestampFields_ShouldNotFind(t *testing.T) {
 	docs := []bson.D{
 		{},
-		{{"faux", primitive.Binary{
+		{{"faux", bson.Binary{
 			Data: append(
 				[]byte{0x11, 0x42, 0x42, 0x00},
 				make([]byte, 8, 8)...,

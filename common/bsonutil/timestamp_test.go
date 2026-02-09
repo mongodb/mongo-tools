@@ -12,14 +12,14 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestTimestampValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("When converting JSON with Timestamp values", t, func() {
-		testTS := primitive.Timestamp{T: 123456, I: 55}
+		testTS := bson.Timestamp{T: 123456, I: 55}
 
 		Convey("works for Timestamp literal", func() {
 

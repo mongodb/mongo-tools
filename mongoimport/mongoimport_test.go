@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -22,9 +23,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const (
@@ -53,8 +55,10 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 
 	var docs []bson.M
 	for cursor.Next(context.Background()) {
+		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(cursor.Current)))
+		decoder.DefaultDocumentM()
 		var doc bson.M
-		if err = cursor.Decode(&doc); err != nil {
+		if err := decoder.Decode(&doc); err != nil {
 			return err
 		}
 
@@ -106,12 +110,13 @@ func getBasicToolOptions() *options.ToolOptions {
 	}
 
 	return &options.ToolOptions{
-		General:    general,
-		SSL:        &ssl,
-		Namespace:  namespace,
-		Connection: connection,
-		Auth:       &auth,
-		URI:        &options.URI{},
+		General:      general,
+		SSL:          &ssl,
+		Namespace:    namespace,
+		Connection:   connection,
+		Auth:         &auth,
+		URI:          &options.URI{},
+		WriteConcern: wcwrapper.Majority(),
 	}
 }
 

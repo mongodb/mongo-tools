@@ -12,14 +12,14 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestDBPointerValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	oid, _ := primitive.ObjectIDFromHex("552ffe9f5739878e73d116a9")
-	oid2, _ := primitive.ObjectIDFromHex("552ffed95739878e73d116aa")
-	oid3, _ := primitive.ObjectIDFromHex("552fff215739878e73d116ab")
+	oid, _ := bson.ObjectIDFromHex("552ffe9f5739878e73d116a9")
+	oid2, _ := bson.ObjectIDFromHex("552ffed95739878e73d116aa")
+	oid3, _ := bson.ObjectIDFromHex("552fff215739878e73d116ab")
 
 	Convey("Unmarshalling JSON with DBPointer values", t, func() {
 		key := "key"

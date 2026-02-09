@@ -11,11 +11,11 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-func numberToTimestamp(ts int64) primitive.Timestamp {
-	return primitive.Timestamp{
+func numberToTimestamp(ts int64) bson.Timestamp {
+	return bson.Timestamp{
 		T: uint32(uint64(ts) >> 32),
 		I: uint32(ts),
 	}
@@ -27,7 +27,7 @@ func TestOpTimeComparisons(t *testing.T) {
 	Convey("When comparing two OpTimes", t, func() {
 
 		var opTime1, opTime2 OpTime
-		var timestamp1, timestamp2 primitive.Timestamp
+		var timestamp1, timestamp2 bson.Timestamp
 		var term1, term2 int64
 
 		Convey("Less than should be true if one optime precedes the other", func() {

@@ -6,8 +6,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/samber/lo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
@@ -127,7 +126,7 @@ func ConvertLegacyIndexKeyValue(value any) (any, bool) {
 		if math.Abs(v) < epsilon {
 			return lo.Ternary[int32](v >= 0, 1, -1), true
 		}
-	case primitive.Decimal128:
+	case bson.Decimal128:
 		if bi, _, err := v.BigInt(); err == nil {
 			if bi.Cmp(big.NewInt(0)) == 0 {
 				return int32(1), true

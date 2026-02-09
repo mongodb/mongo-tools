@@ -11,8 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestIsIndexKeysEqual(t *testing.T) {
@@ -93,10 +92,10 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 			},
 		)
 
-		decimalNOne, _ := primitive.ParseDecimal128("-1")
-		decimalZero, _ := primitive.ParseDecimal128("0")
-		decimalOne, _ := primitive.ParseDecimal128("1")
-		decimalZero1, _ := primitive.ParseDecimal128("0.00")
+		decimalNOne, _ := bson.ParseDecimal128("-1")
+		decimalZero, _ := bson.ParseDecimal128("0")
+		decimalOne, _ := bson.ParseDecimal128("1")
+		decimalZero1, _ := bson.ParseDecimal128("0.00")
 		index2Key := bson.D{
 			{"key1", decimalNOne},
 			{"key2", decimalZero},
@@ -119,7 +118,7 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 		ConvertLegacyIndexKeys(index3Key, "test")
 		So(index3Key, ShouldResemble, bson.D{{"key1", int32(1)}, {"key2", "2dsphere"}})
 
-		index4Key := bson.D{{"key1", bson.E{"invalid", 1}}, {"key2", primitive.Binary{}}}
+		index4Key := bson.D{{"key1", bson.E{"invalid", 1}}, {"key2", bson.Binary{}}}
 		ConvertLegacyIndexKeys(index4Key, "test")
 		So(index4Key, ShouldResemble, bson.D{{"key1", int32(1)}, {"key2", int32(1)}})
 	})

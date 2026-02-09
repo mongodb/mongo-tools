@@ -27,12 +27,13 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/youmark/pkcs8"
-	"go.mongodb.org/mongo-driver/mongo"
-	mopt "go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 type (
@@ -116,10 +117,6 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	client, err := configureClient(opts)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring the connector: %v", err)
-	}
-	err = client.Connect(context.Background())
-	if err != nil {
-		return nil, err
 	}
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
@@ -334,7 +331,12 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
-	clientopt.SetSocketTimeout(time.Duration(opts.SocketTimeout) * time.Second)
+
+	// TODO (TOOLS-4079): We used to set the socket timeout here, but it changed significantly in
+	// driver v2, and setting clientopt.Timeout() to zero causes code that, in driver v1, used to get
+	// NotWritablePrimary errors to instead, in v2, hang forever. Not setting a timeout at all fixes
+	// that, but it would be good to come up with a more permanent solution here.
+
 	if opts.ServerSelectionTimeout > 0 {
 		clientopt.SetServerSelectionTimeout(
 			time.Duration(opts.ServerSelectionTimeout) * time.Second,
@@ -347,15 +349,20 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt.SetAppName(opts.AppName)
 	if opts.Direct && len(clientopt.Hosts) == 1 {
 		clientopt.SetDirect(true)
-		t := true
-		clientopt.AuthenticateToAnything = &t
+		err := xoptions.SetInternalClientOptions(clientopt, "authenticateToAnything", true)
+
+		// This can only error if the call is malformed, which means we should never hit this in
+		// production, so it's ok to panic here.
+		if err != nil {
+			panic("SetInternalClientOptions failed: " + err.Error())
+		}
 	}
 
 	if opts.ReadPreference != nil {
 		clientopt.SetReadPreference(opts.ReadPreference)
 	}
 	if opts.WriteConcern != nil {
-		clientopt.SetWriteConcern(opts.WriteConcern)
+		clientopt.SetWriteConcern(opts.WriteConcern.WriteConcern)
 	} else {
 		// If no write concern was specified, default to majority
 		clientopt.SetWriteConcern(writeconcern.Majority())
@@ -397,7 +404,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	if cs.ReadConcernLevel != "" {
-		rc := readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+		rc := &readconcern.ReadConcern{Level: cs.ReadConcernLevel}
 		clientopt.SetReadConcern(rc)
 	}
 
@@ -430,24 +437,23 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetRetryReads(cs.RetryReads)
 	}
 
-	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
-		opts := make([]writeconcern.Option, 0, 1)
+	if cs.JSet || cs.WString != "" || cs.WNumberSet {
+		wc := new(writeconcern.WriteConcern)
 
 		if len(cs.WString) > 0 {
-			opts = append(opts, writeconcern.WTagSet(cs.WString))
+			wc.W = cs.WString
 		} else if cs.WNumberSet {
-			opts = append(opts, writeconcern.W(cs.WNumber))
+			wc.W = cs.WNumber
 		}
 
 		if cs.JSet {
-			opts = append(opts, writeconcern.J(cs.J))
+			wc.Journal = &cs.J
 		}
 
-		if cs.WTimeoutSet {
-			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
-		}
+		// Note that we don't/can't deal with WTimeout here, because the v2 connstring package won't
+		// parse it, nor does the v2 writeconcern struct support it. We deal with this elsewhere.
 
-		clientopt.SetWriteConcern(writeconcern.New(opts...))
+		clientopt.SetWriteConcern(wc)
 	}
 
 	if opts.Auth != nil && opts.IsSet() {
@@ -564,7 +570,7 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 		clientopt.SetDisableOCSPEndpointCheck(cs.SSLDisableOCSPEndpointCheck)
 	}
 
-	return mongo.NewClient(clientopt)
+	return mongo.Connect(clientopt)
 }
 
 // FilterError determines whether an error needs to be propagated back to the user or can be continued through. If an

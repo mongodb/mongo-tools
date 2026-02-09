@@ -15,8 +15,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // For all tests that call NewJSONInputReader, the second parameter set to true indicates that we are testing legacy
@@ -261,7 +260,7 @@ func TestJSONConvert(t *testing.T) {
 
 	// $binary will be parsed as binary data in extended JSON v2 but not in legacy extended JSON
 	extJSONDoc := bson.D{
-		{"a", primitive.Binary{
+		{"a", bson.Binary{
 			Data:    []byte("foo"),
 			Subtype: 3,
 		}},

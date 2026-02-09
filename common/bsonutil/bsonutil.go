@@ -20,8 +20,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/util"
 	errors2 "github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var ErrNoSuchField = errors.New("no such field")
@@ -165,6 +164,15 @@ func RemoveKey(key string, document *bson.D) (interface{}, bool) {
 	return nil, false
 }
 
+// ToMap converts a bson.D to a bson.M.
+func ToMap(in bson.D) bson.M {
+	m := make(bson.M, len(in))
+	for _, e := range in {
+		m[e.Key] = e.Value
+	}
+	return m
+}
+
 // ParseSpecialKeys takes a JSON document and inspects it for any extended JSON
 // type (e.g $numberLong) and replaces any such values with the corresponding
 // BSON type. (uses legacy extJSON parser).
@@ -173,7 +181,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 	var doc map[string]interface{}
 	switch v := special.(type) {
 	case bson.D:
-		doc = v.Map()
+		doc = ToMap(v)
 	case map[string]interface{}:
 		doc = v
 	default:
@@ -187,7 +195,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			case string:
 				return util.FormatDate(v)
 			case bson.D:
-				asMap := v.Map()
+				asMap := ToMap(v)
 				if jsonValue, ok := asMap["$numberLong"]; ok {
 					n, err := parseNumberLongField(jsonValue)
 					if err != nil {
@@ -229,7 +237,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		if jsonValue, ok := doc["$code"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return primitive.JavaScript(v), nil
+				return bson.JavaScript(v), nil
 			default:
 				return nil, errors.New("expected $code field to have string value")
 			}
@@ -238,7 +246,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		if jsonValue, ok := doc["$oid"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return primitive.ObjectIDFromHex(v)
+				return bson.ObjectIDFromHex(v)
 			default:
 				return nil, errors.New("expected $oid field to have string value")
 			}
@@ -268,7 +276,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			case map[string]interface{}:
 				tsDoc = internalDoc
 			case bson.D:
-				tsDoc = internalDoc.Map()
+				tsDoc = ToMap(internalDoc)
 			default:
 				return nil, errors.New("expected $timestamp key to have internal document")
 			}
@@ -292,36 +300,36 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				return nil, errors.New("expected $timestamp to have 'i' field")
 			}
 			// see BSON spec for details on the bit fiddling here
-			return primitive.Timestamp{T: ts.Seconds, I: ts.Increment}, nil
+			return bson.Timestamp{T: ts.Seconds, I: ts.Increment}, nil
 		}
 
 		if jsonValue, ok := doc["$numberDecimal"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return primitive.ParseDecimal128(v)
+				return bson.ParseDecimal128(v)
 			default:
 				return nil, errors.New("expected $numberDecimal field to have string value")
 			}
 		}
 
 		if _, ok := doc["$undefined"]; ok {
-			return primitive.Undefined{}, nil
+			return bson.Undefined{}, nil
 		}
 
 		if _, ok := doc["$maxKey"]; ok {
-			return primitive.MaxKey{}, nil
+			return bson.MaxKey{}, nil
 		}
 
 		if _, ok := doc["$minKey"]; ok {
-			return primitive.MinKey{}, nil
+			return bson.MinKey{}, nil
 		}
 
 	case 2: // document has two fields
 		if jsonValue, ok := doc["$code"]; ok {
-			code := primitive.CodeWithScope{}
+			code := bson.CodeWithScope{}
 			switch v := jsonValue.(type) {
 			case string:
-				code.Code = primitive.JavaScript(v)
+				code.Code = bson.JavaScript(v)
 			default:
 				return nil, errors.New("expected $code field to have string value")
 			}
@@ -344,7 +352,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		}
 
 		if jsonValue, ok := doc["$regex"]; ok {
-			regex := primitive.Regex{}
+			regex := bson.Regex{}
 
 			switch pattern := jsonValue.(type) {
 			case string:
@@ -378,7 +386,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		}
 
 		if jsonValue, ok := doc["$binary"]; ok {
-			binary := primitive.Binary{}
+			binary := bson.Binary{}
 
 			switch data := jsonValue.(type) {
 			case string:
@@ -454,7 +462,7 @@ func Bson2Float64(data interface{}) (float64, bool) {
 		return float64(v), true
 	case float64:
 		return v, true
-	case primitive.Decimal128:
+	case bson.Decimal128:
 		if bi, _, err := v.BigInt(); err == nil {
 			intVal := bi.Int64()
 			return float64(intVal), true

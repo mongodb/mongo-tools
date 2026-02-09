@@ -12,7 +12,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestUndefinedValue(t *testing.T) {
@@ -28,7 +28,7 @@ func TestUndefinedValue(t *testing.T) {
 
 			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, primitive.Undefined{})
+			So(jsonMap[key], ShouldResemble, bson.Undefined{})
 		})
 
 		Convey(`works for undefined document ('{ "$undefined": true }')`, func() {
@@ -41,7 +41,7 @@ func TestUndefinedValue(t *testing.T) {
 
 			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
 			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, primitive.Undefined{})
+			So(jsonMap[key], ShouldResemble, bson.Undefined{})
 		})
 	})
 }

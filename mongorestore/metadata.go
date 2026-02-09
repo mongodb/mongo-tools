@@ -17,9 +17,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // Specially treated restore collection types.
@@ -213,7 +212,10 @@ func (restore *MongoRestore) CreateIndexes(
 		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
 	}
 
-	err = session.Database(dbName).RunCommand(context.TODO(), rawCommand).Err()
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+
+	err = session.Database(dbName).RunCommand(ctx, rawCommand).Err()
 	if err == nil {
 		return nil
 	}
@@ -241,8 +243,11 @@ func (restore *MongoRestore) LegacyInsertIndex(dbName string, index *idx.IndexDo
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
 
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+
 	indexCollection := session.Database(dbName).Collection("system.indexes")
-	_, err = indexCollection.InsertOne(context.TODO(), index)
+	_, err = indexCollection.InsertOne(ctx, index)
 	if err != nil {
 		return fmt.Errorf("insert error: %v", err)
 	}
@@ -308,8 +313,11 @@ func (restore *MongoRestore) createCollectionWithCommand(
 
 	command := createCollectionCommand(intent, options)
 
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+
 	// If there is no error, the result doesnt matter
-	singleRes := session.Database(intent.DB).RunCommand(context.TODO(), command, nil)
+	singleRes := session.Database(intent.DB).RunCommand(ctx, command, nil)
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("error running create command: %v", err)
 	}
@@ -343,7 +351,7 @@ func (restore *MongoRestore) createCollectionWithApplyOps(
 		Operation: "c",
 		Namespace: intent.DB + ".$cmd",
 		Object:    command,
-		UI:        &primitive.Binary{Subtype: 0x04, Data: uuid},
+		UI:        &bson.Binary{Subtype: 0x04, Data: uuid},
 	}
 
 	return restore.ApplyOp(session, createOp)
@@ -467,7 +475,10 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 				"dropping preexisting temporary collection admin.%v",
 				arg.tempCollectionName,
 			)
-			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(context.TODO())
+
+			ctx, cancel := restore.writeContext()
+			err = session.Database("admin").Collection(arg.tempCollectionName).Drop(ctx)
+			cancel()
 			if err != nil {
 				return fmt.Errorf(
 					"error dropping preexisting temporary collection %v: %v",
@@ -508,9 +519,11 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 				"dropping temporary collection admin.%v",
 				cleanupArg.tempCollectionName,
 			)
+			ctx, cancel := restore.writeContext()
 			e = session.Database("admin").
 				Collection(cleanupArg.tempCollectionName).
-				Drop(context.TODO())
+				Drop(ctx)
+			cancel()
 			if e != nil {
 				log.Logvf(
 					log.Info,
@@ -539,23 +552,15 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		bson.E{Key: "drop", Value: restore.OutputOptions.Drop},
 		bson.E{Key: "db", Value: userTargetDB})
 
-	if restore.ToolOptions.WriteConcern != nil {
-		_, wcBson, err := restore.ToolOptions.WriteConcern.MarshalBSONValue()
-		if err != nil {
-			return fmt.Errorf("error parsing write concern: %v", err)
-		}
-
-		writeConcern := bson.M{}
-		err = bson.Unmarshal(wcBson, &writeConcern)
-		if err != nil {
-			return fmt.Errorf("error parsing write concern: %v", err)
-		}
-
-		command = append(command, bson.E{Key: "writeConcern", Value: writeConcern})
+	if wc := restore.ToolOptions.WriteConcern; wc != nil {
+		command = append(command, bson.E{Key: "writeConcern", Value: wc})
 	}
 
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+
 	log.Logvf(log.DebugLow, "merging users/roles from temp collections")
-	resSingle := adminDB.RunCommand(context.TODO(), command)
+	resSingle := adminDB.RunCommand(ctx, command)
 	if err = resSingle.Err(); err != nil {
 		return fmt.Errorf("error running merge command: %v", err)
 	}
@@ -734,7 +739,10 @@ func (restore *MongoRestore) DropCollection(intent *intents.Intent) error {
 	if err != nil {
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
-	err = session.Database(intent.DB).Collection(intent.C).Drop(context.TODO())
+
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+	err = session.Database(intent.DB).Collection(intent.C).Drop(ctx)
 	if err != nil {
 		return fmt.Errorf("error dropping collection: %v", err)
 	}
@@ -749,7 +757,10 @@ func (restore *MongoRestore) EnableMixedSchemaInTimeseriesBucket(dbName, colName
 		return fmt.Errorf("error establishing connection: %v", err)
 	}
 
-	return session.Database(dbName).RunCommand(context.Background(), bson.D{
+	ctx, cancel := restore.writeContext()
+	defer cancel()
+
+	return session.Database(dbName).RunCommand(ctx, bson.D{
 		{"collMod", colName},
 		{"timeseriesBucketsMayHaveMixedSchemaData", true},
 	}).Err()

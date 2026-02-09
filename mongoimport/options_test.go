@@ -11,9 +11,10 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 // validateParseOptions is a helper function to call ParseOptions and verify the results.
@@ -24,7 +25,7 @@ import (
 func validateParseOptions(
 	args []string,
 	ingestWc string,
-	toolsWc *writeconcern.WriteConcern,
+	toolsWc *wcwrapper.WriteConcern,
 ) func() {
 	return func() {
 		opts, err := ParseOptions(args, "", "")
@@ -40,28 +41,28 @@ func TestWriteConcernWithURIParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With an IngestOptions and ToolsOptions", t, func() {
 		Convey("Parsing with no value should set a majority write concern",
-			validateParseOptions([]string{}, "", writeconcern.New(writeconcern.WMajority())))
+			validateParseOptions([]string{}, "", wcwrapper.Majority()))
 
 		Convey("Parsing with no writeconcern in URI should set a majority write concern",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test",
-			}, "", writeconcern.New(writeconcern.WMajority())))
+			}, "", wcwrapper.Majority()))
 
 		Convey("Parsing with writeconcern only in URI should set it correctly",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
-			}, "", writeconcern.New(writeconcern.W(2))))
+			}, "", wcwrapper.Wrap(&writeconcern.WriteConcern{W: 2})))
 
 		Convey("Parsing with writeconcern only in command line should set it correctly",
 			validateParseOptions([]string{
 				"--writeConcern", "{w: 2}",
-			}, "{w: 2}", writeconcern.New(writeconcern.W(2))))
+			}, "{w: 2}", wcwrapper.Wrap(&writeconcern.WriteConcern{W: 2})))
 
 		Convey("Parsing with writeconcern in URI and command line should set to command line",
 			validateParseOptions([]string{
 				"--uri", "mongodb://localhost:27017/test?w=2",
 				"--writeConcern", "{w: 3}",
-			}, "{w: 3}", writeconcern.New(writeconcern.W(3))))
+			}, "{w: 3}", wcwrapper.Wrap(&writeconcern.WriteConcern{W: 3})))
 	})
 }
 

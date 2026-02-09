@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var nineNuls = make([]byte, 9, 9)

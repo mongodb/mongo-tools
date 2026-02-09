@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -20,9 +21,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func TestErrorOnImportCollection(t *testing.T) {
@@ -101,7 +101,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	var oplog bson.D
 	require.NoError(t, bson.Unmarshal(contents, &oplog))
 
-	require.Equal(t, int32(1), oplog.Map()["multiOpType"])
+	require.Equal(t, int32(1), bsonutil.ToMap(oplog)["multiOpType"])
 }
 
 func vectoredInsert(ctx context.Context) error {
@@ -110,11 +110,10 @@ func vectoredInsert(ctx context.Context) error {
 		return err
 	}
 
-	f := false
 	if sessionErr := client.UseSessionWithOptions(
 		ctx,
-		&options.SessionOptions{CausalConsistency: &f},
-		func(sessionContext mongo.SessionContext) error {
+		options.Session().SetCausalConsistency(false),
+		func(sessionContext context.Context) error {
 			docs := []interface{}{
 				bson.D{{"_id", 100}, {"a", 1}},
 				bson.D{{"_id", 200}, {"a", 2}},

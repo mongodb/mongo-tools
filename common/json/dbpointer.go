@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Transition functions for recognizing DBPointer.
@@ -53,7 +53,7 @@ func (d *decodeState) storeDBPointer(v reflect.Value) {
 				),
 			)
 		}
-		oid, err := primitive.ObjectIDFromHex(string(arg1))
+		oid, err := bson.ObjectIDFromHex(string(arg1))
 		if err != nil {
 			d.error(fmt.Errorf("cannot parse ObjectID from string %v: %v", arg1, err))
 		}
@@ -82,7 +82,7 @@ func (d *decodeState) getDBPointer() interface{} {
 	if !ok {
 		d.error(fmt.Errorf("expected ObjectId for second argument of DBPointer constructor"))
 	}
-	oid, err := primitive.ObjectIDFromHex(string(arg1))
+	oid, err := bson.ObjectIDFromHex(string(arg1))
 	if err != nil {
 		d.error(fmt.Errorf("cannot parse ObjectID from string %v: %v", arg1, err))
 	}
