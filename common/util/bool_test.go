@@ -24,9 +24,9 @@ func TestJSTruthyValues(t *testing.T) {
 				So(IsTruthy(true), ShouldBeTrue)
 			})
 			Convey("{} -> true", func() {
-				var myMap map[string]interface{}
+				var myMap map[string]any
 				So(IsTruthy(myMap), ShouldBeTrue)
-				myMap = map[string]interface{}{"a": 1}
+				myMap = map[string]any{"a": 1}
 				So(IsTruthy(myMap), ShouldBeTrue)
 			})
 			Convey("[] -> true", func() {

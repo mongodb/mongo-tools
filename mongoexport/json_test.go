@@ -71,7 +71,7 @@ func TestJSONArray(t *testing.T) {
 
 			// Export a few docs of various types
 
-			testObjs := []interface{}{
+			testObjs := []any{
 				bson.NewObjectID(),
 				"asd",
 				12345,
@@ -86,7 +86,7 @@ func TestJSONArray(t *testing.T) {
 			err = jsonExporter.WriteFooter()
 			So(err, ShouldBeNil)
 			// Unmarshal the whole thing, it should be valid json
-			fromJSON := []map[string]interface{}{}
+			fromJSON := []map[string]any{}
 			err = json.Unmarshal(out.Bytes(), &fromJSON)
 			So(err, ShouldBeNil)
 			So(len(fromJSON), ShouldEqual, len(testObjs))

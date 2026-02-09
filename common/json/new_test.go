@@ -20,7 +20,7 @@ func TestNewKeyword(t *testing.T) {
 	Convey("When unmarshalling JSON using the new keyword", t, func() {
 
 		Convey("can be used with BinData constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `new BinData(1, "xyz")`
@@ -35,7 +35,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with Boolean constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `new Boolean(1)`
@@ -61,7 +61,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with Date constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "new Date(123)"
@@ -76,7 +76,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with DBRef constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `new BinData(1, "xyz")`
@@ -91,7 +91,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with NumberInt constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "new NumberInt(123)"
@@ -106,7 +106,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with NumberLong constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "new NumberLong(123)"
@@ -121,7 +121,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with ObjectId constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `new ObjectId("123")`
@@ -136,7 +136,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with RegExp constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `new RegExp("foo", "i")`
@@ -151,7 +151,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("can be used with Timestamp constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "new Timestamp(123, 321)"
@@ -166,7 +166,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("cannot be used with literals", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			literals := []string{"null", "true", "false", "undefined",
@@ -182,7 +182,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("must be followed by a space", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "newDate(123)"
@@ -193,7 +193,7 @@ func TestNewKeyword(t *testing.T) {
 		})
 
 		Convey("cannot be chained togther (`new new ...`)", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			//nolint:dupword

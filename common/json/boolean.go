@@ -35,7 +35,7 @@ func (d *decodeState) storeBoolean(v reflect.Value) {
 }
 
 // Returns a Boolean literal from the underlying byte data.
-func (d *decodeState) getBoolean() interface{} {
+func (d *decodeState) getBoolean() any {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginCtor {
 		d.error(fmt.Errorf("expected beginning of constructor"))

@@ -47,7 +47,7 @@ func (d *decodeState) storeTimestamp(v reflect.Value) {
 }
 
 // Returns a Timestamp literal from the underlying byte data.
-func (d *decodeState) getTimestamp() interface{} {
+func (d *decodeState) getTimestamp() any {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginCtor {
 		d.error(fmt.Errorf("expected beginning of constructor"))

@@ -67,7 +67,7 @@ func (dbs *DecodedBSONSource) Err() error {
 
 // NextGBSON unmarshals the next BSON document into result using the official go driver. Returns true if no errors are
 // encountered and false otherwise. This function does NOT zero out the result before writing to it.
-func (dbs *DecodedBSONSource) Next(result interface{}) bool {
+func (dbs *DecodedBSONSource) Next(result any) bool {
 	doc := dbs.LoadNext()
 	if doc == nil {
 		return false

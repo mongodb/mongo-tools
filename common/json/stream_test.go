@@ -22,14 +22,14 @@ import (
 
 // Test values for the stream test.
 // One of each JSON kind.
-var streamTest = []interface{}{
+var streamTest = []any{
 	0.1,
 	"hello",
 	nil,
 	true,
 	false,
-	[]interface{}{"a", "b", "c"},
-	map[string]interface{}{"K": "Kelvin", "ß": "long s"},
+	[]any{"a", "b", "c"},
+	map[string]any{"K": "Kelvin", "ß": "long s"},
 	3.14, // another value to make sure something can follow map
 }
 
@@ -77,7 +77,7 @@ func TestDecoder(t *testing.T) {
 				buf.WriteRune(c)
 			}
 		}
-		out := make([]interface{}, i)
+		out := make([]any, i)
 		dec := NewDecoder(&buf)
 		for j := range out {
 			if err := dec.Decode(&out[j]); err != nil {
@@ -200,7 +200,7 @@ func TestBlocking(t *testing.T) {
 		r, w := net.Pipe()
 		//nolint:errcheck
 		go w.Write([]byte(enc))
-		var val interface{}
+		var val any
 
 		// If Decode reads beyond what w.Write writes above,
 		// it will block, and the test will deadlock.

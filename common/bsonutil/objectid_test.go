@@ -23,7 +23,7 @@ func TestObjectIdValue(t *testing.T) {
 
 		Convey("works for ObjectId constructor", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.ObjectId("0123456789abcdef01234567"),
 			}
 
@@ -34,8 +34,8 @@ func TestObjectIdValue(t *testing.T) {
 
 		Convey(`works for ObjectId document ('{ "$oid": "0123456789abcdef01234567" }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$oid": "0123456789abcdef01234567",
 				},
 			}

@@ -42,18 +42,18 @@ func TestArraysBSONToJSON(t *testing.T) {
 
 	Convey("Converting BSON arrays to JSON arrays", t, func() {
 		Convey("should work for empty arrays", func() {
-			jArr, err := ConvertBSONValueToLegacyExtJSON([]interface{}{})
+			jArr, err := ConvertBSONValueToLegacyExtJSON([]any{})
 			So(err, ShouldBeNil)
 
-			So(jArr, ShouldResemble, []interface{}{})
+			So(jArr, ShouldResemble, []any{})
 		})
 
 		Convey("should work for one-level deep arrays", func() {
 			objId := bson.NewObjectID()
-			bsonArr := []interface{}{objId, 28, 0.999, "plain"}
+			bsonArr := []any{objId, 28, 0.999, "plain"}
 			_jArr, err := ConvertBSONValueToLegacyExtJSON(bsonArr)
 			So(err, ShouldBeNil)
-			jArr, ok := _jArr.([]interface{})
+			jArr, ok := _jArr.([]any)
 			So(ok, ShouldBeTrue)
 
 			So(len(jArr), ShouldEqual, 4)
@@ -64,7 +64,7 @@ func TestArraysBSONToJSON(t *testing.T) {
 		})
 
 		Convey("should work for arrays with embedded objects", func() {
-			bsonObj := []interface{}{
+			bsonObj := []any{
 				80,
 				bson.M{
 					"a": int64(20),
@@ -76,7 +76,7 @@ func TestArraysBSONToJSON(t *testing.T) {
 
 			_JObj, err := ConvertBSONValueToLegacyExtJSON(bsonObj)
 			So(err, ShouldBeNil)
-			_jObj, ok := _JObj.([]interface{})
+			_jObj, ok := _JObj.([]any)
 			So(ok, ShouldBeTrue)
 			jObj, ok := _jObj[1].(bson.M)
 			So(ok, ShouldBeTrue)

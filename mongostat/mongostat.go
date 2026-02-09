@@ -307,7 +307,7 @@ func (node *NodeMonitor) Poll(
 		return nil, fmt.Errorf("Error reading serverStatus: %v\n", err)
 	}
 	// The flattened version is required by some lookup functions
-	statMap := make(map[string]interface{})
+	statMap := make(map[string]any)
 	decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(tempBson)))
 	decoder.DefaultDocumentMap()
 	err = decoder.Decode(&statMap)

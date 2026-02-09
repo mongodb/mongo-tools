@@ -89,7 +89,7 @@ func (d *decodeState) storeNewLiteral(v reflect.Value, fromQuoted bool) {
 }
 
 // Returns a literal from the underlying byte data.
-func (d *decodeState) getNewLiteral() interface{} {
+func (d *decodeState) getNewLiteral() any {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginLiteral {
 		d.error(fmt.Errorf("expected beginning of constructor"))

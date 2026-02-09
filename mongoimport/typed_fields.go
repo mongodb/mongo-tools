@@ -135,7 +135,7 @@ func ParseAutoHeaders(headers []string) (fs []ColumnSpec) {
 
 // FieldParser is the interface for any parser of a field item.
 type FieldParser interface {
-	Parse(in string) (interface{}, error)
+	Parse(in string) (any, error)
 }
 
 var (
@@ -197,7 +197,7 @@ func NewFieldParser(t columnType, arg string) (parser FieldParser, err error) {
 	return
 }
 
-func autoParse(in string) interface{} {
+func autoParse(in string) any {
 	parsedInt, err := strconv.ParseInt(in, 10, 64)
 	if err == nil {
 		if math.MinInt32 <= parsedInt && parsedInt <= math.MaxInt32 {
@@ -214,7 +214,7 @@ func autoParse(in string) interface{} {
 
 type FieldAutoParser struct{}
 
-func (ap *FieldAutoParser) Parse(in string) (interface{}, error) {
+func (ap *FieldAutoParser) Parse(in string) (any, error) {
 	return autoParse(in), nil
 }
 
@@ -222,7 +222,7 @@ type FieldBinaryParser struct {
 	enc binaryEncoding
 }
 
-func (bp *FieldBinaryParser) Parse(in string) (interface{}, error) {
+func (bp *FieldBinaryParser) Parse(in string) (any, error) {
 	switch bp.enc {
 	case beBase32:
 		return base32.StdEncoding.DecodeString(in)
@@ -243,7 +243,7 @@ func NewFieldBinaryParser(arg string) (*FieldBinaryParser, error) {
 
 type FieldBooleanParser struct{}
 
-func (bp *FieldBooleanParser) Parse(in string) (interface{}, error) {
+func (bp *FieldBooleanParser) Parse(in string) (any, error) {
 	if strings.ToLower(in) == "true" || in == "1" {
 		return true, nil
 	}
@@ -257,37 +257,37 @@ type FieldDateParser struct {
 	layout string
 }
 
-func (dp *FieldDateParser) Parse(in string) (interface{}, error) {
+func (dp *FieldDateParser) Parse(in string) (any, error) {
 	return time.Parse(dp.layout, in)
 }
 
 type FieldDoubleParser struct{}
 
-func (dp *FieldDoubleParser) Parse(in string) (interface{}, error) {
+func (dp *FieldDoubleParser) Parse(in string) (any, error) {
 	return strconv.ParseFloat(in, 64)
 }
 
 type FieldInt32Parser struct{}
 
-func (ip *FieldInt32Parser) Parse(in string) (interface{}, error) {
+func (ip *FieldInt32Parser) Parse(in string) (any, error) {
 	value, err := strconv.ParseInt(in, 10, 32)
 	return int32(value), err
 }
 
 type FieldInt64Parser struct{}
 
-func (ip *FieldInt64Parser) Parse(in string) (interface{}, error) {
+func (ip *FieldInt64Parser) Parse(in string) (any, error) {
 	return strconv.ParseInt(in, 10, 64)
 }
 
 type FieldDecimalParser struct{}
 
-func (ip *FieldDecimalParser) Parse(in string) (interface{}, error) {
+func (ip *FieldDecimalParser) Parse(in string) (any, error) {
 	return bson.ParseDecimal128(in)
 }
 
 type FieldStringParser struct{}
 
-func (sp *FieldStringParser) Parse(in string) (interface{}, error) {
+func (sp *FieldStringParser) Parse(in string) (any, error) {
 	return in, nil
 }

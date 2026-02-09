@@ -77,10 +77,10 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 			So(strJSON, ShouldEqual, "{}")
 
 			Convey("but still usable by the json parser", func() {
-				var asInterface interface{}
+				var asInterface any
 				err := json.Unmarshal(asJSON, &asInterface)
 				So(err, ShouldBeNil)
-				asMap, ok := asInterface.(map[string]interface{})
+				asMap, ok := asInterface.(map[string]any)
 				So(ok, ShouldBeTrue)
 				So(len(asMap), ShouldEqual, 0)
 			})

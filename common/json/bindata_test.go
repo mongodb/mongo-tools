@@ -20,7 +20,7 @@ func TestBinDataValue(t *testing.T) {
 	Convey("When unmarshalling JSON with BinData values", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `BinData(1, "xyz")`
@@ -35,7 +35,7 @@ func TestBinDataValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := `BinData(1, "abc")`,
@@ -60,7 +60,7 @@ func TestBinDataValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `BinData(42, "10")`
@@ -70,7 +70,7 @@ func TestBinDataValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -81,7 +81,7 @@ func TestBinDataValue(t *testing.T) {
 		})
 
 		Convey("can specify type argument using hexadecimal", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `BinData(0x5f, "xyz")`

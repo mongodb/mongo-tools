@@ -21,7 +21,7 @@ func TestNumberIntValue(t *testing.T) {
 
 		Convey("works for NumberInt constructor", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.NumberInt(42),
 			}
 
@@ -32,8 +32,8 @@ func TestNumberIntValue(t *testing.T) {
 
 		Convey(`works for NumberInt document ('{ "$numberInt": "42" }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$numberInt": "42",
 				},
 			}

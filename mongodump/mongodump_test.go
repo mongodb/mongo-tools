@@ -381,7 +381,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 
 	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
 	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
-	var bucketMap map[string]interface{}
+	var bucketMap map[string]any
 	if err := json.Unmarshal([]byte(bucketJSON), &bucketMap); err != nil {
 		return err
 	}
@@ -434,7 +434,7 @@ func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, e
 		bson.D{
 			{"ns", ns},
 			{"op", "query"},
-			{"$or", []interface{}{
+			{"$or", []any{
 				// 4.0+
 				bson.D{{"command.hint._id", 1}},
 				// 3.6
@@ -1167,7 +1167,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 					So(err, ShouldBeNil)
 					contents, err := io.ReadAll(oneMetaFile)
 					So(err, ShouldBeNil)
-					var jsonResult map[string]interface{}
+					var jsonResult map[string]any
 					err = json.Unmarshal(contents, &jsonResult)
 					So(err, ShouldBeNil)
 

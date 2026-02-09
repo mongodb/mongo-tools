@@ -111,7 +111,7 @@ func (bb *BufferedBulkInserter) ResetBulk() {
 // any error that occurs.
 func (bb *BufferedBulkInserter) Insert(
 	ctx context.Context,
-	doc interface{},
+	doc any,
 ) (*mongo.BulkWriteResult, error) {
 	rawBytes, err := bson.Marshal(doc)
 	if err != nil {

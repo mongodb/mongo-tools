@@ -80,9 +80,9 @@ func (d *decodeState) ctor(name string, t []reflect.Type) ([]reflect.Value, erro
 	return result, ctorNumArgsMismatch(name, len(t), i)
 }
 
-// ctorInterface is like ctor but returns []interface{}.
-func (d *decodeState) ctorInterface() []interface{} {
-	var v = make([]interface{}, 0)
+// ctorInterface is like ctor but returns []any.
+func (d *decodeState) ctorInterface() []any {
+	var v = make([]any, 0)
 	for {
 		// Look ahead for ) - can only happen on first iteration.
 		op := d.scanWhile(scanSkipSpace)

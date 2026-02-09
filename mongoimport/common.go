@@ -213,7 +213,7 @@ func doSequentialStreaming(
 // notation for nested fields. e.g. "person.age" would return 34 would return
 // 34 in the document: bson.M{"person": bson.M{"age": 34}} whereas,
 // "person.name" would return nil.
-func getUpsertValue(field string, document bson.D) interface{} {
+func getUpsertValue(field string, document bson.D) any {
 	index := strings.Index(field, ".")
 	if index == -1 {
 		// grab the value (ignoring errors because we are okay with nil)
@@ -291,7 +291,7 @@ func removeBlankFields(document bson.D) (newDocument bson.D) {
 //     or array is created, added to the array, and a reference is passed to those functions.
 func setNestedDocumentValue(
 	fieldParts []string,
-	value interface{},
+	value any,
 	document *bson.D,
 	useArrayIndexFields bool,
 ) (err error) {
@@ -357,7 +357,7 @@ func setNestedDocumentValue(
 // setNestedArrayValue is mutually recursive with setNestedDocumentValue. The two functions
 // work together to set elements nested in documents and arrays. See the documentation
 // of setNestedDocumentValue for more information.
-func setNestedArrayValue(fieldParts []string, value interface{}, array *bson.A) (err error) {
+func setNestedArrayValue(fieldParts []string, value any, array *bson.A) (err error) {
 
 	// The first part of the field should be an index of an array
 	idx, ok := isNatNum(fieldParts[0])
@@ -515,7 +515,7 @@ func tokensToBSON(
 	useArrayIndexFields bool,
 ) (bson.D, error) {
 	log.Logvf(log.DebugHigh, "got line: %v", tokens)
-	var parsedValue interface{}
+	var parsedValue any
 	document := bson.D{}
 	for index, token := range tokens {
 		if token == "" && ignoreBlanks {
@@ -613,12 +613,12 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 	// Each node in the tree corresponds to field parts split by '.' so that each
 	// field is represented by a branch in the tree. The last part of a field is a terminal node.
 	// A branch terminates when the value at the leaf node is set to true.
-	// The tree is represented by a map[string]interface{}, where the interface{} can
-	// be another map or a bool. If useArrayIndexFields is set, the interface{} can also be
+	// The tree is represented by a map[string]any, where the any can
+	// be another map or a bool. If useArrayIndexFields is set, the any can also be
 	// a slice of interfaces which could be maps, bools, or other slices.
 	// The tree is equivalent to the structure of the BSON document that
 	// would be constructed by the list of fields provided.
-	fieldTree := make(map[string]interface{})
+	fieldTree := make(map[string]any)
 
 	for _, field := range inputFields {
 		fieldParts := strings.Split(field, ".")
@@ -638,9 +638,9 @@ func addFieldToTree(
 	fieldParts []string,
 	fullField string,
 	fieldPrefix string,
-	tree map[string]interface{},
+	tree map[string]any,
 	useArrayIndexFields bool,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
 	if fieldPrefix == "" {
 		fieldPrefix = head
@@ -670,15 +670,15 @@ func addFieldToTree(
 	// If the head value exists we check the compatibility of the next field with that value.
 	// If it doesn't exist we create an empty structure of the appropriate type.
 	if _, ok := isNatNum(tail[0]); useArrayIndexFields && ok {
-		var subArray []interface{}
+		var subArray []any
 		if exists {
-			subArray, ok = value.([]interface{})
+			subArray, ok = value.([]any)
 			if !ok {
 				// case (4) or (5): We expect value to be an array but it is a map or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, value)
 			}
 		} else {
-			subArray = make([]interface{}, 0)
+			subArray = make([]any, 0)
 		}
 		subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
 		if err != nil {
@@ -686,15 +686,15 @@ func addFieldToTree(
 		}
 		tree[head] = subArray
 	} else {
-		var subTree map[string]interface{}
+		var subTree map[string]any
 		if exists {
-			subTree, ok = value.(map[string]interface{})
+			subTree, ok = value.(map[string]any)
 			if !ok {
 				// case (3) or (5): We expect value to be a map but it is a slice or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, value)
 			}
 		} else {
-			subTree = make(map[string]interface{})
+			subTree = make(map[string]any)
 		}
 		subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, useArrayIndexFields)
 		if err != nil {
@@ -711,8 +711,8 @@ func addFieldToArray(
 	fieldParts []string,
 	fullField string,
 	fieldPrefix string,
-	array []interface{},
-) ([]interface{}, error) {
+	array []any,
+) ([]any, error) {
 	head, tail := fieldParts[0], fieldParts[1:]
 	fieldPrefix += "." + head
 
@@ -755,7 +755,7 @@ func addFieldToArray(
 		if headIndex < len(array) {
 			// the index already exists in array
 			// check the element is an array
-			subArray, ok := array[headIndex].([]interface{})
+			subArray, ok := array[headIndex].([]any)
 			if !ok {
 				// case (4) or (5): We expect array[headIndex] to be an array but it is a map or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
@@ -767,7 +767,7 @@ func addFieldToArray(
 			array[headIndex] = subArray
 		} else {
 			// the element at headIndex doesn't exist yet
-			var subArray []interface{}
+			var subArray []any
 			subArray, err := addFieldToArray(tail, fullField, fieldPrefix, subArray)
 			if err != nil {
 				return nil, err
@@ -779,7 +779,7 @@ func addFieldToArray(
 		if headIndex < len(array) {
 			// the index already exists in array
 			// check the element is an document
-			subTree, ok := array[headIndex].(map[string]interface{})
+			subTree, ok := array[headIndex].(map[string]any)
 			if !ok {
 				// case (3) or (5): We expect array[headIndex] to be a map but it is a slice or boolean instead
 				return nil, incompatibleError(fullField, fieldPrefix, array[headIndex])
@@ -791,7 +791,7 @@ func addFieldToArray(
 			array[headIndex] = subTree
 		} else {
 			// the element at headIndex doesn't exist yet
-			subTree := make(map[string]interface{})
+			subTree := make(map[string]any)
 			subTree, err := addFieldToTree(tail, fullField, fieldPrefix, subTree, true)
 			if err != nil {
 				return nil, err
@@ -805,13 +805,13 @@ func addFieldToArray(
 
 // findFirstField is used as a helper for constructing error messages when building a tree of fields.
 // It returns the path to the left-most leaf in a tree.
-func findFirstField(i interface{}) string {
+func findFirstField(i any) string {
 	switch v := i.(type) {
 	case bool:
 		return ""
-	case []interface{}:
+	case []any:
 		return ".0" + findFirstField(v[0])
-	case map[string]interface{}:
+	case map[string]any:
 		for k, v := range v {
 			return "." + k + findFirstField(v)
 		}
@@ -819,7 +819,7 @@ func findFirstField(i interface{}) string {
 	return ""
 }
 
-func incompatibleError(field string, fieldPrefix string, value interface{}) error {
+func incompatibleError(field string, fieldPrefix string, value any) error {
 	field2 := fieldPrefix + findFirstField(value)
 	return fmt.Errorf("fields '%v' and '%v' are incompatible", field2, field)
 }

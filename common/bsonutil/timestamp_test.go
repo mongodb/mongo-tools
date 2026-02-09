@@ -23,7 +23,7 @@ func TestTimestampValue(t *testing.T) {
 
 		Convey("works for Timestamp literal", func() {
 
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				"ts": json.Timestamp{123456, 55},
 			}
 
@@ -34,9 +34,9 @@ func TestTimestampValue(t *testing.T) {
 
 		Convey(`works for Timestamp document`, func() {
 			Convey(`{"ts":{"$timestamp":{"t":123456, "i":55}}}`, func() {
-				jsonMap := map[string]interface{}{
-					"ts": map[string]interface{}{
-						"$timestamp": map[string]interface{}{
+				jsonMap := map[string]any{
+					"ts": map[string]any{
+						"$timestamp": map[string]any{
 							"t": 123456.0,
 							"i": 55.0,
 						},
@@ -46,7 +46,7 @@ func TestTimestampValue(t *testing.T) {
 				bsonMap, err := ConvertLegacyExtJSONValueToBSON(jsonMap)
 				So(err, ShouldBeNil)
 
-				realMap, ok := bsonMap.(map[string]interface{})
+				realMap, ok := bsonMap.(map[string]any)
 				So(ok, ShouldBeTrue)
 
 				So(realMap["ts"], ShouldEqual, testTS)

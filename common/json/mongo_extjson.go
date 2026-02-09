@@ -29,7 +29,7 @@ type ObjectId string
 // Represents a reference to another document.
 type DBRef struct {
 	Collection string
-	Id         interface{}
+	Id         any
 	Database   string // optional
 }
 
@@ -73,7 +73,7 @@ type Timestamp struct {
 
 type JavaScript struct {
 	Code  string
-	Scope interface{}
+	Scope any
 }
 
 type Float float64
@@ -318,7 +318,7 @@ func (d *decodeState) storeExtendedLiteral(item []byte, v reflect.Value, fromQuo
 }
 
 // Returns a literal from the underlying byte data.
-func (d *decodeState) getExtendedLiteral(item []byte) (interface{}, bool) {
+func (d *decodeState) getExtendedLiteral(item []byte) (any, bool) {
 	switch c := item[0]; c {
 	case 'n':
 		return d.getNewLiteral(), true

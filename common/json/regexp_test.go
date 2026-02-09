@@ -20,7 +20,7 @@ func TestRegExpValue(t *testing.T) {
 	Convey("When unmarshalling JSON with RegExp values", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `RegExp("foo", "i")`
@@ -35,7 +35,7 @@ func TestRegExpValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := `RegExp("foo", "i")`,
@@ -60,7 +60,7 @@ func TestRegExpValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `RegExp("xyz", "i")`
@@ -70,7 +70,7 @@ func TestRegExpValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -81,7 +81,7 @@ func TestRegExpValue(t *testing.T) {
 		})
 
 		Convey("can use options 'g', 'i', 'm', and 's'", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			options := []string{"g", "i", "m", "s"}
@@ -99,7 +99,7 @@ func TestRegExpValue(t *testing.T) {
 		})
 
 		Convey("can use multiple options", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `RegExp("foo", "gims")`
@@ -121,7 +121,7 @@ func TestRegexpLiteral(t *testing.T) {
 	Convey("When unmarshalling JSON with regular expression literals", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "/foo/i"
@@ -136,7 +136,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "/foo/i", "/bar/i", "/baz/i"
@@ -160,7 +160,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "/xyz/i"
@@ -170,7 +170,7 @@ func TestRegexpLiteral(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -181,7 +181,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("can use options 'g', 'i', 'm', and 's'", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			options := []string{"g", "i", "m", "s"}
@@ -199,7 +199,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("can use multiple options", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "/foo/gims"
@@ -214,7 +214,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("can contain unescaped quotes (`'` and `\"`)", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `/f'o"o/i`
@@ -229,7 +229,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("cannot contain unescaped forward slashes ('/')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "/f/o/o/i"
@@ -240,7 +240,7 @@ func TestRegexpLiteral(t *testing.T) {
 		})
 
 		Convey("cannot contain invalid escape sequences", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `/f\o\o/`

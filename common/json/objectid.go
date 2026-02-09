@@ -43,7 +43,7 @@ func (d *decodeState) storeObjectId(v reflect.Value) {
 }
 
 // Returns an ObjectId literal from the underlying byte data.
-func (d *decodeState) getObjectId() interface{} {
+func (d *decodeState) getObjectId() any {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginCtor {
 		d.error(fmt.Errorf("expected beginning of constructor"))

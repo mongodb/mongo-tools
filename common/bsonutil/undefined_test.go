@@ -22,7 +22,7 @@ func TestUndefinedValue(t *testing.T) {
 
 		Convey("works for undefined literal", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.Undefined{},
 			}
 
@@ -33,8 +33,8 @@ func TestUndefinedValue(t *testing.T) {
 
 		Convey(`works for undefined document ('{ "$undefined": true }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$undefined": true,
 				},
 			}

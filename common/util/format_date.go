@@ -22,8 +22,8 @@ var (
 	}
 )
 
-func FormatDate(v string) (interface{}, error) {
-	var date interface{}
+func FormatDate(v string) (any, error) {
+	var date any
 	var err error
 
 	for _, format := range acceptedDateFormats {

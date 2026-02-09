@@ -12,8 +12,8 @@ import (
 // DeferredQuery represents a deferred query.
 type DeferredQuery struct {
 	Coll      *mongo.Collection
-	Filter    interface{}
-	Hint      interface{}
+	Filter    any
+	Hint      any
 	LogReplay bool
 }
 

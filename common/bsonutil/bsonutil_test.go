@@ -17,7 +17,7 @@ func TestBson2Float64(t *testing.T) {
 
 	decimalVal, _ := bson.ParseDecimal128("-1")
 	tests := []struct {
-		in          interface{}
+		in          any
 		expected    float64
 		isSuccess   bool
 		description string

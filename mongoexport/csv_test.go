@@ -70,7 +70,7 @@ func TestWriteCSV(t *testing.T) {
 
 		Convey("Exported document with index into nested objects should print correctly", func() {
 			csvExporter := NewCSVExportOutput(fields, true, out)
-			z := []interface{}{"x", bson.D{{"a", "T"}, {"B", 1}}}
+			z := []any{"x", bson.D{{"a", "T"}, {"B", 1}}}
 			err := csvExporter.ExportDocument(bson.D{{Key: "z", Value: z}})
 			So(err, ShouldBeNil)
 			err = csvExporter.WriteFooter()
@@ -92,7 +92,7 @@ func TestWriteCSV(t *testing.T) {
 func TestExtractDField(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a test bson.D", t, func() {
-		b := []interface{}{"inner", bsonutil.MarshalD{{"inner2", 1}}}
+		b := []any{"inner", bsonutil.MarshalD{{"inner2", 1}}}
 		c := bsonutil.MarshalD{{"x", 5}}
 		d := bsonutil.MarshalD{{"z", nil}}
 		testD := bsonutil.MarshalD{
@@ -148,7 +148,7 @@ func TestExtractDField(t *testing.T) {
 	})
 
 	Convey(`Extraction of a non-document should return ""`, t, func() {
-		val := extractFieldByName("meh", []interface{}{"meh"})
+		val := extractFieldByName("meh", []any{"meh"})
 		So(val, ShouldEqual, "")
 	})
 

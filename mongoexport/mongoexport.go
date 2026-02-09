@@ -516,8 +516,8 @@ func (exp *MongoExport) getExportOutput(out io.Writer) (ExportOutput, error) {
 // getObjectFromByteArg takes an object in extended JSON, and converts it to an object that
 // can be passed straight to db.collection.find(...) as a query or sort criteria.
 // Returns an error if the string is not valid JSON, or extended JSON.
-func getObjectFromByteArg(queryRaw []byte) (map[string]interface{}, error) {
-	parsedJSON := map[string]interface{}{}
+func getObjectFromByteArg(queryRaw []byte) (map[string]any, error) {
+	parsedJSON := map[string]any{}
 	err := json.Unmarshal(queryRaw, &parsedJSON)
 	if err != nil {
 		return nil, fmt.Errorf("query '%v' is not valid JSON: %v", queryRaw, err)

@@ -21,7 +21,7 @@ func TestFractionalNumber(t *testing.T) {
 		"without a leading zero", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := ".123"
@@ -36,7 +36,7 @@ func TestFractionalNumber(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := ".123", ".456", ".789"
@@ -60,7 +60,7 @@ func TestFractionalNumber(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := ".42"
@@ -70,7 +70,7 @@ func TestFractionalNumber(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -81,7 +81,7 @@ func TestFractionalNumber(t *testing.T) {
 		})
 
 		Convey("can have a sign ('+' or '-')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := ".106"

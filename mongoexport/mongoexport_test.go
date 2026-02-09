@@ -71,7 +71,7 @@ func TestExtendedJSON(t *testing.T) {
 			"subdoc": bson.M{
 				"subid": bson.NewObjectID(),
 			},
-			"array": []interface{}{
+			"array": []any{
 				bson.NewObjectID(),
 				bson.Undefined{},
 			},
@@ -226,7 +226,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 			bson.D{
 				{"ns", ns},
 				{"op", "query"},
-				{"$or", []interface{}{
+				{"$or", []any{
 					// 4.0+
 					bson.D{{"command.hint._id", 1}},
 					// 3.6

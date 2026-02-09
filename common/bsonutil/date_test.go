@@ -34,8 +34,8 @@ func TestDateValue(t *testing.T) {
 				example := fmt.Sprintf(`{ "$date": "%v" }`, dateString)
 				Convey(fmt.Sprintf("of string ('%v')", example), func() {
 					key := "key"
-					jsonMap := map[string]interface{}{
-						key: map[string]interface{}{
+					jsonMap := map[string]any{
+						key: map[string]any{
 							"$date": dateString,
 						},
 					}
@@ -57,9 +57,9 @@ func TestDateValue(t *testing.T) {
 
 			Convey(`of $numberLong ('{ "$date": { "$numberLong": "1136214245000" } }')`, func() {
 				key := "key"
-				jsonMap := map[string]interface{}{
-					key: map[string]interface{}{
-						"$date": map[string]interface{}{
+				jsonMap := map[string]any{
+					key: map[string]any{
+						"$date": map[string]any{
 							"$numberLong": "1136214245000",
 						},
 					},

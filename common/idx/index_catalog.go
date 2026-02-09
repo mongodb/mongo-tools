@@ -322,7 +322,7 @@ func (i *IndexCatalog) GetIndexByIndexMod(
 	}
 }
 
-func (i *IndexCatalog) collMod(database, collection string, indexModValue interface{}) error {
+func (i *IndexCatalog) collMod(database, collection string, indexModValue any) error {
 	indexMod, ok := indexModValue.(bson.D)
 	if !ok {
 		return errors.Errorf("unknown collMod \"index\" modifier: %v", indexModValue)
@@ -391,7 +391,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue interf
 //	 "collMod": "sessions",
 //	 "index": {"name": "lastAccess_1", "expireAfterSeconds": 3600}}
 //	}
-func (i *IndexCatalog) CollMod(database, collection string, indexModValue interface{}) error {
+func (i *IndexCatalog) CollMod(database, collection string, indexModValue any) error {
 	err := i.collMod(database, collection, indexModValue)
 	if err != nil {
 		return fmt.Errorf("could not handle collMod on %s.%s: %v", database, collection, err)
