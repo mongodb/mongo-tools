@@ -1962,7 +1962,7 @@ func TestGeoHaystackIndexes(t *testing.T) {
 	})
 }
 
-func createTimeseries(dbName, coll string, client *mongo.Client) {
+func createTimeseries(t *testing.T, dbName, coll string, client *mongo.Client) {
 	timeseriesOptions := bson.M{
 		"timeField": "ts",
 		"metaField": "meta",
@@ -2114,7 +2114,7 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testdb := session.Database(dbName)
 	bucketColl := testdb.Collection("system.buckets." + collName)
 
-	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, collName))
+	require.NoError(t, setupTimeseriesWithMixedSchema(t, dbName, collName))
 
 	withArchiveMongodump(t, func(file string) {
 		require.NoError(t, testdb.Collection(collName).Drop(ctx))
@@ -2139,7 +2139,7 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(1), count)
 
-		hasMixedSchema, err := timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
+		hasMixedSchema, err := timeseriesBucketsMayHaveMixedSchemaData(t, bucketColl)
 		require.NoError(t, err)
 		require.True(t, hasMixedSchema)
 
@@ -2148,7 +2148,10 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	})
 }
 
-func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool, error) {
+func timeseriesBucketsMayHaveMixedSchemaData(
+	t *testing.T,
+	bucketColl *mongo.Collection,
+) (bool, error) {
 	ctx := t.Context()
 	cursor, err := bucketColl.Database().RunCommandCursor(ctx, bson.D{
 		{"aggregate", bucketColl.Name()},
@@ -2179,7 +2182,7 @@ func timeseriesBucketsMayHaveMixedSchemaData(bucketColl *mongo.Collection) (bool
 	return hasMixedSchema.Boolean(), nil
 }
 
-func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
+func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
 		return err
@@ -2320,7 +2323,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		Convey(
 			"restoring a timeseries collection that already exists on the destination should fail",
 			func() {
-				createTimeseries(dbName, "foo_ts", session)
+				createTimeseries(t, dbName, "foo_ts", session)
 				args = append(args, DirectoryOption, "testdata/timeseries_tests/ts_dump")
 				restore, err := getRestoreWithArgs(args...)
 				So(err, ShouldBeNil)
@@ -2385,7 +2388,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		Convey(
 			"restoring a timeseries collection that already exists on the destination with --drop should succeed",
 			func() {
-				createTimeseries(dbName, "foo_ts", session)
+				createTimeseries(t, dbName, "foo_ts", session)
 				args = append(
 					args,
 					DirectoryOption,

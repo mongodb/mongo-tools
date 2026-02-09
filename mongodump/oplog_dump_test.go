@@ -75,7 +75,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	require.NoError(t, vectoredInsert(ctx))
 	//nolint:errcheck
-	defer tearDownMongoDumpTestData()
+	defer tearDownMongoDumpTestData(t)
 
 	require.NoError(t, md.Dump())
 

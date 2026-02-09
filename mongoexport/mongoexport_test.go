@@ -8,7 +8,6 @@ package mongoexport
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"

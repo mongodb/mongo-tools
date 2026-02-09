@@ -7,7 +7,6 @@
 package db
 
 import (
-	"context"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"

@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"

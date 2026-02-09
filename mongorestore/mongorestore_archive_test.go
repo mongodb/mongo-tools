@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -322,7 +321,7 @@ type restoreNamespaceTestCases []*restoreNamespaceTestCase
 func (testCases restoreNamespaceTestCases) init() {
 	for _, testCase := range testCases {
 		require := require.New(testCase.t)
-		err := testCase.collection.Drop(t.Context())
+		err := testCase.collection.Drop(testCase.t.Context())
 		require.NoError(err, "can drop collection")
 	}
 }

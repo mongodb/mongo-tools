@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -92,7 +91,7 @@ func TestMongorestoreTxns(t *testing.T) {
 		for k, v := range data {
 			_, err = Println("postImageCheck for", k)
 			So(err, ShouldBeNil)
-			So(postImageCheck(client, v), ShouldBeNil)
+			So(postImageCheck(t, client, v), ShouldBeNil)
 		}
 	})
 }
@@ -141,7 +140,7 @@ func readTxnTestData(filename string) (txnTestDataMap, error) {
 	return txnTestData, nil
 }
 
-func postImageCheck(client *mongo.Client, c *txnTestDataCase) error {
+func postImageCheck(t *testing.T, client *mongo.Client, c *txnTestDataCase) error {
 	expected := make(map[int]bson.D)
 	for _, v := range c.PostImage {
 		id, err := bsonutil.FindIntByKey("_id", &v)
