@@ -45,7 +45,7 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 
 	collection := session.Database(testDb).Collection(testCollection)
 	cursor, err := collection.Find(
-		context.Background(),
+		t.Context(),
 		bson.D{},
 		mopt.Find().SetSort(bson.D{{"_id", 1}}),
 	)
@@ -54,7 +54,7 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	}
 
 	var docs []bson.M
-	for cursor.Next(context.Background()) {
+	for cursor.Next(t.Context()) {
 		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(cursor.Current)))
 		decoder.DefaultDocumentM()
 		var doc bson.M
@@ -86,7 +86,7 @@ func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	n, err := collection.CountDocuments(context.Background(), bson.D{})
+	n, err := collection.CountDocuments(t.Context(), bson.D{})
 	if err != nil {
 		return 0, err
 	}
@@ -571,7 +571,7 @@ func TestImportDocuments(t *testing.T) {
 			}
 			_, err = session.Database(testDb).
 				Collection(testCollection).
-				DeleteMany(context.Background(), bson.D{})
+				DeleteMany(t.Context(), bson.D{})
 			if err != nil {
 				t.Fatalf("error dropping collection: %v", err)
 			}
@@ -1436,7 +1436,7 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nSuccess, ShouldEqual, 20000)
 		So(nFailure, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 20000)
 	})
@@ -1458,7 +1458,7 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nFailure, ShouldEqual, 1)
 		So(err, ShouldNotBeNil)
 
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10000)
 	})
@@ -1478,10 +1478,10 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nSuccess, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
 		So(nFailure, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
 	})
 
-	_ = database.Drop(context.Background())
+	_ = database.Drop(t.Context())
 }

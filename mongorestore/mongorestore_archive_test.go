@@ -216,11 +216,11 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	adminSuffixedDB := session.Database(adminSuffixedDBName)
 
 	defer func() {
-		err = testDB.Drop(context.Background())
+		err = testDB.Drop(t.Context())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
-		err = adminSuffixedDB.Drop(context.Background())
+		err = adminSuffixedDB.Drop(t.Context())
 		if err != nil {
 			t.Fatalf("Failed to drop admin suffixed database: %v", err)
 		}
@@ -269,11 +269,11 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 	adminDB := session.Database(adminDBName)
 	adminSuffixedDB := session.Database(adminSuffixedDBName)
 	defer func() {
-		err = testDB.Drop(context.Background())
+		err = testDB.Drop(t.Context())
 		if err != nil {
 			t.Fatalf("Failed to drop test database: %v", err)
 		}
-		err = adminSuffixedDB.Drop(context.Background())
+		err = adminSuffixedDB.Drop(t.Context())
 		if err != nil {
 			t.Fatalf("Failed to drop admin suffixed database: %v", err)
 		}
@@ -322,7 +322,7 @@ type restoreNamespaceTestCases []*restoreNamespaceTestCase
 func (testCases restoreNamespaceTestCases) init() {
 	for _, testCase := range testCases {
 		require := require.New(testCase.t)
-		err := testCase.collection.Drop(context.Background())
+		err := testCase.collection.Drop(t.Context())
 		require.NoError(err, "can drop collection")
 	}
 }
@@ -359,7 +359,7 @@ func requireCollectionHasNumDocuments(
 	numDocuments int64,
 ) {
 	require := require.New(t)
-	count, err := collection.CountDocuments(context.Background(), bson.M{})
+	count, err := collection.CountDocuments(t.Context(), bson.M{})
 	require.NoError(err, "can count documents")
 	require.EqualValues(numDocuments, count, "found %d document(s)", count)
 }
@@ -372,7 +372,7 @@ func createCollectionWithTestDocument(
 	require := require.New(t)
 	collection := db.Collection(collectionName)
 	_, err := collection.InsertOne(
-		context.Background(),
+		t.Context(),
 		testDocument,
 	)
 	require.NoError(err, "can insert documents into collection")

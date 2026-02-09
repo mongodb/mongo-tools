@@ -58,7 +58,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 		t.Skipf("Requires server with FCV 8.0 or later; found %v", fcv)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	md, err := simpleMongoDumpInstance()
 	require.NoError(t, err)

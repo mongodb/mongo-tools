@@ -106,7 +106,7 @@ func tearDownGridFSTestData() error {
 		return err
 	}
 
-	if err = session.Database(testDB).Drop(context.Background()); err != nil {
+	if err = session.Database(testDB).Drop(t.Context()); err != nil {
 		return err
 	}
 
