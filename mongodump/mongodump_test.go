@@ -9,7 +9,6 @@ package mongodump
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
@@ -180,7 +179,7 @@ func getMatchingFiles(dir, pattern string) ([]string, error) {
 
 // read all the database bson documents from dir and put it into another DB
 // ignore the indexes for now.
-func readBSONIntoDatabase(dir, restoreDBName string) error {
+func readBSONIntoDatabase(t *testing.T, dir, restoreDBName string) error {
 	if ok := fileDirExists(dir); !ok {
 		return fmt.Errorf("error finding '%v' on local FS", dir)
 	}
@@ -221,7 +220,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 
 		var result bson.D
 		for bsonSource.Next(&result) {
-			_, err = collection.InsertOne(context.Background(), result)
+			_, err = collection.InsertOne(t.Context(), result)
 			if err != nil {
 				return err
 			}
@@ -234,7 +233,7 @@ func readBSONIntoDatabase(dir, restoreDBName string) error {
 	return nil
 }
 
-func setUpMongoDumpTestData() error {
+func setUpMongoDumpTestData(t *testing.T) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
@@ -245,7 +244,7 @@ func setUpMongoDumpTestData() error {
 
 		for j := 0; j < 10*(i+1); j++ {
 			_, err = coll.InsertOne(
-				context.Background(),
+				t.Context(),
 				bson.M{
 					"collectionName": collectionName,
 					"age":            j,
@@ -260,7 +259,7 @@ func setUpMongoDumpTestData() error {
 			idx := mongo.IndexModel{
 				Keys: bson.M{`"`: 1},
 			}
-			_, err = coll.Indexes().CreateOne(context.Background(), idx)
+			_, err = coll.Indexes().CreateOne(t.Context(), idx)
 			if err != nil {
 				return err
 			}
@@ -270,7 +269,7 @@ func setUpMongoDumpTestData() error {
 	return nil
 }
 
-func setUpTimeseries(dbName string, colName string) error {
+func setUpTimeseries(t *testing.T, dbName string, colName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
 		return err
@@ -295,7 +294,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	idx := mongo.IndexModel{
 		Keys: bson.D{{"my_meta.device", 1}},
 	}
-	_, err = coll.Indexes().CreateOne(context.Background(), idx)
+	_, err = coll.Indexes().CreateOne(t.Context(), idx)
 	if err != nil {
 		return err
 	}
@@ -303,7 +302,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	idx = mongo.IndexModel{
 		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
 	}
-	_, err = coll.Indexes().CreateOne(context.Background(), idx)
+	_, err = coll.Indexes().CreateOne(t.Context(), idx)
 	if err != nil {
 		return err
 	}
@@ -313,7 +312,7 @@ func setUpTimeseries(dbName string, colName string) error {
 			"device": i % 10,
 		}
 		_, err = coll.InsertOne(
-			context.Background(),
+			t.Context(),
 			bson.M{
 				"ts":          bson.NewDateTimeFromTime(time.Now()),
 				"my_meta":     metadata,
@@ -328,7 +327,7 @@ func setUpTimeseries(dbName string, colName string) error {
 	return nil
 }
 
-func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
+func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) error {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	if err != nil {
 		return err
@@ -339,7 +338,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 		return err
 	}
 
-	if err := client.Database(dbName).Collection(collName).Drop(context.Background()); err != nil {
+	if err := client.Database(dbName).Collection(collName).Drop(t.Context()); err != nil {
 		return err
 	}
 
@@ -351,7 +350,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 		}},
 	}
 
-	createRes := sessionProvider.DB(dbName).RunCommand(context.Background(), createCmd)
+	createRes := sessionProvider.DB(dbName).RunCommand(t.Context(), createCmd)
 	if createRes.Err() != nil {
 		return createRes.Err()
 	}
@@ -371,7 +370,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 	}
 
 	if shouldAccommodateMixedSchema {
-		if res := sessionProvider.DB(dbName).RunCommand(context.Background(), bson.D{
+		if res := sessionProvider.DB(dbName).RunCommand(t.Context(), bson.D{
 			{"collMod", collName},
 			{"timeseriesBucketsMayHaveMixedSchemaData", true},
 		}); res.Err() != nil {
@@ -388,7 +387,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 	if err := bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap); err != nil {
 		return err
 	}
-	if _, err := bucketColl.InsertOne(context.Background(), bucketMap); err != nil {
+	if _, err := bucketColl.InsertOne(t.Context(), bucketMap); err != nil {
 		return err
 	}
 
@@ -429,8 +428,12 @@ func turnOnProfiling(dbName string) error {
 	return sessionProvider.Run(profileCmd, &res, dbName)
 }
 
-func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, error) {
-	return profileCollection.CountDocuments(context.Background(),
+func countSnapshotCmds(
+	t *testing.T,
+	profileCollection *mongo.Collection,
+	ns string,
+) (int64, error) {
+	return profileCollection.CountDocuments(t.Context(),
 		bson.D{
 			{"ns", ns},
 			{"op", "query"},
@@ -453,7 +456,7 @@ func countSnapshotCmds(profileCollection *mongo.Collection, ns string) (int64, e
 // channel is closed.  The function closes the ready channel to signal that
 // background insertion has started.  When the done channel is closed, the
 // function returns.  Any errors are passed back on the errs channel.
-func backgroundInsert(ready, done chan struct{}, errs chan error) {
+func backgroundInsert(t *testing.T, ready, done chan struct{}, errs chan error) {
 	defer close(errs)
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -471,7 +474,7 @@ func backgroundInsert(ready, done chan struct{}, errs chan error) {
 
 	// Insert a doc to ensure the DB is actually ready for inserts
 	// and not pausing while a dropDatabase is processing.
-	_, err = colls[0].InsertOne(context.Background(), bson.M{"n": n})
+	_, err = colls[0].InsertOne(t.Context(), bson.M{"n": n})
 	if err != nil {
 		errs <- err
 		close(ready)
@@ -486,7 +489,7 @@ func backgroundInsert(ready, done chan struct{}, errs chan error) {
 			return
 		default:
 			coll := colls[rand.Intn(len(colls))]
-			_, err := coll.InsertOne(context.Background(), bson.M{"n": n})
+			_, err := coll.InsertOne(t.Context(), bson.M{"n": n})
 			if err != nil {
 				errs <- err
 				return
@@ -496,26 +499,26 @@ func backgroundInsert(ready, done chan struct{}, errs chan error) {
 	}
 }
 
-func tearDownMongoDumpTestData() error {
+func tearDownMongoDumpTestData(t *testing.T) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
 
-	err = session.Database(testDB).Drop(context.Background())
+	err = session.Database(testDB).Drop(t.Context())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func dropDB(dbName string) error {
+func dropDB(t *testing.T, dbName string) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		return err
 	}
 
-	err = session.Database(dbName).Drop(context.Background())
+	err = session.Database(dbName).Drop(t.Context())
 	if err != nil {
 		return err
 	}
@@ -531,7 +534,7 @@ func fileDirExists(name string) bool {
 	return true
 }
 
-func testQuery(md *MongoDump, session *mongo.Client) string {
+func testQuery(t *testing.T, md *MongoDump, session *mongo.Client) string {
 	origDB := session.Database(testDB)
 	restoredDB := session.Database(testRestoreDB)
 
@@ -557,19 +560,19 @@ func testQuery(md *MongoDump, session *mongo.Client) string {
 	So(fileDirExists(dumpDir), ShouldBeTrue)
 	So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
-	So(restoredDB.Drop(context.Background()), ShouldBeNil)
-	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
+	So(restoredDB.Drop(t.Context()), ShouldBeNil)
+	err = readBSONIntoDatabase(t, dumpDBDir, testRestoreDB)
 	So(err, ShouldBeNil)
 
 	for _, testCollName := range testCollectionNames {
 		// count filtered docs
 		origDocCount, err := origDB.Collection(testCollName).
-			CountDocuments(context.Background(), bsonQuery)
+			CountDocuments(t.Context(), bsonQuery)
 		So(err, ShouldBeNil)
 
 		// count number of all restored documents
 		restDocCount, err := restoredDB.Collection(testCollName).
-			CountDocuments(context.Background(), bson.D{})
+			CountDocuments(t.Context(), bson.D{})
 		So(err, ShouldBeNil)
 
 		So(restDocCount, ShouldEqual, origDocCount)
@@ -577,7 +580,7 @@ func testQuery(md *MongoDump, session *mongo.Client) string {
 	return dumpDir
 }
 
-func testDumpOneCollection(md *MongoDump, dumpDir string) {
+func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 	path, err := os.Getwd()
 	So(err, ShouldBeNil)
 
@@ -602,35 +605,35 @@ func testDumpOneCollection(md *MongoDump, dumpDir string) {
 
 	collOriginal := session.Database(testDB).Collection(md.ToolOptions.Collection)
 
-	So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
+	So(session.Database(testRestoreDB).Drop(t.Context()), ShouldBeNil)
 	collRestore := session.Database(testRestoreDB).Collection(md.ToolOptions.Collection)
 
-	err = readBSONIntoDatabase(dumpDBDir, testRestoreDB)
+	err = readBSONIntoDatabase(t, dumpDBDir, testRestoreDB)
 	So(err, ShouldBeNil)
 
 	Convey("with the correct number of documents", func() {
-		numDocsOrig, err := collOriginal.CountDocuments(context.Background(), bson.D{})
+		numDocsOrig, err := collOriginal.CountDocuments(t.Context(), bson.D{})
 		So(err, ShouldBeNil)
 
-		numDocsRestore, err := collRestore.CountDocuments(context.Background(), bson.D{})
+		numDocsRestore, err := collRestore.CountDocuments(t.Context(), bson.D{})
 		So(err, ShouldBeNil)
 
 		So(numDocsRestore, ShouldEqual, numDocsOrig)
 	})
 
 	Convey("that are the same as the documents in the test database", func() {
-		iter, err := collOriginal.Find(context.Background(), bson.D{})
+		iter, err := collOriginal.Find(t.Context(), bson.D{})
 		So(err, ShouldBeNil)
 
 		var result bson.D
-		for iter.Next(context.Background()) {
+		for iter.Next(t.Context()) {
 			So(iter.Decode(&result), ShouldBeNil)
-			restoredCount, err := collRestore.CountDocuments(context.Background(), result)
+			restoredCount, err := collRestore.CountDocuments(t.Context(), result)
 			So(err, ShouldBeNil)
 			So(restoredCount, ShouldNotEqual, 0)
 		}
 		So(iter.Err(), ShouldBeNil)
-		So(iter.Close(context.Background()), ShouldBeNil)
+		So(iter.Close(t.Context()), ShouldBeNil)
 	})
 }
 
@@ -692,7 +695,7 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 	// This case shouldn't error and should instead not return that it will try to restore users and roles.
 	_, err = session.Database("admin").
 		Collection("testcol").
-		InsertOne(context.Background(), bson.M{})
+		InsertOne(t.Context(), bson.M{})
 	require.NoError(t, err)
 	dbNames, err := md.GetValidDbs()
 	require.NoError(t, err)
@@ -708,7 +711,7 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 		"can't dump from admin database when connecting to a MongoDB Atlas free or shared cluster",
 	)
 
-	require.NoError(t, session.Database("admin").Collection("testcol").Drop(context.Background()))
+	require.NoError(t, session.Database("admin").Collection("testcol").Drop(t.Context()))
 }
 
 func TestMongoDumpBSON(t *testing.T) {
@@ -716,7 +719,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		Convey(
@@ -733,11 +736,11 @@ func TestMongoDumpBSON(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("it dumps to the default output directory", func() {
-						testDumpOneCollection(md, "dump")
+						testDumpOneCollection(t, md, "dump")
 					})
 
 					Convey("it dumps to a user-specified output directory", func() {
-						testDumpOneCollection(md, "dump_user")
+						testDumpOneCollection(t, md, "dump_user")
 					})
 
 					Convey("it dumps to standard output", func() {
@@ -772,7 +775,7 @@ func TestMongoDumpBSON(t *testing.T) {
 					Convey("to the filesystem", func() {
 						err = md.Init()
 						So(err, ShouldBeNil)
-						testDumpOneCollection(md, "dump_slash")
+						testDumpOneCollection(t, md, "dump_slash")
 					})
 
 					Convey("to an archive", func() {
@@ -854,10 +857,10 @@ func TestMongoDumpBSON(t *testing.T) {
 					md.InputOptions.Query = string(jsonQueryBytes)
 					md.ToolOptions.DB = testDB
 					md.OutputOptions.Out = "dump"
-					dumpDir := testQuery(md, session)
+					dumpDir := testQuery(t, md, session)
 
 					Reset(func() {
-						So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
+						So(session.Database(testRestoreDB).Drop(t.Context()), ShouldBeNil)
 						So(os.RemoveAll(dumpDir), ShouldBeNil)
 					})
 
@@ -869,10 +872,10 @@ func TestMongoDumpBSON(t *testing.T) {
 					md.InputOptions.QueryFile = "example.json"
 					md.ToolOptions.DB = testDB
 					md.OutputOptions.Out = "dump"
-					dumpDir := testQuery(md, session)
+					dumpDir := testQuery(t, md, session)
 
 					Reset(func() {
-						So(session.Database(testRestoreDB).Drop(context.Background()), ShouldBeNil)
+						So(session.Database(testRestoreDB).Drop(t.Context()), ShouldBeNil)
 						So(os.RemoveAll(dumpDir), ShouldBeNil)
 						So(os.Remove("example.json"), ShouldBeNil)
 					})
@@ -895,7 +898,7 @@ func TestMongoDumpBSON(t *testing.T) {
 		})
 
 		Reset(func() {
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 	})
 }
@@ -918,7 +921,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		md, err := simpleMongoDumpInstance()
@@ -928,10 +931,10 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 			"testing that it dumps a collection with a name >238 bytes in the right format",
 			func() {
 				coll := session.Database(testDB).Collection(longCollectionName)
-				_, err = coll.InsertOne(context.Background(), bson.M{"a": 1})
+				_, err = coll.InsertOne(t.Context(), bson.M{"a": 1})
 				So(err, ShouldBeNil)
 				//nolint:errcheck
-				defer coll.Drop(context.Background())
+				defer coll.Drop(t.Context())
 
 				md.ToolOptions.Collection = longCollectionName
 				err = md.Init()
@@ -971,7 +974,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 		)
 
 		Reset(func() {
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 	})
 }
@@ -1016,7 +1019,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
 
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		sessionProvider, _, _ := testutil.GetBareSessionProvider()
@@ -1109,7 +1112,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		})
 
 		Reset(func() {
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 
 	})
@@ -1124,7 +1127,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
-		err = setUpMongoDumpTestData()
+		err = setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
@@ -1209,7 +1212,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 		})
 
 		Reset(func() {
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 
 	})
@@ -1249,7 +1252,7 @@ func TestMongoDumpOplog(t *testing.T) {
 			So(fileDirExists(dumpDir), ShouldBeFalse)
 
 			// Start with clean database
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 
 			// Prepare mongodump with options
 			md, err := simpleMongoDumpInstance()
@@ -1264,7 +1267,7 @@ func TestMongoDumpOplog(t *testing.T) {
 			ready := make(chan struct{})
 			done := make(chan struct{})
 			errs := make(chan error, 1)
-			go backgroundInsert(ready, done, errs)
+			go backgroundInsert(t, ready, done, errs)
 			<-ready
 
 			// Run mongodump
@@ -1304,7 +1307,7 @@ func TestMongoDumpOplog(t *testing.T) {
 
 			// Cleanup
 			So(os.RemoveAll(dumpDir), ShouldBeNil)
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 
 	})
@@ -1427,7 +1430,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 		err = md.Dump()
 		So(err, ShouldBeNil)
 
-		count, err := countSnapshotCmds(profileCollection, ns)
+		count, err := countSnapshotCmds(t, profileCollection, ns)
 		So(err, ShouldBeNil)
 
 		// On modern storage engines, there should be no query that matches.
@@ -1486,7 +1489,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		go func() {
 			time.Sleep(2 * time.Second)
 			session, _ := md.SessionProvider.GetSession()
-			disconnectErr = session.Disconnect(context.Background())
+			disconnectErr = session.Disconnect(t.Context())
 			close(canCheckErr)
 		}()
 
@@ -1505,7 +1508,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
@@ -1554,7 +1557,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 
 		Reset(func() {
 			So(os.RemoveAll(dumpDir), ShouldBeNil)
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 	})
 }
@@ -1564,7 +1567,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		colName := "dump_view_as_collection"
@@ -1615,7 +1618,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 				dbStruct := session.Database(dbName)
 				profileCollection := dbStruct.Collection("system.profile")
 				ns := dbName + "." + colName
-				count, err := countSnapshotCmds(profileCollection, ns)
+				count, err := countSnapshotCmds(t, profileCollection, ns)
 				So(err, ShouldBeNil)
 
 				// view dump should not do collection scan
@@ -1628,7 +1631,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 		})
 
 		Reset(func() {
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 
 	})
@@ -1639,7 +1642,7 @@ func TestMongoDumpViews(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		colName := "dump_views"
@@ -1685,7 +1688,7 @@ func TestMongoDumpViews(t *testing.T) {
 				dbStruct := session.Database(dbName)
 				profileCollection := dbStruct.Collection("system.profile")
 				ns := dbName + "." + colName
-				count, err := countSnapshotCmds(profileCollection, ns)
+				count, err := countSnapshotCmds(t, profileCollection, ns)
 				So(err, ShouldBeNil)
 
 				// view dump should not do collection scan
@@ -1698,7 +1701,7 @@ func TestMongoDumpViews(t *testing.T) {
 		})
 
 		Reset(func() {
-			So(tearDownMongoDumpTestData(), ShouldBeNil)
+			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 		})
 
 	})
@@ -1790,7 +1793,7 @@ func TestCount(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	Convey("test count collection", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		session, err := testutil.GetBareSession()
@@ -1799,7 +1802,7 @@ func TestCount(t *testing.T) {
 		collection := session.Database(testDB).Collection(testCollectionNames[0])
 		restoredDB := session.Database(testDB)
 		//nolint:errcheck
-		defer restoredDB.Drop(context.Background())
+		defer restoredDB.Drop(t.Context())
 
 		Convey("count collection without filter", func() {
 			findQuery := &db.DeferredQuery{Coll: collection}
@@ -1848,7 +1851,7 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	colName := "timeseriesColl"
 	dbName := "timeseries_test_DB"
-	err = setUpTimeseries(dbName, colName)
+	err = setUpTimeseries(t, dbName, colName)
 	if err != nil {
 		t.Fatalf("Failed to set up timeseries collection: %v", err)
 	}
@@ -2196,7 +2199,7 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	})
 
-	err = dropDB(dbName)
+	err = dropDB(t, dbName)
 	if err != nil {
 		t.Logf("Failed to drop timeseries collection: %v", err)
 	}
@@ -2217,7 +2220,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	colName := "timeseries_mixed_schema"
 	dbName := "timeseries_test_DB"
 
-	require.NoError(t, setupTimeseriesWithMixedSchema(dbName, colName))
+	require.NoError(t, setupTimeseriesWithMixedSchema(t, dbName, colName))
 
 	md, err := simpleMongoDumpInstance()
 	require.NoError(t, err)
@@ -2276,7 +2279,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 
 	require.NoError(t, archiveFile.Close())
 	require.NoError(t, os.Remove(archiveFilePath))
-	require.NoError(t, session.Database(dbName).Collection(colName).Drop(context.Background()))
+	require.NoError(t, session.Database(dbName).Collection(colName).Drop(t.Context()))
 }
 
 func TestFailDuringResharding(t *testing.T) {
@@ -2301,14 +2304,14 @@ func TestFailDuringResharding(t *testing.T) {
 		t.Skipf("Requires server with FCV 4.9 or later; found %v", fcv)
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
 		t.Skipf("Not for replica sets")
 	}
 
 	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData()
+		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
 		md, err := simpleMongoDumpInstance()
@@ -2486,7 +2489,7 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 		dumpAndCheckPipelineOrder(t, collName, pipeline)
 	}
 
-	err = tearDownMongoDumpTestData()
+	err = tearDownMongoDumpTestData(t)
 	require.NoError(t, err)
 }
 

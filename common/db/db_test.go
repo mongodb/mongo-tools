@@ -7,7 +7,6 @@
 package db
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -108,7 +107,7 @@ func TestNewSessionProvider(t *testing.T) {
 			}
 			provider, err := NewSessionProvider(opts)
 			So(err, ShouldBeNil)
-			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
+			So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
 		})
 
 	})
@@ -205,7 +204,7 @@ func TestFindOne(t *testing.T) {
 		client, err := provider.GetSession()
 		So(err, ShouldBeNil)
 		coll := client.Database("exists").Collection("collection")
-		_, err = coll.InsertOne(context.Background(), bson.D{})
+		_, err = coll.InsertOne(t.Context(), bson.D{})
 		So(err, ShouldBeNil)
 
 		Convey("When FindOneis called", func() {
@@ -252,7 +251,7 @@ func TestGetIndexes(t *testing.T) {
 				So(err, ShouldBeNil)
 				Convey("and indexes should be returned", func() {
 					So(indexesIter, ShouldNotBeNil)
-					ctx := context.Background()
+					ctx := t.Context()
 					counter := 0
 					for indexesIter.Next(ctx) {
 						counter++
@@ -265,7 +264,7 @@ func TestGetIndexes(t *testing.T) {
 				indexesIter, err := GetIndexes(missing)
 				So(err, ShouldBeNil)
 				Convey("and there should be no indexes", func() {
-					So(indexesIter.Next(context.Background()), ShouldBeFalse)
+					So(indexesIter.Next(t.Context()), ShouldBeFalse)
 				})
 			})
 
@@ -273,7 +272,7 @@ func TestGetIndexes(t *testing.T) {
 				indexesIter, err := GetIndexes(missingDB)
 				So(err, ShouldBeNil)
 				Convey("and there should be no indexes", func() {
-					So(indexesIter.Next(context.Background()), ShouldBeFalse)
+					So(indexesIter.Next(t.Context()), ShouldBeFalse)
 				})
 			})
 		})
@@ -335,7 +334,7 @@ func TestServerCertificateVerification(t *testing.T) {
 				opts.ConnString.SSLCaFile = "../db/testdata/ia.pem"
 				provider, err := NewSessionProvider(opts)
 				So(err, ShouldBeNil)
-				So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
+				So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
 				Convey("and should be closeable", func() {
 					provider.Close()
 				})
@@ -369,7 +368,7 @@ func TestServerPKCS8Verification(t *testing.T) {
 			opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
 			provider, err := NewSessionProvider(opts)
 			So(err, ShouldBeNil)
-			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
+			So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
 			Convey("and should be closeable", func() {
 				provider.Close()
 			})
@@ -390,7 +389,7 @@ func TestServerPKCS8Verification(t *testing.T) {
 			opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
 			provider, err := NewSessionProvider(opts)
 			So(err, ShouldBeNil)
-			So(provider.client.Ping(context.Background(), nil), ShouldBeNil)
+			So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
 			Convey("and should be closeable", func() {
 				provider.Close()
 			})

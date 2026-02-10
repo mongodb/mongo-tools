@@ -96,7 +96,7 @@ func setUpGridFSTestData() (map[string]int, error) {
 }
 
 // remove test data from GridFS.
-func tearDownGridFSTestData() error {
+func tearDownGridFSTestData(t *testing.T) error {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func tearDownGridFSTestData() error {
 		return err
 	}
 
-	if err = session.Database(testDB).Drop(context.Background()); err != nil {
+	if err = session.Database(testDB).Drop(t.Context()); err != nil {
 		return err
 	}
 
@@ -940,7 +940,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Reset(func() {
-			So(tearDownGridFSTestData(), ShouldBeNil)
+			So(tearDownGridFSTestData(t), ShouldBeNil)
 			err = os.Remove("lorem_ipsum_copy.txt")
 		})
 	})

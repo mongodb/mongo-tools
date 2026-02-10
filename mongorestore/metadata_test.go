@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -47,7 +46,7 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 	// This case shouldn't error and should instead not return that it will try to restore users and roles.
 	_, err = session.Database("admin").
 		Collection("testcol").
-		InsertOne(context.Background(), bson.M{})
+		InsertOne(t.Context(), bson.M{})
 	require.NoError(t, err)
 	require.False(t, restore.ShouldRestoreUsersAndRoles())
 
@@ -62,7 +61,7 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 		"cannot restore to the admin database when connected to a MongoDB Atlas free or shared cluster",
 	)
 
-	err = session.Database("admin").Collection("testcol").Drop(context.Background())
+	err = session.Database("admin").Collection("testcol").Drop(t.Context())
 	require.NoError(t, err)
 }
 
@@ -87,15 +86,15 @@ func TestCollectionExists(t *testing.T) {
 			So(err, ShouldBeNil)
 			_, insertErr := session.Database(ExistsDB).
 				Collection("one").
-				InsertOne(context.Background(), bson.M{})
+				InsertOne(t.Context(), bson.M{})
 			So(insertErr, ShouldBeNil)
 			_, insertErr = session.Database(ExistsDB).
 				Collection("two").
-				InsertOne(context.Background(), bson.M{})
+				InsertOne(t.Context(), bson.M{})
 			So(insertErr, ShouldBeNil)
 			_, insertErr = session.Database(ExistsDB).
 				Collection("three").
-				InsertOne(context.Background(), bson.M{})
+				InsertOne(t.Context(), bson.M{})
 			So(insertErr, ShouldBeNil)
 
 			Convey("collections that exist should return true", func() {
@@ -117,7 +116,7 @@ func TestCollectionExists(t *testing.T) {
 			})
 
 			Reset(func() {
-				err = session.Database(ExistsDB).Drop(context.Background())
+				err = session.Database(ExistsDB).Drop(t.Context())
 				So(err, ShouldBeNil)
 			})
 		})

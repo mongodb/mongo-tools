@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -63,11 +62,11 @@ func TestMongorestoreTxns(t *testing.T) {
 		parts := strings.SplitN(v.NS, ".", 2)
 		db := client.Database(parts[0])
 		coll := db.Collection(parts[1])
-		err := coll.Drop(context.Background())
+		err := coll.Drop(t.Context())
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := db.RunCommand(context.Background(), bson.D{{"create", parts[1]}})
+		res := db.RunCommand(t.Context(), bson.D{{"create", parts[1]}})
 		if res.Err() != nil {
 			t.Fatal(res.Err())
 		}
@@ -92,7 +91,7 @@ func TestMongorestoreTxns(t *testing.T) {
 		for k, v := range data {
 			_, err = Println("postImageCheck for", k)
 			So(err, ShouldBeNil)
-			So(postImageCheck(client, v), ShouldBeNil)
+			So(postImageCheck(t, client, v), ShouldBeNil)
 		}
 	})
 }
@@ -141,7 +140,7 @@ func readTxnTestData(filename string) (txnTestDataMap, error) {
 	return txnTestData, nil
 }
 
-func postImageCheck(client *mongo.Client, c *txnTestDataCase) error {
+func postImageCheck(t *testing.T, client *mongo.Client, c *txnTestDataCase) error {
 	expected := make(map[int]bson.D)
 	for _, v := range c.PostImage {
 		id, err := bsonutil.FindIntByKey("_id", &v)
@@ -155,13 +154,13 @@ func postImageCheck(client *mongo.Client, c *txnTestDataCase) error {
 	db := client.Database(parts[0])
 	coll := db.Collection(parts[1])
 
-	cursor, err := coll.Find(context.Background(), bson.D{})
+	cursor, err := coll.Find(t.Context(), bson.D{})
 	if err != nil {
 		return err
 	}
-	defer cursor.Close(context.Background())
+	defer cursor.Close(t.Context())
 	var docs []bson.D
-	err = cursor.All(context.Background(), &docs)
+	err = cursor.All(t.Context(), &docs)
 	if err != nil {
 		return err
 	}

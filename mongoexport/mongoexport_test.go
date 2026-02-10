@@ -8,7 +8,6 @@ package mongoexport
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -222,7 +221,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		_, err = me.Export(out)
 		So(err, ShouldBeNil)
 
-		count, err := profileCollection.CountDocuments(context.Background(),
+		count, err := profileCollection.CountDocuments(t.Context(),
 			bson.D{
 				{"ns", ns},
 				{"op", "query"},

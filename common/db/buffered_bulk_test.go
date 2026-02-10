@@ -7,7 +7,6 @@
 package db
 
 import (
-	"context"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
@@ -52,7 +51,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
 				flushCount := 0
 				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(context.Background(), bson.D{})
+					result, err := bufBulk.Insert(t.Context(), bson.D{})
 					So(err, ShouldBeNil)
 					if bufBulk.docCount%3 == 0 {
 						flushCount++
@@ -77,12 +76,12 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 			Convey("inserting 10 documents into the BufferedBulkInserter and flushing", func() {
 				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(context.Background(), bson.D{})
+					result, err := bufBulk.Insert(t.Context(), bson.D{})
 					So(err, ShouldBeNil)
 					So(result, ShouldNotBeNil)
 					So(result.InsertedCount, ShouldEqual, 1)
 				}
-				result, err := bufBulk.Flush(context.Background())
+				result, err := bufBulk.Flush(t.Context())
 				So(err, ShouldBeNil)
 				So(result, ShouldBeNil)
 
@@ -103,7 +102,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 					errCnt := 0
 					for i := 0; i < 1000000; i++ {
-						result, err := bufBulk.Insert(context.Background(), bson.M{"_id": i})
+						result, err := bufBulk.Insert(t.Context(), bson.M{"_id": i})
 						if err != nil {
 							errCnt++
 						}
@@ -113,25 +112,25 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 						}
 					}
 					So(errCnt, ShouldEqual, 0)
-					_, err := bufBulk.Flush(context.Background())
+					_, err := bufBulk.Flush(t.Context())
 					So(err, ShouldBeNil)
 
 					Convey("should have inserted all of the documents", func() {
-						count, err := testCol.CountDocuments(context.Background(), bson.M{})
+						count, err := testCol.CountDocuments(t.Context(), bson.M{})
 						So(err, ShouldBeNil)
 						So(count, ShouldEqual, 1000000)
 
 						// test values
 						testDoc := bson.M{}
-						result := testCol.FindOne(context.Background(), bson.M{"_id": 477232})
+						result := testCol.FindOne(t.Context(), bson.M{"_id": 477232})
 						err = result.Decode(&testDoc)
 						So(err, ShouldBeNil)
 						So(testDoc["_id"], ShouldEqual, 477232)
-						result = testCol.FindOne(context.Background(), bson.M{"_id": 999999})
+						result = testCol.FindOne(t.Context(), bson.M{"_id": 999999})
 						err = result.Decode(&testDoc)
 						So(err, ShouldBeNil)
 						So(testDoc["_id"], ShouldEqual, 999999)
-						result = testCol.FindOne(context.Background(), bson.M{"_id": 1})
+						result = testCol.FindOne(t.Context(), bson.M{"_id": 1})
 						err = result.Decode(&testDoc)
 						So(err, ShouldBeNil)
 						So(testDoc["_id"], ShouldEqual, 1)
@@ -149,7 +148,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 
 			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
 				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(context.Background(), bson.D{{"foo", "bar"}})
+					result, err := bufBulk.Insert(t.Context(), bson.D{{"foo", "bar"}})
 					So(err, ShouldBeNil)
 					So(result, ShouldNotBeNil)
 					So(result.InsertedCount, ShouldEqual, 1)

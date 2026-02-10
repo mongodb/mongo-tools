@@ -9,7 +9,6 @@ package mongoimport
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -37,7 +36,11 @@ const (
 
 // checkOnlyHasDocuments returns an error if the documents in the test
 // collection don't exactly match those that are passed in.
-func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocuments []bson.M) error {
+func checkOnlyHasDocuments(
+	t *testing.T,
+	sessionProvider *db.SessionProvider,
+	expectedDocuments []bson.M,
+) error {
 	session, err := sessionProvider.GetSession()
 	if err != nil {
 		return err
@@ -45,7 +48,7 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 
 	collection := session.Database(testDb).Collection(testCollection)
 	cursor, err := collection.Find(
-		context.Background(),
+		t.Context(),
 		bson.D{},
 		mopt.Find().SetSort(bson.D{{"_id", 1}}),
 	)
@@ -54,7 +57,7 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	}
 
 	var docs []bson.M
-	for cursor.Next(context.Background()) {
+	for cursor.Next(t.Context()) {
 		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(cursor.Current)))
 		decoder.DefaultDocumentM()
 		var doc bson.M
@@ -79,14 +82,14 @@ func checkOnlyHasDocuments(sessionProvider *db.SessionProvider, expectedDocument
 	return nil
 }
 
-func countDocuments(sessionProvider *db.SessionProvider) (int, error) {
+func countDocuments(t *testing.T, sessionProvider *db.SessionProvider) (int, error) {
 	session, err := (*sessionProvider).GetSession()
 	if err != nil {
 		return 0, err
 	}
 
 	collection := session.Database(testDb).Collection(testCollection)
-	n, err := collection.CountDocuments(context.Background(), bson.D{})
+	n, err := collection.CountDocuments(t.Context(), bson.D{})
 	if err != nil {
 		return 0, err
 	}
@@ -571,7 +574,7 @@ func TestImportDocuments(t *testing.T) {
 			}
 			_, err = session.Database(testDb).
 				Collection(testCollection).
-				DeleteMany(context.Background(), bson.D{})
+				DeleteMany(t.Context(), bson.D{})
 			if err != nil {
 				t.Fatalf("error dropping collection: %v", err)
 			}
@@ -633,7 +636,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(5), "c": "6e"},
 				{"_id": int32(7), "b": int32(8), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import without --ignoreBlanks should include blanks", func() {
 			imp, err := NewMongoImport()
@@ -652,7 +655,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(5), "b": "", "c": "6e"},
 				{"_id": int32(7), "b": int32(8), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("no error should be thrown for CSV import on test data with --upsertFields", func() {
 			imp, err := NewMongoImport()
@@ -673,7 +676,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("no error should be thrown for CSV import on test data with "+
 			"--stopOnError. Only documents before error should be imported", func() {
@@ -696,7 +699,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey(
 			"CSV import with duplicate _id's should not error if --stopOnError is not set",
@@ -721,7 +724,7 @@ func TestImportDocuments(t *testing.T) {
 					{"_id": int32(8), "b": int32(6), "c": int32(6)},
 				}
 				// all docs except the one with duplicate _id - should be imported
-				So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+				So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 			},
 		)
 		Convey("no error should be thrown for CSV import on test data with --drop", func() {
@@ -744,7 +747,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import on test data with --headerLine should succeed", func() {
 			imp, err := NewMongoImport()
@@ -797,7 +800,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete should succeed", func() {
 			// First import 3 documents
@@ -834,7 +837,7 @@ func TestImportDocuments(t *testing.T) {
 			expectedDocuments := []bson.M{
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete and --upsertFields should succeed", func() {
 			// First import 3 documents
@@ -872,7 +875,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=delete and --ignoreBlanks should not take any action for "+
 			"documents that have blank values for upsert fields", func() {
@@ -912,7 +915,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "c": 5.4, "b": "string"},
 				{"_id": int32(5), "c": int32(6), "b": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("CSV import with --mode=upsert/--upsertFields with duplicate id should succeed "+
 			"even if stopOnError is set", func() {
@@ -935,7 +938,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(5), "b": int32(6), "c": int32(9)},
 				{"_id": int32(8), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("an error should be thrown for CSV import on test data with "+
 			"duplicate _id if --stopOnError is set", func() {
@@ -958,7 +961,7 @@ func TestImportDocuments(t *testing.T) {
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		})
 		Convey("an error should be thrown for JSON import on test data that "+
 			"is a JSON array without passing --jsonArray", func() {
@@ -1007,7 +1010,7 @@ func TestImportDocuments(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(numProcessed, ShouldEqual, 1)
 				So(numFailed, ShouldEqual, 0)
-				n, err := countDocuments(imp.SessionProvider)
+				n, err := countDocuments(t, imp.SessionProvider)
 				So(err, ShouldBeNil)
 				So(n, ShouldEqual, 1)
 
@@ -1023,13 +1026,14 @@ func TestImportDocuments(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(numProcessed, ShouldEqual, 1)
 				So(numFailed, ShouldEqual, 0)
-				n, err = countDocuments(imp.SessionProvider)
+				n, err = countDocuments(t, imp.SessionProvider)
 				So(err, ShouldBeNil)
 				So(n, ShouldEqual, 1)
 			},
 		)
 		Convey("With --useArrayIndexFields: Top-level numerical fields should be document keys",
 			nestedFieldsTestHelper(
+				t,
 				"_id,0,1\n1,2,3",
 				[]bson.M{
 					{"_id": int32(1), "0": int32(2), "1": int32(3)},
@@ -1039,6 +1043,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Should insert nested document",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a,a.b\n1,2,3",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.M{"a": int32(2), "b": int32(3)}},
@@ -1048,6 +1053,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Should insert an array",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.1\n1,2,3",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{int32(2), int32(3)}},
@@ -1057,6 +1063,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Should insert an array of documents",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0.a,a.0.b,a.1.a\n1,2,3,4",
 				[]bson.M{
 					{
@@ -1069,6 +1076,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Should insert an array of arrays",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0.0,a.0.1,a.1.0\n1,2,3,4",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{bson.A{int32(2), int32(3)}, bson.A{int32(4)}}},
@@ -1078,6 +1086,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Should insert an array when top-level key is \"0\"",
 			nestedFieldsTestHelper(
+				t,
 				"_id,0.0,0.1\n1,2,3",
 				[]bson.M{
 					{"_id": int32(1), "0": bson.A{int32(2), int32(3)}},
@@ -1087,6 +1096,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Should insert an array in a document in an array",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0.a.0,a.0.a.1\n1,2,3",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{bson.M{"a": bson.A{int32(2), int32(3)}}}},
@@ -1097,6 +1107,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: If an array element is blank in the csv file, an empty string should be inserted",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.1,a.2\n1,2,,4",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.A{int32(2), "", int32(4)}},
@@ -1107,6 +1118,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: If an array with more than 10 fields should be inserted",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.1,a.2,a.3,a.4,a.5,a.6,a.7,a.8,a.9,a.10\n0,1,2,3,4,5,6,7,8,9,10",
 				[]bson.M{
 					{
@@ -1131,6 +1143,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: An number with leading zeros should be interpreted as a document key, not an index",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0001\n1,2",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.M{"0001": int32(2)}},
@@ -1141,6 +1154,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: An number with leading plus should be interpreted as a document key, not an index",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.+15558675309\n1,2",
 				[]bson.M{
 					{"_id": int32(1), "a": bson.M{"+15558675309": int32(2)}},
@@ -1151,6 +1165,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Should be able to make changes to document in an array once document has been created",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
 				[]bson.M{
 					{
@@ -1163,6 +1178,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Duplicate fields should throw an error",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.0\n1,2,3",
 				nil,
 				fmt.Errorf(
@@ -1172,6 +1188,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Array fields not starting at 0 should throw an error",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.1,a.0\n1,2,3",
 				nil,
 				fmt.Errorf(
@@ -1181,6 +1198,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Array fields skipping an index should throw an error",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.2\n1,2,3",
 				nil,
 				fmt.Errorf(
@@ -1191,6 +1209,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Array fields with sub documents skipping an index should throw an error",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0.a,a.2.a\n1,2,3",
 				nil,
 				fmt.Errorf(
@@ -1201,6 +1220,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a,a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a' and 'a.0' are incompatible"),
@@ -1209,6 +1229,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Array field should throw an error if value has already been set as document (deep object)",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a.a.a,a.a.0.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a.a' and 'a.a.0.a' are incompatible"),
@@ -1217,6 +1238,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Document field should throw an error if value has already been set as array",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.0' and 'a.a' are incompatible"),
@@ -1225,6 +1247,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Document field should throw an error if value has already been set as array (deep object)",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a.a.0,a.a.a.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a.0' and 'a.a.a.a' are incompatible"),
@@ -1233,6 +1256,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Array field should throw an error if value has already been set as value",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a,a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a' and 'a.0' are incompatible"),
@@ -1241,6 +1265,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Array field should throw an error if value has already been set as value (deep object)",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a.a,a.a.a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a' and 'a.a.a.0' are incompatible"),
@@ -1249,6 +1274,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Array field should be incompatible with a document field starting with a symbol that is sorted before 0",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a./,a.0\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a./' and 'a.0' are incompatible"),
@@ -1256,6 +1282,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Indexes in fields must start from 0",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a,b.1\n1,2,3",
 				nil,
 				fmt.Errorf(
@@ -1266,6 +1293,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Indexes in fields must start from 0 (last field same length)",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.b,b.1\n1,2,3",
 				nil,
 				fmt.Errorf(
@@ -1276,6 +1304,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Fields that are the same should throw an error (no arrays)",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.b,a.b\n1,2,3",
 				nil,
 				fmt.Errorf("fields cannot be identical: 'a.b' and 'a.b'"),
@@ -1283,6 +1312,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Repeated array index should throw error",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0,a.1,a.2,a.0\n1,2,3,4,5",
 				nil,
 				fmt.Errorf(
@@ -1292,6 +1322,7 @@ func TestImportDocuments(t *testing.T) {
 		)
 		Convey("With --useArrayIndexFields: Array entries of different types should throw an error",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a.0.a,a.a.0.1\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.0.a' and 'a.a.0.1' are incompatible"),
@@ -1300,6 +1331,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Document field should throw an error if element has already been set to an array",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.0.0,a.0.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.0.0' and 'a.0.a' are incompatible"),
@@ -1308,6 +1340,7 @@ func TestImportDocuments(t *testing.T) {
 		Convey(
 			"With --useArrayIndexFields: Incompatible fields should throw error (one long, one short)",
 			nestedFieldsTestHelper(
+				t,
 				"_id,a.a.a.a,a.a\n1,2,3",
 				nil,
 				fmt.Errorf("fields 'a.a.a.a' and 'a.a' are incompatible"),
@@ -1316,7 +1349,12 @@ func TestImportDocuments(t *testing.T) {
 	})
 }
 
-func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr error) func() {
+func nestedFieldsTestHelper(
+	t *testing.T,
+	data string,
+	expectedDocuments []bson.M,
+	expectedErr error,
+) func() {
 	return func() {
 		err := os.WriteFile(util.ToUniversalPath("./temp_test_data.csv"), []byte(data), 0644)
 		So(err, ShouldBeNil)
@@ -1343,7 +1381,7 @@ func nestedFieldsTestHelper(data string, expectedDocuments []bson.M, expectedErr
 			So(numImported, ShouldEqual, len(expectedDocuments))
 			So(numFailed, ShouldEqual, 0)
 
-			So(checkOnlyHasDocuments(imp.SessionProvider, expectedDocuments), ShouldBeNil)
+			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
 		}
 	}
 }
@@ -1436,7 +1474,7 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nSuccess, ShouldEqual, 20000)
 		So(nFailure, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 20000)
 	})
@@ -1458,7 +1496,7 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nFailure, ShouldEqual, 1)
 		So(err, ShouldNotBeNil)
 
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10000)
 	})
@@ -1478,10 +1516,10 @@ func TestImportMIOSOE(t *testing.T) {
 		So(nSuccess, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
 		So(nFailure, ShouldEqual, 1)
 
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
 	})
 
-	_ = database.Drop(context.Background())
+	_ = database.Drop(t.Context())
 }

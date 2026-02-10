@@ -7,7 +7,6 @@
 package mongorestore
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -160,7 +159,7 @@ func TestOplogRestore(t *testing.T) {
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		c1 := session.Database("db1").Collection("c1")
-		err = c1.Drop(context.Background())
+		err = c1.Drop(t.Context())
 		So(err, ShouldBeNil)
 
 		// Run mongorestore
@@ -169,10 +168,10 @@ func TestOplogRestore(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 
 		// Verify restoration
-		count, err := c1.CountDocuments(context.Background(), bson.M{})
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 10)
-		err = session.Disconnect(context.Background())
+		err = session.Disconnect(t.Context())
 		So(err, ShouldBeNil)
 	})
 }
@@ -205,10 +204,10 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 
 		// Verify restoration
-		count, err := coll.CountDocuments(context.Background(), bson.M{})
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 1)
-		err = session.Disconnect(context.Background())
+		err = session.Disconnect(t.Context())
 		So(err, ShouldBeNil)
 	})
 }
@@ -221,7 +220,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 	//nolint:errcheck
-	defer session.Disconnect(context.Background())
+	defer session.Disconnect(t.Context())
 
 	Convey("Index drop in oplog should delete it from indexCatalog", t, func() {
 		args := []string{
@@ -244,7 +243,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		coll := session.Database("test").Collection("foo")
 
-		ctx := context.Background()
+		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
 		So(err, ShouldBeNil)
@@ -284,7 +283,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		coll := session.Database("test").Collection("foo")
 
-		ctx := context.Background()
+		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
 		So(err, ShouldBeNil)
@@ -326,7 +325,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		// coll := session.Database("test").Collection("foo")
 
-		// ctx := context.Background()
+		// ctx := t.Context()
 		// // Verify restoration
 		// count, err := coll.CountDocuments(ctx, bson.M{})
 		// So(err, ShouldBeNil)
@@ -367,7 +366,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		coll := session.Database("test").Collection("foo")
 
-		ctx := context.Background()
+		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
 		So(err, ShouldBeNil)
@@ -408,7 +407,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		coll := session.Database("test").Collection("foo")
 
-		ctx := context.Background()
+		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
 		So(err, ShouldBeNil)
@@ -457,7 +456,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		coll := session.Database("test").Collection("foo")
 
-		ctx := context.Background()
+		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
 		So(err, ShouldBeNil)
@@ -496,7 +495,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	}
 
 	c1 := session.Database("db1").Collection("c1")
-	err = c1.Drop(context.Background())
+	err = c1.Drop(t.Context())
 	if err != nil {
 		t.Fatal("Could not drop db1.c1")
 	}
@@ -530,9 +529,9 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 		// Make sure to drop the 16 MiB collection before disconnecting.
 		//
 		//nolint:errcheck
-		defer session.Disconnect(context.Background())
+		defer session.Disconnect(t.Context())
 		//nolint:errcheck
-		defer c1.Drop(context.Background())
+		defer c1.Drop(t.Context())
 
 		// Run mongorestore.
 		result := restore.Restore()
@@ -540,7 +539,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 		So(result.Failures, ShouldEqual, 0)
 
 		// Verify restoration (5 docs in c1.bson + 1 doc in oplog.bson).
-		count, err := c1.CountDocuments(context.Background(), bson.M{})
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
 		So(err, ShouldBeNil)
 		So(count, ShouldEqual, 6)
 	})
@@ -693,7 +692,7 @@ func TestOplogRestoreVectoredInsert(t *testing.T) {
 func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
