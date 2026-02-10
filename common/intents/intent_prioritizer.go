@@ -252,12 +252,12 @@ func (dbh DBHeap) Less(i, j int) bool {
 	return dbh[i].active < dbh[j].active
 }
 
-func (dbh *DBHeap) Push(x interface{}) {
+func (dbh *DBHeap) Push(x any) {
 	//nolint:errcheck
 	*dbh = append(*dbh, x.(*dbCounter))
 }
 
-func (dbh *DBHeap) Pop() interface{} {
+func (dbh *DBHeap) Pop() any {
 	// for container/heap package: removes the top entry and resizes the heap array
 	old := *dbh
 	n := len(old)

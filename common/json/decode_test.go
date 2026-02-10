@@ -33,24 +33,24 @@ type U struct {
 }
 
 type V struct {
-	F1 interface{}
+	F1 any
 	F2 int32
 	F3 Number
 }
 
 // ifaceNumAsMixedTypes is used to test unmarshalling with extended JSON.
-var ifaceNumAsMixedTypes = map[string]interface{}{
+var ifaceNumAsMixedTypes = map[string]any{
 	"k1": int32(1),
 	"k2": "s",
-	"k3": []interface{}{int32(1), int32(2), float64(3e-3)},
-	"k4": map[string]interface{}{"kk1": "s", "kk2": int32(2)},
+	"k3": []any{int32(1), int32(2), float64(3e-3)},
+	"k4": map[string]any{"kk1": "s", "kk2": int32(2)},
 }
 
-var ifaceNumAsNumber = map[string]interface{}{
+var ifaceNumAsNumber = map[string]any{
 	"k1": Number("1"),
 	"k2": "s",
-	"k3": []interface{}{Number("1"), Number("2.0"), Number("3e-3")},
-	"k4": map[string]interface{}{"kk1": "s", "kk2": Number("2")},
+	"k3": []any{Number("1"), Number("2.0"), Number("3e-3")},
+	"k4": map[string]any{"kk1": "s", "kk2": Number("2")},
 }
 
 type tx struct {
@@ -205,8 +205,8 @@ type S13 struct {
 
 type unmarshalTest struct {
 	in        string
-	ptr       interface{}
-	out       interface{}
+	ptr       any
+	out       any
 	err       error
 	useNumber bool
 }
@@ -218,9 +218,9 @@ type Ambig struct {
 }
 
 type XYZ struct {
-	X interface{}
-	Y interface{}
-	Z interface{}
+	X any
+	Y any
+	Z any
 }
 
 var unmarshalTests = []unmarshalTest{
@@ -231,13 +231,13 @@ var unmarshalTests = []unmarshalTest{
 	{in: `-5`, ptr: new(int16), out: int16(-5)},
 	{in: `2`, ptr: new(Number), out: Number("2"), useNumber: true},
 	{in: `2`, ptr: new(Number), out: Number("2")},
-	{in: `2`, ptr: new(interface{}), out: int32(2)},
-	{in: `2`, ptr: new(interface{}), out: Number("2"), useNumber: true},
+	{in: `2`, ptr: new(any), out: int32(2)},
+	{in: `2`, ptr: new(any), out: Number("2"), useNumber: true},
 	{in: `"a\u1234"`, ptr: new(string), out: "a\u1234"},
 	{in: `"http:\/\/"`, ptr: new(string), out: "http://"},
 	{in: `"g-clef: \uD834\uDD1E"`, ptr: new(string), out: "g-clef: \U0001D11E"},
 	{in: `"invalid: \uD834x\uDD1E"`, ptr: new(string), out: "invalid: \uFFFDx\uFFFD"},
-	{in: "null", ptr: new(interface{}), out: nil},
+	{in: "null", ptr: new(any), out: nil},
 	{
 		in:  `{"X": [1,2,3], "Y": 4}`,
 		ptr: new(T),
@@ -258,12 +258,12 @@ var unmarshalTests = []unmarshalTest{
 	},
 	{
 		in:  `{"k1":1,"k2":"s","k3":[1,2,3e-3],"k4":{"kk1":"s","kk2":2}}`,
-		ptr: new(interface{}),
+		ptr: new(any),
 		out: ifaceNumAsMixedTypes,
 	},
 	{
 		in:        `{"k1":1,"k2":"s","k3":[1,2.0,3e-3],"k4":{"kk1":"s","kk2":2}}`,
-		ptr:       new(interface{}),
+		ptr:       new(any),
 		out:       ifaceNumAsNumber,
 		useNumber: true,
 	},
@@ -322,17 +322,17 @@ var unmarshalTests = []unmarshalTest{
 	{in: `[1, 2, 3]`, ptr: new([5]int), out: [5]int{1, 2, 3, 0, 0}},
 
 	// empty array to interface test
-	{in: `[]`, ptr: new([]interface{}), out: []interface{}{}},
-	{in: `null`, ptr: new([]interface{}), out: []interface{}(nil)},
+	{in: `[]`, ptr: new([]any), out: []any{}},
+	{in: `null`, ptr: new([]any), out: []any(nil)},
 	{
 		in:  `{"T":[]}`,
-		ptr: new(map[string]interface{}),
-		out: map[string]interface{}{"T": []interface{}{}},
+		ptr: new(map[string]any),
+		out: map[string]any{"T": []any{}},
 	},
 	{
 		in:  `{"T":null}`,
-		ptr: new(map[string]interface{}),
-		out: map[string]interface{}{"T": interface{}(nil)},
+		ptr: new(map[string]any),
+		out: map[string]any{"T": any(nil)},
 	},
 
 	// composite tests
@@ -643,7 +643,7 @@ func TestUnmarshalMarshal(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	initBig()
-	var v interface{}
+	var v any
 	if err := Unmarshal(jsonBig, &v); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
@@ -725,7 +725,7 @@ func TestUnmarshalInterface(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	var xint Xint
-	var i interface{} = &xint
+	var i any = &xint
 	if err := Unmarshal([]byte(`{"X":1}`), &i); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
@@ -870,8 +870,8 @@ type All struct {
 	PSmall  *Small
 	PPSmall **Small
 
-	Interface  interface{}
-	PInterface *interface{}
+	Interface  any
+	PInterface *any
 
 	//nolint:unused
 	unexported int
@@ -1202,9 +1202,9 @@ func intpp(x *int) **int {
 }
 
 var interfaceSetTests = []struct {
-	pre  interface{}
+	pre  any
 	json string
-	post interface{}
+	post any
 }{
 	{"foo", `"bar"`, "bar"},
 	{"foo", `2`, int32(2)},
@@ -1225,7 +1225,7 @@ func TestInterfaceSet(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	for _, tt := range interfaceSetTests {
-		b := struct{ X interface{} }{tt.pre}
+		b := struct{ X any }{tt.pre}
 		blob := `{"X":` + tt.json + `}`
 		if err := Unmarshal([]byte(blob), &b); err != nil {
 			t.Errorf("Unmarshal %#q: %v", blob, err)
@@ -1324,7 +1324,7 @@ func TestStringKind(t *testing.T) {
 }
 
 var decodeTypeErrorTests = []struct {
-	dest interface{}
+	dest any
 	src  string
 }{
 	{new(string), `{"user": "name"}`}, // issue 4628.
@@ -1361,7 +1361,7 @@ var unmarshalSyntaxTests = []string{
 func TestUnmarshalSyntax(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var x interface{}
+	var x any
 	for _, src := range unmarshalSyntaxTests {
 		err := Unmarshal([]byte(src), &x)
 		if _, ok := err.(*SyntaxError); !ok {
@@ -1375,9 +1375,9 @@ func TestUnmarshalSyntax(t *testing.T) {
 type unexportedFields struct {
 	Name string
 	//nolint:unused
-	m map[string]interface{}
+	m map[string]any
 	//nolint:unused
-	m2 map[string]interface{}
+	m2 map[string]any
 }
 
 func TestUnmarshalUnexported(t *testing.T) {
@@ -1432,7 +1432,7 @@ func TestSkipArrayObjects(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	json := `[{}]`
-	var dest [0]interface{}
+	var dest [0]any
 
 	err := Unmarshal([]byte(json), &dest)
 	if err != nil {
@@ -1445,13 +1445,13 @@ func TestSkipArrayObjects(t *testing.T) {
 func TestPrefilled(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	ptrToMap := func(m map[string]interface{}) *map[string]interface{} { return &m }
+	ptrToMap := func(m map[string]any) *map[string]any { return &m }
 
 	// Values here change, cannot reuse table across runs.
 	var prefillTests = []struct {
 		in  string
-		ptr interface{}
-		out interface{}
+		ptr any
+		out any
 	}{
 		{
 			in:  `{"X": 1, "Y": 2}`,
@@ -1460,8 +1460,8 @@ func TestPrefilled(t *testing.T) {
 		},
 		{
 			in:  `{"X": 1, "Y": 2}`,
-			ptr: ptrToMap(map[string]interface{}{"X": float32(3), "Y": int16(4), "Z": 1.5}),
-			out: ptrToMap(map[string]interface{}{"X": int32(1), "Y": int32(2), "Z": 1.5}),
+			ptr: ptrToMap(map[string]any{"X": float32(3), "Y": int16(4), "Z": 1.5}),
+			out: ptrToMap(map[string]any{"X": int32(1), "Y": int32(2), "Z": 1.5}),
 		},
 	}
 
@@ -1478,7 +1478,7 @@ func TestPrefilled(t *testing.T) {
 }
 
 var invalidUnmarshalTests = []struct {
-	v    interface{}
+	v    any
 	want string
 }{
 	{nil, "json: Unmarshal(nil)"},

@@ -20,7 +20,7 @@ func TestBooleanValue(t *testing.T) {
 	Convey("When unmarshalling JSON with Boolean values", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(123)"
@@ -34,7 +34,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for no args", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean()"
@@ -73,7 +73,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for bool", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(true)"
@@ -98,7 +98,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for numbers", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(1)"
@@ -153,7 +153,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for strings", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean('hello')"
@@ -178,7 +178,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for undefined", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(undefined)"
@@ -193,7 +193,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for null", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(null)"
@@ -208,7 +208,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works when given too many args", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(true, false)"
@@ -234,7 +234,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "Boolean(123)", "Boolean(0)", "Boolean(true)"
@@ -258,7 +258,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for other types", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(new Date (0))"
@@ -293,7 +293,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works for nested booleans", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(Boolean(5))"
@@ -318,7 +318,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value1 := "Boolean(42)"
@@ -329,7 +329,7 @@ func TestBooleanValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			jsonValue, ok := jsonArray[0].(bool)
@@ -346,7 +346,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("can specify argument in hexadecimal (true)", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(0x5f)"
@@ -361,7 +361,7 @@ func TestBooleanValue(t *testing.T) {
 		})
 
 		Convey("can specify argument in hexadecimal (false)", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Boolean(0x0)"

@@ -62,7 +62,7 @@ func (tl *ToolLogger) SetDateFormat(dateFormat string) {
 	tl.format = dateFormat
 }
 
-func (tl *ToolLogger) Logvf(minVerb int, format string, a ...interface{}) {
+func (tl *ToolLogger) Logvf(minVerb int, format string, a ...any) {
 	if minVerb < 0 {
 		panic("cannot set a minimum log verbosity that is less than 0")
 	}
@@ -142,7 +142,7 @@ func IsInVerbosity(minVerb int) bool {
 	return minVerb <= globalToolLogger.verbosity
 }
 
-func Logvf(minVerb int, format string, a ...interface{}) {
+func Logvf(minVerb int, format string, a ...any) {
 	globalToolLoggerMutex.Lock()
 	defer globalToolLoggerMutex.Unlock()
 	globalToolLogger.Logvf(minVerb, format, a...)

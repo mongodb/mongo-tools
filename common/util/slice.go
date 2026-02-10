@@ -13,7 +13,7 @@ import (
 
 // generic function that returns true if elt is in slice.
 // panics if slice is not of Kind reflect.Slice.
-func SliceContains(slice, elt interface{}) bool {
+func SliceContains(slice, elt any) bool {
 	if slice == nil {
 		return false
 	}

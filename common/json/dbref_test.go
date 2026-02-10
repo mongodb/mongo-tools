@@ -21,7 +21,7 @@ func TestDBRefValue(t *testing.T) {
 	Convey("When unmarshalling JSON with DBRef values", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `DBRef("ref", "123")`
@@ -36,7 +36,7 @@ func TestDBRefValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := `DBRef("ref1", "123")`,
@@ -61,7 +61,7 @@ func TestDBRefValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `DBRef("ref", "42")`
@@ -71,7 +71,7 @@ func TestDBRefValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -82,7 +82,7 @@ func TestDBRefValue(t *testing.T) {
 		})
 
 		Convey("can use alternative capitalization ('Dbref')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `Dbref("ref", "123")`
@@ -99,7 +99,7 @@ func TestDBRefValue(t *testing.T) {
 		Convey("can have any extended JSON value for id parameter", func() {
 
 			Convey("a null literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", null)`
@@ -114,7 +114,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a true literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", true)`
@@ -129,7 +129,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a false literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", false)`
@@ -144,7 +144,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("an undefined literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", undefined)`
@@ -159,7 +159,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a NaN literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", NaN)`
@@ -179,7 +179,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("an Infinity literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", Infinity)`
@@ -199,7 +199,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a MinKey literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", MinKey)`
@@ -214,7 +214,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a MaxKey literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", MaxKey)`
@@ -229,7 +229,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("an ObjectId object", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", ObjectId("123"))`
@@ -244,7 +244,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a NumberInt object", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", NumberInt(123))`
@@ -259,7 +259,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a NumberLong object", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", NumberLong(123))`
@@ -274,7 +274,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a RegExp object", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", RegExp("xyz", "i"))`
@@ -289,7 +289,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a regular expression literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", /xyz/i)`
@@ -304,7 +304,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a Timestamp object", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", Timestamp(123, 321))`
@@ -319,7 +319,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a string literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", "xyz")`
@@ -334,7 +334,7 @@ func TestDBRefValue(t *testing.T) {
 			})
 
 			Convey("a numeric literal", func() {
-				var jsonMap map[string]interface{}
+				var jsonMap map[string]any
 
 				key := "key"
 				value := `DBRef("ref", 123)`

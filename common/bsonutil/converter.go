@@ -19,13 +19,13 @@ import (
 
 // ConvertLegacyExtJSONValueToBSON walks through a document or an array and
 // replaces any extended JSON value with its corresponding BSON type.
-func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
+func ConvertLegacyExtJSONValueToBSON(x any) (any, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
 	case bool:
 		return v, nil
-	case map[string]interface{}: // document
+	case map[string]any: // document
 		for key, jsonValue := range v {
 			bsonValue, err := ParseLegacyExtJSONValue(jsonValue)
 			if err != nil {
@@ -44,7 +44,7 @@ func ConvertLegacyExtJSONValueToBSON(x interface{}) (interface{}, error) {
 		}
 		return v, nil
 
-	case []interface{}: // array
+	case []any: // array
 		for i, jsonValue := range v {
 			bsonValue, err := ParseLegacyExtJSONValue(jsonValue)
 			if err != nil {
@@ -127,7 +127,7 @@ func convertKeys(v bson.M) (bson.M, error) {
 	return v, nil
 }
 
-func convertArray(v bson.A) ([]interface{}, error) {
+func convertArray(v bson.A) ([]any, error) {
 	for i, value := range v {
 		jsonValue, err := ConvertBSONValueToLegacyExtJSON(value)
 		if err != nil {
@@ -135,13 +135,13 @@ func convertArray(v bson.A) ([]interface{}, error) {
 		}
 		v[i] = jsonValue
 	}
-	return []interface{}(v), nil
+	return []any(v), nil
 }
 
 // ConvertBSONValueToLegacyExtJSON walks through a document or an array and
 // converts any BSON value to its corresponding extended JSON type.
 // It returns the converted JSON document and any error encountered.
-func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
+func ConvertBSONValueToLegacyExtJSON(x any) (any, error) {
 	switch v := x.(type) {
 	case nil:
 		return nil, nil
@@ -156,7 +156,7 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		return doc, err
 	case bson.M: // document
 		return convertKeys(v)
-	case map[string]interface{}:
+	case map[string]any:
 		return convertKeys(v)
 	case bson.D:
 		for i, value := range v {
@@ -171,7 +171,7 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		return v, nil
 	case bson.A: // array
 		return convertArray(v)
-	case []interface{}: // array
+	case []any: // array
 		return convertArray(v)
 	case string:
 		return v, nil // require no conversion
@@ -227,7 +227,7 @@ func ConvertBSONValueToLegacyExtJSON(x interface{}) (interface{}, error) {
 		return json.JavaScript{Code: string(v), Scope: nil}, nil
 
 	case bson.CodeWithScope: // JavaScript Code w/ Scope
-		var scope interface{}
+		var scope any
 		var err error
 		if v.Scope != nil {
 			scope, err = ConvertBSONValueToLegacyExtJSON(v.Scope)

@@ -168,7 +168,7 @@ func ConvertLegacyIndexOptions(indexOptions bson.M) {
 
 // CreateExtJSONString stringifies doc as Extended JSON. It does not error
 // if it's unable to marshal the doc to JSON.
-func CreateExtJSONString(doc interface{}) string {
+func CreateExtJSONString(doc any) string {
 	// by default return "<unable to format document>"" since we don't
 	// want to throw an error when formatting informational messages.
 	// An error would be inconsequential.

@@ -60,26 +60,26 @@ func TestDecodeBsonD(t *testing.T) {
 			So(len(out), ShouldEqual, 2)
 			So(out[0].Key, ShouldEqual, "a")
 			So(out[1].Key, ShouldEqual, "b")
-			So(out[0].Value, ShouldResemble, []interface{}{"x", "y", "z"})
+			So(out[0].Value, ShouldResemble, []any{"x", "y", "z"})
 			So(out[1].Value, ShouldResemble, bson.D{{"foo", "bar"}, {"baz", "boo"}})
 		})
 
 		Convey("only subdocuments inside a bson.D should be parsed into a bson.D", func() {
 			data := `{subA: {a:{b:{c:9}}}, subB:{a:{b:{c:9}}}}`
 			out := struct {
-				A interface{} `json:"subA"`
-				B bson.D      `json:"subB"`
+				A any    `json:"subA"`
+				B bson.D `json:"subB"`
 			}{}
 			err := Unmarshal([]byte(data), &out)
 			So(err, ShouldBeNil)
-			//nolint:errcheck // this will always be a map[string]interface{}
-			aMap := out.A.(map[string]interface{})
+			//nolint:errcheck // this will always be a map[string]any
+			aMap := out.A.(map[string]any)
 			So(len(aMap), ShouldEqual, 1)
-			//nolint:errcheck // this will always be a map[string]interface{}
-			aMapSub := aMap["a"].(map[string]interface{})
+			//nolint:errcheck // this will always be a map[string]any
+			aMapSub := aMap["a"].(map[string]any)
 			So(len(aMapSub), ShouldEqual, 1)
-			//nolint:errcheck // this will always be a map[string]interface{}
-			aMapSubSub := aMapSub["b"].(map[string]interface{})
+			//nolint:errcheck // this will always be a map[string]any
+			aMapSubSub := aMapSub["b"].(map[string]any)
 			So(aMapSubSub["c"], ShouldEqual, 9)
 			So(len(out.B), ShouldEqual, 1)
 			// using string comparison for simplicity
@@ -95,9 +95,9 @@ func TestDecodeBsonD(t *testing.T) {
 			err := Unmarshal([]byte(data), &out)
 			So(err, ShouldBeNil)
 			So(len(out), ShouldEqual, 1)
-			So(out[0].Value, ShouldHaveSameTypeAs, []interface{}{})
-			//nolint:errcheck // this will always be a []interface{}
-			innerArray := out[0].Value.([]interface{})
+			So(out[0].Value, ShouldHaveSameTypeAs, []any{})
+			//nolint:errcheck // this will always be a []any
+			innerArray := out[0].Value.([]any)
 			So(len(innerArray), ShouldEqual, 3)
 			So(innerArray[0], ShouldEqual, 1)
 			So(innerArray[1], ShouldEqual, 2)
@@ -126,7 +126,7 @@ func TestDecodeBsonD(t *testing.T) {
 	})
 	Convey("Unmarshalling to a non-bson.D slice types should fail", t, func() {
 		data := `{"a":["x", "y","z"], "b":{"foo":"bar", "baz":"boo"}}`
-		out := []interface{}{}
+		out := []any{}
 		err := Unmarshal([]byte(data), &out)
 		So(err, ShouldNotBeNil)
 	})

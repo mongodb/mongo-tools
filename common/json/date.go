@@ -53,7 +53,7 @@ func (d *decodeState) storeDate(v reflect.Value) {
 }
 
 // Returns a Date literal from the underlying byte data.
-func (d *decodeState) getDate() interface{} {
+func (d *decodeState) getDate() any {
 	op := d.scanWhile(scanSkipSpace)
 	if op != scanBeginCtor {
 		d.error(fmt.Errorf("expected beginning of constructor"))

@@ -20,7 +20,7 @@ func TestUnquotedKeys(t *testing.T) {
 	Convey("When unmarshalling JSON without quotes around its keys", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "value"
@@ -33,7 +33,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "value1", "value2", "value3"
@@ -49,7 +49,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("can start with a dollar sign ('$')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "$dollar"
 			value := "money"
@@ -62,7 +62,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("can start with an underscore ('_')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "_id"
 			value := "unique"
@@ -75,7 +75,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("cannot start with a number ('[0-9]')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "073"
 			value := "octal"
@@ -86,7 +86,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("can contain numbers ('[0-9]')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "b16"
 			value := "little"
@@ -99,7 +99,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("cannot contain a period ('.')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "horse.horse"
 			value := "horse"
@@ -113,7 +113,7 @@ func TestUnquotedKeys(t *testing.T) {
 	Convey("When unmarshalling JSON without quotes around its values", t, func() {
 
 		Convey("fails for a single value", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "value"
@@ -124,7 +124,7 @@ func TestUnquotedKeys(t *testing.T) {
 		})
 
 		Convey("fails for multiple values", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "value1", "value2", "value3"

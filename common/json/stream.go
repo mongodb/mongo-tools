@@ -32,7 +32,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{R: r}
 }
 
-// UseNumber causes the Decoder to unmarshal a number into an interface{} as a
+// UseNumber causes the Decoder to unmarshal a number into an any as a
 // Number instead of as a float64.
 func (dec *Decoder) UseNumber() { dec.d.useNumber = true }
 
@@ -41,7 +41,7 @@ func (dec *Decoder) UseNumber() { dec.d.useNumber = true }
 //
 // See the documentation for Unmarshal for details about
 // the conversion of JSON into a Go value.
-func (dec *Decoder) DecodeMap() (map[string]interface{}, error) {
+func (dec *Decoder) DecodeMap() (map[string]any, error) {
 	if dec.err != nil {
 		return nil, dec.err
 	}
@@ -83,7 +83,7 @@ func (dec *Decoder) ScanObject() ([]byte, error) {
 
 }
 
-func (dec *Decoder) Decode(v interface{}) error {
+func (dec *Decoder) Decode(v any) error {
 	if dec.err != nil {
 		return dec.err
 	}
@@ -199,7 +199,7 @@ func NewEncoder(w io.Writer) *Encoder {
 //
 // See the documentation for Marshal for details about the
 // conversion of Go values to JSON.
-func (enc *Encoder) Encode(v interface{}) error {
+func (enc *Encoder) Encode(v any) error {
 	if enc.err != nil {
 		return enc.err
 	}

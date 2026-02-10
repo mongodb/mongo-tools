@@ -383,7 +383,7 @@ func (mf *MongoFiles) handleDeleteID(baseCtx context.Context) error {
 }
 
 // parse and convert input extended JSON _id. Generates a new ObjectID if no _id provided.
-func (mf *MongoFiles) parseOrCreateID() (interface{}, error) {
+func (mf *MongoFiles) parseOrCreateID() (any, error) {
 	trimmed := strings.Trim(mf.Id, " ")
 
 	if trimmed == "" {
@@ -460,7 +460,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
 func (mf *MongoFiles) put(
 	baseCtx context.Context,
-	id interface{},
+	id any,
 	name string,
 ) (bytesWritten int64, err error) {
 	gridFile, err := newGfsFile(id, name, mf)

@@ -9,32 +9,32 @@ package status
 import "time"
 
 type ServerStatus struct {
-	SampleTime         time.Time              `bson:""`
-	Flattened          map[string]interface{} `bson:""`
-	Host               string                 `bson:"host"`
-	Version            string                 `bson:"version"`
-	Process            string                 `bson:"process"`
-	Pid                int64                  `bson:"pid"`
-	Uptime             int64                  `bson:"uptime"`
-	UptimeMillis       int64                  `bson:"uptimeMillis"`
-	UptimeEstimate     int64                  `bson:"uptimeEstimate"`
-	LocalTime          time.Time              `bson:"localTime"`
-	Asserts            map[string]int64       `bson:"asserts"`
-	BackgroundFlushing *FlushStats            `bson:"backgroundFlushing"`
-	ExtraInfo          *ExtraInfo             `bson:"extra_info"`
-	Connections        *ConnectionStats       `bson:"connections"`
-	Dur                *DurStats              `bson:"dur"`
-	GlobalLock         *GlobalLockStats       `bson:"globalLock"`
-	Locks              map[string]LockStats   `bson:"locks,omitempty"`
-	Network            *NetworkStats          `bson:"network"`
-	Opcounters         *OpcountStats          `bson:"opcounters"`
-	OpcountersRepl     *OpcountStats          `bson:"opcountersRepl"`
-	RecordStats        *DBRecordStats         `bson:"recordStats"`
-	Mem                *MemStats              `bson:"mem"`
-	Repl               *ReplStatus            `bson:"repl"`
-	ShardCursorType    map[string]interface{} `bson:"shardCursorType"`
-	StorageEngine      *StorageEngine         `bson:"storageEngine"`
-	WiredTiger         *WiredTiger            `bson:"wiredTiger"`
+	SampleTime         time.Time            `bson:""`
+	Flattened          map[string]any       `bson:""`
+	Host               string               `bson:"host"`
+	Version            string               `bson:"version"`
+	Process            string               `bson:"process"`
+	Pid                int64                `bson:"pid"`
+	Uptime             int64                `bson:"uptime"`
+	UptimeMillis       int64                `bson:"uptimeMillis"`
+	UptimeEstimate     int64                `bson:"uptimeEstimate"`
+	LocalTime          time.Time            `bson:"localTime"`
+	Asserts            map[string]int64     `bson:"asserts"`
+	BackgroundFlushing *FlushStats          `bson:"backgroundFlushing"`
+	ExtraInfo          *ExtraInfo           `bson:"extra_info"`
+	Connections        *ConnectionStats     `bson:"connections"`
+	Dur                *DurStats            `bson:"dur"`
+	GlobalLock         *GlobalLockStats     `bson:"globalLock"`
+	Locks              map[string]LockStats `bson:"locks,omitempty"`
+	Network            *NetworkStats        `bson:"network"`
+	Opcounters         *OpcountStats        `bson:"opcounters"`
+	OpcountersRepl     *OpcountStats        `bson:"opcountersRepl"`
+	RecordStats        *DBRecordStats       `bson:"recordStats"`
+	Mem                *MemStats            `bson:"mem"`
+	Repl               *ReplStatus          `bson:"repl"`
+	ShardCursorType    map[string]any       `bson:"shardCursorType"`
+	StorageEngine      *StorageEngine       `bson:"storageEngine"`
+	WiredTiger         *WiredTiger          `bson:"wiredTiger"`
 }
 
 // WiredTiger stores information related to the WiredTiger storage engine.
@@ -71,14 +71,14 @@ type TransactionStats struct {
 
 // ReplStatus stores data related to replica sets.
 type ReplStatus struct {
-	SetName      string      `bson:"setName"`
-	IsMaster     interface{} `bson:"ismaster"`
-	Secondary    interface{} `bson:"secondary"`
-	IsReplicaSet interface{} `bson:"isreplicaset"`
-	ArbiterOnly  interface{} `bson:"arbiterOnly"`
-	Hosts        []string    `bson:"hosts"`
-	Passives     []string    `bson:"passives"`
-	Me           string      `bson:"me"`
+	SetName      string   `bson:"setName"`
+	IsMaster     any      `bson:"ismaster"`
+	Secondary    any      `bson:"secondary"`
+	IsReplicaSet any      `bson:"isreplicaset"`
+	ArbiterOnly  any      `bson:"arbiterOnly"`
+	Hosts        []string `bson:"hosts"`
+	Passives     []string `bson:"passives"`
+	Me           string   `bson:"me"`
 }
 
 // DBRecordStats stores data related to memory operations across databases.
@@ -96,12 +96,12 @@ type RecordAccesses struct {
 
 // MemStats stores data related to memory statistics.
 type MemStats struct {
-	Bits              int64       `bson:"bits"`
-	Resident          int64       `bson:"resident"`
-	Virtual           int64       `bson:"virtual"`
-	Supported         interface{} `bson:"supported"`
-	Mapped            int64       `bson:"mapped"`
-	MappedWithJournal int64       `bson:"mappedWithJournal"`
+	Bits              int64 `bson:"bits"`
+	Resident          int64 `bson:"resident"`
+	Virtual           int64 `bson:"virtual"`
+	Supported         any   `bson:"supported"`
+	Mapped            int64 `bson:"mapped"`
+	MappedWithJournal int64 `bson:"mappedWithJournal"`
 }
 
 // FlushStats stores information about memory flushes.
@@ -224,11 +224,11 @@ func NewNodeError(host string, err error) *NodeError {
 
 // Flatten takes a map and returns a new one where nested maps are replaced
 // by dot-delimited keys.
-func Flatten(m map[string]interface{}) map[string]interface{} {
-	o := make(map[string]interface{})
+func Flatten(m map[string]any) map[string]any {
+	o := make(map[string]any)
 	for k, v := range m {
 		switch child := v.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			nm := Flatten(child)
 			for nk, nv := range nm {
 				o[k+"."+nk] = nv

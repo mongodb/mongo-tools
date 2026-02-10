@@ -17,7 +17,7 @@ import (
 
 // Struct representing a GridFS files collection document.
 type gfsFile struct {
-	ID         interface{}     `bson:"_id"`
+	ID         any             `bson:"_id"`
 	Name       string          `bson:"filename"`
 	Length     int64           `bson:"length"`
 	Md5        string          `bson:"md5"`
@@ -34,7 +34,7 @@ type gfsFileMetadata struct {
 	ContentType string `bson:"contentType,omitempty"`
 }
 
-func newGfsFile(ID interface{}, name string, mf *MongoFiles) (*gfsFile, error) {
+func newGfsFile(ID any, name string, mf *MongoFiles) (*gfsFile, error) {
 	if ID == nil || mf == nil {
 		return nil, fmt.Errorf(
 			"invalid gfsFile arguments, one of ID (%v) or MongoFiles (%v) nil",

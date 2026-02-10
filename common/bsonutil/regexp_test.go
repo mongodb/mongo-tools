@@ -22,7 +22,7 @@ func TestRegExpValue(t *testing.T) {
 
 		Convey("works for RegExp constructor", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.RegExp{"foo", "i"},
 			}
 
@@ -33,8 +33,8 @@ func TestRegExpValue(t *testing.T) {
 
 		Convey(`works for RegExp document ('{ "$regex": "foo", "$options": "i" }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$regex":   "foo",
 					"$options": "i",
 				},
@@ -47,8 +47,8 @@ func TestRegExpValue(t *testing.T) {
 
 		Convey(`can use multiple options ('{ "$regex": "bar", "$options": "gims" }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$regex":   "bar",
 					"$options": "gims",
 				},
@@ -61,8 +61,8 @@ func TestRegExpValue(t *testing.T) {
 
 		Convey(`fails for an invalid option ('{ "$regex": "baz", "$options": "y" }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$regex":   "baz",
 					"$options": "y",
 				},

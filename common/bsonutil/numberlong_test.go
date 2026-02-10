@@ -21,7 +21,7 @@ func TestNumberLongValue(t *testing.T) {
 
 		Convey("works for NumberLong constructor", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.NumberLong(42),
 			}
 
@@ -32,8 +32,8 @@ func TestNumberLongValue(t *testing.T) {
 
 		Convey(`works for NumberLong document ('{ "$numberLong": "42" }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$numberLong": "42",
 				},
 			}

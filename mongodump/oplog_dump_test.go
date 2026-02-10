@@ -114,7 +114,7 @@ func vectoredInsert(ctx context.Context) error {
 		ctx,
 		options.Session().SetCausalConsistency(false),
 		func(sessionContext context.Context) error {
-			docs := []interface{}{
+			docs := []any{
 				bson.D{{"_id", 100}, {"a", 1}},
 				bson.D{{"_id", 200}, {"a", 2}},
 			}

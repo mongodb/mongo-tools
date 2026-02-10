@@ -92,7 +92,7 @@ func (mt *MongoTop) runTopDiff() (outDiff FormattableDiff, err error) {
 func (mt *MongoTop) runServerStatusDiff() (outDiff FormattableDiff, err error) {
 	var currentServerStatus ServerStatus
 	commandName := "serverStatus"
-	var dest interface{} = &currentServerStatus
+	var dest any = &currentServerStatus
 	err = mt.SessionProvider.RunString(commandName, dest, "admin")
 	if err != nil {
 		mt.previousServerStatus = nil

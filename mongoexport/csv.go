@@ -87,7 +87,7 @@ func (csvExporter *CSVExportOutput) ExportDocument(document bson.D) error {
 		} else if reflect.TypeOf(fieldVal) == reflect.TypeOf(bson.M{}) ||
 			reflect.TypeOf(fieldVal) == reflect.TypeOf(bson.D{}) ||
 			reflect.TypeOf(fieldVal) == marshalDType ||
-			reflect.TypeOf(fieldVal) == reflect.TypeOf([]interface{}{}) {
+			reflect.TypeOf(fieldVal) == reflect.TypeOf([]any{}) {
 			buf, err := json.Marshal(fieldVal)
 			if err != nil {
 				rowOut = append(rowOut, "")
@@ -108,7 +108,7 @@ func (csvExporter *CSVExportOutput) ExportDocument(document bson.D) error {
 // extractFieldByName takes a field name and document, and returns a value representing
 // the value of that field in the document in a format that can be printed as a string.
 // It will also handle dot-delimited field names for nested arrays or documents.
-func extractFieldByName(fieldName string, document interface{}) interface{} {
+func extractFieldByName(fieldName string, document any) any {
 	dotParts := strings.Split(fieldName, ".")
 	var subdoc = document
 

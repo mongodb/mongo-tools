@@ -23,7 +23,7 @@ func TestMinKeyValue(t *testing.T) {
 		value := "MinKey"
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
@@ -36,7 +36,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
@@ -59,7 +59,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
 				key, value, value, value)
@@ -67,7 +67,7 @@ func TestMinKeyValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -78,7 +78,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("cannot have a sign ('+' or '-')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
 
@@ -97,7 +97,7 @@ func TestMinKeyValue(t *testing.T) {
 		value := "MinKey()"
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
@@ -110,7 +110,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
@@ -133,7 +133,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
 				key, value, value, value)
@@ -141,7 +141,7 @@ func TestMinKeyValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -152,7 +152,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("cannot have a sign ('+' or '-')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			value := "MinKey()"
 			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
@@ -167,7 +167,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("can have whitespace inside or around()", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			value = "MinKey ( )"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
@@ -181,7 +181,7 @@ func TestMinKeyValue(t *testing.T) {
 		})
 
 		Convey("cannot have any value other than whitespace inside ()", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			value = "MinKey(5)"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)

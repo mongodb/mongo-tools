@@ -37,11 +37,11 @@ func (jlf *JSONLineFormatter) FormatLines(
 	keyNames map[string]string,
 ) string {
 	// middle ground b/t the StatLines and the JSON string to be returned
-	jsonFormat := map[string]interface{}{}
+	jsonFormat := map[string]any{}
 
 	// convert each StatLine to JSON
 	for _, l := range lines {
-		lineJson := make(map[string]interface{})
+		lineJson := make(map[string]any)
 
 		if l.Printed && l.Error == nil {
 			l.Error = fmt.Errorf("no data received")

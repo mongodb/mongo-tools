@@ -32,7 +32,7 @@ const (
 )
 
 // // Remove removes all documents matched by query q in the db database and c collection.
-// func (sp *SessionProvider) Remove(db, c string, q interface{}) error {
+// func (sp *SessionProvider) Remove(db, c string, q any) error {
 // 	session, err := sp.GetSession()
 // 	if err != nil {
 // 		return err
@@ -44,7 +44,7 @@ const (
 // Run issues the provided command on the db database and unmarshals its result
 // into out.
 
-func (sp *SessionProvider) Run(command interface{}, out interface{}, name string) error {
+func (sp *SessionProvider) Run(command any, out any, name string) error {
 	db := sp.DB(name)
 	result := db.RunCommand(context.Background(), command)
 	if result.Err() != nil {
@@ -57,7 +57,7 @@ func (sp *SessionProvider) Run(command interface{}, out interface{}, name string
 	return nil
 }
 
-func (sp *SessionProvider) RunString(commandName string, out interface{}, name string) error {
+func (sp *SessionProvider) RunString(commandName string, out any, name string) error {
 	command := &bson.M{commandName: 1}
 	return sp.Run(command, out, name)
 }
@@ -142,9 +142,9 @@ func (sp *SessionProvider) GetNodeType() (NodeType, error) {
 		return Unknown, err
 	}
 	masterDoc := struct {
-		SetName interface{} `bson:"setName"`
-		Hosts   interface{} `bson:"hosts"`
-		Msg     string      `bson:"msg"`
+		SetName any    `bson:"setName"`
+		Hosts   any    `bson:"hosts"`
+		Msg     string `bson:"msg"`
 	}{}
 	result := session.Database("admin").RunCommand(
 		context.Background(),
@@ -212,9 +212,9 @@ func (sp *SessionProvider) IsMongos() (bool, error) {
 func (sp *SessionProvider) FindOne(
 	db, collection string,
 	skip int,
-	query interface{},
-	sort interface{},
-	into interface{},
+	query any,
+	sort any,
+	into any,
 	flags int,
 ) error {
 	session, err := sp.GetSession()
@@ -251,7 +251,7 @@ func (sp *SessionProvider) RunApplyOpsCreateIndex(
 	C, DB string,
 	index bson.D,
 	UUID *bson.Binary,
-	result *interface{},
+	result *any,
 ) error {
 	var op Oplog
 

@@ -22,7 +22,7 @@ func TestHexadecimalNumber(t *testing.T) {
 
 	Convey("When unmarshalling JSON with hexadecimal numeric values", t, func() {
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 			key := "key"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
@@ -34,7 +34,7 @@ func TestHexadecimalNumber(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "0x100", "0x101", "0x102"
@@ -58,7 +58,7 @@ func TestHexadecimalNumber(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
@@ -67,7 +67,7 @@ func TestHexadecimalNumber(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -78,7 +78,7 @@ func TestHexadecimalNumber(t *testing.T) {
 		})
 
 		Convey("can have a sign ('+' or '-')", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
@@ -101,7 +101,7 @@ func TestHexadecimalNumber(t *testing.T) {
 		})
 
 		Convey("can use '0x' or '0X' prefix", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "123"

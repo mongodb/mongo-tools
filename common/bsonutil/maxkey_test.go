@@ -22,7 +22,7 @@ func TestMaxKeyValue(t *testing.T) {
 
 		Convey("works for MaxKey literal", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.MaxKey{},
 			}
 
@@ -33,8 +33,8 @@ func TestMaxKeyValue(t *testing.T) {
 
 		Convey(`works for MaxKey document ('{ "$maxKey": 1 }')`, func() {
 			key := "maxKey"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$maxKey": 1,
 				},
 			}

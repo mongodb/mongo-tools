@@ -93,7 +93,7 @@ func constructWCFromString(writeConcern string) (*wcwrapper.WriteConcern, error)
 	}
 
 	// Try to unmarshal as JSON document
-	jsonWriteConcern := map[string]interface{}{}
+	jsonWriteConcern := map[string]any{}
 	err := json.Unmarshal([]byte(writeConcern), &jsonWriteConcern)
 	if err == nil {
 		return parseJSONWriteConcern(jsonWriteConcern)
@@ -113,7 +113,7 @@ func constructWCFromString(writeConcern string) (*wcwrapper.WriteConcern, error)
 
 // parseJSONWriteConcern converts a JSON map representing a write concern object into a WriteConcern.
 func parseJSONWriteConcern(
-	jsonWriteConcern map[string]interface{},
+	jsonWriteConcern map[string]any,
 ) (*wcwrapper.WriteConcern, error) {
 	wc := wcwrapper.New()
 
@@ -147,7 +147,7 @@ func parseJSONWriteConcern(
 	return wc, nil
 }
 
-func parseWField(wValue interface{}) (any, error) {
+func parseWField(wValue any) (any, error) {
 	// Try parsing as int
 	if wNumber, err := util.ToInt(wValue); err == nil {
 		return parseModeNumber(wNumber)

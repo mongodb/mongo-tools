@@ -164,7 +164,7 @@ func TestFieldParsers(t *testing.T) {
 
 	Convey("Using FieldBooleanParser", t, func() {
 		var p, _ = NewFieldParser(ctBoolean, "")
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("parses representations of true correctly", func() {
@@ -204,7 +204,7 @@ func TestFieldParsers(t *testing.T) {
 	})
 
 	Convey("Using FieldBinaryParser", t, func() {
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("using hex encoding", func() {
@@ -249,7 +249,7 @@ func TestFieldParsers(t *testing.T) {
 	})
 
 	Convey("Using FieldDateParser", t, func() {
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("with Go's format", func() {
@@ -320,7 +320,7 @@ func TestFieldParsers(t *testing.T) {
 
 	Convey("Using FieldDoubleParser", t, func() {
 		var p, _ = NewFieldParser(ctDouble, "")
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("parses valid decimal values correctly", func() {
@@ -351,7 +351,7 @@ func TestFieldParsers(t *testing.T) {
 
 	Convey("Using FieldInt32Parser", t, func() {
 		var p, _ = NewFieldParser(ctInt32, "")
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("parses valid integer values correctly", func() {
@@ -382,7 +382,7 @@ func TestFieldParsers(t *testing.T) {
 
 	Convey("Using FieldInt64Parser", t, func() {
 		var p, _ = NewFieldParser(ctInt64, "")
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("parses valid integer values correctly", func() {
@@ -431,7 +431,7 @@ func TestFieldParsers(t *testing.T) {
 
 	Convey("Using FieldStringParser", t, func() {
 		var p, _ = NewFieldParser(ctString, "")
-		var value interface{}
+		var value any
 		var err error
 
 		Convey("parses strings as strings only", func() {

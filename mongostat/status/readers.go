@@ -55,7 +55,7 @@ func formatMegabyteAmount(should bool, amt int64) string {
 	return fmt.Sprintf("%v", amt*1024*1024)
 }
 
-func numberToInt64(num interface{}) (int64, bool) {
+func numberToInt64(num any) (int64, bool) {
 	switch n := num.(type) {
 	case int64:
 		return n, true

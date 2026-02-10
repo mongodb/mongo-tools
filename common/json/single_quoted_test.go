@@ -20,7 +20,7 @@ func TestSingleQuotedKeys(t *testing.T) {
 	Convey("When unmarshalling JSON with single quotes around its keys", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "value"
@@ -33,7 +33,7 @@ func TestSingleQuotedKeys(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "value1", "value2", "value3"
@@ -56,7 +56,7 @@ func TestSingleQuotedValues(t *testing.T) {
 	Convey("When unmarshalling JSON with single quotes around its values", t, func() {
 
 		Convey("works for a single value", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "value"
@@ -69,7 +69,7 @@ func TestSingleQuotedValues(t *testing.T) {
 		})
 
 		Convey("works for multiple values", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "value1", "value2", "value3"
@@ -85,7 +85,7 @@ func TestSingleQuotedValues(t *testing.T) {
 		})
 
 		Convey("can be used within BinData constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "bindata"
 			value := "BinData(1, 'xyz')"
@@ -101,7 +101,7 @@ func TestSingleQuotedValues(t *testing.T) {
 		})
 
 		Convey("can be used within Boolean constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "boolean"
 			value := "Boolean('xyz')"
@@ -116,7 +116,7 @@ func TestSingleQuotedValues(t *testing.T) {
 		})
 
 		Convey("can be used within DBRef constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "dbref"
 			value := "DBRef('examples', 'xyz')"
@@ -133,7 +133,7 @@ func TestSingleQuotedValues(t *testing.T) {
 		})
 
 		Convey("can be used within ObjectId constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "_id"
 			value := "ObjectId('xyz')"
@@ -148,7 +148,7 @@ func TestSingleQuotedValues(t *testing.T) {
 		})
 
 		Convey("can be used within RegExp constructor", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "regex"
 			value := "RegExp('xyz', 'i')"

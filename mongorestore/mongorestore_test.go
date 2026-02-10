@@ -2219,7 +2219,7 @@ func setupTimeseriesWithMixedSchema(dbName string, collName string) error {
 
 	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
 	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
-	var bucketMap map[string]interface{}
+	var bucketMap map[string]any
 	if err := json.Unmarshal([]byte(bucketJSON), &bucketMap); err != nil {
 		return err
 	}
@@ -3128,12 +3128,12 @@ func createClusteredIndex(t *testing.T, testDB *mongo.Database, indexName string
 	res := testDB.RunCommand(context.Background(), createCollCmd, nil)
 	require.NoError(res.Err(), "can create a clustered collection")
 
-	var r interface{}
+	var r any
 	err := res.Decode(&r)
 	require.NoError(err)
 
 	stocks := testDB.Collection("stocks")
-	stockData := []interface{}{
+	stockData := []any{
 		bson.M{"ticker": "MDB", "price": 245.33},
 		bson.M{"ticker": "GOOG", "price": 2214.91},
 		bson.M{"ticker": "BLZE", "price": 6.23},
@@ -3243,7 +3243,7 @@ func withOplogMongoDump(t *testing.T, db string, collection string, testCase fun
 	// This queries the local.oplog.rs collection for commands or CRUD
 	// operations on the collection we are testing (which will have a unique
 	// name for each test).
-	query := map[string]interface{}{
+	query := map[string]any{
 		"$or": []map[string]string{
 			{"ns": fmt.Sprintf("%s.$cmd", db)},
 			{"ns": fmt.Sprintf("%s.%s", db, collection)},

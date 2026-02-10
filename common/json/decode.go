@@ -53,8 +53,8 @@ import (
 //	bool, for JSON booleans
 //	float64, for JSON numbers
 //	string, for JSON strings
-//	[]interface{}, for JSON arrays
-//	map[string]interface{}, for JSON objects
+//	[]any, for JSON arrays
+//	map[string]any, for JSON objects
 //	nil for JSON null
 //
 // If a JSON value is not appropriate for a given target type,
@@ -72,7 +72,7 @@ import (
 // invalid UTF-16 surrogate pairs are not treated as an error.
 // Instead, they are replaced by the Unicode replacement
 // character U+FFFD.
-func Unmarshal(data []byte, v interface{}) error {
+func Unmarshal(data []byte, v any) error {
 	// Check for well-formedness.
 	// Avoids filling out half a data structure
 	// before discovering a JSON syntax error.
@@ -152,7 +152,7 @@ func (e *InvalidUnmarshalError) Error() string {
 	return "json: Unmarshal(nil " + e.Type.String() + ")"
 }
 
-func (d *decodeState) unmarshalMap() (out map[string]interface{}, err error) {
+func (d *decodeState) unmarshalMap() (out map[string]any, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(runtime.Error); ok {
@@ -188,7 +188,7 @@ func (d *decodeState) unmarshalBsonD() (out bson.D, err error) {
 	return out, d.savedError
 }
 
-func (d *decodeState) unmarshal(v interface{}) (err error) {
+func (d *decodeState) unmarshal(v any) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(runtime.Error); ok {
@@ -352,7 +352,7 @@ func (d *decodeState) scanWhile(op int) int {
 	return newOp
 }
 
-func (d *decodeState) document() map[string]interface{} {
+func (d *decodeState) document() map[string]any {
 	switch op := d.scanWhile(scanSkipSpace); op {
 	default:
 		d.error(errPhase)
@@ -757,7 +757,7 @@ func (d *decodeState) literal(v reflect.Value) {
 // string is specified in hexadecimal. It does this by parsing the string to see if it
 // can an integer, if not it is treated as a float. If the integer is within the bounds of an int32 it
 // is returned as an int32.
-func (d *decodeState) convertNumber(s string) (interface{}, error) {
+func (d *decodeState) convertNumber(s string) (any, error) {
 	if d.useNumber {
 		return Number(s), nil
 	}
@@ -1008,11 +1008,11 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 // in an empty interface.  They are not strictly necessary,
 // but they avoid the weight of reflection in this common case.
 
-// valueInterface is like value but returns interface{}. It takes a boolean
+// valueInterface is like value but returns any. It takes a boolean
 // parameter denoting whether or not the value is being unmarshalled within
 // a bson.D, so that bson.Ds can be the default object type when
 // they are inside other bson.D documents.
-func (d *decodeState) valueInterface(insideBSOND bool) interface{} {
+func (d *decodeState) valueInterface(insideBSOND bool) any {
 	switch d.scanWhile(scanSkipSpace) {
 	default:
 		d.error(errPhase)
@@ -1029,12 +1029,12 @@ func (d *decodeState) valueInterface(insideBSOND bool) interface{} {
 	}
 }
 
-// arrayInterface is like array but returns []interface{}. It takes a boolean
+// arrayInterface is like array but returns []any. It takes a boolean
 // parameter denoting whether or not the value is being unmarshalled within
 // a bson.D, so that bson.Ds can be the default object type when
 // they are inside other bson.D documents.
-func (d *decodeState) arrayInterface(insideBSOND bool) []interface{} {
-	var v = make([]interface{}, 0)
+func (d *decodeState) arrayInterface(insideBSOND bool) []any {
+	var v = make([]any, 0)
 	for {
 		// Look ahead for ] - can only happen on first iteration.
 		op := d.scanWhile(scanSkipSpace)
@@ -1106,9 +1106,9 @@ func (d *decodeState) bsonDInterface() bson.D {
 	return m
 }
 
-// objectInterface is like object but returns map[string]interface{}.
-func (d *decodeState) objectInterface() map[string]interface{} {
-	m := make(map[string]interface{})
+// objectInterface is like object but returns map[string]any.
+func (d *decodeState) objectInterface() map[string]any {
+	m := make(map[string]any)
 	for {
 		// Read opening " of string key or closing }.
 		op := d.scanWhile(scanSkipSpace)
@@ -1153,7 +1153,7 @@ func (d *decodeState) objectInterface() map[string]interface{} {
 }
 
 // literalInterface is like literal but returns an interface value.
-func (d *decodeState) literalInterface() interface{} {
+func (d *decodeState) literalInterface() any {
 	// All bytes inside literal return scanContinue op code.
 	start := d.off - 1
 	op := d.scanWhile(scanContinue)

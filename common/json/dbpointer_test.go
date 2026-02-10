@@ -26,7 +26,7 @@ func TestDBPointerValue(t *testing.T) {
 		value := `DBPointer("ref", ObjectId("552ffe9f5739878e73d116a9"))`
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
@@ -40,7 +40,7 @@ func TestDBPointerValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value2 := `DBPointer("ref2", ObjectId("552ffed95739878e73d116aa"))`
@@ -66,14 +66,14 @@ func TestDBPointerValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
 				key, value, value, value)
 
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -85,7 +85,7 @@ func TestDBPointerValue(t *testing.T) {
 
 		Convey("will not accept an $id type that is not an ObjectId", func() {
 			value := `DBPointer("ref", 4)`
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 

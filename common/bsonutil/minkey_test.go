@@ -22,7 +22,7 @@ func TestMinKeyValue(t *testing.T) {
 
 		Convey("works for MinKey literal", func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
+			jsonMap := map[string]any{
 				key: json.MinKey{},
 			}
 
@@ -33,8 +33,8 @@ func TestMinKeyValue(t *testing.T) {
 
 		Convey(`works for MinKey document ('{ "$minKey": 1 }')`, func() {
 			key := "key"
-			jsonMap := map[string]interface{}{
-				key: map[string]interface{}{
+			jsonMap := map[string]any{
+				key: map[string]any{
 					"$minKey": 1,
 				},
 			}

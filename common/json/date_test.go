@@ -20,7 +20,7 @@ func TestDateValue(t *testing.T) {
 	Convey("When unmarshalling JSON with Date values", t, func() {
 
 		Convey("works for a single key", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Date(123)"
@@ -35,7 +35,7 @@ func TestDateValue(t *testing.T) {
 		})
 
 		Convey("works for multiple keys", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key1, key2, key3 := "key1", "key2", "key3"
 			value1, value2, value3 := "Date(123)", "Date(456)", "Date(789)"
@@ -59,7 +59,7 @@ func TestDateValue(t *testing.T) {
 		})
 
 		Convey("works in an array", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Date(42)"
@@ -69,7 +69,7 @@ func TestDateValue(t *testing.T) {
 			err := Unmarshal([]byte(data), &jsonMap)
 			So(err, ShouldBeNil)
 
-			jsonArray, ok := jsonMap[key].([]interface{})
+			jsonArray, ok := jsonMap[key].([]any)
 			So(ok, ShouldBeTrue)
 
 			for _, _jsonValue := range jsonArray {
@@ -80,7 +80,7 @@ func TestDateValue(t *testing.T) {
 		})
 
 		Convey("cannot use string as argument", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := `Date("123")`
@@ -91,7 +91,7 @@ func TestDateValue(t *testing.T) {
 		})
 
 		Convey("can specify argument in hexadecimal", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "Date(0x5f)"

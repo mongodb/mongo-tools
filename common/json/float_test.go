@@ -20,7 +20,7 @@ func TestNumberFloatValue(t *testing.T) {
 	Convey("When unmarshaling JSON with float values", t, func() {
 
 		Convey("converts to a JSON NumberFloat value", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			key := "key"
 			value := "5.5"
@@ -40,7 +40,7 @@ func TestNumberFloatValue(t *testing.T) {
 		key := "key"
 
 		Convey("maintains decimal point with trailing zero", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			value := "5.0"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
@@ -60,7 +60,7 @@ func TestNumberFloatValue(t *testing.T) {
 		})
 
 		Convey("maintains precision with large decimals", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			value := "5.52342123"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
@@ -80,7 +80,7 @@ func TestNumberFloatValue(t *testing.T) {
 		})
 
 		Convey("maintains exponent values", func() {
-			var jsonMap map[string]interface{}
+			var jsonMap map[string]any
 
 			value := "5e+32"
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)

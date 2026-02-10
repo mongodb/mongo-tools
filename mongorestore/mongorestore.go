@@ -547,7 +547,7 @@ func (restore *MongoRestore) Restore() Result {
 		return Result{}
 	}
 
-	demuxFinished := make(chan interface{})
+	demuxFinished := make(chan any)
 	var demuxErr error
 	if restore.InputOptions.Archive != "" {
 		namespaceChan := make(chan string, 1)
