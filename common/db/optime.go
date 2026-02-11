@@ -14,7 +14,6 @@ import (
 type OpTime struct {
 	Timestamp bson.Timestamp `json:"timestamp"`
 	Term      *int64         `json:"term"`
-	Hash      *int64         `json:"hash"`
 }
 
 // GetOpTimeFromOplogEntry returns an OpTime struct from the relevant fields in an Oplog struct.
@@ -22,7 +21,6 @@ func GetOpTimeFromOplogEntry(oplogEntry *Oplog) OpTime {
 	return OpTime{
 		Timestamp: oplogEntry.Timestamp,
 		Term:      oplogEntry.Term,
-		Hash:      oplogEntry.Hash,
 	}
 }
 
@@ -46,13 +44,9 @@ func OpTimeLessThan(lhs OpTime, rhs OpTime) bool {
 }
 
 func (ot OpTime) String() string {
-	if ot.Term != nil && ot.Hash != nil {
-		return fmt.Sprintf("{Timestamp: %v, Term: %v, Hash: %v}", ot.Timestamp, *ot.Term, *ot.Hash)
-	} else if ot.Term == nil && ot.Hash != nil {
-		return fmt.Sprintf("{Timestamp: %v, Term: %v, Hash: %v}", ot.Timestamp, nil, *ot.Hash)
-	} else if ot.Term != nil && ot.Hash == nil {
-		return fmt.Sprintf("{Timestamp: %v, Term: %v, Hash: %v}", ot.Timestamp, *ot.Term, nil)
+	if ot.Term != nil {
+		return fmt.Sprintf("{Timestamp: %v, Term: %v}", ot.Timestamp, *ot.Term)
 	}
 
-	return fmt.Sprintf("{Timestamp: %v, Term: %v, Hash: %v}", ot.Timestamp, nil, nil)
+	return fmt.Sprintf("{Timestamp: %v, Term: %v}", ot.Timestamp, nil)
 }

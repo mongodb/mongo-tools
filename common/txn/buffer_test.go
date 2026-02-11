@@ -194,7 +194,6 @@ func TestExtractInnerOps(t *testing.T) {
 	// Constructing manually requires pointers to int64, so they can't be constants.
 	txnN := []int64{0}
 	term := []int64{1}
-	hash := []int64{2}
 
 	timestamp := bson.Timestamp{T: 1234, I: 1}
 
@@ -205,7 +204,6 @@ func TestExtractInnerOps(t *testing.T) {
 			op := db.Oplog{
 				Timestamp: bson.Timestamp{T: 1234, I: 1},
 				Term:      &term[0],
-				Hash:      &hash[0],
 				LSID:      bson.Raw{0, 0, 0, 0, 1},
 				TxnNumber: &txnN[0],
 				Operation: "c",
@@ -224,7 +222,6 @@ func TestExtractInnerOps(t *testing.T) {
 			for _, innerOp := range innerOps {
 				So(innerOp.Timestamp, ShouldEqual, timestamp)
 				So(*innerOp.Term, ShouldEqual, term[0])
-				So(*innerOp.Hash, ShouldEqual, hash[0])
 			}
 		},
 	)
