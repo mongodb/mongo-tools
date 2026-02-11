@@ -8,6 +8,11 @@ package mongodump
 
 import (
 	"context"
+	"io"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
@@ -20,10 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"io"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func TestErrorOnImportCollection(t *testing.T) {
