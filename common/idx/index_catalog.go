@@ -368,10 +368,6 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 		updateHidden(matchingIndex, newHidden)
 	}
 
-	if expireKeyError != nil && hiddenKeyError != nil {
-		return errors.Errorf("must specify expireAfterSeconds or hidden: %v", indexMod)
-	}
-
 	// Update the index.
 	i.AddIndex(database, collection, matchingIndex)
 	return nil
