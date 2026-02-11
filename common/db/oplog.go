@@ -8,7 +8,6 @@ import (
 type Oplog struct {
 	Timestamp   bson.Timestamp `bson:"ts"`
 	Term        *int64         `bson:"t"`
-	Hash        *int64         `bson:"h,omitempty"`
 	Version     int            `bson:"v"`
 	Operation   string         `bson:"op"`
 	Namespace   string         `bson:"ns"`

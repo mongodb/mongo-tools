@@ -321,7 +321,6 @@ func extractInnerOps(tranOp *db.Oplog) ([]db.Oplog, error) {
 		// so we are assigning them from the parent transaction op
 		op.Timestamp = tranOp.Timestamp
 		op.Term = tranOp.Term
-		op.Hash = tranOp.Hash
 
 		ops[i] = *op
 	}

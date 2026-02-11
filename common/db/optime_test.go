@@ -37,18 +37,18 @@ func TestOpTimeComparisons(t *testing.T) {
 			term2 = 2
 
 			// timestamp2 > timestamp1, but term1 < term2, so opTime1 is less than opTime2.
-			opTime1 = OpTime{timestamp2, &term1, nil}
-			opTime2 = OpTime{timestamp1, &term2, nil}
+			opTime1 = OpTime{timestamp2, &term1}
+			opTime2 = OpTime{timestamp1, &term2}
 			So(OpTimeLessThan(opTime1, opTime2), ShouldBeTrue)
 
 			// Compare only timestamps if one term is nil (timestamp1 < timestamp2).
-			opTime1 = OpTime{timestamp1, &term1, nil}
-			opTime2 = OpTime{timestamp2, nil, nil}
+			opTime1 = OpTime{timestamp1, &term1}
+			opTime2 = OpTime{timestamp2, nil}
 			So(OpTimeLessThan(opTime1, opTime2), ShouldBeTrue)
 
 			// Compare only timestamps if both terms are nil (timestamp1 < timestamp2).
-			opTime1 = OpTime{timestamp1, nil, nil}
-			opTime2 = OpTime{timestamp2, nil, nil}
+			opTime1 = OpTime{timestamp1, nil}
+			opTime2 = OpTime{timestamp2, nil}
 			So(OpTimeLessThan(opTime1, opTime2), ShouldBeTrue)
 		})
 	})
