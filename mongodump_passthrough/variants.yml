@@ -13,7 +13,6 @@ buildvariants:
     display_name: "# V mongodump_passthru_v (arm64)"
     cron: 0 3 * * *
     tasks:
-      - name: deliberate_fail_to_test_build_baron_context_rules
       - name: compile_coverage
       - name: compile_verifier
       - name: mongodump_suites_up_to_date
