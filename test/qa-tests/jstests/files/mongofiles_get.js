@@ -53,8 +53,8 @@ var testName = 'mongofiles_get';
     if (_isWindows()) {
       if (isAtLeastVersion(db.version(), "8.0.16")) {
         // no escaping needed
-      } else if (!isAtLeastVersion(db.version(), "8.0.0") && isAtLeastVersion(db.version(), "7.0.27")) {
-        // no escaping needed for 7.0.27 & later 7.0 releases
+      } else if (!isAtLeastVersion(db.version(), "8.0.0") && isAtLeastVersion(db.version(), "7.0.31")) {
+        // no escaping needed for 7.0.31 & later 7.0 releases
       } else {
         idAsJSON = '"' + idAsJSON.replace(/"/g, '\\"') + '"';
       }
