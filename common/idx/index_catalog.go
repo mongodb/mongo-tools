@@ -267,18 +267,6 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 	}
 }
 
-func updateExpireAfterSeconds(index *IndexDocument, expire int64) error {
-	if _, ok := index.Options["expireAfterSeconds"]; !ok {
-		return errors.Errorf("missing \"expireAfterSeconds\" in matching index: %v", index)
-	}
-	index.Options["expireAfterSeconds"] = expire
-	return nil
-}
-
-func updateHidden(index *IndexDocument, hidden bool) {
-	index.Options["hidden"] = hidden
-}
-
 // GetIndexByIndexMod returns an index that matches the name or key pattern specified in
 // a collMod command.
 func (i *IndexCatalog) GetIndexByIndexMod(

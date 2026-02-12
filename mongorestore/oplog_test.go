@@ -792,7 +792,7 @@ func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
 	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
 
-	oplogFileName := "testdata/oplogs/bson/oplog.bson"
+	oplogFileName := "testdata/oplogs/bson/collMod_prepareUnique.bson"
 
 	args := []string{
 		DirectoryOption, "testdata/coll_without_index",
@@ -824,7 +824,9 @@ func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
 
 	for _, indexSpec := range indexSpecs {
 		if indexSpec["name"] != "_id_" {
-			require.True(t, indexSpec["prepareUnique"].(bool))
+			prepareUnique, ok := indexSpec["prepareUnique"].(bool)
+			require.True(t, ok)
+			require.True(t, prepareUnique)
 		}
 	}
 }
