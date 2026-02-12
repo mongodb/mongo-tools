@@ -218,7 +218,7 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 		}
 	}
 	require.NoError(t, oplogFile.Close())
-	require.Equal(t, 4, prepareUniqueTrueCount)
+	require.Equal(t, 8, prepareUniqueTrueCount)
 	require.Equal(t, 4, prepareUniqueFalseCount)
 }
 
@@ -257,7 +257,7 @@ func createIndexesAndRunCollModPrepareUnique(ctx context.Context) error {
 	}
 
 	for _, index := range indexes {
-		for _, prepareUnique := range []bool{true, false} {
+		for _, prepareUnique := range []bool{true, false, true} {
 			res := client.Database(testDB).RunCommand(
 				ctx,
 				bson.D{

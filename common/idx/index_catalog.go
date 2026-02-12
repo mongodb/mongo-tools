@@ -337,35 +337,11 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 		return errors.Errorf("cannot find index in indexCatalog for collMod: %v", indexMod)
 	}
 
-	expireValue, expireKeyError := bsonutil.FindValueByKey("expireAfterSeconds", &indexMod)
-	if expireKeyError == nil {
-		newExpire, ok := expireValue.(int64)
-		if !ok {
-			return errors.Errorf(
-				"expireAfterSeconds must be a number (found %v of type %T): %v",
-				expireValue,
-				expireValue,
-				indexMod,
-			)
+	for k, v := range bsonutil.ToMap(indexMod) {
+		if k == "keyPattern" || k == "name" {
+			continue
 		}
-		err = updateExpireAfterSeconds(matchingIndex, newExpire)
-		if err != nil {
-			return err
-		}
-	}
-
-	expireValue, hiddenKeyError := bsonutil.FindValueByKey("hidden", &indexMod)
-	if hiddenKeyError == nil {
-		newHidden, ok := expireValue.(bool)
-		if !ok {
-			return errors.Errorf(
-				"hidden must be a boolean (found %v of type %T): %v",
-				expireValue,
-				expireValue,
-				indexMod,
-			)
-		}
-		updateHidden(matchingIndex, newHidden)
+		matchingIndex.Options[k] = v
 	}
 
 	// Update the index.
