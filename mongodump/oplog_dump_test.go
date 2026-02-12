@@ -136,7 +136,9 @@ func vectoredInsert(ctx context.Context) error {
 
 func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+	
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
