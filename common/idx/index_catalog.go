@@ -329,7 +329,12 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 		if k == "keyPattern" || k == "name" {
 			continue
 		}
-		matchingIndex.Options[k] = v
+
+		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" || k == "unique" {
+			matchingIndex.Options[k] = v
+		} else {
+			return errors.Errorf("unknown index option: %v", k)
+		}
 	}
 
 	// Update the index.
