@@ -13,7 +13,7 @@
 # is changed here to point at the new mongosync commit hash.
 
 variables:
-  _migration_verifier_pin: &_migration_verifier_pin "9431222bdc602e21b3cf2a64ee45d5eaceac6060"
+  _migration_verifier_pin: &_migration_verifier_pin "15e208ec2ddf44753f0f889d0efda4850e37620b"
   _resmoke_dir: &_resmoke_dir "src/resmoke"
   _src_dir: &src_dir src/mongosync
   #
