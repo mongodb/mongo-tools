@@ -30,6 +30,7 @@ tasks:
             echo "Deliberate fail test should give BF on mongodump_passthrough context"
             echo "exit 1"
             exit 1
+    patch_only: true
 
   # For mongodump passthrough, this builds and uploads the mongodump and mongorestore
   # binaries (but without coverage), and uploads them.  The name "compile_coverage"
@@ -69,6 +70,7 @@ tasks:
         params:
           files:
             - src/github.com/mongodb/mongo-tools/manual-tasks.json
+    patch_only: true
 
   # Task dependencies have been changed slightly here, to allow this
   # task to execute concurrently with "compile_coverage".
