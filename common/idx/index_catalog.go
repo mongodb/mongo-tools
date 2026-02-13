@@ -325,13 +325,15 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 		return errors.Errorf("cannot find index in indexCatalog for collMod: %v", indexMod)
 	}
 
-	for k, v := range bsonutil.ToMap(indexMod) {
+	for _, element := range indexMod {
+		k := element.Key
 		if k == "keyPattern" || k == "name" {
 			continue
 		}
 
 		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" || k == "unique" {
-			matchingIndex.Options[k] = v
+			matchingIndex.Options[k] = element.Value
+
 		} else {
 			return errors.Errorf("unknown index option: %v", k)
 		}
