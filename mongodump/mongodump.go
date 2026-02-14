@@ -202,9 +202,43 @@ func (dump *MongoDump) verifyCollectionExists() (bool, error) {
 }
 
 // Dump handles some final options checking and executes MongoDump.
-func (dump *MongoDump) Dump() (err error) {
+func (dump *MongoDump) Dump() (dumpErr error) {
 	defer dump.SessionProvider.Close()
+	defer dump.CloseMuxIfNeeded(dumpErr)
 
+	dumpErr = dump.DumpUntilOplog()
+	if dumpErr != nil {
+		return
+	}
+
+	dumpErr = dump.DumpOplogAndAfter()
+
+	return
+}
+
+func (dump *MongoDump) CloseMuxIfNeeded(dumpErr error) {
+	if dump.archive == nil {
+		return
+	}
+
+	// The Mux runs until its Control is closed
+	close(dump.archive.Mux.Control)
+	muxErr := <-dump.archive.Mux.Completed
+	dump.archive.Out.Close()
+	if muxErr != nil {
+		if dumpErr != nil {
+			dumpErr = fmt.Errorf("archive writer: %v / %v", dumpErr, muxErr)
+		} else {
+			dumpErr = fmt.Errorf("archive writer: %v", muxErr)
+		}
+		log.Logvf(log.DebugLow, "%v", dumpErr)
+	} else {
+		log.Logvf(log.DebugLow, "mux completed successfully")
+	}
+}
+
+// Dump handles some final options checking and executes MongoDump.
+func (dump *MongoDump) DumpUntilOplog() (err error) {
 	if !dump.OutputOptions.Oplog && (dump.InputOptions.SourceWritesDoneBarrier != "") {
 		// Wait for tests to stop writes before dumping any collections.
 		//
@@ -286,22 +320,6 @@ func (dump *MongoDump) Dump() (err error) {
 			Mux: archive.NewMultiplexer(archiveOut, dump.shutdownIntentsNotifier),
 		}
 		go dump.archive.Mux.Run()
-		defer func() {
-			// The Mux runs until its Control is closed
-			close(dump.archive.Mux.Control)
-			muxErr := <-dump.archive.Mux.Completed
-			archiveOut.Close()
-			if muxErr != nil {
-				if err != nil {
-					err = fmt.Errorf("archive writer: %v / %v", err, muxErr)
-				} else {
-					err = fmt.Errorf("archive writer: %v", muxErr)
-				}
-				log.Logvf(log.DebugLow, "%v", err)
-			} else {
-				log.Logvf(log.DebugLow, "mux completed successfully")
-			}
-		}()
 	}
 
 	// Confirm connectivity
@@ -431,6 +449,10 @@ func (dump *MongoDump) Dump() (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func (dump *MongoDump) DumpOplogAndAfter() (err error) {
 	// IO Phase III
 	// oplog
 
