@@ -267,18 +267,6 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 	}
 }
 
-func updateExpireAfterSeconds(index *IndexDocument, expire int64) error {
-	if _, ok := index.Options["expireAfterSeconds"]; !ok {
-		return errors.Errorf("missing \"expireAfterSeconds\" in matching index: %v", index)
-	}
-	index.Options["expireAfterSeconds"] = expire
-	return nil
-}
-
-func updateHidden(index *IndexDocument, hidden bool) {
-	index.Options["hidden"] = hidden
-}
-
 // GetIndexByIndexMod returns an index that matches the name or key pattern specified in
 // a collMod command.
 func (i *IndexCatalog) GetIndexByIndexMod(
@@ -337,39 +325,18 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 		return errors.Errorf("cannot find index in indexCatalog for collMod: %v", indexMod)
 	}
 
-	expireValue, expireKeyError := bsonutil.FindValueByKey("expireAfterSeconds", &indexMod)
-	if expireKeyError == nil {
-		newExpire, ok := expireValue.(int64)
-		if !ok {
-			return errors.Errorf(
-				"expireAfterSeconds must be a number (found %v of type %T): %v",
-				expireValue,
-				expireValue,
-				indexMod,
-			)
+	for _, element := range indexMod {
+		k := element.Key
+		if k == "keyPattern" || k == "name" {
+			continue
 		}
-		err = updateExpireAfterSeconds(matchingIndex, newExpire)
-		if err != nil {
-			return err
-		}
-	}
 
-	expireValue, hiddenKeyError := bsonutil.FindValueByKey("hidden", &indexMod)
-	if hiddenKeyError == nil {
-		newHidden, ok := expireValue.(bool)
-		if !ok {
-			return errors.Errorf(
-				"hidden must be a boolean (found %v of type %T): %v",
-				expireValue,
-				expireValue,
-				indexMod,
-			)
-		}
-		updateHidden(matchingIndex, newHidden)
-	}
+		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" || k == "unique" {
+			matchingIndex.Options[k] = element.Value
 
-	if expireKeyError != nil && hiddenKeyError != nil {
-		return errors.Errorf("must specify expireAfterSeconds or hidden: %v", indexMod)
+		} else {
+			return errors.Errorf("unknown index option: %v", k)
+		}
 	}
 
 	// Update the index.
