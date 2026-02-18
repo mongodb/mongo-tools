@@ -44,7 +44,12 @@ func FindInvalidNotarizations(zipPath string) ([]string, error) {
 			continue
 		}
 
-		fpath := filepath.Join(destDir, filepath.Base(f.Name))
+		baseName := filepath.Base(f.Name)
+		// Ensure the archive entry name cannot cause directory traversal or other issues.
+		if baseName == "" || baseName == "." || baseName == ".." {
+			continue
+		}
+		fpath := filepath.Join(destDir, baseName)
 
 		// Create destination file
 		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
