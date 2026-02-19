@@ -292,8 +292,8 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 	testCollName := testCollectionNames[0]
 
+	require.NoError(t, session.Database(testDB).Collection(testCollName).Drop(ctx))
 	//nolint:errcheck
-	session.Database(testDB).Collection(testCollName).Drop(ctx)
 	defer session.Database(testDB).Collection(testCollName).Drop(ctx)
 
 	md, err := simpleMongoDumpInstance()
