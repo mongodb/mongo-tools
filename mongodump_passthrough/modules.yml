@@ -10,7 +10,7 @@
 # It's okay to update the pins whenever we feel like it as long as tests pass.
 modules:
   - name: migration-verifier
-    repo: git@github.com:mongodb-labs/migration-verifier.git
+    repo: https://github.com/mongodb-labs/migration-verifier.git
     prefix: ${workdir}/src
     branch: main
   # TODO (REP-3977): This is used for the JS unit tests, which load JS code from the mongo repo's
@@ -18,7 +18,7 @@ modules:
   # Evergreen config, we should use one of the pinned revisions we use for cases where we need
   # something from the mongo repo.
   - name: mongo
-    repo: git@github.com:10gen/mongo.git
+    repo: https://github.com/10gen/mongo.git
     prefix: ${workdir}/src
     branch: v6.0
   # Passthrough testing of mongodump+mongorestore uses various code in the mongosync repo:
@@ -30,6 +30,6 @@ modules:
   #
   # We use git.get_project to load the mongosync as a module when necessary
   - name: mongosync
-    repo: git@github.com:10gen/mongosync.git
+    repo: https://github.com/10gen/mongosync.git
     prefix: ${workdir}/src
     branch: md_passthru8
