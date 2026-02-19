@@ -342,8 +342,8 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	for bsonSrc.Next(&oplog) {
 		require.NoError(t, bsonSrc.Err())
 
+		objMap := bsonutil.ToMap(oplog.Object)
 		if oplog.Namespace == "mongodump_test_db.$cmd" {
-			objMap := bsonutil.ToMap(oplog.Object)
 			if objMap["create"] != nil {
 				createCount++
 				assert.NotEmpty(t, objMap["validator"], "create oplog has validator option")
@@ -380,23 +380,31 @@ func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context,
 		}))
 	require.NoError(t, err)
 
-	docs := []bson.D{
+	invalidDocs := []bson.D{
 		{{"testField", "invalid"}},
 		{{"testField", "also_invalid"}},
 	}
 
-	// Check that the validator is set correctly.
-	for _, doc := range docs {
+	for _, doc := range invalidDocs {
+		_, err = client.Database(testDB).
+			Collection(testCollName).
+			InsertOne(
+				ctx,
+				doc,
+				options.InsertOne().SetBypassDocumentValidation(true),
+			)
+		require.NoError(t, err)
+	}
+
+	validDoc := bson.D{{"testField", "valid"}}
+	_, err = client.Database(testDB).
+		Collection(testCollName).
+		InsertOne(ctx, validDoc)
+	require.NoError(t, err)
+
+	// Verify that the validator is set correctly.
+	for _, doc := range invalidDocs {
 		_, err = client.Database(testDB).Collection(testCollName).InsertOne(ctx, doc)
 		require.Error(t, err)
 	}
-	_, err = client.Database(testDB).
-		Collection(testCollName).
-		InsertOne(ctx, bson.D{{"testField", "valid"}})
-	require.NoError(t, err)
-
-	_, err = client.Database(testDB).
-		Collection(testCollName).
-		InsertMany(ctx, docs, options.InsertMany().SetBypassDocumentValidation(true))
-	require.NoError(t, err)
 }
