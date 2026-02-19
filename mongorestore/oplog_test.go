@@ -873,7 +873,9 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 		}
 
 		require.NoError(t, result.Err)
-		count, err := session.Database("mongodump_test_db").Collection("coll1").CountDocuments(ctx, bson.D{})
+		count, err := session.Database("mongodump_test_db").
+			Collection("coll1").
+			CountDocuments(ctx, bson.D{})
 		require.NoError(t, err)
 		assert.Equal(t, int64(3), count)
 	}

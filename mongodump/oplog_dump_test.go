@@ -361,17 +361,18 @@ func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context,
 
 	testCollName := testCollectionNames[0]
 
-	err = client.Database(testDB).CreateCollection(ctx, testCollName, options.CreateCollection().SetValidator(bson.D{
-		{"$jsonSchema", bson.D{
-			{"bsonType", "object"},
-			{"title", "Test validator"},
-			{"properties", bson.D{
-				{"testField", bson.D{
-					{"enum", []string{"valid"}},
+	err = client.Database(testDB).
+		CreateCollection(ctx, testCollName, options.CreateCollection().SetValidator(bson.D{
+			{"$jsonSchema", bson.D{
+				{"bsonType", "object"},
+				{"title", "Test validator"},
+				{"properties", bson.D{
+					{"testField", bson.D{
+						{"enum", []string{"valid"}},
+					}},
 				}},
 			}},
-		}},
-	}))
+		}))
 	require.NoError(t, err)
 
 	docs := []bson.D{
@@ -384,9 +385,13 @@ func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context,
 		_, err = client.Database(testDB).Collection(testCollName).InsertOne(ctx, doc)
 		require.Error(t, err)
 	}
-	_, err = client.Database(testDB).Collection(testCollName).InsertOne(ctx, bson.D{{"testField", "valid"}})
+	_, err = client.Database(testDB).
+		Collection(testCollName).
+		InsertOne(ctx, bson.D{{"testField", "valid"}})
 	require.NoError(t, err)
 
-	_, err = client.Database(testDB).Collection(testCollName).InsertMany(ctx, docs, options.InsertMany().SetBypassDocumentValidation(true))
+	_, err = client.Database(testDB).
+		Collection(testCollName).
+		InsertMany(ctx, docs, options.InsertMany().SetBypassDocumentValidation(true))
 	require.NoError(t, err)
 }
