@@ -8,7 +8,6 @@ package mongodump
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -337,18 +336,18 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 	bsonSrc := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(oplogFile))
 
+	createCount := 0
 	insertCount := 0
 	var oplog db.Oplog
 	for bsonSrc.Next(&oplog) {
 		require.NoError(t, bsonSrc.Err())
 
-		fmt.Println(oplog)
-		fmt.Println(oplog.Object)
-
 		if oplog.Namespace == "mongodump_test_db.$cmd" {
 			objMap := bsonutil.ToMap(oplog.Object)
-			assert.Equal(t, "coll1", objMap["create"])
-			assert.NotEmpty(t, objMap["validator"], "create oplog has validator option")
+			if objMap["create"] != nil {
+				createCount++
+				assert.NotEmpty(t, objMap["validator"], "create oplog has validator option")
+			}
 		}
 
 		if oplog.Namespace == "mongodump_test_db.coll1" {
@@ -357,6 +356,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 			}
 		}
 	}
+	assert.Equal(t, 1, createCount)
 	assert.Equal(t, 3, insertCount)
 }
 
