@@ -8,6 +8,7 @@ package mongodump
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -341,10 +342,13 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	for bsonSrc.Next(&oplog) {
 		require.NoError(t, bsonSrc.Err())
 
+		fmt.Println(oplog)
+		fmt.Println(oplog.Object)
+
 		if oplog.Namespace == "mongodump_test_db.$cmd" {
 			objMap := bsonutil.ToMap(oplog.Object)
 			assert.Equal(t, "coll1", objMap["create"])
-			require.NotEmpty(t, objMap["validator"], "create oplog has validator option")
+			assert.NotEmpty(t, objMap["validator"], "create oplog has validator option")
 		}
 
 		if oplog.Namespace == "mongodump_test_db.coll1" {
