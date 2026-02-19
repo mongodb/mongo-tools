@@ -11,216 +11,172 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestLegacyPrioritizer(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a legacyPrioritizer initialized with an ordered intent list", t, func() {
-		testList := []*Intent{
-			{DB: "1"},
-			{DB: "2"},
-			{DB: "3"},
-		}
-		legacy := newLegacyPrioritizer(testList)
-		So(legacy, ShouldNotBeNil)
+	testList := []*Intent{
+		{DB: "1"},
+		{DB: "2"},
+		{DB: "3"},
+	}
+	legacy := newLegacyPrioritizer(testList)
+	require.NotNil(t, legacy)
 
-		Convey("the priority should be defined by 'first-in-first-out'", func() {
-			it0 := legacy.Get()
-			it1 := legacy.Get()
-			it2 := legacy.Get()
-			it3 := legacy.Get()
-			So(it3, ShouldBeNil)
-			So(it0.DB, ShouldBeLessThan, it1.DB)
-			So(it1.DB, ShouldBeLessThan, it2.DB)
-		})
-	})
+	// priority is first-in-first-out
+	it0 := legacy.Get()
+	it1 := legacy.Get()
+	it2 := legacy.Get()
+	it3 := legacy.Get()
+	assert.Nil(t, it3)
+	assert.Less(t, it0.DB, it1.DB)
+	assert.Less(t, it1.DB, it2.DB)
 }
 
 func TestBasicDBHeapBehavior(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var dbheap heap.Interface
-
-	Convey("With an empty dbHeap", t, func() {
-		dbheap = &DBHeap{}
+	t.Run("dbCounters with different active counts", func(t *testing.T) {
+		dbheap := &DBHeap{}
 		heap.Init(dbheap)
+		heap.Push(dbheap, &dbCounter{75, nil})
+		heap.Push(dbheap, &dbCounter{121, nil})
+		heap.Push(dbheap, &dbCounter{76, nil})
+		heap.Push(dbheap, &dbCounter{51, nil})
+		heap.Push(dbheap, &dbCounter{82, nil})
+		heap.Push(dbheap, &dbCounter{117, nil})
+		heap.Push(dbheap, &dbCounter{49, nil})
+		heap.Push(dbheap, &dbCounter{101, nil})
+		heap.Push(dbheap, &dbCounter{122, nil})
+		heap.Push(dbheap, &dbCounter{33, nil})
+		heap.Push(dbheap, &dbCounter{0, nil})
 
-		Convey("when inserting unordered dbCounters with different active counts", func() {
-			heap.Push(dbheap, &dbCounter{75, nil})
-			heap.Push(dbheap, &dbCounter{121, nil})
-			heap.Push(dbheap, &dbCounter{76, nil})
-			heap.Push(dbheap, &dbCounter{51, nil})
-			heap.Push(dbheap, &dbCounter{82, nil})
-			heap.Push(dbheap, &dbCounter{117, nil})
-			heap.Push(dbheap, &dbCounter{49, nil})
-			heap.Push(dbheap, &dbCounter{101, nil})
-			heap.Push(dbheap, &dbCounter{122, nil})
-			heap.Push(dbheap, &dbCounter{33, nil})
-			heap.Push(dbheap, &dbCounter{0, nil})
+		// pop in active order, least to greatest
+		prev := -1
+		for dbheap.Len() > 0 {
+			//nolint:errcheck // the heap only contains *dbCounter values
+			popped := heap.Pop(dbheap).(*dbCounter)
+			assert.Greater(t, popped.active, prev)
+			prev = popped.active
+		}
+	})
 
-			Convey("they should pop in active order, least to greatest", func() {
-				prev := -1
-				for dbheap.Len() > 0 {
-					//nolint:errcheck // the heap only contains *dbCounter values
-					popped := heap.Pop(dbheap).(*dbCounter)
-					So(popped.active, ShouldBeGreaterThan, prev)
-					prev = popped.active
-				}
-			})
-		})
+	t.Run("dbCounters with different bson sizes", func(t *testing.T) {
+		dbheap := &DBHeap{}
+		heap.Init(dbheap)
+		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 70}}})
+		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 1024}}})
+		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 97}}})
+		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 3}}})
+		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 1024 * 1024}}})
 
-		Convey("when inserting unordered dbCounters with different bson sizes", func() {
-			heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 70}}})
-			heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 1024}}})
-			heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 97}}})
-			heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 3}}})
-			heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 1024 * 1024}}})
-
-			Convey("they should pop in bson size order, greatest to least", func() {
-				prev := int64(1024*1024 + 1) // Maximum
-				for dbheap.Len() > 0 {
-					//nolint:errcheck // the heap only contains *dbCounter values
-					popped := heap.Pop(dbheap).(*dbCounter)
-					So(popped.collections[0].Size, ShouldBeLessThan, prev)
-					prev = popped.collections[0].Size
-				}
-			})
-		})
+		// pop in size order, greatest to least
+		prev := int64(1024*1024 + 1) // Maximum
+		for dbheap.Len() > 0 {
+			//nolint:errcheck // the heap only contains *dbCounter values
+			popped := heap.Pop(dbheap).(*dbCounter)
+			assert.Less(t, popped.collections[0].Size, prev)
+			prev = popped.collections[0].Size
+		}
 	})
 }
 
 func TestDBCounterCollectionSorting(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a dbCounter and an unordered collection of intents", t, func() {
-		dbc := &dbCounter{
-			collections: []*Intent{
-				{Size: 100},
-				{Size: 1000},
-				{Size: 1},
-				{Size: 10},
-			},
-		}
+	dbc := &dbCounter{
+		collections: []*Intent{
+			{Size: 100},
+			{Size: 1000},
+			{Size: 1},
+			{Size: 10},
+		},
+	}
 
-		Convey("popping the sorted intents should return in decreasing BSONSize", func() {
-			dbc.SortCollectionsBySize()
-			So(dbc.PopIntent().Size, ShouldEqual, 1000)
-			So(dbc.PopIntent().Size, ShouldEqual, 100)
-			So(dbc.PopIntent().Size, ShouldEqual, 10)
-			So(dbc.PopIntent().Size, ShouldEqual, 1)
-			So(dbc.PopIntent(), ShouldBeNil)
-			So(dbc.PopIntent(), ShouldBeNil)
-		})
-	})
+	// popping should return in decreasing BSONSize
+	dbc.SortCollectionsBySize()
+	assert.EqualValues(t, 1000, dbc.PopIntent().Size)
+	assert.EqualValues(t, 100, dbc.PopIntent().Size)
+	assert.EqualValues(t, 10, dbc.PopIntent().Size)
+	assert.EqualValues(t, 1, dbc.PopIntent().Size)
+	assert.Nil(t, dbc.PopIntent())
+	assert.Nil(t, dbc.PopIntent())
 }
 
 func TestBySizeAndView(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var prioritizer IntentPrioritizer
+	intents := []*Intent{
+		{C: "non-view2", Size: 32},
+		{C: "view", Size: 0,
+			Options: bson.D{{Key: "viewOn", Value: true}},
+			Type:    "view",
+		},
+		{C: "non-view1", Size: 1024},
+		{C: "non-view3", Size: 2},
+		{C: "view", Size: 0,
+			Options: bson.D{{Key: "viewOn", Value: true}},
+			Type:    "view",
+		},
+	}
 
-	Convey("With a prioritizer initialized with on a set of intents", t, func() {
-		intents := []*Intent{
-			{C: "non-view2", Size: 32},
-			{C: "view", Size: 0,
-				Options: bson.D{{Key: "viewOn", Value: true}},
-				Type:    "view",
-			},
-			{C: "non-view1", Size: 1024},
-			{C: "non-view3", Size: 2},
-			{C: "view", Size: 0,
-				Options: bson.D{{Key: "viewOn", Value: true}},
-				Type:    "view",
-			},
-		}
-		prioritizer = newLongestTaskFirstPrioritizer(intents)
-		Convey(
-			"getting the sorted intents should produce views first, followed by largest to smallest",
-			func() {
+	prioritizer := newLongestTaskFirstPrioritizer(intents)
+	// views first, followed by collections largest to smallest
 
-				So(prioritizer.Get().C, ShouldEqual, "view")
-				So(prioritizer.Get().C, ShouldEqual, "view")
-				So(prioritizer.Get().C, ShouldEqual, "non-view1")
-				So(prioritizer.Get().C, ShouldEqual, "non-view2")
-				So(prioritizer.Get().C, ShouldEqual, "non-view3")
-			},
-		)
-
-	})
+	assert.Equal(t, "view", prioritizer.Get().C)
+	assert.Equal(t, "view", prioritizer.Get().C)
+	assert.Equal(t, "non-view1", prioritizer.Get().C)
+	assert.Equal(t, "non-view2", prioritizer.Get().C)
+	assert.Equal(t, "non-view3", prioritizer.Get().C)
 
 }
 
 func TestSimulatedMultiDBJob(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var prioritizer IntentPrioritizer
+	intents := []*Intent{
+		{C: "small", DB: "db2", Size: 32},
+		{C: "medium", DB: "db2", Size: 128},
+		{C: "giant", DB: "db1", Size: 1024},
+		{C: "tiny", DB: "db1", Size: 2},
+	}
+	prioritizer := newMultiDatabaseLTFPrioritizer(intents)
+	require.NotNil(t, prioritizer)
 
-	Convey("With a prioritizer initialized with a set of intents", t, func() {
-		intents := []*Intent{
-			{C: "small", DB: "db2", Size: 32},
-			{C: "medium", DB: "db2", Size: 128},
-			{C: "giant", DB: "db1", Size: 1024},
-			{C: "tiny", DB: "db1", Size: 2},
-		}
-		prioritizer = newMultiDatabaseLTFPrioritizer(intents)
-		So(prioritizer, ShouldNotBeNil)
+	// We're simulating two job threads here.
 
-		Convey("and a running simulation of two jobs threads:", func() {
-			Convey("the first two intents should be of different dbs", func() {
-				i0 := prioritizer.Get()
-				So(i0, ShouldNotBeNil)
-				i1 := prioritizer.Get()
-				So(i1, ShouldNotBeNil)
+	i0 := prioritizer.Get()
+	require.NotNil(t, i0)
+	assert.Equal(t, "giant", i0.C, "first intent collection is largest bson file")
+	assert.Equal(t, "db1", i0.DB, "first intent db is largest bson file")
 
-				Convey("the first intent should be the largest bson file", func() {
-					So(i0.C, ShouldEqual, "giant")
-					So(i0.DB, ShouldEqual, "db1")
-				})
+	i1 := prioritizer.Get()
+	require.NotNil(t, i1)
+	assert.Equal(t, "medium", i1.C, "second intent collection is largest bson file for db2")
+	assert.Equal(t, "db2", i1.DB, "second intent db is largest bson file for db2")
 
-				Convey("the second intent should be the largest bson file of db2", func() {
-					So(i1.C, ShouldEqual, "medium")
-					So(i1.DB, ShouldEqual, "db2")
-				})
+	// second job finishes the smaller intent
+	prioritizer.Finish(i1)
 
-				Convey("with the second job finishing the smaller intents", func() {
-					prioritizer.Finish(i1)
-					i2 := prioritizer.Get()
-					So(i2, ShouldNotBeNil)
-					prioritizer.Finish(i2)
-					i3 := prioritizer.Get()
-					So(i3, ShouldNotBeNil)
+	i2 := prioritizer.Get()
+	require.NotNil(t, i2)
+	assert.Equal(t, "small", i2.C, "third intent collection is from db2")
+	assert.Equal(t, "db2", i2.DB, "second intent db is from db2")
+	prioritizer.Finish(i2)
 
-					Convey("the next job should be from db2", func() {
-						So(i2.C, ShouldEqual, "small")
-						So(i2.DB, ShouldEqual, "db2")
-					})
+	i3 := prioritizer.Get()
+	require.NotNil(t, i3)
+	assert.Equal(t, "tiny", i3.C, "final intent collection is from db1")
+	assert.Equal(t, "db1", i3.DB, "final intent db is from db1")
 
-					Convey("the final job should be from db1", func() {
-						So(i3.C, ShouldEqual, "tiny")
-						So(i3.DB, ShouldEqual, "db1")
+	// we expect 2 active db1 jobs
+	counter, ok := prioritizer.counterMap["db1"]
+	require.True(t, ok)
+	assert.Equal(t, 2, counter.active, "both db1 jobs are still running")
 
-						Convey("which means that there should be two active db1 jobs", func() {
-							prioConcrete, ok := prioritizer.(*multiDatabaseLTFPrioritizer)
-							So(ok, ShouldBeTrue)
-
-							counter, ok := prioConcrete.counterMap["db1"]
-							So(ok, ShouldBeTrue)
-
-							So(counter.active, ShouldEqual, 2)
-						})
-					})
-
-					Convey("the heap should now be empty", func() {
-						prioConcrete, ok := prioritizer.(*multiDatabaseLTFPrioritizer)
-						So(ok, ShouldBeTrue)
-
-						So(prioConcrete.dbHeap.Len(), ShouldEqual, 0)
-					})
-				})
-			})
-		})
-	})
+	assert.Zero(t, prioritizer.dbHeap.Len(), "prioritizer heap is empty")
 }

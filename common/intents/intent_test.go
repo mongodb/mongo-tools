@@ -10,79 +10,82 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntentManager(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var manager *Manager
+	manager := NewIntentManager()
+	require.NotNil(t, manager)
 
-	Convey("With an empty IntentManager", t, func() {
-		manager = NewIntentManager()
-		So(manager, ShouldNotBeNil)
+	t.Run("add bson intents", func(t *testing.T) {
+		manager.Put(&Intent{DB: "1", C: "1", Location: "/b1/"})
+		manager.Put(&Intent{DB: "1", C: "2", Location: "/b2/"})
+		manager.Put(&Intent{DB: "1", C: "3", Location: "/b3/"})
+		manager.Put(&Intent{DB: "2", C: "1", Location: "/b4/"})
+		assert.Len(t, manager.intentsByDiscoveryOrder, 4)
+		assert.Len(t, manager.intents, 4)
+	})
 
-		Convey("putting  a series of added bson intents", func() {
-			manager.Put(&Intent{DB: "1", C: "1", Location: "/b1/"})
-			manager.Put(&Intent{DB: "1", C: "2", Location: "/b2/"})
-			manager.Put(&Intent{DB: "1", C: "3", Location: "/b3/"})
-			manager.Put(&Intent{DB: "2", C: "1", Location: "/b4/"})
-			So(len(manager.intentsByDiscoveryOrder), ShouldEqual, 4)
-			So(len(manager.intents), ShouldEqual, 4)
+	t.Run("matching metadata intents", func(t *testing.T) {
+		manager.Put(&Intent{DB: "2", C: "1", MetadataLocation: "/4m/"})
+		manager.Put(&Intent{DB: "1", C: "3", MetadataLocation: "/3m/"})
+		manager.Put(&Intent{DB: "1", C: "1", MetadataLocation: "/1m/"})
+		manager.Put(&Intent{DB: "1", C: "2", MetadataLocation: "/2m/"})
 
-			Convey("and then some matching metadata intents", func() {
-				manager.Put(&Intent{DB: "2", C: "1", MetadataLocation: "/4m/"})
-				manager.Put(&Intent{DB: "1", C: "3", MetadataLocation: "/3m/"})
-				manager.Put(&Intent{DB: "1", C: "1", MetadataLocation: "/1m/"})
-				manager.Put(&Intent{DB: "1", C: "2", MetadataLocation: "/2m/"})
+		assert.Len(t, manager.intentsByDiscoveryOrder, 4, "intents by discovery unchanged")
+		assert.Len(t, manager.intents, 4, "intents unchanged")
+	})
 
-				Convey("the size of the queue should be unchanged", func() {
-					So(len(manager.intentsByDiscoveryOrder), ShouldEqual, 4)
-					So(len(manager.intents), ShouldEqual, 4)
-				})
+	// stash these before we pop them all off again
+	intentsToAdd := manager.NormalIntents()
 
-				Convey("popping them from the IntentManager", func() {
-					manager.Finalize(Legacy)
-					it0 := manager.Pop()
-					it1 := manager.Pop()
-					it2 := manager.Pop()
-					it3 := manager.Pop()
-					it4 := manager.Pop()
-					So(it4, ShouldBeNil)
+	t.Run("popping them returns in insert order", func(t *testing.T) {
+		manager.Finalize(Legacy)
+		it0 := manager.Pop()
+		it1 := manager.Pop()
+		it2 := manager.Pop()
+		it3 := manager.Pop()
+		it4 := manager.Pop()
+		require.Nil(t, it4)
 
-					Convey("should return them in insert order", func() {
-						So(*it0, ShouldResemble,
-							Intent{DB: "1", C: "1", Location: "/b1/", MetadataLocation: "/1m/"})
-						So(*it1, ShouldResemble,
-							Intent{DB: "1", C: "2", Location: "/b2/", MetadataLocation: "/2m/"})
-						So(*it2, ShouldResemble,
-							Intent{DB: "1", C: "3", Location: "/b3/", MetadataLocation: "/3m/"})
-						So(*it3, ShouldResemble,
-							Intent{DB: "2", C: "1", Location: "/b4/", MetadataLocation: "/4m/"})
-					})
-				})
-			})
+		assert.Equal(t,
+			Intent{DB: "1", C: "1", Location: "/b1/", MetadataLocation: "/1m/"}, *it0)
+		assert.Equal(t,
+			Intent{DB: "1", C: "2", Location: "/b2/", MetadataLocation: "/2m/"}, *it1)
+		assert.Equal(t,
+			Intent{DB: "1", C: "3", Location: "/b3/", MetadataLocation: "/3m/"}, *it2)
+		assert.Equal(t,
+			Intent{DB: "2", C: "1", Location: "/b4/", MetadataLocation: "/4m/"}, *it3)
+	})
 
-			Convey("but adding non-matching intents", func() {
-				manager.Put(&Intent{DB: "7", C: "49", MetadataLocation: "/5/"})
-				manager.Put(&Intent{DB: "27", C: "B", MetadataLocation: "/6/"})
+	// Restore state from before previous test.
+	manager = NewIntentManager()
+	for _, intent := range intentsToAdd {
+		manager.Put(intent)
+	}
 
-				Convey("should increase the size, because they are not merged in", func() {
-					So(len(manager.intentsByDiscoveryOrder), ShouldEqual, 6)
-					So(len(manager.intents), ShouldEqual, 6)
-				})
-			})
+	t.Run("adding non-matching intents increases size", func(t *testing.T) {
+		manager.Put(&Intent{DB: "7", C: "49", MetadataLocation: "/5/"})
+		manager.Put(&Intent{DB: "27", C: "B", MetadataLocation: "/6/"})
 
-			Convey("using the Peek() method", func() {
-				peeked := manager.Peek()
-				So(peeked, ShouldNotBeNil)
-				So(peeked, ShouldResemble, manager.intentsByDiscoveryOrder[0])
+		assert.Len(t, manager.intentsByDiscoveryOrder, 6)
+		assert.Len(t, manager.intents, 6)
+	})
 
-				Convey("modifying the returned copy should not modify the original", func() {
-					peeked.DB = "SHINY NEW VALUE"
-					So(peeked, ShouldNotResemble, manager.intentsByDiscoveryOrder[0])
-				})
-			})
-		})
+	t.Run("using the Peek() method", func(t *testing.T) {
+		peeked := manager.Peek()
+		require.NotNil(t, peeked)
+		assert.Equal(t, manager.intentsByDiscoveryOrder[0], peeked)
+
+		peeked.DB = "SHINY NEW VALUE"
+		assert.NotEqual(
+			t,
+			peeked,
+			manager.intentsByDiscoveryOrder[0],
+			"modifying the returned copy should not modify the original",
+		)
 	})
 }
