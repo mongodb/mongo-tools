@@ -293,6 +293,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	testCollName := testCollectionNames[0]
 
 	//nolint:errcheck
+	session.Database(testDB).Collection(testCollName).Drop(ctx)
 	defer session.Database(testDB).Collection(testCollName).Drop(ctx)
 
 	md, err := simpleMongoDumpInstance()
@@ -342,7 +343,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 		if oplog.Namespace == "mongodump_test_db.$cmd" {
 			objMap := bsonutil.ToMap(oplog.Object)
-			assert.Equal(t, objMap["create"], "coll1")
+			assert.Equal(t, "coll1", objMap["create"])
 			require.NotEmpty(t, objMap["validator"], "create oplog has validator option")
 		}
 
