@@ -12,14 +12,15 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestMarshalDMarshalJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a valid bson.D", t, func() {
+	t.Run("valid bson.D", func(t *testing.T) {
 		testD := bson.D{
 			{"cool", "rad"},
 			{"aaa", 543.2},
@@ -28,62 +29,58 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 			{"map", bson.M{"1": 1, "2": "two"}},
 		}
 
-		Convey("wrapping with MarshalD should allow json.Marshal to work", func() {
-			asJSON, err := json.Marshal(MarshalD(testD))
-			So(err, ShouldBeNil)
-			strJSON := string(asJSON)
+		asJSON, err := json.Marshal(MarshalD(testD))
+		require.NoError(t, err)
+		strJSON := string(asJSON)
 
-			Convey("with order preserved", func() {
-				So(strings.Index(strJSON, "cool"), ShouldBeLessThan, strings.Index(strJSON, "aaa"))
-				So(strings.Index(strJSON, "aaa"), ShouldBeLessThan, strings.Index(strJSON, "I"))
-				So(strings.Index(strJSON, "I"), ShouldBeLessThan, strings.Index(strJSON, "E"))
-				So(strings.Index(strJSON, "E"), ShouldBeLessThan, strings.Index(strJSON, "map"))
-				So(strings.Count(strJSON, ","), ShouldEqual, 5) // 4 + 1 from internal map
-			})
+		t.Run("with order preserved", func(t *testing.T) {
+			assert.Less(t, strings.Index(strJSON, "cool"), strings.Index(strJSON, "aaa"))
+			assert.Less(t, strings.Index(strJSON, "aaa"), strings.Index(strJSON, "I"))
+			assert.Less(t, strings.Index(strJSON, "I"), strings.Index(strJSON, "E"))
+			assert.Less(t, strings.Index(strJSON, "E"), strings.Index(strJSON, "map"))
+			assert.Equal(t, 5, strings.Count(strJSON, ","), 5) // 4 + 1 from internal map
+		})
 
-			Convey("but still usable by the json parser", func() {
-				var asMap bson.M
-				err := json.Unmarshal(asJSON, &asMap)
-				So(err, ShouldBeNil)
+		t.Run("but still usable by the json parser", func(t *testing.T) {
+			var asMap bson.M
+			err := json.Unmarshal(asJSON, &asMap)
+			require.NoError(t, err)
 
-				Convey("with types & values preserved", func() {
-					So(asMap["cool"], ShouldEqual, "rad")
-					So(asMap["aaa"], ShouldEqual, 543.2)
-					So(asMap["I"], ShouldEqual, 0)
-					So(asMap["E"], ShouldEqual, 0)
+			assert.EqualValues(t, "rad", asMap["cool"])
+			assert.EqualValues(t, 543.2, asMap["aaa"])
+			assert.EqualValues(t, 0, asMap["I"])
+			assert.EqualValues(t, 0, asMap["E"])
 
-					asMapMap, ok := asMap["map"].(map[string]any)
-					So(ok, ShouldBeTrue)
+			asMapMap, ok := asMap["map"].(map[string]any)
+			require.True(t, ok)
 
-					So(asMapMap["1"], ShouldEqual, 1)
-					So(asMapMap["2"], ShouldEqual, "two")
-				})
-			})
+			assert.EqualValues(t, 1, asMapMap["1"])
+			assert.Equal(t, "two", asMapMap["2"])
+		})
 
-			Convey("putting it inside another map should still be usable by json.Marshal", func() {
-				_, err := json.Marshal(bson.M{"x": 0, "y": MarshalD(testD)})
-				So(err, ShouldBeNil)
-			})
+		t.Run("inside another map", func(t *testing.T) {
+			_, err := json.Marshal(bson.M{"x": 0, "y": MarshalD(testD)})
+			require.NoError(t, err, "putting it inside another map still usable by json.Marshal")
 		})
 	})
 
-	Convey("With en empty bson.D", t, func() {
+	t.Run("With en empty bson.D", func(t *testing.T) {
 		testD := bson.D{}
+		asJSON, err := json.Marshal(MarshalD(testD))
 
-		Convey("wrapping with MarshalD should allow json.Marshal to work", func() {
-			asJSON, err := json.Marshal(MarshalD(testD))
-			So(err, ShouldBeNil)
+		t.Run("wrapping with MarshalD should allow json.Marshal to work", func(t *testing.T) {
+			require.NoError(t, err)
 			strJSON := string(asJSON)
-			So(strJSON, ShouldEqual, "{}")
+			assert.Equal(t, "{}", strJSON)
+		})
 
-			Convey("but still usable by the json parser", func() {
-				var asInterface any
-				err := json.Unmarshal(asJSON, &asInterface)
-				So(err, ShouldBeNil)
-				asMap, ok := asInterface.(map[string]any)
-				So(ok, ShouldBeTrue)
-				So(len(asMap), ShouldEqual, 0)
-			})
+		t.Run("but still usable by the json parser", func(t *testing.T) {
+			var asInterface any
+			err := json.Unmarshal(asJSON, &asInterface)
+			require.NoError(t, err)
+			asMap, ok := asInterface.(map[string]any)
+			require.True(t, ok)
+			assert.Empty(t, asMap)
 		})
 	})
 }
@@ -91,57 +88,40 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 func TestFindValueByKey(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given a bson.D document and a specific key", t, func() {
-		subDocument := &bson.D{
-			bson.E{Key: "field4", Value: "c"},
-		}
-		document := &bson.D{
-			bson.E{Key: "field1", Value: "a"},
-			bson.E{Key: "field2", Value: "b"},
-			bson.E{Key: "field3", Value: subDocument},
-		}
-		Convey("the corresponding value top-level keys should be returned", func() {
-			value, err := FindValueByKey("field1", document)
-			So(value, ShouldEqual, "a")
-			So(err, ShouldBeNil)
-		})
-		Convey(
-			"the corresponding value top-level keys with sub-document values should be returned",
-			func() {
-				value, err := FindValueByKey("field3", document)
-				So(value, ShouldEqual, subDocument)
-				So(err, ShouldBeNil)
-			},
-		)
-		Convey("for non-existent keys nil and an error should be returned", func() {
-			value, err := FindValueByKey("field4", document)
-			So(value, ShouldBeNil)
-			So(err, ShouldNotBeNil)
-		})
-	})
+	subDocument := &bson.D{
+		bson.E{Key: "field4", Value: "c"},
+	}
+	document := &bson.D{
+		bson.E{Key: "field1", Value: "a"},
+		bson.E{Key: "field2", Value: "b"},
+		bson.E{Key: "field3", Value: subDocument},
+	}
+
+	value, err := FindValueByKey("field1", document)
+	require.NoError(t, err)
+	assert.Equal(t, "a", value, "get top-level key")
+
+	value, err = FindValueByKey("field3", document)
+	require.NoError(t, err)
+	assert.Equal(t, subDocument, value, "top-lebel key with sub-document value")
+
+	value, err = FindValueByKey("field4", document)
+	require.Error(t, err)
+	assert.Nil(t, value, "for non-existent key")
 }
 
 func TestEscapedKey(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given a bson.D document with a key that requires escaping", t, func() {
-		document := bson.D{
-			bson.E{Key: `foo"bar`, Value: "a"},
-		}
-		Convey("it can be marshaled without error", func() {
-			asJSON, err := json.Marshal(MarshalD(document))
-			So(err, ShouldBeNil)
-			Convey("and subsequently unmarshaled without error", func() {
-				var asMap bson.M
-				err := json.Unmarshal(asJSON, &asMap)
-				So(err, ShouldBeNil)
-				Convey(
-					"with the original value being correctly found with the unescaped key",
-					func() {
-						So(asMap[`foo"bar`], ShouldEqual, "a")
-					},
-				)
-			})
-		})
-	})
+	document := bson.D{
+		bson.E{Key: `foo"bar`, Value: "a"},
+	}
+
+	asJSON, err := json.Marshal(MarshalD(document))
+	require.NoError(t, err)
+
+	var asMap bson.M
+	err = json.Unmarshal(asJSON, &asMap)
+	require.NoError(t, err)
+	assert.Equal(t, "a", asMap[`foo"bar`], "original value correctly found with unescaped key")
 }

@@ -11,37 +11,35 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestMaxKeyValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When converting JSON with MaxKey values", t, func() {
+	t.Run("MaxKey literal", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: json.MaxKey{},
+		}
 
-		Convey("works for MaxKey literal", func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: json.MaxKey{},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.MaxKey{}, jsonMap[key])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.MaxKey{})
-		})
+	t.Run(`MaxKey document ('{ "$maxKey": 1 }')`, func(t *testing.T) {
+		key := "maxKey"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$maxKey": 1,
+			},
+		}
 
-		Convey(`works for MaxKey document ('{ "$maxKey": 1 }')`, func() {
-			key := "maxKey"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$maxKey": 1,
-				},
-			}
-
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.MaxKey{})
-		})
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.MaxKey{}, jsonMap[key])
 	})
 }

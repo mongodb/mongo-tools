@@ -11,37 +11,35 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestMinKeyValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When converting JSON with MinKey values", t, func() {
+	t.Run("MinKey literal", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: json.MinKey{},
+		}
 
-		Convey("works for MinKey literal", func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: json.MinKey{},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.MinKey{}, jsonMap[key])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.MinKey{})
-		})
+	t.Run(`MinKey document ('{ "$minKey": 1 }')`, func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$minKey": 1,
+			},
+		}
 
-		Convey(`works for MinKey document ('{ "$minKey": 1 }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$minKey": 1,
-				},
-			}
-
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.MinKey{})
-		})
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.MinKey{}, jsonMap[key])
 	})
 }

@@ -11,65 +11,77 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestRegExpValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When converting JSON with RegExp values", t, func() {
+	t.Run("works for RegExp constructor", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: json.RegExp{"foo", "i"},
+		}
 
-		Convey("works for RegExp constructor", func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: json.RegExp{"foo", "i"},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.Regex{"foo", "i"}, jsonMap[key])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.Regex{"foo", "i"})
-		})
+	t.Run("works for RegExp document", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$regex":   "foo",
+				"$options": "i",
+			},
+		}
 
-		Convey(`works for RegExp document ('{ "$regex": "foo", "$options": "i" }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$regex":   "foo",
-					"$options": "i",
-				},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			bson.Regex{"foo", "i"},
+			jsonMap[key],
+			`regex: { "$regex": "foo", "$options": "i" }`,
+		)
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.Regex{"foo", "i"})
-		})
+	t.Run("can use multiple options", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$regex":   "bar",
+				"$options": "gims",
+			},
+		}
 
-		Convey(`can use multiple options ('{ "$regex": "bar", "$options": "gims" }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$regex":   "bar",
-					"$options": "gims",
-				},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			bson.Regex{"bar", "gims"},
+			jsonMap[key],
+			`regex: { "$regex": "bar", "$options": "gims" }`,
+		)
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.Regex{"bar", "gims"})
-		})
+	t.Run("fails for an invalid option", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$regex":   "baz",
+				"$options": "y",
+			},
+		}
 
-		Convey(`fails for an invalid option ('{ "$regex": "baz", "$options": "y" }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$regex":   "baz",
-					"$options": "y",
-				},
-			}
-
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldNotBeNil)
-		})
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.Error(
+			t,
+			err,
+			`regex: { "$regex": "baz", "$options": "y" }`,
+		)
 	})
 }

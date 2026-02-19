@@ -11,7 +11,8 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -19,30 +20,27 @@ func TestObjectIdValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	oid, _ := bson.ObjectIDFromHex("0123456789abcdef01234567")
 
-	Convey("When converting JSON with ObjectId values", t, func() {
+	t.Run("ObjectId constructor", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: json.ObjectId("0123456789abcdef01234567"),
+		}
 
-		Convey("works for ObjectId constructor", func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: json.ObjectId("0123456789abcdef01234567"),
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, oid, jsonMap[key])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldEqual, oid)
-		})
+	t.Run(`ObjectId document ('{ "$oid": "0123456789abcdef01234567" }')`, func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$oid": "0123456789abcdef01234567",
+			},
+		}
 
-		Convey(`works for ObjectId document ('{ "$oid": "0123456789abcdef01234567" }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$oid": "0123456789abcdef01234567",
-				},
-			}
-
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldEqual, oid)
-		})
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, oid, jsonMap[key])
 	})
 }

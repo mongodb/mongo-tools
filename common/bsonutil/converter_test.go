@@ -14,82 +14,76 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-func TestObjectIdBSONToJSON(t *testing.T) {
+func TestConvertObjectIdBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON ObjectId", t, func() {
-		Convey("that is valid to JSON should produce a json.ObjectId", func() {
-			bsonObjId := bson.NewObjectID()
-			jsonObjId := json.ObjectId(bsonObjId.Hex())
+	bsonObjId := bson.NewObjectID()
+	jsonObjId := json.ObjectId(bsonObjId.Hex())
 
-			_jObjId, err := ConvertBSONValueToLegacyExtJSON(bsonObjId)
-			So(err, ShouldBeNil)
-			jObjId, ok := _jObjId.(json.ObjectId)
-			So(ok, ShouldBeTrue)
+	_jObjId, err := ConvertBSONValueToLegacyExtJSON(bsonObjId)
+	require.NoError(t, err)
+	jObjId, ok := _jObjId.(json.ObjectId)
+	assert.True(t, ok)
 
-			So(jObjId, ShouldNotEqual, bsonObjId)
-			So(jObjId, ShouldEqual, jsonObjId)
-		})
-	})
+	assert.NotEqual(t, bsonObjId, jObjId)
+	assert.Equal(t, jsonObjId, jObjId)
 }
 
 func TestArraysBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting BSON arrays to JSON arrays", t, func() {
-		Convey("should work for empty arrays", func() {
-			jArr, err := ConvertBSONValueToLegacyExtJSON([]any{})
-			So(err, ShouldBeNil)
-
-			So(jArr, ShouldResemble, []any{})
-		})
-
-		Convey("should work for one-level deep arrays", func() {
-			objId := bson.NewObjectID()
-			bsonArr := []any{objId, 28, 0.999, "plain"}
-			_jArr, err := ConvertBSONValueToLegacyExtJSON(bsonArr)
-			So(err, ShouldBeNil)
-			jArr, ok := _jArr.([]any)
-			So(ok, ShouldBeTrue)
-
-			So(len(jArr), ShouldEqual, 4)
-			So(jArr[0], ShouldEqual, json.ObjectId(objId.Hex()))
-			So(jArr[1], ShouldEqual, 28)
-			So(jArr[2], ShouldEqual, 0.999)
-			So(jArr[3], ShouldEqual, "plain")
-		})
-
-		Convey("should work for arrays with embedded objects", func() {
-			bsonObj := []any{
-				80,
-				bson.M{
-					"a": int64(20),
-					"b": bson.M{
-						"c": bson.Regex{Pattern: "hi", Options: "i"},
-					},
-				},
-			}
-
-			_JObj, err := ConvertBSONValueToLegacyExtJSON(bsonObj)
-			So(err, ShouldBeNil)
-			_jObj, ok := _JObj.([]any)
-			So(ok, ShouldBeTrue)
-			jObj, ok := _jObj[1].(bson.M)
-			So(ok, ShouldBeTrue)
-			So(len(jObj), ShouldEqual, 2)
-			So(jObj["a"], ShouldEqual, json.NumberLong(20))
-			jjObj, ok := jObj["b"].(bson.M)
-			So(ok, ShouldBeTrue)
-
-			So(jjObj["c"], ShouldResemble, json.RegExp{"hi", "i"})
-			So(jjObj["c"], ShouldNotResemble, json.RegExp{"i", "hi"})
-		})
-
+	t.Run("should work for empty arrays", func(t *testing.T) {
+		jArr, err := ConvertBSONValueToLegacyExtJSON([]any{})
+		require.NoError(t, err)
+		assert.Equal(t, []any{}, jArr)
 	})
+
+	t.Run("should work for one-level deep arrays", func(t *testing.T) {
+		objId := bson.NewObjectID()
+		bsonArr := []any{objId, 28, 0.999, "plain"}
+		_jArr, err := ConvertBSONValueToLegacyExtJSON(bsonArr)
+		require.NoError(t, err)
+		jArr, ok := _jArr.([]any)
+		assert.True(t, ok)
+
+		assert.Len(t, jArr, 4)
+		assert.Equal(t, json.ObjectId(objId.Hex()), jArr[0])
+		assert.EqualValues(t, 28, jArr[1])
+		assert.EqualValues(t, 0.999, jArr[2])
+		assert.Equal(t, "plain", jArr[3])
+	})
+
+	t.Run("should work for arrays with embedded objects", func(t *testing.T) {
+		bsonObj := []any{
+			80,
+			bson.M{
+				"a": int64(20),
+				"b": bson.M{
+					"c": bson.Regex{Pattern: "hi", Options: "i"},
+				},
+			},
+		}
+
+		_JObj, err := ConvertBSONValueToLegacyExtJSON(bsonObj)
+		require.NoError(t, err)
+		_jObj, ok := _JObj.([]any)
+		assert.True(t, ok)
+		jObj, ok := _jObj[1].(bson.M)
+		assert.True(t, ok)
+		assert.Len(t, jObj, 2)
+		assert.Equal(t, json.NumberLong(20), jObj["a"])
+		jjObj, ok := jObj["b"].(bson.M)
+		assert.True(t, ok)
+
+		assert.Equal(t, json.RegExp{"hi", "i"}, jjObj["c"])
+		assert.NotEqual(t, json.RegExp{"i", "hi"}, jjObj["c"])
+	})
+
 }
 
 func TestDateBSONToJSON(t *testing.T) {
@@ -103,245 +97,191 @@ func TestDateBSONToJSON(t *testing.T) {
 	timeNowSecs := time.Unix(secs, 0)
 	timeNowMillis := time.Unix(secs, millis*1e6)
 
-	Convey("Converting BSON time.Time 's dates to JSON", t, func() {
-		// json.Date is stored as an int64 representing the number of milliseconds since the epoch
-		Convey(fmt.Sprintf("should work with second granularity: %v", timeNowSecs), func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(timeNowSecs)
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.Date)
-			So(ok, ShouldBeTrue)
+	// json.Date is stored as an int64 representing the number of milliseconds since the epoch
+	t.Run(fmt.Sprintf("second granularity: %v", timeNowSecs), func(t *testing.T) {
+		_jObj, err := ConvertBSONValueToLegacyExtJSON(timeNowSecs)
+		require.NoError(t, err)
+		jObj, ok := _jObj.(json.Date)
+		assert.True(t, ok)
 
-			So(int64(jObj), ShouldEqual, secs*1e3)
-		})
+		assert.Equal(t, secs*1e3, int64(jObj))
+	})
 
-		Convey(fmt.Sprintf("should work with millisecond granularity: %v", timeNowMillis), func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(timeNowMillis)
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.Date)
-			So(ok, ShouldBeTrue)
+	t.Run(fmt.Sprintf("millisecond granularity: %v", timeNowMillis), func(t *testing.T) {
+		_jObj, err := ConvertBSONValueToLegacyExtJSON(timeNowMillis)
+		require.NoError(t, err)
+		jObj, ok := _jObj.(json.Date)
+		assert.True(t, ok)
 
-			So(int64(jObj), ShouldEqual, secs*1e3+millis)
-		})
+		assert.Equal(t, secs*1e3+millis, int64(jObj))
+	})
 
-		Convey(fmt.Sprintf("should work with nanosecond granularity: %v", timeNow), func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(timeNow)
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.Date)
-			So(ok, ShouldBeTrue)
+	t.Run(fmt.Sprintf("nanosecond granularity: %v", timeNow), func(t *testing.T) {
+		_jObj, err := ConvertBSONValueToLegacyExtJSON(timeNow)
+		require.NoError(t, err)
+		jObj, ok := _jObj.(json.Date)
+		assert.True(t, ok)
 
-			// we lose nanosecond precision
-			So(int64(jObj), ShouldEqual, secs*1e3+millis)
-		})
-
+		// we lose nanosecond precision
+		assert.Equal(t, secs*1e3+millis, int64(jObj))
 	})
 }
 
 func TestMaxKeyBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON Maxkey to JSON", t, func() {
-		Convey("should produce a json.MaxKey", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MaxKey{})
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.MaxKey)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MaxKey{})
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.MaxKey)
+	assert.True(t, ok)
 
-			So(jObj, ShouldResemble, json.MaxKey{})
-		})
-	})
+	assert.Equal(t, json.MaxKey{}, jObj, "produce a json.MaxKey")
 }
 
 func TestMinKeyBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON Maxkey to JSON", t, func() {
-		Convey("should produce a json.MinKey", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MinKey{})
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.MinKey)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MinKey{})
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.MinKey)
+	assert.True(t, ok)
 
-			So(jObj, ShouldResemble, json.MinKey{})
-		})
-	})
+	assert.Equal(t, json.MinKey{}, jObj)
 }
 
 func Test64BitIntBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON int64 to JSON", t, func() {
-		Convey("should produce a json.NumberLong", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(int32(243))
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.NumberInt)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(int32(243))
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.NumberInt)
+	assert.True(t, ok)
 
-			So(jObj, ShouldEqual, json.NumberInt(243))
-		})
-	})
-
+	assert.Equal(t, json.NumberInt(243), jObj)
 }
 
 func Test32BitIntBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON int32 integer to JSON", t, func() {
-		Convey("should produce a json.NumberInt", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(int64(888234334343))
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.NumberLong)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(int64(888234334343))
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.NumberLong)
+	assert.True(t, ok)
 
-			So(jObj, ShouldEqual, json.NumberLong(888234334343))
-		})
-	})
-
+	assert.Equal(t, json.NumberLong(888234334343), jObj)
 }
 
 func TestRegExBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON Regular Expression (= /decision/gi) to JSON", t, func() {
-		Convey("should produce a json.RegExp", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Regex{"decision", "gi"})
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.RegExp)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Regex{"decision", "gi"})
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.RegExp)
+	assert.True(t, ok)
 
-			So(jObj, ShouldResemble, json.RegExp{"decision", "gi"})
-		})
-	})
-
+	assert.Equal(t, json.RegExp{"decision", "gi"}, jObj)
 }
 
 func TestUndefinedValueBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON Undefined type to JSON", t, func() {
-		Convey("should produce a json.Undefined", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Undefined{})
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.Undefined)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Undefined{})
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.Undefined)
+	assert.True(t, ok)
 
-			So(jObj, ShouldResemble, json.Undefined{})
-		})
-	})
+	assert.Equal(t, json.Undefined{}, jObj)
 }
 
 func TestTimestampBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting a BSON Timestamp to JSON", t, func() {
-		Convey("should produce a json.Timestamp", func() {
-			// {t:803434343, i:9} == bson.MongoTimestamp(803434343*2**32 + 9)
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Timestamp{T: 803434343, I: 9})
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.Timestamp)
-			So(ok, ShouldBeTrue)
+	// {t:803434343, i:9} == bson.MongoTimestamp(803434343*2**32 + 9)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Timestamp{T: 803434343, I: 9})
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.Timestamp)
+	assert.True(t, ok)
 
-			So(jObj, ShouldResemble, json.Timestamp{Seconds: 803434343, Increment: 9})
-			So(jObj, ShouldNotResemble, json.Timestamp{Seconds: 803434343, Increment: 8})
-		})
-	})
+	assert.Equal(t, json.Timestamp{Seconds: 803434343, Increment: 9}, jObj)
+	assert.NotEqual(t, json.Timestamp{Seconds: 803434343, Increment: 8}, jObj)
 }
 
 func TestBinaryBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting BSON Binary data to JSON", t, func() {
-		Convey("should produce a json.BinData", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(
-				bson.Binary{'\x01', []byte("\x05\x20\x02\xae\xf7")},
-			)
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.BinData)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(
+		bson.Binary{'\x01', []byte("\x05\x20\x02\xae\xf7")},
+	)
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.BinData)
+	assert.True(t, ok)
 
-			base64data1 := base64.StdEncoding.EncodeToString([]byte("\x05\x20\x02\xae\xf7"))
-			base64data2 := base64.StdEncoding.EncodeToString([]byte("\x05\x20\x02\xaf\xf7"))
-			So(jObj, ShouldResemble, json.BinData{'\x01', base64data1})
-			So(jObj, ShouldNotResemble, json.BinData{'\x01', base64data2})
-		})
-	})
+	base64data1 := base64.StdEncoding.EncodeToString([]byte("\x05\x20\x02\xae\xf7"))
+	base64data2 := base64.StdEncoding.EncodeToString([]byte("\x05\x20\x02\xaf\xf7"))
+	assert.Equal(t, json.BinData{'\x01', base64data1}, jObj)
+	assert.NotEqual(t, json.BinData{'\x01', base64data2}, jObj)
 }
 
 func TestGenericBytesBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting Go bytes to JSON", t, func() {
-		Convey("should produce a json.BinData with Type=0x00 (Generic)", func() {
-			_jObj, err := ConvertBSONValueToLegacyExtJSON([]byte("this is something that's cool"))
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.BinData)
-			So(ok, ShouldBeTrue)
+	_jObj, err := ConvertBSONValueToLegacyExtJSON([]byte("this is something that's cool"))
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.BinData)
+	assert.True(t, ok)
 
-			base64data := base64.StdEncoding.EncodeToString([]byte("this is something that's cool"))
-			So(jObj, ShouldResemble, json.BinData{0x00, base64data})
-			So(jObj, ShouldNotResemble, json.BinData{0x01, base64data})
-		})
-	})
+	base64data := base64.StdEncoding.EncodeToString([]byte("this is something that's cool"))
+	assert.Equal(t, json.BinData{0x00, base64data}, jObj)
+	assert.NotEqual(t, json.BinData{0x01, base64data}, jObj)
 }
 
 func TestUnknownBSONTypeToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting an unknown BSON type to JSON", t, func() {
-		Convey("should produce an error", func() {
-			_, err := ConvertBSONValueToLegacyExtJSON(func() {})
-			So(err, ShouldNotBeNil)
-		})
-	})
+	_, err := ConvertBSONValueToLegacyExtJSON(func() {})
+	require.Error(t, err)
 }
 
 func TestDBPointerBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting BSON DBPointer to JSON", t, func() {
-		Convey("should produce a json.DBPointer", func() {
-			objId := bson.NewObjectID()
-			_jObj, err := ConvertBSONValueToLegacyExtJSON(
-				bson.DBPointer{"dbrefnamespace", objId},
-			)
-			So(err, ShouldBeNil)
-			jObj, ok := _jObj.(json.DBPointer)
-			So(ok, ShouldBeTrue)
+	objId := bson.NewObjectID()
+	_jObj, err := ConvertBSONValueToLegacyExtJSON(
+		bson.DBPointer{"dbrefnamespace", objId},
+	)
+	require.NoError(t, err)
+	jObj, ok := _jObj.(json.DBPointer)
+	assert.True(t, ok)
 
-			So(jObj, ShouldResemble, json.DBPointer{"dbrefnamespace", objId})
-		})
-	})
+	assert.Equal(t, json.DBPointer{"dbrefnamespace", objId}, jObj)
 }
 
 func TestJSCodeBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting BSON Javascript code to JSON", t, func() {
-		Convey("should produce a json.Javascript", func() {
-			Convey("without scope if the scope for the BSON Javascript code is nil", func() {
-				_jObj, err := ConvertBSONValueToLegacyExtJSON(
-					bson.CodeWithScope{"function() { return null; }", nil},
-				)
-				So(err, ShouldBeNil)
-				jObj, ok := _jObj.(json.JavaScript)
-				So(ok, ShouldBeTrue)
+	t.Run("without scope", func(t *testing.T) {
+		_jObj, err := ConvertBSONValueToLegacyExtJSON(
+			bson.CodeWithScope{"function() { return null; }", nil},
+		)
+		require.NoError(t, err)
+		jObj, ok := _jObj.(json.JavaScript)
+		assert.True(t, ok)
 
-				So(jObj, ShouldResemble, json.JavaScript{"function() { return null; }", nil})
-			})
+		assert.Equal(t, json.JavaScript{"function() { return null; }", nil}, jObj)
+	})
 
-			Convey("with scope if the scope for the BSON Javascript code is non-nil", func() {
-				_jObj, err := ConvertBSONValueToLegacyExtJSON(
-					bson.CodeWithScope{"function() { return x; }", bson.M{"x": 2}},
-				)
-				So(err, ShouldBeNil)
-				jObj, ok := _jObj.(json.JavaScript)
-				So(ok, ShouldBeTrue)
+	t.Run("with scope", func(t *testing.T) {
+		_jObj, err := ConvertBSONValueToLegacyExtJSON(
+			bson.CodeWithScope{"function() { return x; }", bson.M{"x": 2}},
+		)
+		require.NoError(t, err)
+		jObj, ok := _jObj.(json.JavaScript)
+		assert.True(t, ok)
 
-				scopeMap, ok := jObj.Scope.(bson.M)
-				So(ok, ShouldBeTrue)
+		scopeMap, ok := jObj.Scope.(bson.M)
+		assert.True(t, ok)
 
-				So(scopeMap["x"], ShouldEqual, 2)
-				So(jObj.Code, ShouldEqual, "function() { return x; }")
-			})
-		})
+		assert.EqualValues(t, 2, scopeMap["x"])
+		assert.Equal(t, "function() { return x; }", jObj.Code)
 	})
 }
