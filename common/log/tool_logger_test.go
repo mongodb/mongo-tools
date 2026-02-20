@@ -14,7 +14,8 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type verbosity struct {
@@ -28,51 +29,43 @@ func (v verbosity) Level() int    { return v.L }
 func TestBasicToolLoggerFunctionality(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var tl *ToolLogger
-
 	oldTime := time.Now()
 	// sleep to avoid failures due to low timestamp resolution
 	time.Sleep(time.Millisecond)
 
-	Convey("With a new ToolLogger", t, func() {
-		tl = NewToolLogger(&verbosity{L: 3})
-		So(tl, ShouldNotBeNil)
-		So(tl.writer, ShouldNotBeNil)
-		So(tl.verbosity, ShouldEqual, 3)
+	tl := NewToolLogger(&verbosity{L: 3})
+	require.NotNil(t, tl)
+	assert.NotNil(t, tl.writer)
+	assert.Equal(t, 3, tl.verbosity)
 
-		Convey("writing a negative verbosity should panic", func() {
-			So(func() { tl.Logvf(-1, "nope") }, ShouldPanic)
-		})
+	assert.Panics(
+		t,
+		func() { tl.Logvf(-1, "nope") },
+		"writing a negative verbosity panics",
+	)
 
-		Convey("writing the output to a buffer", func() {
-			buf := bytes.NewBuffer(make([]byte, 1024))
-			tl.SetWriter(buf)
+	buf := bytes.NewBuffer(make([]byte, 1024))
+	tl.SetWriter(buf)
 
-			Convey("with Logfs of various verbosity levels", func() {
-				tl.Logvf(0, "test this string")
-				tl.Logvf(5, "this log level is too high and will not log")
-				tl.Logvf(1, "====!%v!====", 12.5)
+	// log at various verbosities
+	tl.Logvf(0, "test this string")
+	tl.Logvf(5, "this log level is too high and will not log")
+	tl.Logvf(1, "====!%v!====", 12.5)
 
-				Convey("only messages of low enough verbosity should be written", func() {
-					l1, _ := buf.ReadString('\n')
-					So(l1, ShouldContainSubstring, ":")
-					So(l1, ShouldContainSubstring, ".")
-					So(l1, ShouldContainSubstring, "test this string")
-					l2, _ := buf.ReadString('\n')
-					So(l2, ShouldContainSubstring, "====!12.5!====")
+	l1, _ := buf.ReadString('\n')
+	assert.Contains(t, l1, ":")
+	assert.Contains(t, l1, ".")
+	assert.Contains(t, l1, "test this string")
 
-					Convey("and contain a proper timestamp", func() {
-						So(l2, ShouldContainSubstring, "\t")
-						timestamp := l2[:strings.Index(l2, "\t")]
-						So(len(timestamp), ShouldBeGreaterThan, 1)
-						parsedTime, err := time.Parse(ToolTimeFormat, timestamp)
-						So(err, ShouldBeNil)
-						So(parsedTime, ShouldHappenOnOrAfter, oldTime)
-					})
-				})
-			})
-		})
-	})
+	l2, _ := buf.ReadString('\n')
+	assert.Contains(t, l2, "====!12.5!====")
+
+	require.Contains(t, l2, "\t")
+	timestamp := l2[:strings.Index(l2, "\t")]
+	assert.Greater(t, len(timestamp), 1)
+	parsedTime, err := time.Parse(ToolTimeFormat, timestamp)
+	require.NoError(t, err)
+	assert.True(t, parsedTime.After(oldTime), "parsed time is on or after start time")
 }
 
 func TestGlobalToolLoggerFunctionality(t *testing.T) {
@@ -80,53 +73,43 @@ func TestGlobalToolLoggerFunctionality(t *testing.T) {
 
 	globalToolLogger = nil // just to be sure
 
-	Convey("With an initialized global ToolLogger", t, func() {
-		globalToolLogger = NewToolLogger(&verbosity{L: 3})
-		So(globalToolLogger, ShouldNotBeNil)
+	globalToolLogger = NewToolLogger(&verbosity{L: 3})
+	require.NotNil(t, globalToolLogger)
 
-		Convey("actions shouldn't panic", func() {
-			So(func() { SetVerbosity(&verbosity{Q: true}) }, ShouldNotPanic)
-			So(func() { Logvf(0, "woooo") }, ShouldNotPanic)
-			So(func() { SetDateFormat("ahaha") }, ShouldNotPanic)
-			So(func() { SetWriter(os.Stdout) }, ShouldNotPanic)
-		})
-	})
+	assert.NotPanics(t, func() { SetVerbosity(&verbosity{Q: true}) })
+	assert.NotPanics(t, func() { Logvf(0, "woooo") })
+	assert.NotPanics(t, func() { SetDateFormat("ahaha") })
+	assert.NotPanics(t, func() { SetWriter(os.Stdout) })
 }
 
 func TestToolLoggerWriter(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a tool logger that writes to a buffer", t, func() {
-		buff := bytes.NewBuffer(make([]byte, 1024))
-		tl := NewToolLogger(&verbosity{L: 3})
-		tl.SetWriter(buff)
+	buff := bytes.NewBuffer(make([]byte, 1024))
+	tl := NewToolLogger(&verbosity{L: 3})
+	tl.SetWriter(buff)
 
-		Convey("writing using a ToolLogWriter", func() {
-			tlw := tl.Writer(0)
-			_, err := tlw.Write([]byte("One"))
-			So(err, ShouldBeNil)
-			_, err = tlw.Write([]byte("Two"))
-			So(err, ShouldBeNil)
-			_, err = tlw.Write([]byte("Three"))
-			So(err, ShouldBeNil)
+	t.Run("normal ToolLogWriter", func(t *testing.T) {
+		tlw := tl.Writer(0)
+		_, err := tlw.Write([]byte("One"))
+		require.NoError(t, err)
+		_, err = tlw.Write([]byte("Two"))
+		require.NoError(t, err)
+		_, err = tlw.Write([]byte("Three"))
+		require.NoError(t, err)
 
-			Convey("the messages should appear in the buffer", func() {
-				results := buff.String()
-				So(results, ShouldContainSubstring, "One")
-				So(results, ShouldContainSubstring, "Two")
-				So(results, ShouldContainSubstring, "Three")
-			})
-		})
+		results := buff.String()
+		assert.Contains(t, results, "One")
+		assert.Contains(t, results, "Two")
+		assert.Contains(t, results, "Three")
+	})
 
-		Convey("but with a log writer of too high verbosity", func() {
-			tlw2 := tl.Writer(1776)
-			_, err := tlw2.Write([]byte("nothing to see here"))
-			So(err, ShouldBeNil)
+	t.Run("log writer of too high verbosity", func(t *testing.T) {
+		tlw2 := tl.Writer(1776)
+		_, err := tlw2.Write([]byte("nothing to see here"))
+		require.NoError(t, err)
 
-			Convey("nothing should be written", func() {
-				results := buff.String()
-				So(results, ShouldNotContainSubstring, "nothing")
-			})
-		})
+		results := buff.String()
+		assert.NotContains(t, results, "nothing")
 	})
 }
