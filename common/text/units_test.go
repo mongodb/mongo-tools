@@ -10,106 +10,111 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatByteCount(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With some sample byte amounts", t, func() {
-		Convey("0 Bytes -> 0B", func() {
-			So(FormatByteAmount(0), ShouldEqual, "0B")
-		})
-		Convey("1024 Bytes -> 1.00KB", func() {
-			So(FormatByteAmount(1024), ShouldEqual, "1.00KB")
-		})
-		Convey("2500 Bytes -> 2.44KB", func() {
-			So(FormatByteAmount(2500), ShouldEqual, "2.44KB")
-		})
-		Convey("2*1024*1024 Bytes -> 2.00MB", func() {
-			So(FormatByteAmount(2*1024*1024), ShouldEqual, "2.00MB")
-		})
-		Convey("5*1024*1024*1024 Bytes -> 5.00GB", func() {
-			So(FormatByteAmount(5*1024*1024*1024), ShouldEqual, "5.00GB")
-		})
-		Convey("5*1024*1024*1024*1024 Bytes -> 5120GB", func() {
-			So(FormatByteAmount(5*1024*1024*1024*1024), ShouldEqual, "5120GB")
-		})
-	})
+	tests := []struct {
+		size   int64
+		expect string
+	}{
+		{0, "0B"},
+		{1024, "1.00KB"},
+		{2500, "2.44KB"},
+		{2 * 1024 * 1024, "2.00MB"},
+		{5 * 1024 * 1024 * 1024, "5.00GB"},
+		{5 * 1024 * 1024 * 1024 * 1024, "5120GB"},
+	}
+
+	for _, test := range tests {
+		got := FormatByteAmount(test.size)
+		assert.Equal(t, test.expect, got, "%d -> %s", test.size, test.expect)
+	}
 }
 
 func TestOtherByteFormats(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With some sample byte amounts", t, func() {
-		Convey("with '10'", func() {
-			Convey("FormatMegabyteAmount -> 10.0M", func() {
-				So(FormatMegabyteAmount(10), ShouldEqual, "10.0M")
-			})
-			Convey("FormatByteAmount -> 10B", func() {
-				So(FormatByteAmount(10), ShouldEqual, "10B")
-			})
-			Convey("FormatBitsWithLowPrecision -> 10b", func() {
-				So(FormatBits(10), ShouldEqual, "10b")
-			})
-		})
-		Convey("with '1024 * 2.5'", func() {
-			val := int64(2.5 * 1024)
-			Convey("FormatMegabyteAmount -> 2.50G", func() {
-				So(FormatMegabyteAmount(val), ShouldEqual, "2.50G")
-			})
-			Convey("FormatByteAmount -> 2.50KB", func() {
-				So(FormatByteAmount(val), ShouldEqual, "2.50KB")
-			})
-			Convey("FormatBits -> 2.56k", func() {
-				So(FormatBits(val), ShouldEqual, "2.56k")
-			})
-		})
-	})
+	val := int64(10)
+	assert.Equal(t, "10.0M", FormatMegabyteAmount(val))
+	assert.Equal(t, "10B", FormatByteAmount(val))
+	assert.Equal(t, "10b", FormatBits(val))
+
+	val = int64(2.5 * 1024)
+	assert.Equal(t, "2.50G", FormatMegabyteAmount(val))
+	assert.Equal(t, "2.50KB", FormatByteAmount(val))
+	assert.Equal(t, "2.56k", FormatBits(val))
 }
 
 func TestBitFormatPrecision(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With values less than 1k", t, func() {
-		Convey("with '999'", func() {
-			Convey("FormatBits -> 999b", func() {
-				So(FormatBits(999), ShouldEqual, "999b")
+	tests := []struct {
+		size   int64
+		expect string
+	}{
+		{999, "999b"},
+		{99, "99b"},
+		{9, "9b"},
+
+		{9999, "10.0k"},
+		{9990, "9.99k"},
+
+		{999_000_000, "999m"},
+		{9_990_000_000, "9.99g"},
+	}
+
+	for _, test := range tests {
+		got := FormatBits(test.size)
+		assert.Equal(t, test.expect, got, "%d -> %s", test.size, test.expect)
+	}
+
+	/*
+				t.Run("values less than 1k", func(t *testing.T) {
+
+					Convey("with '999'", func() {
+						Convey("FormatBits -> 999b", func() {
+							So(FormatBits(999), ShouldEqual, "999b")
+						})
+					})
+					Convey("with '99'", func() {
+						Convey("FormatBits -> 99b", func() {
+							So(FormatBits(99), ShouldEqual, "99b")
+						})
+					})
+					Convey("with '9'", func() {
+						Convey("FormatBits -> 9b", func() {
+							So(FormatBits(9), ShouldEqual, "9b")
+						})
+					})
+				})
+
+			t.Run("values less than 1m", func(t *testing.T) {
+				Convey("with '9999'", func() {
+					Convey("FormatBits -> 10.0k", func() {
+						So(FormatBits(9999), ShouldEqual, "10.0k")
+					})
+				})
+				Convey("with '9990'", func() {
+					Convey("FormatBits -> 9.99k", func() {
+						So(FormatBits(9990), ShouldEqual, "9.99k")
+					})
+				})
+			})
+
+		t.Run("big numbers", func(t *testing.T) {
+			Convey("with '999000000'", func() {
+				Convey("FormatBits -> 999m", func() {
+					So(FormatBits(999000000), ShouldEqual, "999m")
+				})
+			})
+			Convey("with '9990000000'", func() {
+				Convey("FormatBits -> 9.99g", func() {
+					So(FormatBits(9990000000), ShouldEqual, "9.99g")
+				})
 			})
 		})
-		Convey("with '99'", func() {
-			Convey("FormatBits -> 99b", func() {
-				So(FormatBits(99), ShouldEqual, "99b")
-			})
-		})
-		Convey("with '9'", func() {
-			Convey("FormatBits -> 9b", func() {
-				So(FormatBits(9), ShouldEqual, "9b")
-			})
-		})
-	})
-	Convey("With values less than 1m", t, func() {
-		Convey("with '9999'", func() {
-			Convey("FormatBits -> 10.0k", func() {
-				So(FormatBits(9999), ShouldEqual, "10.0k")
-			})
-		})
-		Convey("with '9990'", func() {
-			Convey("FormatBits -> 9.99k", func() {
-				So(FormatBits(9990), ShouldEqual, "9.99k")
-			})
-		})
-	})
-	Convey("With big numbers", t, func() {
-		Convey("with '999000000'", func() {
-			Convey("FormatBits -> 999m", func() {
-				So(FormatBits(999000000), ShouldEqual, "999m")
-			})
-		})
-		Convey("with '9990000000'", func() {
-			Convey("FormatBits -> 9.99g", func() {
-				So(FormatBits(9990000000), ShouldEqual, "9.99g")
-			})
-		})
-	})
+	*/
 }
