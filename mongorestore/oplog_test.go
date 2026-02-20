@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -828,5 +829,54 @@ func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
 			require.True(t, ok)
 			require.True(t, prepareUnique)
 		}
+	}
+}
+
+func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	// Prepare the test by creating the necessary collection.
+	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+
+	oplogFileName := "testdata/oplogs/bson/bypassDocumentValidation.bson"
+
+	for _, bypass := range []bool{false, true} {
+		args := []string{
+			DirectoryOption, "testdata/coll_without_index",
+			OplogReplayOption,
+			DropOption,
+			OplogFileOption, oplogFileName,
+		}
+
+		if bypass {
+			args = append(args, BypassDocumentValidationOption)
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		if !bypass {
+			require.Error(t, result.Err)
+			continue
+		}
+
+		require.NoError(t, result.Err)
+		count, err := session.Database("mongodump_test_db").
+			Collection("coll1").
+			CountDocuments(ctx, bson.D{})
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), count)
 	}
 }
