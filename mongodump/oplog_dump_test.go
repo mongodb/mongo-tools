@@ -278,6 +278,8 @@ func createIndexesAndRunCollModPrepareUnique(ctx context.Context) error {
 	return nil
 }
 
+// This test is here so that we can regenerate the oplog.bson file for the mongorestore test
+// `TestOplogRestoreBypassDocumentValidation`.
 func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	// Oplog is not available in a standalone topology.
