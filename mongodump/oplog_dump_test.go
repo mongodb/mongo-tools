@@ -20,8 +20,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
-	"github.com/samber/lo"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -278,7 +278,9 @@ func createIndexesAndRunCollModPrepareUnique(ctx context.Context) error {
 	return nil
 }
 
-func TestOplogDumpCollModTTL(t *testing.T) {
+// This test is here so that we can regenerate the oplog.bson file for the mongorestore test
+// `TestOplogRestoreBypassDocumentValidation`.
+func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
@@ -286,37 +288,22 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
-
-	testCollName := testCollectionNames[0]
-	err = session.Database(testDB).Collection(testCollName).Drop(ctx)
-	require.NoError(t, err)
-
-	err = session.Database(testDB).CreateCollection(ctx, testCollName)
-	require.NoError(t, err)
-	//nolint:errcheck
-	defer session.Database(testDB).Collection(testCollName).Drop(ctx)
-
-	idx := mongo.IndexModel{
-		Keys: bson.D{{"a", 1}},
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
 	}
 
-	_, err = session.Database(testDB).Collection(testCollName).Indexes().CreateOne(ctx, idx)
-	require.NoError(t, err)
+	testCollName := testCollectionNames[0]
 
-	_, err = session.Database(testDB).Collection(testCollName).InsertMany(
-		ctx,
-		lo.RepeatBy(10, func(i int) bson.D {
-			return bson.D{{"a", i}}
-		}),
-	)
-	require.NoError(t, err)
+	require.NoError(t, session.Database(testDB).Collection(testCollName).Drop(ctx))
+	//nolint:errcheck
+	defer session.Database(testDB).Collection(testCollName).Drop(ctx)
 
 	md, err := simpleMongoDumpInstance()
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
 	md.OutputOptions.Oplog = true
-	md.OutputOptions.Out = "collMod_ttl_index"
+	md.OutputOptions.Out = "oplog_bypassDocumentValidation"
 
 	require.NoError(t, md.Init())
 
@@ -325,7 +312,7 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	defer failpoint.Reset()
 
 	go func() {
-		convertIndexToTTL(ctx, t)
+		createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
 	}()
 
 	//nolint:errcheck
@@ -336,7 +323,7 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, md.OutputOptions.Out))
+	dumpDir := util.ToUniversalPath(filepath.Join(path, "oplog_bypassDocumentValidation"))
 	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
 	oplogFilePath := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
 	require.True(t, fileDirExists(dumpDir))
@@ -350,40 +337,76 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	defer oplogFile.Close()
 
 	bsonSrc := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(oplogFile))
+
+	createCount := 0
+	insertCount := 0
 	var oplog db.Oplog
-	var ttl int64
 	for bsonSrc.Next(&oplog) {
 		require.NoError(t, bsonSrc.Err())
-		if oplog.Namespace == testDB+".$cmd" && oplog.Object != nil {
-			indexObj, ok := bsonutil.ToMap(oplog.Object)["index"].(bson.D)
-			if !ok {
-				continue
-			}
 
-			ttl, ok = bsonutil.ToMap(indexObj)["expireAfterSeconds"].(int64)
-			if !ok {
-				continue
+		objMap := bsonutil.ToMap(oplog.Object)
+		if oplog.Namespace == "mongodump_test_db.$cmd" {
+			if objMap["create"] != nil {
+				createCount++
+				assert.NotEmpty(t, objMap["validator"], "create oplog has validator option")
+			}
+		}
+
+		if oplog.Namespace == "mongodump_test_db.coll1" {
+			if oplog.Operation == "i" {
+				insertCount++
 			}
 		}
 	}
-	require.EqualValues(t, 1000, ttl)
+	assert.Equal(t, 1, createCount)
+	assert.Equal(t, 3, insertCount)
 }
 
-func convertIndexToTTL(ctx context.Context, t *testing.T) {
+func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context, t *testing.T) {
 	client, err := testutil.GetBareSession()
 	require.NoError(t, err)
 
 	testCollName := testCollectionNames[0]
 
-	res := client.Database(testDB).RunCommand(
-		ctx,
-		bson.D{
-			{"collMod", testCollName},
-			{"index", bson.D{
-				{"keyPattern", bson.D{{"a", 1}}},
-				{"expireAfterSeconds", 1000},
+	err = client.Database(testDB).
+		CreateCollection(ctx, testCollName, options.CreateCollection().SetValidator(bson.D{
+			{"$jsonSchema", bson.D{
+				{"bsonType", "object"},
+				{"title", "Test validator"},
+				{"properties", bson.D{
+					{"testField", bson.D{
+						{"enum", []string{"valid"}},
+					}},
+				}},
 			}},
-		},
-	)
-	require.NoError(t, res.Err())
+		}))
+	require.NoError(t, err)
+
+	invalidDocs := []bson.D{
+		{{"testField", "invalid"}},
+		{{"testField", "also_invalid"}},
+	}
+
+	for _, doc := range invalidDocs {
+		_, err = client.Database(testDB).
+			Collection(testCollName).
+			InsertOne(
+				ctx,
+				doc,
+				options.InsertOne().SetBypassDocumentValidation(true),
+			)
+		require.NoError(t, err)
+	}
+
+	validDoc := bson.D{{"testField", "valid"}}
+	_, err = client.Database(testDB).
+		Collection(testCollName).
+		InsertOne(ctx, validDoc)
+	require.NoError(t, err)
+
+	// Verify that the validator is set correctly.
+	for _, doc := range invalidDocs {
+		_, err = client.Database(testDB).Collection(testCollName).InsertOne(ctx, doc)
+		require.Error(t, err)
+	}
 }

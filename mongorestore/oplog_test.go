@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -831,7 +832,7 @@ func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
 	}
 }
 
-func TestOplogRestoreCollModTTLIndex(t *testing.T) {
+func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	ctx := t.Context()
@@ -846,38 +847,36 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 	// Prepare the test by creating the necessary collection.
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
 
-	args := []string{
-		DirectoryOption, "testdata/collMod_ttl_index",
-		OplogReplayOption,
-		DropOption,
-	}
+	oplogFileName := "testdata/oplogs/bson/bypassDocumentValidation.bson"
 
-	restore, err := getRestoreWithArgs(args...)
-	require.NoError(t, err)
-	defer restore.Close()
-
-	// Run mongorestore
-	result := restore.Restore()
-	require.NoError(t, result.Err)
-	require.Equal(t, int64(0), result.Failures)
-
-	db := session.Database("mongodump_test_db")
-
-	cursor, err := db.RunCommandCursor(ctx, bson.D{
-		{"listIndexes", "coll1"},
-	})
-	require.NoError(t, err)
-
-	var indexSpecs []bson.M
-	require.NoError(t, cursor.All(ctx, &indexSpecs))
-
-	require.Len(t, indexSpecs, 2)
-
-	for _, indexSpec := range indexSpecs {
-		if indexSpec["name"] != "_id_" {
-			expireAfterSeconds, ok := indexSpec["expireAfterSeconds"].(int32)
-			require.True(t, ok)
-			require.EqualValues(t, 1000, expireAfterSeconds)
+	for _, bypass := range []bool{false, true} {
+		args := []string{
+			DirectoryOption, "testdata/coll_without_index",
+			OplogReplayOption,
+			DropOption,
+			OplogFileOption, oplogFileName,
 		}
+
+		if bypass {
+			args = append(args, BypassDocumentValidationOption)
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		if !bypass {
+			require.Error(t, result.Err)
+			continue
+		}
+
+		require.NoError(t, result.Err)
+		count, err := session.Database("mongodump_test_db").
+			Collection("coll1").
+			CountDocuments(ctx, bson.D{})
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), count)
 	}
 }
