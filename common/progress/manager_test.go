@@ -15,7 +15,8 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type safeBuffer struct {
@@ -44,72 +45,72 @@ func (b *safeBuffer) Reset() {
 func TestManagerAttachAndDetach(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	writeBuffer := new(safeBuffer)
-	var manager *BarWriter
+	setup := func() (*BarWriter, *safeBuffer) {
+		writeBuffer := new(safeBuffer)
+		manager := NewBarWriter(writeBuffer, time.Second, 10, false)
+		require.NotNil(t, manager)
 
-	Convey("With an empty progress.BarWriter", t, func() {
-		manager = NewBarWriter(writeBuffer, time.Second, 10, false)
-		So(manager, ShouldNotBeNil)
+		progressor := NewCounter(10)
+		progressor.Inc(5)
+		manager.Attach("TEST1", progressor)
+		manager.Attach("TEST2", progressor)
+		manager.Attach("TEST3", progressor)
 
-		Convey("adding 3 bars", func() {
-			progressor := NewCounter(10)
-			progressor.Inc(5)
-			manager.Attach("TEST1", progressor)
-			manager.Attach("TEST2", progressor)
-			manager.Attach("TEST3", progressor)
+		return manager, writeBuffer
+	}
 
-			So(len(manager.bars), ShouldEqual, 3)
+	t.Run("adding 3 bars", func(t *testing.T) {
+		manager, writeBuffer := setup()
+		assert.Len(t, manager.bars, 3)
 
-			Convey("should write all three bars ar once", func() {
-				manager.renderAllBars()
-				writtenString := writeBuffer.String()
-				So(writtenString, ShouldContainSubstring, "TEST1")
-				So(writtenString, ShouldContainSubstring, "TEST2")
-				So(writtenString, ShouldContainSubstring, "TEST3")
-			})
+		manager.renderAllBars()
+		writtenString := writeBuffer.String()
+		assert.Contains(t, writtenString, "TEST1")
+		assert.Contains(t, writtenString, "TEST2")
+		assert.Contains(t, writtenString, "TEST3")
+	})
 
-			Convey("detaching the second bar", func() {
-				manager.Detach("TEST2")
-				So(len(manager.bars), ShouldEqual, 2)
+	t.Run("detaching the second bar", func(t *testing.T) {
+		manager, writeBuffer := setup()
+		assert.Len(t, manager.bars, 3)
 
-				Convey("should print 1,3", func() {
-					manager.renderAllBars()
-					writtenString := writeBuffer.String()
-					So(writtenString, ShouldContainSubstring, "TEST1")
-					So(writtenString, ShouldNotContainSubstring, "TEST2")
-					So(writtenString, ShouldContainSubstring, "TEST3")
-					So(
-						strings.Index(writtenString, "TEST1"),
-						ShouldBeLessThan,
-						strings.Index(writtenString, "TEST3"),
-					)
-				})
+		manager.Detach("TEST2")
+		assert.Len(t, manager.bars, 2)
 
-				Convey("but adding a new bar should print 1,2,4", func() {
-					manager.Attach("TEST4", progressor)
+		manager.renderAllBars()
+		writtenString := writeBuffer.String()
+		assert.Contains(t, writtenString, "TEST1")
+		assert.NotContains(t, writtenString, "TEST2")
+		assert.Contains(t, writtenString, "TEST3")
+		assert.Less(
+			t,
+			strings.Index(writtenString, "TEST1"),
+			strings.Index(writtenString, "TEST3"),
+		)
 
-					So(len(manager.bars), ShouldEqual, 3)
-					manager.renderAllBars()
-					writtenString := writeBuffer.String()
-					So(writtenString, ShouldContainSubstring, "TEST1")
-					So(writtenString, ShouldNotContainSubstring, "TEST2")
-					So(writtenString, ShouldContainSubstring, "TEST3")
-					So(writtenString, ShouldContainSubstring, "TEST4")
-					So(
-						strings.Index(writtenString, "TEST1"),
-						ShouldBeLessThan,
-						strings.Index(writtenString, "TEST3"),
-					)
-					So(
-						strings.Index(writtenString, "TEST3"),
-						ShouldBeLessThan,
-						strings.Index(writtenString, "TEST4"),
-					)
-				})
-				Reset(func() { writeBuffer.Reset() })
+		writeBuffer.Reset()
 
-			})
-			Reset(func() { writeBuffer.Reset() })
+		t.Run("adding a new bar after should print 1,3,4", func(t *testing.T) {
+			manager.Attach("TEST4", NewCounter(10))
+			assert.Len(t, manager.bars, 3)
+
+			manager.renderAllBars()
+			writtenString := writeBuffer.String()
+			assert.Contains(t, writtenString, "TEST1")
+			assert.NotContains(t, writtenString, "TEST2")
+			assert.Contains(t, writtenString, "TEST3")
+			assert.Contains(t, writtenString, "TEST4")
+
+			assert.Less(
+				t,
+				strings.Index(writtenString, "TEST1"),
+				strings.Index(writtenString, "TEST3"),
+			)
+			assert.Less(
+				t,
+				strings.Index(writtenString, "TEST3"),
+				strings.Index(writtenString, "TEST4"),
+			)
 		})
 	})
 }
@@ -118,80 +119,71 @@ func TestManagerStartAndStop(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	writeBuffer := new(safeBuffer)
-	var manager *BarWriter
 
-	Convey("With a progress.BarWriter with a waitTime of 10 ms and one bar", t, func() {
-		manager = NewBarWriter(writeBuffer, time.Millisecond*10, 10, false)
-		So(manager, ShouldNotBeNil)
-		watching := NewCounter(10)
-		watching.Inc(5)
-		manager.Attach("TEST", watching)
+	manager := NewBarWriter(writeBuffer, 10*time.Millisecond, 10, false)
+	require.NotNil(t, manager)
 
-		So(manager.waitTime, ShouldEqual, time.Millisecond*10)
-		So(len(manager.bars), ShouldEqual, 1)
+	watching := NewCounter(10)
+	watching.Inc(5)
+	manager.Attach("TEST", watching)
 
-		Convey("running the manager for 100 ms and stopping", func() {
-			manager.Start()
-			time.Sleep(
-				time.Millisecond * 100,
-			) // enough time for the manager to write at least 4 times
-			manager.Stop()
+	assert.Equal(t, 10*time.Millisecond, manager.waitTime)
+	assert.Len(t, manager.bars, 1)
 
-			Convey("should generate 4 writes of the bar", func() {
-				output := writeBuffer.String()
-				So(strings.Count(output, "TEST"), ShouldBeGreaterThanOrEqualTo, 4)
-			})
+	t.Run("running the manager for 100 ms and stopping", func(t *testing.T) {
+		manager.Start()
+		// enough time for the manager to write at least 4 times
+		time.Sleep(time.Millisecond * 100)
+		manager.Stop()
 
-			Convey("starting and stopping the manager again should not panic", func() {
-				So(manager.Start, ShouldNotPanic)
-				So(manager.Stop, ShouldNotPanic)
-			})
-		})
+		output := writeBuffer.String()
+		assert.GreaterOrEqual(t, strings.Count(output, "TEST"), 4)
+	})
+
+	t.Run("start+stop the manager again", func(t *testing.T) {
+		assert.NotPanics(t, manager.Start)
+		assert.NotPanics(t, manager.Stop)
 	})
 }
 
 func TestNumberOfWrites(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	var cw *CountWriter
-	var manager *BarWriter
-	Convey("With a test manager and counting writer", t, func() {
-		cw = new(CountWriter)
-		manager = NewBarWriter(cw, time.Millisecond*10, 10, false)
-		So(manager, ShouldNotBeNil)
+	setup := func() (*BarWriter, *CountWriter) {
+		cw := new(CountWriter)
+		manager := NewBarWriter(cw, time.Millisecond*10, 10, false)
+		require.NotNil(t, manager)
 
 		manager.Attach("1", NewCounter(10))
+		return manager, cw
+	}
 
-		Convey("with one attached bar", func() {
-			So(len(manager.bars), ShouldEqual, 1)
+	t.Run("with one attached bar", func(t *testing.T) {
+		manager, cw := setup()
+		assert.Len(t, manager.bars, 1)
 
-			Convey("only one write should be made per render", func() {
-				manager.renderAllBars()
-				So(cw.Count(), ShouldEqual, 1)
-			})
-		})
+		manager.renderAllBars()
+		assert.Equal(t, 1, cw.Count(), "one write per render")
+	})
 
-		Convey("with two bars attached", func() {
-			manager.Attach("2", NewCounter(10))
-			So(len(manager.bars), ShouldEqual, 2)
+	t.Run("with two bars attached", func(t *testing.T) {
+		manager, cw := setup()
+		manager.Attach("2", NewCounter(10))
+		assert.Len(t, manager.bars, 2)
 
-			Convey("three writes should be made per render, since an empty write is added", func() {
-				manager.renderAllBars()
-				So(cw.Count(), ShouldEqual, 3)
-			})
-		})
+		manager.renderAllBars()
+		assert.Equal(t, 3, cw.Count(), "one write per render plus an empty write")
+	})
 
-		Convey("with 57 bars attached", func() {
-			for i := 2; i <= 57; i++ {
-				manager.Attach(strconv.Itoa(i), NewCounter(10))
-			}
-			So(len(manager.bars), ShouldEqual, 57)
+	t.Run("with 57 bars attached", func(t *testing.T) {
+		manager, cw := setup()
+		for i := 2; i <= 57; i++ {
+			manager.Attach(strconv.Itoa(i), NewCounter(10))
+		}
+		assert.Len(t, manager.bars, 57)
 
-			Convey("58 writes should be made per render, since an empty write is added", func() {
-				manager.renderAllBars()
-				So(cw.Count(), ShouldEqual, 58)
-			})
-		})
+		manager.renderAllBars()
+		assert.Equal(t, 58, cw.Count(), "one write per render plus an empty write")
 	})
 }
 
