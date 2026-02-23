@@ -893,6 +893,14 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 	//nolint:errcheck
 	defer session.Disconnect(ctx)
 
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
+		if err != nil {
+			t.Errorf("error getting FCV: %v", err)
+		}
+		t.Skipf("Requires server with FCV 6.0 or later; found %v", fcv)
+	}
+
 	// Prepare the test by creating the necessary collection.
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
 

@@ -420,6 +420,15 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
+	require.NoError(t, err)
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
+		if err != nil {
+			t.Errorf("error getting FCV: %v", err)
+		}
+		t.Skipf("Requires server with FCV 6.0 or later; found %v", fcv)
+	}
 
 	testCollName := testCollectionNames[0]
 	err = session.Database(testDB).Collection(testCollName).Drop(ctx)
