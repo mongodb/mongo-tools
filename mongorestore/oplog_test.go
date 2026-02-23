@@ -880,3 +880,54 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 		assert.Equal(t, int64(3), count)
 	}
 }
+
+func TestOplogRestoreCollModTTLIndex(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	// Prepare the test by creating the necessary collection.
+	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+
+	args := []string{
+		DirectoryOption, "testdata/collMod_ttl_index",
+		OplogReplayOption,
+		DropOption,
+	}
+
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err)
+	defer restore.Close()
+
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err)
+	require.Equal(t, int64(0), result.Failures)
+
+	db := session.Database("mongodump_test_db")
+
+	cursor, err := db.RunCommandCursor(ctx, bson.D{
+		{"listIndexes", "coll1"},
+	})
+	require.NoError(t, err)
+
+	var indexSpecs []bson.M
+	require.NoError(t, cursor.All(ctx, &indexSpecs))
+
+	require.Len(t, indexSpecs, 2)
+
+	for _, indexSpec := range indexSpecs {
+		if indexSpec["name"] != "_id_" {
+			expireAfterSeconds, ok := indexSpec["expireAfterSeconds"].(int32)
+			require.True(t, ok)
+			require.EqualValues(t, 1000, expireAfterSeconds)
+		}
+	}
+}
