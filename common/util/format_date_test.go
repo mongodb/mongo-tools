@@ -10,45 +10,27 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFormatDate(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("will take valid format 2006-01-02T15:04:05.000Z", t, func() {
-		_, err := FormatDate("2014-01-02T15:04:05.000Z")
-		So(err, ShouldBeNil)
-	})
+	validDates := []string{
+		"2014-01-02T15:04:05.000Z",
+		"2014-03-02T15:05:05Z",
+		"2014-04-02T15:04Z",
+		"2014-04-02T15:04-0800",
+		"2014-04-02T15:04:05.000-0600",
+		"2014-04-02T15:04:05-0500",
+	}
 
-	Convey("will take valid format 2006-01-02T15:04:05Z", t, func() {
-		_, err := FormatDate("2014-03-02T15:05:05Z")
-		So(err, ShouldBeNil)
-	})
+	for _, date := range validDates {
+		_, err := FormatDate(date)
+		require.NoError(t, err, date)
+	}
 
-	Convey("will take valid format 2006-01-02T15:04Z", t, func() {
-		_, err := FormatDate("2014-04-02T15:04Z")
-		So(err, ShouldBeNil)
-	})
-
-	Convey("will take valid format 2006-01-02T15:04-0700", t, func() {
-		_, err := FormatDate("2014-04-02T15:04-0800")
-		So(err, ShouldBeNil)
-	})
-
-	Convey("will take valid format 2006-01-02T15:04:05.000-0700", t, func() {
-		_, err := FormatDate("2014-04-02T15:04:05.000-0600")
-		So(err, ShouldBeNil)
-	})
-
-	Convey("will take valid format 2006-01-02T15:04:05-0700", t, func() {
-		_, err := FormatDate("2014-04-02T15:04:05-0500")
-		So(err, ShouldBeNil)
-	})
-
-	Convey("will return an error for an invalid format", t, func() {
-		_, err := FormatDate("invalid string format")
-		So(err, ShouldNotBeNil)
-	})
-
+	// and one invalid test
+	_, err := FormatDate("invalid string format")
+	require.Error(t, err)
 }

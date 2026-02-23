@@ -11,70 +11,76 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNumberConverter(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a number converter for float32", t, func() {
-		floatConverter := newNumberConverter(reflect.TypeOf(float32(0)))
+	floatConverter := newNumberConverter(reflect.TypeOf(float32(0)))
 
-		Convey("numeric values should be convertable", func() {
-			out, err := floatConverter(21)
-			So(err, ShouldEqual, nil)
-			So(out, ShouldEqual, 21.0)
-			out, err = floatConverter(uint64(21))
-			So(err, ShouldEqual, nil)
-			So(out, ShouldEqual, 21.0)
-			out, err = floatConverter(float64(27.52))
-			So(err, ShouldEqual, nil)
-			// There may be some floating point rounding errors so we cannot
-			// compare the values exactly.
-			So(out, ShouldAlmostEqual, 27.52, 0.000001)
-		})
+	t.Run("numeric values", func(t *testing.T) {
+		out, err := floatConverter(21)
+		require.NoError(t, err)
+		assert.Equal(t, float32(21.0), out)
 
-		Convey("non-numeric values should fail", func() {
-			_, err := floatConverter("I AM A STRING")
-			So(err, ShouldNotBeNil)
-			_, err = floatConverter(struct{ int }{12})
-			So(err, ShouldNotBeNil)
-			_, err = floatConverter(nil)
-			So(err, ShouldNotBeNil)
-		})
+		out, err = floatConverter(uint64(21))
+		require.NoError(t, err)
+		assert.Equal(t, float32(21.0), out)
+
+		out, err = floatConverter(float64(27.52))
+		require.NoError(t, err)
+		// There may be some floating point rounding errors so we cannot
+		// compare the values exactly.
+		assert.InDelta(t, float32(27.52), out, 0.000001)
+	})
+
+	t.Run("non-numeric values", func(t *testing.T) {
+		_, err := floatConverter("I AM A STRING")
+		require.Error(t, err)
+		_, err = floatConverter(struct{ int }{12})
+		require.Error(t, err)
+		_, err = floatConverter(nil)
+		require.Error(t, err)
 	})
 }
 
 func TestUInt32Converter(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a series of test values, conversions should pass", t, func() {
+	t.Run("numeric values", func(t *testing.T) {
 		out, err := ToUInt32(int64(99))
-		So(err, ShouldEqual, nil)
-		So(out, ShouldEqual, uint32(99))
-		out, err = ToUInt32(int32(99))
-		So(err, ShouldEqual, nil)
-		So(out, ShouldEqual, uint32(99))
-		out, err = ToUInt32(float32(99))
-		So(err, ShouldEqual, nil)
-		So(out, ShouldEqual, uint32(99))
-		out, err = ToUInt32(float64(99))
-		So(err, ShouldEqual, nil)
-		So(out, ShouldEqual, uint32(99))
-		out, err = ToUInt32(uint64(99))
-		So(err, ShouldEqual, nil)
-		So(out, ShouldEqual, uint32(99))
-		out, err = ToUInt32(uint32(99))
-		So(err, ShouldEqual, nil)
-		So(out, ShouldEqual, uint32(99))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(99), out)
 
-		Convey("but non-numeric inputs will fail", func() {
-			_, err = ToUInt32(nil)
-			So(err, ShouldNotBeNil)
-			_, err = ToUInt32("string")
-			So(err, ShouldNotBeNil)
-			_, err = ToUInt32([]byte{1, 2, 3, 4})
-			So(err, ShouldNotBeNil)
-		})
+		out, err = ToUInt32(int32(99))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(99), out)
+
+		out, err = ToUInt32(float32(99))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(99), out)
+
+		out, err = ToUInt32(float64(99))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(99), out)
+
+		out, err = ToUInt32(uint64(99))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(99), out)
+
+		out, err = ToUInt32(uint32(99))
+		require.NoError(t, err)
+		assert.Equal(t, uint32(99), out)
+	})
+
+	t.Run("non-numeric ivalues", func(t *testing.T) {
+		_, err := ToUInt32(nil)
+		require.Error(t, err)
+		_, err = ToUInt32("string")
+		require.Error(t, err)
+		_, err = ToUInt32([]byte{1, 2, 3, 4})
+		require.Error(t, err)
 	})
 }

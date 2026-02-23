@@ -11,82 +11,61 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSplitHostArg(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When extracting the replica set and hosts from a connection"+
-		" host arg", t, func() {
-
-		Convey("an empty host arg should lead to an empty replica set name"+
-			" and hosts slice", func() {
-			hosts, setName := SplitHostArg("")
-			So(hosts, ShouldResemble, []string{""})
-			So(setName, ShouldEqual, "")
-		})
-
-		Convey("a trailing slsah should lead to a replica set name"+
-			" and empty hosts", func() {
-			hosts, setName := SplitHostArg("foo/")
-			So(hosts, ShouldResemble, []string{""})
-			So(setName, ShouldEqual, "foo")
-		})
-
-		Convey("a host arg not specifying a replica set name should lead to"+
-			" an empty replica set name", func() {
-			hosts, setName := SplitHostArg("host1,host2")
-			So(hosts, ShouldResemble, []string{"host1", "host2"})
-			So(setName, ShouldEqual, "")
-		})
-
-		Convey("a host arg specifying a replica set name should lead to that name"+
-			" being returned", func() {
-			hosts, setName := SplitHostArg("foo/host1,host2")
-			So(hosts, ShouldResemble, []string{"host1", "host2"})
-			So(setName, ShouldEqual, "foo")
-		})
-
-		Convey("a host arg shouldn't have host order altered"+
-			" being returned", func() {
-			hosts, setName := SplitHostArg("foo/host2,host1")
-			So(hosts, ShouldResemble, []string{"host2", "host1"})
-			So(setName, ShouldEqual, "foo")
-		})
-
-		Convey("a host arg with host/port pairs should preserve the pairs"+
-			" in the return", func() {
-			hosts, setName := SplitHostArg("foo/host1:27017,host2:27017")
-			So(hosts, ShouldResemble, []string{"host1:27017", "host2:27017"})
-			So(setName, ShouldEqual, "foo")
-		})
-
+	t.Run("empty host", func(t *testing.T) {
+		hosts, setName := SplitHostArg("")
+		assert.Equal(t, []string{""}, hosts, "empty host slice")
+		assert.Equal(t, "", setName, "empty replica set name")
 	})
 
+	t.Run("trailing slash", func(t *testing.T) {
+		hosts, setName := SplitHostArg("foo/")
+		assert.Equal(t, []string{""}, hosts, "empty host slice")
+		assert.Equal(t, "foo", setName, "replica set name")
+	})
+
+	t.Run("host arg with no replica set name", func(t *testing.T) {
+		hosts, setName := SplitHostArg("host1,host2")
+		assert.Equal(t, []string{"host1", "host2"}, hosts, "host slice")
+		assert.Equal(t, "", setName, "empty replica set name")
+	})
+
+	t.Run("host arg with replica set name", func(t *testing.T) {
+		hosts, setName := SplitHostArg("foo/host1,host2")
+		assert.Equal(t, []string{"host1", "host2"}, hosts, "host slice")
+		assert.Equal(t, "foo", setName, "replica set name")
+	})
+
+	t.Run("host arg order", func(t *testing.T) {
+		hosts, setName := SplitHostArg("foo/host2,host1")
+		assert.Equal(t, []string{"host2", "host1"}, hosts, "host slice")
+		assert.Equal(t, "foo", setName, "replica set name")
+	})
+
+	t.Run("host+port pairs", func(t *testing.T) {
+		hosts, setName := SplitHostArg("foo/host1:27017,host2:27017")
+		assert.Equal(t, []string{"host1:27017", "host2:27017"}, hosts, "host slice")
+		assert.Equal(t, "foo", setName, "replica set name")
+	})
 }
 
 func TestCreateConnectionAddrs(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When creating the slice of connection addresses", t, func() {
+	t.Run("with no port", func(t *testing.T) {
+		addrs := CreateConnectionAddrs("host1,host2", "")
+		assert.Equal(t, []string{"host1", "host2"}, addrs, "no port in hosts")
+	})
 
-		Convey("if no port is specified, the addresses should all appear"+
-			" unmodified in the result", func() {
-
-			addrs := CreateConnectionAddrs("host1,host2", "")
-			So(addrs, ShouldResemble, []string{"host1", "host2"})
-
-		})
-
-		Convey("if a port is specified, it should be appended to each host"+
-			" from the host connection string", func() {
-
-			addrs := CreateConnectionAddrs("host1,host2", "20000")
-			So(addrs, ShouldResemble, []string{"host1:20000", "host2:20000"})
-
-		})
-
+	t.Run("with port", func(t *testing.T) {
+		addrs := CreateConnectionAddrs("host1,host2", "20000")
+		assert.Equal(t, []string{"host1:20000", "host2:20000"}, addrs, "port appended to hosts")
 	})
 
 }
@@ -94,75 +73,70 @@ func TestCreateConnectionAddrs(t *testing.T) {
 func TestBuildURI(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Generating URIs from host and port arguments", t, func() {
-		cases := []struct{ h, p, u string }{
-			{h: "", p: "", u: "mongodb://localhost/"},
-			{h: "host1", p: "", u: "mongodb://host1/"},
-			{h: "", p: "33333", u: "mongodb://localhost:33333/"},
-			{h: "host1", p: "33333", u: "mongodb://host1:33333/"},
-			{h: "host1,host2", p: "33333", u: "mongodb://host1:33333,host2:33333/"},
-			{h: "host1,host2:27017", p: "33333", u: "mongodb://host1:33333,host2:27017/"},
-			{h: "foo/", p: "", u: "mongodb://localhost/?replicaSet=foo"},
-			{h: "foo/", p: "33333", u: "mongodb://localhost:33333/?replicaSet=foo"},
-			{
-				h: "foo/host1,host2:27017",
-				p: "33333",
-				u: "mongodb://host1:33333,host2:27017/?replicaSet=foo",
-			},
-		}
+	cases := []struct{ h, p, u string }{
+		{h: "", p: "", u: "mongodb://localhost/"},
+		{h: "host1", p: "", u: "mongodb://host1/"},
+		{h: "", p: "33333", u: "mongodb://localhost:33333/"},
+		{h: "host1", p: "33333", u: "mongodb://host1:33333/"},
+		{h: "host1,host2", p: "33333", u: "mongodb://host1:33333,host2:33333/"},
+		{h: "host1,host2:27017", p: "33333", u: "mongodb://host1:33333,host2:27017/"},
+		{h: "foo/", p: "", u: "mongodb://localhost/?replicaSet=foo"},
+		{h: "foo/", p: "33333", u: "mongodb://localhost:33333/?replicaSet=foo"},
+		{
+			h: "foo/host1,host2:27017",
+			p: "33333",
+			u: "mongodb://host1:33333,host2:27017/?replicaSet=foo",
+		},
+	}
 
-		for _, c := range cases {
-			label := fmt.Sprintf("'%s', '%s' should give '%s'", c.h, c.p, c.u)
-			Convey(label, func() {
-				got := BuildURI(c.h, c.p)
-				So(got, ShouldEqual, c.u)
-			})
-		}
-	})
+	for _, c := range cases {
+		label := fmt.Sprintf("'%s', '%s'", c.h, c.p)
+		t.Run(label, func(t *testing.T) {
+			got := BuildURI(c.h, c.p)
+			assert.Equal(t, c.u, got)
+		})
+	}
 }
 
 func TestInvalidNames(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Checking some invalid collection names, ", t, func() {
-		Convey("test.col$ is invalid", func() {
-			So(ValidateDBName("test"), ShouldBeNil)
-			So(ValidateCollectionName("col$"), ShouldNotBeNil)
-			So(ValidateFullNamespace("test.col$"), ShouldNotBeNil)
-		})
-		Convey("db/aaa.col is invalid", func() {
-			So(ValidateDBName("db/aaa"), ShouldNotBeNil)
-			So(ValidateCollectionName("col"), ShouldBeNil)
-			So(ValidateFullNamespace("db/aaa.col"), ShouldNotBeNil)
-		})
-		Convey("db. is invalid", func() {
-			So(ValidateDBName("db"), ShouldBeNil)
-			So(ValidateCollectionName(""), ShouldNotBeNil)
-			So(ValidateFullNamespace("db."), ShouldNotBeNil)
-		})
-		Convey("db space.col is invalid", func() {
-			So(ValidateDBName("db space"), ShouldNotBeNil)
-			So(ValidateCollectionName("col"), ShouldBeNil)
-			So(ValidateFullNamespace("db space.col"), ShouldNotBeNil)
-		})
-		Convey("db x$x is invalid", func() {
-			So(ValidateDBName("x$x"), ShouldNotBeNil)
-			So(ValidateFullNamespace("x$x.y"), ShouldNotBeNil)
-		})
-		Convey("[null].[null] is invalid", func() {
-			So(ValidateDBName("\x00"), ShouldNotBeNil)
-			So(ValidateCollectionName("\x00"), ShouldNotBeNil)
-			So(ValidateFullNamespace("\x00.\x00"), ShouldNotBeNil)
-		})
-		Convey("[empty] is invalid", func() {
-			So(ValidateFullNamespace(""), ShouldNotBeNil)
-		})
-		Convey("db.col is valid", func() {
-			So(ValidateDBName("db"), ShouldBeNil)
-			So(ValidateCollectionName("col"), ShouldBeNil)
-			So(ValidateFullNamespace("db.col"), ShouldBeNil)
-		})
-
+	t.Run("test.col$ is invalid", func(t *testing.T) {
+		require.NoError(t, ValidateDBName("test"))
+		require.Error(t, ValidateCollectionName("col$"))
+		require.Error(t, ValidateFullNamespace("test.col$"))
 	})
 
+	t.Run("db/aaa.col is invalid", func(t *testing.T) {
+		require.Error(t, ValidateDBName("db/aaa"))
+		require.NoError(t, ValidateCollectionName("col"))
+		require.Error(t, ValidateFullNamespace("db/aaa.col"))
+	})
+	t.Run("db. is invalid", func(t *testing.T) {
+		require.NoError(t, ValidateDBName("db"))
+		require.Error(t, ValidateCollectionName(""))
+		require.Error(t, ValidateFullNamespace("db."))
+	})
+	t.Run("db space.col is invalid", func(t *testing.T) {
+		require.Error(t, ValidateDBName("db space"))
+		require.NoError(t, ValidateCollectionName("col"))
+		require.Error(t, ValidateFullNamespace("db space.col"))
+	})
+	t.Run("db x$x is invalid", func(t *testing.T) {
+		require.Error(t, ValidateDBName("x$x"))
+		require.Error(t, ValidateFullNamespace("x$x.y"))
+	})
+	t.Run("[null].[null] is invalid", func(t *testing.T) {
+		require.Error(t, ValidateDBName("\x00"))
+		require.Error(t, ValidateCollectionName("\x00"))
+		require.Error(t, ValidateFullNamespace("\x00.\x00"))
+	})
+	t.Run("[empty] is invalid", func(t *testing.T) {
+		require.Error(t, ValidateFullNamespace(""))
+	})
+	t.Run("db.col is valid", func(t *testing.T) {
+		require.NoError(t, ValidateDBName("db"))
+		require.NoError(t, ValidateCollectionName("col"))
+		require.NoError(t, ValidateFullNamespace("db.col"))
+	})
 }

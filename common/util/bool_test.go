@@ -11,58 +11,49 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestJSTruthyValues(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With some sample values", t, func() {
-		Convey("known server code edge cases are correct", func() {
-			Convey("true -> true", func() {
-				So(IsTruthy(true), ShouldBeTrue)
-			})
-			Convey("{} -> true", func() {
-				var myMap map[string]any
-				So(IsTruthy(myMap), ShouldBeTrue)
-				myMap = map[string]any{"a": 1}
-				So(IsTruthy(myMap), ShouldBeTrue)
-			})
-			Convey("[] -> true", func() {
-				var mySlice []byte
-				So(IsTruthy(mySlice), ShouldBeTrue)
-				mySlice = []byte{21, 12}
-				So(IsTruthy(mySlice), ShouldBeTrue)
-			})
-			Convey(`"" -> true`, func() {
-				So(IsTruthy(""), ShouldBeTrue)
-			})
-			Convey("false -> false", func() {
-				So(IsTruthy(false), ShouldBeFalse)
-			})
-			Convey("0 -> false", func() {
-				So(IsTruthy(0), ShouldBeFalse)
-			})
-			Convey("0.0 -> false", func() {
-				So(IsTruthy(float64(0)), ShouldBeFalse)
-			})
-			Convey("nil -> false", func() {
-				So(IsTruthy(nil), ShouldBeFalse)
-			})
-			Convey("undefined -> false", func() {
-				So(IsTruthy(bson.Undefined{}), ShouldBeFalse)
-			})
-		})
+	trueCases := []any{
+		// some edge cases
+		true,
+		map[string]any(nil),
+		map[string]any{"a": 1},
+		[]byte(nil),
+		[]byte{21, 12},
+		"",
+		math.NaN(),
 
-		Convey("and an assortment of non-edge cases are correct", func() {
-			So(IsTruthy([]int{1, 2, 3}), ShouldBeTrue)
-			So(IsTruthy("true"), ShouldBeTrue)
-			So(IsTruthy("false"), ShouldBeTrue)
-			So(IsTruthy(25), ShouldBeTrue)
-			So(IsTruthy(math.NaN()), ShouldBeTrue)
-			So(IsTruthy(25.1), ShouldBeTrue)
-			So(IsTruthy(struct{ A int }{A: 12}), ShouldBeTrue)
-		})
+		// normal cases
+		[]int{1, 2, 3},
+		"true",
+		"false",
+		25,
+		25.1,
+		struct{ A int }{A: 12},
+	}
+
+	falseCases := []any{
+		false,
+		0,
+		float64(0),
+		nil,
+		bson.Undefined{},
+	}
+
+	t.Run("truthy cases", func(t *testing.T) {
+		for _, val := range trueCases {
+			assert.True(t, IsTruthy(val), "%v -> true", val)
+		}
+	})
+
+	t.Run("falsy cases", func(t *testing.T) {
+		for _, val := range falseCases {
+			assert.False(t, IsTruthy(val), "%v -> false", val)
+		}
 	})
 }
