@@ -1547,10 +1547,31 @@ func unzip(src, dst string) {
 	check(err, "open zip file")
 	defer reader.Close()
 
-	for _, f := range reader.File {
-		fmt.Printf("extracting %v\n", f.Name)
+	// Ensure the destination directory is an absolute, cleaned path.
+	dstAbs, err := filepath.Abs(dst)
+	check(err, "get absolute path for zip destination")
 
-		path := filepath.Join(dst, f.Name)
+	for _, f := range reader.File {
+		if f.Name == "" {
+			continue
+		}
+
+		// Prevent absolute paths and path traversal in archive entries.
+		if filepath.IsAbs(f.Name) {
+			log.Printf("skipping absolute path in zip entry: %q", f.Name)
+			continue
+		}
+
+		path, err := filepath.Abs(filepath.Join(dst, f.Name))
+		check(err, "get absolute path for zip entry")
+
+		// Ensure the resulting path is within the destination directory.
+		if !strings.HasPrefix(path, dstAbs+string(os.PathSeparator)) {
+			log.Printf("skipping potential Zip Slip entry %q resolved to %q", f.Name, path)
+			continue
+		}
+
+		fmt.Printf("extracting %v\n", f.Name)
 
 		if f.FileInfo().IsDir() {
 			err = os.MkdirAll(path, os.ModePerm)
