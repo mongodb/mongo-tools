@@ -176,6 +176,23 @@ func CompareFCV(x, y string) (int, error) {
 	return 0, nil
 }
 
+func SkipIfFCVLessThan(t *testing.T, versionStr string, reason string) {
+	session, err := GetBareSession()
+	require.NoError(t, err)
+
+	fcv := GetFCV(session)
+	if cmp, err := CompareFCV(fcv, versionStr); err != nil || cmp < 0 {
+		if err != nil {
+			t.Errorf("error getting FCV: %v", err)
+		}
+		t.Skipf(
+			"Skipping test because %s. Requires server with FCV 6.0 or later; found %v",
+			reason,
+			fcv,
+		)
+	}
+}
+
 func dottedStringToSlice(s string) ([]int, error) {
 	parts := make([]int, 0, 2)
 	for _, v := range strings.Split(s, ".") {
