@@ -426,8 +426,13 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 	ctx, cancel := restore.writeContext()
 	defer cancel()
 
-	singleRes := session.Database("admin").
-		RunCommand(ctx, bson.D{{"applyOps", []db.Oplog{op}}})
+	singleRes := session.Database("admin").RunCommand(
+		ctx,
+		bson.D{
+			{"applyOps", []db.Oplog{op}},
+			{"bypassDocumentValidation", restore.OutputOptions.BypassDocumentValidation},
+		},
+	)
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
 	}

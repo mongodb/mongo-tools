@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -766,4 +767,116 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 		i++
 	}
 	require.Equal(t, len(expectedDocs), i)
+}
+
+func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
+		if err != nil {
+			t.Errorf("error getting FCV: %v", err)
+		}
+		t.Skipf("Requires server with FCV 6.0 or later; found %v", fcv)
+	}
+
+	// Prepare the test by creating the necessary collection.
+	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
+
+	oplogFileName := "testdata/oplogs/bson/collMod_prepareUnique.bson"
+
+	args := []string{
+		DirectoryOption, "testdata/coll_without_index",
+		OplogReplayOption,
+		DropOption,
+		OplogFileOption, oplogFileName,
+	}
+
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err)
+	defer restore.Close()
+
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err)
+	require.Equal(t, int64(0), result.Failures)
+
+	db := session.Database("mongodump_test_db")
+
+	cursor, err := db.RunCommandCursor(ctx, bson.D{
+		{"listIndexes", "coll1"},
+	})
+	require.NoError(t, err)
+
+	var indexSpecs []bson.M
+	require.NoError(t, cursor.All(ctx, &indexSpecs))
+
+	require.Len(t, indexSpecs, 5)
+
+	for _, indexSpec := range indexSpecs {
+		if indexSpec["name"] != "_id_" {
+			prepareUnique, ok := indexSpec["prepareUnique"].(bool)
+			require.True(t, ok)
+			require.True(t, prepareUnique)
+		}
+	}
+}
+
+func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		t.Fatalf("Failed to get session: %v", err)
+	}
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	// Prepare the test by creating the necessary collection.
+	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+
+	oplogFileName := "testdata/oplogs/bson/bypassDocumentValidation.bson"
+
+	for _, bypass := range []bool{false, true} {
+		args := []string{
+			DirectoryOption, "testdata/coll_without_index",
+			OplogReplayOption,
+			DropOption,
+			OplogFileOption, oplogFileName,
+		}
+
+		if bypass {
+			args = append(args, BypassDocumentValidationOption)
+		}
+
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err)
+		defer restore.Close()
+
+		// Run mongorestore
+		result := restore.Restore()
+		if !bypass {
+			require.Error(t, result.Err)
+			continue
+		}
+
+		require.NoError(t, result.Err)
+		count, err := session.Database("mongodump_test_db").
+			Collection("coll1").
+			CountDocuments(ctx, bson.D{})
+		require.NoError(t, err)
+		assert.Equal(t, int64(3), count)
+	}
 }
