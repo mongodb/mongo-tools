@@ -108,7 +108,7 @@ func TestBasicMux(t *testing.T) {
 		demuxOuts := map[string]*RegularCollectionReceiver{}
 
 		errChan := make(chan error)
-		makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, errChan)
+		makeOuts(t, testIntents, demux, outChecksum, demuxOuts, outLengths, errChan)
 
 		err := demux.Run()
 		require.NoError(t, err)
@@ -153,7 +153,7 @@ func TestParallelMuxOverPipe(t *testing.T) {
 	readErrChan := make(chan error)
 
 	makeIns(testIntents, mux, inChecksum, muxIns, inLengths, writeErrChan)
-	makeOuts(testIntents, demux, outChecksum, demuxOuts, outLengths, readErrChan)
+	makeOuts(t, testIntents, demux, outChecksum, demuxOuts, outLengths, readErrChan)
 
 	var eg errgroup.Group
 
@@ -229,6 +229,7 @@ func makeIns(
 }
 
 func makeOuts(
+	t *testing.T,
 	testIntents []*intents.Intent,
 	demux *Demultiplexer,
 	outChecksum map[string]hash.Hash,
@@ -251,10 +252,8 @@ func makeOuts(
 		outLengths[ns] = &outLength
 
 		err := demuxOuts[ns].Open()
-		if err != nil {
-			// TODO
-			panic(err)
-		}
+		require.NoError(t, err)
+
 		go func() {
 			bs := make([]byte, db.MaxBSONSize)
 			var err error
