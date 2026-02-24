@@ -185,7 +185,11 @@ func SkipIfFCVLessThan(t *testing.T, versionStr string, reason string) {
 		if err != nil {
 			t.Errorf("error getting FCV: %v", err)
 		}
-		t.Skipf("Skipping test because %s. Requires server with FCV 6.0 or later; found %v", reason, fcv)
+		t.Skipf(
+			"Skipping test because %s. Requires server with FCV 6.0 or later; found %v",
+			reason,
+			fcv,
+		)
 	}
 }
 
