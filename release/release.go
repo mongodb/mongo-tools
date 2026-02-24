@@ -1553,7 +1553,6 @@ func unzip(src, dst string) {
 
 	for _, f := range reader.File {
 		if f.Name == "" {
-			// Skip entries with empty names.
 			continue
 		}
 
@@ -1563,28 +1562,27 @@ func unzip(src, dst string) {
 			continue
 		}
 
-		joinedPath := filepath.Join(dst, f.Name)
-		absPath, err := filepath.Abs(joinedPath)
+		path, err := filepath.Abs(filepath.Join(dst, f.Name))
 		check(err, "get absolute path for zip entry")
 
 		// Ensure the resulting path is within the destination directory.
-		if absPath != dstAbs && !strings.HasPrefix(absPath, dstAbs+string(os.PathSeparator)) {
-			log.Printf("skipping potential Zip Slip entry %q resolved to %q", f.Name, absPath)
+		if !strings.HasPrefix(path, dstAbs+string(os.PathSeparator)) {
+			log.Printf("skipping potential Zip Slip entry %q resolved to %q", f.Name, path)
 			continue
 		}
 
 		fmt.Printf("extracting %v\n", f.Name)
 
 		if f.FileInfo().IsDir() {
-			err = os.MkdirAll(absPath, os.ModePerm)
+			err = os.MkdirAll(path, os.ModePerm)
 			check(err, "create directory for extracting zip")
 			continue
 		}
 
-		err = os.MkdirAll(filepath.Dir(absPath), os.ModePerm)
+		err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
 		check(err, "create directory for extracting zip")
 
-		destinationFile, err := os.OpenFile(absPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		destinationFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		check(err, "open file for extracting zip")
 
 		archiveFile, err := f.Open()
