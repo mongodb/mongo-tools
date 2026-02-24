@@ -412,23 +412,18 @@ func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context,
 	}
 }
 
+// This test is here so that we can regenerate the oplog.bson file for the mongorestore test
+// `TestOplogRestoreCollModTTLIndex`.
 func TestOplogDumpCollModTTL(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+	testutil.SkipIfFCVLessThan(t, "6.0", "collMod TTL is not supported")
 
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
 	require.NoError(t, err)
-
-	fcv := testutil.GetFCV(session)
-	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
-		if err != nil {
-			t.Errorf("error getting FCV: %v", err)
-		}
-		t.Skipf("Requires server with FCV 6.0 or later; found %v", fcv)
-	}
 
 	testCollName := testCollectionNames[0]
 	err = session.Database(testDB).Collection(testCollName).Drop(ctx)
