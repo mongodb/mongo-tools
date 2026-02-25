@@ -16,7 +16,8 @@ invoke.per-dir-or-once = 7
 working-dir = "root"
 path-args = "dir"
 cmd = [
-    "$PRECIOUS_ROOT/dev-bin/golangci-lint",
+    "mise", "exec", "github:golangci/golangci-lint", "--",
+    "golangci-lint",
     "run",
     "--allow-parallel-runners",
     "--build-tags", "failpoints",
@@ -31,7 +32,7 @@ lint-failure-exit-codes = [1]
 [commands.goimports]
 type = "tidy"
 include = "**/*.go"
-cmd = [ "$PRECIOUS_ROOT/dev-bin/goimports", "-w" ]
+cmd = [ "mise", "exec", "go:golang.org/x/tools/cmd/goimports", "--", "goimports", "-w" ]
 ok-exit-codes = [0]
 labels = [ "default", "fast-tidy" ]
 

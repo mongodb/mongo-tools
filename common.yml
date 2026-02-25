@@ -102,8 +102,7 @@ functions:
       script: |
         ${_set_shell_env}
         ${_maybe_enable_devtoolset_7}
-        PATH=$PATH:$HOME
-        go run build.go -v ${target}
+        mise exec go -- go run build.go -v ${target}
 
   "download mongod and shell":
     - command: github.generate_token
@@ -119,8 +118,7 @@ functions:
         script: |
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
-          PATH=$PATH:$HOME
-          go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
+          mise exec go -- go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
         add_expansions_to_env: true
 
   "get buildnumber":
@@ -251,9 +249,8 @@ functions:
         script: |
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
-          PATH=$PATH:$HOME
-          go run release/release.go build-archive
-          go run release/release.go build-packages
+          mise exec go -- go run release/release.go build-archive
+          mise exec go -- go run release/release.go build-packages
 
     # temporary workaround for TOOLS-2606
     - command: shell.exec
@@ -357,7 +354,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
-          go run release/release.go upload-release
+          mise exec go -- go run release/release.go upload-release
 
   "upload release json feed to s3":
     - command: shell.exec
@@ -365,7 +362,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
-          go run release/release.go upload-json
+          mise exec go -- go run release/release.go upload-json
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -383,7 +380,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
-          go run release/release.go generate-full-json
+          mise exec go -- go run release/release.go generate-full-json
 
   "upload release packages to linux repos":
     - command: shell.exec
@@ -397,7 +394,7 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           ${_set_shell_env}
-          go run release/release.go linux-release
+          mise exec go -- go run release/release.go linux-release
 
   "fetch source":
     - command: shell.exec
@@ -618,8 +615,8 @@ pre:
       script: |
         cat <<EOT > expansions.yml
         _set_shell_env: |
-          . ./set_goenv.sh
-          GOROOT=""; set_goenv || exit
+          export PATH="${workdir}/.local/bin:$PATH"
+          ./evergreen/scripts/install-mise-and-tools.sh
           export EVG_IS_PATCH='${is_patch}'
           export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
           if [ -n "${fake_tag_for_release_testing}" ]; then
@@ -1748,9 +1745,6 @@ tasks:
   - name: lint
     commands:
       - func: "fetch source"
-      - func: "run make target"
-        vars:
-          target: sa:installdevtools
       - command: shell.exec
         type: test
         params:
@@ -1760,7 +1754,7 @@ tasks:
             set -x
             set -v
             set -e
-            ./dev-bin/precious lint --all
+            mise exec 'github:houseabsolute/precious' -- precious lint --all
 
   - name: qa-tests-5.0
     tags: ["5.0"]
@@ -1986,7 +1980,7 @@ tasks:
             set -x
             set -v
             set -e
-            go vet -composites=false ./bsondump ./mongo*
+            mise exec go -- go vet -composites=false ./bsondump ./mongo*
 
   - name: check-third-party-notices
     commands:
@@ -2011,9 +2005,6 @@ tasks:
   - name: check-sarif-report
     commands:
       - func: "fetch source"
-      - func: "run make target"
-        vars:
-          target: sa:installdevtools
       - func: "check sarif report"
 
 buildvariants:
