@@ -15,7 +15,7 @@ go = "1.25.11"
 "github:houseabsolute/precious" = "0.10.2"
 
 # Node and npm tools
-node = "22.22.0"
+node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm install --loglevel verbose" }
 "npm:eslint" = "8.57.0"
 "npm:prettier" = "3.4.2"
 "npm:github-codeowners" = "0.2.1"

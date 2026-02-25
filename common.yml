@@ -59,6 +59,126 @@ parameters:
       parameter's value.
 
 functions:
+  "install mise and go":
+    - command: cache.restore
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
+        name: mise-and-go
+        remote_path: mongo-tools/mise-cache
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          EVG_WORKDIR: ${workdir}
+          MISE_AND_GO_CACHE_HIT: ${mise_and_go_cache_hit}
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
+          ./scripts/install-mise-and-go.sh
+    - command: cache.save
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
+        name: mise-and-go
+        paths:
+          - .local/bin
+          - .local/share/mise
+        remote_path: mongo-tools/mise-cache
+
+  # mise has no builds at all for ppc64le or s390x (see install-go-without-mise.sh), so there's
+  # nothing worth caching on those architectures: we don't touch .local/bin or .local/share/mise
+  # there. In most cases, we expect the Go toolchain version we need to already exist on the
+  # machine. But even in cases where we have to download our own Go toolchain, it's not enough work
+  # to be worth caching.
+  "install go without mise":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          EVG_WORKDIR: ${workdir}
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
+          ./scripts/install-go-without-mise.sh
+
+  "install mise-managed tools":
+    - command: cache.restore
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mise_all_tools_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/package.json
+          - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
+        name: mise-all-tools
+        remote_path: mongo-tools/mise-cache
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          EVG_WORKDIR: ${workdir}
+          MISE_ALL_TOOLS_CACHE_HIT: ${mise_all_tools_cache_hit}
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
+          ./scripts/install-mise-managed-tools.sh
+    - command: cache.save
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mise_all_tools_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/package.json
+          - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
+        name: mise-all-tools
+        # We deliberately don't cache node_modules: Evergreen's cache.save dereferences symlinks
+        # when archiving, but npm creates node_modules/.bin/<tool> as a symlink into the package's
+        # own directory. After a cache.restore those become plain file copies sitting in the wrong
+        # place, breaking any tool that resolves paths relative to its own real location (e.g.
+        # `require("../package.json")`), so `npm install` always runs fresh instead.
+        paths:
+          - .local/bin
+          - .local/share/mise
+        remote_path: mongo-tools/mise-cache
+
   "run legacy tests":
     command: shell.exec
     type: test
@@ -97,20 +217,21 @@ functions:
       add_expansions_to_env: true
 
   "run make target":
-    command: shell.exec
-    type: test
-    params:
-      shell: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
-        ${_set_shell_env}
-        ${_maybe_enable_devtoolset_7}
-        PATH=$PATH:$HOME
-        go run build.go -v ${target}
+          ${_set_shell_env}
+          ${_maybe_enable_devtoolset_7}
+          # The evergreen client binary lives in $HOME, and `sa:evgvalidate` shells out to it.
+          export PATH="$PATH:$HOME"
+          $GO_EXEC_PREFIX go run build.go -v ${target}
 
   "download mongod and shell":
     - command: github.generate_token
@@ -131,8 +252,7 @@ functions:
 
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
-          PATH=$PATH:$HOME
-          go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
+          mise exec go -- go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
         add_expansions_to_env: true
 
   "get buildnumber":
@@ -258,21 +378,21 @@ functions:
         done
 
   "create mongod users":
-    command: shell.exec
-    params:
-      shell: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
-        ${_set_shell_env}
-        MONGO_ARGS="${mongo_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGO_ARGS="${mongo_args_tls}"
-        fi
-        echo "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });" | ./bin/mongo${extension} $MONGO_ARGS admin
+          ${_set_shell_env}
+          MONGO_ARGS="${mongo_args}"
+          if [ "${USE_TLS}" = "true" ]; then
+            MONGO_ARGS="${mongo_args_tls}"
+          fi
+          echo "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });" | ./bin/mongo${extension} $MONGO_ARGS admin
 
   "create release artifacts":
     # build release artifacts
@@ -287,9 +407,8 @@ functions:
 
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
-          PATH=$PATH:$HOME
-          go run release/release.go build-archive
-          go run release/release.go build-packages
+          $GO_EXEC_PREFIX go run release/release.go build-archive
+          $GO_EXEC_PREFIX go run release/release.go build-packages
 
     # temporary workaround for TOOLS-2606
     - command: shell.exec
@@ -353,26 +472,26 @@ functions:
         bucket: mciuploads
 
   "sign artifacts":
-    command: shell.exec
-    params:
-      shell: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      env:
-        MONGO_OS: ${mongo_os}
-        MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
-        MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
-        ARTIFACTORY_PASSWORD: ${artifactory_password}
-        ARTIFACTORY_USERNAME: ${artifactory_username}
-        GARASIGN_PASSWORD: ${garasign_password}
-        GARASIGN_USERNAME: ${garasign_username}
-        AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        env:
+          MONGO_OS: ${mongo_os}
+          MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
+          MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
+          ARTIFACTORY_PASSWORD: ${artifactory_password}
+          ARTIFACTORY_USERNAME: ${artifactory_username}
+          GARASIGN_PASSWORD: ${garasign_password}
+          GARASIGN_USERNAME: ${garasign_username}
+          AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
-        ${_set_shell_env}
-        ./scripts/sign_artifacts.sh
+          ${_set_shell_env}
+          ./scripts/sign_artifacts.sh
 
   "upload signed release artifacts":
     # temporary workaround for TOOLS-2606
@@ -413,7 +532,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          go run release/release.go upload-release
+          mise exec go -- go run release/release.go upload-release
 
   "upload release json feed to s3":
     - command: shell.exec
@@ -426,7 +545,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          go run release/release.go upload-json
+          mise exec go -- go run release/release.go upload-json
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -449,7 +568,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          go run release/release.go generate-full-json
+          mise exec go -- go run release/release.go generate-full-json
 
   "upload release packages to linux repos":
     - command: shell.exec
@@ -473,7 +592,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          go run release/release.go linux-release
+          mise exec go -- go run release/release.go linux-release
 
   "fetch source":
     - command: shell.exec
@@ -680,32 +799,32 @@ functions:
           echo -n "$MONGOD_URI" > MONGOD_URI
 
   "check sbom lite":
-    command: shell.exec
-    type: test
-    params:
-      shell: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
-        ${_set_shell_env}
-        ./scripts/regenerate-and-diff-sbom-lite.sh
+          ${_set_shell_env}
+          ./scripts/regenerate-and-diff-sbom-lite.sh
 
   "check sarif report":
-    command: shell.exec
-    type: test
-    params:
-      shell: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
-        ${_set_shell_env}
-        ./scripts/regenerate-and-diff-sarif-report.sh
+          ${_set_shell_env}
+          ./scripts/regenerate-and-diff-sarif-report.sh
 
   "create evergreen config file":
     - command: shell.exec
@@ -765,8 +884,38 @@ pre:
       script: |
         cat <<EOT > expansions.yml
         _set_shell_env: |
-          . ./set_goenv.sh
-          GOROOT=""; set_goenv || exit
+          export EVG_WORKDIR="${workdir}"
+          # cgo needs a mingw-w64 toolchain and some Windows-specific flags on Windows. This
+          # replaces logic that used to live in set_goenv.sh before we switched to mise. We also
+          # normalize the working directory through cygpath here, since Evergreen's workdir
+          # expansion on Windows sometimes lacks a drive letter, and Go's os/exec refuses to run
+          # an executable found via a PATH entry it can't prove is absolute.
+          case "\$(PATH=/usr/bin:/bin uname -s)" in
+          CYGWIN*)
+            EVG_WORKDIR="\$(cygpath -am "\$EVG_WORKDIR")"
+            export CGO_CFLAGS="-D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x06010000"
+            export GOCACHE="C:/windows/temp"
+            export PATH="\$PATH:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+            ;;
+          esac
+          # mise has no builds at all for ppc64le or s390x. On those architectures we download Go
+          # ourselves instead (see install-go-without-mise.sh), so shared functions that need to
+          # run go use GO_EXEC_PREFIX rather than hardcoding "mise exec go --".
+          case "\$(uname -m)" in
+          ppc64le | s390x)
+            export PATH="\$EVG_WORKDIR/.local/share/go-toolchain/go/bin:\$PATH"
+            export GO_EXEC_PREFIX=""
+            # We're managing the toolchain ourselves on these architectures, so don't let Go
+            # silently fetch a different version on its own (e.g. because go.mod requires a newer
+            # version than what we've provisioned).
+            export GOTOOLCHAIN=local
+            ;;
+          *)
+            export GO_EXEC_PREFIX="mise exec go --"
+            ;;
+          esac
+          export PATH="\$EVG_WORKDIR/.local/bin:\$PATH"
+          export MISE_DATA_DIR="\$EVG_WORKDIR/.local/share/mise"
           export EVG_IS_PATCH='${is_patch}'
           export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
           if [ -n "${fake_tag_for_release_testing}" ]; then
@@ -813,6 +962,15 @@ pre:
           value: "resmoke-venv"
         - key: mongosync_binary_folder
           value: "mongosync-coverage-binary"
+  # Bump these to force-invalidate the mise Evergreen caches (see the "install mise and go" and
+  # "install mise-managed tools" functions).
+  - command: expansions.update
+    params:
+      updates:
+        - key: mise_and_go_cache_version
+          value: v2
+        - key: mise_all_tools_cache_version
+          value: v3
 
 post:
   # attach.results works for jstests, gotest.parse_files for golang tests
@@ -874,6 +1032,23 @@ tasks:
     tags: ["git_tag"]
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
+      - func: "run make target"
+        vars:
+          target: checkMinVersion
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "create release artifacts"
+
+  # Identical to "dist", except it uses "install go without mise" instead of
+  # "install mise and go", since mise has no builds at all for ppc64le or s390x. Used only by the
+  # ppc64le/s390x buildvariants below.
+  - name: dist-without-mise
+    tags: ["git_tag"]
+    commands:
+      - func: "fetch source"
+      - func: "install go without mise"
       - func: "run make target"
         vars:
           target: checkMinVersion
@@ -893,6 +1068,7 @@ tasks:
     commands:
       - func: "fetch source"
       - func: "fetch dist release artifacts"
+      - func: "install mise and go"
       - func: "sign artifacts"
       - func: "upload signed release artifacts"
 
@@ -903,6 +1079,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "upload release packages to s3"
       - func: "upload release packages to linux repos"
       - command: subprocess.exec
@@ -930,6 +1107,7 @@ tasks:
       - func: "fetch source"
       - command: expansions.update
       - func: "set silkbomb credentials"
+      - func: "install mise and go"
       - command: shell.exec
         params:
           shell: bash
@@ -951,12 +1129,14 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "upload release json feed to s3"
 
   - name: generate-full-json
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "generate full JSON feed"
 
   - name: integration-4.2
@@ -964,6 +1144,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
@@ -990,6 +1171,7 @@ tasks:
           updates:
             - key: "mongod_args"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
@@ -1014,6 +1196,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -1040,6 +1223,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -1064,6 +1248,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -1082,6 +1267,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
@@ -1108,6 +1294,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
@@ -1132,6 +1319,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
@@ -1150,6 +1338,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1171,6 +1360,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
@@ -1197,6 +1387,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
@@ -1221,6 +1412,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
@@ -1239,6 +1431,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1260,6 +1453,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
@@ -1286,6 +1480,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
@@ -1310,6 +1505,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
@@ -1328,6 +1524,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1349,6 +1546,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
@@ -1375,6 +1573,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
@@ -1399,6 +1598,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
@@ -1417,6 +1617,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1438,6 +1639,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
@@ -1464,6 +1666,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
@@ -1488,6 +1691,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
@@ -1507,6 +1711,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1528,6 +1733,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
@@ -1554,6 +1760,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
@@ -1578,6 +1785,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
@@ -1597,6 +1805,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1618,6 +1827,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
@@ -1644,6 +1854,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
@@ -1668,6 +1879,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
@@ -1687,6 +1899,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1708,6 +1921,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
@@ -1734,6 +1948,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
@@ -1758,6 +1973,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
@@ -1777,6 +1993,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -1793,6 +2010,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
@@ -1809,6 +2027,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
@@ -1825,6 +2044,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
@@ -1841,6 +2061,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
@@ -1857,6 +2078,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
@@ -1875,6 +2097,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
@@ -1893,6 +2116,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
@@ -1911,6 +2135,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1932,6 +2157,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
@@ -1959,6 +2185,7 @@ tasks:
             - key: "args"
               value: "${args} -test.types=kerberos"
       - func: "setup integration test"
+      - func: "install mise and go"
       - func: "run make target"
         vars:
           target: build
@@ -1972,6 +2199,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
@@ -1988,6 +2216,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -2004,6 +2233,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
@@ -2020,6 +2250,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
@@ -2036,6 +2267,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
@@ -2052,6 +2284,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
@@ -2068,6 +2301,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
@@ -2085,6 +2319,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
@@ -2102,6 +2337,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
@@ -2119,6 +2355,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
@@ -2133,6 +2370,7 @@ tasks:
   - name: mod-tidy
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
       - func: "run make target"
         vars:
           target: sa:modtidy
@@ -2140,6 +2378,7 @@ tasks:
   - name: evergreen-validate
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
       - func: "create evergreen config file"
       - func: "run make target"
         vars:
@@ -2148,9 +2387,8 @@ tasks:
   - name: lint
     commands:
       - func: "fetch source"
-      - func: "run make target"
-        vars:
-          target: sa:installdevtools
+      - func: "install mise and go"
+      - func: "install mise-managed tools"
       - command: shell.exec
         type: test
         params:
@@ -2162,7 +2400,7 @@ tasks:
             set -o verbose
 
             ${_set_shell_env}
-            ./dev-bin/precious lint --all
+            mise exec 'github:houseabsolute/precious' -- precious lint --all
 
   - name: qa-tests-5.0
     tags: ["5.0"]
@@ -2170,6 +2408,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
@@ -2187,6 +2426,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
@@ -2204,6 +2444,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
@@ -2221,6 +2462,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
@@ -2238,6 +2480,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.1.0"
@@ -2255,6 +2498,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
@@ -2272,6 +2516,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
@@ -2289,6 +2534,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "latest"
@@ -2306,6 +2552,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -2323,6 +2570,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
@@ -2340,6 +2588,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -2354,6 +2603,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -2371,6 +2621,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
@@ -2386,6 +2637,7 @@ tasks:
     commands:
       - command: expansions.update
       - func: "fetch source"
+      - func: "install mise and go"
       - func: "run make target"
         vars:
           target: build
@@ -2396,6 +2648,7 @@ tasks:
   - name: vet
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
       - command: shell.exec
         type: test
         params:
@@ -2407,11 +2660,12 @@ tasks:
             set -o verbose
 
             ${_set_shell_env}
-            go vet -composites=false ./bsondump ./mongo*
+            mise exec go -- go vet -composites=false ./bsondump ./mongo*
 
   - name: check-third-party-notices
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
       - func: "run make target"
         vars:
           target: writeThirdPartyNotices
@@ -2430,14 +2684,14 @@ tasks:
   - name: check-sbom-lite
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
       - func: "check sbom lite"
 
   - name: check-sarif-report
     commands:
       - func: "fetch source"
-      - func: "run make target"
-        vars:
-          target: sa:installdevtools
+      - func: "install mise and go"
+      - func: "install mise-managed tools"
       - func: "check sarif report"
 
 buildvariants:
@@ -2968,9 +3222,11 @@ buildvariants:
       - rhel71-power8
     stepback: false
     tasks:
-      - name: "dist"
+      - name: "dist-without-mise"
       - name: "sign"
         run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
       - name: "push"
         run_on: rhel80-small
 
@@ -2980,9 +3236,11 @@ buildvariants:
       - rhel81-power8
     stepback: false
     tasks:
-      - name: "dist"
+      - name: "dist-without-mise"
       - name: "sign"
         run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
       - name: "push"
         run_on: rhel80-small
 
@@ -2992,9 +3250,11 @@ buildvariants:
       - rhel9-power-small
     stepback: false
     tasks:
-      - name: "dist"
+      - name: "dist-without-mise"
       - name: "sign"
         run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
       - name: "push"
         run_on: rhel80-small
 
@@ -3008,9 +3268,11 @@ buildvariants:
       - rhel72-zseries
     stepback: false
     tasks:
-      - name: "dist"
+      - name: "dist-without-mise"
       - name: "sign"
         run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
       - name: "push"
         run_on: rhel80-small
 
@@ -3020,9 +3282,11 @@ buildvariants:
       - rhel83-zseries
     stepback: false
     tasks:
-      - name: "dist"
+      - name: "dist-without-mise"
       - name: "sign"
         run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
       - name: "push"
         run_on: rhel80-small
 
@@ -3032,9 +3296,11 @@ buildvariants:
       - rhel9-zseries-small
     stepback: false
     tasks:
-      - name: "dist"
+      - name: "dist-without-mise"
       - name: "sign"
         run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
       - name: "push"
         run_on: rhel80-small
 
