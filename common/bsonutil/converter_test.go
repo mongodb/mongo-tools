@@ -37,13 +37,13 @@ func TestConvertObjectIdBSONToJSON(t *testing.T) {
 func TestArraysBSONToJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	t.Run("should work for empty arrays", func(t *testing.T) {
+	t.Run("empty arrays", func(t *testing.T) {
 		jArr, err := ConvertBSONValueToLegacyExtJSON([]any{})
 		require.NoError(t, err)
 		assert.Equal(t, []any{}, jArr)
 	})
 
-	t.Run("should work for one-level deep arrays", func(t *testing.T) {
+	t.Run("one-level deep arrays", func(t *testing.T) {
 		objId := bson.NewObjectID()
 		bsonArr := []any{objId, 28, 0.999, "plain"}
 		_jArr, err := ConvertBSONValueToLegacyExtJSON(bsonArr)
@@ -58,7 +58,7 @@ func TestArraysBSONToJSON(t *testing.T) {
 		assert.Equal(t, "plain", jArr[3])
 	})
 
-	t.Run("should work for arrays with embedded objects", func(t *testing.T) {
+	t.Run("arrays with embedded objects", func(t *testing.T) {
 		bsonObj := []any{
 			80,
 			bson.M{

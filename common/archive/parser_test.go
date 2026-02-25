@@ -68,7 +68,7 @@ func TestParsing(t *testing.T) {
 		buf.Write(b)
 	}
 
-	t.Run("a well formed header and body", func(t *testing.T) {
+	t.Run("well-formed header and body", func(t *testing.T) {
 		parser, tc, buf := setup()
 		writeBSON(buf, strStruct{"header"})
 		writeBSON(buf, strStruct{"body"})
@@ -94,7 +94,7 @@ func TestParsing(t *testing.T) {
 		})
 	})
 
-	t.Run("a well formed header and multiple body datas parse correctly", func(t *testing.T) {
+	t.Run("well-formed header and multiple bodies", func(t *testing.T) {
 		parser, tc, buf := setup()
 		writeBSON(buf, strStruct{"header"})
 		writeBSON(buf, strStruct{"body0"})
@@ -115,7 +115,7 @@ func TestParsing(t *testing.T) {
 		assert.False(t, tc.eof)
 	})
 
-	t.Run("an incorrect terminator should cause an error", func(t *testing.T) {
+	t.Run("incorrect terminator", func(t *testing.T) {
 		parser, tc, buf := setup()
 		writeBSON(buf, strStruct{"header"})
 		writeBSON(buf, strStruct{"body"})
@@ -125,7 +125,7 @@ func TestParsing(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	t.Run("an empty block should result in EOF", func(t *testing.T) {
+	t.Run("empty block", func(t *testing.T) {
 		parser, tc, _ := setup()
 		err := parser.ReadBlock(tc)
 		require.ErrorIs(t, err, io.EOF)
@@ -139,7 +139,7 @@ func TestParsing(t *testing.T) {
 		require.ErrorContains(t, err, "double end")
 	})
 
-	t.Run("a partial block should result in a non-EOF error", func(t *testing.T) {
+	t.Run("partial block", func(t *testing.T) {
 		parser, tc, buf := setup()
 		writeBSON(buf, strStruct{"header"})
 		writeBSON(buf, strStruct{"body"})
@@ -151,7 +151,7 @@ func TestParsing(t *testing.T) {
 		assert.Equal(t, "body", tc.bodies[0])
 	})
 
-	t.Run("a block with a missing terminator shoud result in a non-EOF error", func(t *testing.T) {
+	t.Run("block with missing terminator", func(t *testing.T) {
 		parser, tc, buf := setup()
 		writeBSON(buf, strStruct{"header"})
 

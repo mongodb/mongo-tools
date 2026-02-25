@@ -88,7 +88,7 @@ func TestWriteGrid(t *testing.T) {
 			"(0,0) (0,1) (0,2)(1,0) (1,1)")
 	})
 
-	t.Run("Test grid writer width calculation", func(t *testing.T) {
+	t.Run("width calculation", func(t *testing.T) {
 		gw := GridWriter{}
 		gw.WriteCell("bbbb")
 		gw.WriteCell("aa")

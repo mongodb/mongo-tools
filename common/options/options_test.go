@@ -37,7 +37,7 @@ func TestLogUnsupportedOptions(t *testing.T) {
 	log.SetWriter(&buffer)
 	defer log.SetWriter(os.Stderr)
 
-	t.Run("no warning should be logged if there are no unsupported options", func(t *testing.T) {
+	t.Run("no unsupported options", func(t *testing.T) {
 		args := []string{"mongodb://mongodb.test.com:27017"}
 
 		enabled := EnabledOptions{true, true, true, true}
@@ -52,7 +52,7 @@ func TestLogUnsupportedOptions(t *testing.T) {
 		require.Empty(t, result)
 	})
 
-	t.Run("a warning should be logged if there is an unsupported option", func(t *testing.T) {
+	t.Run("unsupported option", func(t *testing.T) {
 		args := []string{"mongodb://mongodb.test.com:27017/?foo=bar"}
 
 		enabled := EnabledOptions{true, true, true, true}
@@ -78,67 +78,67 @@ func TestVerbosityFlag(t *testing.T) {
 	require.NotNil(t, optPtr)
 	require.NotNil(t, optPtr.parser)
 
-	t.Run("no verbosity flags, Level should be 0", func(t *testing.T) {
+	t.Run("no verbosity flags", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{})
 		require.NoError(t, err)
 		require.Equal(t, 0, optPtr.Level())
 	})
 
-	t.Run("one short verbosity flag, Level should be 1", func(t *testing.T) {
+	t.Run("one short verbosity flag", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"-v"})
 		require.NoError(t, err)
 		require.Equal(t, 1, optPtr.Level())
 	})
 
-	t.Run("three short verbosity flags (consecutive), Level should be 3", func(t *testing.T) {
+	t.Run("three short verbosity flags (consecutive)", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"-vvv"})
 		require.NoError(t, err)
 		require.Equal(t, 3, optPtr.Level())
 	})
 
-	t.Run("three short verbosity flags (dispersed), Level should be 3", func(t *testing.T) {
+	t.Run("three short verbosity flags (dispersed)", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"-v", "-v", "-v"})
 		require.NoError(t, err)
 		require.Equal(t, 3, optPtr.Level())
 	})
 
-	t.Run("short verbosity flag assigned to 3, Level should be 3", func(t *testing.T) {
+	t.Run("short verbosity flag assigned to 3", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"-v=3"})
 		require.NoError(t, err)
 		require.Equal(t, 3, optPtr.Level())
 	})
 
-	t.Run("consecutive short flags with assignment, only assignment holds", func(t *testing.T) {
+	t.Run("consecutive short flags with assignment", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"-vv=3"})
 		require.NoError(t, err)
 		require.Equal(t, 3, optPtr.Level())
 	})
 
-	t.Run("one long verbose flag, Level should be 1", func(t *testing.T) {
+	t.Run("one long verbose flag", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"--verbose"})
 		require.NoError(t, err)
 		require.Equal(t, 1, optPtr.Level())
 	})
 
-	t.Run("three long verbosity flags, Level should be 3", func(t *testing.T) {
+	t.Run("three long verbosity flags", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"--verbose", "--verbose", "--verbose"})
 		require.NoError(t, err)
 		require.Equal(t, 3, optPtr.Level())
 	})
 
-	t.Run("long verbosity flag assigned to 3, Level should be 3", func(t *testing.T) {
+	t.Run("long verbosity flag assigned to 3", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"--verbose=3"})
 		require.NoError(t, err)
 		require.Equal(t, 3, optPtr.Level())
 	})
 
-	t.Run("mixed assignment and bare flag, total is sum", func(t *testing.T) {
+	t.Run("mixed assignment and bare flag", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"--verbose", "--verbose=3"})
 		require.NoError(t, err)
-		require.Equal(t, 4, optPtr.Level())
+		require.Equal(t, 4, optPtr.Level(), "total is sum")
 	})
 
-	t.Run("run CallArgParser multiple times, level should be correct", func(t *testing.T) {
+	t.Run("run CallArgParser multiple times", func(t *testing.T) {
 		_, err := optPtr.CallArgParser([]string{"--verbose", "--verbose=3"})
 		require.NoError(t, err)
 		_, err = optPtr.CallArgParser([]string{"--verbose", "--verbose=3"})
@@ -686,7 +686,7 @@ func createExpectedOpts(pw string, uri string, ssl string) *ToolOptions {
 func TestParseConfigFile(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	t.Run("should error with no config file specified", func(t *testing.T) {
+	t.Run("no config file", func(t *testing.T) {
 		opts := New("test", "", "", "", false, EnabledOptions{})
 
 		// --config at beginning of args list
@@ -706,7 +706,7 @@ func TestParseConfigFile(t *testing.T) {
 		require.NotNil(t, opts.ParseConfigFile(args))
 	})
 
-	t.Run("should error with non-existent config file specified", func(t *testing.T) {
+	t.Run("non-existent config file", func(t *testing.T) {
 		opts := New("test", "", "", "", false, EnabledOptions{})
 
 		// --config with non-existent file
@@ -718,7 +718,7 @@ func TestParseConfigFile(t *testing.T) {
 		require.NotNil(t, opts.ParseConfigFile(args))
 	})
 
-	t.Run("with an existing config file specified", func(t *testing.T) {
+	t.Run("existing config file", func(t *testing.T) {
 		runConfigFileTestCases(t, []configTester{
 			{
 				"containing nothing (empty file)",
@@ -765,14 +765,14 @@ func TestParseConfigFile(t *testing.T) {
 		})
 	})
 
-	t.Run("with command line args that override config file values", func(t *testing.T) {
+	t.Run("command line args override config file", func(t *testing.T) {
 		configFilePath := "./test-config.yaml"
 		defer os.Remove(configFilePath)
 		if err := os.WriteFile(configFilePath, []byte("password: abc123"), 0644); err != nil {
 			require.NoError(t, err)
 		}
 
-		t.Run("with --config followed by --password", func(t *testing.T) {
+		t.Run("--config followed by --password", func(t *testing.T) {
 			args := []string{"--config=" + configFilePath, "--password=def456"}
 			opts := New("test", "", "", "", false, EnabledOptions{Auth: true})
 			_, err := opts.ParseArgs(args)
@@ -780,7 +780,7 @@ func TestParseConfigFile(t *testing.T) {
 			require.Equal(t, "def456", opts.Password)
 		})
 
-		t.Run("with --password followed by --config", func(t *testing.T) {
+		t.Run("--password followed by --config", func(t *testing.T) {
 			args := []string{"--password=ghi789", "--config=" + configFilePath}
 			opts := New("test", "", "", "", false, EnabledOptions{Auth: true})
 			_, err := opts.ParseArgs(args)
@@ -1039,13 +1039,13 @@ func TestParsePositionalArgsAsURI(t *testing.T) {
 	}
 	toolOptions := New("test", "", "", "", true, enabled)
 
-	t.Run("Uri as positional argument", func(t *testing.T) {
-		t.Run("schema error is not reported", func(t *testing.T) {
+	t.Run("URI as positional argument", func(t *testing.T) {
+		t.Run("schema error", func(t *testing.T) {
 			args := []string{"localhost:27017"}
 			_, err := toolOptions.ParseArgs(args)
 			require.NoError(t, err)
 		})
-		t.Run("non-schema errors should be reported", func(t *testing.T) {
+		t.Run("non-schema errors", func(t *testing.T) {
 			args := []string{"mongodb://a/b@localhost:27017"}
 			_, err := toolOptions.ParseArgs(args)
 			require.Equal(t, "error parsing uri: unescaped slash in username", err.Error())
@@ -1125,17 +1125,14 @@ func TestOptionsParsingForSRV(t *testing.T) {
 func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	t.Run("With a ToolOptions parsed", func(t *testing.T) {
-		enabled := EnabledOptions{Connection: true}
-		opts := New("", "", "", "", true, enabled)
-		_, err := opts.CallArgParser([]string{})
-		require.NoError(t, err)
-		t.Run("hidden options should have expected values", func(t *testing.T) {
-			require.Equal(t, runtime.NumCPU(), opts.MaxProcs)
-			require.Equal(t, 3, opts.Timeout)
-			require.Equal(t, 0, opts.SocketTimeout)
-		})
-	})
+	enabled := EnabledOptions{Connection: true}
+	opts := New("", "", "", "", true, enabled)
+	_, err := opts.CallArgParser([]string{})
+	require.NoError(t, err)
+
+	require.Equal(t, runtime.NumCPU(), opts.MaxProcs)
+	require.Equal(t, 3, opts.Timeout)
+	require.Equal(t, 0, opts.SocketTimeout)
 }
 
 func TestNamespace_String(t *testing.T) {
@@ -1199,7 +1196,7 @@ func TestPasswordPrompt(t *testing.T) {
 	pw := "some-password"
 	expectPrompt := regexp.MustCompile(`.*password.*:\n`)
 
-	t.Run("no prompt with user unset", func(t *testing.T) {
+	t.Run("user unset", func(t *testing.T) {
 		stderr, cleanupStderr := mockStderr(t)
 		defer cleanupStderr()
 
@@ -1215,7 +1212,7 @@ func TestPasswordPrompt(t *testing.T) {
 		require.Empty(t, string(prompt))
 	})
 
-	t.Run("prompt when user is set and password is not", func(t *testing.T) {
+	t.Run("user is set and password is not", func(t *testing.T) {
 		stderr, cleanupStderr := mockStderr(t)
 		defer cleanupStderr()
 
@@ -1233,7 +1230,7 @@ func TestPasswordPrompt(t *testing.T) {
 		require.Equal(t, pw, opts.ConnString.Password)
 	})
 
-	t.Run("prompt when host, port, and user are set but uri is not", func(t *testing.T) {
+	t.Run("host, port, and user are set but uri is not", func(t *testing.T) {
 		stderr, cleanupStderr := mockStderr(t)
 		defer cleanupStderr()
 
@@ -1254,7 +1251,7 @@ func TestPasswordPrompt(t *testing.T) {
 		require.Equal(t, pw, opts.ConnString.Password)
 	})
 
-	t.Run("prompt when user is set and password is not and mechanism is PLAIN", func(t *testing.T) {
+	t.Run("user is set and password is not and mechanism is PLAIN", func(t *testing.T) {
 		stderr, cleanupStderr := mockStderr(t)
 		defer cleanupStderr()
 

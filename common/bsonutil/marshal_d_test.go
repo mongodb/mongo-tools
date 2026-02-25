@@ -33,7 +33,7 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 		require.NoError(t, err)
 		strJSON := string(asJSON)
 
-		t.Run("with order preserved", func(t *testing.T) {
+		t.Run("order preservation", func(t *testing.T) {
 			assert.Less(t, strings.Index(strJSON, "cool"), strings.Index(strJSON, "aaa"))
 			assert.Less(t, strings.Index(strJSON, "aaa"), strings.Index(strJSON, "I"))
 			assert.Less(t, strings.Index(strJSON, "I"), strings.Index(strJSON, "E"))
@@ -41,7 +41,7 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 			assert.Equal(t, 5, strings.Count(strJSON, ","), 5) // 4 + 1 from internal map
 		})
 
-		t.Run("but still usable by the json parser", func(t *testing.T) {
+		t.Run("json parsing", func(t *testing.T) {
 			var asMap bson.M
 			err := json.Unmarshal(asJSON, &asMap)
 			require.NoError(t, err)
@@ -64,17 +64,17 @@ func TestMarshalDMarshalJSON(t *testing.T) {
 		})
 	})
 
-	t.Run("With en empty bson.D", func(t *testing.T) {
+	t.Run("empty bson.D", func(t *testing.T) {
 		testD := bson.D{}
 		asJSON, err := json.Marshal(MarshalD(testD))
 
-		t.Run("wrapping with MarshalD should allow json.Marshal to work", func(t *testing.T) {
+		t.Run("wrap with MarshalD", func(t *testing.T) {
 			require.NoError(t, err)
 			strJSON := string(asJSON)
 			assert.Equal(t, "{}", strJSON)
 		})
 
-		t.Run("but still usable by the json parser", func(t *testing.T) {
+		t.Run("json parsing", func(t *testing.T) {
 			var asInterface any
 			err := json.Unmarshal(asJSON, &asInterface)
 			require.NoError(t, err)

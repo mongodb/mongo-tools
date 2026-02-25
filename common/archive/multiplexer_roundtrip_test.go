@@ -88,7 +88,7 @@ func TestBasicMux(t *testing.T) {
 	errChan := make(chan error)
 	makeIns(testIntents, mux, inChecksum, muxIns, inLengths, errChan)
 
-	t.Run("each document should be multiplexed", func(t *testing.T) {
+	t.Run("document multiplexing", func(t *testing.T) {
 		go mux.Run()
 
 		for range testIntents {
@@ -100,7 +100,7 @@ func TestBasicMux(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("and demultiplexed successfully", func(t *testing.T) {
+	t.Run("document demultiplexing", func(t *testing.T) {
 		demux := &Demultiplexer{
 			In:              buf,
 			NamespaceStatus: make(map[string]int),
