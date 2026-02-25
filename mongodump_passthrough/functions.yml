@@ -615,7 +615,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: tools_output.tgz
-        remote_file: mongosync/${build_variant}/${revision}/tools_output/${task_name}/${build_id}/tools_output.tgz
+        remote_file: mongo-tools/${build_variant}/${revision}/tools_output/${task_name}/${build_id}/tools_output.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/gzip
