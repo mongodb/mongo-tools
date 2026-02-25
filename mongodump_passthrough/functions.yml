@@ -27,7 +27,7 @@ variables:
   # And when you change the _mongosync_pin, you also need to update other pins
   # which get passed as environment variables to scripts in mongosync/evergreen/scripts.
   #
-  _mongosync_pin: &_mongosync_pin "15e208ec2ddf44753f0f889d0efda4850e37620b"
+  _mongosync_pin: &_mongosync_pin "8bdec6336736452fca8b9a8ce899349eb125cde2"
 
   f_expansions_write: &f_expansions_write
     command: expansions.write
@@ -603,6 +603,23 @@ functions:
         permissions: public-read
         content_type: application/gzip
         display_name: Coverage statistics
+
+    - command: archive.targz_pack
+      params:
+        target: tools_output.tgz
+        source_dir: "src/resmoke/tools_output"
+        include:
+          - "**"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: tools_output.tgz
+        remote_file: mongo-tools/${build_variant}/${revision}/tools_output/${task_name}/${build_id}/tools_output.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/gzip
+        display_name: Tools Output
 
   "setup jstestfuzz":
     - *f_expansions_write
