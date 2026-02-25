@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -14,14 +14,12 @@ const (
 
 func TestPasswordFromNonTerminal(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("stdin is not a terminal", t, func() {
-		var buffer bytes.Buffer
+	var buffer bytes.Buffer
 
-		buffer.WriteString(testPwd)
-		reader := bytes.NewReader(buffer.Bytes())
+	buffer.WriteString(testPwd)
+	reader := bytes.NewReader(buffer.Bytes())
 
-		pass, err := readPassNonInteractively(reader)
-		So(err, ShouldBeNil)
-		So(pass, ShouldEqual, testPwd)
-	})
+	pass, err := readPassNonInteractively(reader)
+	require.NoError(t, err)
+	require.Equal(t, testPwd, pass)
 }

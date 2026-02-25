@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBasicProgressBar(t *testing.T) {
@@ -25,48 +25,44 @@ func TestBasicProgressBar(t *testing.T) {
 
 	writeBuffer := &bytes.Buffer{}
 
-	Convey("With a simple ProgressBar", t, func() {
-		watching := NewCounter(10)
-		pbar := &Bar{
-			Name:      "\nTEST",
-			Watching:  watching,
-			WaitTime:  3 * time.Millisecond,
-			Writer:    writeBuffer,
-			BarLength: 10,
-		}
+	watching := NewCounter(10)
+	pbar := &Bar{
+		Name:      "\nTEST",
+		Watching:  watching,
+		WaitTime:  3 * time.Millisecond,
+		Writer:    writeBuffer,
+		BarLength: 10,
+	}
 
-		Convey("running it while incrementing its counter", func() {
-			pbar.Start()
-			// TODO make this test non-racy and reliable
-			time.Sleep(10 * time.Millisecond)
-			// iterate though each value 1-10, sleeping to make sure it is written
-			for localCounter := 0; localCounter < 10; localCounter++ {
-				watching.Inc(1)
-				time.Sleep(30 * time.Millisecond)
-			}
-			pbar.Stop()
+	// Run progress bar while increment its counter
 
-			Convey("the messages written in the buffer should cover all states", func() {
-				results := writeBuffer.String()
-				So(results, ShouldContainSubstring, "TEST")
-				So(results, ShouldContainSubstring, BarLeft)
-				So(results, ShouldContainSubstring, BarRight)
-				So(results, ShouldContainSubstring, BarFilling)
-				So(results, ShouldContainSubstring, BarEmpty)
-				So(results, ShouldContainSubstring, "0/10")
-				So(results, ShouldContainSubstring, "1/10")
-				So(results, ShouldContainSubstring, "2/10")
-				So(results, ShouldContainSubstring, "3/10")
-				So(results, ShouldContainSubstring, "4/10")
-				So(results, ShouldContainSubstring, "5/10")
-				So(results, ShouldContainSubstring, "6/10")
-				So(results, ShouldContainSubstring, "7/10")
-				So(results, ShouldContainSubstring, "8/10")
-				So(results, ShouldContainSubstring, "9/10")
-				So(results, ShouldContainSubstring, "10.0%")
-			})
-		})
-	})
+	pbar.Start()
+	// TODO make this test non-racy and reliable
+	time.Sleep(10 * time.Millisecond)
+	// iterate though each value 1-10, sleeping to make sure it is written
+	for localCounter := 0; localCounter < 10; localCounter++ {
+		watching.Inc(1)
+		time.Sleep(30 * time.Millisecond)
+	}
+	pbar.Stop()
+
+	results := writeBuffer.String()
+	assert.Contains(t, results, "TEST")
+	assert.Contains(t, results, BarLeft)
+	assert.Contains(t, results, BarRight)
+	assert.Contains(t, results, BarFilling)
+	assert.Contains(t, results, BarEmpty)
+	assert.Contains(t, results, "0/10")
+	assert.Contains(t, results, "1/10")
+	assert.Contains(t, results, "2/10")
+	assert.Contains(t, results, "3/10")
+	assert.Contains(t, results, "4/10")
+	assert.Contains(t, results, "5/10")
+	assert.Contains(t, results, "6/10")
+	assert.Contains(t, results, "7/10")
+	assert.Contains(t, results, "8/10")
+	assert.Contains(t, results, "9/10")
+	assert.Contains(t, results, "10.0%")
 }
 
 func TestProgressBarWithNoMax(t *testing.T) {
@@ -74,22 +70,19 @@ func TestProgressBarWithNoMax(t *testing.T) {
 
 	writeBuffer := &bytes.Buffer{}
 
-	Convey("With a simple ProgressBar with no max value", t, func() {
-		watching := NewCounter(0)
-		watching.Inc(5)
-		pbar := &Bar{
-			Name:     "test",
-			Watching: watching,
-			Writer:   writeBuffer,
-		}
-		Convey("rendering the progress should still work, but not draw a bar", func() {
-			pbar.renderToWriter()
-			So(writeBuffer.String(), ShouldContainSubstring, "5")
-			So(writeBuffer.String(), ShouldContainSubstring, "test")
-			So(writeBuffer.String(), ShouldNotContainSubstring, "[")
-			So(writeBuffer.String(), ShouldNotContainSubstring, "]")
-		})
-	})
+	watching := NewCounter(0)
+	watching.Inc(5)
+	pbar := &Bar{
+		Name:     "test",
+		Watching: watching,
+		Writer:   writeBuffer,
+	}
+
+	pbar.renderToWriter()
+	assert.Contains(t, writeBuffer.String(), "5")
+	assert.Contains(t, writeBuffer.String(), "test")
+	assert.NotContains(t, writeBuffer.String(), "[")
+	assert.NotContains(t, writeBuffer.String(), "]")
 }
 
 func TestBarConcurrency(t *testing.T) {
@@ -99,85 +92,75 @@ func TestBarConcurrency(t *testing.T) {
 
 	writeBuffer := &bytes.Buffer{}
 
-	Convey("With a simple ProgressBar", t, func() {
-		watching := NewCounter(1000)
-		watching.Inc(777)
-		pbar := &Bar{
-			Name:     "\nTEST",
-			Watching: watching,
-			WaitTime: 10 * time.Millisecond,
-			Writer:   writeBuffer,
-		}
+	watching := NewCounter(1000)
+	watching.Inc(777)
+	pbar := &Bar{
+		Name:     "\nTEST",
+		Watching: watching,
+		WaitTime: 10 * time.Millisecond,
+		Writer:   writeBuffer,
+	}
 
-		Convey("if it rendered only once", func() {
-			pbar.Start()
-			time.Sleep(15 * time.Millisecond)
-			watching.Inc(1)
-			results := writeBuffer.String()
-			So(results, ShouldContainSubstring, "777")
-			So(results, ShouldNotContainSubstring, "778")
+	pbar.Start()
+	time.Sleep(15 * time.Millisecond)
+	watching.Inc(1)
+	results := writeBuffer.String()
+	assert.Contains(t, results, "777")
+	assert.NotContains(t, results, "778")
 
-			Convey("it will render a second time on stop", func() {
-				pbar.Stop()
-				results := writeBuffer.String()
-				So(results, ShouldContainSubstring, "777")
-				So(results, ShouldContainSubstring, "778")
+	pbar.Stop()
+	results = writeBuffer.String()
+	assert.Contains(t, results, "777")
+	assert.Contains(t, results, "778")
 
-				Convey("and trying to start or stop the bar again should panic", func() {
-					So(func() { pbar.Start() }, ShouldPanic)
-					So(func() { pbar.Stop() }, ShouldPanic)
-				})
-			})
-		})
-	})
+	assert.Panics(t, pbar.Start)
+	assert.Panics(t, pbar.Stop)
 }
 
 func TestBarDrawing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Drawing some test bars and checking their character counts", t, func() {
-		Convey("20 wide @ 50%", func() {
-			b := drawBar(20, .5)
-			So(strings.Count(b, BarFilling), ShouldEqual, 10)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 10)
-			So(b, ShouldContainSubstring, BarLeft)
-			So(b, ShouldContainSubstring, BarRight)
-		})
-		Convey("100 wide @ 50%", func() {
-			b := drawBar(100, .5)
-			So(strings.Count(b, BarFilling), ShouldEqual, 50)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 50)
-		})
-		Convey("100 wide @ 99.9999%", func() {
-			b := drawBar(100, .999999)
-			So(strings.Count(b, BarFilling), ShouldEqual, 99)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 1)
-		})
-		Convey("9 wide @ 72%", func() {
-			b := drawBar(9, .72)
-			So(strings.Count(b, BarFilling), ShouldEqual, 6)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 3)
-		})
-		Convey("10 wide @ 0%", func() {
-			b := drawBar(10, 0)
-			So(strings.Count(b, BarFilling), ShouldEqual, 0)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 10)
-		})
-		Convey("10 wide @ 100%", func() {
-			b := drawBar(10, 1)
-			So(strings.Count(b, BarFilling), ShouldEqual, 10)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 0)
-		})
-		Convey("10 wide @ -60%", func() {
-			b := drawBar(10, -0.6)
-			So(strings.Count(b, BarFilling), ShouldEqual, 0)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 10)
-		})
-		Convey("10 wide @ 160%", func() {
-			b := drawBar(10, 1.6)
-			So(strings.Count(b, BarFilling), ShouldEqual, 10)
-			So(strings.Count(b, BarEmpty), ShouldEqual, 0)
-		})
+	t.Run("20 wide @ 50%", func(t *testing.T) {
+		b := drawBar(20, .5)
+		assert.Equal(t, 10, strings.Count(b, BarFilling))
+		assert.Equal(t, 10, strings.Count(b, BarEmpty))
+		assert.Contains(t, b, BarLeft)
+		assert.Contains(t, b, BarRight)
+	})
+	t.Run("100 wide @ 50%", func(t *testing.T) {
+		b := drawBar(100, .5)
+		assert.Equal(t, 50, strings.Count(b, BarFilling))
+		assert.Equal(t, 50, strings.Count(b, BarEmpty))
+	})
+	t.Run("100 wide @ 99.9999%", func(t *testing.T) {
+		b := drawBar(100, .999999)
+		assert.Equal(t, 99, strings.Count(b, BarFilling))
+		assert.Equal(t, 1, strings.Count(b, BarEmpty))
+	})
+	t.Run("9 wide @ 72%", func(t *testing.T) {
+		b := drawBar(9, .72)
+		assert.Equal(t, 6, strings.Count(b, BarFilling))
+		assert.Equal(t, 3, strings.Count(b, BarEmpty))
+	})
+	t.Run("10 wide @ 0%", func(t *testing.T) {
+		b := drawBar(10, 0)
+		assert.Equal(t, 0, strings.Count(b, BarFilling))
+		assert.Equal(t, 10, strings.Count(b, BarEmpty))
+	})
+	t.Run("10 wide @ 100%", func(t *testing.T) {
+		b := drawBar(10, 1)
+		assert.Equal(t, 10, strings.Count(b, BarFilling))
+		assert.Equal(t, 0, strings.Count(b, BarEmpty))
+	})
+	t.Run("10 wide @ -60%", func(t *testing.T) {
+		b := drawBar(10, -0.6)
+		assert.Equal(t, 0, strings.Count(b, BarFilling))
+		assert.Equal(t, 10, strings.Count(b, BarEmpty))
+	})
+	t.Run("10 wide @ 160%", func(t *testing.T) {
+		b := drawBar(10, 1.6)
+		assert.Equal(t, 10, strings.Count(b, BarFilling))
+		assert.Equal(t, 0, strings.Count(b, BarEmpty))
 	})
 }
 
@@ -186,21 +169,17 @@ func TestBarUnits(t *testing.T) {
 
 	writeBuffer := &bytes.Buffer{}
 
-	Convey("With a simple ProgressBar with IsBytes==true", t, func() {
-		watching := NewCounter(1024 * 1024)
-		watching.Inc(777)
-		pbar := &Bar{
-			Name:     "\nTEST",
-			Watching: watching,
-			WaitTime: 10 * time.Millisecond,
-			Writer:   writeBuffer,
-			IsBytes:  true,
-		}
+	watching := NewCounter(1024 * 1024)
+	watching.Inc(777)
+	pbar := &Bar{
+		Name:     "\nTEST",
+		Watching: watching,
+		WaitTime: 10 * time.Millisecond,
+		Writer:   writeBuffer,
+		IsBytes:  true,
+	}
 
-		Convey("the written output should contain units", func() {
-			pbar.renderToWriter()
-			So(writeBuffer.String(), ShouldContainSubstring, "B")
-			So(writeBuffer.String(), ShouldContainSubstring, "MB")
-		})
-	})
+	pbar.renderToWriter()
+	assert.Contains(t, writeBuffer.String(), "B", "IsBytes writer returns bytes")
+	assert.Contains(t, writeBuffer.String(), "MB", "IsBytes writer returns megabytes")
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -46,80 +46,88 @@ func TestIsIndexKeysEqual(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if result := IsIndexKeysEqual(test.IndexKeys1, test.IndexKeys2); result != test.Expected {
-			t.Fatalf(
-				"Wrong output from IsIndexKeysEqual as expected, test: %v, actual: %v",
-				test,
-				result,
-			)
-		}
+		assert.Equal(
+			t,
+			test.Expected,
+			IsIndexKeysEqual(test.IndexKeys1, test.IndexKeys2),
+			"for test %v",
+			test,
+		)
 	}
 }
 
 func TestConvertLegacyIndexKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Converting legacy Indexes", t, func() {
-		index1Key := bson.D{
-			{"foo", int32(0)},
+	index1Key := bson.D{
+		{"foo", int32(0)},
+		{"int32field", int32(2)},
+		{"int64field", int64(-3)},
+		{"float64field", float64(0)},
+		{"float64field", float64(-1)},
+		{"float64field", float64(-1.1)},
+		{"float64field", float64(1e-9)},
+		{"float64field", float64(-1e-9)},
+		{"float64field", float64(1e-10)},
+		{"float64field", float64(-1e-10)},
+	}
+
+	ConvertLegacyIndexKeys(index1Key, "test")
+
+	assert.Equal(
+		t,
+		bson.D{
+			{"foo", int32(1)},
 			{"int32field", int32(2)},
 			{"int64field", int64(-3)},
-			{"float64field", float64(0)},
+			{"float64field", int32(1)},
 			{"float64field", float64(-1)},
 			{"float64field", float64(-1.1)},
 			{"float64field", float64(1e-9)},
 			{"float64field", float64(-1e-9)},
-			{"float64field", float64(1e-10)},
-			{"float64field", float64(-1e-10)},
-		}
+			{"float64field", int32(1)},
+			{"float64field", int32(-1)},
+		},
+		index1Key,
+	)
 
-		ConvertLegacyIndexKeys(index1Key, "test")
+	decimalNOne, _ := bson.ParseDecimal128("-1")
+	decimalZero, _ := bson.ParseDecimal128("0")
+	decimalOne, _ := bson.ParseDecimal128("1")
+	decimalZero1, _ := bson.ParseDecimal128("0.00")
+	index2Key := bson.D{
+		{"key1", decimalNOne},
+		{"key2", decimalZero},
+		{"key3", decimalOne},
+		{"key4", decimalZero1},
+	}
 
-		So(
-			index1Key,
-			ShouldResemble,
-			bson.D{
-				{"foo", int32(1)},
-				{"int32field", int32(2)},
-				{"int64field", int64(-3)},
-				{"float64field", int32(1)},
-				{"float64field", float64(-1)},
-				{"float64field", float64(-1.1)},
-				{"float64field", float64(1e-9)},
-				{"float64field", float64(-1e-9)},
-				{"float64field", int32(1)},
-				{"float64field", int32(-1)},
-			},
-		)
+	ConvertLegacyIndexKeys(index2Key, "test")
 
-		decimalNOne, _ := bson.ParseDecimal128("-1")
-		decimalZero, _ := bson.ParseDecimal128("0")
-		decimalOne, _ := bson.ParseDecimal128("1")
-		decimalZero1, _ := bson.ParseDecimal128("0.00")
-		index2Key := bson.D{
+	assert.Equal(
+		t,
+		bson.D{
 			{"key1", decimalNOne},
-			{"key2", decimalZero},
+			{"key2", int32(1)},
 			{"key3", decimalOne},
-			{"key4", decimalZero1},
-		}
-		ConvertLegacyIndexKeys(index2Key, "test")
-		So(
-			index2Key,
-			ShouldResemble,
-			bson.D{
-				{"key1", decimalNOne},
-				{"key2", int32(1)},
-				{"key3", decimalOne},
-				{"key4", int32(1)},
-			},
-		)
+			{"key4", int32(1)},
+		},
+		index2Key,
+	)
 
-		index3Key := bson.D{{"key1", ""}, {"key2", "2dsphere"}}
-		ConvertLegacyIndexKeys(index3Key, "test")
-		So(index3Key, ShouldResemble, bson.D{{"key1", int32(1)}, {"key2", "2dsphere"}})
+	index3Key := bson.D{{"key1", ""}, {"key2", "2dsphere"}}
+	ConvertLegacyIndexKeys(index3Key, "test")
+	assert.Equal(
+		t,
+		bson.D{{"key1", int32(1)}, {"key2", "2dsphere"}},
+		index3Key,
+	)
 
-		index4Key := bson.D{{"key1", bson.E{"invalid", 1}}, {"key2", bson.Binary{}}}
-		ConvertLegacyIndexKeys(index4Key, "test")
-		So(index4Key, ShouldResemble, bson.D{{"key1", int32(1)}, {"key2", int32(1)}})
-	})
+	index4Key := bson.D{{"key1", bson.E{"invalid", 1}}, {"key2", bson.Binary{}}}
+	ConvertLegacyIndexKeys(index4Key, "test")
+	assert.Equal(
+		t,
+		bson.D{{"key1", int32(1)}, {"key2", int32(1)}},
+		index4Key,
+	)
 }

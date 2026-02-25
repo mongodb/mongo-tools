@@ -13,37 +13,37 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	c "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFailpointParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	c.Convey("With test args", t, func() {
-		args := "foo=bar,baz,biz=,=a"
-		ParseFailpoints(args)
+	args := "foo=bar,baz,biz=,=a"
+	ParseFailpoints(args)
 
-		c.So(Enabled("foo"), c.ShouldBeTrue)
-		c.So(Enabled("baz"), c.ShouldBeTrue)
-		c.So(Enabled("biz"), c.ShouldBeTrue)
-		c.So(Enabled(""), c.ShouldBeTrue)
-		c.So(Enabled("bar"), c.ShouldBeFalse)
+	assert.True(t, Enabled("foo"))
+	assert.True(t, Enabled("baz"))
+	assert.True(t, Enabled("biz"))
+	assert.True(t, Enabled(""))
+	assert.False(t, Enabled("bar"))
 
-		var val string
-		var ok bool
-		val, ok = Get("foo")
-		c.So(val, c.ShouldEqual, "bar")
-		c.So(ok, c.ShouldBeTrue)
-		val, ok = Get("baz")
-		c.So(val, c.ShouldEqual, "")
-		c.So(ok, c.ShouldBeTrue)
-		val, ok = Get("biz")
-		c.So(val, c.ShouldEqual, "")
-		c.So(ok, c.ShouldBeTrue)
-		val, ok = Get("")
-		c.So(val, c.ShouldEqual, "a")
-		c.So(ok, c.ShouldBeTrue)
-		_, ok = Get("bar")
-		c.So(ok, c.ShouldBeFalse)
-	})
+	val, ok := Get("foo")
+	assert.Equal(t, "bar", val)
+	assert.True(t, ok)
+
+	val, ok = Get("baz")
+	assert.Equal(t, "", val)
+	assert.True(t, ok)
+
+	val, ok = Get("biz")
+	assert.Equal(t, "", val)
+	assert.True(t, ok)
+
+	val, ok = Get("")
+	assert.Equal(t, "a", val)
+	assert.True(t, ok)
+
+	_, ok = Get("bar")
+	assert.False(t, ok)
 }

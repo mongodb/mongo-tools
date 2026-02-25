@@ -12,36 +12,33 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateWidths(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Using a grid writer, the cached column width", t, func() {
-		gw := GridWriter{}
-		defaultWidths := []int{1, 2, 3, 4}
-		Convey("should be updated when one or more new cell widths are greater", func() {
-			// the first time, the grid's widths are nil
-			So(gw.colWidths, ShouldBeNil)
-			gw.updateWidths(defaultWidths)
-			So(gw.colWidths, ShouldResemble, defaultWidths)
+	gw := GridWriter{}
+	defaultWidths := []int{1, 2, 3, 4}
 
-			// the grid's widths should not be updated if all the new cell widths are less than or equal
-			newWidths := []int{1, 2, 1, 2}
-			So(gw.colWidths, ShouldNotBeNil)
-			gw.updateWidths(newWidths)
-			So(gw.colWidths, ShouldResemble, defaultWidths)
-			So(gw.colWidths, ShouldNotResemble, newWidths)
+	// the first time, the grid's widths are nil
+	assert.Nil(t, gw.colWidths)
+	gw.updateWidths(defaultWidths)
+	assert.Equal(t, defaultWidths, gw.colWidths)
 
-			// the grid's widths should be updated if any of the new cell widths are greater
-			newWidths = []int{1, 2, 3, 5}
-			So(gw.colWidths, ShouldNotBeNil)
-			gw.updateWidths(newWidths)
-			So(gw.colWidths, ShouldResemble, newWidths)
-			So(gw.colWidths, ShouldNotResemble, defaultWidths)
-		})
-	})
+	// the grid's widths should not be updated if all the new cell widths are less than or equal
+	newWidths := []int{1, 2, 1, 2}
+	assert.NotNil(t, gw.colWidths)
+	gw.updateWidths(newWidths)
+	assert.Equal(t, defaultWidths, gw.colWidths)
+	assert.NotEqual(t, newWidths, gw.colWidths)
+
+	// the grid's widths should be updated if any of the new cell widths are greater
+	newWidths = []int{1, 2, 3, 5}
+	assert.NotNil(t, gw.colWidths)
+	gw.updateWidths(newWidths)
+	assert.Equal(t, newWidths, gw.colWidths)
+	assert.NotEqual(t, defaultWidths, gw.colWidths)
 }
 
 func writeData(gw *GridWriter) {
@@ -57,38 +54,41 @@ func writeData(gw *GridWriter) {
 func TestWriteGrid(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Test grid writer with no min width", t, func() {
-		gw := GridWriter{}
-		writeData(&gw)
+	t.Run("no min width", func(t *testing.T) {
+		gw := new(GridWriter)
+		writeData(gw)
 		buf := bytes.Buffer{}
 		gw.Flush(&buf)
-		So(buf.String(), ShouldEqual,
-			"(0,0)(0,1)(0,2)\n(1,0)(1,1)(1,2)\n(2,0)(2,1)(2,2)\n")
+		assert.Equal(
+			t,
+			"(0,0)(0,1)(0,2)\n(1,0)(1,1)(1,2)\n(2,0)(2,1)(2,2)\n",
+			buf.String(),
+		)
 
-		writeData(&gw)
+		writeData(gw)
 		gw.MinWidth = 7
 		buf = bytes.Buffer{}
 		gw.Flush(&buf)
-		So(buf.String(), ShouldStartWith,
+		assert.Contains(t, buf.String(),
 			"  (0,0)  (0,1)  (0,2)\n  (1,0)  (1,1)")
 
-		writeData(&gw)
+		writeData(gw)
 		gw.colWidths = []int{}
 		gw.MinWidth = 0
 		gw.ColumnPadding = 1
 		buf = bytes.Buffer{}
 		gw.Flush(&buf)
-		So(buf.String(), ShouldStartWith,
+		assert.Contains(t, buf.String(),
 			"(0,0) (0,1) (0,2)\n(1,0) (1,1)")
 
-		writeData(&gw)
+		writeData(gw)
 		buf = bytes.Buffer{}
 		gw.FlushRows(&buf)
-		So(buf.String(), ShouldStartWith,
+		assert.Contains(t, buf.String(),
 			"(0,0) (0,1) (0,2)(1,0) (1,1)")
 	})
 
-	Convey("Test grid writer width calculation", t, func() {
+	t.Run("width calculation", func(t *testing.T) {
 		gw := GridWriter{}
 		gw.WriteCell("bbbb")
 		gw.WriteCell("aa")
@@ -98,19 +98,19 @@ func TestWriteGrid(t *testing.T) {
 		gw.WriteCell("a")
 		gw.WriteCell("")
 		gw.EndRow()
-		So(gw.calculateWidths(), ShouldResemble, []int{4, 2, 1})
+		assert.Equal(t, []int{4, 2, 1}, gw.calculateWidths())
 
 		gw.WriteCell("bbbbbbb")
 		gw.WriteCell("a")
 		gw.WriteCell("cccc")
 		gw.EndRow()
-		So(gw.calculateWidths(), ShouldResemble, []int{7, 2, 4})
+		assert.Equal(t, []int{7, 2, 4}, gw.calculateWidths())
 
 		gw.WriteCell("bbbbbbb")
 		gw.WriteCell("a")
 		gw.WriteCell("cccc")
 		gw.WriteCell("ddddddddd")
 		gw.EndRow()
-		So(gw.calculateWidths(), ShouldResemble, []int{7, 2, 4, 9})
+		assert.Equal(t, []int{7, 2, 4, 9}, gw.calculateWidths())
 	})
 }

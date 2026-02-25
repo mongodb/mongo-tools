@@ -11,36 +11,34 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNumberIntValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When converting JSON with NumberInt values", t, func() {
+	t.Run("NumberInt constructor", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: json.NumberInt(42),
+		}
 
-		Convey("works for NumberInt constructor", func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: json.NumberInt(42),
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, int32(42), jsonMap[key])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldEqual, int32(42))
-		})
+	t.Run(`NumberInt document ('{ "$numberInt": "42" }')`, func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$numberInt": "42",
+			},
+		}
 
-		Convey(`works for NumberInt document ('{ "$numberInt": "42" }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$numberInt": "42",
-				},
-			}
-
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldEqual, int32(42))
-		})
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, int32(42), jsonMap[key])
 	})
 }

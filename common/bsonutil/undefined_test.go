@@ -11,37 +11,35 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestUndefinedValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When converting JSON with undefined values", t, func() {
+	t.Run("undefined literal", func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: json.Undefined{},
+		}
 
-		Convey("works for undefined literal", func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: json.Undefined{},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.Undefined{}, jsonMap[key])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.Undefined{})
-		})
+	t.Run(`undefined document ('{ "$undefined": true }')`, func(t *testing.T) {
+		key := "key"
+		jsonMap := map[string]any{
+			key: map[string]any{
+				"$undefined": true,
+			},
+		}
 
-		Convey(`works for undefined document ('{ "$undefined": true }')`, func() {
-			key := "key"
-			jsonMap := map[string]any{
-				key: map[string]any{
-					"$undefined": true,
-				},
-			}
-
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap[key], ShouldResemble, bson.Undefined{})
-		})
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, bson.Undefined{}, jsonMap[key])
 	})
 }

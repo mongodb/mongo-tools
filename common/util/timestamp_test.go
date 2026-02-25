@@ -38,7 +38,7 @@ func TestTimestampComparisons(t *testing.T) {
 		}
 	})
 
-	t.Run("TestTimestampGreaterThan", func(t *testing.T) {
+	t.Run("TestTimestampLessThan", func(t *testing.T) {
 		reference := bson.Timestamp{T: 1000, I: 5}
 
 		cases := []struct {

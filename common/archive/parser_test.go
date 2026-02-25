@@ -13,7 +13,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -55,113 +56,114 @@ var notTerm = []byte{0xFF, 0xFF, 0xFF, 0xFE}
 func TestParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a parser with a simple parser consumer", t, func() {
-		tc := &testConsumer{}
-		parser := Parser{}
-		Convey("a well formed header and body", func() {
-			buf := bytes.Buffer{}
-			b, _ := bson.Marshal(strStruct{"header"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body"})
-			buf.Write(b)
-			buf.Write(term)
-			parser.In = &buf
-			Convey("ReadBlock data parses correctly", func() {
-				err := parser.ReadBlock(tc)
-				So(err, ShouldBeNil)
-				So(tc.eof, ShouldBeFalse)
-				So(tc.headers[0], ShouldEqual, "header")
-				So(tc.bodies[0], ShouldEqual, "body")
+	// setup returns a parser + consumer + buffer to use for tests; the parser is set up to read from
+	// the buffer.
+	setup := func() (Parser, *testConsumer, *bytes.Buffer) {
+		buf := new(bytes.Buffer)
+		return Parser{In: buf}, new(testConsumer), buf
+	}
 
-				err = parser.ReadBlock(tc)
-				So(err, ShouldEqual, io.EOF)
-			})
-			Convey("ReadAllBlock data parses correctly", func() {
-				err := parser.ReadAllBlocks(tc)
-				So(err, ShouldEqual, nil)
-				So(tc.eof, ShouldBeTrue)
-				So(tc.headers[0], ShouldEqual, "header")
-				So(tc.bodies[0], ShouldEqual, "body")
+	writeBSON := func(buf *bytes.Buffer, data any) {
+		b, _ := bson.Marshal(data)
+		buf.Write(b)
+	}
 
-			})
-		})
-		Convey("a well formed header and multiple body datas parse correctly", func() {
-			buf := bytes.Buffer{}
-			b, _ := bson.Marshal(strStruct{"header"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body0"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body1"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body2"})
-			buf.Write(b)
-			buf.Write(term)
-			parser.In = &buf
+	t.Run("well-formed header and body", func(t *testing.T) {
+		parser, tc, buf := setup()
+		writeBSON(buf, strStruct{"header"})
+		writeBSON(buf, strStruct{"body"})
+		buf.Write(term)
+
+		t.Run("ReadBlock data parses correctly", func(t *testing.T) {
 			err := parser.ReadBlock(tc)
-			So(err, ShouldBeNil)
-			So(tc.eof, ShouldBeFalse)
-			So(tc.headers[0], ShouldEqual, "header")
-			So(tc.bodies[0], ShouldEqual, "body0")
-			So(tc.bodies[1], ShouldEqual, "body1")
-			So(tc.bodies[2], ShouldEqual, "body2")
+			require.NoError(t, err)
+			assert.False(t, tc.eof)
+			assert.Equal(t, "header", tc.headers[0])
+			assert.Equal(t, "body", tc.bodies[0])
 
 			err = parser.ReadBlock(tc)
-			So(err, ShouldEqual, io.EOF)
-			So(tc.eof, ShouldBeFalse)
+			require.ErrorIs(t, err, io.EOF)
 		})
-		Convey("an incorrect terminator should cause an error", func() {
-			buf := bytes.Buffer{}
-			b, _ := bson.Marshal(strStruct{"header"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body"})
-			buf.Write(b)
-			buf.Write(notTerm)
-			parser.In = &buf
-			err := parser.ReadBlock(tc)
-			So(err, ShouldNotBeNil)
-		})
-		Convey("an empty block should result in EOF", func() {
-			buf := bytes.Buffer{}
-			parser.In = &buf
-			err := parser.ReadBlock(tc)
-			So(err, ShouldEqual, io.EOF)
-			So(tc.eof, ShouldBeFalse)
-		})
-		Convey("an error coming from the consumer should propigate through the parser", func() {
-			tc.eof = true
-			buf := bytes.Buffer{}
-			parser.In = &buf
+
+		t.Run("ReadAllBlock data parses correctly", func(t *testing.T) {
 			err := parser.ReadAllBlocks(tc)
-			So(err.Error(), ShouldContainSubstring, "double end")
-		})
-		Convey("a partial block should result in a non-EOF error", func() {
-			buf := bytes.Buffer{}
-			b, _ := bson.Marshal(strStruct{"header"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body"})
-			buf.Write(b)
-			parser.In = &buf
-			err := parser.ReadBlock(tc)
-			So(err, ShouldNotBeNil)
-			So(tc.eof, ShouldBeFalse)
-			So(tc.headers[0], ShouldEqual, "header")
-			So(tc.bodies[0], ShouldEqual, "body")
-		})
-		Convey("a block with a missing terminator shoud result in a non-EOF error", func() {
-			buf := bytes.Buffer{}
-			b, _ := bson.Marshal(strStruct{"header"})
-			buf.Write(b)
-			b, _ = bson.Marshal(strStruct{"body"})
-			buf.Write(b[:len(b)-1])
-			buf.Write([]byte{0x01})
-			buf.Write(notTerm)
-			parser.In = &buf
-			err := parser.ReadBlock(tc)
-			So(err, ShouldNotBeNil)
-			So(tc.eof, ShouldBeFalse)
-			So(tc.headers[0], ShouldEqual, "header")
-			So(tc.bodies, ShouldBeNil)
+			require.NoError(t, err)
+			assert.True(t, tc.eof)
+			assert.Equal(t, "header", tc.headers[0])
+			assert.Equal(t, "body", tc.bodies[0])
 		})
 	})
-	return
+
+	t.Run("well-formed header and multiple bodies", func(t *testing.T) {
+		parser, tc, buf := setup()
+		writeBSON(buf, strStruct{"header"})
+		writeBSON(buf, strStruct{"body0"})
+		writeBSON(buf, strStruct{"body1"})
+		writeBSON(buf, strStruct{"body2"})
+		buf.Write(term)
+
+		err := parser.ReadBlock(tc)
+		require.NoError(t, err)
+		assert.False(t, tc.eof)
+		assert.Equal(t, "header", tc.headers[0])
+		assert.Equal(t, "body0", tc.bodies[0])
+		assert.Equal(t, "body1", tc.bodies[1])
+		assert.Equal(t, "body2", tc.bodies[2])
+
+		err = parser.ReadBlock(tc)
+		require.ErrorIs(t, err, io.EOF)
+		assert.False(t, tc.eof)
+	})
+
+	t.Run("incorrect terminator", func(t *testing.T) {
+		parser, tc, buf := setup()
+		writeBSON(buf, strStruct{"header"})
+		writeBSON(buf, strStruct{"body"})
+		buf.Write(notTerm)
+
+		err := parser.ReadBlock(tc)
+		require.Error(t, err)
+	})
+
+	t.Run("empty block", func(t *testing.T) {
+		parser, tc, _ := setup()
+		err := parser.ReadBlock(tc)
+		require.ErrorIs(t, err, io.EOF)
+		assert.False(t, tc.eof)
+	})
+
+	t.Run("error progagation from consumer through parser", func(t *testing.T) {
+		parser, tc, _ := setup()
+		tc.eof = true
+		err := parser.ReadAllBlocks(tc)
+		require.ErrorContains(t, err, "double end")
+	})
+
+	t.Run("partial block", func(t *testing.T) {
+		parser, tc, buf := setup()
+		writeBSON(buf, strStruct{"header"})
+		writeBSON(buf, strStruct{"body"})
+
+		err := parser.ReadBlock(tc)
+		require.Error(t, err)
+		assert.False(t, tc.eof)
+		assert.Equal(t, "header", tc.headers[0])
+		assert.Equal(t, "body", tc.bodies[0])
+	})
+
+	t.Run("block with missing terminator", func(t *testing.T) {
+		parser, tc, buf := setup()
+		writeBSON(buf, strStruct{"header"})
+
+		b, _ := bson.Marshal(strStruct{"body"})
+		buf.Write(b[:len(b)-1])
+		buf.WriteByte(0x01)
+		buf.Write(notTerm)
+
+		err := parser.ReadBlock(tc)
+		require.Error(t, err)
+		assert.False(t, tc.eof)
+		assert.Equal(t, "header", tc.headers[0])
+		assert.Empty(t, tc.bodies)
+	})
 }

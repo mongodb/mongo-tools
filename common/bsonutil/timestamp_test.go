@@ -11,46 +11,41 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestTimestampValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When converting JSON with Timestamp values", t, func() {
-		testTS := bson.Timestamp{T: 123456, I: 55}
+	testTS := bson.Timestamp{T: 123456, I: 55}
 
-		Convey("works for Timestamp literal", func() {
+	t.Run("Timestamp literal", func(t *testing.T) {
+		jsonMap := map[string]any{
+			"ts": json.Timestamp{123456, 55},
+		}
 
-			jsonMap := map[string]any{
-				"ts": json.Timestamp{123456, 55},
-			}
+		err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
+		require.NoError(t, err)
+		assert.Equal(t, testTS, jsonMap["ts"])
+	})
 
-			err := ConvertLegacyExtJSONDocumentToBSON(jsonMap)
-			So(err, ShouldBeNil)
-			So(jsonMap["ts"], ShouldEqual, testTS)
-		})
+	t.Run(`Timestamp document {"ts":{"$timestamp":{"t":123456, "i":55}}}`, func(t *testing.T) {
+		jsonMap := map[string]any{
+			"ts": map[string]any{
+				"$timestamp": map[string]any{
+					"t": 123456.0,
+					"i": 55.0,
+				},
+			},
+		}
 
-		Convey(`works for Timestamp document`, func() {
-			Convey(`{"ts":{"$timestamp":{"t":123456, "i":55}}}`, func() {
-				jsonMap := map[string]any{
-					"ts": map[string]any{
-						"$timestamp": map[string]any{
-							"t": 123456.0,
-							"i": 55.0,
-						},
-					},
-				}
+		bsonMap, err := ConvertLegacyExtJSONValueToBSON(jsonMap)
+		require.NoError(t, err)
 
-				bsonMap, err := ConvertLegacyExtJSONValueToBSON(jsonMap)
-				So(err, ShouldBeNil)
-
-				realMap, ok := bsonMap.(map[string]any)
-				So(ok, ShouldBeTrue)
-
-				So(realMap["ts"], ShouldEqual, testTS)
-			})
-		})
+		realMap, ok := bsonMap.(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, testTS, realMap["ts"])
 	})
 }

@@ -6,7 +6,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -16,9 +17,8 @@ func TestSingleTxnBuffer(t *testing.T) {
 
 	buffer := NewBuffer()
 	txnByID, err := mapTestTxnByID()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
 			testBufferOps(t, buffer, c.ops, txnByID)
@@ -31,9 +31,7 @@ func TestMixedTxnBuffer(t *testing.T) {
 
 	buffer := NewBuffer()
 	txnByID, err := mapTestTxnByID()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	streams := make([][]db.Oplog, len(testCases))
 	for i, c := range testCases {
@@ -56,15 +54,11 @@ func testBufferOps(t *testing.T, buffer *Buffer, ops []db.Oplog, txnByID map[ID]
 		}
 
 		err := buffer.AddOp(meta, op)
-		if err != nil {
-			t.Fatalf("AddOp failed: %v", err)
-		}
+		require.NoError(t, err, "AddOp failed")
 
 		if meta.IsAbort() {
 			err := buffer.PurgeTxn(meta)
-			if err != nil {
-				t.Fatalf("PurgeTxn (abort) failed: %v", err)
-			}
+			require.NoError(t, err, "PurgeTxn (abort) failed")
 			assertNoStateForID(t, meta, buffer)
 			continue
 		}
@@ -85,37 +79,23 @@ func testBufferOps(t *testing.T, buffer *Buffer, ops []db.Oplog, txnByID map[ID]
 				}
 				innerOpCounter[meta.id]++
 			case err := <-errs:
-				if err != nil {
-					t.Fatalf("GetTxnStream streaming failed: %v", err)
-				}
+				require.NoError(t, err, "GetTxnStream streaming failed")
 				break LOOP
 			}
 		}
 
 		expectedCnt := txnByID[meta.id].innerOpCount
-		if innerOpCounter[meta.id] != expectedCnt {
-			t.Errorf(
-				"incorrect streamed op count; got %d, expected %d",
-				innerOpCounter[meta.id],
-				expectedCnt,
-			)
-		}
+		assert.Equal(t, expectedCnt, innerOpCounter[meta.id], "incorrect streamed op count")
 
 		err = buffer.PurgeTxn(meta)
-		if err != nil {
-			t.Fatalf("PurgeTxn (commit) failed: %v", err)
-		}
+		require.NoError(t, err, "PurgeTxn (commit) failed")
 		assertNoStateForID(t, meta, buffer)
-
 	}
-
 }
 
 func assertNoStateForID(t *testing.T, meta Meta, buffer *Buffer) {
 	_, ok := buffer.txns[meta.id]
-	if ok {
-		t.Errorf("state not cleared for %v", meta.id)
-	}
+	assert.False(t, ok, "state not cleared for %v", meta.id)
 }
 
 func TestOldestTimestamp(t *testing.T) {
@@ -125,10 +105,7 @@ func TestOldestTimestamp(t *testing.T) {
 
 	// With no transactions, oldest active is zero value
 	oldest := buffer.OldestOpTime()
-	zeroTimestamp := bson.Timestamp{}
-	if oldest.Timestamp != zeroTimestamp {
-		t.Errorf("expected zero timestamp, but got %v", oldest.Timestamp)
-	}
+	assert.Zero(t, oldest.Timestamp)
 
 	// Constructing manually requires pointers to int64, so they can't be constants.
 	txnN := []int64{0, 1}
@@ -171,58 +148,45 @@ func TestOldestTimestamp(t *testing.T) {
 
 	for _, v := range ops {
 		meta, err := NewMeta(v)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		err = buffer.AddOp(meta, v)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}
 
 	// With uncommitted transactions, we should see the oldest among them.
 	oldest = buffer.OldestOpTime()
 	expect := bson.Timestamp{T: 1234, I: 1}
-	if oldest.Timestamp != expect {
-		t.Fatalf("expected timestamp %v, but got %v", expect, oldest)
-	}
+	require.Equal(t, expect, oldest.Timestamp)
 }
 
 func TestExtractInnerOps(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	// Constructing manually requires pointers to int64, so they can't be constants.
-	txnN := []int64{0}
-	term := []int64{1}
+	txnN := int64(0)
+	term := int64(1)
 
 	timestamp := bson.Timestamp{T: 1234, I: 1}
 
-	Convey(
-		"extracted oplogs from transaction oplog should have the same timestamp, term and hash",
-		t,
-		func() {
-			op := db.Oplog{
-				Timestamp: bson.Timestamp{T: 1234, I: 1},
-				Term:      &term[0],
-				LSID:      bson.Raw{0, 0, 0, 0, 1},
-				TxnNumber: &txnN[0],
-				Operation: "c",
-				Namespace: "admin.$cmd",
-				Object: bson.D{
-					{"applyOps", bson.A{bson.D{{"op", "n"}}}},
-					{"partialTxn", true},
-				},
-			}
-
-			innerOps, err := extractInnerOps(&op)
-			if err != nil {
-				t.Fatalf("PurgeTxn (abort) failed: %v", err)
-			}
-
-			for _, innerOp := range innerOps {
-				So(innerOp.Timestamp, ShouldEqual, timestamp)
-				So(*innerOp.Term, ShouldEqual, term[0])
-			}
+	op := db.Oplog{
+		Timestamp: bson.Timestamp{T: 1234, I: 1},
+		Term:      &term,
+		LSID:      bson.Raw{0, 0, 0, 0, 1},
+		TxnNumber: &txnN,
+		Operation: "c",
+		Namespace: "admin.$cmd",
+		Object: bson.D{
+			{"applyOps", bson.A{bson.D{{"op", "n"}}}},
+			{"partialTxn", true},
 		},
-	)
+	}
+
+	innerOps, err := extractInnerOps(&op)
+	require.NoError(t, err, "PurgeTxn (abort) failed")
+
+	for _, innerOp := range innerOps {
+		assert.Equal(t, timestamp, innerOp.Timestamp)
+		assert.Equal(t, term, *innerOp.Term)
+	}
 }
