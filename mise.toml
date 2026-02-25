@@ -19,6 +19,9 @@ node = "22.22.0"
 "npm:prettier" = "3.4.2"
 "npm:github-codeowners" = "0.2.1"
 
+[settings]
+lockfile = true
+
 [settings.node]
 # We turn off GPG verification for node because it has been flaky in CI, and also requires a local
 # GPG public key.

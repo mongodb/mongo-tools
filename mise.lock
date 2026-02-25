@@ -1,0 +1,68 @@
+[[tools."github:golangci/golangci-lint"]]
+version = "2.6.2"
+backend = "github:golangci/golangci-lint"
+"platforms.linux-arm64" = { checksum = "sha256:a2f9c6fe1800d0a6ba2a94ada95debe2c498a636ffc12308ee03022f97be1f33", url = "https://github.com/golangci/golangci-lint/releases/download/v2.6.2/golangci-lint-2.6.2-linux-arm64.tar.gz", url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/316398254"}
+"platforms.linux-x64" = { checksum = "sha256:499c864b5fd9841c4fa8e80b5e2be30f73f085cf186f1b111ff81a2783b7de12", url = "https://github.com/golangci/golangci-lint/releases/download/v2.6.2/golangci-lint-2.6.2-linux-amd64.tar.gz", url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/316398288"}
+"platforms.macos-arm64" = { checksum = "sha256:6164de2b9a9e6b4b8deea57c5072ada5d6d41bf5cca0b2f744e7b3d6e818fe0d", url = "https://github.com/golangci/golangci-lint/releases/download/v2.6.2/golangci-lint-2.6.2-darwin-arm64.tar.gz", url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/316398271"}
+"platforms.macos-x64" = { checksum = "sha256:ad9ad19db485d224441a77453d2a18c009184408eea92ab479d3ee5c975889f8", url = "https://github.com/golangci/golangci-lint/releases/download/v2.6.2/golangci-lint-2.6.2-darwin-amd64.tar.gz", url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/316398263"}
+"platforms.windows-x64" = { checksum = "sha256:c7f1d036892411148397fe5dae0cefb8736160b5269c4d5b081232d7b83aefcb", url = "https://github.com/golangci/golangci-lint/releases/download/v2.6.2/golangci-lint-2.6.2-windows-amd64.zip", url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/316398269"}
+
+[[tools."github:houseabsolute/precious"]]
+version = "0.10.2"
+backend = "github:houseabsolute/precious"
+"platforms.linux-arm64" = { checksum = "sha256:8fbaead9f9626170549c3121e67d1bc81193b3bb086e29576f548aefa839fcc4", url = "https://github.com/houseabsolute/precious/releases/download/v0.10.2/precious-Linux-musl-arm64.tar.gz", url_api = "https://api.github.com/repos/houseabsolute/precious/releases/assets/345520042"}
+"platforms.linux-x64" = { checksum = "sha256:3d717d906db338f63017766b07982dc9055773e1b3bec6d3f432d1f0ad9676bb", url = "https://github.com/houseabsolute/precious/releases/download/v0.10.2/precious-Linux-musl-x86_64.tar.gz", url_api = "https://api.github.com/repos/houseabsolute/precious/releases/assets/345519861"}
+"platforms.macos-arm64" = { checksum = "sha256:04157c64459bb6ab029295b21b112077040ad2575b34508d84b19a839551cddb", url = "https://github.com/houseabsolute/precious/releases/download/v0.10.2/precious-macOS-arm64.tar.gz", url_api = "https://api.github.com/repos/houseabsolute/precious/releases/assets/345519985"}
+"platforms.macos-x64" = { checksum = "sha256:9932defd246d0771530357463bdb55582557fd7381853cb4dc2074e36ad0cc84", url = "https://github.com/houseabsolute/precious/releases/download/v0.10.2/precious-macOS-x86_64.tar.gz", url_api = "https://api.github.com/repos/houseabsolute/precious/releases/assets/345519772"}
+"platforms.windows-x64" = { checksum = "sha256:9d683d1730e302c646ccb90a23d313e7a548c8b23b5abf7d24e19ff6befe763d", url = "https://github.com/houseabsolute/precious/releases/download/v0.10.2/precious-Windows-msvc-x86_64.zip", url_api = "https://api.github.com/repos/houseabsolute/precious/releases/assets/345520544"}
+
+[[tools."github:securego/gosec"]]
+version = "2.22.10"
+backend = "github:securego/gosec"
+"platforms.linux-arm64" = { checksum = "sha256:4547ebce3b9912ed8ae4b87247bf8dd72ae7140a0ea989128ab4bacf77e4afa6", url = "https://github.com/securego/gosec/releases/download/v2.22.10/gosec_2.22.10_linux_arm64.tar.gz", url_api = "https://api.github.com/repos/securego/gosec/releases/assets/304480314"}
+"platforms.linux-x64" = { checksum = "sha256:ed535f46c57a1978acc8fa823df95913eef5e7a82d52422e357eedfb7c573741", url = "https://github.com/securego/gosec/releases/download/v2.22.10/gosec_2.22.10_linux_amd64.tar.gz", url_api = "https://api.github.com/repos/securego/gosec/releases/assets/304480337"}
+"platforms.macos-arm64" = { checksum = "sha256:06f795a2d7ad784411906545ee881d5c959b93948669a4ca52fd72d2cb276d19", url = "https://github.com/securego/gosec/releases/download/v2.22.10/gosec_2.22.10_darwin_arm64.tar.gz", url_api = "https://api.github.com/repos/securego/gosec/releases/assets/304480315"}
+"platforms.macos-x64" = { checksum = "sha256:ab2744ebf0b539f7d3f1d25db470effcb273440ed7aaefec00c1bf7fe34867dd", url = "https://github.com/securego/gosec/releases/download/v2.22.10/gosec_2.22.10_darwin_amd64.tar.gz", url_api = "https://api.github.com/repos/securego/gosec/releases/assets/304480324"}
+"platforms.windows-x64" = { checksum = "sha256:f9551aae364634457625f11e35e9d3ab2d2904db803c337430b16151323b050a", url = "https://github.com/securego/gosec/releases/download/v2.22.10/gosec_2.22.10_windows_amd64.tar.gz", url_api = "https://api.github.com/repos/securego/gosec/releases/assets/304480321"}
+
+[[tools."github:segmentio/golines"]]
+version = "0.12.2"
+backend = "github:segmentio/golines"
+"platforms.linux-arm64" = { checksum = "sha256:37281e7c092313a79d82d0befcfd05c55293605699c12f39da76ddd136c0040c", url = "https://github.com/segmentio/golines/releases/download/v0.12.2/golines_0.12.2_linux_arm64.tar.gz", url_api = "https://api.github.com/repos/segmentio/golines/releases/assets/147149283"}
+"platforms.linux-x64" = { checksum = "sha256:861bf0c432a71fdbf2a5a55dbfd43ab8391e3c6ae82d76895fd595de5bea7960", url = "https://github.com/segmentio/golines/releases/download/v0.12.2/golines_0.12.2_linux_amd64.tar.gz", url_api = "https://api.github.com/repos/segmentio/golines/releases/assets/147149281"}
+"platforms.macos-arm64" = { checksum = "sha256:ab7bd77718bddfc09a35bdc53f524344ebac32f3b89be69701de00a54f7f7983", url = "https://github.com/segmentio/golines/releases/download/v0.12.2/golines_0.12.2_darwin_all.tar.gz", url_api = "https://api.github.com/repos/segmentio/golines/releases/assets/147149282"}
+"platforms.macos-x64" = { checksum = "sha256:ab7bd77718bddfc09a35bdc53f524344ebac32f3b89be69701de00a54f7f7983", url = "https://github.com/segmentio/golines/releases/download/v0.12.2/golines_0.12.2_darwin_all.tar.gz", url_api = "https://api.github.com/repos/segmentio/golines/releases/assets/147149282"}
+
+[[tools.go]]
+version = "1.25.7"
+backend = "core:go"
+"platforms.linux-arm64" = { checksum = "sha256:ba611a53534135a81067240eff9508cd7e256c560edd5d8c2fef54f083c07129", url = "https://dl.google.com/go/go1.25.7.linux-arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:12e6d6a191091ae27dc31f6efc630e3a3b8ba409baf3573d955b196fdf086005", url = "https://dl.google.com/go/go1.25.7.linux-amd64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:ff18369ffad05c57d5bed888b660b31385f3c913670a83ef557cdfd98ea9ae1b", url = "https://dl.google.com/go/go1.25.7.darwin-arm64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:bf5050a2152f4053837b886e8d9640c829dbacbc3370f913351eb0904cb706f5", url = "https://dl.google.com/go/go1.25.7.darwin-amd64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:c75e5f4ff62d085cc0017be3ad19d5536f46825fa05db06ec468941f847e3228", url = "https://dl.google.com/go/go1.25.7.windows-amd64.zip"}
+
+[[tools."go:golang.org/x/tools/cmd/goimports"]]
+version = "0.29.0"
+backend = "go:golang.org/x/tools/cmd/goimports"
+
+[[tools.node]]
+version = "22.22.0"
+backend = "core:node"
+"platforms.linux-arm64" = { checksum = "sha256:25ba95dfb96871fa2ef977f11f95ea90818c8fa15c0f2110771db08d4ba423be", url = "https://nodejs.org/dist/v22.22.0/node-v22.22.0-linux-arm64.tar.gz"}
+"platforms.linux-x64" = { checksum = "sha256:c33c39ed9c80deddde77c960d00119918b9e352426fd604ba41638d6526a4744", url = "https://nodejs.org/dist/v22.22.0/node-v22.22.0-linux-x64.tar.gz"}
+"platforms.macos-arm64" = { checksum = "sha256:5ed4db0fcf1eaf84d91ad12462631d73bf4576c1377e192d222e48026a902640", url = "https://nodejs.org/dist/v22.22.0/node-v22.22.0-darwin-arm64.tar.gz"}
+"platforms.macos-x64" = { checksum = "sha256:5ea50c9d6dea3dfa3abb66b2656f7a4e1c8cef23432b558d45fb538c7b5dedce", url = "https://nodejs.org/dist/v22.22.0/node-v22.22.0-darwin-x64.tar.gz"}
+"platforms.windows-x64" = { checksum = "sha256:c97fa376d2becdc8863fcd3ca2dd9a83a9f3468ee7ccf7a6d076ec66a645c77a", url = "https://nodejs.org/dist/v22.22.0/node-v22.22.0-win-x64.zip"}
+
+[[tools."npm:eslint"]]
+version = "8.57.0"
+backend = "npm:eslint"
+
+[[tools."npm:github-codeowners"]]
+version = "0.2.1"
+backend = "npm:github-codeowners"
+
+[[tools."npm:prettier"]]
+version = "3.4.2"
+backend = "npm:prettier"
