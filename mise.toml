@@ -23,6 +23,9 @@ node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm ins
 "npm:github-codeowners" = "0.2.1"
 "npm:oxfmt" = "0.52.0"
 
+# Python
+python = "3.12.9"
+
 [settings]
 # This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a
 # bit of protection against supply-chain attacks.
@@ -32,3 +35,10 @@ minimum_release_age = "7d"
 # We turn off GPG verification for node because it has been flaky in CI, and also requires a local
 # GPG public key.
 gpg_verify = false
+
+[settings.python]
+# We turn off GitHub artifact attestation verification for python because it fails on our RHEL 8
+# CI hosts: mise can't parse the Rekor transparency-log public key there ("Ecdsa-P256 from der
+# bytes to public key failed: unknown/unsupported algorithm OID"), which blocks installation
+# entirely.
+github_attestations = false
