@@ -1591,8 +1591,11 @@ func unzip(src, dst string) {
 		_, err = io.Copy(destinationFile, archiveFile)
 		check(err, "write archive file to the destination file")
 
-		destinationFile.Close()
-		archiveFile.Close()
+		err = archiveFile.Close()
+		check(err, "close archive file after extracting zip")
+
+		err = destinationFile.Close()
+		check(err, "close destination file after extracting zip")
 	}
 }
 
@@ -1630,7 +1633,8 @@ func untargz(src, dst string) {
 			_, err = io.Copy(destinationFile, tarReader)
 			check(err, "write archive file to the destination file")
 
-			destinationFile.Close()
+			err = destinationFile.Close()
+			check(err, "close destination file after extracting tar")
 		}
 	}
 
