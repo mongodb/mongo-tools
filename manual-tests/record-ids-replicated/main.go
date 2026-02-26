@@ -1,7 +1,10 @@
 // This tool tests the ability of mongodump and mongorestore to move data between clusters with and
 // without replicated record IDs enabled.
 //
-// It performs a full dump/restore cycle between two clusters and verifies the data matches.
+// It performs a full dump/restore cycle between two clusters. When both clusters are of the same
+// type (both with or both without recordIdsReplicated), it verifies the data matches after
+// restore. When the clusters differ (one with and one without recordIdsReplicated), it verifies
+// that mongorestore fails when --oplogReplay is used.
 //
 // Usage:
 //
@@ -17,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -45,13 +49,16 @@ type collectionSpec struct {
 
 // testContext holds the state needed throughout the test.
 type testContext struct {
-	srcURI      string
-	dstURI      string
-	keepDump    bool
-	srcClient   *mongo.Client
-	dstClient   *mongo.Client
-	dumpDir     string
-	barrierFile string
+	srcURI                        string
+	dstURI                        string
+	keepDump                      bool
+	srcClient                     *mongo.Client
+	dstClient                     *mongo.Client
+	dumpDir                       string
+	simpleDumpDir                 string
+	barrierFile                   string
+	srcRecordIdsReplicatedEnabled bool
+	dstRecordIdsReplicatedEnabled bool
 }
 
 func main() {
@@ -118,12 +125,42 @@ func run(srcURI, dstURI string, keepDump bool) error {
 		return err
 	}
 
-	if err := tc.runRestore(); err != nil {
-		return err
-	}
+	if tc.srcRecordIdsReplicatedEnabled != tc.dstRecordIdsReplicatedEnabled {
+		// Cycle 1: with oplog replay — expect failure due to cluster type mismatch.
+		log.Println(
+			"Source and destination clusters differ in recordIdsReplicated support; verifying that mongorestore fails with --oplogReplay...",
+		)
+		if err := tc.runRestoreExpectingFailure(); err != nil {
+			return err
+		}
 
-	if err := tc.verifyClustersMatch(ctx); err != nil {
-		return err
+		// Cycle 2: without oplog replay — expect success.
+		log.Println("Verifying that mongorestore succeeds without --oplogReplay...")
+		if err := tc.cleanTestDBs(ctx); err != nil {
+			return err
+		}
+		if err := tc.runDumpWithoutOplog(); err != nil {
+			return err
+		}
+		defer tc.removeSimpleDumpDir()
+
+		if err := tc.removeSystemDBsFromSimpleDump(); err != nil {
+			return err
+		}
+		if err := tc.runRestoreWithoutOplog(); err != nil {
+			return err
+		}
+		if err := tc.verifyClustersMatch(ctx); err != nil {
+			return err
+		}
+	} else {
+		if err := tc.runRestore(); err != nil {
+			return err
+		}
+
+		if err := tc.verifyClustersMatch(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -165,7 +202,53 @@ func (tc *testContext) connectToClusters(ctx context.Context) error {
 	tc.dstClient = dstClient
 	log.Println("✅ Connected to destination cluster")
 
+	tc.srcRecordIdsReplicatedEnabled, err = hasRecordIdsReplicated(ctx, srcClient)
+	if err != nil {
+		return fmt.Errorf("failed to check recordIdsReplicated on source: %w", err)
+	}
+	log.Printf("Source cluster recordIdsReplicated: %v", tc.srcRecordIdsReplicatedEnabled)
+
+	tc.dstRecordIdsReplicatedEnabled, err = hasRecordIdsReplicated(ctx, dstClient)
+	if err != nil {
+		return fmt.Errorf("failed to check recordIdsReplicated on destination: %w", err)
+	}
+	log.Printf("Destination cluster recordIdsReplicated: %v", tc.dstRecordIdsReplicatedEnabled)
+
 	return nil
+}
+
+// hasRecordIdsReplicated checks whether the given cluster has the featureFlagRecordIdsReplicated
+// parameter enabled.
+func hasRecordIdsReplicated(ctx context.Context, client *mongo.Client) (bool, error) {
+	result := client.Database("admin").RunCommand(
+		ctx,
+		bson.D{
+			{"getParameter", 1},
+			{"featureFlagRecordIdsReplicated", 1},
+		},
+	)
+	if result.Err() != nil {
+		// This is the "InvalidOptions" error code, which is what we get when the parameter name
+		// isn't recognized by the Server.
+		if slices.Contains(mongo.ErrorCodes(result.Err()), 72) {
+			// If the command fails, the feature flag doesn't exist or isn't enabled. Or maybe something
+			// is totally broken, in which case we will find that out when we attempt other DB
+			// operations.
+			return false, nil
+		}
+		return false, result.Err()
+	}
+
+	var doc struct {
+		FeatureFlagRecordIdsReplicated struct {
+			Value bool `bson:"value"`
+		} `bson:"featureFlagRecordIdsReplicated"`
+	}
+	if err := result.Decode(&doc); err != nil {
+		return false, nil
+	}
+
+	return doc.FeatureFlagRecordIdsReplicated.Value, nil
 }
 
 func (tc *testContext) disconnectClients(ctx context.Context) {
@@ -337,6 +420,74 @@ func (tc *testContext) removeDumpDir() {
 	os.RemoveAll(tc.dumpDir)
 }
 
+func (tc *testContext) runDumpWithoutOplog() error {
+	tempDir, err := os.MkdirTemp("", "rir-test-simple-")
+	if err != nil {
+		return fmt.Errorf("failed to create temp directory for simple dump: %w", err)
+	}
+	tc.simpleDumpDir = filepath.Join(tempDir, "dump")
+	if err = os.MkdirAll(tc.simpleDumpDir, 0755); err != nil {
+		return fmt.Errorf("failed to create simple dump directory: %w", err)
+	}
+	if tc.keepDump {
+		log.Printf("Simple dump temp directory will be kept for inspection: %s", tempDir)
+	}
+
+	log.Println("Starting mongodump without --oplog...")
+	dumpCmd := exec.Command(
+		"./bin/mongodump",
+		"-vvvv",
+		"--uri", tc.srcURI,
+		"--out", tc.simpleDumpDir,
+	)
+	dumpCmd.Dir = repoRoot()
+	dumpCmd.Stdout = os.Stdout
+	dumpCmd.Stderr = os.Stderr
+	if err := dumpCmd.Run(); err != nil {
+		return fmt.Errorf("mongodump (no oplog) failed: %w", err)
+	}
+	log.Println("✅ mongodump (no oplog) completed")
+	return nil
+}
+
+func (tc *testContext) removeSimpleDumpDir() {
+	if tc.keepDump || tc.simpleDumpDir == "" {
+		return
+	}
+	log.Printf("Removing simple dump directory: %s", tc.simpleDumpDir)
+	os.RemoveAll(filepath.Dir(tc.simpleDumpDir))
+}
+
+func (tc *testContext) removeSystemDBsFromSimpleDump() error {
+	for _, dbName := range []string{"admin", "config"} {
+		p := filepath.Join(tc.simpleDumpDir, dbName)
+		if err := os.RemoveAll(p); err != nil {
+			return fmt.Errorf("failed to remove directory %#q: %w", p, err)
+		}
+	}
+	log.Println("✅ removed system data directories from simple dump")
+	return nil
+}
+
+func (tc *testContext) runRestoreWithoutOplog() error {
+	log.Println("Running mongorestore without --oplogReplay --drop...")
+	restoreCmd := exec.Command(
+		"./bin/mongorestore",
+		"-vvvv",
+		"--uri", tc.dstURI,
+		"--drop",
+		tc.simpleDumpDir,
+	)
+	restoreCmd.Dir = repoRoot()
+	restoreCmd.Stdout = os.Stdout
+	restoreCmd.Stderr = os.Stderr
+	if err := restoreCmd.Run(); err != nil {
+		return fmt.Errorf("mongorestore (no oplog replay) failed: %w", err)
+	}
+	log.Println("✅ mongorestore (no oplog replay) completed")
+	return nil
+}
+
 func (tc *testContext) runDumpWithConcurrentOps(ctx context.Context) error {
 	log.Println("Starting mongodump with --oplog...")
 	dumpCmd := exec.Command(
@@ -445,6 +596,31 @@ func (tc *testContext) runRestore() error {
 		return fmt.Errorf("mongorestore failed: %w", err)
 	}
 	log.Println("✅ mongorestore completed")
+	return nil
+}
+
+func (tc *testContext) runRestoreExpectingFailure() error {
+	log.Println(
+		"Running mongorestore with --oplogReplay --drop (expecting failure due to recordIdsReplicated mismatch)...",
+	)
+	restoreCmd := exec.Command(
+		"./bin/mongorestore",
+		"-vvvv",
+		"--uri", tc.dstURI,
+		"--oplogReplay",
+		"--drop",
+		tc.dumpDir,
+	)
+	restoreCmd.Dir = repoRoot()
+	restoreCmd.Stdout = os.Stdout
+	restoreCmd.Stderr = os.Stderr
+
+	if err := restoreCmd.Run(); err == nil {
+		return fmt.Errorf(
+			"mongorestore succeeded but should have failed: clusters differ in recordIdsReplicated support",
+		)
+	}
+	log.Println("✅ mongorestore failed as expected")
 	return nil
 }
 
