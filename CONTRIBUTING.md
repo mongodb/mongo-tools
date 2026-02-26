@@ -92,6 +92,12 @@ Example of how to run a specific integration test:
 TOOLS_TESTING_INTEGRATION=true go test -v ./... -run TestImportDocuments
 ```
 
+To run the directory-import integration test (added for the `--dir` option):
+
+```
+TOOLS_TESTING_INTEGRATION=true go test -v ./mongoimport -run TestImportFromDirectory
+```
+
 To run the quality assurance tests, you need to have the latest stable version of the rebuilt tools,
 `mongod`, `mongos`, and `mongo` in your current working directory.
 

@@ -14,9 +14,11 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 )
 
-var Usage = `<options> <connection-string> <file> 
+var Usage = `<options> <connection-string> [<file>]
 
 Import CSV, TSV or JSON data into MongoDB. If no file is provided, mongoimport reads from stdin.
+
+To import all .json files in a directory (JSON input only), use --dir.
 
 Connection strings must begin with mongodb:// or mongodb+srv://.
 
@@ -32,6 +34,9 @@ type InputOptions struct {
 
 	// Specifies the location and name of a file containing the data to import.
 	File string `long:"file" value-name:"<filename>" description:"file to import from; if not specified, stdin is used"`
+
+	// Specifies a directory containing files to import.
+	Dir string `long:"dir" value-name:"<directory>" description:"directory to import all JSON files from (only works with JSON format)"`
 
 	// Treats the input source's first line as field list (csv and tsv only).
 	HeaderLine bool `long:"headerline" description:"use first line in input source as the field list (CSV and TSV only)"`
@@ -148,10 +153,22 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	opts.WriteConcern = wc
 
 	// ensure either a positional argument is supplied or an argument is passed
-	// to the --file flag - and not both
+	// to the --file flag or --dir flag - but not multiple
 	if inputOpts.File != "" && len(extraArgs) != 0 {
 		return Options{}, fmt.Errorf(
 			"error parsing positional arguments: cannot use both --file and a positional argument to set the input file",
+		)
+	}
+
+	if inputOpts.Dir != "" && inputOpts.File != "" {
+		return Options{}, fmt.Errorf(
+			"error parsing positional arguments: cannot use both --dir and --file",
+		)
+	}
+
+	if inputOpts.Dir != "" && len(extraArgs) != 0 {
+		return Options{}, fmt.Errorf(
+			"error parsing positional arguments: cannot use both --dir and a positional argument",
 		)
 	}
 
