@@ -11,7 +11,9 @@ buildvariants:
   - name: mongodump_passthru_v
     # Use this name to get it sorted near the top of the list in spruce UI.
     display_name: "# V mongodump_passthru_v (arm64)"
-    cron: 0 3 * * *
+    # We don't run passthrough tests for every commit in waterfall.
+    # This only runs on manual patches or periodic builds.
+    allowed_requesters: ["ad_hoc", "patch"]
     tasks:
       - name: compile_coverage
       - name: compile_verifier
