@@ -18,4 +18,5 @@ type Oplog struct {
 	TxnNumber   *int64         `bson:"txnNumber,omitempty"`
 	PrevOpTime  bson.Raw       `bson:"prevOpTime,omitempty"`
 	MultiOpType *int           `bson:"multiOpType,omitempty"`
+	RecordId    *bson.RawValue `bson:"rid,omitempty"`
 }

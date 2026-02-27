@@ -9,9 +9,12 @@ package db
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -151,11 +154,11 @@ func (sp *SessionProvider) GetNodeType() (NodeType, error) {
 		&bson.M{"ismaster": 1},
 	)
 	if result.Err() != nil {
-		return Unknown, result.Err()
+		return Unknown, fmt.Errorf("error running `ismaster` command: %w", result.Err())
 	}
 	err = result.Decode(&masterDoc)
 	if err != nil {
-		return Unknown, err
+		return Unknown, fmt.Errorf("error decoding `ismaster` response: %w", err)
 	}
 	if masterDoc.SetName != nil || masterDoc.Hosts != nil {
 		return ReplSet, nil
@@ -181,9 +184,54 @@ func (sp *SessionProvider) IsReplicaSet() (bool, error) {
 func (sp *SessionProvider) IsMongos() (bool, error) {
 	nodeType, err := sp.GetNodeType()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error getting node type: %w", err)
 	}
 	return nodeType == Mongos, nil
+}
+
+// HasRecordIdsReplicated checks if the connected server has the featureFlagRecordIdsReplicated
+// feature flag enabled.
+func (sp *SessionProvider) HasRecordIdsReplicated() (bool, error) {
+	session, err := sp.GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	result := session.Database("admin").RunCommand(
+		context.Background(),
+		bson.D{
+			{"getParameter", 1},
+			{"featureFlagRecordIdsReplicated", 1},
+		},
+	)
+	if result.Err() != nil {
+		// This is the "InvalidOptions" error code, which is what we get when the parameter name
+		// isn't recognized by the Server.
+		if slices.Contains(mongo.ErrorCodes(result.Err()), 72) {
+			// If the command fails, the feature flag doesn't exist or isn't enabled. Or maybe something
+			// is totally broken, in which case we will find that out when we attempt other DB
+			// operations.
+			return false, nil
+		}
+
+		// We see this error from older versions of the Server.
+		if strings.Contains(result.Err().Error(), "no option found to get") {
+			return false, nil
+		}
+
+		return false, result.Err()
+	}
+
+	var doc struct {
+		FeatureFlagRecordIdsReplicated struct {
+			Value bool `bson:"value"`
+		} `bson:"featureFlagRecordIdsReplicated"`
+	}
+	if err := result.Decode(&doc); err != nil {
+		return false, nil
+	}
+
+	return doc.FeatureFlagRecordIdsReplicated.Value, nil
 }
 
 //
