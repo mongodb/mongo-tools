@@ -2,5 +2,4 @@
 
 set -e
 
-go run build.go sa:installdevtools
-./dev-bin/precious lint --staged
+mise exec github:houseabsolute/precious -- precious lint --staged
