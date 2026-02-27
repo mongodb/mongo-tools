@@ -67,8 +67,7 @@ variables:
   f_resmoke_with_binaries_fetch: &f_resmoke_with_binaries_fetch
     command: s3.get
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
       # Changed for mongodump_passthrough
       remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
       bucket: mciuploads
@@ -77,21 +76,19 @@ variables:
   f_resmoke_wheelhouse_fetch: &f_resmoke_wheelhouse_fetch
     command: s3.get
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
       # Changed for mongodump_passthrough
       remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
-      bucket: mciuploads
+      bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
       extract_to: "."
 
   f_migration_verifier_binary_fetch: &f_migration_verifier_binary_fetch
     command: s3.get
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
       # Changed for mongodump_passthrough
       remote_file: mongo-tools/mongodump_passthrough/${mongosync_compile_build_variant}/${revision}/${version_id}/migration_verifier
-      bucket: mciuploads
+      bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
       local_file: src/mongosync/migration_verifier
 
   f_make_migration_verifier_binary_executable:
@@ -113,11 +110,10 @@ variables:
   f_mongosync_binary_fetch: &f_mongosync_binary_fetch
     command: s3.get
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
       # Changed for mongodump_passthrough
       remote_file: mongo-tools/mongodump_passthrough/${mongosync_compile_build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
-      bucket: mciuploads
+      bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
       extract_to: "src/mongosync"
 
   f_generate_github_access_token: &f_generate_github_access_token
@@ -355,14 +351,14 @@ functions:
           - "./src/**"
           - "./.resmoke_mongo_version.yml"
           - "./.resmoke_mongo_release_values.yml"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: resmoke-with-binaries.tgz
         # Changed for mongodump_passthrough
         remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-with-binaries/${build_id}.tgz
-        bucket: mciuploads
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
         permissions: private
         visibility: signed
         content_type: application/gzip
@@ -375,14 +371,14 @@ functions:
         include:
           - "./wheelhouse/**"
           - "./poetry-requirements.txt"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: resmoke-python-wheelhouse.tgz
         # Changed for mongodump_passthrough
         remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/resmoke-python-wheelhouse/${build_id}.tgz
-        bucket: mciuploads
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
         permissions: private
         visibility: signed
         content_type: application/gzip
@@ -407,17 +403,17 @@ functions:
           PATH=$PATH:$HOME:/opt/golang/go1.23/bin
           GOROOT=/opt/golang/go1.23
           ./build.sh
+
     # upload the compiled verifier to S3.
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: src/migration-verifier/migration_verifier
         # Changed for mongodump_passthrough
         remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${version_id}/migration_verifier
         content_type: application/x-executable
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         display_name: "migration_verifier release artifact (compiled)"
 
   f_migration_verifier_binary_fetch:
@@ -437,15 +433,15 @@ functions:
         source_dir: "src/mongosync"
         include:
           - "./dist/*"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: ${mongosync_binary_folder}.tgz
         # Changed for mongodump_passthrough
         remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/${version_id}/${mongosync_binary_folder}/${version_id}.tgz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: ${mongosync_binary_folder}
 
@@ -487,6 +483,7 @@ functions:
       params:
         binary: "./src/mongosync/evergreen/scripts/mongo_coredumps_gather.sh"
         add_expansions_to_env: true
+
     - command: archive.targz_pack
       params:
         target: mongo-coredumps.tgz
@@ -494,14 +491,14 @@ functions:
         include:
           - "./**.core"
           - "./**.mdmp" # Windows: minidumps
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: mongo-coredumps.tgz
         remote_file: mongosync/${build_variant}/${revision}/coredumps/mongo-coredumps-${build_id}-${task_name}-${execution}.tgz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: Core Dumps - Execution ${execution}
         optional: true
@@ -520,14 +517,14 @@ functions:
         source_dir: "src/mongosync/mongosync-testing-server-logs"
         include:
           - "./**"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: server-logs.tgz
         remote_file: mongosync/${build_variant}/${revision}/mongo-logs/mongo-logs-${build_id}-${task_name}-${execution}.tgz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: Integration Test mongod / mongos logs ${execution}
         optional: true
@@ -539,51 +536,48 @@ functions:
         include:
           - "out.log"
           - "server.log"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: mongo-orchestration-logs.tgz
         remote_file: mongosync/${build_variant}/${revision}/mongo-orchestration-logs/mongo-orchestration-logs.tgz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: mongo-orchestration logs
         optional: true
 
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_files_include_filter:
           - src/mongosync/*.suite
         remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/${execution}/go-test-logs/
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: text/plain
         display_name: "Output from `go test` command"
 
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: src/mongosync/server-binaries.tgz
         remote_file: mongosync/${build_variant}/${revision}/mongo-binaries/mongo-binaries-${build_id}-${task_name}-${execution}.tgz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: Failed Integration Test mongod / mongos binaries ${execution}
         optional: true
 
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_files_include_filter:
           - src/mongosync/mongosync-testing-server-data-files/archive/*.tgz
         remote_file: mongosync/${build_variant}/${revision}/${build_id}/${task_name}/datafiles/
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/octet-stream
         display_name: Failed Integration Test Data Files ${execution}
 
@@ -593,14 +587,14 @@ functions:
         source_dir: "src/mongosync/coverage"
         include:
           - "./**"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: coverage.gz
         remote_file: mongosync/${build_variant}/${revision}/coverage/${task_name}/coverage.gz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: Coverage statistics
 
@@ -610,14 +604,14 @@ functions:
         source_dir: "src/resmoke/tools_output"
         include:
           - "**"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: tools_output.tgz
         remote_file: mongo-tools/${build_variant}/${revision}/tools_output/${task_name}/${build_id}/tools_output.tgz
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/gzip
         display_name: Tools Output
 
@@ -638,6 +632,7 @@ functions:
   "run jstestfuzz":
     - *f_expansions_write
     - *f_generate_github_access_token
+
     - command: github.generate_token
       params:
         owner: 10gen
@@ -645,29 +640,32 @@ functions:
         expansion_name: generated_token_qa
         permissions:
           contents: read
+
     - command: subprocess.exec
       params:
         binary: "./src/mongosync/evergreen/scripts/clone_jstestfuzz_jstest_repos.sh"
         add_expansions_to_env: true
+
     - command: subprocess.exec
       type: test
       params:
         binary: "./src/mongosync/evergreen/scripts/run_jstestfuzz.sh"
         add_expansions_to_env: true
+
     - command: archive.targz_pack
       params:
         target: "jstests.tgz"
         source_dir: "src/jstestfuzz"
         include:
           - "out/*.js"
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: jstests.tgz
         # Changed for mongodump_passthrough
         remote_file: mongo-tools/mongodump_passthrough/${build_variant}/${revision}/jstestfuzz/${task_id}-${execution}.tgz
-        bucket: mciuploads
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
         permissions: private
         visibility: signed
         content_type: application/gzip
