@@ -265,8 +265,7 @@ functions:
     # upload individual release artifacts to task page
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_files_include_filter:
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.deb
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.msi
@@ -275,8 +274,8 @@ functions:
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.zip
         remote_file: mongo-tools/pkgs/${build_id}/
         content_type: application/octet-stream
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         display_name: "Release Artifact - "
 
     # pack all release artifacts into a tarball and upload them to one
@@ -291,25 +290,24 @@ functions:
           - mongodb-database-tools*.rpm
           - mongodb-database-tools*.tgz
           - mongodb-database-tools*.zip
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: src/github.com/mongodb/mongo-tools/upload.tgz
         remote_file: mongo-tools/task/dist/${build_id}/all-release-artifacts.tgz
         content_type: application/x-gzip
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         display_name: All Release Artifacts (.tgz)
 
   "fetch dist release artifacts":
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         remote_file: mongo-tools/task/dist/${build_id}/all-release-artifacts.tgz
         extract_to: src/github.com/mongodb/mongo-tools/
-        bucket: mciuploads
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
 
   "sign artifacts":
     command: shell.exec
@@ -335,10 +333,10 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
           rm -rf ./mongorestore/testdata/longcollectionname/
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_files_include_filter:
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.sig
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.deb
@@ -347,8 +345,8 @@ functions:
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.tgz
           - src/github.com/mongodb/mongo-tools/mongodb-database-tools*.zip
         remote_file: mongo-tools/task/sign/${build_id}/
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
         content_type: application/octet-stream
 
   "upload release packages to s3":
@@ -366,16 +364,16 @@ functions:
         script: |
           ${_set_shell_env}
           go run release/release.go upload-json
+
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        role_arn: arn:aws:iam::391144487543:role/evergreen-project-mongo-tools
         local_file: src/github.com/mongodb/mongo-tools/release.json
         remote_file: mongo-tools/release/${build_id}/
         optional: true
         content_type: application/json
-        bucket: mciuploads
-        permissions: public-read
+        bucket: evergreen-project-mongo-tools-i6qg5nn6nbm
+        permissions: private
 
   "generate full JSON feed":
     - command: shell.exec
