@@ -491,28 +491,9 @@ functions:
           # The aws_e2e_assume_role script requires python3 with boto3.
           # Set up or use an existing python virtualenv for boto3.
           venv='venv'
-          venvNonWindows () { . "$venv"/bin/activate; python3 -m pip install boto3; }
-          venvWindows () { . "$venv"/Scripts/activate; pip install boto3; }
-
-          # default to python3 inside mongodbtoolchain
-          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
-
-          if [ -f "$venv"/bin/activate ]; then
-            echo 'activating existing virtualenv'
-            venvNonWindows
-          elif [ -f "$venv"/Scripts/activate ]; then
-            echo 'activating existing virtualenv'
-            venvWindows
-          elif virtualenv "$venv" || python -m virtualenv "$venv"; then
-            echo 'creating new virtualenv'
-            if [ -f "$venv"/bin/activate ]; then
-              echo 'activating new virtualenv'
-              venvNonWindows
-            elif [ -f "$venv"/Scripts/activate ]; then
-              echo 'activating new virtualenv'
-              venvWindows
-            fi
-          fi
+          mise exec python -- python3 -m venv "$venv"
+          . "$venv"/bin/activate
+          pip install boto3
 
           pip list
 
@@ -528,8 +509,9 @@ functions:
           set -v
           set -e
 
+          # There's no need to use mise here, since this will work with any version of Python.
           jsonkey () { python -c "import sys, json; sys.stdout.write(json.load(sys.stdin)['$1'])" < creds.json; }
-          urlencode () { python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus('$1'))"; }
+          urlencode () { python -c "import sys, urllib.parse as ul; sys.stdout.write(ul.quote_plus('$1'))"; }
 
           USER=$(jsonkey AccessKeyId)
           USER=$(urlencode $USER)
@@ -655,8 +637,6 @@ pre:
   - command: expansions.update
     params:
       updates:
-        - key: python
-          value: "/opt/mongodbtoolchain/v4/bin/python3"
         - key: resmoke_dir
           value: "src/resmoke"
         - key: resmoke_venv_dir
