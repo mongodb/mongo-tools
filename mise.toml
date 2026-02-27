@@ -1,0 +1,25 @@
+# We use the github backend for nearly everything we can for two reasons. One is consistency: this
+# way all developers compile Go packages with the same versions. The other is speed: downloading
+# pre-built binaries from GitHub is faster than compiling from source. In many cases these tools
+# are available in the mise registry with multiple backends, so spelling out "github:..." ensures
+# we use the github backend.
+
+[tools]
+# Go and Go tools
+go = "1.25.7"
+"go:golang.org/x/tools/cmd/goimports" = "0.29.0"
+"github:golangci/golangci-lint" = "2.6.2"
+"github:securego/gosec" = "2.22.10"
+"github:segmentio/golines" = "0.12.2"
+"github:houseabsolute/precious" = "0.10.2"
+
+# Node and npm tools
+node = "22.22.0"
+"npm:eslint" = "8.57.0"
+"npm:prettier" = "3.4.2"
+"npm:github-codeowners" = "0.2.1"
+
+[settings.node]
+# We turn off GPG verification for node because it has been flaky in CI, and also requires a local
+# GPG public key.
+gpg_verify = false
