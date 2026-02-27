@@ -259,6 +259,20 @@ func createIndexesAndRunCollModPrepareUnique(ctx context.Context) error {
 	}
 
 	for _, index := range indexes {
+		res := client.Database(testDB).RunCommand(
+			ctx,
+			bson.D{
+				{"collMod", testCollName},
+				{"index", bson.D{
+					{"keyPattern", index.Keys},
+					{"forceNonUnique", true},
+				}},
+			},
+		)
+		if res.Err() != nil {
+			return res.Err()
+		}
+
 		for _, prepareUnique := range []bool{true, false, true} {
 			res := client.Database(testDB).RunCommand(
 				ctx,

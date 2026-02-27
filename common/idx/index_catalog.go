@@ -331,7 +331,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 			continue
 		}
 
-		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" || k == "unique" {
+		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" || k == "unique" || k == "forceNonUnique" {
 			matchingIndex.Options[k] = element.Value
 
 		} else {
