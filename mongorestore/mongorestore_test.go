@@ -3327,17 +3327,116 @@ func uniqueDBName() string {
 	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
 }
 
+type nopWriteCloser struct {
+	io.Writer
+}
+
+func (nwc nopWriteCloser) Close() error {
+	return nil
+}
+
+func TestNamespaceFilterWithBulkWriteAndTxn(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	// TODO: Make this t.Context() once we move to Go 1.24.
+	ctx := context.Background()
+
+	provider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "should get session provider")
+
+	client, err := provider.GetSession()
+	require.NoError(t, err, "should get session")
+
+	db := client.Database(uniqueDBName())
+	require.NoError(t, db.Drop(ctx), "should pre-drop DB %#q", db.Name())
+
+	require.NoError(t, db.CreateCollection(ctx, "stuff"))
+	coll := db.Collection("stuff")
+
+	backup := bytes.Buffer{}
+
+	dump, err := GetArchiveMongoDump(nopWriteCloser{&backup})
+	require.NoError(t, err, "should create dump")
+
+	dump.OutputOptions.Oplog = true
+
+	dumpErr := dump.DumpUntilOplog()
+	defer dump.CloseMuxIfNeeded(dumpErr)
+
+	require.NoError(t, dumpErr, "dump until oplog should work")
+
+	_, err = coll.InsertMany(
+		ctx,
+		lo.RepeatBy(
+			1000,
+			func(index int) any {
+				return bson.D{{"num", index}}
+			},
+		),
+	)
+	require.NoError(t, err, "should bulk-insert docs")
+
+	require.NoError(
+		t,
+		client.UseSession(
+			ctx,
+			func(sc mongo.SessionContext) error {
+				_, err := sc.WithTransaction(
+					sc,
+					func(ctx mongo.SessionContext) (any, error) {
+						_, err = coll.InsertMany(
+							ctx,
+							lo.RepeatBy(
+								1000,
+								func(index int) any {
+									return bson.D{{"num", index}}
+								},
+							),
+						)
+						return nil, err
+					},
+				)
+
+				return err
+			},
+		),
+		"should do txn",
+	)
+
+	dumpErr = dump.DumpOplogAndAfter()
+	require.NoError(t, dumpErr, "finishing dump should work")
+	dump.CloseMuxIfNeeded(dumpErr)
+
+	// ------------------------------------------
+
+	require.NoError(t, db.Drop(ctx), "should drop database")
+
+	restore, err := GetArchiveMongoRestore(
+		io.NopCloser(bytes.NewReader(backup.Bytes())),
+	)
+	require.NoError(t, err, "should create restore")
+
+	restore.NSOptions = &NSOptions{
+		NSInclude: []string{db.Name()},
+	}
+
+	assert.NoError(t, restore.Restore().Err, "restore should work")
+
+	docs, err := coll.CountDocuments(ctx, bson.D{})
+	require.NoError(t, err, "should count documents")
+
+	assert.Equal(t, 200, docs, "all inserted docs should be archived & restored")
+}
+
 func TestPipedDumpRestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	t.Logf("start %#q", t.Name())
 	// TODO: Make this t.Context() once we move to Go 1.24.
 	ctx := t.Context()
 
 	provider, _, err := testutil.GetBareSessionProvider()
 	require.NoError(t, err, "should get session provider")
 
-	t.Logf("getting session")
 	sess, err := provider.GetSession()
 	require.NoError(t, err, "should get session")
 
@@ -3345,8 +3444,6 @@ func TestPipedDumpRestore(t *testing.T) {
 
 	db := sess.Database(uniqueDBName())
 	require.NoError(t, db.Drop(ctx), "should pre-drop DB %#q", db.Name())
-
-	t.Logf("creating collections")
 
 	for _, collName := range srcCollNames {
 		docs := lo.RepeatBy(
