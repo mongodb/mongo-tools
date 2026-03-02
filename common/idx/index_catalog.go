@@ -338,7 +338,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 			if !boolOk {
 				return errors.Errorf("cannot convert %s value to bool: %v", k, element.Value)
 			}
-	
+
 			if k == "unique" && v {
 				delete(matchingIndex.Options, "forceNonUnique")
 			}
