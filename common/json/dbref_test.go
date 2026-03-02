@@ -12,345 +12,343 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDBRefValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with DBRef values", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
+		key := "key"
+		value := `DBRef("ref", "123")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue, ok := jsonMap[key].(DBRef)
+		require.True(t, ok)
+		assert.Equal(t, DBRef{"ref", "123", ""}, jsonValue)
+	})
+
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := `DBRef("ref1", "123")`,
+			`DBRef("ref2", "456")`, `DBRef("ref3", "789")`
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue1, ok := jsonMap[key1].(DBRef)
+		require.True(t, ok)
+		assert.Equal(t, DBRef{"ref1", "123", ""}, jsonValue1)
+
+		jsonValue2, ok := jsonMap[key2].(DBRef)
+		require.True(t, ok)
+		assert.Equal(t, DBRef{"ref2", "456", ""}, jsonValue2)
+
+		jsonValue3, ok := jsonMap[key3].(DBRef)
+		require.True(t, ok)
+		assert.Equal(t, DBRef{"ref3", "789", ""}, jsonValue3)
+	})
+
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		value := `DBRef("ref", "42")`
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
+
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", "42", ""}, jsonValue)
+		}
+	})
+
+	t.Run("alternative capitalization", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		value := `Dbref("ref", "123")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue, ok := jsonMap[key].(DBRef)
+		require.True(t, ok)
+		assert.Equal(t, DBRef{"ref", "123", ""}, jsonValue)
+	})
+
+	t.Run("different types for id parameter", func(t *testing.T) {
+
+		t.Run("null literal", func(t *testing.T) {
 			var jsonMap map[string]any
 
 			key := "key"
-			value := `DBRef("ref", "123")`
+			value := `DBRef("ref", null)`
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
 			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			jsonValue, ok := jsonMap[key].(DBRef)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, DBRef{"ref", "123", ""})
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", nil, ""}, jsonValue)
 		})
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
-
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := `DBRef("ref1", "123")`,
-				`DBRef("ref2", "456")`, `DBRef("ref3", "789")`
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue1, ok := jsonMap[key1].(DBRef)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldResemble, DBRef{"ref1", "123", ""})
-
-			jsonValue2, ok := jsonMap[key2].(DBRef)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldResemble, DBRef{"ref2", "456", ""})
-
-			jsonValue3, ok := jsonMap[key3].(DBRef)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldResemble, DBRef{"ref3", "789", ""})
-		})
-
-		Convey("works in an array", func() {
+		t.Run("true literal", func(t *testing.T) {
 			var jsonMap map[string]any
 
 			key := "key"
-			value := `DBRef("ref", "42")`
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
-
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", "42", ""})
-			}
-		})
-
-		Convey("can use alternative capitalization ('Dbref')", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := `Dbref("ref", "123")`
+			value := `DBRef("ref", true)`
 			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
 			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			jsonValue, ok := jsonMap[key].(DBRef)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, DBRef{"ref", "123", ""})
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", true, ""}, jsonValue)
 		})
 
-		Convey("can have any extended JSON value for id parameter", func() {
+		t.Run("false literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a null literal", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", false)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", null)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", false, ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", nil, ""})
-			})
+		t.Run("undefined literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a true literal", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", undefined)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", true)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", Undefined{}, ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", true, ""})
-			})
+		t.Run("NaN literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a false literal", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", NaN)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", false)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, "ref", jsonValue.Collection)
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", false, ""})
-			})
+			id, ok := jsonValue.Id.(float64)
+			require.True(t, ok)
+			assert.True(t, math.IsNaN(id))
 
-			Convey("an undefined literal", func() {
-				var jsonMap map[string]any
+		})
 
-				key := "key"
-				value := `DBRef("ref", undefined)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		t.Run("Infinity literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			key := "key"
+			value := `DBRef("ref", Infinity)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", Undefined{}, ""})
-			})
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-			Convey("a NaN literal", func() {
-				var jsonMap map[string]any
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, "ref", jsonValue.Collection)
 
-				key := "key"
-				value := `DBRef("ref", NaN)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			id, ok := jsonValue.Id.(float64)
+			require.True(t, ok)
+			assert.True(t, math.IsInf(id, 1))
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue.Collection, ShouldEqual, "ref")
+		t.Run("MinKey literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-				id, ok := jsonValue.Id.(float64)
-				So(ok, ShouldBeTrue)
-				So(math.IsNaN(id), ShouldBeTrue)
+			key := "key"
+			value := `DBRef("ref", MinKey)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			})
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-			Convey("an Infinity literal", func() {
-				var jsonMap map[string]any
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", MinKey{}, ""}, jsonValue)
+		})
 
-				key := "key"
-				value := `DBRef("ref", Infinity)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		t.Run("MaxKey literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			key := "key"
+			value := `DBRef("ref", MaxKey)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue.Collection, ShouldEqual, "ref")
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				id, ok := jsonValue.Id.(float64)
-				So(ok, ShouldBeTrue)
-				So(math.IsInf(id, 1), ShouldBeTrue)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", MaxKey{}, ""}, jsonValue)
+		})
 
-			})
+		t.Run("ObjectId object", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a MinKey literal", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", ObjectId("123"))`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", MinKey)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", ObjectId("123"), ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", MinKey{}, ""})
-			})
+		t.Run("NumberInt object", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a MaxKey literal", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", NumberInt(123))`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", MaxKey)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", NumberInt(123), ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", MaxKey{}, ""})
-			})
+		t.Run("NumberLong object", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("an ObjectId object", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", NumberLong(123))`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", ObjectId("123"))`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", NumberLong(123), ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", ObjectId("123"), ""})
-			})
+		t.Run("RegExp object", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a NumberInt object", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", RegExp("xyz", "i"))`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", NumberInt(123))`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", RegExp{"xyz", "i"}, ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", NumberInt(123), ""})
-			})
+		t.Run("regular expression literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a NumberLong object", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", /xyz/i)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", NumberLong(123))`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", RegExp{"xyz", "i"}, ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", NumberLong(123), ""})
-			})
+		t.Run("Timestamp object", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a RegExp object", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", Timestamp(123, 321))`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", RegExp("xyz", "i"))`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", Timestamp{123, 321}, ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", RegExp{"xyz", "i"}, ""})
-			})
+		t.Run("string literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a regular expression literal", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", "xyz")`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", /xyz/i)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, DBRef{"ref", "xyz", ""}, jsonValue)
+		})
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", RegExp{"xyz", "i"}, ""})
-			})
+		t.Run("numeric literal", func(t *testing.T) {
+			var jsonMap map[string]any
 
-			Convey("a Timestamp object", func() {
-				var jsonMap map[string]any
+			key := "key"
+			value := `DBRef("ref", 123)`
+			data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-				key := "key"
-				value := `DBRef("ref", Timestamp(123, 321))`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
+			err := Unmarshal([]byte(data), &jsonMap)
+			require.NoError(t, err)
 
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
+			jsonValue, ok := jsonMap[key].(DBRef)
+			require.True(t, ok)
+			assert.Equal(t, "ref", jsonValue.Collection)
 
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", Timestamp{123, 321}, ""})
-			})
-
-			Convey("a string literal", func() {
-				var jsonMap map[string]any
-
-				key := "key"
-				value := `DBRef("ref", "xyz")`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
-
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBRef{"ref", "xyz", ""})
-			})
-
-			Convey("a numeric literal", func() {
-				var jsonMap map[string]any
-
-				key := "key"
-				value := `DBRef("ref", 123)`
-				data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
-
-				jsonValue, ok := jsonMap[key].(DBRef)
-				So(ok, ShouldBeTrue)
-				So(jsonValue.Collection, ShouldEqual, "ref")
-
-				id, ok := jsonValue.Id.(int32)
-				So(ok, ShouldBeTrue)
-				So(id, ShouldAlmostEqual, 123)
-			})
+			id, ok := jsonValue.Id.(int32)
+			require.True(t, ok)
+			assert.InDelta(t, 123, id, 0.000000001)
 		})
 	})
 }

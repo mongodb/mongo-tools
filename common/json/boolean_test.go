@@ -11,368 +11,366 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBooleanValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with Boolean values", t, func() {
-
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		value := "Boolean(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
+	})
+
+	t.Run("no args", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			value := "Boolean(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		key := "key"
+		value := "Boolean()"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-		Convey("works for no args", func() {
-			var jsonMap map[string]any
+	t.Run("struct of specific type", func(t *testing.T) {
+		type TestStruct struct {
+			A bool
+			//nolint:unused
+			b int
+		}
+		var jsonStruct TestStruct
 
-			key := "key"
-			value := "Boolean()"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		key := "A"
+		value := "Boolean(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonStruct)
+		require.NoError(t, err)
+		assert.True(t, jsonStruct.A)
 
-		Convey("works for a struct of a specific type", func() {
-			type TestStruct struct {
-				A bool
-				//nolint:unused
-				b int
-			}
-			var jsonStruct TestStruct
+		key = "A"
+		value = "Boolean(0)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "A"
-			value := "Boolean(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err = Unmarshal([]byte(data), &jsonStruct)
+		require.NoError(t, err)
+		assert.False(t, jsonStruct.A)
+	})
 
-			err := Unmarshal([]byte(data), &jsonStruct)
-			So(err, ShouldBeNil)
-			So(jsonStruct.A, ShouldEqual, true)
+	t.Run("explicit bool", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key = "A"
-			value = "Boolean(0)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+		key := "key"
+		value := "Boolean(true)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonStruct)
-			So(err, ShouldBeNil)
-			So(jsonStruct.A, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for bool", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			key := "key"
-			value := "Boolean(true)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(false)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			value = "Boolean(false)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("numbers", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean(1)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for numbers", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			key := "key"
-			value := "Boolean(1)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(0)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
 
-			value = "Boolean(0)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(0.0)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
 
-			value = "Boolean(0.0)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(2.0)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			value = "Boolean(2.0)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(-15.4)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
+	})
 
-			value = "Boolean(-15.4)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("strings", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean('hello')"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for strings", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			key := "key"
-			value := "Boolean('hello')"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean('')"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			value = "Boolean('')"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("undefined", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean(undefined)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for undefined", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			key := "key"
-			value := "Boolean(undefined)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("null", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean(null)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for null", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			key := "key"
-			value := "Boolean(null)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("too many args", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean(true, false)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works when given too many args", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			key := "key"
-			value := "Boolean(true, false)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		key = "key"
+		value = "Boolean(false, true)"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			key = "key"
-			value = "Boolean(false, true)"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := "Boolean(123)", "Boolean(0)", "Boolean(true)"
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+		jsonValue1, ok := jsonMap[key1].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue1)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "Boolean(123)", "Boolean(0)", "Boolean(true)"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		jsonValue2, ok := jsonMap[key2].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue2)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue3, ok := jsonMap[key3].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue3)
+	})
 
-			jsonValue1, ok := jsonMap[key1].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldEqual, true)
+	t.Run("other types", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			jsonValue2, ok := jsonMap[key2].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldEqual, false)
+		key := "key"
+		value := "Boolean(new Date (0))"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue3, ok := jsonMap[key3].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldEqual, true)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for other types", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			key := "key"
-			value := "Boolean(new Date (0))"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(ObjectId('56609335028bd7dc5c36cb9f'))"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			value = "Boolean(ObjectId('56609335028bd7dc5c36cb9f'))"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean([])"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
+	})
 
-			value = "Boolean([])"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("nested booleans", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean(Boolean(5))"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works for nested booleans", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			key := "key"
-			value := "Boolean(Boolean(5))"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		value = "Boolean(Boolean(Boolean(0)))"
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			value = "Boolean(Boolean(Boolean(0)))"
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value1 := "Boolean(42)"
+		value2 := "Boolean(0)"
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value1, value2, value1)
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			key := "key"
-			value1 := "Boolean(42)"
-			value2 := "Boolean(0)"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value1, value2, value1)
+		jsonValue, ok := jsonArray[0].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok = jsonArray[1].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		jsonValue, ok = jsonArray[2].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
+	})
 
-			jsonValue, ok := jsonArray[0].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
+	t.Run("specify true in hexadecimal", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			jsonValue, ok = jsonArray[1].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
+		key := "key"
+		value := "Boolean(0x5f)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok = jsonArray[2].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("can specify argument in hexadecimal (true)", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
+	})
 
-			key := "key"
-			value := "Boolean(0x5f)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("specify false in hexadecimal", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		key := "key"
+		value := "Boolean(0x0)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("can specify argument in hexadecimal (false)", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := "Boolean(0x0)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, false)
-		})
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
 	})
 }

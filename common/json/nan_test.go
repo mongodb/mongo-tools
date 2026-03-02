@@ -12,88 +12,86 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNaNValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with NaN values", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "NaN"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "NaN"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.True(t, math.IsNaN(jsonValue))
+	})
 
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(math.IsNaN(jsonValue), ShouldBeTrue)
-		})
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+		key1, key2, key3 := "key1", "key2", "key3"
+		value := "NaN"
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value, key2, value, key3, value)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value := "NaN"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value, key2, value, key3, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue1, ok := jsonMap[key1].(float64)
+		require.True(t, ok)
+		assert.True(t, math.IsNaN(jsonValue1))
 
-			jsonValue1, ok := jsonMap[key1].(float64)
-			So(ok, ShouldBeTrue)
-			So(math.IsNaN(jsonValue1), ShouldBeTrue)
+		jsonValue2, ok := jsonMap[key2].(float64)
+		require.True(t, ok)
+		assert.True(t, math.IsNaN(jsonValue2))
 
-			jsonValue2, ok := jsonMap[key2].(float64)
-			So(ok, ShouldBeTrue)
-			So(math.IsNaN(jsonValue2), ShouldBeTrue)
+		jsonValue3, ok := jsonMap[key3].(float64)
+		require.True(t, ok)
+		assert.True(t, math.IsNaN(jsonValue3))
+	})
 
-			jsonValue3, ok := jsonMap[key3].(float64)
-			So(ok, ShouldBeTrue)
-			So(math.IsNaN(jsonValue3), ShouldBeTrue)
-		})
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "NaN"
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			key := "key"
-			value := "NaN"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(float64)
+			require.True(t, ok)
+			assert.True(t, math.IsNaN(jsonValue))
+		}
+	})
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(float64)
-				So(ok, ShouldBeTrue)
-				So(math.IsNaN(jsonValue), ShouldBeTrue)
-			}
-		})
+	t.Run("with signs", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("cannot have a sign ('+' or '-')", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "NaN"
+		data := fmt.Sprintf(`{"%v":+%v}`, key, value)
 
-			key := "key"
-			value := "NaN"
-			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
+		data = fmt.Sprintf(`{"%v":-%v}`, key, value)
 
-			data = fmt.Sprintf(`{"%v":-%v}`, key, value)
-
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 	})
 }

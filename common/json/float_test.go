@@ -11,92 +11,83 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNumberFloatValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshaling JSON with float values", t, func() {
+	key := "key"
 
-		Convey("converts to a JSON NumberFloat value", func() {
-			var jsonMap map[string]any
+	t.Run("convert to JSON NumberFloat value", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			value := "5.5"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		value := "5.5"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, NumberFloat(5.5))
-
-		})
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.EqualValues(t, NumberFloat(5.5), jsonValue)
 	})
 
-	Convey("When unmarshaling and marshaling NumberFloat values", t, func() {
-		key := "key"
+	t.Run("decimal point with trailing zero", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("maintains decimal point with trailing zero", func() {
-			var jsonMap map[string]any
+		value := "5.0"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			value := "5.0"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.EqualValues(t, NumberFloat(5.0), jsonValue)
 
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, NumberFloat(5.0))
+		numFloat := NumberFloat(jsonValue)
+		byteValue, err := numFloat.MarshalJSON()
+		require.NoError(t, err)
+		assert.Equal(t, "5.0", string(byteValue))
+	})
 
-			numFloat := NumberFloat(jsonValue)
-			byteValue, err := numFloat.MarshalJSON()
-			So(err, ShouldBeNil)
-			So(string(byteValue), ShouldEqual, "5.0")
+	t.Run("precision with large decimals", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		})
+		value := "5.52342123"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-		Convey("maintains precision with large decimals", func() {
-			var jsonMap map[string]any
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			value := "5.52342123"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.EqualValues(t, NumberFloat(5.52342123), jsonValue)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		numFloat := NumberFloat(jsonValue)
+		byteValue, err := numFloat.MarshalJSON()
+		require.NoError(t, err)
+		assert.Equal(t, "5.52342123", string(byteValue))
+	})
 
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, NumberFloat(5.52342123))
+	t.Run("exponent values", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			numFloat := NumberFloat(jsonValue)
-			byteValue, err := numFloat.MarshalJSON()
-			So(err, ShouldBeNil)
-			So(string(byteValue), ShouldEqual, "5.52342123")
+		value := "5e+32"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-		Convey("maintains exponent values", func() {
-			var jsonMap map[string]any
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.EqualValues(t, NumberFloat(5e32), jsonValue)
 
-			value := "5e+32"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, NumberFloat(5e32))
-
-			numFloat := NumberFloat(jsonValue)
-			byteValue, err := numFloat.MarshalJSON()
-			So(err, ShouldBeNil)
-			So(string(byteValue), ShouldEqual, "5e+32")
-
-		})
+		numFloat := NumberFloat(jsonValue)
+		byteValue, err := numFloat.MarshalJSON()
+		require.NoError(t, err)
+		assert.Equal(t, "5e+32", string(byteValue))
 	})
 }

@@ -11,7 +11,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHexadecimalNumber(t *testing.T) {
@@ -20,108 +21,106 @@ func TestHexadecimalNumber(t *testing.T) {
 	value := "0x123"
 	intValue := 0x123
 
-	Convey("When unmarshalling JSON with hexadecimal numeric values", t, func() {
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
-			key := "key"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
+		key := "key"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-			jsonValue, ok := jsonMap[key].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, intValue)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+		jsonValue, ok := jsonMap[key].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, intValue, jsonValue)
+	})
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "0x100", "0x101", "0x102"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := "0x100", "0x101", "0x102"
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue1, ok := jsonMap[key1].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldEqual, 0x100)
+		jsonValue1, ok := jsonMap[key1].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, 0x100, jsonValue1)
 
-			jsonValue2, ok := jsonMap[key2].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldEqual, 0x101)
+		jsonValue2, ok := jsonMap[key2].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, 0x101, jsonValue2)
 
-			jsonValue3, ok := jsonMap[key3].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldEqual, 0x102)
-		})
+		jsonValue3, ok := jsonMap[key3].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, 0x102, jsonValue3)
+	})
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		key := "key"
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(int32)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldEqual, intValue)
-			}
-		})
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(int32)
+			require.True(t, ok)
+			assert.EqualValues(t, intValue, jsonValue)
+		}
+	})
 
-		Convey("can have a sign ('+' or '-')", func() {
-			var jsonMap map[string]any
+	t.Run("with sign", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
+		key := "key"
+		data := fmt.Sprintf(`{"%v":+%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, intValue)
+		jsonValue, ok := jsonMap[key].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, intValue, jsonValue)
 
-			data = fmt.Sprintf(`{"%v":-%v}`, key, value)
+		data = fmt.Sprintf(`{"%v":-%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, -intValue)
-		})
+		jsonValue, ok = jsonMap[key].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, -intValue, jsonValue)
+	})
 
-		Convey("can use '0x' or '0X' prefix", func() {
-			var jsonMap map[string]any
+	t.Run("with '0x' or '0X' prefix", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			value := "123"
-			data := fmt.Sprintf(`{"%v":0x%v}`, key, value)
+		key := "key"
+		value := "123"
+		data := fmt.Sprintf(`{"%v":0x%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, intValue)
+		jsonValue, ok := jsonMap[key].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, intValue, jsonValue)
 
-			data = fmt.Sprintf(`{"%v":0X%v}`, key, value)
+		data = fmt.Sprintf(`{"%v":0X%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(int32)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, intValue)
-		})
+		jsonValue, ok = jsonMap[key].(int32)
+		require.True(t, ok)
+		assert.EqualValues(t, intValue, jsonValue)
 	})
 }

@@ -11,97 +11,96 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFractionalNumber(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with fractional numeric values "+
-		"without a leading zero", t, func() {
+	epsilon := 0.000001
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			value := ".123"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		key := "key"
+		value := ".123"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldAlmostEqual, 0.123)
-		})
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.InDelta(t, 0.123, jsonValue, epsilon)
+	})
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := ".123", ".456", ".789"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := ".123", ".456", ".789"
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue1, ok := jsonMap[key1].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldAlmostEqual, 0.123)
+		jsonValue1, ok := jsonMap[key1].(float64)
+		require.True(t, ok)
+		assert.InDelta(t, 0.123, jsonValue1, epsilon)
 
-			jsonValue2, ok := jsonMap[key2].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldAlmostEqual, 0.456)
+		jsonValue2, ok := jsonMap[key2].(float64)
+		require.True(t, ok)
+		assert.InDelta(t, 0.456, jsonValue2, epsilon)
 
-			jsonValue3, ok := jsonMap[key3].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldAlmostEqual, 0.789)
-		})
+		jsonValue3, ok := jsonMap[key3].(float64)
+		require.True(t, ok)
+		assert.InDelta(t, 0.789, jsonValue3, epsilon)
+	})
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			value := ".42"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		key := "key"
+		value := ".42"
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(float64)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldAlmostEqual, 0.42)
-			}
-		})
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(float64)
+			require.True(t, ok)
+			assert.InDelta(t, 0.42, jsonValue, epsilon)
+		}
+	})
 
-		Convey("can have a sign ('+' or '-')", func() {
-			var jsonMap map[string]any
+	t.Run("with sign", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			value := ".106"
-			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
+		key := "key"
+		value := ".106"
+		data := fmt.Sprintf(`{"%v":+%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldAlmostEqual, 0.106)
+		jsonValue, ok := jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.InDelta(t, 0.106, jsonValue, epsilon)
 
-			data = fmt.Sprintf(`{"%v":-%v}`, key, value)
+		data = fmt.Sprintf(`{"%v":-%v}`, key, value)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok = jsonMap[key].(float64)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldAlmostEqual, -0.106)
-		})
+		jsonValue, ok = jsonMap[key].(float64)
+		require.True(t, ok)
+		assert.InDelta(t, -0.106, jsonValue, epsilon)
 	})
 }

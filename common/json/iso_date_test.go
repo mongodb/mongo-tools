@@ -11,118 +11,115 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestISODateValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with ISODate values", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `ISODate("2006-01-02T15:04-0700")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "ISODate(\"2006-01-02T15:04-0700\")"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2006-01-02T15:04-0700"), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ISODate("2006-01-02T15:04-0700"))
-		})
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := `ISODate("2006-01-02T15:04Z0700")`, `ISODate("2013-01-02T15:04Z0700")`, `ISODate("2014-02-02T15:04Z0700")`
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "ISODate(\"2006-01-02T15:04Z0700\")", "ISODate(\"2013-01-02T15:04Z0700\")", "ISODate(\"2014-02-02T15:04Z0700\")"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue1, ok := jsonMap[key1].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2006-01-02T15:04Z0700"), jsonValue1)
 
-			jsonValue1, ok := jsonMap[key1].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldEqual, ISODate("2006-01-02T15:04Z0700"))
+		jsonValue2, ok := jsonMap[key2].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2013-01-02T15:04Z0700"), jsonValue2)
 
-			jsonValue2, ok := jsonMap[key2].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldEqual, ISODate("2013-01-02T15:04Z0700"))
+		jsonValue3, ok := jsonMap[key3].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2014-02-02T15:04Z0700"), jsonValue3)
+	})
 
-			jsonValue3, ok := jsonMap[key3].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldEqual, ISODate("2014-02-02T15:04Z0700"))
-		})
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `ISODate("2006-01-02T15:04-0700")`
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			key := "key"
-			value := "ISODate(\"2006-01-02T15:04-0700\")"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(ISODate)
+			require.True(t, ok)
+			assert.Equal(t, ISODate("2006-01-02T15:04-0700"), jsonValue)
+		}
+	})
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(ISODate)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldEqual, ISODate("2006-01-02T15:04-0700"))
-			}
-		})
+	t.Run("valid format 2006-01-02T15:04:05.000-0700", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("will take valid format 2006-01-02T15:04:05.000-0700", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `ISODate("2006-01-02T15:04:05.000-0700")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "ISODate(\"2006-01-02T15:04:05.000-0700\")"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2006-01-02T15:04:05.000-0700"), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ISODate("2006-01-02T15:04:05.000-0700"))
-		})
+	t.Run("valid format 2006-01-02T15:04:05", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("will take valid format 2006-01-02T15:04:05", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `ISODate("2014-01-02T15:04:05Z")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "ISODate(\"2014-01-02T15:04:05Z\")"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2014-01-02T15:04:05Z"), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ISODate("2014-01-02T15:04:05Z"))
-		})
+	t.Run("format 2006-01-02T15:04-0700", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("will take valid format 2006-01-02T15:04-0700", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `ISODate("2006-01-02T15:04-0700")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "ISODate(\"2006-01-02T15:04-0700\")"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(ISODate)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ISODate("2006-01-02T15:04-0700"))
-		})
-
+		jsonValue, ok := jsonMap[key].(ISODate)
+		require.True(t, ok)
+		assert.Equal(t, ISODate("2006-01-02T15:04-0700"), jsonValue)
 	})
 }
