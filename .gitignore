@@ -5,7 +5,6 @@
 /data
 /deb_build
 /dev-bin
-/mise.toml
 /mongo-release
 /mongodb-database-tools-*
 /purls.txt
