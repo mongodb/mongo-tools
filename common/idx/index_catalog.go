@@ -331,9 +331,22 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 			continue
 		}
 
-		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" || k == "unique" || k == "forceNonUnique" {
+		if k == "expireAfterSeconds" || k == "hidden" || k == "prepareUnique" {
 			matchingIndex.Options[k] = element.Value
+		} else if k == "unique" || k == "forceNonUnique" {
+			v, boolOk := element.Value.(bool)
+			if !boolOk {
+				return errors.Errorf("cannot convert %s value to bool: %v", k, element.Value)
+			}
+	
+			if k == "unique" && v {
+				delete(matchingIndex.Options, "forceNonUnique")
+			}
 
+			if k == "forceNonUnique" && v {
+				delete(matchingIndex.Options, "unique")
+			}
+			matchingIndex.Options[k] = v
 		} else {
 			return errors.Errorf("unknown index option: %v", k)
 		}
