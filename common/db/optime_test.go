@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -24,32 +24,29 @@ func numberToTimestamp(ts int64) bson.Timestamp {
 func TestOpTimeComparisons(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When comparing two OpTimes", t, func() {
+	timestamp1 := numberToTimestamp(6346129894295994369)
+	timestamp2 := numberToTimestamp(6346129894295994370)
+	term1 := int64(1)
+	term2 := int64(2)
 
-		var opTime1, opTime2 OpTime
-		var timestamp1, timestamp2 bson.Timestamp
-		var term1, term2 int64
+	t.Run("term comparison", func(t *testing.T) {
+		// timestamp2 > timestamp1, but term1 < term2, so opTime1 is less than opTime2.
+		t1 := OpTime{timestamp2, &term1}
+		t2 := OpTime{timestamp1, &term2}
+		assert.True(t, OpTimeLessThan(t1, t2))
+	})
 
-		Convey("Less than should be true if one optime precedes the other", func() {
-			timestamp1 = numberToTimestamp(6346129894295994369)
-			timestamp2 = numberToTimestamp(6346129894295994370)
-			term1 = 1
-			term2 = 2
+	t.Run("one term nil", func(t *testing.T) {
+		// Compare only timestamps if one term is nil (timestamp1 < timestamp2).
+		t1 := OpTime{timestamp1, &term1}
+		t2 := OpTime{timestamp2, nil}
+		assert.True(t, OpTimeLessThan(t1, t2))
+	})
 
-			// timestamp2 > timestamp1, but term1 < term2, so opTime1 is less than opTime2.
-			opTime1 = OpTime{timestamp2, &term1}
-			opTime2 = OpTime{timestamp1, &term2}
-			So(OpTimeLessThan(opTime1, opTime2), ShouldBeTrue)
-
-			// Compare only timestamps if one term is nil (timestamp1 < timestamp2).
-			opTime1 = OpTime{timestamp1, &term1}
-			opTime2 = OpTime{timestamp2, nil}
-			So(OpTimeLessThan(opTime1, opTime2), ShouldBeTrue)
-
-			// Compare only timestamps if both terms are nil (timestamp1 < timestamp2).
-			opTime1 = OpTime{timestamp1, nil}
-			opTime2 = OpTime{timestamp2, nil}
-			So(OpTimeLessThan(opTime1, opTime2), ShouldBeTrue)
-		})
+	t.Run("two terms nil", func(t *testing.T) {
+		// Compare only timestamps if both terms are nil (timestamp1 < timestamp2).
+		t1 := OpTime{timestamp1, nil}
+		t2 := OpTime{timestamp2, nil}
+		assert.True(t, OpTimeLessThan(t1, t2))
 	})
 }

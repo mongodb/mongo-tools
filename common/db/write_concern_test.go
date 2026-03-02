@@ -10,151 +10,140 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 func TestNewMongoWriteConcern(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When building write concern object", t, func() {
-		Convey("and given a write concern string value, and a boolean indicating if the "+
-			"write concern is to be used on a replica set, on calling NewMongoWriteConcern...", func() {
-			Convey("no error should be returned if the write concern is valid", func() {
-				writeConcern, err := NewMongoWriteConcern(`{w:34}`, nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.W, ShouldEqual, 34)
+	t.Run("valid write concern on command line", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern(`{w:34}`, nil)
+		require.NoError(t, err)
+		assert.Equal(t, 34, writeConcern.W)
 
-				writeConcern, err = NewMongoWriteConcern(`{w:"majority"}`, nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.W, ShouldEqual, majString)
+		writeConcern, err = NewMongoWriteConcern(`{w:"majority"}`, nil)
+		require.NoError(t, err)
+		assert.Equal(t, majString, writeConcern.W)
 
-				writeConcern, err = NewMongoWriteConcern(`majority`, nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.W, ShouldEqual, majString)
+		writeConcern, err = NewMongoWriteConcern(`majority`, nil)
+		require.NoError(t, err)
+		assert.Equal(t, majString, writeConcern.W)
 
-				writeConcern, err = NewMongoWriteConcern(`tagset`, nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.W, ShouldEqual, "tagset")
-			})
-			Convey(
-				"with a w value of 0, without j set, an unack'd write concern should be returned",
-				func() {
-					writeConcern, err := NewMongoWriteConcern(`{w:0}`, nil)
-					So(err, ShouldBeNil)
-					So(writeConcern.W, ShouldEqual, 0)
-				},
-			)
-			Convey("with a negative w value, an error should be returned", func() {
-				writeConcern, err := NewMongoWriteConcern(`{w:-1}`, nil)
-				So(writeConcern, ShouldBeNil)
-				So(err, ShouldNotBeNil)
-				writeConcern, err = NewMongoWriteConcern(`{w:-2}`, nil)
-				So(writeConcern, ShouldBeNil)
-				So(err, ShouldNotBeNil)
-			})
-			Convey(
-				"with a w value of 0, with j set, a non-nil write concern should be returned",
-				func() {
-					writeConcern, err := NewMongoWriteConcern(`{w:0, j:true}`, nil)
-					So(err, ShouldBeNil)
-					So(writeConcern.W, ShouldEqual, 0)
-					So(*writeConcern.Journal, ShouldBeTrue)
-				},
-			)
-			// Regression test for TOOLS-1741
-			Convey("When passing an empty writeConcern and empty URI"+
-				"then write concern should default to being majority", func() {
-				writeConcern, err := NewMongoWriteConcern("", nil)
-				So(err, ShouldBeNil)
-				So(writeConcern.W, ShouldEqual, majString)
-			})
-		})
-		Convey("and given a connection string", func() {
-			Convey(
-				"with a w value of 0, without j set, an unack'd write concern should be returned",
-				func() {
-					writeConcern, err := NewMongoWriteConcern(
-						``,
-						&connstring.ConnString{WNumber: 0, WNumberSet: true},
-					)
-					So(err, ShouldBeNil)
-					So(writeConcern.W, ShouldEqual, 0)
-				},
-			)
-			Convey("with a negative w value, an error should be returned", func() {
-				_, err := NewMongoWriteConcern(
-					``,
-					&connstring.ConnString{WNumber: -1, WNumberSet: true},
-				)
-				So(err, ShouldNotBeNil)
-				_, err = NewMongoWriteConcern(
-					``,
-					&connstring.ConnString{WNumber: -2, WNumberSet: true},
-				)
-				So(err, ShouldNotBeNil)
-			})
-		})
-		Convey("and given both, should prefer commandline", func() {
-			writeConcern, err := NewMongoWriteConcern(
-				`{w: 4}`,
-				&connstring.ConnString{WNumber: 0, WNumberSet: true},
-			)
-			So(err, ShouldBeNil)
-			So(writeConcern.W, ShouldEqual, 4)
-		})
+		writeConcern, err = NewMongoWriteConcern(`tagset`, nil)
+		require.NoError(t, err)
+		assert.Equal(t, "tagset", writeConcern.W)
+	})
+
+	t.Run("w=0 and no j", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern(`{w:0}`, nil)
+		require.NoError(t, err)
+		assert.Equal(t, 0, writeConcern.W)
+	})
+
+	t.Run("negative w", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern(`{w:-1}`, nil)
+		require.Error(t, err)
+		assert.Nil(t, writeConcern)
+
+		writeConcern, err = NewMongoWriteConcern(`{w:-2}`, nil)
+		require.Error(t, err)
+		assert.Nil(t, writeConcern)
+	})
+
+	t.Run("w=0 and j=true", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern(`{w:0, j:true}`, nil)
+		require.NoError(t, err)
+		assert.Equal(t, 0, writeConcern.W)
+		assert.True(t, *writeConcern.Journal)
+	})
+
+	// Regression test for TOOLS-1741
+	t.Run("default to majority", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern("", nil)
+		require.NoError(t, err)
+		assert.Equal(t, majString, writeConcern.W)
+	})
+
+	t.Run("w=0 and no j in connstring", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern(
+			"",
+			&connstring.ConnString{WNumber: 0, WNumberSet: true},
+		)
+		require.NoError(t, err)
+		assert.Equal(t, 0, writeConcern.W)
+	})
+
+	t.Run("negative w in connstring", func(t *testing.T) {
+		_, err := NewMongoWriteConcern(
+			"",
+			&connstring.ConnString{WNumber: -1, WNumberSet: true},
+		)
+		require.Error(t, err)
+
+		_, err = NewMongoWriteConcern(
+			"",
+			&connstring.ConnString{WNumber: -2, WNumberSet: true},
+		)
+		require.Error(t, err)
+	})
+
+	t.Run("command line arg wins", func(t *testing.T) {
+		writeConcern, err := NewMongoWriteConcern(
+			`{w: 4}`,
+			&connstring.ConnString{WNumber: 0, WNumberSet: true},
+		)
+		require.NoError(t, err)
+		assert.Equal(t, 4, writeConcern.W)
 	})
 }
 
 func TestConstructWCFromConnString(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given a parsed &connstring, on calling constructWCFromConnString...", t, func() {
-		Convey("non integer values should set the correct boolean "+
-			"field", func() {
-			writeConcernString := "majority"
-			cs := &connstring.ConnString{
-				WString: writeConcernString,
-			}
-			writeConcern, err := constructWCFromConnString(cs)
-			So(err, ShouldBeNil)
-			So(writeConcern.W, ShouldEqual, majString)
-		})
+	t.Run("non-integer values", func(t *testing.T) {
+		writeConcernString := "majority"
+		cs := &connstring.ConnString{
+			WString: writeConcernString,
+		}
+		writeConcern, err := constructWCFromConnString(cs)
+		require.NoError(t, err)
+		assert.Equal(t, majString, writeConcern.W)
+	})
 
-		Convey("Int values should be assigned to the 'w' field ", func() {
-			cs := &connstring.ConnString{
-				WNumber:    4,
-				WNumberSet: true,
-			}
-			writeConcern, err := constructWCFromConnString(cs)
-			So(err, ShouldBeNil)
-			So(writeConcern.W, ShouldEqual, 4)
-		})
+	t.Run("int values", func(t *testing.T) {
+		cs := &connstring.ConnString{
+			WNumber:    4,
+			WNumberSet: true,
+		}
+		writeConcern, err := constructWCFromConnString(cs)
+		require.NoError(t, err)
+		assert.Equal(t, 4, writeConcern.W)
+	})
 
-		Convey("&connstrings with valid j and w should be assigned accordingly", func() {
-			// Note: this used to test WTImeout as well, but the upgrade to Go driver v2 removed wtimeout
-			// support from connstring parsing, so we can't/don't do it here any more.
-			expectedW := 3
-			cs := &connstring.ConnString{
-				WNumber:    3,
-				WNumberSet: true,
-				J:          true,
-			}
-			writeConcern, err := constructWCFromConnString(cs)
-			So(err, ShouldBeNil)
-			So(writeConcern.W, ShouldEqual, expectedW)
-			So(*writeConcern.Journal, ShouldBeTrue)
-		})
+	t.Run("valid j and w", func(t *testing.T) {
+		// Note: this used to test WTImeout as well, but the upgrade to Go driver v2 removed wtimeout
+		// support from connstring parsing, so we can't/don't do it here any more.
+		expectedW := 3
+		cs := &connstring.ConnString{
+			WNumber:    3,
+			WNumberSet: true,
+			J:          true,
+		}
+		writeConcern, err := constructWCFromConnString(cs)
+		require.NoError(t, err)
+		assert.Equal(t, expectedW, writeConcern.W)
+		assert.True(t, *writeConcern.Journal)
+	})
 
-		Convey("Unacknowledge write concern strings should return a corresponding object "+
-			"if journaling is not required", func() {
-			cs := &connstring.ConnString{
-				WNumber:    0,
-				WNumberSet: true,
-			}
-			writeConcern, err := constructWCFromConnString(cs)
-			So(err, ShouldBeNil)
-			So(writeConcern.W, ShouldEqual, 0)
-		})
+	t.Run("unacknowlededged write concern", func(t *testing.T) {
+		cs := &connstring.ConnString{
+			WNumber:    0,
+			WNumberSet: true,
+		}
+		writeConcern, err := constructWCFromConnString(cs)
+		require.NoError(t, err)
+		assert.Equal(t, 0, writeConcern.W)
 	})
 }
