@@ -204,15 +204,15 @@ func (tc *testContext) connectToClusters(ctx context.Context) error {
 
 	tc.srcRecordIdsReplicatedEnabled, err = hasRecordIdsReplicated(ctx, srcClient)
 	if err != nil {
-		return fmt.Errorf("failed to check recordIdsReplicated on source: %w", err)
+		return fmt.Errorf("checking recordIdsReplicated on source: %w", err)
 	}
-	log.Printf("Source cluster recordIdsReplicated: %v", tc.srcRecordIdsReplicatedEnabled)
+	log.Printf("Source cluster recordIdsReplicated: %t\n", tc.srcRecordIdsReplicatedEnabled)
 
 	tc.dstRecordIdsReplicatedEnabled, err = hasRecordIdsReplicated(ctx, dstClient)
 	if err != nil {
 		return fmt.Errorf("failed to check recordIdsReplicated on destination: %w", err)
 	}
-	log.Printf("Destination cluster recordIdsReplicated: %v", tc.dstRecordIdsReplicatedEnabled)
+	log.Printf("Destination cluster recordIdsReplicated: %t\n", tc.dstRecordIdsReplicatedEnabled)
 
 	return nil
 }
@@ -228,9 +228,9 @@ func hasRecordIdsReplicated(ctx context.Context, client *mongo.Client) (bool, er
 		},
 	)
 	if result.Err() != nil {
-		// This is the "InvalidOptions" error code, which is what we get when the parameter name
-		// isn't recognized by the Server.
-		if slices.Contains(mongo.ErrorCodes(result.Err()), 72) {
+		// This is what we get when the parameter name isn't recognized by the Server.
+		const invalidOptionsErrorCode = 72
+		if slices.Contains(mongo.ErrorCodes(result.Err()), invalidOptionsErrorCode) {
 			// If the command fails, the feature flag doesn't exist or isn't enabled. Or maybe something
 			// is totally broken, in which case we will find that out when we attempt other DB
 			// operations.
