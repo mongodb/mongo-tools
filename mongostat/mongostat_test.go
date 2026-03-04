@@ -15,20 +15,18 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func readBSONFile(file string, t *testing.T) (stat *status.ServerStatus) {
 	stat = &status.ServerStatus{}
 	ssBSON, err := os.ReadFile(file)
-	if err == nil {
-		err = bson.Unmarshal(ssBSON, stat)
-	}
-	if err != nil {
-		t.Logf("Could not load new ServerStatus BSON: %s", err)
-		t.FailNow()
-	}
+	require.NoError(t, err, "load ServerStatusBSON from file")
+
+	err = bson.Unmarshal(ssBSON, stat)
+	require.NoError(t, err, "unmarshal ServerStatusBSON")
 	return
 }
 
@@ -48,37 +46,37 @@ func TestStatLine(t *testing.T) {
 	serverStatusNew.ShardCursorType = nil
 	serverStatusOld.ShardCursorType = nil
 
-	Convey("StatsLine should accurately calculate opcounter diffs", t, func() {
+	t.Run("calculate opcounter diffs", func(t *testing.T) {
 		statsLine := line.NewStatLine(
 			serverStatusOld,
 			serverStatusNew,
 			defaultHeaders,
 			defaultConfig,
 		)
-		So(statsLine.Fields["insert"], ShouldEqual, "10")
-		So(statsLine.Fields["query"], ShouldEqual, "5")
-		So(statsLine.Fields["update"], ShouldEqual, "7")
-		So(statsLine.Fields["delete"], ShouldEqual, "2")
-		So(statsLine.Fields["getmore"], ShouldEqual, "3")
+		assert.Equal(t, "10", statsLine.Fields["insert"])
+		assert.Equal(t, "5", statsLine.Fields["query"])
+		assert.Equal(t, "7", statsLine.Fields["update"])
+		assert.Equal(t, "2", statsLine.Fields["delete"])
+		assert.Equal(t, "3", statsLine.Fields["getmore"])
 		command := strings.Split(statsLine.Fields["command"], "|")[0]
-		So(command, ShouldEqual, "669")
+		assert.Equal(t, "669", command)
 
 		locked := strings.Split(statsLine.Fields["locked_db"], ":")
-		So(locked[0], ShouldEqual, "test")
-		So(locked[1], ShouldEqual, "50.0%")
+		assert.Equal(t, "test", locked[0])
+		assert.Equal(t, "50.0%", locked[1])
 		qrw := strings.Split(statsLine.Fields["qrw"], "|")
-		So(qrw[0], ShouldEqual, "3")
-		So(qrw[1], ShouldEqual, "2")
+		assert.Equal(t, "3", qrw[0])
+		assert.Equal(t, "2", qrw[1])
 		arw := strings.Split(statsLine.Fields["arw"], "|")
-		So(arw[0], ShouldEqual, "4")
-		So(arw[1], ShouldEqual, "6")
-		So(statsLine.Fields["net_in"], ShouldEqual, "2.00k")
-		So(statsLine.Fields["net_out"], ShouldEqual, "3.00k")
-		So(statsLine.Fields["conn"], ShouldEqual, "5")
+		assert.Equal(t, "4", arw[0])
+		assert.Equal(t, "6", arw[1])
+		assert.Equal(t, "2.00k", statsLine.Fields["net_in"])
+		assert.Equal(t, "3.00k", statsLine.Fields["net_out"])
+		assert.Equal(t, "5", statsLine.Fields["conn"])
 	})
 
 	serverStatusNew.SampleTime, _ = time.Parse("2006 Jan 02 15:04:05", "2015 Nov 30 4:25:33")
-	Convey("StatsLine with non-default interval should calculate average diffs", t, func() {
+	t.Run("calculate average diffs", func(t *testing.T) {
 		statsLine := line.NewStatLine(
 			serverStatusOld,
 			serverStatusNew,
@@ -86,51 +84,54 @@ func TestStatLine(t *testing.T) {
 			defaultConfig,
 		)
 		// Opcounters are averaged over sample period
-		So(statsLine.Fields["insert"], ShouldEqual, "3")
-		So(statsLine.Fields["query"], ShouldEqual, "1")
-		So(statsLine.Fields["update"], ShouldEqual, "2")
-		delete := strings.TrimPrefix(statsLine.Fields["delete"], "*")
-		So(delete, ShouldEqual, "0")
-		So(statsLine.Fields["getmore"], ShouldEqual, "1")
+		assert.Equal(t, "3", statsLine.Fields["insert"])
+		assert.Equal(t, "1", statsLine.Fields["query"])
+		assert.Equal(t, "2", statsLine.Fields["update"])
+		deleted := strings.TrimPrefix(statsLine.Fields["delete"], "*")
+		assert.Equal(t, "0", deleted)
+		assert.Equal(t, "1", statsLine.Fields["getmore"])
 		command := strings.Split(statsLine.Fields["command"], "|")[0]
-		So(command, ShouldEqual, "223")
+		assert.Equal(t, "223", command)
 
 		locked := strings.Split(statsLine.Fields["locked_db"], ":")
-		So(locked[0], ShouldEqual, "test")
-		So(locked[1], ShouldEqual, "50.0%")
+		assert.Equal(t, "test", locked[0])
+		assert.Equal(t, "50.0%", locked[1])
 		qrw := strings.Split(statsLine.Fields["qrw"], "|")
-		So(qrw[0], ShouldEqual, "3")
-		So(qrw[1], ShouldEqual, "2")
+		assert.Equal(t, "3", qrw[0])
+		assert.Equal(t, "2", qrw[1])
 		arw := strings.Split(statsLine.Fields["arw"], "|")
-		So(arw[0], ShouldEqual, "4")
-		So(arw[1], ShouldEqual, "6")
-		So(statsLine.Fields["net_in"], ShouldEqual, "666b")
-		So(statsLine.Fields["net_out"], ShouldEqual, "1.00k")
-		So(statsLine.Fields["conn"], ShouldEqual, "5")
+		assert.Equal(t, "4", arw[0])
+		assert.Equal(t, "6", arw[1])
+		assert.Equal(t, "666b", statsLine.Fields["net_in"])
+		assert.Equal(t, "1.00k", statsLine.Fields["net_out"])
+		assert.Equal(t, "5", statsLine.Fields["conn"])
 	})
 }
 
 func TestIsMongos(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	runCheck := func(process string) bool {
-		return status.IsMongos(&status.ServerStatus{
-			Process: process,
-		})
+	tests := []struct {
+		processName string
+		expect      bool
+	}{
+		// true cases
+		{"/mongos-prod.exe", true},
+		{"/mongos.exe", true},
+		{"mongos", true},
+		{"mongodb/bin/mongos", true},
+		{`C:\data\mci\48de1dc1ec3c2be5dcd6a53739578de4\src\mongos.exe`, true},
+
+		// false cases
+		{"mongosx/mongod", false},
+		{"mongostat", false},
+		{"mongos_stuff/mongod", false},
+		{"mongos.stuff/mongod", false},
+		{"mongodb/bin/mongod", false},
 	}
 
-	Convey("should accept reasonable process names", t, func() {
-		So(runCheck("/mongos-prod.exe"), ShouldBeTrue)
-		So(runCheck("/mongos.exe"), ShouldBeTrue)
-		So(runCheck("mongos"), ShouldBeTrue)
-		So(runCheck("mongodb/bin/mongos"), ShouldBeTrue)
-		So(runCheck(`C:\data\mci\48de1dc1ec3c2be5dcd6a53739578de4\src\mongos.exe`), ShouldBeTrue)
-	})
-	Convey("should accept reasonable process names", t, func() {
-		So(runCheck("mongosx/mongod"), ShouldBeFalse)
-		So(runCheck("mongostat"), ShouldBeFalse)
-		So(runCheck("mongos_stuff/mongod"), ShouldBeFalse)
-		So(runCheck("mongos.stuff/mongod"), ShouldBeFalse)
-		So(runCheck("mongodb/bin/mongod"), ShouldBeFalse)
-	})
+	for _, test := range tests {
+		got := status.IsMongos(&status.ServerStatus{Process: test.processName})
+		assert.Equal(t, test.expect, got, "%s: expect mongos = %v", test.processName, test.expect)
+	}
 }
