@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/tag"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
@@ -30,78 +31,71 @@ func TestNewReadPreference(t *testing.T) {
 		MaxStalenessSet:       true,
 	}
 
-	Convey("When calling NewReadPreference", t, func() {
-		Convey("Not specifying a read preference on either should default to primary", func() {
-			pref, err := NewReadPreference("", nil)
-			So(err, ShouldBeNil)
-			So(pref.Mode(), ShouldEqual, readpref.PrimaryMode)
-		})
+	t.Run("default to primary", func(t *testing.T) {
+		pref, err := NewReadPreference("", nil)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.PrimaryMode, pref.Mode())
+	})
 
-		Convey("Specifying just the mode in the command line should set it correctly", func() {
-			rp := "primary"
-			pref, err := NewReadPreference(rp, nil)
-			So(err, ShouldBeNil)
-			So(pref.Mode(), ShouldEqual, readpref.PrimaryMode)
+	t.Run("mode in command line", func(t *testing.T) {
+		rp := "primary"
+		pref, err := NewReadPreference(rp, nil)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.PrimaryMode, pref.Mode())
 
-			rp = "secondary"
-			pref, err = NewReadPreference(rp, nil)
-			So(err, ShouldBeNil)
-			So(pref.Mode(), ShouldEqual, readpref.SecondaryMode)
+		rp = "secondary"
+		pref, err = NewReadPreference(rp, nil)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.SecondaryMode, pref.Mode())
 
-			rp = "nearest"
-			pref, err = NewReadPreference(rp, nil)
-			So(err, ShouldBeNil)
-			So(pref.Mode(), ShouldEqual, readpref.NearestMode)
-		})
+		rp = "nearest"
+		pref, err = NewReadPreference(rp, nil)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.NearestMode, pref.Mode())
+	})
 
-		Convey(
-			"Specifying a read preference only on the command line should set it correctly",
-			func() {
-				rp := "{\"mode\": \"secondary\", \"tagSets\": [{\"foo\": \"bar\"}], maxStalenessSeconds: 123}"
-				pref, err := NewReadPreference(rp, nil)
-				So(err, ShouldBeNil)
-				So(pref.Mode(), ShouldEqual, readpref.SecondaryMode)
+	t.Run("pref only on command line", func(t *testing.T) {
+		rp := `{"mode": "secondary", "tagSets": [{"foo": "bar"}], maxStalenessSeconds: 123}`
+		pref, err := NewReadPreference(rp, nil)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.SecondaryMode, pref.Mode())
 
-				tagSets := pref.TagSets()
-				So(len(tagSets), ShouldEqual, 1)
-				So(tagSets[0], ShouldResemble, tag.Set{tag.Tag{Name: "foo", Value: "bar"}})
+		tagSets := pref.TagSets()
+		assert.Len(t, tagSets, 1)
+		assert.Equal(t, tag.Set{tag.Tag{Name: "foo", Value: "bar"}}, tagSets[0])
 
-				maxStaleness, set := pref.MaxStaleness()
-				So(set, ShouldBeTrue)
-				So(maxStaleness, ShouldEqual, 123*time.Second)
-			},
-		)
+		maxStaleness, set := pref.MaxStaleness()
+		require.True(t, set)
+		assert.Equal(t, 123*time.Second, maxStaleness)
+	})
 
-		Convey("Specifying a read preference only in the URI should set it correctly", func() {
-			pref, err := NewReadPreference("", cs)
-			So(err, ShouldBeNil)
-			So(pref.Mode(), ShouldEqual, readpref.SecondaryMode)
+	t.Run("pref only in URI", func(t *testing.T) {
+		pref, err := NewReadPreference("", cs)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.SecondaryMode, pref.Mode())
 
-			tagSets := pref.TagSets()
-			So(len(tagSets), ShouldEqual, 1)
-			So(tagSets[0], ShouldResemble, tag.Set{tag.Tag{Name: "foo", Value: "bar"}})
+		tagSets := pref.TagSets()
+		assert.Len(t, tagSets, 1)
+		assert.Equal(t, tag.Set{tag.Tag{Name: "foo", Value: "bar"}}, tagSets[0])
 
-			maxStaleness, set := pref.MaxStaleness()
-			So(set, ShouldBeTrue)
-			So(maxStaleness, ShouldEqual, time.Duration(5)*time.Second)
-		})
+		maxStaleness, set := pref.MaxStaleness()
+		require.True(t, set)
+		assert.Equal(t, 5*time.Second, maxStaleness)
+	})
 
-		Convey(
-			"Specifying a read preference in the command line and URI should set it to the command line",
-			func() {
-				rp := "{\"mode\": \"nearest\", \"tagSets\": [{\"one\": \"two\"}], maxStalenessSeconds: 123}"
-				pref, err := NewReadPreference(rp, cs)
-				So(err, ShouldBeNil)
-				So(pref.Mode(), ShouldEqual, readpref.NearestMode)
+	t.Run("pref in command line and URI", func(t *testing.T) {
+		rp := `{"mode": "nearest", "tagSets": [{"one": "two"}], maxStalenessSeconds: 123}`
+		pref, err := NewReadPreference(rp, cs)
+		require.NoError(t, err)
+		assert.Equal(t, readpref.NearestMode, pref.Mode())
 
-				tagSets := pref.TagSets()
-				So(len(tagSets), ShouldEqual, 1)
-				So(tagSets[0], ShouldResemble, tag.Set{tag.Tag{Name: "one", Value: "two"}})
+		// command-line wins
+		tagSets := pref.TagSets()
+		assert.Len(t, tagSets, 1)
+		assert.Equal(t, tag.Set{tag.Tag{Name: "one", Value: "two"}}, tagSets[0])
 
-				maxStaleness, set := pref.MaxStaleness()
-				So(set, ShouldBeTrue)
-				So(maxStaleness, ShouldEqual, 123*time.Second)
-			},
-		)
+		maxStaleness, set := pref.MaxStaleness()
+		require.True(t, set)
+		assert.Equal(t, 123*time.Second, maxStaleness)
 	})
 }

@@ -11,156 +11,151 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSingleQuotedKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with single quotes around its keys", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "value"
+		data := fmt.Sprintf(`{'%v':"%v"}`, key, value)
 
-			key := "key"
-			value := "value"
-			data := fmt.Sprintf(`{'%v':"%v"}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		assert.Equal(t, value, jsonMap[key])
+	})
 
-			So(jsonMap[key], ShouldEqual, value)
-		})
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := "value1", "value2", "value3"
+		data := fmt.Sprintf(`{'%v':"%v",'%v':"%v",'%v':"%v"}`,
+			key1, value1, key2, value2, key3, value3)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "value1", "value2", "value3"
-			data := fmt.Sprintf(`{'%v':"%v",'%v':"%v",'%v':"%v"}`,
-				key1, value1, key2, value2, key3, value3)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			So(jsonMap[key1], ShouldEqual, value1)
-			So(jsonMap[key2], ShouldEqual, value2)
-			So(jsonMap[key3], ShouldEqual, value3)
-		})
+		assert.Equal(t, value1, jsonMap[key1])
+		assert.Equal(t, value2, jsonMap[key2])
+		assert.Equal(t, value3, jsonMap[key3])
 	})
 }
 
 func TestSingleQuotedValues(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with single quotes around its values", t, func() {
+	t.Run("single value", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single value", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "value"
+		data := fmt.Sprintf(`{"%v":'%v'}`, key, value)
 
-			key := "key"
-			value := "value"
-			data := fmt.Sprintf(`{"%v":'%v'}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		assert.Equal(t, value, jsonMap[key])
+	})
 
-			So(jsonMap[key], ShouldEqual, value)
-		})
+	t.Run("multiple values", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for multiple values", func() {
-			var jsonMap map[string]any
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := "value1", "value2", "value3"
+		data := fmt.Sprintf(`{"%v":'%v',"%v":'%v',"%v":'%v'}`,
+			key1, value1, key2, value2, key3, value3)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "value1", "value2", "value3"
-			data := fmt.Sprintf(`{"%v":'%v',"%v":'%v',"%v":'%v'}`,
-				key1, value1, key2, value2, key3, value3)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		assert.Equal(t, value1, jsonMap[key1])
+		assert.Equal(t, value2, jsonMap[key2])
+		assert.Equal(t, value3, jsonMap[key3])
+	})
 
-			So(jsonMap[key1], ShouldEqual, value1)
-			So(jsonMap[key2], ShouldEqual, value2)
-			So(jsonMap[key3], ShouldEqual, value3)
-		})
+	t.Run("in BinData constructor", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used within BinData constructor", func() {
-			var jsonMap map[string]any
+		key := "bindata"
+		value := "BinData(1, 'xyz')"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "bindata"
-			value := "BinData(1, 'xyz')"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, byte(1), jsonValue.Type)
+		assert.Equal(t, "xyz", jsonValue.Base64)
+	})
 
-			jsonValue, ok := jsonMap[key].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue.Type, ShouldEqual, 1)
-			So(jsonValue.Base64, ShouldEqual, "xyz")
-		})
+	t.Run("in Boolean constructor", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used within Boolean constructor", func() {
-			var jsonMap map[string]any
+		key := "boolean"
+		value := "Boolean('xyz')"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "boolean"
-			value := "Boolean('xyz')"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.Equal(t, true, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, true)
-		})
+	t.Run("in DBRef constructor", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used within DBRef constructor", func() {
-			var jsonMap map[string]any
+		key := "dbref"
+		value := "DBRef('examples', 'xyz')"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "dbref"
-			value := "DBRef('examples', 'xyz')"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(DBRef)
+		require.True(t, ok)
+		assert.Equal(t, "examples", jsonValue.Collection)
+		assert.Equal(t, "xyz", jsonValue.Id)
+		assert.Empty(t, jsonValue.Database)
+	})
 
-			jsonValue, ok := jsonMap[key].(DBRef)
-			So(ok, ShouldBeTrue)
-			So(jsonValue.Collection, ShouldEqual, "examples")
-			So(jsonValue.Id, ShouldEqual, "xyz")
-			So(jsonValue.Database, ShouldBeEmpty)
-		})
+	t.Run("in ObjectId constructor", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used within ObjectId constructor", func() {
-			var jsonMap map[string]any
+		key := "_id"
+		value := "ObjectId('xyz')"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "_id"
-			value := "ObjectId('xyz')"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(ObjectId)
+		require.True(t, ok)
+		assert.Equal(t, ObjectId("xyz"), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(ObjectId)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ObjectId("xyz"))
-		})
+	t.Run("in RegExp constructor", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used within RegExp constructor", func() {
-			var jsonMap map[string]any
+		key := "regex"
+		value := "RegExp('xyz', 'i')"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "regex"
-			value := "RegExp('xyz', 'i')"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue.Pattern, ShouldEqual, "xyz")
-			So(jsonValue.Options, ShouldEqual, "i")
-		})
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, "xyz", jsonValue.Pattern)
+		assert.Equal(t, "i", jsonValue.Options)
 	})
 }

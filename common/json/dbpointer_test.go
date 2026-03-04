@@ -11,7 +11,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -21,77 +22,74 @@ func TestDBPointerValue(t *testing.T) {
 	oid2, _ := bson.ObjectIDFromHex("552ffed95739878e73d116aa")
 	oid3, _ := bson.ObjectIDFromHex("552fff215739878e73d116ab")
 
-	Convey("Unmarshalling JSON with DBPointer values", t, func() {
-		key := "key"
-		value := `DBPointer("ref", ObjectId("552ffe9f5739878e73d116a9"))`
+	key := "key"
+	value := `DBPointer("ref", ObjectId("552ffe9f5739878e73d116a9"))`
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue, ok := jsonMap[key].(DBPointer)
-			So(ok, ShouldBeTrue)
+		jsonValue, ok := jsonMap[key].(DBPointer)
+		require.True(t, ok)
 
-			So(jsonValue, ShouldResemble, DBPointer{"ref", oid})
-		})
+		assert.Equal(t, DBPointer{"ref", oid}, jsonValue)
+	})
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value2 := `DBPointer("ref2", ObjectId("552ffed95739878e73d116aa"))`
-			value3 := `DBPointer("ref3", ObjectId("552fff215739878e73d116ab"))`
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value, key2, value2, key3, value3)
+		key1, key2, key3 := "key1", "key2", "key3"
+		value2 := `DBPointer("ref2", ObjectId("552ffed95739878e73d116aa"))`
+		value3 := `DBPointer("ref3", ObjectId("552fff215739878e73d116ab"))`
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value, key2, value2, key3, value3)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue1, ok := jsonMap[key1].(DBPointer)
-			So(ok, ShouldBeTrue)
+		jsonValue1, ok := jsonMap[key1].(DBPointer)
+		require.True(t, ok)
 
-			So(jsonValue1, ShouldResemble, DBPointer{"ref", oid})
+		assert.Equal(t, DBPointer{"ref", oid}, jsonValue1)
 
-			jsonValue2, ok := jsonMap[key2].(DBPointer)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldResemble, DBPointer{"ref2", oid2})
+		jsonValue2, ok := jsonMap[key2].(DBPointer)
+		require.True(t, ok)
+		assert.Equal(t, DBPointer{"ref2", oid2}, jsonValue2)
 
-			jsonValue3, ok := jsonMap[key3].(DBPointer)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldResemble, DBPointer{"ref3", oid3})
-		})
+		jsonValue3, ok := jsonMap[key3].(DBPointer)
+		require.True(t, ok)
+		assert.Equal(t, DBPointer{"ref3", oid3}, jsonValue3)
+	})
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(DBPointer)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, DBPointer{"ref", oid})
-			}
-		})
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(DBPointer)
+			require.True(t, ok)
+			assert.Equal(t, DBPointer{"ref", oid}, jsonValue)
+		}
+	})
 
-		Convey("will not accept an $id type that is not an ObjectId", func() {
-			value := `DBPointer("ref", 4)`
-			var jsonMap map[string]any
+	t.Run("not ObjectId", func(t *testing.T) {
+		value := `DBPointer("ref", 4)`
+		var jsonMap map[string]any
 
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
-
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 	})
 }

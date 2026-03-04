@@ -11,88 +11,86 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBinDataValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with BinData values", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `BinData(1, "xyz")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `BinData(1, "xyz")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{1, "xyz"}, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, BinData{1, "xyz"})
-		})
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := `BinData(1, "abc")`,
+			`BinData(2, "def")`, `BinData(3, "ghi")`
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := `BinData(1, "abc")`,
-				`BinData(2, "def")`, `BinData(3, "ghi")`
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue1, ok := jsonMap[key1].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{1, "abc"}, jsonValue1)
 
-			jsonValue1, ok := jsonMap[key1].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldResemble, BinData{1, "abc"})
+		jsonValue2, ok := jsonMap[key2].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{2, "def"}, jsonValue2)
 
-			jsonValue2, ok := jsonMap[key2].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldResemble, BinData{2, "def"})
+		jsonValue3, ok := jsonMap[key3].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{3, "ghi"}, jsonValue3)
+	})
 
-			jsonValue3, ok := jsonMap[key3].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldResemble, BinData{3, "ghi"})
-		})
+	t.Run("array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `BinData(42, "10")`
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			key := "key"
-			value := `BinData(42, "10")`
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(BinData)
+			require.True(t, ok)
+			assert.Equal(t, BinData{42, "10"}, jsonValue)
+		}
+	})
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(BinData)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, BinData{42, "10"})
-			}
-		})
+	t.Run("specify type argument", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can specify type argument using hexadecimal", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `BinData(0x5f, "xyz")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `BinData(0x5f, "xyz")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, BinData{0x5f, "xyz"})
-		})
+		jsonValue, ok := jsonMap[key].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{0x5f, "xyz"}, jsonValue)
 	})
 }

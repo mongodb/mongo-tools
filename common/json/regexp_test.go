@@ -11,243 +11,238 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegExpValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with RegExp values", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `RegExp("foo", "i")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `RegExp("foo", "i")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "i"}, jsonValue)
+	})
+
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := `RegExp("foo", "i")`,
+			`RegExp("bar", "i")`, `RegExp("baz", "i")`
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue1, ok := jsonMap[key1].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "i"}, jsonValue1)
+
+		jsonValue2, ok := jsonMap[key2].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"bar", "i"}, jsonValue2)
+
+		jsonValue3, ok := jsonMap[key3].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"baz", "i"}, jsonValue3)
+	})
+
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		value := `RegExp("xyz", "i")`
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
+
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(RegExp)
+			require.True(t, ok)
+			assert.Equal(t, RegExp{"xyz", "i"}, jsonValue)
+		}
+	})
+
+	t.Run("with single option", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		options := []string{"g", "i", "m", "s"}
+
+		for _, option := range options {
+			data := fmt.Sprintf(`{"%v":RegExp("xyz", "%v")}`, key, option)
 
 			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, RegExp{"foo", "i"})
-		})
+			require.True(t, ok)
+			assert.Equal(t, RegExp{"xyz", option}, jsonValue)
+		}
+	})
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+	t.Run("with multiple options", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := `RegExp("foo", "i")`,
-				`RegExp("bar", "i")`, `RegExp("baz", "i")`
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		key := "key"
+		value := `RegExp("foo", "gims")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue1, ok := jsonMap[key1].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldResemble, RegExp{"foo", "i"})
-
-			jsonValue2, ok := jsonMap[key2].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldResemble, RegExp{"bar", "i"})
-
-			jsonValue3, ok := jsonMap[key3].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldResemble, RegExp{"baz", "i"})
-		})
-
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := `RegExp("xyz", "i")`
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
-
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(RegExp)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, RegExp{"xyz", "i"})
-			}
-		})
-
-		Convey("can use options 'g', 'i', 'm', and 's'", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			options := []string{"g", "i", "m", "s"}
-
-			for _, option := range options {
-				data := fmt.Sprintf(`{"%v":RegExp("xyz", "%v")}`, key, option)
-
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
-
-				jsonValue, ok := jsonMap[key].(RegExp)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, RegExp{"xyz", option})
-			}
-		})
-
-		Convey("can use multiple options", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := `RegExp("foo", "gims")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, RegExp{"foo", "gims"})
-		})
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "gims"}, jsonValue)
 	})
 }
 
-func TestRegexpLiteral(t *testing.T) {
+func TestRegExpLiteral(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with regular expression literals", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "/foo/i"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "/foo/i"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "i"}, jsonValue)
+	})
+
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key1, key2, key3 := "key1", "key2", "key3"
+		value1, value2, value3 := "/foo/i", "/bar/i", "/baz/i"
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value1, key2, value2, key3, value3)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonValue1, ok := jsonMap[key1].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "i"}, jsonValue1)
+
+		jsonValue2, ok := jsonMap[key2].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"bar", "i"}, jsonValue2)
+
+		jsonValue3, ok := jsonMap[key3].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"baz", "i"}, jsonValue3)
+	})
+
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		value := "/xyz/i"
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
+
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
+
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
+
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(RegExp)
+			require.True(t, ok)
+			assert.Equal(t, RegExp{"xyz", "i"}, jsonValue)
+		}
+	})
+
+	t.Run("with single option", func(t *testing.T) {
+		var jsonMap map[string]any
+
+		key := "key"
+		options := []string{"g", "i", "m", "s"}
+
+		for _, option := range options {
+			data := fmt.Sprintf(`{"%v":/xyz/%v}`, key, option)
 
 			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, RegExp{"foo", "i"})
-		})
+			require.True(t, ok)
+			assert.Equal(t, RegExp{"xyz", option}, jsonValue)
+		}
+	})
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+	t.Run("with multiple options", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value1, value2, value3 := "/foo/i", "/bar/i", "/baz/i"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value1, key2, value2, key3, value3)
+		key := "key"
+		value := "/foo/gims"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			jsonValue1, ok := jsonMap[key1].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldResemble, RegExp{"foo", "i"})
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "gims"}, jsonValue)
+	})
 
-			jsonValue2, ok := jsonMap[key2].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldResemble, RegExp{"bar", "i"})
+	t.Run("can contain unescaped quotes (`'` and `\"`)", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			jsonValue3, ok := jsonMap[key3].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldResemble, RegExp{"baz", "i"})
-		})
+		key := "key"
+		value := `/f'o"o/i`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			key := "key"
-			value := "/xyz/i"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{`f'o"o`, "i"}, jsonValue)
+	})
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+	t.Run("unescaped forward slashes", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		key := "key"
+		value := "/f/o/o/i"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(RegExp)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, RegExp{"xyz", "i"})
-			}
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
+	})
 
-		Convey("can use options 'g', 'i', 'm', and 's'", func() {
-			var jsonMap map[string]any
+	t.Run("invalid escape sequences", func(t *testing.T) {
+		var jsonMap map[string]any
 
-			key := "key"
-			options := []string{"g", "i", "m", "s"}
+		key := "key"
+		value := `/f\o\o/`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			for _, option := range options {
-				data := fmt.Sprintf(`{"%v":/xyz/%v}`, key, option)
-
-				err := Unmarshal([]byte(data), &jsonMap)
-				So(err, ShouldBeNil)
-
-				jsonValue, ok := jsonMap[key].(RegExp)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, RegExp{"xyz", option})
-			}
-		})
-
-		Convey("can use multiple options", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := "/foo/gims"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, RegExp{"foo", "gims"})
-		})
-
-		Convey("can contain unescaped quotes (`'` and `\"`)", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := `/f'o"o/i`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
-
-			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, RegExp{`f'o"o`, "i"})
-		})
-
-		Convey("cannot contain unescaped forward slashes ('/')", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := "/f/o/o/i"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("cannot contain invalid escape sequences", func() {
-			var jsonMap map[string]any
-
-			key := "key"
-			value := `/f\o\o/`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 	})
 }
