@@ -24,6 +24,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
@@ -274,100 +276,95 @@ func fileExists(name string) bool {
 func TestValidArguments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a MongoFiles instance", t, func() {
-		mf := simpleMockMongoFilesInstanceWithFilename("search", "file")
-		Convey("It should error out when no arguments fed", func() {
-			args := []string{}
-			err := mf.ValidateCommand(args)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "no command specified")
-		})
+	mf := simpleMockMongoFilesInstanceWithFilename("search", "file")
+	t.Run("no args", func(t *testing.T) {
+		args := []string{}
+		err := mf.ValidateCommand(args)
+		require.Error(t, err)
+		assert.EqualError(t, err, "no command specified")
+	})
 
-		Convey(
-			"(list|delete|search|get_id|delete_id) should error out when more than 1 positional argument (except URI) is provided",
-			func() {
-				for _, command := range []string{"list", "delete", "search", "get_id", "delete_id"} {
-					args := []string{command, "arg1", "arg2"}
-					err := mf.ValidateCommand(args)
-					So(err, ShouldNotBeNil)
-					So(
-						err.Error(),
-						ShouldEqual,
-						"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
-					)
-				}
-			},
-		)
-
-		Convey("put_id should error out when more than 3 positional argument provided", func() {
-			args := []string{"put_id", "arg1", "arg2", "arg3"}
+	t.Run("non-URI positional args", func(t *testing.T) {
+		for _, command := range []string{"list", "delete", "search", "get_id", "delete_id"} {
+			args := []string{command, "arg1", "arg2"}
 			err := mf.ValidateCommand(args)
-			So(err, ShouldNotBeNil)
-			So(
-				err.Error(),
-				ShouldEqual,
+			require.Error(t, err)
+			assert.EqualError(
+				t,
+				err,
 				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+				"%v: too many args",
+				args,
 			)
-		})
+		}
+	})
 
-		Convey("put_id should error out when only 1 positional argument provided", func() {
-			args := []string{"put_id", "arg1"}
+	t.Run("put_id with too many args", func(t *testing.T) {
+		args := []string{"put_id", "arg1", "arg2", "arg3"}
+		err := mf.ValidateCommand(args)
+		require.Error(t, err)
+		assert.EqualError(
+			t,
+			err,
+			"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			"%v: too many args",
+			args,
+		)
+	})
+
+	t.Run("put_id with too few args", func(t *testing.T) {
+		args := []string{"put_id", "arg1"}
+		err := mf.ValidateCommand(args)
+		require.Error(t, err)
+		assert.EqualError(t, err, fmt.Sprintf("'%v' argument(s) missing", "put_id"))
+	})
+
+	t.Run("list with no args", func(t *testing.T) {
+		args := []string{"list"}
+		require.NoError(t, mf.ValidateCommand(args))
+		assert.Equal(t, "", mf.StorageOptions.LocalFileName)
+	})
+
+	t.Run("get with multiple args", func(t *testing.T) {
+		args := []string{"get", "foo", "bar", "baz"}
+		require.NoError(t, mf.ValidateCommand(args))
+		assert.Equal(t, []string{"foo", "bar", "baz"}, mf.FileNameList)
+	})
+
+	t.Run("put with multiple args", func(t *testing.T) {
+		args := []string{"put", "foo", "bar", "baz"}
+		require.NoError(t, mf.ValidateCommand(args))
+		assert.Equal(t, []string{"foo", "bar", "baz"}, mf.FileNameList)
+	})
+
+	t.Run("too few args", func(t *testing.T) {
+		for _, command := range []string{"get", "put", "delete", "search", "get_id", "delete_id"} {
+			args := []string{command}
 			err := mf.ValidateCommand(args)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, fmt.Sprintf("'%v' argument(s) missing", "put_id"))
-		})
-
-		Convey("It should not error out when list command isn't given an argument", func() {
-			args := []string{"list"}
-			So(mf.ValidateCommand(args), ShouldBeNil)
-			So(mf.StorageOptions.LocalFileName, ShouldEqual, "")
-		})
-
-		Convey(
-			"It should not error out when the get command is given multiple supporting arguments",
-			func() {
-				args := []string{"get", "foo", "bar", "baz"}
-				So(mf.ValidateCommand(args), ShouldBeNil)
-				So(mf.FileNameList, ShouldResemble, []string{"foo", "bar", "baz"})
-			},
-		)
-
-		Convey(
-			"It should not error out when the put command is given multiple supporting arguments",
-			func() {
-				args := []string{"put", "foo", "bar", "baz"}
-				So(mf.ValidateCommand(args), ShouldBeNil)
-				So(mf.FileNameList, ShouldResemble, []string{"foo", "bar", "baz"})
-			},
-		)
-
-		Convey(
-			"It should error out when any of (get|put|delete|search|get_id|delete_id) not given supporting argument",
-			func() {
-				for _, command := range []string{"get", "put", "delete", "search", "get_id", "delete_id"} {
-					args := []string{command}
-					err := mf.ValidateCommand(args)
-					So(err, ShouldNotBeNil)
-					So(err.Error(), ShouldEqual, fmt.Sprintf("'%v' argument missing", command))
-				}
-			},
-		)
-
-		Convey("It should error out when a nonsensical command is given", func() {
-			args := []string{"commandnonexistent"}
-
-			err := mf.ValidateCommand(args)
-			So(err, ShouldNotBeNil)
-			So(
-				err.Error(),
-				ShouldEqual,
-				fmt.Sprintf(
-					"'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
-					args[0],
-				),
+			require.Error(t, err)
+			assert.EqualError(
+				t,
+				err,
+				fmt.Sprintf("'%v' argument missing", command),
+				"%s with no additional argument",
+				command,
 			)
-		})
+		}
+	})
 
+	t.Run("nonsensical command", func(t *testing.T) {
+		args := []string{"commandnonexistent"}
+
+		err := mf.ValidateCommand(args)
+		require.Error(t, err)
+		assert.EqualError(
+			t,
+			err,
+			fmt.Sprintf(
+				"'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+				args[0],
+			),
+		)
 	})
 }
 
